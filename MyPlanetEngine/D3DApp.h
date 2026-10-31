@@ -17,6 +17,7 @@
 #include "Glare.h"
 #include "Settings.h"
 #include "Tectonics.h"
+#include "Climate.h"
 class Ocean;
 namespace Tectonics { struct Map; }
 
@@ -320,6 +321,7 @@ protected:
     // The climate map (Climate.h): the planet's rain, temperatures and winds from its large forms, once at startup, after the
     // tectonic map; its time (ms) and size (MB).
     ComPtr<ID3D12Resource> mClimateMap;
+    Climate::Map mClimateCpu; // retained from CreateClimateMap for the erosion level 0 and its cache key
     double mClimateMs = 0.0, mClimateMb = 0.0, mWeatherMapMs = 0.0; // and the clouds' weather map's time (ms)
     void CreateClimateMap(const Tectonics::Map& tectonics, uint32_t seed, const std::wstring& cache);
     // The erosion's level 0 (Erosion.h): the network of the rivers and the glaciers, once at startup, from the tectonic

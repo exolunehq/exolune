@@ -1,0 +1,13 @@
+# Sols mobiles et ravines : jugement en vol par l’utilisateur, graine 0. Altitudes des vues au sol calculées avec le réseau actuel, caméra à 1,8 m. Aucun lancement automatique. La saturation reste la même à toute maille ; docs/spec-erosion.md.
+Forêt signalée : plus de banque ni de fin, vers le nord | 2193.116 34.1611352 -73.72443 0 0 | 25 -65
+Même forêt depuis 200 m : raccords des ravines au sol porteur | 2391 34.1611352 -73.72443 40 0 | 25 -65
+Versant enneigé : plus de tranchée ni de palissade, vers le nord | 2083.012 -48.3497 -44.8221 0 0 | -40 -10
+Même versant depuis 200 m : continuité sur plusieurs octaves | 2281 -48.3497 -44.8221 45 0 | -40 -10
+Ancien canyon vertical : sol à hauteur d’homme | 956.370 -38.1080 166.4916 0 0 | -35 160
+Même canyon depuis 200 m : les ravines ne dressent plus de murs | 1154 -38.1080 166.4916 45 0 | -35 160
+Témoin plat : le sol reste plat, à hauteur d’homme | 111.081 44.16 -60.08 0 0 | 35 -55
+Arêtes au-dessus de la glace : crêtes rocheuses conservées depuis 300 m | 3030 -46.9 -33.8 30 200 | -40 -10
+Mêmes arêtes au sol : pas de cuspide ni de palissade | 2732.367 -46.9 -33.8 0 200 relief | -40 -10
+Falaise tropicale : contour marin conservé | 3000 8.54005 -103.23344 40 180 | 10 -100
+Côte froide : falaises et accès à la mer conservés | 3000 -51.89165 -40.94037 40 180 | -40 -10
+Côte plate : forme et niveau conservés | 1000 16.71 -89.28 45 180 | 15 -85

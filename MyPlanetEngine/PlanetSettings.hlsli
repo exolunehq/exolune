@@ -128,10 +128,13 @@ static const float3 EROSION_GULLY           = float3(0.02, 0.15, 0.1);
 static const int   EROSION_GULLY_PERIODS    = 2;
 // The stripes fade around their forks, where the sum of their waves, of unit weight, falls under this.
 static const float EROSION_GULLY_FORK       = 0.3;
-// Under the glaciers, the crests |x|^EROSION_GLACIAL_POWER, sharp, the troughs wide; E|cos|^power for the stripes' mean.
-static const float EROSION_GLACIAL_POWER    = 0.7;
-static const float EROSION_GLACIAL_POWER_MEAN = 0.7043;
-// The glaciers over EROSION_GLACIAL_BAND m around the glacial maximum's equilibrium line; the folds fade where the level
+// Soil-mantled hillslopes: Roering, Kirchner and Dietrich 1999, Sc = 1.25 +- 0.10.
+static const float EROSION_GULLY_CRITICAL   = 1.25;
+// Strong exposed rock can sustain 70 degrees; the equilibrium-line share opens this bound continuously.
+static const float EROSION_GULLY_ROCK       = 2.74747742;
+// Above the ice, a monotone quadratic sharpens crests, with finite slope and the crease's rounding; 0 disables it.
+static const float EROSION_GLACIAL_SHARPEN  = 0.2;
+// The sharpening over EROSION_GLACIAL_BAND m around the glacial maximum's equilibrium line; the folds fade where the level
 // 0's valleys are deeper than x to y (m), in the chains' core.
 static const float EROSION_GLACIAL_BAND     = 600.0;
 // The valleys are read at a point warped by up to y km at one deviation, from x km down, so that the level 0's straight

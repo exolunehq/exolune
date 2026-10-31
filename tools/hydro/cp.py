@@ -62,7 +62,9 @@ EROSION_GLACIER, EROSION_GLACIER_WALLS = (600.0, 0.4, 0.3, 22.0), 0.85
 EROSION_SMOOTH, EROSION_COARSE = 60.0, 20.0
 EROSION_GULLY_FIRST, EROSION_GULLY_SHARE, EROSION_GULLY, EROSION_GULLY_PERIODS = 2, 0.85, (0.02, 0.15, 0.1), 2
 EROSION_GULLY_FORK = 0.3
-EROSION_GLACIAL_POWER, EROSION_GLACIAL_POWER_MEAN = 0.7, 0.7043
+EROSION_GULLY_CRITICAL = 1.25
+EROSION_GULLY_ROCK = 2.74747742
+EROSION_GLACIAL_SHARPEN = 0.2
 EROSION_GLACIAL_BAND, EROSION_FOLD_DEPTH = 600.0, (800.0, 2000.0)
 EROSION_WARP, EROSION_WALL_RELIEF = (40.0, 7.0), 0.35
 EROSION_DELTA, EROSION_DELTA_DISCHARGE, EROSION_DELTA_FRONT = (60.0, 0.3, 1.6, 3.0), 300.0, 0.05
@@ -854,13 +856,9 @@ def _eread(words, c):
 
 
 def erosion_climate(d):
-    """ErosionClimate: (precipitation m/yr, sea level temperature C) by latitude."""
-    temperature = np.array([26, 26, 25, 20, 14, 6, -1, -10, -18, -22.0])
-    rain = np.array([2.0, 1.8, 0.9, 0.6, 0.9, 1.0, 0.8, 0.4, 0.2, 0.15])
-    a = np.abs(np.arcsin(np.clip(d[:, 1], -1.0, 1.0))) * (18.0 / math.pi)
-    k = np.minimum(a.astype(np.int64), 8)
-    f = a - k
-    return rain[k] + (rain[k + 1] - rain[k]) * f, temperature[k] + (temperature[k + 1] - temperature[k]) * f
+    """ErosionClimate: computed year's precipitation (m/yr), sea-level temperature (C)."""
+    fields = climate(d)
+    return 0.001 * fields["precipitation"], fields["temperature"]
 
 
 def erosion_equilibrium_line(d):
@@ -1021,7 +1019,12 @@ def erosion_valleys(p, cell_km, walls, seed=None):
 def erosion_carve(h, coarse, v, k):
     """ErosionCarve."""
     e = np.maximum(k - np.abs(coarse - v["surface"]), 0.0) / k
-    return h - coarse + np.maximum(np.minimum(coarse, v["surface"]) - 0.25 * k * e * e, np.minimum(coarse, v["level"]))
+    bed = np.minimum(coarse, v["surface"]) - 0.25 * k * e * e
+    cut = np.maximum(bed, np.minimum(coarse, v["level"]))
+    wet = 1.0 - _smooth(0.0, k, bed - v["level"])
+    floor = np.maximum(v["floor"], wet) * _smooth(0.0, k, coarse - cut)
+    ground = h - coarse + cut
+    return ground + (cut - ground) * floor
 
 
 # --- The relief (MyPlanetEngine/Relief.hlsli): the large forms from the map, the detail from the noise. ---
@@ -1054,6 +1057,53 @@ def _rcrease(x, e):
     return c, dc
 
 
+def _sharpen_crease(x, e, b):
+    """ReliefSharpenCrease: change to the crease and its derivative; exact rounded |cos| mean, finite slope."""
+    mean = 2.0 / math.pi
+    scale = 0.5 * math.pi * 0.5 * (1.0 + MEAN_BILLOW[True])
+    u, r = np.abs(x) / scale, np.broadcast_to(e / scale, x.shape)
+    base = np.where(u < r, 0.5 * (u * u / r + r), u)
+    derivative = np.where(u < r, x / e, np.sign(x))
+    k = mean / ((1.0 + b) * mean - 0.5 * b)
+    # As the shader's branches: the closed form is not evaluated for small or super-amplitude rounding.
+    rr = r * r
+    excess = rr / math.pi * (1.0 / 3.0 + rr * (1.0 / 60.0 + rr / 280.0))
+    sel = (r >= 0.1) & (r < 1.0)
+    root, angle = np.sqrt(1.0 - rr[sel]), np.arcsin(r[sel])
+    excess[sel] = (rr[sel] * angle - 2.0 * r[sel] * (1.0 - root)
+                   + 0.5 * (angle - r[sel] * root)) / (math.pi * r[sel])
+    square = np.where(u < 1.0, u * u, 2.0 * u - 1.0)
+    change = k * (1.0 + b) - 1.0
+    slope = change * derivative - k * b * 2.0 * np.minimum(u, 1.0) * np.sign(x)
+    value = scale * (change * (base - mean - excess) - k * b * (square - 0.5))
+    large = r >= 1.0
+    change = k * (1.0 - b) - 1.0
+    return (np.where(large, scale * change * (base - (0.5 * r + 0.25 / r)), value),
+            np.where(large, change * derivative, slope))
+
+
+def _stripe_mean(e):
+    """ReliefStripeMean: exact rounded sinusoid mean, less the ordinary noise's crease excess."""
+    mean = 2.0 / math.pi
+    scale = 0.5 * math.pi * 0.5 * (1.0 + MEAN_BILLOW[True])
+    r = np.asarray(e) / scale
+    rr = r * r
+    excess = rr / math.pi * (1.0 / 3.0 + rr * (1.0 / 60.0 + rr / 280.0))
+    sel = (r >= 0.1) & (r < 1.0)
+    root, angle = np.sqrt(1.0 - rr[sel]), np.arcsin(r[sel])
+    excess[sel] = (rr[sel] * angle - 2.0 * r[sel] * (1.0 - root)
+                   + 0.5 * (angle - r[sel] * root)) / (math.pi * r[sel])
+    value = np.where(r >= 1.0, scale * (0.5 * r + 0.25 / r), scale * (mean + excess))
+    return value - np.vectorize(_excess)(e)
+
+
+def _gully_gain(under, normal, stripe, share, critical=EROSION_GULLY_CRITICAL):
+    """ReliefGullyGain: C1 headroom after reserving the ordinary octave; a phase-independent saturation."""
+    left = np.maximum(critical - under - normal, 0.0)
+    budget, own = left * left / critical, share * (normal + stripe)
+    return budget / np.sqrt(budget * budget + own * own + 1e-30)
+
+
 def detail(ctx, oriented, plain, oriented_octaves, top_km, octaves, relief, sharp, crease, seed, fold=None, fold_share=0.0,
            fold_weight=0.0, wide_octaves=0, gullies=None, coarse=None, cliff_slope=None):
     """ReliefDetail (Relief.hlsli): (value, slope vector (n, 3)); fold, (value (n,), gradient per radian (n, 3)); gullies,
@@ -1070,9 +1120,12 @@ def detail(ctx, oriented, plain, oriented_octaves, top_km, octaves, relief, shar
     metres = relief / (1000.0 * R_KM)
     sharp = np.broadcast_to(sharp, (n,))
     crease = np.broadcast_to(crease, (n,))
-    if gullies is not None:
-        power = 1.0 + (EROSION_GLACIAL_POWER - 1.0) * gullies["glacial"]
-        power_mean = 2.0 / math.pi + (EROSION_GLACIAL_POWER_MEAN - 2.0 / math.pi) * gullies["glacial"]
+    bend = EROSION_GLACIAL_SHARPEN * gullies["glacial"] if gullies is not None else np.zeros(n)
+    mean_abs, mean = 0.5 * (1.0 + MEAN_BILLOW[True]), 2.0 / math.pi
+    stripe_scale = 0.5 * math.pi * mean_abs
+    sharpen_slope = mean * (1.0 + bend) / ((1.0 + bend) * mean - 0.5 * bend)
+    noise_gradient, noise_curvature = 26.0, 512.0
+    curvature = np.zeros(n)
     for o in range(octaves):
         w = _weight(ctx, f)
         if w <= 0.0:
@@ -1080,23 +1133,37 @@ def detail(ctx, oriented, plain, oriented_octaves, top_km, octaves, relief, shar
         pt = oriented if o < oriented_octaves else plain
         c, q = _lattice(pt, f, o)
         v, g = gradient_noise_d(c, q, seed + o)
+        round_before, ridged_before = rs.copy(), ds.copy()
         g = g * f * metres[:, None]
         g = g - up * (g * up).sum(1, keepdims=True)
-        share = np.zeros(n)
+        share, limited_share = np.zeros(n), np.zeros(n)
+        stripe_value, stripe_gradient = np.zeros(n), np.zeros((n, 3))
+        round_a = amp * w / (1.0 + RELIEF_EROSION * (rs * rs).sum(1))
+        folded = 1.0 - 0.5 * np.broadcast_to(fold_share, (n,)) * np.clip(fold_weight, 0.0, 1.0) if o in (1, 2) else 1.0
+        ridge_a = 1.7 * amp * w * chain * folded / (1.0 + RELIEF_RIDGE_EROSION * (ds * ds).sum(1))
         if gullies is not None and o >= EROSION_GULLY_FIRST and R_KM / f > EROSION_GULLY[2]:
             under = gullies["slope"] + rs + (ds - rs) * sharp[:, None] - gullies["carved"][:, None] * cs
             steep = np.linalg.norm(under, axis=1)
             share = gullies["share"] * _smooth(EROSION_GULLY[0], EROSION_GULLY[1], steep) * (1.0 - _smooth(0.85, 1.0, crest * sharp)) * (1.0 - _smooth(0.9, 1.0, top * sharp))
-            sel = share > 0.0
+            coefficient = (round_a + (ridge_a - round_a) * sharp) / max(w, 1e-20)
+            stripe_coefficient = (round_a + (ridge_a * sharpen_slope - round_a) * sharp) / max(w, 1e-20)
+            frequency = f / (1000.0 * R_KM)
+            normal_bound = noise_gradient * relief * frequency * coefficient
+            stripe_bound = stripe_scale * relief * stripe_coefficient * (2.0 / EROSION_GULLY_FORK) * (2.0 * math.pi * (frequency + 4.0 * curvature / np.maximum(steep, EROSION_GULLY[0])) + 5.625 * frequency)
+            critical = EROSION_GULLY_CRITICAL + (EROSION_GULLY_ROCK - EROSION_GULLY_CRITICAL) * gullies["glacial"]
+            limited_share = share * _gully_gain(steep, normal_bound, stripe_bound, share, critical)
+            sel = (limited_share > 0.0) | ((share > 0.0) & (R_KM / f > EROSION_CLIFF_SLOPE_KM))
             if sel.any():
                 across = np.cross(up[sel], under[sel]) / steep[sel, None]
                 sv, sg = _gullies(plain[sel], f, across, seed + 32 + o)
-                v = v.copy()
-                v[sel] += (sv - v[sel]) * share[sel]
-                g[sel] += (sg * f * metres[sel, None] - g[sel]) * share[sel, None]
-        a = amp * w / (1.0 + RELIEF_EROSION * (rs * rs).sum(1))
+                stripe_value[sel] = sv
+                stripe_gradient[sel] = sg * f * metres[sel, None]
+        a = round_a
         rnd += a * v
         rs += a[:, None] * g
+        if (limited_share > 0.0).any():
+            rnd += round_a * limited_share * (stripe_value - v)
+            rs += (round_a * limited_share)[:, None] * (stripe_gradient - g)
         x, gr, wr = v, g, np.full(n, w)
         if o == 0 and fold is not None:
             fs = np.broadcast_to(fold_share, (n,))
@@ -1107,18 +1174,32 @@ def detail(ctx, oriented, plain, oriented_octaves, top_km, octaves, relief, shar
             wr = w + (fold_weight - w) * fs
         e = np.maximum(crease, CREASE_ROUNDING * f / ctx.creasef)
         cr, dc = _rcrease(x, e)
-        if gullies is not None:
-            scale = 0.5 * math.pi * 0.5 * (1.0 + MEAN_BILLOW[True])
-            u = np.maximum(cr, 1e-4) / scale
-            kk = (2.0 / math.pi) / power_mean
-            sh = share * (gullies["glacial"] > 0.0)
-            dc = dc * (1.0 + (kk * power * u ** (power - 1.0) - 1.0) * sh)
-            cr = cr + (scale * kk * u ** power - cr) * sh
-        r = 1.0 - cr
-        folded = 1.0 - 0.5 * np.broadcast_to(fold_share, (n,)) * np.clip(fold_weight, 0.0, 1.0) if o in (1, 2) else 1.0
+        normal_c, normal_dc = cr.copy(), dc.copy()
         a = 1.7 * amp * wr * chain * folded / (1.0 + RELIEF_RIDGE_EROSION * (ds * ds).sum(1))
-        rid += a * (r - 0.5 * (1.0 - MEAN_BILLOW[True]))
-        ds += (a * -dc)[:, None] * gr
+        if (limited_share > 0.0).any():
+            stripe_c, stripe_dc = _rcrease(stripe_value, e)
+            change, derivative = _sharpen_crease(stripe_value, e, bend)
+            stripe_c += change
+            stripe_dc += derivative
+            normal_value, stripe_value_ridged = mean_abs - normal_c, _stripe_mean(e) - stripe_c
+            rid += ridge_a * limited_share * (stripe_value_ridged - normal_value)
+            ds += (ridge_a * limited_share)[:, None] * (-stripe_dc[:, None] * stripe_gradient + normal_dc[:, None] * gr)
+            cr -= limited_share * (stripe_value_ridged - normal_value)
+        r = 1.0 - cr
+        rid += a * (1.0 - normal_c - 0.5 * (1.0 - MEAN_BILLOW[True]))
+        ds += (a * -normal_dc)[:, None] * gr
+        if R_KM / f > EROSION_CLIFF_SLOPE_KM and (share > 0.0).any():
+            mixed = v + (stripe_value - v) * share
+            mixed_gradient = g + (stripe_gradient - g) * share[:, None]
+            _, old_dc = _rcrease(mixed, e)
+            _, derivative = _sharpen_crease(mixed, e, bend)
+            old_dc += share * (bend > 0.0) * derivative
+            old_round = round_before + round_a[:, None] * mixed_gradient
+            old_ridged = ridged_before + (a * -old_dc)[:, None] * mixed_gradient
+            cliff_value = old_round + (old_ridged - old_round) * sharp[:, None]
+        frequency = f / (1000.0 * R_KM)
+        intrinsic = np.maximum(crease, CREASE_ROUNDING * MESH_BAND_LIMIT * CREASE_MIN_CELL * frequency)
+        curvature += amp * relief * frequency * frequency * (noise_curvature + 1.7 * sharp * sharpen_slope * noise_gradient * noise_gradient / np.maximum(intrinsic, 1e-20))
         chain = np.clip(0.3 + 1.2 * r, 0.0, 1.0)
         if o < wide_octaves:
             wide = rnd + (rid - rnd) * sharp
@@ -1128,7 +1209,7 @@ def detail(ctx, oriented, plain, oriented_octaves, top_km, octaves, relief, shar
         if f < R_KM / EROSION_COARSE:
             coarse_value = rnd + (rid - rnd) * sharp
             cs = rs + (ds - rs) * sharp[:, None]
-        if f < R_KM / EROSION_CLIFF_SLOPE_KM:
+        if f < R_KM / EROSION_CLIFF_SLOPE_KM and not (share > 0.0).any():
             cliff_value = rs + (ds - rs) * sharp[:, None]
         f *= RELIEF_LACUNARITY
         amp *= 0.5
@@ -1251,12 +1332,14 @@ def _coast_gradient(ctx, p, gain, rias, seed):
 
 
 def erosion_wave_wind(d):
-    """ErosionWaveWind: the only wind reading for waves, ready for the climate's map; xyz is travel times force."""
-    latitude = np.abs(np.arcsin(np.clip(d[:, 1], -1.0, 1.0))) * (180.0 / 3.14159265)
-    west = _smooth(26.0, 34.0, latitude) * (1.0 - _smooth(56.0, 64.0, latitude))
-    strength = 1.0 + (EROSION_CLIFF_WAVES[1] - 1.0) * np.exp(-((latitude - 45.0) / 12.0) ** 2)
-    east = np.cross(d, [0.0, 1.0, 0.0])
-    return east / np.maximum(np.linalg.norm(east, axis=1, keepdims=True), 1e-6) * ((2.0 * west - 1.0) * strength)[:, None]
+    """ErosionWaveWind: climate mean wind's travel times force; 5 m/s -> 1, 8 m/s -> 1.6, calms fade below 1 m/s."""
+    fields = climate(d)
+    we, wn = fields["wind_east"], fields["wind_north"]
+    speed = np.hypot(we, wn)
+    strength = _smooth(0.0, 1.0, speed) * (1.0 + (EROSION_CLIFF_WAVES[1] - 1.0) * np.clip((speed - 5.0) / 3.0, 0.0, 1.0))
+    east = np.stack([-d[:, 2], np.zeros(len(d)), d[:, 0]], 1) / np.maximum(np.linalg.norm(d[:, [0, 2]], axis=1, keepdims=True), 1e-6)
+    north = np.cross(east, d)
+    return (we[:, None] * east + wn[:, None] * north) * (strength / np.maximum(speed, 1e-6))[:, None]
 
 
 def erosion_cliff_profile(h, hc, delta, depth):
@@ -1440,7 +1523,7 @@ def _relief_ground(ctx, p, valleys=True):
         gullies = dict(carved=carved,
                        slope=m["forms_gradient"] / (1000.0 * R_KM) + (v["gradient"] - m["forms_gradient"] / (1000.0 * R_KM)) * carved[:, None],
                        share=EROSION_GULLY_SHARE * _smooth(-20.0, 60.0, h) * (1.0 - 4.0 * carved * (1.0 - carved)),
-                       glacial=np.maximum(v["glacier"], _smooth(-0.5, 0.5, (h - erosion_equilibrium_line(p)) / EROSION_GLACIAL_BAND)))
+                       glacial=_smooth(-0.5, 0.5, (h - erosion_equilibrium_line(p)) / EROSION_GLACIAL_BAND))
     open_ = 1.0 - v["floor"] * _smooth(-20.0, 20.0, h)
     plain = p
     bent = turbulence(ctx, plain, R_KM / RELIEF_DETAIL_WARP[0], RELIEF_DETAIL_WARP[1] / (SIGMA * R_KM), 3, _rseed(4))

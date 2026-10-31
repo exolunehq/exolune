@@ -8,6 +8,7 @@
 #include <vector>
 
 namespace Tectonics { struct Map; }
+namespace Climate { struct Map; }
 
 namespace Erosion
 {
@@ -28,7 +29,7 @@ namespace Erosion
 
     // The level 0 of a body from its tectonic map and its form before erosion at the centres of the map's cells (m),
     // face by face, row by row.
-    Map Build(const Tectonics::Map& tectonics, const std::vector<float>& form, double radiusKm);
+    Map Build(const Tectonics::Map& tectonics, const Climate::Map& climate, const std::vector<float>& form, double radiusKm);
 
     // The map to a file, the cache per seed and the CPU port's (tools/hydro/cp.py): a header, the seed, the size and the
     // key of what it was computed from, then the texels.
@@ -37,6 +38,6 @@ namespace Erosion
     // The map from that file when its key is `key`.
     bool Load(Map& map, uint64_t key, const std::wstring& path);
 
-    // The cache's key: the form read, the seed and the executable's time, which changes with the code.
-    uint64_t Key(const std::vector<float>& form, uint32_t seed, uint64_t executableTime);
+    // The cache's key: the form and climate read, the seed and the executable's time, which changes with the code.
+    uint64_t Key(const std::vector<float>& form, const Climate::Map& climate, uint32_t seed, uint64_t executableTime);
 }

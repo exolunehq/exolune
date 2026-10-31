@@ -1,0 +1,13 @@
+# Crêtes et climat : jugement en vol par l’utilisateur, sans lancement automatique. Altitudes au-dessus de la mer ; graine 0. Sol continu, pas de lame sous la glace ; arêtes arrondies encore lisibles au-dessus de la ligne d’équilibre. Voir docs/spec-erosion.md pour les mesures CPU.
+Forêt à hauteur d’homme, vers le nord : ancien mur à 13 m | 2120.066 34.1611352 -73.72443 0 0 | 25 -65
+Même forêt depuis 200 m : continuité sur plusieurs crêtes | 2318 34.1611352 -73.72443 45 0 | 25 -65
+Versant enneigé à hauteur d’homme : ancienne lame, vers le nord | 2166.836 -48.3497 -44.8221 0 0 | -40 -10
+Chaîne au-dessus de la ligne d’équilibre : arêtes conservées | 5792 -46.9 -33.8 15 200 | -40 -10
+Même chaîne de près : crêtes sans cuspide | 3100 -46.9 -33.8 30 200 relief | -40 -10
+Falaise tropicale : nouvelle exposition au vent calculé | 3000 8.54005 -103.23344 40 180 | 10 -100
+Falaise à 23° S : calibration conservée | 3000 -23.01696 158.00809 40 180 | -20 150
+Côte volcanique : le vent peut déplacer la face active | 3000 -3.34285 169.01181 40 180 | -5 160
+Côte froide : ni coupe enclavée ni mur d’auge | 3000 -51.89165 -40.94037 40 180 | -40 -10
+Côte active : portée limitée et climat calculé | 3000 -8.11021 131.04460 40 180 | -5 125
+Cap tropical : exposition et continuité du rivage | 3000 8.76166 -103.24998 40 180 | 10 -100
+Côte plate témoin : sol inchangé | 1000 16.71 -89.28 45 180 | 15 -85

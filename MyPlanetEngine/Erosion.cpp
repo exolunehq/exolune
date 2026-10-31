@@ -4,6 +4,7 @@
 // (MyPlanetEngine.vcxproj).
 #include "Erosion.h"
 #include "Tectonics.h"
+#include "Climate.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -37,17 +38,14 @@ namespace Erosion
 
         struct V3 { double x, y, z; };
 
-        // The climate's placeholder, its only reading, until the climate's maps come (docs/spec-erosion.md): zonal means by
-        // latitude every 10 degrees, the sea level's temperature (C) and the precipitation (m/yr). Erosion.hlsli has the same.
-        void ErosionClimate(const V3& d, double& precipitation, double& seaTemperature)
+        // The computed year's precipitation (m/yr), sea-level temperature (C), as Erosion.hlsli.
+        void ErosionClimate(const Climate::Map& climate, const V3& d, double& precipitation, double& seaTemperature)
         {
-            static const double temperature[10] = { 26, 26, 25, 20, 14, 6, -1, -10, -18, -22 };
-            static const double rain[10] = { 2.0, 1.8, 0.9, 0.6, 0.9, 1.0, 0.8, 0.4, 0.2, 0.15 };
-            const double a = std::fabs(std::asin(std::min(std::max(d.y, -1.0), 1.0))) * (18.0 / 3.14159265358979323846);
-            const int k = std::min(int(a), 8);
-            const double f = a - k;
-            precipitation = rain[k] + (rain[k + 1] - rain[k]) * f;
-            seaTemperature = temperature[k] + (temperature[k + 1] - temperature[k]) * f;
+            const double direction[3] = { d.x, d.y, d.z };
+            float fields[Climate::Channels];
+            Climate::At(climate, direction, fields);
+            precipitation = 0.001 * fields[Climate::Precipitation];
+            seaTemperature = fields[Climate::Temperature];
         }
 
         // Potential evapotranspiration (m/yr) at a temperature (C).
@@ -187,7 +185,7 @@ namespace Erosion
         uint32_t Level16(double m) { return uint32_t(std::min(std::max(std::lround((m + 8192.0) * 4.0), 0l), 65535l)); }
     }
 
-    Map Build(const Tectonics::Map& tectonics, const std::vector<float>& form, double radiusKm)
+    Map Build(const Tectonics::Map& tectonics, const Climate::Map& climate, const std::vector<float>& form, double radiusKm)
     {
         const auto start = std::chrono::steady_clock::now();
         Map map;
@@ -208,10 +206,10 @@ namespace Erosion
         for (uint32_t c = 0; c < cells; ++c) {
             e[c] = form[c], sea[c] = form[c] < 0.0f;
             area[c] = cube.Area(c) * radius * radius;
-            ErosionClimate(cube.p[c], precipitation[c], seaT[c]);
+            ErosionClimate(climate, cube.p[c], precipitation[c], seaT[c]);
             const double t = seaT[c] - kLapse * std::max(e[c], 0.0), p = precipitation[c];
             // The runoff by Schreiber's curve; a lake evaporates more than the land, less the rain on it.
-            runoff[c] = sea[c] ? 0.0 : p * std::exp(-Evaporation(t) / p);
+            runoff[c] = sea[c] || p <= 0.0 ? 0.0 : p * std::exp(-Evaporation(t) / p);
             evaporation[c] = sea[c] ? 0.0 : std::max(1.2 * Evaporation(t) + 0.2 - p, 0.0);
         }
 
@@ -390,13 +388,15 @@ namespace Erosion
         return ok;
     }
 
-    uint64_t Key(const std::vector<float>& form, uint32_t seed, uint64_t executableTime)
+    uint64_t Key(const std::vector<float>& form, const Climate::Map& climate, uint32_t seed, uint64_t executableTime)
     {
         uint64_t h = 0xcbf29ce484222325ull; // FNV-1a, 64 bits
         auto add = [&](const void* data, size_t bytes) {
             for (size_t i = 0; i < bytes; ++i) h = (h ^ static_cast<const uint8_t*>(data)[i]) * 0x100000001b3ull;
         };
         add(form.data(), form.size() * sizeof(float));
+        add(&climate.size, sizeof(climate.size));
+        add(climate.cells.data(), climate.cells.size() * sizeof(float));
         add(&seed, sizeof(seed));
         add(&executableTime, sizeof(executableTime));
         return h;

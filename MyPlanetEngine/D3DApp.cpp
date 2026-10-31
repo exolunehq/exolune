@@ -720,9 +720,11 @@ bool D3DApp::InitDirect3D() {
         D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
     CD3DX12_DESCRIPTOR_RANGE lutRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 1); // t1..t3
     CD3DX12_DESCRIPTOR_RANGE materialRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 5); // t5, t6
-    const CD3DX12_STATIC_SAMPLER_DESC samplers[3] = { linearClamp,
+    const CD3DX12_STATIC_SAMPLER_DESC samplers[4] = { linearClamp,
         CD3DX12_STATIC_SAMPLER_DESC(1, D3D12_FILTER_ANISOTROPIC),
-        CD3DX12_STATIC_SAMPLER_DESC(2, D3D12_FILTER_MIN_MAG_MIP_LINEAR) }; // s1: materials, wrapping, anisotropic
+        CD3DX12_STATIC_SAMPLER_DESC(2, D3D12_FILTER_MIN_MAG_MIP_LINEAR),
+        CD3DX12_STATIC_SAMPLER_DESC(4, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+            D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP) }; // s4: erosion's climate
     CD3DX12_DESCRIPTOR_RANGE oceanRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,6,11);
     CD3DX12_DESCRIPTOR_RANGE planetMapRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 29);
     CD3DX12_DESCRIPTOR_RANGE shipSunRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 44); // the ship's map towards the sun
@@ -742,13 +744,13 @@ bool D3DApp::InitDirect3D() {
     params[9].InitAsDescriptorTable(1,&oceanRange);
     params[10].InitAsDescriptorTable(1, &shipSunRange, D3D12_SHADER_VISIBILITY_PIXEL);
     params[11].InitAsDescriptorTable(1, &tectonicRange, D3D12_SHADER_VISIBILITY_PIXEL);
-    mRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(12, params, 3, samplers));
+    mRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(12, params, 4, samplers));
     // Terrain compute: frame constants, its output (UAV), the tectonic map the relief reads (Relief.hlsli).
     CD3DX12_ROOT_PARAMETER computeParams[3];
     computeParams[0].InitAsConstantBufferView(0);
     computeParams[1].InitAsUnorderedAccessView(0);
     computeParams[2].InitAsDescriptorTable(1, &tectonicRange);
-    mComputeRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(3, computeParams));
+    mComputeRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(3, computeParams, 1, &samplers[3]));
     // Fine grid normals: frame constants, the grid's positions (SRV), its normals (UAV). Its positions use the
     // terrain compute's signature.
     CD3DX12_ROOT_PARAMETER fineParams[3];
@@ -774,7 +776,8 @@ bool D3DApp::InitDirect3D() {
     for (UINT i = 0; i < 4; ++i) objectParams[11 + i].InitAsUnorderedAccessView(4 + i); // stable plant scratch
     for (UINT i = 0; i < 3; ++i) objectParams[15 + i].InitAsUnorderedAccessView(8 + i); // the plant tiles' kept ground (PlanetPlantPlacement)
     objectParams[18].InitAsDescriptorTable(1, &tectonicRange); // the relief's tectonic map, for the exact ground
-    mObjectRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(19, objectParams, 1, &samplers[1]));
+    const CD3DX12_STATIC_SAMPLER_DESC objectSamplers[2] = { samplers[1], samplers[3] };
+    mObjectRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(19, objectParams, 2, objectSamplers));
     // The atmosphere pass, full screen: frame constants, HDR and atmosphere tables, the relief shadow mesh, the terrain's
     // sunlit part, the clouds' frame (b1) and textures, the planet map, then the cloud temporal pass's images.
     CD3DX12_DESCRIPTOR_RANGE postRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 0); // t0..t3
@@ -1452,17 +1455,18 @@ void D3DApp::CreateErosionMap(const Tectonics::Map& tectonics, ID3D12PipelineSta
     memcpy(e.data(), mapped, bytes);
     readback->Unmap(0, &noWrite);
 
-    // The network from the cache when its key, the form, the seed and the executable's time, is the same; else computed.
+    // The network from the cache when the form, climate, seed and executable's time agree; else computed.
     wchar_t exePath[MAX_PATH] = {};
     GetModuleFileNameW(nullptr, exePath, MAX_PATH);
     WIN32_FILE_ATTRIBUTE_DATA exeInfo = {};
     GetFileAttributesExW(exePath, GetFileExInfoStandard, &exeInfo);
-    const uint64_t key = Erosion::Key(e, seed, uint64_t(exeInfo.ftLastWriteTime.dwHighDateTime) << 32 | exeInfo.ftLastWriteTime.dwLowDateTime);
+    const uint64_t key = Erosion::Key(e, mClimateCpu, seed,
+        uint64_t(exeInfo.ftLastWriteTime.dwHighDateTime) << 32 | exeInfo.ftLastWriteTime.dwLowDateTime);
     std::wstring cache(exePath);
     cache = cache.substr(0, cache.find_last_of(L"\\/") + 1) + L"erosion-" + std::to_wstring(seed) + L".bin";
     Erosion::Map map;
     if (!Erosion::Load(map, key, cache)) {
-        map = Erosion::Build(tectonics, e, PlanetRadius / 1000.0);
+        map = Erosion::Build(tectonics, mClimateCpu, e, PlanetRadius / 1000.0);
         Erosion::Save(map, seed, key, cache);
     }
     mErosionBuildMs = map.ms;
@@ -1502,7 +1506,8 @@ void D3DApp::CreateErosionMap(const Tectonics::Map& tectonics, ID3D12PipelineSta
 // ship's weather reads it too. Then the clouds' weather map from it (Climate::Weather), its first mip saved beside it,
 // meteo-<seed>.bin. Their times and the climate's size on the GPU go to the title.
 void D3DApp::CreateClimateMap(const Tectonics::Map& tectonics, uint32_t seed, const std::wstring& cache) {
-    const Climate::Map climate = Climate::Build(tectonics, PlanetRadius / 1000.0);
+    mClimateCpu = Climate::Build(tectonics, PlanetRadius / 1000.0);
+    const Climate::Map& climate = mClimateCpu;
     mClimateMs = climate.ms;
     Climate::Save(climate, seed, cache);
     const auto weatherStart = std::chrono::steady_clock::now();

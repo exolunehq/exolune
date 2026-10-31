@@ -57,6 +57,72 @@ float ReliefCrease(float x, float e, out float slope)
     return 0.5 * (x * x / e + e) - RlCreaseExcess(e);
 }
 
+// Sharpen |cos| with a monotone quadratic, continued linearly beyond its amplitude: (1+b)u-bu^2, b <= 1.
+// Round over the same input interval e as ReliefCrease, never a power of its nearly zero centred output. Return the
+// change to that crease, centred by the exact |cos| moments, including the rounding: no mesh-dependent mean shift.
+// The derivative stays finite, and is zero at x=0. At b=0 both changes are exactly zero.
+float ReliefSharpenCrease(float x, float e, float b, out float slope)
+{
+    const float mean = 2.0 / 3.14159265;
+    const float scale = 0.5 * 3.14159265 * 0.5 * (1.0 + RL_MEAN_BILLOW_BEST);
+    const float u = abs(x) / scale, r = e / scale;
+    const float base = u < r ? 0.5 * (u * u / r + r) : u;
+    const float derivative = u < r ? x / e : sign(x);
+    const float k = mean / ((1.0 + b) * mean - 0.5 * b);
+    [branch] if (r >= 1.0)
+    {
+        const float change = k * (1.0 - b) - 1.0;
+        slope = change * derivative;
+        return scale * change * (base - (0.5 * r + 0.25 / r));
+    }
+    // E[rounded |cos|] - E[|cos|]; the series avoids cancellation in the closed form at small r.
+    const float rr = r * r;
+    float excess;
+    [branch] if (r < 0.1)
+        excess = rr / 3.14159265 * (1.0 / 3.0 + rr * (1.0 / 60.0 + rr / 280.0));
+    else
+    {
+        const float root = sqrt(1.0 - rr), angle = asin(r);
+        excess = (rr * angle - 2.0 * r * (1.0 - root) + 0.5 * (angle - r * root)) / (3.14159265 * r);
+    }
+    const float square = u < 1.0 ? u * u : 2.0 * u - 1.0;
+    const float change = k * (1.0 + b) - 1.0;
+    slope = change * derivative - k * b * 2.0 * min(u, 1.0) * sign(x);
+    return scale * (change * (base - mean - excess) - k * b * (square - 0.5));
+}
+
+// The mean of ReliefCrease on a sinusoidal stripe, including its mesh rounding. SharpenCrease adds zero to this mean.
+float ReliefStripeMean(float e)
+{
+    const float mean = 2.0 / 3.14159265, scale = 0.5 * 3.14159265 * 0.5 * (1.0 + RL_MEAN_BILLOW_BEST);
+    const float r = e / scale, rr = r * r;
+    float value;
+    [branch] if (r >= 1.0)
+        value = scale * (0.5 * r + 0.25 / r);
+    else
+    {
+        float excess;
+        [branch] if (r < 0.1)
+            excess = rr / 3.14159265 * (1.0 / 3.0 + rr * (1.0 / 60.0 + rr / 280.0));
+        else
+        {
+            const float root = sqrt(1.0 - rr), angle = asin(r);
+            excess = (rr * angle - 2.0 * r * (1.0 - root) + 0.5 * (angle - r * root)) / (3.14159265 * r);
+        }
+        value = scale * (mean + excess);
+    }
+    return value - RlCreaseExcess(e);
+}
+
+// Reserve the ordinary octave before admitting a replacement. The quadratic headroom is C1 at exhaustion; rational
+// saturation bounds the added slope without a clamp of the height or a phase-dependent change of the stripe's mean.
+float ReliefGullyGain(float under, float normal, float stripe, float share, float critical)
+{
+    const float left = max(critical - under - normal, 0.0);
+    const float budget = left * left / critical, own = share * (normal + stripe);
+    return budget / sqrt(budget * budget + own * own + 1e-30);
+}
+
 // A profile of half-width w (km), at least two mesh cells: wider, its depth falls in proportion, so that its mean stays.
 float ReliefWidth(float w, float cellKm, inout float depth)
 {
@@ -100,7 +166,7 @@ float ReliefSeaProfile(float x, float w, float cellKm, float ground, float ampli
 // octaves wider than EROSION_COARSE km, what the valleys carve (Erosion.hlsli).
 // The gullies (ErosionGullies): from the octave EROSION_GULLY_FIRST on, the noise gives way, for `gullies.share` of it,
 // to stripes down the slope of the ground under the octave, the large forms', or a valley's walls where it is carved, and
-// the coarser octaves'; under the glaciers, U troughs and knife-edge crests.
+// the coarser octaves'; above the ice, rounded knife-edge crests. ErosionProfile alone shapes the U troughs.
 float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float topKm, int octaves, float relief, float sharp,
                    float crease, uint seed, float4 fold, float foldShare, float foldWeight, int wideOctaves, out float wide, ReliefGullies gullies,
                    out float3 slope, out float coarse, out float3 cliffSlope)
@@ -113,9 +179,14 @@ float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float t
     wide = 0.0;
     double f = ReliefFrequency(topKm);
     const float metres = relief / (1000.0 * PLANET_RADIUS_KM); // a unit of noise per radius, in m/m at this amplitude
-    // Under the glaciers the crests sharpen: |x|^power, its mean kept, E|cos|^power on the stripes.
-    const float power = lerp(1.0, EROSION_GLACIAL_POWER, gullies.glacial);
-    const float powerMean = lerp(2.0 / 3.14159265, EROSION_GLACIAL_POWER_MEAN, gullies.glacial);
+    // Near and above the equilibrium line, finite sharpening with the crease's own rounding and mean.
+    const float bend = EROSION_GLACIAL_SHARPEN * gullies.glacial;
+    const float meanAbs = 0.5 * (1.0 + RL_MEAN_BILLOW_BEST), stripeScale = 0.5 * 3.14159265 * meanAbs;
+    const float mean = 2.0 / 3.14159265, sharpenSlope = mean * (1.0 + bend) / ((1.0 + bend) * mean - 0.5 * bend);
+    // Phase-independent envelopes for unit gradient corners and quintic weights, in lattice units. The generous
+    // Hessian envelope also covers the wide fold. No neighbouring terrain evaluation, map read or mesh-sized budget.
+    const float noiseGradient = 26.0, noiseCurvature = 512.0;
+    float curvature = 0.0;
     [loop] for (int o = 0; o < octaves; ++o)
     {
         const float w = RlWeight((float)f);
@@ -127,9 +198,14 @@ float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float t
         else
             l = RlSplit(plain, f);
         const float4 n = RlGradientNoiseD(l.cell, l.q + RlShift(o), seed + (uint)o);
+        const float3 roundBefore = roundSlope, ridgedBefore = ridgedSlope;
         float3 g = n.yzw * (float)f * metres;
         g -= up * dot(g, up); // along the ground
-        float value = n.x, share = 0.0;
+        float share = 0.0, limitedShare = 0.0;
+        float4 stripe = 0.0;
+        const float roundA = amplitude * w / (1.0 + RELIEF_EROSION * dot(roundSlope, roundSlope));
+        const float folded = o == 1 || o == 2 ? 1.0 - 0.5 * foldShare * saturate(foldWeight) : 1.0;
+        const float ridgeA = 1.7 * amplitude * w * chain * folded / (1.0 + RELIEF_RIDGE_EROSION * dot(ridgedSlope, ridgedSlope));
         [branch] if (o >= EROSION_GULLY_FIRST && gullies.share > 0.0 && PLANET_RADIUS_KM / (float)f > EROSION_GULLY.z)
         {
             // The ground's slope under the octave: the coarse octaves' does not count where a valley replaces them.
@@ -139,7 +215,20 @@ float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float t
             // orients them turns over.
             share = gullies.share * smoothstep(EROSION_GULLY.x, EROSION_GULLY.y, steep) * (1.0 - smoothstep(0.85, 1.0, crest * sharp))
                   * (1.0 - smoothstep(0.9, 1.0, top * sharp));
-            [branch] if (share > 0.0)
+            // The reserve uses full octave strength, before the mesh's weight. Besides its period, a stripe responds
+            // to turns of its parent's slope across its two-period kernels: |d across| <= curvature / |under|.
+            const float coefficient = lerp(roundA, ridgeA, sharp) / max(w, 1e-20);
+            const float stripeCoefficient = lerp(roundA, ridgeA * sharpenSlope, sharp) / max(w, 1e-20);
+            const float frequency = (float)f / (1000.0 * PLANET_RADIUS_KM);
+            const float normalBound = noiseGradient * relief * frequency * coefficient;
+            // The quintic kernel weights add at most 3 * (2 * 1.875) / 2 = 5.625 per period. Normalising the phasor
+            // adds at most 2 / fork: the reserve includes weight changes and forks, not just the nominal wave slope.
+            const float stripeBound = stripeScale * relief * stripeCoefficient * (2.0 / EROSION_GULLY_FORK)
+                                    * (6.2831853 * (frequency + 4.0 * curvature / max(steep, EROSION_GULLY.x)) + 5.625 * frequency);
+            const float critical = lerp(EROSION_GULLY_CRITICAL, EROSION_GULLY_ROCK, gullies.glacial);
+            limitedShare = share * ReliefGullyGain(steep, normalBound, stripeBound, share, critical);
+            // The coastal contour keeps its existing >9 km calibration, before the soil-pattern budget.
+            [branch] if (limitedShare > 0.0 || (share > 0.0 && PLANET_RADIUS_KM / (float)f > EROSION_CLIFF_SLOPE_KM))
             {
                 const float3 across = cross(up, under) / steep;
                 // The stripes' lattice: from the octave's own cell, halved, in floats; on the oriented octaves, the
@@ -149,20 +238,23 @@ float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float t
                     kernels = RlSplit(plain, f / EROSION_GULLY_PERIODS);
                 else
                     kernels.cell = l.cell >> 1, kernels.q = ((float3)(l.cell & 1) + l.q) * 0.5;
-                const float4 stripe = ErosionGullies(kernels, across, seed + 32u + (uint)o);
-                value = lerp(value, stripe.x, share);
-                g = lerp(g, stripe.yzw * (float)f * metres, share);
+                stripe = ErosionGullies(kernels, across, seed + 32u + (uint)o);
+                stripe.yzw *= (float)f * metres;
             }
         }
         [branch] if (sharp < 1.0)
         {
-            const float a = amplitude * w / (1.0 + RELIEF_EROSION * dot(roundSlope, roundSlope));
-            round += a * value;
-            roundSlope += a * g;
+            round += roundA * n.x;
+            roundSlope += roundA * g;
+            [branch] if (limitedShare > 0.0)
+            {
+                round += roundA * limitedShare * (stripe.x - n.x);
+                roundSlope += roundA * limitedShare * (stripe.yzw - g);
+            }
         }
         [branch] if (sharp > 0.0)
         {
-            float x = value, wr = w;
+            float x = n.x, wr = w;
             float3 gr = g;
             [branch] if (o == 0 && foldShare > 0.0)
             {
@@ -171,31 +263,58 @@ float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float t
                 x = lerp(x, fold.x, foldShare), gr = lerp(gr, gf, foldShare), wr = lerp(w, foldWeight, foldShare);
             }
             float dc;
-            float c = ReliefCrease(x, max(crease, CREASE_ROUNDING * (float)f / gCreaseMaxFrequency), dc);
-            [branch] if (share > 0.0 && gullies.glacial > 0.0)
+            const float rounding = max(crease, CREASE_ROUNDING * (float)f / gCreaseMaxFrequency);
+            float c = ReliefCrease(x, rounding, dc);
+            const float normalC = c, normalDc = dc;
+            const float a = 1.7 * amplitude * wr * chain * folded / (1.0 + RELIEF_RIDGE_EROSION * dot(ridgedSlope, ridgedSlope));
+            [branch] if (limitedShare > 0.0)
             {
-                const float meanAbs = 0.5 * (1.0 + RL_MEAN_BILLOW_BEST), scale = 0.5 * 3.14159265 * meanAbs; // the stripes' amplitude
-                const float u = max(c, 1e-4) / scale, k = (2.0 / 3.14159265) / powerMean;
-                const float sharpened = scale * k * pow(u, power);
-                dc *= lerp(1.0, k * power * pow(u, power - 1.0), share);
-                c = lerp(c, sharpened, share);
+                float stripeDc;
+                float stripeC = ReliefCrease(stripe.x, rounding, stripeDc);
+                float derivative;
+                stripeC += ReliefSharpenCrease(stripe.x, rounding, bend, derivative);
+                stripeDc += derivative;
+                // Both shapes are centred before blending. A smaller replacement never raises the whole octave.
+                const float normalValue = meanAbs - normalC, stripeValue = ReliefStripeMean(rounding) - stripeC;
+                ridged += ridgeA * limitedShare * (stripeValue - normalValue);
+                ridgedSlope += ridgeA * limitedShare * (-stripeDc * stripe.yzw + normalDc * gr);
+                c -= limitedShare * (stripeValue - normalValue);
             }
             const float r = 1.0 - c; // its mean, 1 - E|n|: the billow's mean says E|n| (Noise.hlsli)
-            const float folded = o == 1 || o == 2 ? 1.0 - 0.5 * foldShare * saturate(foldWeight) : 1.0; // the folds' crests over the noise's
-            const float a = 1.7 * amplitude * wr * chain * folded / (1.0 + RELIEF_RIDGE_EROSION * dot(ridgedSlope, ridgedSlope));
-            ridged += a * (r - 0.5 * (1.0 - RL_MEAN_BILLOW_BEST));
-            ridgedSlope += a * -dc * gr;
+            ridged += a * (1.0 - normalC - 0.5 * (1.0 - RL_MEAN_BILLOW_BEST));
+            ridgedSlope += a * -normalDc * gr;
             chain = saturate(0.3 + 1.2 * r);
             crest = r;
             if (o == 0)
                 top = r;
         }
+        [branch] if (PLANET_RADIUS_KM / (float)f > EROSION_CLIFF_SLOPE_KM && share > 0.0)
+        {
+            const float mixed = lerp(n.x, stripe.x, share);
+            const float3 mixedGradient = lerp(g, stripe.yzw, share);
+            const float rounding = max(crease, CREASE_ROUNDING * (float)f / gCreaseMaxFrequency);
+            float oldDc;
+            ReliefCrease(mixed, rounding, oldDc);
+            [branch] if (gullies.glacial > 0.0)
+            {
+                float derivative;
+                ReliefSharpenCrease(mixed, rounding, bend, derivative);
+                oldDc += share * derivative;
+            }
+            cliffSlope = lerp(roundBefore + roundA * mixedGradient, ridgedBefore + ridgeA * -oldDc * mixedGradient, sharp);
+        }
+        // Carry a phase-independent envelope of the parent's turning rate. Its crest width is intrinsic: the fixed
+        // 2 m physical floor used by the exact terrain, never the current mesh's rounding or its octave weight.
+        const float frequency = (float)f / (1000.0 * PLANET_RADIUS_KM);
+        const float intrinsic = max(crease, CREASE_ROUNDING * MESH_BAND_LIMIT * CREASE_MIN_CELL * frequency);
+        curvature += amplitude * relief * frequency * frequency
+                   * (noiseCurvature + 1.7 * sharp * sharpenSlope * noiseGradient * noiseGradient / max(intrinsic, 1e-20));
         [flatten] if (o < wideOctaves)
             wide = lerp(round, ridged, sharp);
         if (f < PLANET_RADIUS_KM / EROSION_COARSE)
             coarse = lerp(round, ridged, sharp), coarseSlope = lerp(roundSlope, ridgedSlope, sharp);
         // Capture only scales broader than the maximum platform, in the existing sum with no additional noise read.
-        if (f < PLANET_RADIUS_KM / EROSION_CLIFF_SLOPE_KM)
+        if (f < PLANET_RADIUS_KM / EROSION_CLIFF_SLOPE_KM && share <= 0.0)
             cliffSlope = lerp(roundSlope, ridgedSlope, sharp);
         f *= RELIEF_LACUNARITY;
         amplitude *= 0.5;
@@ -443,14 +562,14 @@ ReliefGround ReliefSampleGround(double3 position, bool valleys)
     const float large = h;
     const float open = 1.0 - valley.floorShare * smoothstep(-20.0, 20.0, h); // a floor ends at the sea: its last link reaches offshore
     // The gullies (ReliefDetail): down the large forms, or down a valley's walls where it lies under them; on the land;
-    // under the glaciers within EROSION_GLACIAL_BAND of the glacial maximum's equilibrium line, and in the troughs.
+    // near and above the glacial maximum's equilibrium line, never from the ice covering a trough.
     ReliefGullies gullies = (ReliefGullies)0;
     [branch] if (valleys)
     {
         gullies.carved = smoothstep(-500.0, 800.0, h - valley.surface);
         gullies.slope = lerp(map.formsGradient / (1000.0 * PLANET_RADIUS_KM), valley.gradient, gullies.carved);
         gullies.share = EROSION_GULLY_SHARE * smoothstep(-20.0, 60.0, h) * (1.0 - 4.0 * gullies.carved * (1.0 - gullies.carved)); // none on a valley's rim, a crest
-        gullies.glacial = max(valley.glacier, smoothstep(-0.5, 0.5, (h - ErosionEquilibriumLine((float3)position)) / EROSION_GLACIAL_BAND));
+        gullies.glacial = smoothstep(-0.5, 0.5, (h - ErosionEquilibriumLine((float3)position)) / EROSION_GLACIAL_BAND);
     }
     // The widest octaves, the chains' own forms, read a point warped by a few km, so that no crest closes on itself, and
     // stretched along the chains: raised off the sphere by a measure of the smoothed distance to the plate's boundary,

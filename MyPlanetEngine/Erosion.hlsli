@@ -5,6 +5,9 @@
 #define EROSION_HLSLI
 #include "PlanetSettings.hlsli"
 #include "Noise.hlsli"
+#include "Climate.hlsli"
+
+SamplerState erosionClimateSampler : register(s4); // linear, clamped; also bound by the terrain compute passes
 
 Texture2DArray<uint2> erosionMap : register(t23);
 
@@ -104,19 +107,13 @@ struct ReliefGullies
     float3 slope;  // the slope (m/m) of the ground under the detail: the large forms', or a valley's walls where it is carved
     float carved;  // 1 where a valley replaces the coarse octaves: their slope no longer counts
     float share;   // the share of the octaves' pattern turned to gullies on a steep enough ground
-    float glacial; // 1 under the glaciers: U troughs, knife-edge crests
+    float glacial; // 1 above the equilibrium line: rounded knife-edge crests, never from trough ice
 };
 
-// The climate's placeholder, as Erosion.cpp's ErosionClimate: by latitude, x the precipitation (m/yr), y the sea level's
-// temperature (C).
+// As Erosion.cpp's ErosionClimate: the computed year's precipitation (m/yr), sea-level temperature (C).
 float2 ErosionClimate(float3 d)
 {
-    const float temperature[10] = { 26, 26, 25, 20, 14, 6, -1, -10, -18, -22 };
-    const float rain[10] = { 2.0, 1.8, 0.9, 0.6, 0.9, 1.0, 0.8, 0.4, 0.2, 0.15 };
-    const float a = abs(asin(clamp(d.y, -1.0, 1.0))) * (18.0 / 3.14159265);
-    const uint k = min((uint)a, 8u);
-    const float f = a - k;
-    return float2(lerp(rain[k], rain[k + 1], f), lerp(temperature[k], temperature[k + 1], f));
+    return ClimateAt(erosionClimateSampler, d, 0.0).xy * float2(0.001, 1.0);
 }
 
 // The glacial maximum's equilibrium line (m), as Erosion.cpp's: the summer temperature there after the precipitation
@@ -305,23 +302,31 @@ ErosionValley ErosionValleys(double3 p, float cellKm, float walls)
 
 // The ground h lowered by the valleys: by as much as their surface lies under the coarse ground, the large forms and the
 // widest octaves, by a minimum smoothed over k (m), never under the water's level. The finer detail rides on the valley's
-// walls; on its floor it has faded.
+// walls; on its floor both signs of the residual detail fade to the water level. The carving distance opens the
+// correction continuously: a valley which does not lower the coarse ground cannot move its detail either.
 float ErosionCarve(float h, float coarse, ErosionValley v, float k)
 {
     const float e = max(k - abs(coarse - v.surface), 0.0) / k;
-    return h - coarse + max(min(coarse, v.surface) - 0.25 * k * e * e, min(coarse, v.level));
+    const float bed = min(coarse, v.surface) - 0.25 * k * e * e;
+    const float cut = max(bed, min(coarse, v.level));
+    // The water clamp makes a flat floor across the submerged part of a U profile, beyond its quiet middle.
+    // Include that whole floor; on the walls use the same floor share as the detail, with a k-metre height transition.
+    const float wet = 1.0 - smoothstep(0.0, k, bed - v.level);
+    const float floor = max(v.floorShare, wet) * smoothstep(0.0, k, coarse - cut);
+    return lerp(h - coarse + cut, cut, floor);
 }
 
-// The only wind reading for wave erosion, replaced here by the climate's map when available. East follows Exolune's
-// longitude convention, cross(d, Y). Smooth zonal trades, westerlies (strongest at 45 degrees), polar easterlies.
+// The only wind reading for wave erosion: the climate's mean surface wind, in its own east/north basis.
 // xyz is the direction of travel, scaled by the relative wave force, not the direction from which the wind comes.
+// Keep the former 1..1.6 calibration: 5 m/s gives 1, 8 m/s gives 1.6. Calms fade below 1 m/s continuously.
 float3 ErosionWaveWind(float3 d)
 {
-    const float latitude = abs(asin(clamp(d.y, -1.0, 1.0))) * (180.0 / 3.14159265);
-    const float west = smoothstep(26.0, 34.0, latitude) * (1.0 - smoothstep(56.0, 64.0, latitude));
-    const float strength = 1.0 + (EROSION_CLIFF_WAVES.y - 1.0) * exp(-((latitude - 45.0) / 12.0) * ((latitude - 45.0) / 12.0));
-    const float3 east = cross(d, float3(0.0, 1.0, 0.0));
-    return east / max(length(east), 1e-6) * ((2.0 * west - 1.0) * strength);
+    const float2 wind = ClimateAt(erosionClimateSampler, d, 0.0, 1).xy;
+    const float speed = length(wind);
+    const float strength = smoothstep(0.0, 1.0, speed)
+                         * lerp(1.0, EROSION_CLIFF_WAVES.y, saturate((speed - 5.0) / 3.0));
+    const float3 east = float3(-d.z, 0.0, d.x) / max(length(d.xz), 1e-6), north = cross(east, d);
+    return (wind.x * east + wind.y * north) * (strength / max(speed, 1e-6));
 }
 
 // Remap the full ground through its coastal contour. The platform is linear in the original height (Trenhaile 1987),
