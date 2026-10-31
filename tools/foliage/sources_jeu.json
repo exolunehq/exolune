@@ -1,0 +1,73 @@
+{
+  "assets": [
+    {
+      "name": "game_fir",
+      "title": "Pine Tree",
+      "author": "evolveduk",
+      "license": "CC-BY-4.0",
+      "source": "https://sketchfab.com/3d-models/pine-tree-d45218a3fab349e5b1de040f29e7b6f9",
+      "mirror": "https://github.com/GamesNotDeveloped/godot-forest-demo/tree/623212ffeb4efbf4c95323a4a6a57e726be4f6e9/objects/pine-tree-1",
+      "note": "Maillage original, atlas normal et roughness ; opacité convertie au seuil moteur."
+    },
+    {
+      "name": "game_broadleaf",
+      "title": "Free Realistic Tree 10 / Tree10_1",
+      "author": "Rakshi Games",
+      "license": "CC-BY-3.0",
+      "source": "https://opengameart.org/content/free-realistic-tree-10",
+      "note": "Prefab Unity 5.3 et atlas optimisés originaux ; alpha converti au seuil moteur, normales DXT5nm converties en OpenGL."
+    }
+  ],
+  "files": [
+    {
+      "path": "pine-game/license.txt",
+      "url": "https://raw.githubusercontent.com/GamesNotDeveloped/godot-forest-demo/623212ffeb4efbf4c95323a4a6a57e726be4f6e9/objects/pine-tree-1/license.txt",
+      "sha256": "3b41427fe4a2dc81681050bac9b12595f3e0ae15baed4316400f54402b96c0bf"
+    },
+    {
+      "path": "pine-game/scene.bin",
+      "url": "https://raw.githubusercontent.com/GamesNotDeveloped/godot-forest-demo/623212ffeb4efbf4c95323a4a6a57e726be4f6e9/objects/pine-tree-1/scene.bin",
+      "sha256": "0f92fc387df765db08cae65f55d17f834974eeec1f96198d8526bfdec61a653e"
+    },
+    {
+      "path": "pine-game/scene.gltf",
+      "url": "https://raw.githubusercontent.com/GamesNotDeveloped/godot-forest-demo/623212ffeb4efbf4c95323a4a6a57e726be4f6e9/objects/pine-tree-1/scene.gltf",
+      "sha256": "a95cce03f98990a2fb1853f1811433606a8700828e97aee1efd944ba109a3e42"
+    },
+    {
+      "path": "pine-game/textures/Tree_0Mat_baseColor.png",
+      "url": "https://raw.githubusercontent.com/GamesNotDeveloped/godot-forest-demo/623212ffeb4efbf4c95323a4a6a57e726be4f6e9/objects/pine-tree-1/textures/Tree_0Mat_baseColor.png",
+      "sha256": "a12894d4509728f3242c4077005051b9bdbcae3b26d62f691d8ff220ab77db66"
+    },
+    {
+      "path": "pine-game/textures/Tree_0Mat_metallicRoughness.png",
+      "url": "https://raw.githubusercontent.com/GamesNotDeveloped/godot-forest-demo/623212ffeb4efbf4c95323a4a6a57e726be4f6e9/objects/pine-tree-1/textures/Tree_0Mat_metallicRoughness.png",
+      "sha256": "21c48a84eb9b5b1f2cdc4bdfe16318d0e76c2608389e380509b685dd58e7d491"
+    },
+    {
+      "path": "pine-game/textures/Tree_0Mat_normal.png",
+      "url": "https://raw.githubusercontent.com/GamesNotDeveloped/godot-forest-demo/623212ffeb4efbf4c95323a4a6a57e726be4f6e9/objects/pine-tree-1/textures/Tree_0Mat_normal.png",
+      "sha256": "521d61a8c79e67fb89b6674c1856c2a314414d999a2750644fee99a5ffba2ead"
+    },
+    {
+      "path": "pine-game/textures/Tree_1Mat_baseColor.png",
+      "url": "https://raw.githubusercontent.com/GamesNotDeveloped/godot-forest-demo/623212ffeb4efbf4c95323a4a6a57e726be4f6e9/objects/pine-tree-1/textures/Tree_1Mat_baseColor.png",
+      "sha256": "b2c077d2e2ff3f83e45349d07fb6164cd0272cc506ef77cc2fea7d59779a2831"
+    },
+    {
+      "path": "pine-game/textures/Tree_1Mat_metallicRoughness.png",
+      "url": "https://raw.githubusercontent.com/GamesNotDeveloped/godot-forest-demo/623212ffeb4efbf4c95323a4a6a57e726be4f6e9/objects/pine-tree-1/textures/Tree_1Mat_metallicRoughness.png",
+      "sha256": "cb2d4639e70838e38a6b404857ae5e4ed84bc9aa2b1e4045dff2b40a8261de61"
+    },
+    {
+      "path": "pine-game/textures/Tree_1Mat_normal.png",
+      "url": "https://raw.githubusercontent.com/GamesNotDeveloped/godot-forest-demo/623212ffeb4efbf4c95323a4a6a57e726be4f6e9/objects/pine-tree-1/textures/Tree_1Mat_normal.png",
+      "sha256": "f275fe21b0070a0f90f1bbf3c225e082ed941ea29d1c4a82bed7a06f585c6446"
+    },
+    {
+      "path": "tree10.zip",
+      "url": "https://opengameart.org/sites/default/files/uploadtool_Tree10.zip",
+      "sha256": "a8980c8ea737fe9a7485195ba0a328d32e07265834f31c36d602add821a163c7"
+    }
+  ]
+}

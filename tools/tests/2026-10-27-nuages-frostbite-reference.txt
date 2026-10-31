@@ -1,0 +1,14 @@
+# Mode retiré le 2026-10-30, au tag `jalon/29-avant-ouverture` et `piste/nuages-orbite-spike` : la référence locale Frostbite. Par tools\lance.ps1 -Parcours, ces lieux montrent les nuages du jeu ; touches et options ci-dessous, celles d'alors.
+# Reference locale : B opacite, C qualite, Espace pause. Deux zones dessinees, pas une meteo planetaire.
+Cumulus, ensemble depuis l'ouest | 4000 0.5 161.28 0 90 | -15 175
+Cumulus, approche du contour | 4000 0.5 161.38 0 90 | -15 175
+Cumulus, entree dans le volume | 4000 0.5 161.47 0 90 | -15 175
+Cumulus, au centre | 4000 0.5 161.5 0 90 | -15 175
+Cumulus, base vue de dessous | 1800 0.5 161.38 -18 90 | -15 175
+Cumulus, sommet depuis 8 km | 8000 0.5 161.4 35 90 | -15 175
+Nappe, ensemble depuis l'ouest | 3400 0.5 161.80 0 90 | -15 175
+Nappe, approche du contour | 3400 0.5 161.90 0 90 | -15 175
+Nappe, traversee | 3100 0.5 162.03 0 90 | -15 175
+Nappe, dessus depuis 6 km | 6000 0.5 161.98 35 90 | -15 175
+Nappe, base vue de dessous | 1800 0.5 161.90 -12 90 | -15 175
+Deux zones, vue d'ensemble a 30 km | 30000 0.5 161.775 90 0 | -15 175

@@ -1,0 +1,287 @@
+{
+ "_doc": "La pile de bandes de chaque matériau (docs/spec-texturage-universel.md) : ce qui dessine chaque échelle, relevé dans le code le 2026-10-23. Une bande : sa source, ses longueurs d'onde (m), ce qu'elle porte (couleur, lumière) et où elle est dans le code. tools/valide_bandes.py vérifie qu'aucune échelle de 1 mm à 2 km n'est vide, et la confronte au spectre mesuré.",
+ "etendue": [
+  0.001,
+  2000.0
+ ],
+ "communes": [
+  {
+   "nom": "clarté locale",
+   "source": "bruit",
+   "lambda": [
+    1.0,
+    8000.0
+   ],
+   "porte": "couleur",
+   "gain": 0.62,
+   "code": "Materials.hlsli GroundMaterials, local ; PixelShader.hlsl GroundAt",
+   "sauf": [
+    "neige"
+   ]
+  },
+  {
+   "nom": "grain du relief",
+   "source": "bruit",
+   "lambda": [
+    13.5,
+    6000.0
+   ],
+   "porte": "lumière",
+   "code": "PixelShader.hlsl, detail, DETAIL_SLOPE"
+  },
+  {
+   "nom": "relief du maillage",
+   "source": "complexplanet",
+   "lambda": [
+    13.5,
+    2000.0
+   ],
+   "porte": "lumière",
+   "code": "TerrainCompute.hlsl ; au-dessus de deux mailles"
+  }
+ ],
+ "materiaux": {
+  "sable": [
+   {
+    "nom": "tuile fine",
+    "source": "tuile générée",
+    "lambda": [
+     0.002,
+     0.03
+    ],
+    "porte": "couleur et lumière",
+    "code": "MaterialGenerator.hlsl FineSand"
+   },
+   {
+    "nom": "photo sandy_gravel_02",
+    "source": "photo",
+    "lambda": [
+     0.005,
+     0.5
+    ],
+    "porte": "couleur et lumière",
+    "code": "D3DApp.cpp kScans, keep 0,5 m ; SAND_TILE"
+   },
+   {
+    "nom": "rides",
+    "source": "bruit",
+    "lambda": [
+     0.06,
+     0.25
+    ],
+    "porte": "lumière",
+    "code": "Materials.hlsli SandRipples"
+   },
+   {
+    "nom": "bandes de détail",
+    "source": "bruit",
+    "lambda": [
+     0.5,
+     32.0
+    ],
+    "porte": "couleur et lumière",
+    "code": "Materials.hlsli DetailBands ; PlanetSettings.hlsli SAND_BANDS"
+   }
+  ],
+  "herbe": [
+   {
+    "nom": "brins",
+    "source": "bruit",
+    "lambda": [
+     0.008,
+     0.03
+    ],
+    "porte": "couleur et lumière",
+    "code": "Materials.hlsli GrassTexture"
+   },
+   {
+    "nom": "touffes",
+    "source": "bruit",
+    "lambda": [
+     0.06,
+     0.25
+    ],
+    "porte": "couleur et lumière",
+    "code": "Materials.hlsli GrassTexture, TuftField"
+   },
+   {
+    "nom": "bosses",
+    "source": "bruit",
+    "lambda": [
+     0.008,
+     4.0
+    ],
+    "porte": "lumière",
+    "code": "Materials.hlsli GrassTexture"
+   },
+   {
+    "nom": "taches",
+    "source": "bruit",
+    "lambda": [
+     1.0,
+     4.0
+    ],
+    "porte": "couleur",
+    "code": "Materials.hlsli GrassTexture"
+   },
+   {
+    "nom": "bandes de détail",
+    "source": "bruit",
+    "lambda": [
+     0.25,
+     128.0
+    ],
+    "porte": "couleur et lumière",
+    "code": "Materials.hlsli DetailBands ; PlanetSettings.hlsli GRASS_BANDS"
+   }
+  ],
+  "sol nu": [
+   {
+    "nom": "tuile fine",
+    "source": "tuile générée",
+    "lambda": [
+     0.002,
+     0.03
+    ],
+    "porte": "couleur et lumière",
+    "code": "MaterialGenerator.hlsl FineSand"
+   },
+   {
+    "nom": "photo sandy_gravel_02",
+    "source": "photo",
+    "lambda": [
+     0.005,
+     0.5
+    ],
+    "porte": "couleur et lumière",
+    "code": "D3DApp.cpp kScans ; SAND_TILE"
+   },
+   {
+    "nom": "bandes de détail",
+    "source": "bruit",
+    "lambda": [
+     0.5,
+     64.0
+    ],
+    "porte": "couleur et lumière",
+    "code": "Materials.hlsli DetailBands ; PlanetSettings.hlsli SOIL_BANDS"
+   }
+  ],
+  "eboulis": [
+   {
+    "nom": "tuile fine",
+    "source": "tuile générée",
+    "lambda": [
+     0.002,
+     0.03
+    ],
+    "porte": "couleur et lumière",
+    "code": "MaterialGenerator.hlsl"
+   },
+   {
+    "nom": "tuile",
+    "source": "tuile générée",
+    "lambda": [
+     0.008,
+     4.0
+    ],
+    "porte": "couleur et lumière",
+    "code": "MaterialGenerator.hlsl Scree ; SCREE_TILE"
+   },
+   {
+    "nom": "bandes de détail",
+    "source": "bruit",
+    "lambda": [
+     4.0,
+     64.0
+    ],
+    "porte": "couleur et lumière",
+    "code": "Materials.hlsli DetailBands ; PlanetSettings.hlsli SCREE_BANDS"
+   }
+  ],
+  "neige": [
+   {
+    "nom": "bandes de détail",
+    "source": "bruit",
+    "lambda": [
+     0.01,
+     16.0
+    ],
+    "porte": "couleur et lumière",
+    "code": "Materials.hlsli DetailBands ; PlanetSettings.hlsli SNOW_BANDS"
+   }
+  ],
+  "roche": [
+   {
+    "nom": "tuile fine",
+    "source": "tuile générée",
+    "lambda": [
+     0.002,
+     0.03
+    ],
+    "porte": "couleur et lumière",
+    "code": "MaterialGenerator.hlsl FineRock"
+   },
+   {
+    "nom": "photo de face marble_cliff_04",
+    "source": "photo",
+    "lambda": [
+     0.025,
+     12.8
+    ],
+    "porte": "couleur et lumière",
+    "code": "D3DApp.cpp kScans ; ROCK_TILE ; sur la roche de plus de 45°"
+   },
+   {
+    "nom": "photo de dessus marble_cliff_05",
+    "source": "photo",
+    "lambda": [
+     0.04,
+     20.0
+    ],
+    "porte": "couleur et lumière",
+    "code": "D3DApp.cpp kScans ; ROCK_TOP_TILE ; sur la roche de moins de 45°"
+   },
+   {
+    "nom": "bandes de détail",
+    "source": "bruit",
+    "lambda": [
+     8.0,
+     64.0
+    ],
+    "porte": "couleur et lumière",
+    "code": "Materials.hlsli DetailBands ; ROCK_BANDS"
+   },
+   {
+    "nom": "colonne stratigraphique",
+    "source": "bruit",
+    "lambda": [
+     0.8,
+     300.0
+    ],
+    "porte": "couleur",
+    "code": "Materials.hlsli StrataColumn : bancs, formations, groupes"
+   },
+   {
+    "nom": "perturbation, épaisseur et lentilles des strates",
+    "source": "bruit",
+    "lambda": [
+     4.0,
+     8000.0
+    ],
+    "porte": "couleur",
+    "code": "Materials.hlsli StrataShift, STRATA_SLOPE ; GroundMaterials ; BedLenses"
+   },
+   {
+    "nom": "géologie",
+    "source": "bruit",
+    "lambda": [
+     500.0,
+     40000.0
+    ],
+    "porte": "couleur",
+    "code": "Materials.hlsli Geology ; PixelShader.hlsl RockColor"
+   }
+  ]
+ }
+}

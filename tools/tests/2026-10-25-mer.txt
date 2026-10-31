@@ -1,0 +1,15 @@
+# La mer animée du 2026-10-25 : reflet du soleil et du ciel, moutons, vagues en mouvement (docs/recherche-mer.md).
+# Vent des sites, mesuré par tools/banc_mer.py : calme 2,6 m/s, modéré 6,7, frais 10,5, fort 18,7, tempête 26,6.
+# libellé | altitude (m) latitude longitude inclinaison cap | latitude longitude du soleil
+Reflet du soleil d'orbite, 400 km, vent frais | 400000 -17.36 -26.84 40 180 | -67.36 -26.84
+Orbite, 1 000 km : nappes calmes brillantes, zones ventées sombres | 1000000 -17.36 -26.84 55 180 | -52.36 -26.84
+10 km, reflet devant, vent frais | 10000 -17.36 -26.84 30 180 | -77.36 -26.84
+500 m, mer modérée, reflet devant | 500 -20.47 -75.45 25 180 | -75.47 -75.45
+20 m, mer calme, colonne de reflet étroite | 20 55.95 8.07 12 180 | -4.05 8.07
+20 m, mer fraîche, 10 m/s | 20 -17.36 -26.84 12 0 | 42.64 -26.84
+20 m, mer forte, 19 m/s : reflet large, moutons | 20 50.94 -5.77 12 180 | -9.06 -5.77
+20 m, tempête, 27 m/s : moutons et vieille écume | 20 -45 165 12 0 | 15 165
+Tempête vue de 200 m, soleil de côté : moutons qui naissent et s'effacent | 200 -45 165 40 90 | 15 165
+Coucher de soleil sur la mer, 30 m | 30 -20.47 -75.45 3 270 | -20.47 -170
+Côte et eau peu profonde vues de la mer, 120 m | 120 0.475 116.507 2 60 | 5 60
+Mer modérée à 3 m, au ras de l'eau | 3 -20.47 -75.45 5 200 | -50.47 -75.45

@@ -1,0 +1,14 @@
+# Mode retiré le 2026-10-30, au tag `jalon/29-avant-ouverture` et `piste/nuages-orbite-spike` : le spike Orbite, sa carte régionale. Par tools\lance.ps1 -Parcours, ces lieux montrent les nuages du jeu ; touches et options ci-dessous, celles d'alors.
+# Orbite : B opacité, C qualité, Espace pause, V météo x1/x5.
+Très haute altitude depuis 30 km | 30000 0.5 161.775 80 0 | -15 175
+Haute atmosphère depuis 80 km | 80000 0.5 161.775 80 0 | -15 175
+Approche orbitale depuis 150 km | 150000 0.5 161.775 80 0 | -15 175
+Orbite depuis 300 km | 300000 0.5 161.775 80 0 | -15 175
+Vue régionale depuis 800 km | 800000 0.5 161.775 80 0 | -15 175
+Vue régionale depuis 1500 km | 1500000 0.5 161.775 80 0 | -15 175
+Survol oblique au limbe du patch | 80000 0.5 161.775 12 90 | -15 175
+Survol des cumulus régionaux | 10000 1.87006 159.44055 35 90 | -15 175
+Nappe vue depuis 6 km | 6000 0.24004 161.67237 35 90 | -15 175
+Cirrus groupés vus d'en dessous | 4500 1.7998 160.83279 -40 90 | -15 175
+Cirrus groupés vus d'au-dessus | 15000 1.7998 160.83279 40 90 | -15 175
+Cirrus en orbite, soleil bas | 800000 0.5 161.775 80 0 | -5 245

@@ -1,0 +1,14 @@
+# Les nuages tirés du climat (docs/spec-nuages.md, la carte météo) : ZCIT en amas, ciel dégagé sous les anticyclones et sur les déserts, nappes au large des côtes froides, dépressions en virgule, bancs au vent des reliefs. Juger une répartition météorologique cohérente, de l'orbite au ras de la mer. La météo à l'instant 0, en pause : Espace la relance, et la carte tourne d'un bloc vers l'est. Altitudes au-dessus de la mer ; lieux de la graine 0 ; dépressions de x64/Release/meteo-0.txt.
+Orbite, la planète et sa météo | 10000000 -0.5 -18.225 90 0 | 10 -5
+Orbite, l'autre face | 10000000 25 120 90 0 | 25 120
+La carte météo à plat : bleu à orangé les nuages bas par famille, magenta les cirrus | 10000000 -0.5 -18.225 90 0 weather | 10 -5
+Une dépression du nord depuis 3 000 km : la virgule, sa fente sèche, le front froid vers le sud-ouest, le bouclier à l'est | 3000000 50.6 -107.9 90 180 | 35 -95
+Une dépression du sud, en miroir | 3000000 -53.8 -143.0 90 180 | -35 -130
+Les nappes de stratocumulus au large de la côte froide, depuis 400 km | 400000 18.25 39 50 280 | 18 50
+Sous la nappe, au ras de la mer froide | 1000 18.25 35.5 -5 270 | 18 50
+Un amas de la ZCIT depuis 400 km | 400000 9.3 148.5 50 0 | 10 160
+Sous l'anticyclone, la mer dégagée | 300000 27.9 -164.4 40 0 | 25 -150
+Le désert subtropical, ciel clair, depuis 30 km | 30400 25.25 56.25 40 0 | 25 75
+La chaîne tropicale près du départ, nuages accrochés au vent, depuis 60 km | 61000 -12.9 113.4 25 294 | -20 105
+La même chaîne d'en haut : au vent nuageux, sous le vent dégagé | 400000 -12.1 111.6 90 180 | -20 112
+Le départ du jeu, 300 km au-dessus de la chaîne | 300000 -12 116.875 30 0 | -5 125

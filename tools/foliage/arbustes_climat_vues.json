@@ -1,0 +1,245 @@
+{
+  "version": 1,
+  "note": "Lieux issus des palettes ou du banc vegetation. Familles indiquees comme hypotheses ; les climats et melanges sont a mesurer. Les poses voisines ne constituent pas des regions independantes.",
+  "source": "tools/banc_vegetation.py et tools/tests/2026-10-27-vegetation-planetaire.txt",
+  "vues": [
+    {
+      "id": "boreal_foret",
+      "label": "Boreal : sous-bois",
+      "camera": [
+        2,
+        -49.629,
+        90.529,
+        3,
+        -60
+      ],
+      "soleil": [
+        -30,
+        100
+      ],
+      "famille_candidate": "boreal",
+      "source": "palette 2026-10-27"
+    },
+    {
+      "id": "boreal_clairiere",
+      "label": "Boreal : clairiere voisine",
+      "camera": [
+        2,
+        -49.63,
+        90.53,
+        5,
+        90
+      ],
+      "soleil": [
+        -30,
+        100
+      ],
+      "famille_candidate": "boreal",
+      "source": "banc_vegetation TEST_VIEWS"
+    },
+    {
+      "id": "desert_ouest",
+      "label": "Desert : buissons epars",
+      "camera": [
+        2,
+        -19.63208,
+        0.52597,
+        5,
+        0
+      ],
+      "soleil": [
+        -15,
+        5
+      ],
+      "famille_candidate": "desert",
+      "source": "banc_vegetation TEST_VIEWS_V2"
+    },
+    {
+      "id": "desert_est",
+      "label": "Desert : vue voisine",
+      "camera": [
+        2,
+        -19.63,
+        0.53,
+        5,
+        0
+      ],
+      "soleil": [
+        -15,
+        5
+      ],
+      "famille_candidate": "desert",
+      "source": "banc_vegetation TEST_VIEWS"
+    },
+    {
+      "id": "sec_maquis",
+      "label": "Milieu sec : maquis",
+      "camera": [
+        2,
+        -29.63,
+        60.53,
+        5,
+        180
+      ],
+      "soleil": [
+        -20,
+        80
+      ],
+      "famille_candidate": "steppe",
+      "source": "banc_vegetation TEST_VIEWS"
+    },
+    {
+      "id": "sec_savane",
+      "label": "Milieu sec : savane",
+      "camera": [
+        2,
+        10.37168,
+        -119.46971,
+        1.1,
+        89.2
+      ],
+      "soleil": [
+        15,
+        -100
+      ],
+      "famille_candidate": "steppe",
+      "source": "palette 2026-10-27"
+    },
+    {
+      "id": "mont_ligne",
+      "label": "Montagne : ligne des arbres",
+      "camera": [
+        2,
+        -14.90437,
+        119.94946,
+        5,
+        120
+      ],
+      "soleil": [
+        -5,
+        125
+      ],
+      "famille_candidate": "montane",
+      "source": "banc_vegetation TEST_VIEWS_V2"
+    },
+    {
+      "id": "mont_vallee",
+      "label": "Montagne : vallee boisee",
+      "camera": [
+        2,
+        -14.9,
+        119.95,
+        8,
+        120
+      ],
+      "soleil": [
+        -5,
+        125
+      ],
+      "famille_candidate": "montane",
+      "source": "banc_vegetation TEST_VIEWS_V2 ; hauteur sol adaptee"
+    },
+    {
+      "id": "tempere_lisiere",
+      "label": "Tempere : lisiere",
+      "camera": [
+        2,
+        30.37,
+        120.53027,
+        3,
+        0
+      ],
+      "soleil": [
+        20,
+        140
+      ],
+      "famille_candidate": "temperate",
+      "source": "banc_vegetation TEST_VIEWS_V2"
+    },
+    {
+      "id": "tempere_interieur",
+      "label": "Tempere : sous-bois",
+      "camera": [
+        2,
+        30.36948,
+        120.52781,
+        5,
+        0
+      ],
+      "soleil": [
+        20,
+        140
+      ],
+      "famille_candidate": "temperate",
+      "source": "banc_vegetation TEST_VIEWS_V2"
+    },
+    {
+      "id": "tropical_clairiere",
+      "label": "Tropical : clairiere",
+      "camera": [
+        2,
+        0.37288,
+        60.53092,
+        3,
+        0
+      ],
+      "soleil": [
+        10,
+        80
+      ],
+      "famille_candidate": "tropical",
+      "source": "banc_vegetation TEST_VIEWS_V2"
+    },
+    {
+      "id": "tropical_foret",
+      "label": "Tropical : foret proche",
+      "camera": [
+        2,
+        0.37,
+        60.53,
+        20,
+        0
+      ],
+      "soleil": [
+        10,
+        80
+      ],
+      "famille_candidate": "tropical",
+      "source": "banc_vegetation TEST_VIEWS ; hauteur sol adaptee"
+    },
+    {
+      "id": "frontiere_temperesec",
+      "label": "Transition candidate : maquis et couvert",
+      "camera": [
+        2,
+        -29.63,
+        60.53,
+        5,
+        90
+      ],
+      "soleil": [
+        -20,
+        80
+      ],
+      "famille_candidate": null,
+      "source": "banc_vegetation ; cap adapte"
+    },
+    {
+      "id": "frontiere_montagne",
+      "label": "Transition candidate : ligne des arbres",
+      "camera": [
+        2,
+        -14.90437,
+        119.94946,
+        5,
+        300
+      ],
+      "soleil": [
+        -5,
+        125
+      ],
+      "famille_candidate": null,
+      "source": "banc_vegetation ; cap adapte"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+﻿# Végétation : sol exact gardé d'une image à l'autre, imposteurs en profondeur conservatrice, maillages en profondeur d'abord (docs/optimisation.md, round 3).
+# Chercher : plantes qui flottent ou s'enfoncent après un déplacement ; arbres qui naissent ou disparaissent en avançant ; trous ou arbres manquants derrière les premiers rangs ; feuilles proches qui scintillent ou changent de lumière.
+Forêt au sol, marcher, tourner la tête, regarder les feuilles proches | 567.6 30.38761 120.52330 5 -115 | 20 120
+Lisière, filer le long des arbres, regarder les rangs du fond | 584.5 30.37000 120.53027 3 0 | 20 140
+Montagne, tourner vite et filer à flanc de pente : pieds des arbustes | 4093.1 -14.90437 119.94946 5 120 | -5 125
+Survol à 1300 m, plonger vite vers la canopée puis remonter | 1400 30.68685 120.10788 32 -64.7 | 20 120
+Tropical, approche à 150 m puis descente sous les arbres | 463.9 0.37000 60.53000 15 0 | 10 80
+Boréal, sous-bois, tourner sur place | 537.3 -49.63000 90.53000 5 90 | -30 100

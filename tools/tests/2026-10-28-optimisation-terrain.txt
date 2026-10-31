@@ -1,0 +1,8 @@
+﻿# Calcul du terrain gardé tant que ses entrées sont celles de l'image précédente (docs/optimisation.md, round 4), et terrain en profondeur d'abord (round 2).
+# Chercher : immobile ou en tournant sur place, le terrain qui saute, des trous ou des triangles qui manquent aux bords de l'écran, des ombres du relief qui changent ; au départ ou à l'arrêt, une image qui saute ; après G, K, L ou R, un terrain qui ne suit pas. Toujours : trous de ciel aux crêtes et sous les plantes (round 2).
+Forêt au sol, immobile, tourner la tête lentement puis vite ; repartir et s'arrêter net | 567.6 30.38761 120.52330 5 -115 | 20 120
+Lisière, filer le long des arbres, s'arrêter, tourner sur place | 584.5 30.37000 120.53027 3 0 | 20 140
+Montagne, immobile face aux crêtes, tourner : ombres portées et sommets aux bords | 4093.1 -14.90437 119.94946 5 120 | -5 125
+Mer au ras de l'eau, immobile, tourner : vagues et côte aux bords de l'écran | 3 -20.47 -75.45 5 200 | -50.47 -75.45
+Survol à 1300 m, immobile, tourner, puis K et L : grille fine et relief | 1400 30.68685 120.10788 32 -64.7 | 20 120
+Orbite à 300 km, tourner, puis R et G | 300000 -41.6602 87.7148 80 0 | -41.6602 112.7148

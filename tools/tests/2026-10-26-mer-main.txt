@@ -1,0 +1,14 @@
+# Main : mer FFT et végétation v3, 2026-10-26.
+# libellé | altitude latitude longitude inclinaison cap | soleil latitude longitude | vent m/s direction degrés houle Hs m
+Mer calme, 1 m : ancien microrelief en créneaux | 1 23.52176 98.65264 32.8 -78.9 | 5 60 | 4 70 0.4
+Mer fraîche, 3 m : texture et profil proches | 3 -20.47 -75.45 5 200 | -50.47 -75.45 | 12 70 1.8
+Mer fraîche, 20 m : crêtes et mousse résiduelle | 20 -17.36 -26.84 20 180 | 42.64 -26.84 | 12 70 1.8
+Houle en contrejour, 3 m | 3 -17.36 -26.84 5 0 | 42.64 -26.84 | 8 70 2.5
+Tempête, 20 m : écume sur les crêtes | 20 -45 165 35 90 | 15 165 | 24 70 3.5
+Tempête, 200 m : groupes de vagues | 200 -45 165 35 90 | 15 165 | 24 70 3.5
+Vue signalée, 142 m : crêtes à la côte | 142.4 -44.75718 177.39448 22.5 -151.6 | 15 165 | 24 70 3.5
+Forêt tempérée, 150 m : végétation de main | 730.8 30.37000 120.53000 20.0 0.0 | 20 140 | 12 70 1.8
+Forêt tropicale, 150 m : avancer vers le nord | 463.9 0.37000 60.53000 15.0 0.0 | 10 80 | 12 70 1.8
+Orbite, 3 000 km : mer et végétation | 3000659.1 0.00000 60.00000 70.0 0.0 | 10 75 | 12 70 1.8
+Pôle nord, 100 m : plan tangent | 100 90 0 35 90 | 65 0 | 12 70 1.8
+Pôle sud, 100 m : plan tangent | 100 -90 0 35 90 | -65 0 | 12 70 1.8

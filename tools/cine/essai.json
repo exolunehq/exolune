@@ -1,0 +1,18 @@
+{
+  "fps": 60,
+  "graine": 0,
+  "depart": [-7.65, 116.72, 2000000],
+  "meteo": 900,
+  "bande": 40,
+  "marge": 12,
+  "segments": [
+    {"type": "orbite", "duree": 3, "point": [-7.37, 116.88], "hauteur": 150,
+     "camera": {"type": "poursuite", "distance": 22, "hauteur": 8}},
+    {"type": "rase-mottes", "duree": 3, "points": [[-7.366, 116.882], [-7.361, 116.88]], "hauteur": 150,
+     "camera": {"type": "poursuite", "distance": 22, "hauteur": 8}},
+    {"type": "rase-mottes", "duree": 2, "point": [-7.357, 116.881], "hauteur": 150,
+     "camera": {"type": "cockpit"}},
+    {"type": "rase-mottes", "duree": 2, "point": [-7.353, 116.883], "hauteur": 150,
+     "camera": {"type": "libre", "distance": 26, "hauteur": 9, "cap_relatif": 100, "fondu": 1}}
+  ]
+}

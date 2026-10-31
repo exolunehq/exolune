@@ -1,0 +1,6 @@
+# Tests du 2026-10-24 : plus de patchs de pixels de loin (docs/principes.md, un bruit ne montre jamais sa grille).
+# libellé | altitude (m) latitude longitude inclinaison cap [| latitude longitude du soleil]
+Continent à 160 km : plus de carrés, des taches | 160551.2 1.12602 114.67687 31.2 -88.7
+Sol à 300 km : plus de mosaïque | 300000.0 -15.00000 50.00000 50.0 0.0
+Même continent à 600 km : premier plan sans damier | 600000 1.1 114.7 50 -90
+À 100 km : le grain reste, sans grille | 100000 -15.0 50.0 45 0

@@ -1,0 +1,15 @@
+# Mode retiré le 2026-10-30, au tag `jalon/29-avant-ouverture` et `piste/nuages-orbite-spike` : le spike voxel planétaire. Par tools\lance.ps1 -Parcours, ces lieux montrent les nuages du jeu ; touches et options ci-dessous, celles d'alors.
+# Spike global ; C : voxel/procédural, N : couper les nuages, Espace : pause, B : silhouette.
+# Altitude au-dessus du rayon planétaire ; l'application évite le terrain.
+Orbite à 400 km, couverture globale | 400000 0.5 161.5 90 0 | -15 175
+Descente à 100 km | 100000 0.5 161.5 90 0 | -15 175
+Au-dessus des bancs à 30 km | 30000 0.5 161.5 65 90 | -15 175
+Approche d'une formation, descendre | 10000 0.60610716 161.60306434 90 0 | -15 175
+Au niveau d'une formation | 4005.48 0.60610716 161.60306434 0 90 | -15 175
+Sous une formation | 2500 0.60610716 161.60306434 -90 0 | -15 175
+Horizon depuis 3 km | 3000 0.5 161.47 -1 90 | -15 175
+Planète entière à 8 000 km | 8000000 0.5 161.5 90 0 | -15 175
+Pôle nord, 400 km | 400000 85 30 90 0 | 60 30
+Autre continent, 400 km | 400000 -15 50 90 0 | 5 70
+Hémisphère sud, 400 km | 400000 -45 -120 90 0 | -30 -100
+Limbe depuis 400 km | 400000 0.5 161.5 20 90 | -15 175

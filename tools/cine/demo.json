@@ -1,0 +1,188 @@
+{
+ "fps": 60,
+ "graine": 0,
+ "depart": [
+  -38.0,
+  -24.0,
+  9000000
+ ],
+ "meteo": 1800,
+ "bande": 40,
+ "marge": 12,
+ "segments": [
+  {
+   "type": "orbite",
+   "duree": 12,
+   "point": [
+    -26.02,
+    -26.875
+   ],
+   "altitude": 7800,
+   "camera": {
+    "type": "pleine",
+    "tangage": -6
+   }
+  },
+  {
+   "type": "approche",
+   "duree": 6,
+   "points": [
+    [
+     -25.93,
+     -26.845
+    ],
+    [
+     -25.875,
+     -26.835
+    ]
+   ],
+   "hauteur": 700,
+   "camera": {
+    "type": "pleine",
+    "cap_relatif": -40,
+    "tangage": -6,
+    "fondu": 2.5
+   }
+  },
+  {
+   "type": "approche",
+   "duree": 7,
+   "points": [
+    [
+     -25.8,
+     -26.76
+    ],
+    [
+     -25.75,
+     -26.7
+    ]
+   ],
+   "hauteur": 300,
+   "camera": {
+    "type": "pleine",
+    "tangage": -10,
+    "fondu": 2
+   }
+  },
+  {
+   "type": "rase-mottes",
+   "duree": 14,
+   "hauteur": 50,
+   "points": [
+    [
+     -25.725,
+     -26.685
+    ],
+    [
+     -25.7,
+     -26.672
+    ],
+    [
+     -25.675,
+     -26.66
+    ]
+   ],
+   "camera": {
+    "type": "pleine",
+    "tangage": -8,
+    "fondu": 2
+   }
+  },
+  {
+   "type": "approche",
+   "duree": 3,
+   "point": [
+    -25.645,
+    -26.672
+   ],
+   "hauteur": 350,
+   "camera": {
+    "type": "pleine",
+    "tangage": -2,
+    "fondu": 1.5
+   }
+  },
+  {
+   "type": "approche",
+   "duree": 8,
+   "points": [
+    [
+     -25.55,
+     -26.71
+    ],
+    [
+     -25.42,
+     -26.737
+    ]
+   ],
+   "hauteur": 1500,
+   "camera": {
+    "type": "pleine",
+    "tangage": -4,
+    "fondu": 1.5
+   }
+  },
+  {
+   "type": "approche",
+   "duree": 5,
+   "points": [
+    [
+     -25.33,
+     -26.737
+    ],
+    [
+     -25.302,
+     -26.737
+    ],
+    [
+     -25.285,
+     -26.737
+    ]
+   ],
+   "hauteur": 2900,
+   "camera": {
+    "type": "cockpit"
+   }
+  },
+  {
+   "type": "mer",
+   "duree": 6,
+   "hauteur": 5,
+   "points": [
+    [
+     -25.26,
+     -26.738
+    ],
+    [
+     -25.24,
+     -26.741
+    ],
+    [
+     -25.22,
+     -26.745
+    ]
+   ],
+   "camera": {
+    "type": "pleine",
+    "tangage": -4,
+    "fondu": 0
+   }
+  },
+  {
+   "type": "ascension",
+   "duree": 14,
+   "point": [
+    -25.19,
+    -26.75
+   ],
+   "altitude": 9000000,
+   "camera": {
+    "type": "libre",
+    "cap_relatif": 0,
+    "distance": 14,
+    "hauteur": 30,
+    "fondu": 0
+   }
+  }
+ ]
+}

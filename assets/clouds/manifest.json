@@ -1,0 +1,25 @@
+{
+  "description": "The three noise volumes the game's clouds read (MyPlanetEngine/Clouds.hlsli, t24 to t26). Headerless RGBA8, mip-major, x fastest. Licence: NOTICE. Their weather map, t27, is no longer an asset: the engine computes it at startup from the planet's climate (Climate::Weather, MyPlanetEngine/Climate.cpp; docs/spec-nuages.md, the weather).",
+  "chain": "jalon/26-nuages-main",
+  "textures": {
+    "shape128.rgba8mips": {
+      "sha256": "d8732368b2c6c079942f56d30aafdc22385d4e8b6cbd933fa43c54e87e166186",
+      "role": "the low clouds' shape (R) and the cirrus' fibres (G); 128^3, 8 mips",
+      "source": "jalon/26-nuages-main:assets/frostbite-orbit/shape128.rgba8mips",
+      "made_by": "R, B and A: the Perlin-Worley shape noise of TileableVolumeNoise (commit 1f879a26, main.cpp unchanged), compiled and converted by tools/gen_frostbite_reference_assets.py; G: sparse cirrus fibres, tools/gen_frostbite_orbit_assets.py"
+    },
+    "detail32.rgba8mips": {
+      "sha256": "09ec86abca8df3a272b4d3327aef7553e686293500234c21b767dfcdf4c3377e",
+      "role": "the erosion (R); 32^3, 6 mips",
+      "source": "jalon/26-nuages-main:assets/frostbite-orbit/detail32.rgba8mips",
+      "made_by": "the Worley erosion noise of TileableVolumeNoise (commit 1f879a26), by tools/gen_frostbite_reference_assets.py"
+    },
+    "weather64.rgba8mips": {
+      "sha256": "66f12801b2f3ecdc1f473272c4938bfdfe795d06401bc126cddda75af191ac60",
+      "role": "the vertical profiles by cloud kind and height (RG); 64^3, 7 mips",
+      "source": "jalon/26-nuages-main:assets/frostbite-orbit/weather64.rgba8mips",
+      "made_by": "authored profiles, tools/gen_frostbite_reference_scene.py"
+    }
+  },
+  "former_weather_map": "assets/clouds/weather-planet1024.rgba8mips and tools/gen_cloud_weather.py until the commit before piste/nuages-climat; an artistic noise field, kept in git's history."
+}

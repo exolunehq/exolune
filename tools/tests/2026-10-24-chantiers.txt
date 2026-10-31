@@ -1,0 +1,14 @@
+# Chantiers du 2026-10-24, sans les nuages, N les coupe : brume, halo, exposition et tons, ombres du relief, rayons de soleil, mutation à l'approche.
+# libellé | altitude (m) latitude longitude inclinaison cap | latitude longitude du soleil
+Ombres : massif à 8 km au soleil couchant, vallées dans l'ombre | 8000 -14.9635 119.991 15 0 | -2.059 37.723
+Ombres : depuis 25 km, ombres de dizaines de km | 25000 -14.9635 119.991 30 0 | -2.059 37.723
+Ombres : contre-jour, les plans se détachent | 5200 -14.9635 119.991 8 270 | -1.547 35.789
+Rayons : pic à contre-jour, soleil caché derrière | 1941.7 0.00280 118.14145 -0.2 156.6 | -65.34 -171.35
+Rayons : vallées à 3,5 km dans la brume | 3500 0.0028 118.14145 6 156.6 | -58.80 -169.44
+Exposition : désert, soleil bas, vers lui | 800 26.0 45.0 5 110 | -15.06 120.42
+Exposition : orbite vers le terminateur | 1228341.6 0.13844 115.66320 56.0 -33.3 | -55.07 -175.84
+Halo : soleil haut au-dessus des montagnes | 1941.7 0.00280 118.14145 -20 156.6 | -50.0 140.0
+Brume : plaines au loin depuis 4,4 km | 4432.9 16.26533 123.17704 8.9 122.0 | 10 70
+Mutation à l'approche 1 : à 1,6 km du sol | 5710.4 32.94097 173.98612 37.9 -126.7 | 12.94 -151.0
+Mutation à l'approche 2 : à 530 m | 4944.4 32.93591 173.97756 37.1 -122.2 | 12.94 -151.0
+Mutation à l'approche 3 : à 143 m | 4627.7 32.93485 173.97387 29.3 -100.6 | 12.94 -151.0

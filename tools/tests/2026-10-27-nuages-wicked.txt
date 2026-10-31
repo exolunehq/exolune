@@ -1,0 +1,15 @@
+# Mode retiré le 2026-10-30, au tag `jalon/29-avant-ouverture` et `piste/nuages-orbite-spike` : Wicked V1. Par tools\lance.ps1 -Parcours, ces lieux montrent les nuages du jeu ; touches et options ci-dessous, celles d'alors.
+# Wicked : C qualité économique/référence, N nuages, Espace météo figée, B opacité, V vitesse météo.
+# Altitudes au-dessus du rayon planétaire ; la caméra évite le terrain.
+Depuis le sol, regarder les nuages | 500 0.5 161.5 -15 90 | -15 175
+Sous la couche | 2500 0.5 161.5 -20 90 | -15 175
+Profil latéral, avancer et tourner | 4500 0.5 161.5 0 90 | -15 175
+Dans la couche, figer la météo puis avancer | 4200 0.60610716 161.60306434 0 90 | -15 175
+Au-dessus, à 10 km | 10000 0.5 161.5 15 90 | -15 175
+Plongée vers la couche | 10000 0.5 161.5 70 90 | -15 175
+Orbite à 100 km, descendre | 100000 0.5 161.5 90 0 | -15 175
+Planète entière à 8 000 km | 8000000 0.5 161.5 90 0 | -15 175
+Pôle nord à 400 km | 400000 85 30 90 0 | 60 30
+Autre continent à 30 km | 30000 -15 50 65 90 | 5 70
+Soleil bas, contours et éclairage | 4500 0.5 161.5 0 90 | 0.5 245
+Limbe depuis 400 km | 400000 0.5 161.5 20 90 | -15 175

@@ -1,0 +1,15 @@
+# Mode retiré le 2026-10-30, au tag `jalon/29-avant-ouverture` et `piste/nuages-orbite-spike` : Wicked V5, LOD optique, touche J. Par tools\lance.ps1 -Parcours, ces lieux montrent les nuages du jeu ; touches et options ci-dessous, celles d'alors.
+# V5 : J couverture optique / volume seul ; Espace météo figée ; B opacité ; C qualité.
+# Le témoin V4 utilise les mêmes points, sans la touche J.
+Proche, volume et contours | 4500 21.621 131.66 0 90 | 5 135
+Au-dessus à 10 km | 10000 21.621 131.66 20 90 | 5 135
+Approche depuis 30 km | 30000 21.621 131.66 45 90 | 5 135
+Transition à 80 km | 80000 21.621 131.66 55 90 | 5 135
+Couverture à 160 km | 160000 21.621 131.66 55 90 | 5 135
+Motifs et contours à 271 km | 271100 17.14299 116.89183 55.1 133.3 | 5 135
+Couverture à 454 km | 454400 17.14299 116.89183 55.1 133.3 | 5 135
+Couverture orbitale à 2601 km | 2601300 21.621 131.66 90 0 | 5 135
+Banc stratiforme à 8 km | 8000 8.613 -165.762 25 90 | 8 -160
+Banc stratiforme à 271 km | 271100 8.613 -165.762 60 90 | 8 -160
+Front et grandes trouées à 271 km | 271100 23.027 -98.613 60 90 | 20 -90
+Région polaire, 400 km | 400000 85 30 90 0 | 60 30

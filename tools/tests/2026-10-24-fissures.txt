@@ -1,0 +1,5 @@
+# Tests du 2026-10-24 : craquelures et rigoles (docs/principes.md, aucune structure d'un trait uniforme).
+# libellé | altitude (m) latitude longitude inclinaison cap [| latitude longitude du soleil]
+Craquelures : ondulées, ramifiées, plus de segments droits | 4242.2 16.27025 123.15986 16.1 -166.5
+Rigoles des badlands : par plaques, en ravines, plus de velours | 4285.0 16.27172 123.16603 4.8 -159.1
+Même versant, de plus haut | 4400 16.27172 123.16603 12 -159.1

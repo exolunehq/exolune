@@ -1,0 +1,26 @@
+# Mode retiré le 2026-10-30, au tag `jalon/29-avant-ouverture` : l'ancien volume de nuages, tag `piste/nuages`. Par tools\lance.ps1 -Parcours, ces lieux montrent les nuages du jeu ; touches et options ci-dessous, celles d'alors.
+# Nuages du 2026-10-24 et 25 : la carte du temps, puis le volume lancé de l'orbite au sol (docs/recherche-nuages.md).
+# libellé | altitude (m) latitude longitude inclinaison cap | latitude longitude du soleil
+Sous des cumulus, 500 m, vers le haut | 500 0.5 161.5 -25 90 | -15 175
+Dans un pont nuageux, 1,2 km | 1200 -5.78377 -111.07076 0 -5.3 | -10 -100
+Au-dessus du pont, 2,5 km (vue signalée) | 2494.4 -5.78377 -111.07076 35.8 -5.3 | -10 -100
+À travers les sommets des cumulus, 2,6 km | 2600 0.5 161.5 2 90 | -15 175
+Cumulus vus de 6 km | 6000 0.5 161.5 25 90 | -15 175
+Près d'un cumulonimbus, 3 km | 3000 -8.5 -100.5 -5 90 | -25 -80
+Cumulonimbus vus de 30 km | 30000 -8.5 -101.5 30 90 | -25 -80
+Brouillard, 150 m | 150 53.5 -3.5 3 90 | 30 10
+Horizon à 1,7 km | 2077 54.15 174.77 0 0 | 30 160
+Avion à 10 km, cirrus au-dessus | 10000 1.22 162.17 8 -90 | -5 140
+Coucher de soleil sur les nuages, 10 km | 10000 1.22 162.17 2 -90 | 0 74
+Au-dessus du pont nuageux, 3 km | 3000 1.22 162.17 20 -90 | -5 140
+Sous un plafond, 300 m, vers le haut | 300 1.22 162.17 -20 -90 | -5 140
+Sous un plafond, 300 m, l'horizon | 300 1.22 162.17 2 -90 | -5 140
+Brouillard sur une côte, 100 m du sol | 605 36.25 16.25 3 90 | 20 30
+Collines dans le nuage, 3 km au-dessus | 3500 36.25 16.25 15 90 | 20 30
+Mer de nuages, 30 km | 30000 1.22 162.17 15 -90 | -5 140
+Orbite basse, 160 km, vers l'horizon | 160000 1.22 162.17 25 -90 | -5 140
+Front des latitudes moyennes, 160 km | 160000 -40.83 161.51 30 0 | -20 175
+Orbite de l'ISS, 400 km, cumulus des tropiques | 400000 1.22 162.17 50 0 | -5 140
+Orbite de l'ISS, 400 km, soleil bas, ombres | 400000 1.22 162.17 50 0 | 5 110
+Côtes depuis 855 km (vue signalée) | 855159.2 31.71514 -144.69713 71.4 -131.7 | 25 -120
+Disque entier depuis 7 400 km (vue signalée) | 7394066.6 31.90868 -137.49119 80.2 -88.4 | 25 -120

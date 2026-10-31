@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-27",
+  "source": "https://polyhaven.com/a/searsia_lucida",
+  "license": "CC0-1.0",
+  "seed_base": 270100,
+  "variants": "génération indépendante de branches et de cartes",
+  "atlas": "2 matériaux de 512×512",
+  "leaf_mask": "0 branches, 1 feuilles",
+  "climates": [
+    "boreal",
+    "desert",
+    "steppe",
+    "montane",
+    "temperate",
+    "tropical"
+  ]
+}

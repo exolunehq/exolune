@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-27",
+  "sources": [
+    "game_broadleaf",
+    "game_shrub"
+  ],
+  "seed": 20261027,
+  "voxel_resolution": 64,
+  "directions": "+X,-X,+Y,-Y,+Z,-Z",
+  "sky_rays": 16,
+  "start_cells": 2.25,
+  "attenuation": 0.42,
+  "visibility_floor_sky": 0.3,
+  "visibility_floor_sun": 0.2,
+  "impostor_supersampling": 2,
+  "change": "rotation de cartes de feuilles autour des points de branche les plus proches, sans changer les bornes"
+}

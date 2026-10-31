@@ -1,0 +1,11 @@
+# Les plages à la distance de l'eau (docs/recherche-cotes.md) : une bande de 0 à 2,5 m d'eau, au plus 120 m de large, plus étroite à l'abri. Juger sur chaque côte : aucun sable à l'intérieur des terres, aucune bande sur un versant raide, la plage qui ne s'efface pas en s'éloignant. Altitudes au-dessus de la mer ; lieux de la graine 0 ; N coupe les nuages.
+Les motus d'un atoll au ras de l'eau : verts, frangés de sable | 300 5.59262 -114.86529 6 90 | 5.6 -75.1
+Le même atoll depuis 2 km : des motus plantés, une plage étroite | 2000 5.5926 -114.852 90 0 | 5.6 -75.1
+Un cordon depuis 20 km : une ligne de plage côté mer, pas de sable dans la plaine | 20000 -27.18082 -152.21264 90 0 | -20 -170
+Le même cordon depuis 5 km : 50 à 90 m de plage côté mer, moins côté lagune | 5000 -27.2312 -152.3016 90 0 | -20 -170
+La plage du cordon depuis 5 km, vue plage | 5000 -27.2312 -152.3016 90 0 beach | -20 -170
+Derrière le cordon à 150 m : la forêt, des mares bordées de sable | 152 -27.2133 -152.1450 6 0 | -20 -170
+Une côte plate depuis 1,5 km : la plaine aux couleurs du climat, du sable autour de l'anse | 1502 16.68 -89.29 30 9 | 30 -70
+La même côte plate au ras de l'eau | 60 16.70628 -89.28981 6 9 | 30 -70
+Une côte raide à 60 m du sol : pas de bande de sable au pied du versant | 366 8.78450 -103.26910 2 352 | -45.53 -93.66
+Une côte raide depuis 250 m : du sable seulement dans les criques plates | 250 8.54005 -103.23344 2 146 | 48.84 -148.04

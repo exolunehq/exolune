@@ -1,0 +1,18 @@
+# Le volcanisme (docs/spec-volcanisme.md) : arcs, points chauds et leurs chaînes, atolls, guyots, calderas, coulées, cônes, traps. Juger chaque édifice comme un volcanologue et comme un joueur : aucun cercle parfait, aucun anneau ni marche sur les flancs, aucun cône qui apparaît en approchant ; des îles d'arc en chapelet, des atolls turquoise. Altitudes au-dessus de la mer ; lieux de la graine 0 ; N coupe les nuages.
+Arc insulaire depuis 1 000 km : un chapelet d'îles le long de la fosse | 1000000 -17.5 -140 90 0 | -17 -95
+Le même arc depuis 400 km : îles lobées, sommets sombres de cendres | 400000 -17.6 -141 90 0 | -17 -95
+Chaîne de point chaud depuis 700 km : île active, îles usées, récifs-barrières, atolls | 700000 5.4 -115.8 90 0 | 5 -70
+L'île active depuis 120 km : un bouclier lobé, sa caldeira sommitale | 120000 7.9 -118.3 90 0 | 8 -75
+Les coulées du bouclier actif, basaltes sombres, depuis 1 km | 4060 8.12 -118.85 20 295 | 8 -60
+Un atoll depuis 25 km : lagon turquoise, platier, passes | 25000 5.593 -115.057 90 0 | 5 -75
+Le platier de l'atoll et un motu, au ras de l'eau | 300 5.47 -115.057 5 0 | 5 -75
+Les guyots d'une chaîne australe, sommets plats sous la mer, vue relief | 400000 -45.5 150.8 80 0 relief | -40 170
+Stratovolcan insulaire depuis 30 km : profil concave | 1500 11.41 -51.42 3 0 | 11 -5
+Le même à 2 km du sommet : cratère, cendres sombres | 3333 11.662 -51.42 8 0 | 11 -5
+Cordillère volcanique depuis 30 km, sommet vers 7,3 km | 7028 -6.77 124.354 4 0 | -6 170
+La même cordillère depuis 300 km : volcans en chaîne sur la crête | 300000 -6.6 124.5 90 0 | -6 170
+Caldeira d'un arc insulaire depuis 10 km : murs raides, fond plat | 6140 9.25 -50.04 25 0 | 9 -10
+Cônes et coulées sur les flancs d'un volcan d'arc | 3000 -20.38 -143.681 30 0 | -20 -75
+Traps d'une province basaltique, en marches, depuis 3 km | 3640 23.0 -146.0 15 0 | 23 -110
+Les mêmes traps depuis 400 km | 400000 23.0 -146.0 90 0 | 23 -110
+Caldeira de point chaud continental et sa traînée, depuis 150 km | 150000 41.81 77.28 90 0 | 41 125

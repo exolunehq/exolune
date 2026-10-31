@@ -1,0 +1,8 @@
+# Tests du 2026-10-24 : la texture universelle (docs/spec-texturage-universel.md).
+# libellé | altitude (m) latitude longitude inclinaison cap [| latitude longitude du soleil]
+Sol nu en montagne : du gravier, plus de flou | 2588.6 32.10988 10.53312 9.8 49.1
+Neige : une surface, plus un blanc uni | 6561.8 -18.67002 131.64981 9.8 -117.1
+Désert de 50 m à 1 km : marbrures et relief | 800 26.0 45.0 20 110
+Orbite : plus de taches de léopard | 1228341.6 0.13844 115.66320 56.0 -33.3
+Paroi litée : avancer, les bandes restent | 3624.7 26.66682 114.99606 25.8 46.0
+Orange et vert de loin : le prochain sujet | 6358.2 6.00171 112.41550 37.5 49.1

@@ -1,0 +1,11 @@
+﻿# Lumière rendue aux nuages du 2026-10-30 : rayons de soleil, brume sur le sol régional, disque solaire, derrière les nuages et l'air.
+# Comparer avec le commit 3663177, qui ne les a pas. Chercher : ombres des crêtes dans l'air, brume qui suit le relief, disque net, pas de couture entre l'air et les nuages ; la cadence.
+# libellé | altitude (m) latitude longitude inclinaison cap | latitude longitude du soleil
+Rayons : pic à contre-jour, soleil caché derrière (8°) | 1941.7 0.00280 118.14145 -0.2 156.6 | -65.34 -171.35
+Rayons : orbite basse, soleil rasant (3°) | 160551.2 1.12602 114.67687 31.2 -88.7 | 1.36 27.65
+Brume : vallées à 3,5 km, contre-jour (9°), ombres des crêtes dans la brume | 3500 0.0028 118.14145 6 156.6 | -58.80 -169.44
+Disque : au-dessus du pic (14°) | 1941.7 0.00280 118.14145 -0.2 156.6 | -62.93 176.02
+Disque : soleil bas sur le désert, face à lui ; rien d'autre ne doit changer | 800 26.0 45.0 -2 110 | -15.547 121.329
+Disque derrière les nuages : sous les cumulus à 1500 m, soleil à 8° à l'est | 1500 38.1445 103.5352 -6 90 | 4.931 -172.772
+Disque derrière les nuages : au-dessus de la forêt, cumulus vers le soleil à 10° | 627.1 -41.0 88.5 -8 60 | 14.934 150.467
+Orbite : le soleil au-dessus du limbe | 400000 0 0 15 90 | 0 105

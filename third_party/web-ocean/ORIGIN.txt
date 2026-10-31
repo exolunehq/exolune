@@ -1,0 +1,4 @@
+https://github.com/Noniv/web-ocean
+Commit a07c7fd522ef0a897601c114f927a49d93d95520
+MIT, Copyright (c) 2026 Maksymilian Dendura
+Reference sources for the DX12 spike; only the simulation and foam formulas are adapted.

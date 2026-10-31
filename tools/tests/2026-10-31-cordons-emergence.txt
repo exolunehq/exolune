@@ -1,0 +1,14 @@
+# Graine 0. Juger les trois côtes à chaque hauteur : aucun pointillé ; à 3 km et de près, silhouette conservée.
+# Altitudes au-dessus de la mer ; N coupe les nuages. Captures comparatives : x64/Codex/rendus/avant et apres.
+Côte de référence, cordons depuis 20 km | 20000 -27.18082 -152.21264 90 0 | -20 -170
+Les mêmes cordons depuis 8 km | 8000 -27.18082 -152.21264 90 0 | -20 -170
+Les mêmes cordons depuis 3 km | 3000 -27.18082 -152.21264 90 0 | -20 -170
+La plage du cordon de référence depuis 60 m | 60 -27.165 -152.19 6 0 | -27 -87
+Côte est, cordons depuis 20 km | 20003 26.5 104.5 90 0 | 20 85
+Les mêmes cordons depuis 8 km | 8003 26.5 104.5 90 0 | 20 85
+Les mêmes cordons depuis 3 km | 3003 26.5 104.5 90 0 | 20 85
+Le cordon est depuis 60 m | 63 26.5 104.5 90 0 | 20 85
+Côte ouest, cordons depuis 20 km | 20003 18.5 -5.5 90 0 | 10 -25
+Les mêmes cordons depuis 8 km | 8003 18.5 -5.5 90 0 | 10 -25
+Les mêmes cordons depuis 3 km | 3003 18.5 -5.5 90 0 | 10 -25
+Le cordon ouest depuis 60 m | 63 18.5 -5.5 90 0 | 10 -25

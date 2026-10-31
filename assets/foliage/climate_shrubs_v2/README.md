@@ -1,0 +1,10 @@
+# Arbustes climatiques, piste V2 — 27 octobre 2026
+
+- **Modèles :** six archétypes stylisés, deux géométries chacun. Les ramifications varient selon le climat : touffe boréale, fourches désertiques, touffe de steppe, couverture montagnarde, lobes tempérés, et grandes feuilles tropicales alternes. Il ne s'agit pas d'espèces botaniques exactes.
+- **Source :** [Searsia Lucida](https://polyhaven.com/a/searsia_lucida), James Ray Cock et Jenelle van Heerden, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). Les douze modèles partagent sa photographie de feuilles et son écorce ; leurs cartes sont adaptées et recolorées.
+- **Bois :** couleur, normales et masque copiés depuis la tuile 0 de la source ; alpha opaque et transmission nulle. La planche `contact_bois_cpu.png` montre un zoom des pieds et de la bande d’écorce utilisée par les UV.
+- **Budget :** 2 492 à 4 272 triangles ; deux tuiles de 512² ; branches matériau 0, feuilles matériau 1. Les grandes feuilles tropicales utilisent des cartes courbes subdivisées.
+- **Allométrie en moteur :** largeur maximale 1,1 fois la taille de l'instance ; hauteur multipliée respectivement par 0,65, 0,85, 0,60, 0,30, 1 et 1,15. `contact_runtime_cpu.png` applique ces facteurs à taille d'instance égale, sous un éclairage CPU simplifié, de face et à 90°. Les planches `contact_cpu.png` et `contact_cpu_cote.png` montrent les modèles normalisés avant allométrie.
+- **Fichiers :** manifeste `shrubs.txt`, maillages, matériaux, volumes 64³, imposteurs et deux sidecars de visibilité. Le pin et le feuillu sont copiés à l'identique depuis `volume_look_normals`.
+- **Reconstruction :** après préparation de `game_shrub` et `volume_look_normals`, exécuter `python tools/foliage/arbustes_climatiques_v2.py --preview`, `python tools/foliage/arbustes_climatiques_v2.py --final`, puis `python tools/foliage/arbustes_climatiques_v2.py --runtime-preview`. Dépendances : numpy, Pillow, numba.
+- **Limite :** la planche est un aperçu simplifié ; l'aspect et les performances doivent être jugés dans l'application.

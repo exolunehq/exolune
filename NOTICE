@@ -1,0 +1,90 @@
+Exolune
+Copyright 2025-2026 Etienne Lescot
+
+Exolune est distribué sous la Functional Source License, version 1.1, avec la
+licence Apache 2.0 pour licence future (FSL-1.1-ALv2). Chaque version peut être
+utilisée, modifiée et redistribuée pour tout usage autre qu'un usage concurrent,
+et devient disponible sous la licence Apache 2.0 deux ans après sa mise à
+disposition. Texte de la licence : LICENSE.md.
+
+Le relief, MyPlanetEngine/Noise.hlsli, MyPlanetEngine/Relief.hlsli et la carte
+tectonique MyPlanetEngine/Tectonics.*, et son portage sur CPU, tools/hydro/cp.py,
+sont du code original d'Exolune, écrit depuis docs/recherche-relief.md et les
+articles qu'elle cite, sans reprendre le code d'aucun projet. Ce fichier
+rassemble les crédits et les licences des parties tierces.
+
+
+1. Code porté ou adapté, dans MyPlanetEngine/
+=============================================
+
+web-ocean
+  Copyright (c) 2026 Maksymilian Dendura.
+  Licence : MIT. Texte : third_party/web-ocean/LICENSE.
+  Source : https://github.com/Noniv/web-ocean,
+  commit a07c7fd522ef0a897601c114f927a49d93d95520.
+  Le spectre, la FFT et l'écume de la mer FFT en sont adaptés
+  (MyPlanetEngine/OceanCompute.hlsl, MyPlanetEngine/Sea.hlsli).
+
+Wicked Engine
+  Copyright (c) 2026 Turánszki János.
+  Licence : MIT. Texte : third_party/WickedEngine/LICENSE.txt.
+  Source : https://github.com/turanszkij/WickedEngine,
+  commit 5433f0a6cb0ed9ddfd41b7742978d038eaff70de.
+  Les nuages volumétriques du jeu en sont adaptés, volumetricCloudsHF.hlsli et
+  volumetricCloud_renderCS.hlsl (MyPlanetEngine/Clouds.hlsli).
+
+
+2. Données dérivées, dans assets/clouds/
+=========================================
+
+TileableVolumeNoise, la base de bruit de Frostbite
+  Copyright (c) 2017 Sébastien Hillaire.
+  Licence : MIT. Texte : LICENSES/MIT-TileableVolumeNoise.txt.
+  Source : https://github.com/sebh/TileableVolumeNoise,
+  commit 1f879a26b89aaa4b5a7f112f14ec149d08057661.
+  Les volumes de bruit des nuages, shape128 et detail32, sont générés par son
+  main.cpp, sans modification. Provenance, empreintes et générateurs :
+  assets/clouds/manifest.json ; la chaîne complète, ses sources et ses
+  outils sont conservés dans l'historique privé du projet.
+
+
+3. Données téléchargées par les scripts, hors du dépôt
+======================================================
+
+Poly Haven, CC0 1.0 (https://polyhaven.com/license)
+  Photos de sol du moteur, téléchargées par tools/telecharger_scans.ps1 :
+  - sandy_gravel_02, par Dario Barresi : https://polyhaven.com/a/sandy_gravel_02
+  - marble_cliff_04 : https://polyhaven.com/a/marble_cliff_04
+  - marble_cliff_05 : https://polyhaven.com/a/marble_cliff_05
+  Arbuste source des arbustes climatiques, téléchargé par
+  tools/foliage/importe_arbuste.py :
+  - Searsia Lucida, par James Ray Cock (modélisation) et Jenelle van Heerden
+    (photographie) : https://polyhaven.com/a/searsia_lucida
+
+Arbres du jeu, téléchargés par tools/foliage/telecharge_jeu.py
+  Modifications : conversion des maillages et des textures vers les formats du
+  moteur, seuil alpha adapté, volumes et imposteurs générés
+  (assets/foliage/game_origins.md).
+
+  This work is based on "Pine Tree"
+  (https://sketchfab.com/3d-models/pine-tree-d45218a3fab349e5b1de040f29e7b6f9)
+  by evolveduk (https://sketchfab.com/evolveduk), licensed under CC BY 4.0
+  (https://creativecommons.org/licenses/by/4.0/).
+
+  "Free Realistic Tree 10" by Rakshi Games
+  (https://opengameart.org/content/free-realistic-tree-10), licensed under
+  CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/).
+
+
+4. Photos de référence de la documentation, dans docs/images/
+=============================================================
+
+Wikimedia Commons, domaine public ou CC0 ; sources détaillées dans
+docs/spec-roche-organique.md, « Les cibles » :
+  - cible-granite.jpg : Half Dome, GeoDIL 2435, CC0 ;
+  - cible-gres-zion.jpg : Fog Surrounds the Cliffs, NPS, domaine public ;
+  - cible-gres-neige.jpg : Snow on cliffs, NPS, domaine public ;
+  - cible-plis.jpg : Folded Rock Provo Canyon, domaine public ;
+  - cible-falaise-alcoves.jpg : Mountains Albuquerque 2, domaine public ;
+  - cible-basalte.jpg : Bruneau Wild and Scenic River, BLM, domaine public ;
+  - cible-badlands.jpg : Dubois Badlands, BLM, domaine public.

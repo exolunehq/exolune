@@ -1,0 +1,12 @@
+# Objets de proximité, 2026-10-25 : le détail du sol, posé, chaque objet à sa place fixe (docs/spec-objets-proximite.md).
+# Des débris seulement dans les régions caillouteuses, un champ de 0,5 à 32 km : la plupart des prairies et beaucoup
+# de sables n'en ont aucun. Là où il y en a : surtout de petits cailloux, moins de plus gros, de rares rochers ; le
+# gravier plus fin est la texture du sol. Touffes partout dans l'herbe. À hauteur d'homme, regard devant, comme les
+# photos docs/images/cible-sol-*.jpg ; le soleil haut sur chaque lieu. Avancer, reculer : rien ne surgit.
+# libellé | altitude (m) latitude longitude inclinaison cap [| latitude longitude du soleil]
+Sable caillouteux, 1,7 m : petits cailloux, de rares plus gros | 551.0 14.76352 41.20766 8.0 0.0 | 44.76 61.21
+Sable sans débris près de la côte, 1,7 m : des touffes sèches | 10.2 -31.44682 140.61862 8.0 117.0 | -1.45 160.62
+Herbe et rochers, 1,7 m : touffes partout, quelques rochers | 397.8 -10.10836 77.64546 8.0 30.0 | 19.89 97.65
+Prairie sèche sans débris, 1,7 m : rien que l'herbe | 942.2 10.17878 3.59027 8.0 120.0 | 40.18 23.59
+Sol nu caillouteux, 1,7 m | 366.6 -3.48827 -37.91853 8.0 270.0 | 26.51 -17.92
+Pente d'éboulis, 1,7 m : ses pierres | 2336.0 10.51553 -44.46514 8.0 300.0 | 40.52 -24.47

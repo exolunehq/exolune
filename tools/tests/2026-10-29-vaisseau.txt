@@ -1,0 +1,17 @@
+# Vaisseau dans le jeu : tools\lance.ps1 -Parcours tools\tests\2026-10-29-vaisseau.txt
+# Souris : tangage et lacet ; molette : les gaz, qui restent ; Q E roulis (A E en AZERTY) ; A D glissement (Q D) ;
+# W S (Z S) ou Espace et Ctrl : monter, descendre dans l'axe du vaisseau ; Maj accélérer ; X freiner ;
+# clic droit maintenu : tête libre, la vue reste au relâcher ; H : la souris tourne la tête, H à nouveau : elle pilote ;
+# R : tête au repos.
+# Tab : cockpit, poursuite, vaisseau caché ; Retour arrière : caméra libre et retour ; Alt maintenu libère la souris, M la laisse à Windows puis la reprend ;
+# U : collimateur vert ; Alt+Entrée : fenêtre et palette.
+# Nuages planétaires : couche basse de 2 à 8 km, cirrus de 9 à 13 km. Altitudes au-dessus de la mer.
+Au-dessus des cumulus, 9 km, cap à l'est | 9000 38.1445 103.5352 10 90 | 38.1445 128.5352
+Dans les cumulus à 5 km : buée, gouttes | 5000 38.1445 103.5352 5 90 | 38.1445 128.5352
+Sous les cumulus à 1500 m : averses sous les plus épais | 1500 38.1445 103.5352 -5 90 | 38.1445 128.5352
+Nappe polaire à 4 km : buée et givre | 4000 82.793 38.8477 0 90 | 82.793 63.8477
+Au ras de la mer, voler vite avec Maj | 30 -20.47 -75.45 0 160 | -50.47 -75.45
+Cirrus à 11 km, froid : givre | 11000 -69.082 -72.9492 0 90 | -69.082 -47.9492
+Soleil bas : ombres du cockpit et reflets | 1500 30.68685 120.10788 0 -64.7 | 0 -165
+Orbite à 100 km, redescendre | 100000 38.1445 103.5352 60 90 | 38.1445 128.5352
+Manche et manette : regarder vers le bas ; Tab, poursuite : verrière miroir | 1500 30.68685 120.10788 0 -64.7 | 0 -165

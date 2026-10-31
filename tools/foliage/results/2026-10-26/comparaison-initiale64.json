@@ -1,0 +1,4165 @@
+{
+  "protocole": {
+    "repetitions": 3,
+    "echauffement_images": 120,
+    "ordre": "modes cycliques, processus séquentiels",
+    "masque": "capture dédiée sans TAA ni glare, profondeur terrain conservée",
+    "ssim": "luminance linéaire, image entière et crop central ; le fond peut dominer",
+    "placement_cpu": "non mesuré",
+    "gpu_echantillonnage": "séries de frames consécutives après échauffement si disponibles, non indépendantes ; sinon une frame par capture, p95 descriptif sur peu de points",
+    "stabilite": "différence des variations de luminance entre deux poses ; inclut la parallaxe"
+  },
+  "scenes": [
+    {
+      "id": "jacaranda_single_lieu1",
+      "model": "jacaranda",
+      "scene": "single",
+      "anchor": [
+        30.37,
+        120.53
+      ],
+      "poses": [
+        {
+          "id": "p128_oblique_cote",
+          "camera": [
+            39.5294,
+            30.36956983,
+            120.53,
+            35,
+            0.0
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": 128,
+          "instances": 1,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.023162400349974632,
+                "luminance_moyenne_image": 0.023162400349974632,
+                "silhouette": {
+                  "couverture_reference": 0.009105902777777777,
+                  "couverture": 0.009105902777777777,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.14091336727142334,
+                  "luminance_sur_union": 0.14091336727142334
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.37836800000000004,
+                  "p95_ms": 0.4106752,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 16.641536000000002,
+                  "p95_ms": 18.3739904,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 191446752,
+              "triangles_par_instance": 3863832
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9873009324073792,
+                "erreur_absolue_luminance_image": 0.0011446303687989712,
+                "luminance_moyenne_reference_image": 0.023162400349974632,
+                "luminance_moyenne_image": 0.02302992343902588,
+                "silhouette": {
+                  "couverture_reference": 0.009105902777777777,
+                  "couverture": 0.008656684027777778,
+                  "iou": 0.6132847146939983,
+                  "erreur_couverture": -0.0004492187499999991,
+                  "luminance_reference_sur_union": 0.11996372789144516,
+                  "luminance_sur_union": 0.10794753581285477
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.8214181065559387,
+                  "erreur_absolue_luminance": 0.016094963997602463
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.008192,
+                  "p95_ms": 0.016384,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 15.947232,
+                  "p95_ms": 17.867264000000002,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 3863832
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9888560175895691,
+                "erreur_absolue_luminance_image": 0.0009943504119291902,
+                "luminance_moyenne_reference_image": 0.023162400349974632,
+                "luminance_moyenne_image": 0.022996917366981506,
+                "silhouette": {
+                  "couverture_reference": 0.009105902777777777,
+                  "couverture": 0.009751519097222222,
+                  "iou": 0.7333931777378815,
+                  "erreur_couverture": 0.0006456163194444448,
+                  "luminance_reference_sur_union": 0.12119001150131226,
+                  "luminance_sur_union": 0.10599769651889801
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.8432884812355042,
+                  "erreur_absolue_luminance": 0.01398133859038353
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.045568,
+                  "p95_ms": 0.058368,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 16.271872000000002,
+                  "p95_ms": 18.7481088,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 3863832
+            }
+          }
+        },
+        {
+          "id": "p128_oblique_cote_translation",
+          "camera": [
+            39.5294,
+            30.36956803333084,
+            120.53,
+            35,
+            0.0
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": null,
+          "instances": 1,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.023147432133555412,
+                "luminance_moyenne_image": 0.023147432133555412,
+                "silhouette": {
+                  "couverture_reference": 0.009100477430555556,
+                  "couverture": 0.009100477430555556,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.13857609033584595,
+                  "luminance_sur_union": 0.13857609033584595
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.377856,
+                  "p95_ms": 0.402432,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 16.635392,
+                  "p95_ms": 19.2416768,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 191446752,
+              "triangles_par_instance": 3863832
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9874692559242249,
+                "erreur_absolue_luminance_image": 0.0011226412607356906,
+                "luminance_moyenne_reference_image": 0.023147432133555412,
+                "luminance_moyenne_image": 0.0230410136282444,
+                "silhouette": {
+                  "couverture_reference": 0.009100477430555556,
+                  "couverture": 0.008634982638888889,
+                  "iou": 0.6176761678543151,
+                  "erreur_couverture": -0.0004654947916666666,
+                  "luminance_reference_sur_union": 0.11839974671602249,
+                  "luminance_sur_union": 0.10870838910341263
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.8237866163253784,
+                  "erreur_absolue_luminance": 0.015785910189151764
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.009216,
+                  "p95_ms": 0.017408,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 16.3072,
+                  "p95_ms": 17.9643904,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 3863832
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9889448881149292,
+                "erreur_absolue_luminance_image": 0.0009786562295630574,
+                "luminance_moyenne_reference_image": 0.023147432133555412,
+                "luminance_moyenne_image": 0.023005573078989983,
+                "silhouette": {
+                  "couverture_reference": 0.009100477430555556,
+                  "couverture": 0.009724392361111112,
+                  "iou": 0.7364628165348814,
+                  "erreur_couverture": 0.0006239149305555559,
+                  "luminance_reference_sur_union": 0.11951999366283417,
+                  "luminance_sur_union": 0.10645310580730438
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.8445376753807068,
+                  "erreur_absolue_luminance": 0.013760817237198353
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.045056,
+                  "p95_ms": 0.057395200000000014,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 16.21248,
+                  "p95_ms": 17.9932128,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 3863832
+            }
+          }
+        },
+        {
+          "id": "p128_oblique_cote_rotation",
+          "camera": [
+            39.5294,
+            30.36956983,
+            120.53,
+            35,
+            0.5
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": null,
+          "instances": 1,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.02313135378062725,
+                "luminance_moyenne_image": 0.02313135378062725,
+                "silhouette": {
+                  "couverture_reference": 0.009097222222222222,
+                  "couverture": 0.009097222222222222,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.14018629491329193,
+                  "luminance_sur_union": 0.14018629491329193
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.003072,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.387072,
+                  "p95_ms": 0.41472,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 11.464192,
+                  "p95_ms": 12.0502272,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 191446752,
+              "triangles_par_instance": 3863832
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9873348474502563,
+                "erreur_absolue_luminance_image": 0.0011331362184137106,
+                "luminance_moyenne_reference_image": 0.02313135378062725,
+                "luminance_moyenne_image": 0.02300446853041649,
+                "silhouette": {
+                  "couverture_reference": 0.009097222222222222,
+                  "couverture": 0.008611111111111111,
+                  "iou": 0.6139240506329114,
+                  "erreur_couverture": -0.00048611111111111077,
+                  "luminance_reference_sur_union": 0.11961279064416885,
+                  "luminance_sur_union": 0.10806360095739365
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.8218966126441956,
+                  "erreur_absolue_luminance": 0.015933509916067123
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.009216,
+                  "p95_ms": 0.017408,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 16.534,
+                  "p95_ms": 19.0162944,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 3863832
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9889158606529236,
+                "erreur_absolue_luminance_image": 0.000984221464022994,
+                "luminance_moyenne_reference_image": 0.02313135378062725,
+                "luminance_moyenne_image": 0.022977696731686592,
+                "silhouette": {
+                  "couverture_reference": 0.009097222222222222,
+                  "couverture": 0.009711371527777778,
+                  "iou": 0.7360040060090135,
+                  "erreur_couverture": 0.0006141493055555561,
+                  "luminance_reference_sur_union": 0.12089689821004868,
+                  "luminance_sur_union": 0.10673290491104126
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.844128429889679,
+                  "erreur_absolue_luminance": 0.013839091174304485
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.047104,
+                  "p95_ms": 0.058368,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 11.493888,
+                  "p95_ms": 17.6715264,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 3863832
+            }
+          }
+        },
+        {
+          "id": "p32_rasant_contrejour",
+          "camera": [
+            26.3794,
+            30.36790745,
+            120.53,
+            5,
+            0.0
+          ],
+          "sun": [
+            79.63,
+            -59.47
+          ],
+          "pixels_cibles_approx": 32,
+          "instances": 1,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.36157700419425964,
+                "luminance_moyenne_image": 0.36157700419425964,
+                "silhouette": {
+                  "couverture_reference": 0.0004709201388888889,
+                  "couverture": 0.0004709201388888889,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.08724379539489746,
+                  "luminance_sur_union": 0.08724379539489746
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.380928,
+                  "p95_ms": 0.387072,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 14.269952,
+                  "p95_ms": 15.026022400000002,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 191446752,
+              "triangles_par_instance": 3863832
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9996183514595032,
+                "erreur_absolue_luminance_image": 1.54935842147097e-05,
+                "luminance_moyenne_reference_image": 0.36157700419425964,
+                "luminance_moyenne_image": 0.361573189496994,
+                "silhouette": {
+                  "couverture_reference": 0.0004709201388888889,
+                  "couverture": 0.00048177083333333335,
+                  "iou": 0.5137931034482759,
+                  "erreur_couverture": 1.085069444444446e-05,
+                  "luminance_reference_sur_union": 0.08643867820501328,
+                  "luminance_sur_union": 0.08029824495315552
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9946327209472656,
+                  "erreur_absolue_luminance": 0.00021785499120596796
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.007168,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 13.549568,
+                  "p95_ms": 14.9648384,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 3863832
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9994540810585022,
+                "erreur_absolue_luminance_image": 3.219381324015558e-05,
+                "luminance_moyenne_reference_image": 0.36157700419425964,
+                "luminance_moyenne_image": 0.36160343885421753,
+                "silhouette": {
+                  "couverture_reference": 0.0004709201388888889,
+                  "couverture": 0.00056640625,
+                  "iou": 0.6568457538994801,
+                  "erreur_couverture": 9.548611111111108e-05,
+                  "luminance_reference_sur_union": 0.08667152374982834,
+                  "luminance_sur_union": 0.12874257564544678
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9923220872879028,
+                  "erreur_absolue_luminance": 0.0004526229458861053
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.038912,
+                  "p95_ms": 0.041984,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 13.569536,
+                  "p95_ms": 14.365132800000001,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 3863832
+            }
+          }
+        },
+        {
+          "id": "p8_dessus_cote",
+          "camera": [
+            909.4376,
+            30.36782535,
+            120.53,
+            75,
+            0.0
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": 8,
+          "instances": 1,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.059602152556180954,
+                "luminance_moyenne_image": 0.059602152556180954,
+                "silhouette": {
+                  "couverture_reference": 3.90625e-05,
+                  "couverture": 3.90625e-05,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.1730341613292694,
+                  "luminance_sur_union": 0.1730341613292694
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.003072,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.262144,
+                  "p95_ms": 0.27648,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 6.45632,
+                  "p95_ms": 6.8413952,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 191446752,
+              "triangles_par_instance": 3863832
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.999931275844574,
+                "erreur_absolue_luminance_image": 4.317112598073436e-06,
+                "luminance_moyenne_reference_image": 0.059602152556180954,
+                "luminance_moyenne_image": 0.05960215628147125,
+                "silhouette": {
+                  "couverture_reference": 3.90625e-05,
+                  "couverture": 4.0147569444444445e-05,
+                  "iou": 0.6976744186046512,
+                  "erreur_couverture": 1.0850694444444447e-06,
+                  "luminance_reference_sur_union": 0.15131983160972595,
+                  "luminance_sur_union": 0.15145711600780487
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9990337491035461,
+                  "erreur_absolue_luminance": 6.070939343771897e-05
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.0,
+                  "p95_ms": 0.0,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 9.341439999999999,
+                  "p95_ms": 9.9291648,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 3863832
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9999356269836426,
+                "erreur_absolue_luminance_image": 4.096111297258176e-06,
+                "luminance_moyenne_reference_image": 0.059602152556180954,
+                "luminance_moyenne_image": 0.05960123986005783,
+                "silhouette": {
+                  "couverture_reference": 3.90625e-05,
+                  "couverture": 4.340277777777778e-05,
+                  "iou": 0.8095238095238095,
+                  "erreur_couverture": 4.340277777777779e-06,
+                  "luminance_reference_sur_union": 0.15395887196063995,
+                  "luminance_sur_union": 0.13396112620830536
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9990949034690857,
+                  "erreur_absolue_luminance": 5.7599427236709744e-05
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.0,
+                  "p95_ms": 0.0,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 6.178816,
+                  "p95_ms": 6.6223616,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 3863832
+            }
+          }
+        }
+      ],
+      "stabilite": [
+        {
+          "poses": [
+            "p128_oblique_cote",
+            "p128_oblique_cote_translation"
+          ],
+          "modes": {
+            "reference": {
+              "variation_absolue_reference": 0.001804623636417091,
+              "variation_absolue_mode": 0.001804623636417091,
+              "erreur_de_variation": 0.0
+            },
+            "impostor": {
+              "variation_absolue_reference": 0.001804623636417091,
+              "variation_absolue_mode": 0.0009494884870946407,
+              "erreur_de_variation": 0.0014026500284671783
+            },
+            "volume": {
+              "variation_absolue_reference": 0.001804623636417091,
+              "variation_absolue_mode": 0.0008981324499472976,
+              "erreur_de_variation": 0.0013293400406837463
+            }
+          }
+        },
+        {
+          "poses": [
+            "p128_oblique_cote",
+            "p128_oblique_cote_rotation"
+          ],
+          "modes": {
+            "reference": {
+              "variation_absolue_reference": 0.0029769730754196644,
+              "variation_absolue_mode": 0.0029769730754196644,
+              "erreur_de_variation": 0.0
+            },
+            "impostor": {
+              "variation_absolue_reference": 0.0029769730754196644,
+              "variation_absolue_mode": 0.0023509953171014786,
+              "erreur_de_variation": 0.0015976271824911237
+            },
+            "volume": {
+              "variation_absolue_reference": 0.0029769730754196644,
+              "variation_absolue_mode": 0.002252096077427268,
+              "erreur_de_variation": 0.0014278171584010124
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "jacaranda_grove_lieu1",
+      "model": "jacaranda",
+      "scene": "grove",
+      "anchor": [
+        30.37,
+        120.53
+      ],
+      "poses": [
+        {
+          "id": "p128_oblique_cote",
+          "camera": [
+            39.5294,
+            30.36956983,
+            120.53,
+            35,
+            0.0
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": 128,
+          "instances": 16,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.041779834777116776,
+                "luminance_moyenne_image": 0.041779834777116776,
+                "silhouette": {
+                  "couverture_reference": 0.15799479166666666,
+                  "couverture": 0.15799479166666666,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.1438697874546051,
+                  "luminance_sur_union": 0.1438697874546051
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 6.547456,
+                  "p95_ms": 6.5638912,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 25.615872,
+                  "p95_ms": 27.424768,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 191446752,
+              "triangles_par_instance": 3863832
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.7947449684143066,
+                "erreur_absolue_luminance_image": 0.019127491861581802,
+                "luminance_moyenne_reference_image": 0.041779834777116776,
+                "luminance_moyenne_image": 0.040151018649339676,
+                "silhouette": {
+                  "couverture_reference": 0.15799479166666666,
+                  "couverture": 0.15191297743055557,
+                  "iou": 0.6672270575393003,
+                  "erreur_couverture": -0.006081814236111094,
+                  "luminance_reference_sur_union": 0.12519481778144836,
+                  "luminance_sur_union": 0.11644008755683899
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.19727613031864166,
+                  "erreur_absolue_luminance": 0.07724136114120483
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.277504,
+                  "p95_ms": 0.28672,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 16.636927999999997,
+                  "p95_ms": 18.681702400000006,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 3863832
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.8159961104393005,
+                "erreur_absolue_luminance_image": 0.016791967675089836,
+                "luminance_moyenne_reference_image": 0.041779834777116776,
+                "luminance_moyenne_image": 0.03878680244088173,
+                "silhouette": {
+                  "couverture_reference": 0.15799479166666666,
+                  "couverture": 0.164990234375,
+                  "iou": 0.7697388760731527,
+                  "erreur_couverture": 0.006995442708333327,
+                  "luminance_reference_sur_union": 0.12716110050678253,
+                  "luminance_sur_union": 0.11077509075403214
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.2712678015232086,
+                  "erreur_absolue_luminance": 0.0679636001586914
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.770048,
+                  "p95_ms": 0.8090112,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 17.201664,
+                  "p95_ms": 19.6269056,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 3863832
+            }
+          }
+        },
+        {
+          "id": "p32_rasant_contrejour",
+          "camera": [
+            26.3794,
+            30.36790745,
+            120.53,
+            5,
+            0.0
+          ],
+          "sun": [
+            79.63,
+            -59.47
+          ],
+          "pixels_cibles_approx": 32,
+          "instances": 16,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.36160433292388916,
+                "luminance_moyenne_image": 0.36160433292388916,
+                "silhouette": {
+                  "couverture_reference": 0.003793402777777778,
+                  "couverture": 0.003793402777777778,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.08845575898885727,
+                  "luminance_sur_union": 0.08845575898885727
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 6.151168,
+                  "p95_ms": 6.163456,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 21.835264000000002,
+                  "p95_ms": 23.4360832,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 191446752,
+              "triangles_par_instance": 3863832
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9972447156906128,
+                "erreur_absolue_luminance_image": 0.000121836390462704,
+                "luminance_moyenne_reference_image": 0.36160433292388916,
+                "luminance_moyenne_image": 0.3615691363811493,
+                "silhouette": {
+                  "couverture_reference": 0.003793402777777778,
+                  "couverture": 0.0037456597222222223,
+                  "iou": 0.7300796812749004,
+                  "erreur_couverture": -4.7743055555555646e-05,
+                  "luminance_reference_sur_union": 0.08759625256061554,
+                  "luminance_sur_union": 0.07952503859996796
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9612535238265991,
+                  "erreur_absolue_luminance": 0.0017131608910858631
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.023552,
+                  "p95_ms": 0.027648,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 13.502976,
+                  "p95_ms": 15.076096000000001,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 3863832
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9965938329696655,
+                "erreur_absolue_luminance_image": 0.00024664317606948316,
+                "luminance_moyenne_reference_image": 0.36160433292388916,
+                "luminance_moyenne_image": 0.36180391907691956,
+                "silhouette": {
+                  "couverture_reference": 0.003793402777777778,
+                  "couverture": 0.004157986111111111,
+                  "iou": 0.8375125376128385,
+                  "erreur_couverture": 0.0003645833333333335,
+                  "luminance_reference_sur_union": 0.08771812915802002,
+                  "luminance_sur_union": 0.1337437480688095
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9521023035049438,
+                  "erreur_absolue_luminance": 0.003466862952336669
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.135168,
+                  "p95_ms": 0.173056,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 13.806591999999998,
+                  "p95_ms": 14.5517056,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 3863832
+            }
+          }
+        },
+        {
+          "id": "p8_dessus_cote",
+          "camera": [
+            909.4376,
+            30.36782535,
+            120.53,
+            75,
+            0.0
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": 8,
+          "instances": 16,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.05967172980308533,
+                "luminance_moyenne_image": 0.05967172980308533,
+                "silhouette": {
+                  "couverture_reference": 0.0006141493055555556,
+                  "couverture": 0.0006141493055555556,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.1616252213716507,
+                  "luminance_sur_union": 0.1616252213716507
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 5.82656,
+                  "p95_ms": 5.843968,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 16.4224,
+                  "p95_ms": 17.0015232,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 191446752,
+              "triangles_par_instance": 3863832
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9989703297615051,
+                "erreur_absolue_luminance_image": 7.962431118357927e-05,
+                "luminance_moyenne_reference_image": 0.05967172980308533,
+                "luminance_moyenne_image": 0.05967753380537033,
+                "silhouette": {
+                  "couverture_reference": 0.0006141493055555556,
+                  "couverture": 0.0006163194444444444,
+                  "iou": 0.5684647302904564,
+                  "erreur_couverture": 2.1701388888887944e-06,
+                  "luminance_reference_sur_union": 0.13527528941631317,
+                  "luminance_sur_union": 0.14267095923423767
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9855215549468994,
+                  "erreur_absolue_luminance": 0.0011196495033800602
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.0,
+                  "p95_ms": 0.001024,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 9.46176,
+                  "p95_ms": 9.8346496,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 3863832
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9990746974945068,
+                "erreur_absolue_luminance_image": 6.641352956648916e-05,
+                "luminance_moyenne_reference_image": 0.05967172980308533,
+                "luminance_moyenne_image": 0.05965752154588699,
+                "silhouette": {
+                  "couverture_reference": 0.0006141493055555556,
+                  "couverture": 0.0006174045138888889,
+                  "iou": 0.6617862371888726,
+                  "erreur_couverture": 3.2552083333333e-06,
+                  "luminance_reference_sur_union": 0.14087776839733124,
+                  "luminance_sur_union": 0.1217607781291008
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9869868755340576,
+                  "erreur_absolue_luminance": 0.0009338086238130927
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.0,
+                  "p95_ms": 0.001024,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 9.436672,
+                  "p95_ms": 9.8489344,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 3863832
+            }
+          }
+        }
+      ],
+      "stabilite": []
+    },
+    {
+      "id": "fir_single_lieu1",
+      "model": "fir",
+      "scene": "single",
+      "anchor": [
+        30.37,
+        120.53
+      ],
+      "poses": [
+        {
+          "id": "p128_oblique_cote",
+          "camera": [
+            39.5294,
+            30.36956983,
+            120.53,
+            35,
+            0.0
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": 128,
+          "instances": 1,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.02226978726685047,
+                "luminance_moyenne_image": 0.02226978726685047,
+                "silhouette": {
+                  "couverture_reference": 0.0025596788194444443,
+                  "couverture": 0.0025596788194444443,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.1023847833275795,
+                  "luminance_sur_union": 0.1023847833275795
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.002048,
+                  "p95_ms": 0.00512,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 16.323072,
+                  "p95_ms": 19.0633472,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 17020448,
+              "triangles_par_instance": 157402
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9948970675468445,
+                "erreur_absolue_luminance_image": 0.00027843372663483024,
+                "luminance_moyenne_reference_image": 0.02226978726685047,
+                "luminance_moyenne_image": 0.022229021415114403,
+                "silhouette": {
+                  "couverture_reference": 0.0025596788194444443,
+                  "couverture": 0.002531467013888889,
+                  "iou": 0.37635670284540923,
+                  "erreur_couverture": -2.8211805555555195e-05,
+                  "luminance_reference_sur_union": 0.07648619264364243,
+                  "luminance_sur_union": 0.06548145413398743
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9282388687133789,
+                  "erreur_absolue_luminance": 0.003915069624781609
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.012288,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 12.125184,
+                  "p95_ms": 18.1971968,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 157402
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9956079721450806,
+                "erreur_absolue_luminance_image": 0.0002626260102260858,
+                "luminance_moyenne_reference_image": 0.02226978726685047,
+                "luminance_moyenne_image": 0.022274434566497803,
+                "silhouette": {
+                  "couverture_reference": 0.0025596788194444443,
+                  "couverture": 0.0028580729166666667,
+                  "iou": 0.5367805478608803,
+                  "erreur_couverture": 0.00029839409722222246,
+                  "luminance_reference_sur_union": 0.07935278862714767,
+                  "luminance_sur_union": 0.08066260814666748
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9382367730140686,
+                  "erreur_absolue_luminance": 0.003693017875775695
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.04096,
+                  "p95_ms": 0.053248,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 16.274431999999997,
+                  "p95_ms": 18.455552000000004,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 157402
+            }
+          }
+        },
+        {
+          "id": "p128_oblique_cote_translation",
+          "camera": [
+            39.5294,
+            30.36956803333084,
+            120.53,
+            35,
+            0.0
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": null,
+          "instances": 1,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.022272245958447456,
+                "luminance_moyenne_image": 0.022272245958447456,
+                "silhouette": {
+                  "couverture_reference": 0.0025509982638888887,
+                  "couverture": 0.0025509982638888887,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.10092584043741226,
+                  "luminance_sur_union": 0.10092584043741226
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.002048,
+                  "p95_ms": 0.00512,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 16.3328,
+                  "p95_ms": 19.0290432,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 17020448,
+              "triangles_par_instance": 157402
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9949365854263306,
+                "erreur_absolue_luminance_image": 0.00027000324917025864,
+                "luminance_moyenne_reference_image": 0.022272245958447456,
+                "luminance_moyenne_image": 0.02222985401749611,
+                "silhouette": {
+                  "couverture_reference": 0.0025509982638888887,
+                  "couverture": 0.0024598524305555554,
+                  "iou": 0.3780960907191883,
+                  "erreur_couverture": -9.114583333333327e-05,
+                  "luminance_reference_sur_union": 0.07625219225883484,
+                  "luminance_sur_union": 0.06461359560489655
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9287964105606079,
+                  "erreur_absolue_luminance": 0.003796549281105399
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.006144,
+                  "p95_ms": 0.012288,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 15.909888,
+                  "p95_ms": 19.2616944,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 157402
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9956064820289612,
+                "erreur_absolue_luminance_image": 0.00026001236983574927,
+                "luminance_moyenne_reference_image": 0.022272245958447456,
+                "luminance_moyenne_image": 0.022276604548096657,
+                "silhouette": {
+                  "couverture_reference": 0.0025509982638888887,
+                  "couverture": 0.002824435763888889,
+                  "iou": 0.5457098283931358,
+                  "erreur_couverture": 0.00027343750000000024,
+                  "luminance_reference_sur_union": 0.07891081273555756,
+                  "luminance_sur_union": 0.08016075938940048
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9382161498069763,
+                  "erreur_absolue_luminance": 0.0036563300527632236
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.04096,
+                  "p95_ms": 0.053248,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 16.324607999999998,
+                  "p95_ms": 18.041139200000003,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 157402
+            }
+          }
+        },
+        {
+          "id": "p128_oblique_cote_rotation",
+          "camera": [
+            39.5294,
+            30.36956983,
+            120.53,
+            35,
+            0.5
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": null,
+          "instances": 1,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.022231705486774445,
+                "luminance_moyenne_image": 0.022231705486774445,
+                "silhouette": {
+                  "couverture_reference": 0.0025162760416666667,
+                  "couverture": 0.0025162760416666667,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.09806762635707855,
+                  "luminance_sur_union": 0.09806762635707855
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.001024,
+                  "p95_ms": 0.003072,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 16.285184,
+                  "p95_ms": 19.107328,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 17020448,
+              "triangles_par_instance": 157402
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9949374198913574,
+                "erreur_absolue_luminance_image": 0.00026892879395745695,
+                "luminance_moyenne_reference_image": 0.022231705486774445,
+                "luminance_moyenne_image": 0.022205427289009094,
+                "silhouette": {
+                  "couverture_reference": 0.0025162760416666667,
+                  "couverture": 0.002531467013888889,
+                  "iou": 0.36823529411764705,
+                  "erreur_couverture": 1.5190972222222428e-05,
+                  "luminance_reference_sur_union": 0.07267319411039352,
+                  "luminance_sur_union": 0.06555619090795517
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9288082718849182,
+                  "erreur_absolue_luminance": 0.003781637642532587
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.012288,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 11.301376000000001,
+                  "p95_ms": 11.9472128,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 157402
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.995658278465271,
+                "erreur_absolue_luminance_image": 0.00025626769638620317,
+                "luminance_moyenne_reference_image": 0.022231705486774445,
+                "luminance_moyenne_image": 0.02224966697394848,
+                "silhouette": {
+                  "couverture_reference": 0.0025162760416666667,
+                  "couverture": 0.0029014756944444444,
+                  "iou": 0.5348908699661851,
+                  "erreur_couverture": 0.0003851996527777777,
+                  "luminance_reference_sur_union": 0.07516581565141678,
+                  "luminance_sur_union": 0.08024368435144424
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9389442801475525,
+                  "erreur_absolue_luminance": 0.0036035163793712854
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.039936,
+                  "p95_ms": 0.052224,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 16.270176,
+                  "p95_ms": 18.9735296,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 157402
+            }
+          }
+        },
+        {
+          "id": "p32_rasant_contrejour",
+          "camera": [
+            26.3794,
+            30.36790745,
+            120.53,
+            5,
+            0.0
+          ],
+          "sun": [
+            79.63,
+            -59.47
+          ],
+          "pixels_cibles_approx": 32,
+          "instances": 1,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.3615751266479492,
+                "luminance_moyenne_image": 0.3615751266479492,
+                "silhouette": {
+                  "couverture_reference": 0.00013237847222222223,
+                  "couverture": 0.00013237847222222223,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.07794155180454254,
+                  "luminance_sur_union": 0.07794155180454254
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.01024,
+                  "p95_ms": 0.01536,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 8.950784,
+                  "p95_ms": 9.5281664,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 17020448,
+              "triangles_par_instance": 157402
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9999375939369202,
+                "erreur_absolue_luminance_image": 2.857059143934748e-06,
+                "luminance_moyenne_reference_image": 0.3615751266479492,
+                "luminance_moyenne_image": 0.36157429218292236,
+                "silhouette": {
+                  "couverture_reference": 0.00013237847222222223,
+                  "couverture": 0.00015082465277777777,
+                  "iou": 0.39572192513368987,
+                  "erreur_couverture": 1.844618055555554e-05,
+                  "luminance_reference_sur_union": 0.07769982516765594,
+                  "luminance_sur_union": 0.0736900046467781
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9991233348846436,
+                  "erreur_absolue_luminance": 4.015387821709737e-05
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.008192,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 8.854016000000001,
+                  "p95_ms": 9.592063999999999,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 157402
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9999209046363831,
+                "erreur_absolue_luminance_image": 3.91463299820316e-06,
+                "luminance_moyenne_reference_image": 0.3615751266479492,
+                "luminance_moyenne_image": 0.36157774925231934,
+                "silhouette": {
+                  "couverture_reference": 0.00013237847222222223,
+                  "couverture": 0.00016927083333333334,
+                  "iou": 0.4631578947368421,
+                  "erreur_couverture": 3.6892361111111105e-05,
+                  "luminance_reference_sur_union": 0.07788112759590149,
+                  "luminance_sur_union": 0.09065179526805878
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9988881349563599,
+                  "erreur_absolue_luminance": 5.5024873290676624e-05
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.019456,
+                  "p95_ms": 0.02257920000000001,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 8.58008,
+                  "p95_ms": 9.0686976,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 157402
+            }
+          }
+        },
+        {
+          "id": "p8_dessus_cote",
+          "camera": [
+            909.4376,
+            30.36782535,
+            120.53,
+            75,
+            0.0
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": 8,
+          "instances": 1,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.05959765985608101,
+                "luminance_moyenne_image": 0.05959765985608101,
+                "silhouette": {
+                  "couverture_reference": 7.595486111111111e-06,
+                  "couverture": 7.595486111111111e-06,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.13970442116260529,
+                  "luminance_sur_union": 0.13970442116260529
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.0,
+                  "p95_ms": 0.0,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 8.130528,
+                  "p95_ms": 9.9108864,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 17020448,
+              "triangles_par_instance": 157402
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9999594688415527,
+                "erreur_absolue_luminance_image": 1.2968260989509872e-06,
+                "luminance_moyenne_reference_image": 0.05959765985608101,
+                "luminance_moyenne_image": 0.05959790572524071,
+                "silhouette": {
+                  "couverture_reference": 7.595486111111111e-06,
+                  "couverture": 1.0850694444444445e-05,
+                  "iou": 0.3076923076923077,
+                  "erreur_couverture": 3.255208333333334e-06,
+                  "luminance_reference_sur_union": 0.09307242929935455,
+                  "luminance_sur_union": 0.11045290529727936
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9994301795959473,
+                  "erreur_absolue_luminance": 1.8236616597278044e-05
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.0,
+                  "p95_ms": 0.0,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 6.397952,
+                  "p95_ms": 9.77152,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 157402
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9999660849571228,
+                "erreur_absolue_luminance_image": 1.0102670557898819e-06,
+                "luminance_moyenne_reference_image": 0.05959765985608101,
+                "luminance_moyenne_image": 0.05959770455956459,
+                "silhouette": {
+                  "couverture_reference": 7.595486111111111e-06,
+                  "couverture": 1.193576388888889e-05,
+                  "iou": 0.5,
+                  "erreur_couverture": 4.340277777777779e-06,
+                  "luminance_reference_sur_union": 0.09775202721357346,
+                  "luminance_sur_union": 0.10119142383337021
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9995238780975342,
+                  "erreur_absolue_luminance": 1.4206880223355256e-05
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.0,
+                  "p95_ms": 0.0,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 9.259519999999998,
+                  "p95_ms": 9.8652672,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 157402
+            }
+          }
+        }
+      ],
+      "stabilite": [
+        {
+          "poses": [
+            "p128_oblique_cote",
+            "p128_oblique_cote_translation"
+          ],
+          "modes": {
+            "reference": {
+              "variation_absolue_reference": 0.0008534736698493361,
+              "variation_absolue_mode": 0.0008534736698493361,
+              "erreur_de_variation": 0.0
+            },
+            "impostor": {
+              "variation_absolue_reference": 0.0008534736698493361,
+              "variation_absolue_mode": 0.0007023799698799849,
+              "erreur_de_variation": 0.0003909266088157892
+            },
+            "volume": {
+              "variation_absolue_reference": 0.0008534736698493361,
+              "variation_absolue_mode": 0.0007501965155825019,
+              "erreur_de_variation": 0.0003809048212133348
+            }
+          }
+        },
+        {
+          "poses": [
+            "p128_oblique_cote",
+            "p128_oblique_cote_rotation"
+          ],
+          "modes": {
+            "reference": {
+              "variation_absolue_reference": 0.0019448499660938978,
+              "variation_absolue_mode": 0.0019448499660938978,
+              "erreur_de_variation": 0.0
+            },
+            "impostor": {
+              "variation_absolue_reference": 0.0019448499660938978,
+              "variation_absolue_mode": 0.001833728514611721,
+              "erreur_de_variation": 0.0004252615326549858
+            },
+            "volume": {
+              "variation_absolue_reference": 0.0019448499660938978,
+              "variation_absolue_mode": 0.0018822102574631572,
+              "erreur_de_variation": 0.00041883959784172475
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "fir_grove_lieu1",
+      "model": "fir",
+      "scene": "grove",
+      "anchor": [
+        30.37,
+        120.53
+      ],
+      "poses": [
+        {
+          "id": "p128_oblique_cote",
+          "camera": [
+            39.5294,
+            30.36956983,
+            120.53,
+            35,
+            0.0
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": 128,
+          "instances": 16,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.025969624519348145,
+                "luminance_moyenne_image": 0.025969624519348145,
+                "silhouette": {
+                  "couverture_reference": 0.04587131076388889,
+                  "couverture": 0.04587131076388889,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.10388465970754623,
+                  "luminance_sur_union": 0.10388465970754623
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.228352,
+                  "p95_ms": 0.2304,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 11.209727999999998,
+                  "p95_ms": 11.583795199999999,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 17020448,
+              "triangles_par_instance": 157402
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9124809503555298,
+                "erreur_absolue_luminance_image": 0.005059512797743082,
+                "luminance_moyenne_reference_image": 0.025969624519348145,
+                "luminance_moyenne_image": 0.025571057572960854,
+                "silhouette": {
+                  "couverture_reference": 0.04587131076388889,
+                  "couverture": 0.04536566840277778,
+                  "iou": 0.392995593254034,
+                  "erreur_couverture": -0.0005056423611111069,
+                  "luminance_reference_sur_union": 0.07836268842220306,
+                  "luminance_sur_union": 0.07228434085845947
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.6535363793373108,
+                  "erreur_absolue_luminance": 0.019477415829896927
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.15104,
+                  "p95_ms": 0.160768,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 11.158016,
+                  "p95_ms": 11.595929600000002,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 157402
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9274426698684692,
+                "erreur_absolue_luminance_image": 0.004435614682734013,
+                "luminance_moyenne_reference_image": 0.025969624519348145,
+                "luminance_moyenne_image": 0.02560984343290329,
+                "silhouette": {
+                  "couverture_reference": 0.04587131076388889,
+                  "couverture": 0.05125759548611111,
+                  "iou": 0.5666555821971752,
+                  "erreur_couverture": 0.005386284722222225,
+                  "luminance_reference_sur_union": 0.08174336701631546,
+                  "luminance_sur_union": 0.07594548165798187
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.713657557964325,
+                  "erreur_absolue_luminance": 0.017254594713449478
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.551936,
+                  "p95_ms": 0.606208,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 11.718143999999999,
+                  "p95_ms": 12.4090368,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 157402
+            }
+          }
+        },
+        {
+          "id": "p32_rasant_contrejour",
+          "camera": [
+            26.3794,
+            30.36790745,
+            120.53,
+            5,
+            0.0
+          ],
+          "sun": [
+            79.63,
+            -59.47
+          ],
+          "pixels_cibles_approx": 32,
+          "instances": 16,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.36157292127609253,
+                "luminance_moyenne_image": 0.36157292127609253,
+                "silhouette": {
+                  "couverture_reference": 0.0016254340277777777,
+                  "couverture": 0.0016254340277777777,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.07377754896879196,
+                  "luminance_sur_union": 0.07377754896879196
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.238592,
+                  "p95_ms": 0.243712,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 13.704191999999999,
+                  "p95_ms": 14.580428800000002,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 17020448,
+              "triangles_par_instance": 157402
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9993424415588379,
+                "erreur_absolue_luminance_image": 3.069501690333709e-05,
+                "luminance_moyenne_reference_image": 0.36157292127609253,
+                "luminance_moyenne_image": 0.3615676462650299,
+                "silhouette": {
+                  "couverture_reference": 0.0016254340277777777,
+                  "couverture": 0.00158203125,
+                  "iou": 0.5151204510507432,
+                  "erreur_couverture": -4.3402777777777624e-05,
+                  "luminance_reference_sur_union": 0.07443171739578247,
+                  "luminance_sur_union": 0.07192902266979218
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.990753710269928,
+                  "erreur_absolue_luminance": 0.0004316042468417436
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.014336,
+                  "p95_ms": 0.018432,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 13.379072,
+                  "p95_ms": 14.9481984,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 157402
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.99910569190979,
+                "erreur_absolue_luminance_image": 4.358154910732992e-05,
+                "luminance_moyenne_reference_image": 0.36157292127609253,
+                "luminance_moyenne_image": 0.3616020381450653,
+                "silhouette": {
+                  "couverture_reference": 0.0016254340277777777,
+                  "couverture": 0.0018218315972222223,
+                  "iou": 0.6529656607700313,
+                  "erreur_couverture": 0.00019639756944444457,
+                  "luminance_reference_sur_union": 0.07451257854700089,
+                  "luminance_sur_union": 0.08841665834188461
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9874244928359985,
+                  "erreur_absolue_luminance": 0.0006127440719865263
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.089088,
+                  "p95_ms": 0.119808,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 13.525504,
+                  "p95_ms": 14.3348224,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 157402
+            }
+          }
+        },
+        {
+          "id": "p8_dessus_cote",
+          "camera": [
+            909.4376,
+            30.36782535,
+            120.53,
+            75,
+            0.0
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": 8,
+          "instances": 16,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.05961412936449051,
+                "luminance_moyenne_image": 0.05961412936449051,
+                "silhouette": {
+                  "couverture_reference": 0.00014539930555555554,
+                  "couverture": 0.00014539930555555554,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.15872083604335785,
+                  "luminance_sur_union": 0.15872083604335785
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.118784,
+                  "p95_ms": 0.130048,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 6.290432,
+                  "p95_ms": 6.696448,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 17020448,
+              "triangles_par_instance": 157402
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9994047284126282,
+                "erreur_absolue_luminance_image": 2.0566070816130377e-05,
+                "luminance_moyenne_reference_image": 0.05961412936449051,
+                "luminance_moyenne_image": 0.05961066856980324,
+                "silhouette": {
+                  "couverture_reference": 0.00014539930555555554,
+                  "couverture": 0.0001486545138888889,
+                  "iou": 0.3415841584158416,
+                  "erreur_couverture": 3.2552083333333543e-06,
+                  "luminance_reference_sur_union": 0.11890340596437454,
+                  "luminance_sur_union": 0.10315343737602234
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9916296005249023,
+                  "erreur_absolue_luminance": 0.00028915522852912545
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.0,
+                  "p95_ms": 0.001024,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 6.19008,
+                  "p95_ms": 6.6708992,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 157402
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9993802905082703,
+                "erreur_absolue_luminance_image": 1.9932009308831766e-05,
+                "luminance_moyenne_reference_image": 0.05961412936449051,
+                "luminance_moyenne_image": 0.05960797145962715,
+                "silhouette": {
+                  "couverture_reference": 0.00014539930555555554,
+                  "couverture": 0.00016059027777777778,
+                  "iou": 0.40298507462686567,
+                  "erreur_couverture": 1.5190972222222239e-05,
+                  "luminance_reference_sur_union": 0.1192672848701477,
+                  "luminance_sur_union": 0.09109180420637131
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9912856221199036,
+                  "erreur_absolue_luminance": 0.00028023781487718225
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.0,
+                  "p95_ms": 0.001024,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 6.208,
+                  "p95_ms": 6.654310400000001,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 157402
+            }
+          }
+        }
+      ],
+      "stabilite": []
+    },
+    {
+      "id": "jacaranda_single_lieu2",
+      "model": "jacaranda",
+      "scene": "single",
+      "anchor": [
+        0.37,
+        60.53
+      ],
+      "poses": [
+        {
+          "id": "p128_rasant_contrejour",
+          "camera": [
+            11.0948,
+            0.36947686,
+            60.53,
+            5,
+            0.0
+          ],
+          "sun": [
+            70.37,
+            60.53
+          ],
+          "pixels_cibles_approx": 128,
+          "instances": 1,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.3428223431110382,
+                "luminance_moyenne_image": 0.3428223431110382,
+                "silhouette": {
+                  "couverture_reference": 0.0076963975694444445,
+                  "couverture": 0.0076963975694444445,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.05645066872239113,
+                  "luminance_sur_union": 0.05645066872239113
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.408576,
+                  "p95_ms": 0.41579520000000003,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 15.335424,
+                  "p95_ms": 17.1969536,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 191446752,
+              "triangles_par_instance": 3863832
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9947874546051025,
+                "erreur_absolue_luminance_image": 0.00023874887847341597,
+                "luminance_moyenne_reference_image": 0.3428223431110382,
+                "luminance_moyenne_image": 0.3427717983722687,
+                "silhouette": {
+                  "couverture_reference": 0.0076963975694444445,
+                  "couverture": 0.00759765625,
+                  "iou": 0.5664592131584797,
+                  "erreur_couverture": -9.874131944444427e-05,
+                  "luminance_reference_sur_union": 0.0553969070315361,
+                  "luminance_sur_union": 0.05022576451301575
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9266999363899231,
+                  "erreur_absolue_luminance": 0.0033571491949260235
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.021504,
+                  "p95_ms": 0.022528,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 14.8992,
+                  "p95_ms": 16.744704,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 3863832
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9925100803375244,
+                "erreur_absolue_luminance_image": 0.0004751546075567603,
+                "luminance_moyenne_reference_image": 0.3428223431110382,
+                "luminance_moyenne_image": 0.34316062927246094,
+                "silhouette": {
+                  "couverture_reference": 0.0076963975694444445,
+                  "couverture": 0.009150390625,
+                  "iou": 0.6728800775778472,
+                  "erreur_couverture": 0.0014539930555555547,
+                  "luminance_reference_sur_union": 0.05676744505763054,
+                  "luminance_sur_union": 0.09033722430467606
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.8946763277053833,
+                  "erreur_absolue_luminance": 0.006679678335785866
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.050176,
+                  "p95_ms": 0.058368,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 14.989823999999999,
+                  "p95_ms": 16.779673600000002,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 3863832
+            }
+          }
+        },
+        {
+          "id": "p8_oblique_cote",
+          "camera": [
+            542.4703,
+            0.36311733,
+            60.53,
+            35,
+            0.0
+          ],
+          "sun": [
+            0.126547,
+            130.530384
+          ],
+          "pixels_cibles_approx": 8,
+          "instances": 1,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.06919468939304352,
+                "luminance_moyenne_image": 0.06919468939304352,
+                "silhouette": {
+                  "couverture_reference": 3.363715277777778e-05,
+                  "couverture": 3.363715277777778e-05,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.1887369304895401,
+                  "luminance_sur_union": 0.1887369304895401
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.361472,
+                  "p95_ms": 0.380928,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 15.932416,
+                  "p95_ms": 17.9090944,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 191446752,
+              "triangles_par_instance": 3863832
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9999156594276428,
+                "erreur_absolue_luminance_image": 4.483522388909478e-06,
+                "luminance_moyenne_reference_image": 0.06919468939304352,
+                "luminance_moyenne_image": 0.06919308751821518,
+                "silhouette": {
+                  "couverture_reference": 3.363715277777778e-05,
+                  "couverture": 3.146701388888889e-05,
+                  "iou": 0.5,
+                  "erreur_couverture": -2.1701388888888893e-06,
+                  "luminance_reference_sur_union": 0.1604330688714981,
+                  "luminance_sur_union": 0.12366373836994171
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9988131523132324,
+                  "erreur_absolue_luminance": 6.298240623436868e-05
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.0,
+                  "p95_ms": 0.009267200000000012,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 15.64672,
+                  "p95_ms": 18.024089600000003,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 3863832
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.999920129776001,
+                "erreur_absolue_luminance_image": 4.2516880967014e-06,
+                "luminance_moyenne_reference_image": 0.06919468939304352,
+                "luminance_moyenne_image": 0.06919311732053757,
+                "silhouette": {
+                  "couverture_reference": 3.363715277777778e-05,
+                  "couverture": 3.7977430555555556e-05,
+                  "iou": 0.65,
+                  "erreur_couverture": 4.340277777777779e-06,
+                  "luminance_reference_sur_union": 0.15897560119628906,
+                  "luminance_sur_union": 0.12289140373468399
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9988763928413391,
+                  "erreur_absolue_luminance": 5.972223516437225e-05
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.0,
+                  "p95_ms": 0.014336,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 15.536128,
+                  "p95_ms": 18.332825600000003,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 3863832
+            }
+          }
+        }
+      ],
+      "stabilite": []
+    },
+    {
+      "id": "jacaranda_grove_lieu2",
+      "model": "jacaranda",
+      "scene": "grove",
+      "anchor": [
+        0.37,
+        60.53
+      ],
+      "poses": [
+        {
+          "id": "p128_rasant_contrejour",
+          "camera": [
+            11.0948,
+            0.36947686,
+            60.53,
+            5,
+            0.0
+          ],
+          "sun": [
+            70.37,
+            60.53
+          ],
+          "pixels_cibles_approx": 128,
+          "instances": 16,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.34353548288345337,
+                "luminance_moyenne_image": 0.34353548288345337,
+                "silhouette": {
+                  "couverture_reference": 0.09191731770833333,
+                  "couverture": 0.09191731770833333,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.054415181279182434,
+                  "luminance_sur_union": 0.054415181279182434
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 6.53824,
+                  "p95_ms": 6.552576,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 16.593792,
+                  "p95_ms": 20.182784000000023,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 191446752,
+              "triangles_par_instance": 3863832
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9330317378044128,
+                "erreur_absolue_luminance_image": 0.003642858238890767,
+                "luminance_moyenne_reference_image": 0.34353548288345337,
+                "luminance_moyenne_image": 0.34267178177833557,
+                "silhouette": {
+                  "couverture_reference": 0.09191731770833333,
+                  "couverture": 0.08974283854166666,
+                  "iou": 0.6975553369903572,
+                  "erreur_couverture": -0.0021744791666666735,
+                  "luminance_reference_sur_union": 0.05502691492438316,
+                  "luminance_sur_union": 0.04695815593004227
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.7135651707649231,
+                  "erreur_absolue_luminance": 0.017518995329737663
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.310272,
+                  "p95_ms": 0.31232,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 9.990639999999999,
+                  "p95_ms": 10.683648,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 3863832
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9196525812149048,
+                "erreur_absolue_luminance_image": 0.0059133777394890785,
+                "luminance_moyenne_reference_image": 0.34353548288345337,
+                "luminance_moyenne_image": 0.3471809923648834,
+                "silhouette": {
+                  "couverture_reference": 0.09191731770833333,
+                  "couverture": 0.10259114583333333,
+                  "iou": 0.8064818453910573,
+                  "erreur_couverture": 0.010673828124999993,
+                  "luminance_reference_sur_union": 0.05598175898194313,
+                  "luminance_sur_union": 0.08981915563344955
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.6553257703781128,
+                  "erreur_absolue_luminance": 0.027128811925649643
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.777216,
+                  "p95_ms": 0.8141824000000001,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 10.737152,
+                  "p95_ms": 16.0196096,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 3863832
+            }
+          }
+        },
+        {
+          "id": "p8_oblique_cote",
+          "camera": [
+            542.4703,
+            0.36311733,
+            60.53,
+            35,
+            0.0
+          ],
+          "sun": [
+            0.126547,
+            130.530384
+          ],
+          "pixels_cibles_approx": 8,
+          "instances": 16,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.0692422091960907,
+                "luminance_moyenne_image": 0.0692422091960907,
+                "silhouette": {
+                  "couverture_reference": 0.0005023871527777778,
+                  "couverture": 0.0005023871527777778,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.15858329832553864,
+                  "luminance_sur_union": 0.15858329832553864
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 5.932032,
+                  "p95_ms": 5.953536,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 16.10584,
+                  "p95_ms": 16.677632,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 191446752,
+              "triangles_par_instance": 3863832
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9992168545722961,
+                "erreur_absolue_luminance_image": 5.754470112151466e-05,
+                "luminance_moyenne_reference_image": 0.0692422091960907,
+                "luminance_moyenne_image": 0.06923282891511917,
+                "silhouette": {
+                  "couverture_reference": 0.0005023871527777778,
+                  "couverture": 0.00044379340277777776,
+                  "iou": 0.5627240143369175,
+                  "erreur_couverture": -5.859375000000005e-05,
+                  "luminance_reference_sur_union": 0.14055967330932617,
+                  "luminance_sur_union": 0.1250949501991272
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9889858365058899,
+                  "erreur_absolue_luminance": 0.0008091010968200862
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.001024,
+                  "p95_ms": 0.012288,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 15.202304,
+                  "p95_ms": 17.389823999999997,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 3863832
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9993001222610474,
+                "erreur_absolue_luminance_image": 5.228615191299468e-05,
+                "luminance_moyenne_reference_image": 0.0692422091960907,
+                "luminance_moyenne_image": 0.06923165917396545,
+                "silhouette": {
+                  "couverture_reference": 0.0005023871527777778,
+                  "couverture": 0.0005088975694444444,
+                  "iou": 0.691470054446461,
+                  "erreur_couverture": 6.5104166666666e-06,
+                  "luminance_reference_sur_union": 0.14178186655044556,
+                  "luminance_sur_union": 0.12416694313287735
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9901585578918457,
+                  "erreur_absolue_luminance": 0.0007351555395871401
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.001024,
+                  "p95_ms": 0.013312,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 10.26816,
+                  "p95_ms": 11.1915008,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 3863832
+            }
+          }
+        }
+      ],
+      "stabilite": []
+    },
+    {
+      "id": "fir_single_lieu2",
+      "model": "fir",
+      "scene": "single",
+      "anchor": [
+        0.37,
+        60.53
+      ],
+      "poses": [
+        {
+          "id": "p128_rasant_contrejour",
+          "camera": [
+            11.0948,
+            0.36947686,
+            60.53,
+            5,
+            0.0
+          ],
+          "sun": [
+            70.37,
+            60.53
+          ],
+          "pixels_cibles_approx": 128,
+          "instances": 1,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.3427773714065552,
+                "luminance_moyenne_image": 0.3427773714065552,
+                "silhouette": {
+                  "couverture_reference": 0.0023274739583333333,
+                  "couverture": 0.0023274739583333333,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.045552000403404236,
+                  "luminance_sur_union": 0.045552000403404236
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.017408,
+                  "p95_ms": 0.018432,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 9.74336,
+                  "p95_ms": 10.542336,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 17020448,
+              "triangles_par_instance": 157402
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9989977478981018,
+                "erreur_absolue_luminance_image": 5.1685092330444604e-05,
+                "luminance_moyenne_reference_image": 0.3427773714065552,
+                "luminance_moyenne_image": 0.342773973941803,
+                "silhouette": {
+                  "couverture_reference": 0.0023274739583333333,
+                  "couverture": 0.0022276475694444444,
+                  "iou": 0.390987408880053,
+                  "erreur_couverture": -9.982638888888888e-05,
+                  "luminance_reference_sur_union": 0.044363513588905334,
+                  "luminance_sur_union": 0.043316517025232315
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9859058856964111,
+                  "erreur_absolue_luminance": 0.0007268072804436088
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.01536,
+                  "p95_ms": 0.016384,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 9.701376,
+                  "p95_ms": 10.5496,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 157402
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9987429976463318,
+                "erreur_absolue_luminance_image": 6.510217644972727e-05,
+                "luminance_moyenne_reference_image": 0.3427773714065552,
+                "luminance_moyenne_image": 0.3428143262863159,
+                "silhouette": {
+                  "couverture_reference": 0.0023274739583333333,
+                  "couverture": 0.002620442708333333,
+                  "iou": 0.5348367553012454,
+                  "erreur_couverture": 0.0002929687499999998,
+                  "luminance_reference_sur_union": 0.04475715756416321,
+                  "luminance_sur_union": 0.05620306730270386
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9823257923126221,
+                  "erreur_absolue_luminance": 0.0009150679688900709
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.044032,
+                  "p95_ms": 0.047104,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 10.038784,
+                  "p95_ms": 10.7304944,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 157402
+            }
+          }
+        },
+        {
+          "id": "p8_oblique_cote",
+          "camera": [
+            542.4703,
+            0.36311733,
+            60.53,
+            35,
+            0.0
+          ],
+          "sun": [
+            0.126547,
+            130.530384
+          ],
+          "pixels_cibles_approx": 8,
+          "instances": 1,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.06919052451848984,
+                "luminance_moyenne_image": 0.06919052451848984,
+                "silhouette": {
+                  "couverture_reference": 8.680555555555556e-06,
+                  "couverture": 8.680555555555556e-06,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.09783226996660233,
+                  "luminance_sur_union": 0.09783226996660233
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.0,
+                  "p95_ms": 0.001024,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 10.155007999999999,
+                  "p95_ms": 10.734336,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 17020448,
+              "triangles_par_instance": 157402
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9999643564224243,
+                "erreur_absolue_luminance_image": 7.479599162252271e-07,
+                "luminance_moyenne_reference_image": 0.06919052451848984,
+                "luminance_moyenne_image": 0.06919042021036148,
+                "silhouette": {
+                  "couverture_reference": 8.680555555555556e-06,
+                  "couverture": 9.765625e-06,
+                  "iou": 0.21428571428571427,
+                  "erreur_couverture": 1.0850694444444447e-06,
+                  "luminance_reference_sur_union": 0.07851462811231613,
+                  "luminance_sur_union": 0.07204296439886093
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9994984865188599,
+                  "erreur_absolue_luminance": 1.0518187082197983e-05
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.0,
+                  "p95_ms": 0.011264,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 10.669456,
+                  "p95_ms": 11.5630592,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 157402
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9999566078186035,
+                "erreur_absolue_luminance_image": 9.70852852333337e-07,
+                "luminance_moyenne_reference_image": 0.06919052451848984,
+                "luminance_moyenne_image": 0.06919064372777939,
+                "silhouette": {
+                  "couverture_reference": 8.680555555555556e-06,
+                  "couverture": 1.0850694444444445e-05,
+                  "iou": 0.2,
+                  "erreur_couverture": 2.1701388888888893e-06,
+                  "luminance_reference_sur_union": 0.07380630075931549,
+                  "luminance_sur_union": 0.08142096549272537
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9993902444839478,
+                  "erreur_absolue_luminance": 1.3652619600179605e-05
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.0,
+                  "p95_ms": 0.00512,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 10.132448,
+                  "p95_ms": 10.913251200000001,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 157402
+            }
+          }
+        }
+      ],
+      "stabilite": []
+    },
+    {
+      "id": "fir_grove_lieu2",
+      "model": "fir",
+      "scene": "grove",
+      "anchor": [
+        0.37,
+        60.53
+      ],
+      "poses": [
+        {
+          "id": "p128_rasant_contrejour",
+          "camera": [
+            11.0948,
+            0.36947686,
+            60.53,
+            5,
+            0.0
+          ],
+          "sun": [
+            70.37,
+            60.53
+          ],
+          "pixels_cibles_approx": 128,
+          "instances": 16,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.34289032220840454,
+                "luminance_moyenne_image": 0.34289032220840454,
+                "silhouette": {
+                  "couverture_reference": 0.04059136284722222,
+                  "couverture": 0.04059136284722222,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.04291769489645958,
+                  "luminance_sur_union": 0.04291769489645958
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.242688,
+                  "p95_ms": 0.244736,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 10.193904,
+                  "p95_ms": 11.1076864,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 17020448,
+              "triangles_par_instance": 157402
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9796256422996521,
+                "erreur_absolue_luminance_image": 0.001067567034624517,
+                "luminance_moyenne_reference_image": 0.34289032220840454,
+                "luminance_moyenne_image": 0.34274929761886597,
+                "silhouette": {
+                  "couverture_reference": 0.04059136284722222,
+                  "couverture": 0.03892469618055556,
+                  "iou": 0.4248327889251828,
+                  "erreur_couverture": -0.0016666666666666635,
+                  "luminance_reference_sur_union": 0.04181930795311928,
+                  "luminance_sur_union": 0.039294857531785965
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.8922756910324097,
+                  "erreur_absolue_luminance": 0.006320012733340263
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.172032,
+                  "p95_ms": 0.17408,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 10.140671999999999,
+                  "p95_ms": 11.230977600000001,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 157402
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9732054471969604,
+                "erreur_absolue_luminance_image": 0.0014380703214555979,
+                "luminance_moyenne_reference_image": 0.34289032220840454,
+                "luminance_moyenne_image": 0.34354257583618164,
+                "silhouette": {
+                  "couverture_reference": 0.04059136284722222,
+                  "couverture": 0.046016710069444446,
+                  "iou": 0.6019347328703889,
+                  "erreur_couverture": 0.005425347222222224,
+                  "luminance_reference_sur_union": 0.043347880244255066,
+                  "luminance_sur_union": 0.055395741015672684
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.8704157471656799,
+                  "erreur_absolue_luminance": 0.007859346456825733
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.004096,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.541696,
+                  "p95_ms": 0.579584,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 10.642752000000002,
+                  "p95_ms": 11.3901056,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 157402
+            }
+          }
+        },
+        {
+          "id": "p8_oblique_cote",
+          "camera": [
+            542.4703,
+            0.36311733,
+            60.53,
+            35,
+            0.0
+          ],
+          "sun": [
+            0.126547,
+            130.530384
+          ],
+          "pixels_cibles_approx": 8,
+          "instances": 16,
+          "modes": {
+            "reference": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 1.0,
+                "erreur_absolue_luminance_image": 0.0,
+                "luminance_moyenne_reference_image": 0.06919939815998077,
+                "luminance_moyenne_image": 0.06919939815998077,
+                "silhouette": {
+                  "couverture_reference": 0.00015950520833333333,
+                  "couverture": 0.00015950520833333333,
+                  "iou": 1.0,
+                  "erreur_couverture": 0.0,
+                  "luminance_reference_sur_union": 0.11301262676715851,
+                  "luminance_sur_union": 0.11301262676715851
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 1.0,
+                  "erreur_absolue_luminance": 0.0
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.193536,
+                  "p95_ms": 0.206848,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 10.641919999999999,
+                  "p95_ms": 11.1862272,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 17020448,
+              "triangles_par_instance": 157402
+            },
+            "impostor": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.9996462464332581,
+                "erreur_absolue_luminance_image": 1.2790545952157117e-05,
+                "luminance_moyenne_reference_image": 0.06919939815998077,
+                "luminance_moyenne_image": 0.06919761002063751,
+                "silhouette": {
+                  "couverture_reference": 0.00015950520833333333,
+                  "couverture": 0.00014756944444444445,
+                  "iou": 0.3412322274881517,
+                  "erreur_couverture": -1.1935763888888884e-05,
+                  "luminance_reference_sur_union": 0.0948570966720581,
+                  "luminance_sur_union": 0.08708017319440842
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9950257539749146,
+                  "erreur_absolue_luminance": 0.00017986114835366607
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.001024,
+                  "p95_ms": 0.011264,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 10.242048,
+                  "p95_ms": 11.132057600000001,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 26214000,
+              "triangles_par_instance": 157402
+            },
+            "volume": {
+              "comparaison": {
+                "ssim_luminance_lineaire_image": 0.999607503414154,
+                "erreur_absolue_luminance_image": 1.4079531865718309e-05,
+                "luminance_moyenne_reference_image": 0.06919939815998077,
+                "luminance_moyenne_image": 0.06919963657855988,
+                "silhouette": {
+                  "couverture_reference": 0.00015950520833333333,
+                  "couverture": 0.0001779513888888889,
+                  "iou": 0.43317972350230416,
+                  "erreur_couverture": 1.8446180555555566e-05,
+                  "luminance_reference_sur_union": 0.09357268363237381,
+                  "luminance_sur_union": 0.0945916622877121
+                },
+                "crop_central_1_1": {
+                  "dimensions_pixels": [
+                    256,
+                    256
+                  ],
+                  "ssim_luminance_lineaire": 0.9944800734519958,
+                  "erreur_absolue_luminance": 0.00019795610569417477
+                }
+              },
+              "gpu_ms": {
+                "placement": {
+                  "n": 360,
+                  "mediane_ms": 0.003072,
+                  "p95_ms": 0.004096,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "draw": {
+                  "n": 360,
+                  "mediane_ms": 0.0,
+                  "p95_ms": 0.014387200000000011,
+                  "origine": "series_frames",
+                  "captures": 3
+                },
+                "total_frame": {
+                  "n": 360,
+                  "mediane_ms": 10.004480000000001,
+                  "p95_ms": 10.528819200000001,
+                  "origine": "series_frames",
+                  "captures": 3
+                }
+              },
+              "memoire_representation_octets": 9586976,
+              "triangles_par_instance": 157402
+            }
+          }
+        }
+      ],
+      "stabilite": []
+    }
+  ],
+  "statut": "exploratoire ; avant correction du placement et du dernier segment volumique ; donnees brutes x64/FoliageComparaison64"
+}

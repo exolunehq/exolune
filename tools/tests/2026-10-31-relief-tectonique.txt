@@ -1,0 +1,28 @@
+# Le relief tectonique après sa seconde passe (docs/spec-relief-tectonique.md) : côtes découpées par type de marge, rifts émergés et mers étroites, plis des chaînes. Juger chaque forme comme un géologue et comme un joueur : rien de géométrique, ni couture, ni pâté, ni côte rectiligne. Les huit premières lignes sont les vues de contrôle (rend_tecto.ps1). Altitudes au-dessus de la mer ; lieux de la graine 0 ; la vue « relief » montre le fond de la mer ; N coupe les nuages.
+Orbite, le grand continent et ses mers intérieures | 10000000 -0.5 -18.225 90 0 | 10 -5
+Au-dessus des cumulus, une plaine | 10200 38.1445 103.5352 35 90 | 38.1445 128.5352
+Cumulus épars et leurs ombres sur des collines, depuis 30 km | 30950 -27.875 -0.375 45 270 | -25 30
+Côte plate tropicale vue de la mer, 60 m | 60 16.70628 -89.28981 6 9 | 30 -70
+Pente boisée à 590 m, sous la chaîne, 30 m au-dessus des cimes | 650 -8.44835 118.48865 8 163 | -20 130
+Chaîne de collision, 1 km au-dessus de ses 4 700 m | 5660 -7.37725 116.87998 10 108 | -20 100
+Mesas d'une plate-forme, depuis 1,5 km | 2140 15.625 95.625 12 90 | 15 70
+Cailloux et touffes au pied d'une mesa, 1,2 m | 640.2 15.62455 95.6292 25 90 | 15 70
+Chaîne de collision depuis 300 km : plis en segments, espacement du simple au double, relais en échelon, plis forts et faibles | 300000 -7.375 116.875 90 0 | -20 120
+La même chaîne depuis 30 km | 34600 -7.375 116.875 90 0 | -20 120
+Côte active depuis 300 km : caps, baies, îles | 300000 2.26886 174.27068 90 0 | 10 160
+La même côte active depuis 30 km | 30000 2.26886 174.27068 90 0 | 10 160
+Côte passive depuis 300 km : plus douce | 300000 16.71676 -89.28095 90 0 | 30 -70
+La même côte passive depuis 30 km | 30000 16.71676 -89.28095 90 0 | 30 -70
+Côte plate à cordons et lagunes, depuis 20 km | 20000 -27.18082 -152.21264 90 0 | -20 -170
+Les mêmes cordons depuis 1,5 km : îles en arcs entre des passes, pointes recourbées, plus de bloc plat | 1500 -27.175 -152.19 30 0 | -27 -87
+Un cordon à 60 m, sa plage côté mer, sa lagune derrière | 60 -27.165 -152.19 6 0 | -27 -87
+Rift émergé depuis 300 km : un dôme, deux épaulements, un graben | 300000 41.875 67.875 90 0 | 30 80
+Le même rift depuis 30 km, son fond au-dessus de la mer | 31600 41.875 67.875 90 0 | 30 80
+Le rift qui s'ouvre en mer étroite, depuis 300 km | 300000 38.5 61.5 90 0 | 30 80
+La faille du rift émergé à 40 m, le long de la frontière : plus de tranchée droite ni de corniches parallèles | 750 41.6879 68.2870 8 211 | 41.7 158
+Chaîne de collision depuis 25 km, sommets vers 7 km, plateau derrière | 25000 -14.5 162.75 20 0 | -12 115
+Cordillère au-dessus d'une marge active, le long de la chaîne | 6000 -21.75 -31.5 15 0 | -20 -80
+Cordillère en plis depuis 300 km, sans boucle ni chevron vif | 300000 -21.75 -31.5 90 0 | -20 -10
+Fosse vue de près, 9 à 10 km de fond, son bourrelet et l'arc | 400000 -17.75 107.75 70 0 relief | -10 60
+Dorsale lente, sa vallée axiale par segments | 300000 59.75 13.75 80 0 relief | 50 -30
+Bouclier ancien, collines usées et lacs | 3000 -37.75 -163.25 10 0 | -30 150

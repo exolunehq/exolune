@@ -1,0 +1,14 @@
+# Végétation : rendu, peuplement et portée conservés ; mer FFT active.
+# libellé | altitude latitude longitude inclinaison cap | soleil latitude longitude | vent direction houle
+Clairière tempérée : même vue | 567.2 30.38761 120.52330 -14.4 -115 | 20 120 | 12 70 1.8
+Forêt tempérée : approche à 150 m | 730.8 30.37000 120.53000 20 0 | 20 140 | 12 70 1.8
+Boréal : clairière | 534.9 -49.63200 90.53100 5 -60 | -30 100 | 12 70 1.8
+Boréal : sous-bois | 537.3 -49.63000 90.53000 5 90 | -30 100 | 12 70 1.8
+Désert : arbustes espacés | 119.9 -19.63100 0.52780 5 0 | -15 5 | 12 70 1.8
+Steppe : maquis sec | 795.6 -29.63000 60.53000 5 -180 | -20 80 | 12 70 1.8
+Montagne : ligne des arbres | 4065.1 -14.90437 119.94946 5 120 | -5 125 | 12 70 1.8
+Tropical : clairière | 324.7 0.37288 60.53092 3 0 | 10 80 | 12 70 1.8
+Tropical : approche à 150 m | 463.9 0.37000 60.53000 15 0 | 10 80 | 12 70 1.8
+Côte : mer et relief | 142.4 -44.75718 177.39448 22.5 -151.6 | 15 165 | 24 70 3.5
+Mer : tempête à 20 m | 20 -45 165 35 90 | 15 165 | 24 70 3.5
+Orbite : mer et végétation | 3000659.1 0 60 70 0 | 10 75 | 12 70 1.8

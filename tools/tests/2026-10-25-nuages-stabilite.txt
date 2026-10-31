@@ -1,0 +1,15 @@
+# Mode retiré le 2026-10-30, au tag `jalon/29-avant-ouverture` : l'ancien volume en cascades, tag `piste/nuages`. Par tools\lance.ps1 -Parcours, ces lieux montrent les nuages du jeu ; touches et options ci-dessous, celles d'alors.
+# Stabilité des nuages du 2026-10-25 (branche muse-nuages-stabilite, docs/recherche-nuages.md « La stabilité »).
+# À juger en mouvement : avancer, descendre et tourner lentement ; chercher fourmillements, coutures de cascades,
+# traînées de l'historique aux bords, et mutations quand les cascades se recentrent.
+# libellé | altitude (m) latitude longitude inclinaison cap | latitude longitude du soleil
+Vue signalée au sol, vers le haut (disque) | 764 -18.11940 46.32611 -76.7 -153.7 | 10 70
+Vue signalée à 54 km (carré de cascade) | 55395 -15.13949 47.92927 37.8 0 | 10 70
+Vue signalée à 135 km (rectangle tourné) | 136631 -15.54712 48.46949 66 0 | 10 70
+Descente lente de 200 km au sol, même lieu | 200000 -15.5 48.3 60 0 | 10 70
+Vol lent au-dessus du pont, 3 km | 3000 1.22 162.17 20 -90 | -5 140
+Traversée des sommets de cumulus, 2,6 km | 2600 0.5 161.5 2 90 | -15 175
+Près d'un cumulonimbus, 3 km, tourner autour | 3000 -8.5 -100.5 -5 90 | -25 -80
+Sous un plafond, 300 m, avance lente | 300 1.22 162.17 2 -90 | -5 140
+Brouillard, 150 m, avance lente | 150 53.5 -3.5 3 90 | 30 10
+Orbite basse, 160 km, dérive lente | 160000 1.22 162.17 25 -90 | -5 140

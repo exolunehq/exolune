@@ -1,0 +1,124 @@
+{
+  "scenes": [
+    {
+      "id": "jacaranda_single_lieu1",
+      "model": "jacaranda",
+      "scene": "single",
+      "anchor": [
+        30.37,
+        120.53
+      ],
+      "smoke": true,
+      "poses": [
+        {
+          "id": "p128_oblique_cote",
+          "camera": [
+            39.5294,
+            30.36956983,
+            120.53,
+            35,
+            0.0
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": 128,
+          "smoke": true
+        },
+        {
+          "id": "p8_dessus_cote",
+          "camera": [
+            909.4376,
+            30.36782535,
+            120.53,
+            75,
+            0.0
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": 8,
+          "smoke": false
+        },
+        {
+          "id": "p512_oblique_cote",
+          "camera": [
+            14.382348532555099,
+            30.369892458262193,
+            120.53,
+            35.0,
+            0.0
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": 512
+        }
+      ],
+      "temporal_pairs": []
+    },
+    {
+      "id": "fir_single_lieu1",
+      "model": "fir",
+      "scene": "single",
+      "anchor": [
+        30.37,
+        120.53
+      ],
+      "smoke": true,
+      "poses": [
+        {
+          "id": "p128_oblique_cote",
+          "camera": [
+            39.5294,
+            30.36956983,
+            120.53,
+            35,
+            0.0
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": 128,
+          "smoke": true
+        },
+        {
+          "id": "p8_dessus_cote",
+          "camera": [
+            909.4376,
+            30.36782535,
+            120.53,
+            75,
+            0.0
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": 8,
+          "smoke": false
+        },
+        {
+          "id": "p512_oblique_cote",
+          "camera": [
+            14.382348532555099,
+            30.369892458262193,
+            120.53,
+            35.0,
+            0.0
+          ],
+          "sun": [
+            9.957594,
+            -166.903629
+          ],
+          "pixels_cibles_approx": 512
+        }
+      ],
+      "temporal_pairs": []
+    }
+  ]
+}

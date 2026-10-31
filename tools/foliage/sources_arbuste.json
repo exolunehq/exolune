@@ -1,0 +1,41 @@
+{
+  "source": "https://polyhaven.com/a/searsia_lucida",
+  "author": [
+    "James Ray Cock (modeling)",
+    "Jenelle van Heerden (photography)"
+  ],
+  "license": "CC0-1.0",
+  "node": "searsia_lucida_f_LOD0",
+  "files": [
+    {
+      "path": "searsia_lucida_1k.gltf",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/searsia_lucida/searsia_lucida_1k.gltf",
+      "sha256": "ebdc8d776c058b9a6f9a04c57ca0540368531febd3bfa007d2e2d8af8d368f67"
+    },
+    {
+      "path": "searsia_lucida.bin",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/searsia_lucida/searsia_lucida.bin",
+      "sha256": "e0be13cac215725de1f8438d96e1010049d655512a0608c36eabe2ba5abff851"
+    },
+    {
+      "path": "textures/searsia_lucida_nor_gl_1k.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/searsia_lucida/searsia_lucida_nor_gl_1k.jpg",
+      "sha256": "d28556973d1cbf96c5327341be7a71da66ac63ed97b31f22162376a9f95b0041"
+    },
+    {
+      "path": "textures/searsia_lucida_diff_1k.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/searsia_lucida/searsia_lucida_diff_1k.jpg",
+      "sha256": "5d99ed106c6629d91cf5d29f067c1fd10ff4894df40634abb6c4694c59d3c764"
+    },
+    {
+      "path": "textures/searsia_lucida_arm_1k.jpg",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/searsia_lucida/searsia_lucida_arm_1k.jpg",
+      "sha256": "f7bf2359e932d3633ac99a5f9e6a507eda439b64937eb6774585da3d0fb6d3d7"
+    },
+    {
+      "path": "textures/searsia_lucida_alpha_1k.png",
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/searsia_lucida/searsia_lucida_alpha_1k.png",
+      "sha256": "2306c054f7188aa34fdbfd1be725899159c82730c1a5c14fcc56ef7353107006"
+    }
+  ]
+}

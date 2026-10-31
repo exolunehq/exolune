@@ -1,0 +1,11 @@
+# Mode retiré le 2026-10-30, au tag `jalon/29-avant-ouverture` et `piste/nuages-orbite-spike` : le spike Cirrus, scène locale. Par tools\lance.ps1 -Parcours, ces lieux montrent les nuages du jeu ; touches et options ci-dessous, celles d'alors.
+# Cirrus local : B opacite, C qualite, Espace pause. Masque artistique limite a ±30 km Est et ±14 km Nord.
+Sous la couche, vue montante | 2000 0.5 161.600 -40 90 | -15 175
+Ensemble depuis l'ouest | 10800 0.5 161.400 0 90 | -15 175
+Approche du voile | 10800 0.5 161.600 0 90 | -15 175
+Traversée du voile | 10800 0.5 161.775 0 90 | -15 175
+Au-dessus, regard vers l'est | 16000 0.5 161.700 45 90 | -15 175
+Vue d'ensemble à 30 km, vers le sol | 30000 0.5 161.775 80 0 | -15 175
+Vue d'ensemble à 80 km, vers le sol | 80000 0.5 161.775 80 0 | -15 175
+Traversée au soleil bas | 10800 0.5 161.775 0 90 | -5 245
+Sous le voile depuis l'est | 2000 0.5 161.850 -25 270 | -15 175

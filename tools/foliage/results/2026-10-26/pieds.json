@@ -1,0 +1,530 @@
+[
+  {
+    "id": "site1_n1_p128_oblique_cote",
+    "group": "site1_n1",
+    "anchor": [
+      30.37,
+      120.53
+    ],
+    "count": 1,
+    "pose": "p128_oblique_cote",
+    "camera": [
+      39.5294,
+      30.36956983,
+      120.53,
+      35,
+      0.0
+    ],
+    "sun": [
+      9.957594,
+      -166.903629
+    ],
+    "metrics": {
+      "placement_to_triangle_plane_mm": {
+        "valides": 1,
+        "invalides": 0,
+        "moyenne": 0.001765227,
+        "p95": 0.001765227,
+        "maximum": 0.001765227
+      },
+      "placement_to_anchor_ray_mm": {
+        "valides": 1,
+        "invalides": 0,
+        "moyenne": 5.825e-06,
+        "p95": 5.825e-06,
+        "maximum": 5.825e-06
+      },
+      "placement_to_anchor_ray_px": {
+        "valides": 1,
+        "invalides": 0,
+        "moyenne": 1.33e-06,
+        "p95": 1.33e-06,
+        "maximum": 1.33e-06
+      }
+    }
+  },
+  {
+    "id": "site1_n1_p8_dessus_cote",
+    "group": "site1_n1",
+    "anchor": [
+      30.37,
+      120.53
+    ],
+    "count": 1,
+    "pose": "p8_dessus_cote",
+    "camera": [
+      909.4376,
+      30.36782535,
+      120.53,
+      75,
+      0.0
+    ],
+    "sun": [
+      9.957594,
+      -166.903629
+    ],
+    "metrics": {
+      "placement_to_triangle_plane_mm": {
+        "valides": 1,
+        "invalides": 0,
+        "moyenne": 0.022746535,
+        "p95": 0.022746535,
+        "maximum": 0.022746535
+      },
+      "placement_to_anchor_ray_mm": {
+        "valides": 1,
+        "invalides": 0,
+        "moyenne": 0.005801293,
+        "p95": 0.005801293,
+        "maximum": 0.005801293
+      },
+      "placement_to_anchor_ray_px": {
+        "valides": 1,
+        "invalides": 0,
+        "moyenne": 3.5e-08,
+        "p95": 3.5e-08,
+        "maximum": 3.5e-08
+      }
+    }
+  },
+  {
+    "id": "site1_n16_p128_oblique_cote",
+    "group": "site1_n16",
+    "anchor": [
+      30.37,
+      120.53
+    ],
+    "count": 16,
+    "pose": "p128_oblique_cote",
+    "camera": [
+      39.5294,
+      30.36956983,
+      120.53,
+      35,
+      0.0
+    ],
+    "sun": [
+      9.957594,
+      -166.903629
+    ],
+    "metrics": {
+      "placement_to_triangle_plane_mm": {
+        "valides": 16,
+        "invalides": 0,
+        "moyenne": 0.0007424840625,
+        "p95": 0.001723004,
+        "maximum": 0.001761983
+      },
+      "placement_to_anchor_ray_mm": {
+        "valides": 16,
+        "invalides": 0,
+        "moyenne": 0.001273324375,
+        "p95": 0.003026896,
+        "maximum": 0.003355489
+      },
+      "placement_to_anchor_ray_px": {
+        "valides": 16,
+        "invalides": 0,
+        "moyenne": 2.9501875e-06,
+        "p95": 7.8115e-06,
+        "maximum": 9.109e-06
+      }
+    }
+  },
+  {
+    "id": "site1_n16_p8_dessus_cote",
+    "group": "site1_n16",
+    "anchor": [
+      30.37,
+      120.53
+    ],
+    "count": 16,
+    "pose": "p8_dessus_cote",
+    "camera": [
+      909.4376,
+      30.36782535,
+      120.53,
+      75,
+      0.0
+    ],
+    "sun": [
+      9.957594,
+      -166.903629
+    ],
+    "metrics": {
+      "placement_to_triangle_plane_mm": {
+        "valides": 16,
+        "invalides": 0,
+        "moyenne": 0.01302561175,
+        "p95": 0.024986807,
+        "maximum": 0.026737832
+      },
+      "placement_to_anchor_ray_mm": {
+        "valides": 16,
+        "invalides": 0,
+        "moyenne": 0.0050986601874999996,
+        "p95": 0.01483573775,
+        "maximum": 0.015212105
+      },
+      "placement_to_anchor_ray_px": {
+        "valides": 16,
+        "invalides": 0,
+        "moyenne": 2.513125e-07,
+        "p95": 5.605e-07,
+        "maximum": 6.22e-07
+      }
+    }
+  },
+  {
+    "id": "site1_n1024_p128_oblique_cote",
+    "group": "site1_n1024",
+    "anchor": [
+      30.37,
+      120.53
+    ],
+    "count": 1024,
+    "pose": "p128_oblique_cote",
+    "camera": [
+      39.5294,
+      30.36956983,
+      120.53,
+      35,
+      0.0
+    ],
+    "sun": [
+      9.957594,
+      -166.903629
+    ],
+    "metrics": {
+      "placement_to_triangle_plane_mm": {
+        "valides": 1024,
+        "invalides": 0,
+        "moyenne": 0.001004674888671875,
+        "p95": 0.00189951105,
+        "maximum": 0.002455225
+      },
+      "placement_to_anchor_ray_mm": {
+        "valides": 1024,
+        "invalides": 0,
+        "moyenne": 0.00360790872265625,
+        "p95": 0.007478521099999999,
+        "maximum": 0.009771946
+      },
+      "placement_to_anchor_ray_px": {
+        "valides": 704,
+        "invalides": 320,
+        "moyenne": 5.1001259943181816e-05,
+        "p95": 0.0001797117500000003,
+        "maximum": 0.002503971
+      }
+    }
+  },
+  {
+    "id": "site1_n1024_p8_dessus_cote",
+    "group": "site1_n1024",
+    "anchor": [
+      30.37,
+      120.53
+    ],
+    "count": 1024,
+    "pose": "p8_dessus_cote",
+    "camera": [
+      909.4376,
+      30.36782535,
+      120.53,
+      75,
+      0.0
+    ],
+    "sun": [
+      9.957594,
+      -166.903629
+    ],
+    "metrics": {
+      "placement_to_triangle_plane_mm": {
+        "valides": 1024,
+        "invalides": 0,
+        "moyenne": 0.015592483212890624,
+        "p95": 0.029018409249999995,
+        "maximum": 0.030859118
+      },
+      "placement_to_anchor_ray_mm": {
+        "valides": 1024,
+        "invalides": 0,
+        "moyenne": 0.005857259098632813,
+        "p95": 0.014217654199999995,
+        "maximum": 0.016143667
+      },
+      "placement_to_anchor_ray_px": {
+        "valides": 1024,
+        "invalides": 0,
+        "moyenne": 2.4503349609375e-06,
+        "p95": 5.0437000000000005e-06,
+        "maximum": 7.053e-06
+      }
+    }
+  },
+  {
+    "id": "site2_n1_p128_oblique_cote",
+    "group": "site2_n1",
+    "anchor": [
+      0.37,
+      60.53
+    ],
+    "count": 1,
+    "pose": "p128_oblique_cote",
+    "camera": [
+      39.5294,
+      0.36956983,
+      60.53,
+      35,
+      0.0
+    ],
+    "sun": [
+      0.126547,
+      130.530384
+    ],
+    "metrics": {
+      "placement_to_triangle_plane_mm": {
+        "valides": 1,
+        "invalides": 0,
+        "moyenne": 0.001454671,
+        "p95": 0.001454671,
+        "maximum": 0.001454671
+      },
+      "placement_to_anchor_ray_mm": {
+        "valides": 1,
+        "invalides": 0,
+        "moyenne": 0.00063987,
+        "p95": 0.00063987,
+        "maximum": 0.00063987
+      },
+      "placement_to_anchor_ray_px": {
+        "valides": 1,
+        "invalides": 0,
+        "moyenne": 1.949e-06,
+        "p95": 1.949e-06,
+        "maximum": 1.949e-06
+      }
+    }
+  },
+  {
+    "id": "site2_n1_p8_dessus_cote",
+    "group": "site2_n1",
+    "anchor": [
+      0.37,
+      60.53
+    ],
+    "count": 1,
+    "pose": "p8_dessus_cote",
+    "camera": [
+      909.4376,
+      0.36782535,
+      60.53,
+      75,
+      0.0
+    ],
+    "sun": [
+      0.126547,
+      130.530384
+    ],
+    "metrics": {
+      "placement_to_triangle_plane_mm": {
+        "valides": 1,
+        "invalides": 0,
+        "moyenne": 0.023414198,
+        "p95": 0.023414198,
+        "maximum": 0.023414198
+      },
+      "placement_to_anchor_ray_mm": {
+        "valides": 1,
+        "invalides": 0,
+        "moyenne": 0.003575022,
+        "p95": 0.003575022,
+        "maximum": 0.003575022
+      },
+      "placement_to_anchor_ray_px": {
+        "valides": 1,
+        "invalides": 0,
+        "moyenne": 1e-09,
+        "p95": 1e-09,
+        "maximum": 1e-09
+      }
+    }
+  },
+  {
+    "id": "site2_n16_p128_oblique_cote",
+    "group": "site2_n16",
+    "anchor": [
+      0.37,
+      60.53
+    ],
+    "count": 16,
+    "pose": "p128_oblique_cote",
+    "camera": [
+      39.5294,
+      0.36956983,
+      60.53,
+      35,
+      0.0
+    ],
+    "sun": [
+      0.126547,
+      130.530384
+    ],
+    "metrics": {
+      "placement_to_triangle_plane_mm": {
+        "valides": 16,
+        "invalides": 0,
+        "moyenne": 0.0008482009375,
+        "p95": 0.00142875125,
+        "maximum": 0.001609781
+      },
+      "placement_to_anchor_ray_mm": {
+        "valides": 16,
+        "invalides": 0,
+        "moyenne": 0.001209691375,
+        "p95": 0.00235347875,
+        "maximum": 0.003605267
+      },
+      "placement_to_anchor_ray_px": {
+        "valides": 16,
+        "invalides": 0,
+        "moyenne": 3.66e-06,
+        "p95": 6.53925e-06,
+        "maximum": 8.262e-06
+      }
+    }
+  },
+  {
+    "id": "site2_n16_p8_dessus_cote",
+    "group": "site2_n16",
+    "anchor": [
+      0.37,
+      60.53
+    ],
+    "count": 16,
+    "pose": "p8_dessus_cote",
+    "camera": [
+      909.4376,
+      0.36782535,
+      60.53,
+      75,
+      0.0
+    ],
+    "sun": [
+      0.126547,
+      130.530384
+    ],
+    "metrics": {
+      "placement_to_triangle_plane_mm": {
+        "valides": 16,
+        "invalides": 0,
+        "moyenne": 0.0169021073125,
+        "p95": 0.02592173425,
+        "maximum": 0.028852606
+      },
+      "placement_to_anchor_ray_mm": {
+        "valides": 16,
+        "invalides": 0,
+        "moyenne": 0.0045108554375,
+        "p95": 0.009316501999999999,
+        "maximum": 0.014374169
+      },
+      "placement_to_anchor_ray_px": {
+        "valides": 16,
+        "invalides": 0,
+        "moyenne": 3.223125e-07,
+        "p95": 5.665e-07,
+        "maximum": 6.01e-07
+      }
+    }
+  },
+  {
+    "id": "site2_n1024_p128_oblique_cote",
+    "group": "site2_n1024",
+    "anchor": [
+      0.37,
+      60.53
+    ],
+    "count": 1024,
+    "pose": "p128_oblique_cote",
+    "camera": [
+      39.5294,
+      0.36956983,
+      60.53,
+      35,
+      0.0
+    ],
+    "sun": [
+      0.126547,
+      130.530384
+    ],
+    "metrics": {
+      "placement_to_triangle_plane_mm": {
+        "valides": 971,
+        "invalides": 53,
+        "moyenne": 0.0009346407991761072,
+        "p95": 0.001817176,
+        "maximum": 0.002120127
+      },
+      "placement_to_anchor_ray_mm": {
+        "valides": 971,
+        "invalides": 53,
+        "moyenne": 0.003533761963954686,
+        "p95": 0.0075779005,
+        "maximum": 0.009867248
+      },
+      "placement_to_anchor_ray_px": {
+        "valides": 704,
+        "invalides": 320,
+        "moyenne": 3.764726136363636e-05,
+        "p95": 0.00014330065000000002,
+        "maximum": 0.00112845
+      }
+    }
+  },
+  {
+    "id": "site2_n1024_p8_dessus_cote",
+    "group": "site2_n1024",
+    "anchor": [
+      0.37,
+      60.53
+    ],
+    "count": 1024,
+    "pose": "p8_dessus_cote",
+    "camera": [
+      909.4376,
+      0.36782535,
+      60.53,
+      75,
+      0.0
+    ],
+    "sun": [
+      0.126547,
+      130.530384
+    ],
+    "metrics": {
+      "placement_to_triangle_plane_mm": {
+        "valides": 1024,
+        "invalides": 0,
+        "moyenne": 0.014894899291015624,
+        "p95": 0.028752096999999997,
+        "maximum": 0.031067371
+      },
+      "placement_to_anchor_ray_mm": {
+        "valides": 1024,
+        "invalides": 0,
+        "moyenne": 0.005979208713867187,
+        "p95": 0.014057918949999998,
+        "maximum": 0.016495755
+      },
+      "placement_to_anchor_ray_px": {
+        "valides": 1024,
+        "invalides": 0,
+        "moyenne": 2.390796875e-06,
+        "p95": 5.014499999999999e-06,
+        "maximum": 6.772e-06
+      }
+    }
+  }
+]

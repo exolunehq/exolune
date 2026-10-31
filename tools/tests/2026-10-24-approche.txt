@@ -1,0 +1,11 @@
+# Mutation à l'approche, 2026-10-24 : la même tache verte dans la neige, de 1,6 km à 143 m du sol. Elle doit garder sa forme, sans taches brunes au dernier moment.
+# libellé | altitude (m) latitude longitude inclinaison cap [| latitude longitude du soleil]
+# Soleil non relevé en vol : celui du démarrage, 10 70, y est couché ; les quatre dernières vues ont un soleil levé.
+Approche 1, à 1,6 km du sol | 5710.4 32.94097 173.98612 37.9 -126.7 | 10 70
+Approche 2, à 1,3 km du sol | 5448.1 32.93918 173.98322 37.9 -125.5 | 10 70
+Approche 3, à 530 m du sol | 4944.4 32.93591 173.97756 37.1 -122.2 | 10 70
+Approche 4, à 143 m du sol | 4627.7 32.93485 173.97387 29.3 -100.6 | 10 70
+Approche 1, à 1,6 km du sol, soleil levé | 5710.4 32.94097 173.98612 37.9 -126.7 | 12.94 -151.0
+Approche 2, à 1,3 km du sol, soleil levé | 5448.1 32.93918 173.98322 37.9 -125.5 | 12.94 -151.0
+Approche 3, à 530 m du sol, soleil levé | 4944.4 32.93591 173.97756 37.1 -122.2 | 12.94 -151.0
+Approche 4, à 143 m du sol, soleil levé | 4627.7 32.93485 173.97387 29.3 -100.6 | 12.94 -151.0

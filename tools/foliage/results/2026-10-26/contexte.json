@@ -1,0 +1,34 @@
+{
+  "gpu": "NVIDIA GeForce RTX 4070 Ti",
+  "driver": "610.88",
+  "vram_mib": 12282,
+  "resolution": [
+    1280,
+    720
+  ],
+  "base_git": "4c0b98079fc0c7601752cf0c48de2bd397e5c506",
+  "exe_sha256": "c6dd020f133e27939a66c240a2df04489dbac31e8c9adcc85962f9410dd46669",
+  "modeles": {
+    "jacaranda_triangles": 3863832,
+    "fir_triangles": 157402
+  },
+  "hauteur_banc_m": 12,
+  "warmup": 40,
+  "echantillons_par_capture": 60,
+  "repetitions": 2,
+  "limites": [
+    "grilles locales bornees",
+    "formats GPU non compresses",
+    "sans ombres ni vent",
+    "maillage proche et representations simplifiees compares separement"
+  ],
+  "dates": [
+    "2026-10-26",
+    "2026-10-27"
+  ],
+  "configuration": "Debug x64, DirectX 12, shaders FXC ps/cs 5.0 avec /Zi",
+  "vues_finales": 6,
+  "vues_exploratoires": 24,
+  "volume_place_cso_sha256": "8c19166f492ff55d46334faae0b715983c8be0e0cbf4d7add8d4d2cb9f7e9316",
+  "volume_pixel_cso_sha256": "87970999f9d49df0c46384f96cec2239adc3150de63eb9159e246653313b554d"
+}

@@ -1,0 +1,10 @@
+# Tests du 2026-10-24 : les ombres portées du relief (docs/recherche-ombres-relief.md).
+# libellé | altitude (m) latitude longitude inclinaison cap [| latitude longitude du soleil]
+Soleil à 10° dans le dos : l'ombre en pyramide du sommet | 5200 -14.9635 119.991 12 90 | -2.570 39.658
+Massif à 8 km, soleil couchant à gauche : vallées dans l'ombre | 8000 -14.9635 119.991 15 0 | -2.059 37.723
+Depuis 25 km, soleil à 8° : des ombres de dizaines de km | 25000 -14.9635 119.991 30 0 | -2.059 37.723
+Contre-jour à 6° : les faces à l'ombre, les plans se détachent | 5200 -14.9635 119.991 8 270 | -1.547 35.789
+Soleil à 4° : il ne reste que les crêtes | 8000 -14.9635 119.991 15 0 | -1.032 33.856
+Soleil à 30° : ombres courtes, vallées éclairées | 8000 -14.9635 119.991 15 0 | -33.191 56.326
+Crête enneigée, soleil à 35° de côté : avancer, les ombres restent | 6561.8 -18.67002 131.64981 9.8 -117.1 | 30.521 106.074
+Plans successifs, soleil à 8° : bandes claires et sombres | 1941.7 0.00280 118.14145 -0.2 156.6 | -23.752 36.889

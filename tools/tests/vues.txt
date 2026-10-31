@@ -1,0 +1,13 @@
+﻿# Les nuages du jeu (docs/spec-nuages.md) : N nuages, C qualité, B silhouette sur le sol, Espace pause, V météo x1/x5, O/P soleil.
+Globe entier, hemisphere initial | 10000000 -0.5 -18.225 90 0 | 10 -5
+Globe entier, hemisphere oppose | 10000000 0.5 161.775 90 0 | -15 175
+Cumulus nord depuis 800 km | 800000 38.1445 103.5352 80 0 | 38.1445 128.5352
+Nappe nord depuis 800 km | 800000 82.793 38.8477 80 0 | 82.793 63.8477
+Cumulus sud depuis 300 km | 300000 -41.6602 87.7148 80 0 | -41.6602 112.7148
+Nappe sud depuis 80 km | 80000 -12.4805 -148.8867 80 0 | -12.4805 -123.8867
+Cumulus en survol a 10 km | 10000 38.1445 103.5352 35 90 | 38.1445 128.5352
+Nappe en survol a 6 km | 6000 82.793 38.8477 35 90 | 82.793 63.8477
+Cirrus sud depuis 15 km | 15000 -69.082 -72.9492 40 90 | -69.082 -47.9492
+Raccord de longitude | 1500000 69 179.95 80 0 | 65 175
+Region polaire | 1500000 88 65 80 0 | 75 65
+Ombres sur terre depuis 30 km | 30950 -27.875 -0.375 45 270 | -25 30

@@ -1,0 +1,19 @@
+# Le climat calculé au démarrage (docs/spec-climat.md) : vents, vapeur portée depuis les mers, pluie au vent des reliefs, ombre pluviométrique, continentalité, courants froids. Juger la répartition des biomes : déserts vers 20 à 30° et sous le vent des chaînes, forêts à l'équateur et au vent, rien en bande droite. Altitudes au-dessus de la mer ; lieux de la graine 0 ; les nuages ne suivent pas encore le climat, N les coupe.
+Orbite, la pluie de l'année : brun sous 100 mm, vert à 500, bleu au-delà de 4 000 | 10000000 -0.5 -18.225 90 0 precipitation | 10 -5
+Orbite, les vents dominants : alizés, vents d'ouest, vents polaires, moussons | 10000000 -0.5 -18.225 90 0 wind | 10 -5
+Orbite, l'autre face, la pluie | 10000000 10 160 90 0 precipitation | 10 160
+Orbite, le jeu sur le grand continent | 10000000 -0.5 -18.225 90 0 | 10 -5
+La chaîne tropicale près du départ depuis 120 km : forêt au vent, désert sous le vent | 120100 -12.6 112.6 30 294 | -20 105
+Versant au vent, 2 900 mm : forêt sous les nuages | 1360 -12.375 112.125 4 294 | -5 125
+Versant sous le vent, 61 mm : le désert de l'ombre pluviométrique | 1850 -11.825 110.867 4 114 | -5 100
+Autre chaîne sous les alizés, versant au vent, 2 100 mm | 2150 19.875 -85.875 4 238 | 25 -70
+Son versant sous le vent, 48 mm | 1510 18.555 -88.087 4 58 | 25 -100
+Désert subtropical intérieur, 20 mm, depuis 30 km | 30400 25.25 56.25 40 0 | 25 75
+Désert côtier sur courant froid, 77 mm, la mer 4,6 °C plus froide, plus verte | 3000 18.25 37.75 25 300 | 18 55
+Savane de mousson, 750 mm tombés en été | 580 19.75 99.75 8 0 | 20 115
+Plaine équatoriale, 7 700 mm : forêt dense | 345 -7.75 -37.25 8 0 | -5 -20
+Steppe continentale, 210 mm, saisons de ±15,6 °C | 730 41.75 -22.25 8 0 | 35 -5
+Pluies d'hiver, 740 mm, étés secs | 340 28.25 -42.25 8 0 | 25 -25
+Forêt maritime, 2 600 mm, pluies d'hiver | 820 34.75 50.75 8 0 | 30 70
+Côte plate des vues de contrôle, désormais sous le vent, 250 mm | 60 16.70628 -89.28981 6 9 | 30 -70
+Pente boisée des vues de contrôle, au vent de la chaîne, inchangée | 650 -8.44835 118.48865 8 163 | -20 130

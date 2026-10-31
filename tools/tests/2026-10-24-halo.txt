@@ -1,0 +1,11 @@
+# Halo optique du 2026-10-24 : la diffusion de l'objectif autour du soleil et de la neige (docs/recherche-halo.md).
+# Le halo est coupé par défaut, et tools\lance.ps1 efface les variables : lancer x64\Release\MyPlanetEngine.exe avec MYPLANETENGINE_GLARE=1 et MYPLANETENGINE_TESTS sur cette liste ; comparer sans. Attendu : un halo discret, rond, immobile ; aucun voile autour de la neige.
+# libellé | altitude (m) latitude longitude inclinaison cap | latitude longitude du soleil
+Soleil haut au-dessus des montagnes | 1941.7 0.00280 118.14145 -20 156.6 | -50.0 140.0
+Soleil caché derrière le pic : pas de halo | 1941.7 0.00280 118.14145 -20 156.6 | -54.126 164.182
+Soleil bas sur le désert, face à lui | 800 26.0 45.0 -2 110 | -15.547 121.329
+Soleil à 25° sur le désert | 800 26.0 45.0 -15 110 | -5.356 103.802
+Neige à contre-jour, soleil à 12° | 6561.8 -18.67002 131.64981 -5 -117.1 | -29.255 45.220
+Neige au soleil, soleil dans le dos | 6561.8 -18.67002 131.64981 9.8 -117.1 | 10 70
+Orbite basse, le soleil au-dessus du limbe | 400000 0 0 15 90 | 0 105
+Espace, le soleil sur le noir : le halo seul | 2000000 0 0 0 90 | 0 90

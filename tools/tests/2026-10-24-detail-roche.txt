@@ -1,0 +1,11 @@
+# Détail fin de la roche, 2026-10-24 : les vues du banc de qualité où la roche photo est la plus floue, à comparer avec l'ancienne roche dessinée.
+# libellé | altitude (m) latitude longitude inclinaison cap [| latitude longitude du soleil]
+Roche floue au banc, lieu 24, à 12 m du sol | 1284.7 4.72962 -146.52288 35 45.0 | -15.27 -111.52
+Roche floue au banc, lieu 1, à 12 m du sol | 1873.1 -37.40219 14.81078 35 45.0 | -57.40 49.81
+Roche floue au banc, lieu 24, à 200 m du sol | 1472.7 4.72962 -146.52288 35 45.0 | -15.27 -111.52
+Roche floue au banc, lieu 0, à 200 m du sol | 4553.7 -5.05673 -166.69451 35 180.0 | -25.06 -131.69
+Roche floue au banc, lieu 22, à 200 m du sol | 1844.7 17.9226 -115.98272 35 90.0 | -2.08 -80.98
+Roche floue au banc, lieu 24, à 800 m du sol | 2072.7 4.72962 -146.52288 35 45.0 | -15.27 -111.52
+Roche floue au banc, lieu 0, à 800 m du sol | 5153.7 -5.05673 -166.69451 35 180.0 | -25.06 -131.69
+Référence : gros plan « plutôt beau » | 2922.5 3.15497 110.91028 20.7 50.3
+Référence : falaise orange | 1022.9 -0.23076 118.41645 7.3 61.0

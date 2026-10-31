@@ -1,0 +1,560 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{7260d03e-9410-4273-a802-07a7c06c6894}</ProjectGuid>
+    <RootNamespace>MyPlanetEngine</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Audio.cpp" />
+    <ClCompile Include="D3DApp.cpp" />
+    <ClCompile Include="D3DAppBench.cpp" />
+    <ClCompile Include="D3DAppCine.cpp" />
+    <ClCompile Include="D3DAppShip.cpp" />
+    <ClCompile Include="D3DAppTests.cpp" />
+    <ClCompile Include="Glare.cpp" />
+    <ClCompile Include="Scans.cpp" />
+    <ClCompile Include="Settings.cpp" />
+    <ClCompile Include="PlanetFoliage.cpp" />
+    <ClCompile Include="FoliageHiZ.cpp" />
+    <ClCompile Include="PlanetPlantPlacement.cpp" />
+    <ClCompile Include="Ocean.cpp" />
+    <ClCompile Include="Ship.cpp" />
+    <ClCompile Include="main.cpp" />
+    <!-- Optimised even in Debug: the planet map's flood goes through 6.3 million cells at every startup. -->
+    <ClCompile Include="PlanetMap.cpp">
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MaxSpeed</Optimization>
+      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Default</BasicRuntimeChecks>
+      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ProgramDatabase</DebugInformationFormat>
+      <SupportJustMyCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</SupportJustMyCode>
+    </ClCompile>
+    <!-- Optimised even in Debug: the tectonic map's fronts and floods go through 1.6 million cells at every startup. -->
+    <ClCompile Include="Tectonics.cpp">
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MaxSpeed</Optimization>
+      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Default</BasicRuntimeChecks>
+      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ProgramDatabase</DebugInformationFormat>
+      <SupportJustMyCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</SupportJustMyCode>
+    </ClCompile>
+    <!-- Optimised even in Debug: the climate's winds go hundreds of rounds over 100 000 cells at every startup. -->
+    <ClCompile Include="Climate.cpp">
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MaxSpeed</Optimization>
+      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Default</BasicRuntimeChecks>
+      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ProgramDatabase</DebugInformationFormat>
+      <SupportJustMyCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</SupportJustMyCode>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Audio.h" />
+    <ClInclude Include="D3DApp.h" />
+    <ClInclude Include="GpuHelpers.h" />
+    <ClInclude Include="Glare.h" />
+    <ClInclude Include="Scans.h" />
+    <ClInclude Include="Settings.h" />
+    <ClInclude Include="PlanetFoliage.h" />
+    <ClInclude Include="FoliageHiZ.h" />
+    <ClInclude Include="PlanetPlantPlacement.h" />
+    <ClInclude Include="PlanetMap.h" />
+    <ClInclude Include="Tectonics.h" />
+    <ClInclude Include="Climate.h" />
+    <ClInclude Include="Ocean.h" />
+    <ClInclude Include="Ship.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Atmosphere.hlsli" />
+    <None Include="Relief.hlsli" />
+    <None Include="Noise.hlsli" />
+    <None Include="Planet.hlsli" />
+    <None Include="PlanetFoliageCommon.hlsli" />
+    <None Include="PlanetFoliageLod.hlsli" />
+    <None Include="PlanetFoliageDepth.hlsli" />
+    <None Include="PlanetFoliageVisibility.hlsli" />
+    <None Include="PlanetFoliageHiZ.hlsl" />
+    <None Include="PlanetFoliageMeshPixel.hlsl" />
+    <None Include="Materials.hlsli" />
+    <None Include="Clouds.hlsli" />
+    <None Include="CloudsTemporal.hlsli" />
+    <None Include="Ship.hlsli" />
+    <None Include="ShipWater.hlsli" />
+    <None Include="ShipPlume.hlsli" />
+    <None Include="ShipScreens.hlsli" />
+    <None Include="BiomePalette.hlsli" />
+    <None Include="Mesh.hlsli" />
+    <None Include="PlanetSettings.hlsli" />
+    <None Include="Shadows.hlsli" />
+    <None Include="Objects.hlsli" />
+    <None Include="Vegetation.hlsli" />
+    <None Include="ShrubClimate.hlsli" />
+    <None Include="PlantPlacement.hlsli" />
+    <None Include="PlanetMap.hlsli" />
+    <None Include="Tectonics.hlsli" />
+    <None Include="Climate.hlsli" />
+    <None Include="Volcanoes.hlsli" />
+    <None Include="Sea.hlsli" />
+    <None Include="OceanCompute.hlsl" />
+    <None Include="OceanUniform.hlsli" />
+    <None Include="OceanSurface.hlsli" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="FoliageHiZCopy.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>5.0</ShaderModel>
+      <EntryPointName>main</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="FoliageHiZReduce.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>5.0</ShaderModel>
+      <EntryPointName>main</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetFoliageHiZClear.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>5.0</ShaderModel>
+      <EntryPointName>Clear</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetFoliageHiZCull.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>5.0</ShaderModel>
+      <EntryPointName>Cull</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetFoliageHiZCount.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>5.0</ShaderModel>
+      <EntryPointName>CountMasked</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetPlantCandidates.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CullMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetPlantPlacement.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetPlantScan.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>ScanMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetPlantScanAdd.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>AddMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetPlantCompact.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>CompactTiles</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetPlantClear.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>ClearPlants</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetPlantScatter.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>ScatterPlants</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetFoliageClassify.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetFoliageScatter.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetFoliageFinalize.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetFoliageMeshVertex.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>VSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetFoliageProxyVertex.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>VSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetFoliageMeshDepthPixel.hlsl">
+      <ShaderType>Pixel</ShaderType><ShaderModel>5.0</ShaderModel>
+      <EntryPointName>PSDepthOnly</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetFoliageMeshHardwarePixel.hlsl">
+      <ShaderType>Pixel</ShaderType><ShaderModel>5.0</ShaderModel>
+      <EntryPointName>PSNoDepth</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetFoliageImpostorPixel.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>PSConservative</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PixelShader.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>PSMain</EntryPointName>
+      <!-- Optimised even in Debug, for the fine detail's noise loop. -->
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="MaterialGenerator.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="FineTerrain.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetMap.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="FineNormals.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="Horizon.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ObjectPlacement.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ObjectCandidates.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CullMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ObjectVertex.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>VSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ObjectPixel.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="TuftVertex.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>VSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="TuftPixel.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="TerrainCompute.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <!-- Shader model 6 (DXC): FXC packs two doubles per register and the NVIDIA driver got the
+           second one wrong. The relief graph is far too slow unoptimised, even in Debug. -->
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="CineGround.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="TerrainComputePairs.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <!-- Shader model 6 (DXC): FXC packs two doubles per register and the NVIDIA driver got the
+           second one wrong. The relief graph is far too slow unoptimised, even in Debug. -->
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="AtmosphereTransmittance.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="AtmosphereMultiScattering.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="AtmosphereSkyIrradiance.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="Fullscreen.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>VSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ShipVertex.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>VSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>Ship.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="ShipShadow.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>VSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>Ship.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="ShipPixel.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>ShipScreens.hlsli;Ship.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="ShipGlass.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>Ship.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="ShipWeather.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>Ship.hlsli;Planet.hlsli;Atmosphere.hlsli;Materials.hlsli;Climate.hlsli;Clouds.hlsli;Terrain.hlsli;Mesh.hlsli;Shadows.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="ShipWaterMove.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>ShipWater.hlsli;Ship.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="ShipWaterClear.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>ShipWater.hlsli;Ship.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="ShipWaterSplat.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>ShipWater.hlsli;Ship.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="ShipPlumeVertex.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>VSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>ShipPlume.hlsli;Ship.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="ShipPlumePixel.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>ShipPlume.hlsli;Ship.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <!-- The clouds and the air over the scene (Clouds.hlsli): the single pass, then the temporal pass's three entry points,
+         each compiled from AtmospherePass.hlsl by its wrapper. Shader model 6 (DXC), as the terrain. -->
+    <FxCompile Include="AtmospherePass.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>Clouds.hlsli;CloudsTemporal.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="CloudTrace.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>PSCloudTrace</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>AtmospherePass.hlsl;Clouds.hlsli;CloudsTemporal.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="CloudTraceHalf.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>PSCloudTraceHalf</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>AtmospherePass.hlsl;Clouds.hlsli;CloudsTemporal.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="CloudResolve.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>PSCloudResolve</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>AtmospherePass.hlsl;Clouds.hlsli;CloudsTemporal.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="ToneMap.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="GlareDown.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="GlareUp.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="VertexShader.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <EntryPointName>VSMain</EntryPointName>
+      <!-- Optimised even in Debug, for the neighbour lookups. -->
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="OceanCameraHeight.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>5.0</ShaderModel>
+      <EntryPointName>CameraHeight</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="OceanInit.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>5.0</ShaderModel>
+      <EntryPointName>InitSpectrum</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="OceanEvolve.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>5.0</ShaderModel>
+      <EntryPointName>Evolve</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="OceanRows.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>5.0</ShaderModel>
+      <EntryPointName>FftRows</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="OceanColumns.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>5.0</ShaderModel>
+      <EntryPointName>FftColumns</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="OceanMipWaves.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>5.0</ShaderModel>
+      <EntryPointName>MipWaves</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="OceanPores.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>5.0</ShaderModel>
+      <EntryPointName>CreatePores</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="OceanFoam.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>5.0</ShaderModel>
+      <EntryPointName>UpdateFoam</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="OceanMipSingle.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>5.0</ShaderModel>
+      <EntryPointName>MipSingle</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

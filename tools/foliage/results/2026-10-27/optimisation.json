@@ -1,0 +1,959 @@
+{
+  "base": "jalon/24-vegetation-detaillee-main",
+  "date": "2026-10-27",
+  "optimisation": "Bases angulaires des imposteurs réutilisées du vertex au pixel ; placement et modèles inchangés.",
+  "protocole": {
+    "vues": 14,
+    "familles": 6,
+    "chauffe": 32,
+    "mesures_par_vue": 128,
+    "temps_mer": "0 0",
+    "note": "Mesures séquentielles, sensibles aux charges extérieures ; gain de dessin en forêt, sans gain global uniforme garanti."
+  },
+  "vues": [
+    {
+      "vue": "boreal_foret",
+      "image_identique": true,
+      "comptes": [
+        1806,
+        186909,
+        0,
+        0,
+        0,
+        3
+      ],
+      "dessin_reference_ms": {
+        "n": 128,
+        "mediane_ms": 6.283264,
+        "p95_ms": 6.7829248
+      },
+      "dessin_final_ms": {
+        "n": 128,
+        "mediane_ms": 5.970944,
+        "p95_ms": 6.594304
+      },
+      "image_reference_ms": {
+        "n": 128,
+        "mediane_ms": 22.84544,
+        "p95_ms": 25.286655999999997
+      },
+      "image_final_ms": {
+        "n": 128,
+        "mediane_ms": 23.330303999999998,
+        "p95_ms": 26.450022399999998
+      }
+    },
+    {
+      "vue": "boreal_clairiere",
+      "image_identique": true,
+      "comptes": [
+        1171,
+        108115,
+        0,
+        0,
+        17,
+        2260
+      ],
+      "dessin_reference_ms": {
+        "n": 128,
+        "mediane_ms": 3.4677759999999997,
+        "p95_ms": 3.8558207999999996
+      },
+      "dessin_final_ms": {
+        "n": 128,
+        "mediane_ms": 3.294208,
+        "p95_ms": 3.8287872
+      },
+      "image_reference_ms": {
+        "n": 128,
+        "mediane_ms": 20.376064,
+        "p95_ms": 22.2354944
+      },
+      "image_final_ms": {
+        "n": 128,
+        "mediane_ms": 20.57624,
+        "p95_ms": 22.9960192
+      }
+    },
+    {
+      "vue": "desert_ouest",
+      "image_identique": true,
+      "comptes": [
+        0,
+        0,
+        0,
+        0,
+        9,
+        1219
+      ],
+      "dessin_reference_ms": {
+        "n": 128,
+        "mediane_ms": 0.298496,
+        "p95_ms": 0.4570623999999995
+      },
+      "dessin_final_ms": {
+        "n": 128,
+        "mediane_ms": 0.283136,
+        "p95_ms": 0.5408767999999997
+      },
+      "image_reference_ms": {
+        "n": 128,
+        "mediane_ms": 13.758976,
+        "p95_ms": 14.601472
+      },
+      "image_final_ms": {
+        "n": 128,
+        "mediane_ms": 13.968384,
+        "p95_ms": 14.9487104
+      }
+    },
+    {
+      "vue": "desert_est",
+      "image_identique": true,
+      "comptes": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        5
+      ],
+      "dessin_reference_ms": {
+        "n": 128,
+        "mediane_ms": 0.178176,
+        "p95_ms": 0.4449279999999997
+      },
+      "dessin_final_ms": {
+        "n": 128,
+        "mediane_ms": 0.192512,
+        "p95_ms": 0.5139967999999999
+      },
+      "image_reference_ms": {
+        "n": 128,
+        "mediane_ms": 13.668832,
+        "p95_ms": 14.4504832
+      },
+      "image_final_ms": {
+        "n": 128,
+        "mediane_ms": 13.987328000000002,
+        "p95_ms": 15.101696
+      }
+    },
+    {
+      "vue": "sec_maquis",
+      "image_identique": true,
+      "comptes": [
+        0,
+        0,
+        87,
+        10821,
+        24,
+        2330
+      ],
+      "dessin_reference_ms": {
+        "n": 128,
+        "mediane_ms": 2.31424,
+        "p95_ms": 2.6262016
+      },
+      "dessin_final_ms": {
+        "n": 128,
+        "mediane_ms": 2.266112,
+        "p95_ms": 2.5788416
+      },
+      "image_reference_ms": {
+        "n": 128,
+        "mediane_ms": 19.966464000000002,
+        "p95_ms": 22.1251072
+      },
+      "image_final_ms": {
+        "n": 128,
+        "mediane_ms": 20.347231999999998,
+        "p95_ms": 22.5363968
+      }
+    },
+    {
+      "vue": "sec_savane",
+      "image_identique": true,
+      "comptes": [
+        0,
+        0,
+        22,
+        2435,
+        17,
+        2283
+      ],
+      "dessin_reference_ms": {
+        "n": 128,
+        "mediane_ms": 0.80384,
+        "p95_ms": 1.0257407999999997
+      },
+      "dessin_final_ms": {
+        "n": 128,
+        "mediane_ms": 0.8391679999999999,
+        "p95_ms": 1.0976256
+      },
+      "image_reference_ms": {
+        "n": 128,
+        "mediane_ms": 14.445056000000001,
+        "p95_ms": 15.3168384
+      },
+      "image_final_ms": {
+        "n": 128,
+        "mediane_ms": 14.677503999999999,
+        "p95_ms": 15.9617536
+      }
+    },
+    {
+      "vue": "mont_ligne",
+      "image_identique": true,
+      "comptes": [
+        1,
+        447,
+        157,
+        36313,
+        11,
+        1105
+      ],
+      "dessin_reference_ms": {
+        "n": 128,
+        "mediane_ms": 3.1610880000000003,
+        "p95_ms": 3.4587136
+      },
+      "dessin_final_ms": {
+        "n": 128,
+        "mediane_ms": 3.31776,
+        "p95_ms": 4.014336
+      },
+      "image_reference_ms": {
+        "n": 128,
+        "mediane_ms": 25.183232,
+        "p95_ms": 26.617753599999997
+      },
+      "image_final_ms": {
+        "n": 128,
+        "mediane_ms": 26.075648,
+        "p95_ms": 29.387980799999998
+      }
+    },
+    {
+      "vue": "mont_vallee",
+      "image_identique": true,
+      "comptes": [
+        0,
+        465,
+        143,
+        41283,
+        6,
+        390
+      ],
+      "dessin_reference_ms": {
+        "n": 128,
+        "mediane_ms": 2.046976,
+        "p95_ms": 2.5628159999999998
+      },
+      "dessin_final_ms": {
+        "n": 128,
+        "mediane_ms": 2.0730880000000003,
+        "p95_ms": 2.5148416
+      },
+      "image_reference_ms": {
+        "n": 128,
+        "mediane_ms": 23.983615999999998,
+        "p95_ms": 26.0175136
+      },
+      "image_final_ms": {
+        "n": 128,
+        "mediane_ms": 23.883264,
+        "p95_ms": 26.375372799999997
+      }
+    },
+    {
+      "vue": "tempere_lisiere",
+      "image_identique": true,
+      "comptes": [
+        0,
+        0,
+        339,
+        100387,
+        18,
+        2263
+      ],
+      "dessin_reference_ms": {
+        "n": 128,
+        "mediane_ms": 6.670336,
+        "p95_ms": 7.3572352
+      },
+      "dessin_final_ms": {
+        "n": 128,
+        "mediane_ms": 6.367232,
+        "p95_ms": 7.1611392
+      },
+      "image_reference_ms": {
+        "n": 128,
+        "mediane_ms": 24.510976,
+        "p95_ms": 28.143624
+      },
+      "image_final_ms": {
+        "n": 128,
+        "mediane_ms": 23.740912,
+        "p95_ms": 28.702310400000002
+      }
+    },
+    {
+      "vue": "tempere_interieur",
+      "image_identique": true,
+      "comptes": [
+        0,
+        0,
+        715,
+        100914,
+        30,
+        2283
+      ],
+      "dessin_reference_ms": {
+        "n": 128,
+        "mediane_ms": 11.052032,
+        "p95_ms": 11.629875199999999
+      },
+      "dessin_final_ms": {
+        "n": 128,
+        "mediane_ms": 10.774528,
+        "p95_ms": 11.417651199999998
+      },
+      "image_reference_ms": {
+        "n": 128,
+        "mediane_ms": 29.425664,
+        "p95_ms": 32.5116144
+      },
+      "image_final_ms": {
+        "n": 128,
+        "mediane_ms": 28.804096,
+        "p95_ms": 33.27897599999999
+      }
+    },
+    {
+      "vue": "tropical_clairiere",
+      "image_identique": true,
+      "comptes": [
+        0,
+        0,
+        682,
+        79761,
+        23,
+        2170
+      ],
+      "dessin_reference_ms": {
+        "n": 128,
+        "mediane_ms": 8.8192,
+        "p95_ms": 9.5186944
+      },
+      "dessin_final_ms": {
+        "n": 128,
+        "mediane_ms": 8.654336,
+        "p95_ms": 9.3207552
+      },
+      "image_reference_ms": {
+        "n": 128,
+        "mediane_ms": 29.944319999999998,
+        "p95_ms": 33.1053568
+      },
+      "image_final_ms": {
+        "n": 128,
+        "mediane_ms": 29.265408,
+        "p95_ms": 32.903014399999996
+      }
+    },
+    {
+      "vue": "tropical_foret",
+      "image_identique": true,
+      "comptes": [
+        0,
+        0,
+        1077,
+        76229,
+        27,
+        2174
+      ],
+      "dessin_reference_ms": {
+        "n": 128,
+        "mediane_ms": 8.927744,
+        "p95_ms": 9.4527488
+      },
+      "dessin_final_ms": {
+        "n": 128,
+        "mediane_ms": 8.382976,
+        "p95_ms": 8.9491456
+      },
+      "image_reference_ms": {
+        "n": 128,
+        "mediane_ms": 31.087615999999997,
+        "p95_ms": 34.4875616
+      },
+      "image_final_ms": {
+        "n": 128,
+        "mediane_ms": 30.64576,
+        "p95_ms": 33.560576
+      }
+    },
+    {
+      "vue": "frontiere_temperesec",
+      "image_identique": true,
+      "comptes": [
+        0,
+        0,
+        85,
+        10905,
+        22,
+        2355
+      ],
+      "dessin_reference_ms": {
+        "n": 128,
+        "mediane_ms": 1.723392,
+        "p95_ms": 2.1075967999999996
+      },
+      "dessin_final_ms": {
+        "n": 128,
+        "mediane_ms": 1.681408,
+        "p95_ms": 1.9819007999999996
+      },
+      "image_reference_ms": {
+        "n": 128,
+        "mediane_ms": 18.933248,
+        "p95_ms": 20.3762688
+      },
+      "image_final_ms": {
+        "n": 128,
+        "mediane_ms": 18.897408,
+        "p95_ms": 20.0542208
+      }
+    },
+    {
+      "vue": "frontiere_montagne",
+      "image_identique": true,
+      "comptes": [
+        4,
+        483,
+        91,
+        37878,
+        17,
+        739
+      ],
+      "dessin_reference_ms": {
+        "n": 128,
+        "mediane_ms": 1.7756159999999999,
+        "p95_ms": 2.2662143999999995
+      },
+      "dessin_final_ms": {
+        "n": 128,
+        "mediane_ms": 1.924608,
+        "p95_ms": 2.3415807999999996
+      },
+      "image_reference_ms": {
+        "n": 128,
+        "mediane_ms": 28.1308,
+        "p95_ms": 30.1093376
+      },
+      "image_final_ms": {
+        "n": 128,
+        "mediane_ms": 28.297216,
+        "p95_ms": 29.481779200000002
+      }
+    }
+  ],
+  "qualite": {
+    "lieux": 6,
+    "hauteurs": 5,
+    "crops_comparables": 745,
+    "crops_identiques": 744,
+    "differences": [
+      {
+        "crop": "s5_h50_768_384.png",
+        "pixels": 1,
+        "ecart_max_255": 1
+      }
+    ],
+    "p95_mesures": 59,
+    "regressions_10pct": [],
+    "details": [
+      {
+        "materiau": "grass",
+        "hauteur": 12.0,
+        "mesure": "gap_p95",
+        "avant": 2.7641446226106146,
+        "apres": 2.7641446226106146,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "grass",
+        "hauteur": 12.0,
+        "mesure": "repeat_p95",
+        "avant": 0.0941231198608875,
+        "apres": 0.0941231198608875,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "grass",
+        "hauteur": 50.0,
+        "mesure": "gap_p95",
+        "avant": 1.6365832673276959,
+        "apres": 1.6365832673276959,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "grass",
+        "hauteur": 50.0,
+        "mesure": "repeat_p95",
+        "avant": 0.1875285491347313,
+        "apres": 0.1875285491347313,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "grass",
+        "hauteur": 200.0,
+        "mesure": "gap_p95",
+        "avant": 1.698792569194456,
+        "apres": 1.698792569194456,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "grass",
+        "hauteur": 200.0,
+        "mesure": "repeat_p95",
+        "avant": 0.16682714223861694,
+        "apres": 0.16682714223861694,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "grass",
+        "hauteur": 800.0,
+        "mesure": "gap_p95",
+        "avant": 1.7584388045743478,
+        "apres": 1.7584388045743478,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "grass",
+        "hauteur": 800.0,
+        "mesure": "repeat_p95",
+        "avant": 0.1752246618270874,
+        "apres": 0.1752246618270874,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "grass",
+        "hauteur": 3000.0,
+        "mesure": "gap_p95",
+        "avant": 1.8516697352802485,
+        "apres": 1.8516697352802485,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "grass",
+        "hauteur": 3000.0,
+        "mesure": "repeat_p95",
+        "avant": 0.1741980820894241,
+        "apres": 0.1741980820894241,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "rock",
+        "hauteur": 12.0,
+        "mesure": "gap_p95",
+        "avant": 0.8380543877748607,
+        "apres": 0.8380543877748607,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "rock",
+        "hauteur": 12.0,
+        "mesure": "repeat_p95",
+        "avant": 0.061609551310539246,
+        "apres": 0.061609551310539246,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "rock",
+        "hauteur": 50.0,
+        "mesure": "gap_p95",
+        "avant": 2.6014360555023255,
+        "apres": 2.6014360555023255,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "rock",
+        "hauteur": 50.0,
+        "mesure": "repeat_p95",
+        "avant": 0.09518702030181884,
+        "apres": 0.09518702030181884,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "rock",
+        "hauteur": 200.0,
+        "mesure": "gap_p95",
+        "avant": 3.078450170383477,
+        "apres": 3.078450170383477,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "rock",
+        "hauteur": 200.0,
+        "mesure": "repeat_p95",
+        "avant": 0.07974796816706659,
+        "apres": 0.07974796816706659,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "rock",
+        "hauteur": 800.0,
+        "mesure": "gap_p95",
+        "avant": 1.7559893738053445,
+        "apres": 1.7559893738053445,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "rock",
+        "hauteur": 800.0,
+        "mesure": "repeat_p95",
+        "avant": 0.11450761705636978,
+        "apres": 0.11450761705636978,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "rock",
+        "hauteur": 3000.0,
+        "mesure": "gap_p95",
+        "avant": 1.518859952028443,
+        "apres": 1.518859952028443,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "rock",
+        "hauteur": 3000.0,
+        "mesure": "repeat_p95",
+        "avant": 0.16435423269867896,
+        "apres": 0.16435423269867896,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "sand",
+        "hauteur": 12.0,
+        "mesure": "gap_p95",
+        "avant": 2.9520091139856683,
+        "apres": 2.9520091139856683,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "sand",
+        "hauteur": 12.0,
+        "mesure": "repeat_p95",
+        "avant": 0.32549742907285684,
+        "apres": 0.32549742907285684,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "sand",
+        "hauteur": 50.0,
+        "mesure": "gap_p95",
+        "avant": 3.5457275689141263,
+        "apres": 3.5457275689141263,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "sand",
+        "hauteur": 50.0,
+        "mesure": "repeat_p95",
+        "avant": 0.2283482670783996,
+        "apres": 0.2283482670783996,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "sand",
+        "hauteur": 200.0,
+        "mesure": "gap_p95",
+        "avant": 2.3685161465309177,
+        "apres": 2.3685161465309177,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "sand",
+        "hauteur": 200.0,
+        "mesure": "repeat_p95",
+        "avant": 0.1687724620103836,
+        "apres": 0.1687724620103836,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "sand",
+        "hauteur": 800.0,
+        "mesure": "gap_p95",
+        "avant": 1.8409983383234745,
+        "apres": 1.8409983383234745,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "sand",
+        "hauteur": 800.0,
+        "mesure": "repeat_p95",
+        "avant": 0.17390228137373925,
+        "apres": 0.17390228137373925,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "sand",
+        "hauteur": 3000.0,
+        "mesure": "gap_p95",
+        "avant": 2.718026736585015,
+        "apres": 2.718026736585015,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "sand",
+        "hauteur": 3000.0,
+        "mesure": "repeat_p95",
+        "avant": 0.17784128561615942,
+        "apres": 0.17784128561615942,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "scree",
+        "hauteur": 12.0,
+        "mesure": "gap_p95",
+        "avant": 1.4115633903705547,
+        "apres": 1.4115633903705547,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "scree",
+        "hauteur": 12.0,
+        "mesure": "repeat_p95",
+        "avant": 0.06313877552747726,
+        "apres": 0.06313877552747726,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "scree",
+        "hauteur": 50.0,
+        "mesure": "gap_p95",
+        "avant": 2.299536640270374,
+        "apres": 2.299536640270374,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "scree",
+        "hauteur": 50.0,
+        "mesure": "repeat_p95",
+        "avant": 0.06606414765119553,
+        "apres": 0.06606414765119553,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "snow",
+        "hauteur": 12.0,
+        "mesure": "gap_p95",
+        "avant": 1.8280209042457927,
+        "apres": 1.8280209042457927,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "snow",
+        "hauteur": 12.0,
+        "mesure": "repeat_p95",
+        "avant": 0.14649953171610827,
+        "apres": 0.14649953171610827,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "snow",
+        "hauteur": 50.0,
+        "mesure": "gap_p95",
+        "avant": 1.69031333151149,
+        "apres": 1.69031333151149,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "snow",
+        "hauteur": 50.0,
+        "mesure": "repeat_p95",
+        "avant": 0.13712823316454886,
+        "apres": 0.13712823316454886,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "snow",
+        "hauteur": 200.0,
+        "mesure": "gap_p95",
+        "avant": 1.9527847770545845,
+        "apres": 1.9527847770545845,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "snow",
+        "hauteur": 200.0,
+        "mesure": "repeat_p95",
+        "avant": 0.12242541089653966,
+        "apres": 0.12242541089653966,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "snow",
+        "hauteur": 800.0,
+        "mesure": "gap_p95",
+        "avant": 2.9380731691464743,
+        "apres": 2.9380731691464743,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "snow",
+        "hauteur": 800.0,
+        "mesure": "repeat_p95",
+        "avant": 0.10309775359928607,
+        "apres": 0.10309775359928607,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "snow",
+        "hauteur": 3000.0,
+        "mesure": "gap_p95",
+        "avant": 3.2277385709744917,
+        "apres": 3.2277385709744917,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "snow",
+        "hauteur": 3000.0,
+        "mesure": "repeat_p95",
+        "avant": 0.21135606765747064,
+        "apres": 0.21135606765747064,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "soil",
+        "hauteur": 12.0,
+        "mesure": "gap_p95",
+        "avant": 2.522349610263239,
+        "apres": 2.522349610263239,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "soil",
+        "hauteur": 12.0,
+        "mesure": "repeat_p95",
+        "avant": 0.06818874217569826,
+        "apres": 0.06818874217569826,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "soil",
+        "hauteur": 50.0,
+        "mesure": "gap_p95",
+        "avant": 1.527776612678196,
+        "apres": 1.527776612678196,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "soil",
+        "hauteur": 50.0,
+        "mesure": "repeat_p95",
+        "avant": 0.06632719226181506,
+        "apres": 0.06632719226181506,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "soil",
+        "hauteur": 200.0,
+        "mesure": "gap_p95",
+        "avant": 0.5266165772142506,
+        "apres": 0.5266165772142506,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "soil",
+        "hauteur": 200.0,
+        "mesure": "repeat_p95",
+        "avant": 0.059428495727479436,
+        "apres": 0.059428495727479436,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "soil",
+        "hauteur": 800.0,
+        "mesure": "gap_p95",
+        "avant": 1.4276532070391046,
+        "apres": 1.4276532070391046,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "soil",
+        "hauteur": 800.0,
+        "mesure": "repeat_p95",
+        "avant": 0.12323444187641143,
+        "apres": 0.12323444187641143,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "soil",
+        "hauteur": 3000.0,
+        "mesure": "gap_p95",
+        "avant": 3.0284670139628527,
+        "apres": 3.0284670139628527,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "soil",
+        "hauteur": 3000.0,
+        "mesure": "repeat_p95",
+        "avant": 0.18309274539351456,
+        "apres": 0.18309274539351456,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "tous",
+        "hauteur": 12.0,
+        "mesure": "mutation_p95",
+        "avant": 0.008437855634838343,
+        "apres": 0.008437855634838343,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "tous",
+        "hauteur": 50.0,
+        "mesure": "mutation_p95",
+        "avant": 0.008687613997608423,
+        "apres": 0.008687613997608423,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "tous",
+        "hauteur": 200.0,
+        "mesure": "mutation_p95",
+        "avant": 0.10698197968304157,
+        "apres": 0.10698197968304157,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "tous",
+        "hauteur": 800.0,
+        "mesure": "mutation_p95",
+        "avant": 0.07341191917657852,
+        "apres": 0.07341191917657852,
+        "regression_10pct": false
+      },
+      {
+        "materiau": "tous",
+        "hauteur": 3000.0,
+        "mesure": "mutation_p95",
+        "avant": 0.037152862176299095,
+        "apres": 0.037152862176299095,
+        "regression_10pct": false
+      }
+    ],
+    "reference_canonique": "tools/banc_qualite_reference.json inchangée ; écarts hérités non effacés."
+  },
+  "sources_rapports": [
+    "x64/VegetationPerf/reference_libre/rapport.json",
+    "x64/VegetationPerf/rendu_final/rapport.json",
+    "x64/VegetationPerf/qualite_reference/qualite.json",
+    "x64/VegetationPerf/qualite_finale/qualite.json"
+  ]
+}

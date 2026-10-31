@@ -1,0 +1,12 @@
+# La météo vue d'orbite (docs/spec-nuages.md, la carte météo) : les masses organisées, virgules des dépressions, fronts froids, amas de la ZCIT, nappes, dessinées par la carte ; les champs de petits nuages laissés au grain du shader ; les déserts et les fentes sèches dégagés. Juger à côté de la Terre d'Apollo 17, sous la loi du rendu où la densité ne dépend plus de R (branche orbite-rendu). Météo à l'instant 0, en pause ; lieux et dépressions de la graine 0, x64/Release/meteo-0.txt.
+Orbite, la face de la graine 0 cadrée comme la photo d'Apollo | 9000000 -0.5 -18.225 90 180 | -0.5 -18.225
+Orbite, l'océan du sud et l'anneau de ses dépressions | 9000000 -40 -100 90 180 | -40 -100
+Orbite, l'hémisphère nord et ses rails | 9000000 40 60 90 180 | 40 60
+Une dépression mûre du sud depuis 4 000 km : bras en spirale, fente sèche, front froid vers le nord-ouest | 4000000 -56.3 106.6 90 180 | -45 106
+Une dépression du nord depuis 4 000 km : la virgule, son bouclier à l'est, le front froid vers le sud-sud-ouest | 4000000 47.0 -86.5 90 180 | 40 -86
+La ZCIT depuis 2 000 km : une ligne d'amas blancs, des trouées entre eux | 2000000 5 -150 90 180 | 5 -150
+Le désert subtropical depuis 2 000 km : le ciel dégagé | 2000000 25.25 56.25 90 180 | 25 56
+La nappe de la côte froide depuis 1 500 km : un drap déchiré qui se défait sous le vent | 1500000 18.25 39 90 180 | 18 39
+À 750 km au-dessus des subtropiques : la mer sombre domine, une nappe ou un front, aucun moucheté partout | 750000 22 -150 25 0 | 18 -140
+À 750 km au-dessus du rail du sud : les masses des dépressions, le moucheté seulement derrière les fronts | 750000 -38 100 25 180 | -30 100
+À 10 km dans le secteur froid du sud : des cellules ouvertes éparses sur la mer | 10000 -45 100 4 180 | -35 100

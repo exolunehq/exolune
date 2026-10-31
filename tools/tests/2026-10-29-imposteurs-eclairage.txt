@@ -1,0 +1,12 @@
+# Imposteurs éclairés comme la moyenne de leurs feuilles, couleur cuite en linéaire (docs/vegetation-planetaire.md, l'éclairage des imposteurs).
+# Chaque test part à 300 m des arbres, 30 m au-dessus du sol : avancer droit devant, lentement, jusque sous les arbres.
+# Chercher : un arbre qui change de lumière au moment où il devient net, au relais vers 100 pixels de haut ; avant, il passait du sombre au clair en contre-jour et sous un soleil haut, du clair au sombre soleil dans le dos.
+# Ce qu'on doit voir : la couronne garde sa clarté et sa teinte au relais, seul le détail des feuilles apparaît ; au loin, les forêts ni plus plates ni plus pâles qu'avant.
+Forêt, contre-jour, soleil bas devant : les couronnes lointaines restent sombres, sans s'éclaircir au relais | 595.6 30.38875 120.52613 3 -115 | -9.76 60.74
+Forêt, soleil haut devant : le dessus des couronnes déjà clair au loin, sans s'allumer au relais | 595.6 30.38875 120.52613 3 -115 | 20.53 101.19
+Forêt, soleil dans le dos : les couronnes ne s'assombrissent pas au relais | 595.6 30.38875 120.52613 3 -115 | 32.97 -161.22
+Forêt, soleil rasant de côté : une moitié claire, l'autre sombre, la même avant et après le relais | 595.6 30.38875 120.52613 3 -115 | 59.07 -5.41
+Lisière, contre-jour : la lisière reste en ombre, sans arbres qui s'éclairent un à un | 611.5 30.36730 120.53027 3 0 | 79.63 -59.47
+Lisière, soleil haut devant : les rangs du fond et du devant de même clarté | 611.5 30.36730 120.53027 3 0 | 50.37 120.53
+Lisière, soleil dans le dos : la lisière éclairée de face, sans arbres qui s'assombrissent en approchant | 611.5 30.36730 120.53027 3 0 | -34.63 120.53
+Sous les cumulus, 150 m : faire tourner la météo, approcher des arbres dans l'ombre d'un nuage puis au soleil ; à l'ombre comme au soleil, pas de saut au relais | 627.4 -41.00135 88.49691 3 60 | -41.66 112.71

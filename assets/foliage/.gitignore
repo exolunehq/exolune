@@ -1,0 +1,9 @@
+cache/
+*/mesh.bin
+*/material.bin
+*/volume*.bin
+*/impostor.bin
+volume_look/*/*.bin
+volume_look_normals/*/*.bin
+climate_shrubs/*/*.bin
+climate_shrubs_v2/*/*.bin

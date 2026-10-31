@@ -1,0 +1,18 @@
+# Végétation, 2026-10-25 (docs/recherche-vegetation.md) : arbres et arbustes selon le climat, objets près de la caméra,
+# canopée dans la matière du sol au-delà. Chaque plante sort du sol quand elle mesure 24 pixels, entière à 36 ;
+# la canopée au sol montre le reste, sa part dessinée retirée. En descendant de 20 km au sol, la forêt garde sa part.
+# libellé | altitude (m) latitude longitude inclinaison cap | latitude longitude du soleil
+Orbite, 3 000 km : forêts tropicales, savanes et déserts | 3000659.1 0.00000 60.00000 70.0 0.0 | 10 75
+Forêt tempérée à 10 km : canopée et clairières | 10577.6 30.37000 120.53000 45.0 -0.0 | 20 140
+Forêt tempérée à 1 km : la canopée dans le sol | 1580.8 30.37000 120.53000 30.0 -0.0 | 20 140
+Forêt tempérée à 100 m : les arbres sortent de la canopée | 680.8 30.37000 120.53000 20.0 -0.0 | 20 140
+Dans la forêt tempérée, 2 m | 582.8 30.37000 120.53000 5.0 -0.0 | 20 140
+Lisière de la forêt tempérée, depuis une clairière, 2 m | 576.5 30.37104 120.52780 3.0 0.0 | 20 140
+Forêt tropicale à 100 m | 413.9 0.37000 60.53000 20.0 -0.0 | 10 80
+Forêt boréale à 150 m : conifères sur la neige | 685.4 -49.63000 90.53000 20.0 0.0 | -30 100
+Dans la forêt boréale, 2 m | 539.8 -49.62900 90.52900 3.0 -60.0 | -30 100
+Ligne des arbres en montagne, 15° S, 300 m | 4176.7 -14.90000 119.95000 8.0 120.0 | -5 125
+Savane à 100 m | 462.6 10.37000 -119.47000 15.0 -0.0 | 15 -100
+Savane à 2 m : arbres épars, couronnes plates | 364.6 10.37000 -119.47000 5.0 0.0 | 15 -100
+Maquis à 2 m : arbustes et arbres bas | 795.6 -29.63000 60.53000 5.0 -180.0 | -20 80
+Désert à 2 m : arbustes épars | 126.2 -19.63000 0.53000 5.0 0.0 | -15 5

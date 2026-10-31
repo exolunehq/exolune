@@ -1,0 +1,20 @@
+# Végétation v3, 2026-10-25 (docs/recherche-vegetation.md, v3) : les arbres ne poussent plus, chacun entier dès qu'il
+# est dessiné, au-dessus d'une canopée qui a leur hauteur ; arbustes un peu moins nombreux ; pas de forêt sous 1 000 mm.
+# Les vues « Départ en vol » sont des points de départ : avancer vers le cap indiqué pour voir les arbres prendre le relais.
+# libellé | altitude (m) latitude longitude inclinaison cap | latitude longitude du soleil
+Orbite, 3 000 km : forêts, savanes, déserts sans taches sombres | 3000659.1 0.00000 60.00000 70.0 0.0 | 10 75
+F3, forêt tempérée à 150 m : les arbres prennent le relais de la canopée, sans pousser | 730.8 30.37000 120.53000 20.0 -0.0 | 20 140
+F3 après 500 m de vol vers le nord : la même bande, d'autres arbres | 717.8 30.37449 120.53000 20.0 0.0 | 20 140
+Départ en vol, 150 m, forêt tropicale : avancer vers le nord | 463.9 0.37000 60.53000 15.0 0.0 | 10 80
+Départ en vol, 400 m, forêt tempérée : les arbres apparaissent vers 2 km | 980.8 30.37000 120.53000 8.0 -0.0 | 20 140
+Départ en vol, 400 m, forêt boréale : avancer vers l'est | 935.4 -49.63000 90.53000 8.0 90.0 | -30 100
+Vue lointaine à 400 m : la forêt garde sa hauteur jusqu'à l'horizon | 980.8 30.37000 120.53000 6.0 0.0 | 20 140
+Lisière vue de la clairière, 2 m : son manteau d'arbustes | 583.5 30.37000 120.53027 3.0 0.0 | 20 140
+Dans la forêt tempérée, 2 m : un sous-bois plus clair | 583.7 30.36948 120.52781 5.0 0.0 | 20 140
+Clairière de la forêt tropicale, 2 m : moins d'arbustes | 324.7 0.37288 60.53092 3.0 0.0 | 10 80
+Forêt boréale à 150 m : clairières sur la neige | 685.4 -49.63000 90.53000 20.0 0.0 | -30 100
+Montagne à 300 m : vallée boisée, crêtes sans arbres | 4176.7 -14.90000 119.95000 8.0 120.0 | -5 125
+Savane à 100 m : bosquets et terres nues | 462.6 10.37000 -119.47000 15.0 -0.0 | 15 -100
+Maquis à 2 m : arbustes par taches | 795.6 -29.63000 60.53000 5.0 -180.0 | -20 80
+Désert à 2 m : buissons bas, gris-vert, sans tronc | 121.1 -19.63208 0.52597 5.0 0.0 | -15 5
+Ligne des arbres, 2 m : arbustes au-dessus, krummholz, la forêt en contrebas | 4065.1 -14.90437 119.94946 5.0 120.0 | -5 125

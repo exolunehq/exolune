@@ -1,0 +1,14 @@
+# La carte tectonique (docs/spec-relief-tectonique.md) : ses vues de diagnostic depuis l'orbite, puis à 500 km sur un trait marquant. Juger formes, tailles et irrégularité des plaques et des continents, types et polarité des frontières, marges actives et passives, âges, roches, soulèvement ; les lieux sont ceux de la graine 0, depuis la correction du 2026-10-31.
+Plaques et bord des continents, globe | 10000000 0.5 161.775 90 0 plates
+Frontieres, globe oppose | 10000000 -0.5 -18.225 90 0 boundaries
+Distance au bord des continents, globe | 10000000 0.5 161.775 90 0 boundarydist
+Age du fond et vieilles chaines, globe oppose | 10000000 -0.5 -18.225 90 0 crustage
+Roche, globe | 10000000 0.5 161.775 90 0 rocktype
+Soulevement, globe oppose | 10000000 -0.5 -18.225 90 0 uplift
+Relief, fond de la mer compris, globe | 10000000 0.5 161.775 90 0 relief | 10 175
+Plaques a 500 km, collision de deux continents | 500000 -12.75 162.75 75 0 plates
+Frontieres a 500 km, subduction sous la cordillere | 500000 7.25 -107.25 75 0 boundaries
+Distance a 500 km, marge passive | 500000 11.25 87.5 75 0 boundarydist
+Age a 500 km, dorsale lente | 500000 59.75 13.75 75 0 crustage
+Roche a 500 km, arc et chaine de la cordillere | 500000 4.75 -106.25 75 0 rocktype
+Soulevement a 500 km, rift continental emerge, la mer etroite ou il s ouvre | 500000 41.875 67.875 75 0 uplift

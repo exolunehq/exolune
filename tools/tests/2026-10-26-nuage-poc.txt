@@ -1,0 +1,11 @@
+# Mode retiré le 2026-10-30, au tag `jalon/29-avant-ouverture` et `piste/nuages-orbite-spike` : le POC d'un nuage fixe. Par tools\lance.ps1 -Parcours, ces lieux montrent les nuages du jeu ; touches et options ci-dessous, celles d'alors.
+# Un seul nuage fixe : centre à 4 000 m, 0,5 N, 161,5 E. F1–F8, ou boutons de la palette.
+# libellé | altitude (m) latitude longitude inclinaison cap | latitude longitude du soleil
+Loin, avancer droit vers le nuage | 4000 0.5 161.44 0 90 | -15 175
+Approche, forme entière | 4000 0.5 161.47 0 90 | -15 175
+À quelques centaines de mètres du contour | 4000 0.5 161.483 0 90 | -15 175
+Entrée dans le nuage | 4000 0.5 161.49 0 90 | -15 175
+Au centre, continuer pour sortir | 4000 0.5 161.5 0 90 | -15 175
+De l'autre côté, regarder vers l'ouest | 4000 0.5 161.53 0 270 | -15 175
+Au-dessus, approche en descente | 6500 0.5 161.46 25 90 | -15 175
+Sous le nuage, observer le contour | 2900 0.5 161.48 -25 90 | -15 175

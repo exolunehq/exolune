@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Fichiers sources">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Fichiers d%27en-tête">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Fichiers de ressources">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="D3DApp.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="PlanetMap.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Tectonics.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Climate.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="D3DAppBench.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="D3DAppShip.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="D3DAppTests.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Glare.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Scans.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Settings.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="D3DApp.h">
+      <Filter>Fichiers sources</Filter>
+    </ClInclude>
+    <ClInclude Include="PlanetMap.h">
+      <Filter>Fichiers sources</Filter>
+    </ClInclude>
+    <ClInclude Include="Tectonics.h">
+      <Filter>Fichiers sources</Filter>
+    </ClInclude>
+    <ClInclude Include="Climate.h">
+      <Filter>Fichiers sources</Filter>
+    </ClInclude>
+    <ClInclude Include="Glare.h">
+      <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
+    <ClInclude Include="Scans.h">
+      <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
+    <ClInclude Include="Settings.h">
+      <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="VertexShader.hlsl" />
+    <FxCompile Include="PixelShader.hlsl" />
+    <FxCompile Include="TerrainCompute.hlsl" />
+    <FxCompile Include="TerrainComputePairs.hlsl" />
+    <FxCompile Include="Horizon.hlsl" />
+    <FxCompile Include="FineTerrain.hlsl" />
+    <FxCompile Include="FineNormals.hlsl" />
+    <FxCompile Include="PlanetMap.hlsl" />
+    <FxCompile Include="MaterialGenerator.hlsl" />
+    <FxCompile Include="ObjectPlacement.hlsl" />
+    <FxCompile Include="ObjectCandidates.hlsl" />
+    <FxCompile Include="ObjectVertex.hlsl" />
+    <FxCompile Include="ObjectPixel.hlsl" />
+    <FxCompile Include="TuftVertex.hlsl" />
+    <FxCompile Include="TuftPixel.hlsl" />
+    <FxCompile Include="Fullscreen.hlsl" />
+    <FxCompile Include="ToneMap.hlsl" />
+    <FxCompile Include="GlareDown.hlsl" />
+    <FxCompile Include="GlareUp.hlsl" />
+    <FxCompile Include="AtmospherePass.hlsl" />
+    <FxCompile Include="CloudTrace.hlsl" />
+    <FxCompile Include="CloudTraceHalf.hlsl" />
+    <FxCompile Include="CloudResolve.hlsl" />
+    <None Include="Clouds.hlsli" />
+    <None Include="CloudsTemporal.hlsli" />
+    <FxCompile Include="AtmosphereTransmittance.hlsl" />
+    <FxCompile Include="AtmosphereMultiScattering.hlsl" />
+    <FxCompile Include="AtmosphereSkyIrradiance.hlsl" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,20 @@
+# Végétation v2, 2026-10-25 (docs/recherche-vegetation.md, v2) : où sont les bois, deux champs de bruit comme les
+# cailloux, régions sans arbres et clairières dans toute forêt ; arbustes par taches, en lisière, au-dessus de la ligne
+# des arbres ; crêtes sans arbres, creux boisés ; les arbres sortent à 14 pixels, dessinés grossiers de loin.
+# libellé | altitude (m) latitude longitude inclinaison cap | latitude longitude du soleil
+Orbite, 3 000 km : forêts tropicales, savanes et déserts | 3000659.1 0.00000 60.00000 70.0 0.0 | 10 75
+Forêt tempérée à 1,5 km, à la verticale : massifs, clairières, terres sans arbres | 2080.9 30.37000 120.53000 89.9 0.0 | 20 140
+Vue lointaine à 400 m : les forêts se lisent avant que les arbres sortent | 980.8 30.37000 120.53000 6.0 0.0 | 20 140
+Forêt tempérée à 150 m : lisières et clairières | 730.8 30.37000 120.53000 20.0 -0.0 | 20 140
+Clairière de la forêt tempérée, 40 m | 620.8 30.37000 120.53000 10.0 30.0 | 20 140
+Lisière vue de la clairière, 2 m : son manteau d'arbustes | 583.5 30.37000 120.53027 3.0 0.0 | 20 140
+Dans la forêt tempérée, 2 m : le sous-bois | 583.7 30.36948 120.52781 5.0 0.0 | 20 140
+Clairière de la forêt tropicale, 2 m | 324.7 0.37288 60.53092 3.0 0.0 | 10 80
+Forêt boréale à 150 m : clairières sur la neige | 685.4 -49.63000 90.53000 20.0 0.0 | -30 100
+Montagne à 300 m : vallée boisée, crêtes sans arbres | 4176.7 -14.90000 119.95000 8.0 120.0 | -5 125
+Montagne à 1 500 m : les arbres dans les creux, pas sur les crêtes | 5376.8 -14.90000 119.95000 15.0 120.0 | -5 125
+Ligne des arbres, 2 m : arbustes au-dessus, krummholz, la forêt en contrebas | 4065.1 -14.90437 119.94946 5.0 120.0 | -5 125
+Savane à 100 m : bosquets et terres nues | 462.6 10.37000 -119.47000 15.0 -0.0 | 15 -100
+Savane à 2 m : arbres épars, couronnes plates | 364.6 10.37000 -119.47000 5.0 0.0 | 15 -100
+Maquis à 2 m : arbustes par taches | 795.6 -29.63000 60.53000 5.0 -180.0 | -20 80
+Désert à 2 m : arbustes épars, par taches | 121.1 -19.63208 0.52597 5.0 0.0 | -15 5

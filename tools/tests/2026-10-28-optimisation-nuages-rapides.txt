@@ -1,0 +1,13 @@
+﻿# Nuages en vol rapide (docs/optimisation.md, round 7) : sous 14 km, les pixels dont l'historique a glissé se rebâtissent d'un pixel tracé par carré 2x2, au lieu d'être tous retracés. Au-dessus, rien ne change.
+# Chercher : nuages plus mous ou qui scintillent en vol rapide, damier 2x2, saut de netteté à l'arrêt ou au passage de 14 km ; et la cadence. V : x5, Espace : météo. Comparer avec tools/lance.ps1 -PassePleine.
+Vol rapide 1 : 150 m au-dessus de la forêt, filer à x5 puis x9 vers les cumulus, tourner ; silhouettes nettes, cadence | 627.1 -41.0 88.5 -12 60 | -41.66 112.71
+Vol rapide 2 : cumulus à 10 km, filer à x5 puis x9 et tourner, puis s'arrêter net ; bords des cumulus, pas de saut de netteté à l'arrêt | 10000 38.1445 103.5352 35 90 | 38.1445 128.5352
+Vol rapide 3 : survol à 1,3 km, filer à x9 entre le sol et les nuages ; nuages et ombres au sol | 1740.2 30.68685 120.10788 32 -64.7 | 20 120
+Vol rapide 4 : 13 km, monter à x9 au-dessus de 14 km puis redescendre ; la netteté des nuages ne saute pas au passage | 13000 38.1445 103.5352 35 90 | 38.1445 128.5352
+Altitude 1 : 160 km vers l'horizon, voler à x5-x9 vers le nord ; inchangé, cadence de 55 fps environ | 160000 76.0 38.8477 20 0 | 70.0 63.8477
+Altitude 2 : 440 km vers l'horizon, voler à x5-x9 en tournant ; inchangé, 50 fps environ | 440000 30.0 103.5352 25 0 | 38.1445 128.5352
+Altitude 3 : orbite à 300 km, voler à x5-x9 ; inchangé, la passe coûte toujours la passe pleine, 22 fps environ | 300000 -41.6602 87.7148 80 0 | -41.6602 112.7148
+Garde : plongée depuis l'orbite à 300 km vers les cumulus, au plus vite, puis s'arrêter ; rien de pire qu'avant | 300000 -41.6602 87.7148 80 0 | -41.6602 112.7148
+Garde : globe immobile, puis tourner lentement ; l'image immobile et son grain ne changent pas | 10000000 0.5 161.775 90 0 | -15 175
+Garde : mer à 3 m, filer vers les nuages ; l'horizon ne se brouille pas | 3 -20.47 -75.45 -5 160 | -50.47 -75.45
+Garde : forêt au sol, filer et tourner ; rien ne change | 567.6 30.38761 120.5233 5 -115 | 20 120

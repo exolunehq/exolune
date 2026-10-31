@@ -1,0 +1,12 @@
+# La carte de la planète, le 2026-10-25 : la brume suit le sol régional (docs/recherche-profondeur-atmospherique.md, 3.5).
+# Hauts plateaux, montagnes ; avant, l'air y était pur. Les vues de la carte : MYPLANETENGINE_VIEW=ground, haze, lakes, rivers.
+# libellé | altitude (m) latitude longitude inclinaison cap [| latitude longitude du soleil]
+Plateau à 5 km, vers l'est et la plaine | 5233 31.6 -45.2 3 90 | 15 -10
+Plateau à 5 km, vers l'ouest sur le plateau | 5000 31.6 -46.2 2 270 | 15 -10
+Plateau vu d'avion, 9 km | 9000 31.6 -45.2 15 0 | 15 -10
+Bord du plateau vu de la plaine | 500 29.6 -43.2 1 300 | 15 -10
+Plateau austral, au sol | 5105 -20.08 129.89 1 270 | -5 150
+Plateau austral, soleil bas | 5105 -20.08 129.89 1 270 | -15 175
+Montagnes, plans successifs | 1941.7 0.00280 118.14145 -0.2 156.6 | 10 70
+Cuvette de montagne, 3 600 m | 6000 38.52929 169.97278 50 0 | 30 170
+Orbite, les grands lacs de la carte | 3000000 25.0 -45.0 89.9 0 | 25 -45

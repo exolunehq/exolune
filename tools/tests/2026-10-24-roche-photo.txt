@@ -1,0 +1,14 @@
+# Essai roche-photo du 2026-10-24 : une seule roche, la photo litée, sans structure dessinée ; la photo suit le pendage des strates, sans glissement.
+# libellé | altitude (m) latitude longitude inclinaison cap [| latitude longitude du soleil]
+Distorsion : plus de traînées étirées | 1415.0 -9.54451 102.98665 4.2 -98.9
+Traits au feutre (1) | 4363.2 16.26802 123.16025 23.7 -111.3
+Traits au feutre (2) | 4376.2 16.42557 123.15934 7.3 63.0
+Strates arc-en-ciel | 4074.5 16.27626 123.18392 10.8 155.2
+Courbes de niveau | 1941.7 0.00280 118.14145 -0.2 156.6
+Corniches claires et noires | 2828.4 -0.03727 118.14886 -9.7 176.8
+Ex-craquelures du granite | 4242.2 16.27025 123.15986 16.1 -166.5
+Ex-badlands ridés | 4285.0 16.27172 123.16603 4.8 -159.1
+Référence : falaise orange, à garder | 1022.9 -0.23076 118.41645 7.3 61.0
+Référence : roche sombre et herbe, à garder | 969.8 -0.23354 118.44158 4.2 -78.1
+Référence : gros plan « plutôt beau » | 2922.5 3.15497 110.91028 20.7 50.3
+Référence : butte grise, à garder | 487.8 -0.05421 112.67541 0.6 -25.5

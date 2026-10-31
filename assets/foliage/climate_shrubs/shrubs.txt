@@ -1,0 +1,13 @@
+FOLSHR01 6 2
+shrub_boreal_0
+shrub_boreal_1
+shrub_desert_0
+shrub_desert_1
+shrub_steppe_0
+shrub_steppe_1
+shrub_montane_0
+shrub_montane_1
+shrub_temperate_0
+shrub_temperate_1
+shrub_tropical_0
+shrub_tropical_1
