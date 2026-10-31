@@ -40,11 +40,13 @@ Statut : spec vivante, depuis le 2026-10-31, branche `erosion-globale`, piste `p
 6. **La glace :** la ligne d'équilibre du dernier maximum glaciaire, 900 m sous l'actuelle ; l'actuelle où la température d'été vaut celle d'Ohmura, Kasser et Funk (1992) pour la précipitation, l'année 8 °C plus froide. Le bilan, 0,6 m/an par 100 m, au plus 2 m/an et la précipitation ; cumulé le long du même réseau, la glace d'amont plus le bilan de la cellule là où elle en a. Un glacier là où le flux reste positif.
 7. **Les dépôts :** un cône là où un fleuve sort d'une vallée de plus de 200 m pour un sol qu'il entaille moins du quart ; un delta à l'embouchure sans glace d'un débit de plus de 300 m³/s.
 
-**Les sorties, une texture `R32G32_UINT` par face, `t20` (`Erosion.h`) :**
+**Les sorties, une texture `R32G32_UINT` par face, `t23` (`Erosion.h`) :**
 - le niveau de l'eau au nœud et la surface comblée, au quart de mètre ;
 - le receveur parmi les huit voisines, les affluents parmi les huit ; les drapeaux : lac, mer, cône, embouchure ;
 - le débit et le flux de glace, en log.
 - **Le nœud de chaque cellule** est un point tiré dans la cellule par son hachage, à 0,3 cellule au plus : rien à stocker.
+
+**L’intégration avec le climat et les volcans :** `t18` porte la tectonique, `t19` ses vues, `t20` le climat, `t21` les volcans, `t22` leur index, `t23` l’érosion. La table contient six descripteurs. Le niveau 0 lit la forme avant érosion complète, édifices et finition volcanique compris. Les vallées et les dépôts précèdent l’abrasion ; les cordons suivent le rivage lissé, puis vient la finition des récifs. Les fonctions provisoires `ErosionClimate` et `ErosionWaveWind` restent celles de la piste ; leur raccord au climat calculé reste à faire.
 
 **Le cache par graine :** `x64/Release/erosion-<graine>.bin`, sa clé la forme lue, la graine et la date de l'exécutable. Le portage CPU le lit aussi.
 

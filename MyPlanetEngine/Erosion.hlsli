@@ -6,7 +6,7 @@
 #include "PlanetSettings.hlsli"
 #include "Noise.hlsli"
 
-Texture2DArray<uint2> erosionMap : register(t20);
+Texture2DArray<uint2> erosionMap : register(t23);
 
 static const uint EROSION_HAS_RECEIVER = 8u, EROSION_LAKE = 1u << 12, EROSION_SEA = 1u << 13, EROSION_FAN_APEX = 1u << 14,
                   EROSION_MOUTH = 1u << 15;
