@@ -64,6 +64,8 @@ EROSION_GULLY_FIRST, EROSION_GULLY_SHARE, EROSION_GULLY, EROSION_GULLY_PERIODS =
 EROSION_GULLY_FORK = 0.3
 EROSION_GULLY_CRITICAL = 1.25
 EROSION_GULLY_ROCK = 2.74747742
+EROSION_GULLY_MANTLE = (0.3, 1.0)
+EROSION_GULLY_ROCK_RELIEF = (600.0, 1400.0)
 EROSION_GLACIAL_SHARPEN = 0.2
 EROSION_GLACIAL_BAND, EROSION_FOLD_DEPTH = 600.0, (800.0, 2000.0)
 EROSION_WARP, EROSION_WALL_RELIEF = (40.0, 7.0), 0.35
@@ -928,7 +930,12 @@ def _erosion_profile(d, z, q, ice, slope, walls, depth, wide, widest):
 
 
 def erosion_valleys(p, cell_km, walls, seed=None):
-    """ErosionValleys at the unit vectors p (n, 3): a dictionary surface, gradient, floor, level, glacier, incision, deposit."""
+    """ErosionValleys: project the warped directions onto the sphere.
+    Returns surface, gradient, floor, level, glacier, incision, deposit."""
+    squared = (p * p).sum(1)
+    inverse = (np.float32(1.0) / np.sqrt(squared.astype(np.float32))).astype(np.float64)
+    inverse *= 1.5 - 0.5 * squared * inverse * inverse
+    p = p * inverse[:, None]
     words, n = erosion_map(seed)
     N = len(p)
     radius, cell_m = R, 2.0 * R / n
@@ -1104,6 +1111,11 @@ def _gully_gain(under, normal, stripe, share, critical=EROSION_GULLY_CRITICAL):
     return budget / np.sqrt(budget * budget + own * own + 1e-30)
 
 
+def _gully_rock(wavelength, relief, mountains, glacial):
+    """ReliefGullyRock: the mantle-to-rock transition at the octave's own scale."""
+    return mountains * _smooth(*EROSION_GULLY_ROCK_RELIEF, relief) * _smooth(*EROSION_GULLY_MANTLE, wavelength) * (0.8 + 0.2 * glacial)
+
+
 def detail(ctx, oriented, plain, oriented_octaves, top_km, octaves, relief, sharp, crease, seed, fold=None, fold_share=0.0,
            fold_weight=0.0, wide_octaves=0, gullies=None, coarse=None, cliff_slope=None):
     """ReliefDetail (Relief.hlsli): (value, slope vector (n, 3)); fold, (value (n,), gradient per radian (n, 3)); gullies,
@@ -1150,8 +1162,12 @@ def detail(ctx, oriented, plain, oriented_octaves, top_km, octaves, relief, shar
             frequency = f / (1000.0 * R_KM)
             normal_bound = noise_gradient * relief * frequency * coefficient
             stripe_bound = stripe_scale * relief * stripe_coefficient * (2.0 / EROSION_GULLY_FORK) * (2.0 * math.pi * (frequency + 4.0 * curvature / np.maximum(steep, EROSION_GULLY[0])) + 5.625 * frequency)
-            critical = EROSION_GULLY_CRITICAL + (EROSION_GULLY_ROCK - EROSION_GULLY_CRITICAL) * gullies["glacial"]
-            limited_share = share * _gully_gain(steep, normal_bound, stripe_bound, share, critical)
+            soil_gain = _gully_gain(steep, normal_bound, stripe_bound, share, EROSION_GULLY_CRITICAL)
+            normal_rock = relief * frequency * coefficient
+            stripe_rock = 2.0 * math.pi * stripe_scale * relief * frequency * stripe_coefficient
+            rock_gain = _gully_gain(steep, normal_rock, stripe_rock, share, EROSION_GULLY_ROCK)
+            rock = _gully_rock(R_KM / f, relief, sharp, gullies["glacial"])
+            limited_share = share * (soil_gain + (rock_gain - soil_gain) * rock)
             sel = (limited_share > 0.0) | ((share > 0.0) & (R_KM / f > EROSION_CLIFF_SLOPE_KM))
             if sel.any():
                 across = np.cross(up[sel], under[sel]) / steep[sel, None]
@@ -1519,12 +1535,15 @@ def _relief_ground(ctx, p, valleys=True):
         for key, none in (("surface", 1e9), ("floor", 0.0), ("level", 0.0), ("glacier", 0.0), ("incision", 0.0), ("deposit", -1e9)):
             v[key] = np.where(deep, none, v[key])
         v["gradient"] = np.where(deep[:, None], 0.0, v["gradient"])
-        carved = _smooth(-500.0, 800.0, h - v["surface"])
+        valley_bed = np.maximum(v["surface"], v["level"])
+        carved = _smooth(-500.0, 800.0, h - valley_bed)
         gullies = dict(carved=carved,
                        slope=m["forms_gradient"] / (1000.0 * R_KM) + (v["gradient"] - m["forms_gradient"] / (1000.0 * R_KM)) * carved[:, None],
                        share=EROSION_GULLY_SHARE * _smooth(-20.0, 60.0, h) * (1.0 - 4.0 * carved * (1.0 - carved)),
                        glacial=_smooth(-0.5, 0.5, (h - erosion_equilibrium_line(p)) / EROSION_GLACIAL_BAND))
-    open_ = 1.0 - v["floor"] * _smooth(-20.0, 20.0, h)
+    valley_bed = np.maximum(v["surface"], v.get("level", 0.0))
+    floor = v["floor"] * _smooth(0.0, EROSION_SMOOTH, h - valley_bed)
+    open_ = 1.0 - floor * _smooth(-20.0, 20.0, h)
     plain = p
     bent = turbulence(ctx, plain, R_KM / RELIEF_DETAIL_WARP[0], RELIEF_DETAIL_WARP[1] / (SIGMA * R_KM), 3, _rseed(4))
     reach = RELIEF_ORIENTATION[1]
@@ -1539,7 +1558,7 @@ def _relief_ground(ctx, p, valleys=True):
     if (fold_share > 0.0).any():
         fold, fold_weight = _fold(ctx, plain, side[:, 1], m["orientation_gradient"])
     quiet = (1.0 + (RELIEF_COAST_QUIET[0] - 1.0) * (1.0 - rocky) * np.exp(-shore * shore / RELIEF_COAST_QUIET[1] ** 2)) * open_
-    amplitude = np.maximum(relief, EROSION_WALL_RELIEF * np.minimum(v["incision"], np.maximum(h - v["surface"], 0.0))) * quiet
+    amplitude = np.maximum(relief, EROSION_WALL_RELIEF * np.minimum(v["incision"], np.maximum(h - valley_bed, 0.0))) * quiet
     coarse = []
     cliff_slope = []
     d, slope, wide = detail(ctx, oriented, plain, RELIEF_ORIENTED_OCTAVES, RELIEF_DETAIL_TOP, RELIEF_OCTAVES, amplitude,

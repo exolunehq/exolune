@@ -123,6 +123,14 @@ float ReliefGullyGain(float under, float normal, float stripe, float share, floa
     return budget / sqrt(budget * budget + own * own + 1e-30);
 }
 
+// Rock applies to broad mountain incisions, not to the mantle's fine gullies. The equilibrium line strengthens an
+// already rocky chain; its absence must not turn the whole chain into soil. No current octave phase enters this share.
+float ReliefGullyRock(float wavelength, float relief, float mountains, float glacial)
+{
+    return mountains * smoothstep(EROSION_GULLY_ROCK_RELIEF.x, EROSION_GULLY_ROCK_RELIEF.y, relief)
+         * smoothstep(EROSION_GULLY_MANTLE.x, EROSION_GULLY_MANTLE.y, wavelength) * (0.8 + 0.2 * glacial);
+}
+
 // A profile of half-width w (km), at least two mesh cells: wider, its depth falls in proportion, so that its mean stays.
 float ReliefWidth(float w, float cellKm, inout float depth)
 {
@@ -225,8 +233,14 @@ float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float t
             // adds at most 2 / fork: the reserve includes weight changes and forks, not just the nominal wave slope.
             const float stripeBound = stripeScale * relief * stripeCoefficient * (2.0 / EROSION_GULLY_FORK)
                                     * (6.2831853 * (frequency + 4.0 * curvature / max(steep, EROSION_GULLY.x)) + 5.625 * frequency);
-            const float critical = lerp(EROSION_GULLY_CRITICAL, EROSION_GULLY_ROCK, gullies.glacial);
-            limitedShare = share * ReliefGullyGain(steep, normalBound, stripeBound, share, critical);
+            const float soilGain = ReliefGullyGain(steep, normalBound, stripeBound, share, EROSION_GULLY_CRITICAL);
+            // At rock scales reserve the ordinary octave's characteristic slope and the finite stripe's amplitude
+            // per period. The mantle retains the conservative pointwise turning/fork envelope above.
+            const float normalRock = relief * frequency * coefficient;
+            const float stripeRock = 6.2831853 * stripeScale * relief * frequency * stripeCoefficient;
+            const float rockGain = ReliefGullyGain(steep, normalRock, stripeRock, share, EROSION_GULLY_ROCK);
+            const float rock = ReliefGullyRock(PLANET_RADIUS_KM / (float)f, relief, sharp, gullies.glacial);
+            limitedShare = share * lerp(soilGain, rockGain, rock);
             // The coastal contour keeps its existing >9 km calibration, before the soil-pattern budget.
             [branch] if (limitedShare > 0.0 || (share > 0.0 && PLANET_RADIUS_KM / (float)f > EROSION_CLIFF_SLOPE_KM))
             {
@@ -552,21 +566,25 @@ ReliefGround ReliefSampleGround(double3 position, bool valleys)
     // finer than the level 0 bars its rivers.
     ErosionValley valley = (ErosionValley)0;
     valley.surface = 1e9, valley.deposit = -1e9;
+    RlPoint wander = p;
     [branch] if (valleys && h > -500.0) // deeper, no valley nor deposit reaches
     {
         // Read at a point warped by a few km, so that the links' straight runs wander.
-        const RlPoint wander = RlTurbulence(p, ReliefFrequency(EROSION_WARP.x), EROSION_WARP.y / (RL_SIGMA * PLANET_RADIUS_KM), 2,
+        wander = RlTurbulence(p, ReliefFrequency(EROSION_WARP.x), EROSION_WARP.y / (RL_SIGMA * PLANET_RADIUS_KM), 2,
                                             ReliefSeed(9));
         valley = ErosionValleys(wander.p, cellKm, lerp(EROSION_WALLS.x, EROSION_WALLS.y, mountains));
     }
     const float large = h;
-    const float open = 1.0 - valley.floorShare * smoothstep(-20.0, 20.0, h); // a floor ends at the sea: its last link reaches offshore
+    const float valleyBed = max(valley.surface, valley.level);
+    // A trough below its water level cannot quiet ground which is lower than that water and is not carved.
+    const float floor = valley.floorShare * smoothstep(0.0, EROSION_SMOOTH, h - valleyBed);
+    const float open = 1.0 - floor * smoothstep(-20.0, 20.0, h); // a floor ends at the sea: its last link reaches offshore
     // The gullies (ReliefDetail): down the large forms, or down a valley's walls where it lies under them; on the land;
     // near and above the glacial maximum's equilibrium line, never from the ice covering a trough.
     ReliefGullies gullies = (ReliefGullies)0;
     [branch] if (valleys)
     {
-        gullies.carved = smoothstep(-500.0, 800.0, h - valley.surface);
+        gullies.carved = smoothstep(-500.0, 800.0, h - valleyBed);
         gullies.slope = lerp(map.formsGradient / (1000.0 * PLANET_RADIUS_KM), valley.gradient, gullies.carved);
         gullies.share = EROSION_GULLY_SHARE * smoothstep(-20.0, 60.0, h) * (1.0 - 4.0 * gullies.carved * (1.0 - gullies.carved)); // none on a valley's rim, a crest
         gullies.glacial = smoothstep(-0.5, 0.5, (h - ErosionEquilibriumLine((float3)position)) / EROSION_GLACIAL_BAND);
@@ -593,13 +611,13 @@ ReliefGround ReliefSampleGround(double3 position, bool valleys)
     [branch] if (foldShare > 0.0)
         fold = ReliefFold(plain, map.along, map.orientationGradient, foldWeight);
     // Near a flat coast, quiet plains and soft sediments, where the barriers and the lagoons show.
-    const float quiet = lerp(1.0, RELIEF_COAST_QUIET.x, (1.0 - rocky) * exp(-shoreKm * shoreKm / (RELIEF_COAST_QUIET.y * RELIEF_COAST_QUIET.y)))
-                      * open;
+    const float coastQuiet = lerp(1.0, RELIEF_COAST_QUIET.x, (1.0 - rocky) * exp(-shoreKm * shoreKm / (RELIEF_COAST_QUIET.y * RELIEF_COAST_QUIET.y)));
+    const float quiet = coastQuiet * open;
     float3 slope, cliffSlope;
     float coarse, wide;
     // On a valley's walls, the detail at least a share of the depth carved there: spurs and side gullies on the scale of
     // the wall; nothing more on a plain.
-    const float detail = max(relief, EROSION_WALL_RELIEF * min(valley.incision, max(large - valley.surface, 0.0))) * quiet;
+    const float detail = max(relief, EROSION_WALL_RELIEF * min(valley.incision, max(large - valleyBed, 0.0))) * quiet;
     h += detail * ReliefDetail(oriented, plain, RELIEF_ORIENTED_OCTAVES, RELIEF_DETAIL_TOP, RELIEF_OCTAVES, detail,
                                mountains, crease, ReliefSeed(1), fold, foldShare, foldWeight, (int)RELIEF_BARRIER_FORM.w, wide, gullies, slope, coarse, cliffSlope);
     coarse = large + detail * coarse;

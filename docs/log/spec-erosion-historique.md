@@ -242,3 +242,87 @@
 
 **Règle de C remplacée après le retour utilisateur :**
 - **Pas de seuil plus haut sous le seul drapeau glaciaire :** la glace au dernier maximum ne prouve pas la présence de roche nue ; les ravines restent un motif de sol mobile. Le bruit qui porte les crêtes rocheuses, les profils des vallées et les falaises ne sont pas plafonnés par ce réglage.
+
+## 2026-10-31 · D avant projection sphérique et séparation des échelles
+
+**Les mesures de D.**
+
+**Même réseau actuel avant/après D, fourni par le moteur lancé par l’utilisateur.** Aucun moteur ni banc lancé ici ; le portage ne reconstruit pas le niveau 0.
+- **La référence :** `x64/Release/cp-avant-fonds.py`, SHA256 `e8e551b5df2a62e8caaec981be4fb1289f8a07c424d9665bc800c70987a2f3e4` ; mesures C et références antérieures dans [l’historique](log/spec-erosion-historique.md).
+- **Les commandes :** `python tools/hydro/verifie_fonds_vallees.py` ; `python tools/hydro/verifie_pentes_ravines.py --before-file x64/Release/cp-avant-fonds.py`.
+- **L’inondation :** carré de 4 km entre les bords, 161² points, pas de 25 m, huit voisins, bords ouverts. Premier carré centré 2 325 m au nord et 1 475 m à l’est de −25,566 ; −26,916 ; second centré sur −25,486 ; −27,075. Maille du portage de 5 m.
+
+| Zone | Profondeur fermée maximale du carré, avant → après | Au point le plus profond avant, avant → après | Carré de 10 km sous son niveau d’eau de plus de 5 m, avant → après |
+|---|---:|---:|---:|
+| Première auge | 77,010 → 72,964 m | 77,010 → 48,373 m | 0,450936 → 0 % |
+| Seconde auge | 734,793 → 681,453 m | 734,793 → 579,469 m | 0,666601 → 0,058818 % |
+
+- **Le premier fond :** au point de profondeur maximale avant, sol 992,265 → 1 021,138 m, son niveau d’eau. Au point décalé donné dans le signalement, sol 1 049,607 → 1 036,022 m, son niveau ; profondeur fermée 19,668 → 33,489 m. Le maximum résiduel du carré, 72,964 m, existe aussi dans le sol grossier creusé sans détail.
+- **Le second fond :** au point de profondeur maximale avant, sol 1 060,705 → 1 216,029 m, son niveau d’eau. La fermeture du carré n’est pas supprimée : le sol grossier creusé seul, sans aucun détail, contient déjà une cuvette de 441,570 m. Cause de cette cuvette du réseau actuel à rechercher ; elle ne vient pas du seul détail résiduel.
+- **Les plateaux réellement bornés à l’eau :** 4 592 et 2 764 points ; écarts sol − eau de [−67,036 ; +191,015] m et [−155,324 ; +164,339] m avant, zéro après. Les traces des thalwegs prennent le profil grossier le plus profond de chaque coupe, sans sélectionner sur la hauteur fine : 72 et 50 points ; écarts [−15,521 ; +58,883] m et [−39,522 ; +88,158] m avant, zéro après. CSV dans `x64/Release/thalweg-*-*.csv`.
+- **Les carrés de 10 km :** 101² points à 100 m, centrés sur les deux coordonnées signalées. Sous le niveau de plus de 5 m parmi les points à `floorShare > 0` : 0,137241 → 0 % et 0,313695 → 0 %. Le déficit résiduel de 64,863 m de la seconde fenêtre est hors de ce masque.
+- **La cuvette initiale de 84 m n’est pas reproduite avec le nouveau réseau :** ne pas confondre les mesures d’intégration avant A–C avec cette référence avant D.
+- **Hors creusement :** correction des fonds isolée de la borne rocheuse, 6 172 et 7 234 points des deux carrés de 10 km identiques au bit près.
+
+**Les fenêtres C :** 100 × 100 m entre les bords, 101² points à 1 m ; différences centrées, à un côté sur le bord.
+
+| Lieu | >35°, avant → après | >45°, avant → après | >60°, avant → après | Maximum, avant → après |
+|---|---:|---:|---:|---:|
+| Forêt, 34,1611352 ; −73,72443 | 0 → 0 % | 0 → 0 % | 0 → 0 % | 30,647836 → 30,647798° |
+| Versant, −48,3497 ; −44,8221 | 0 → 0 % | 0 → 0 % | 0 → 0 % | 22,577514 → 22,577126° |
+| Canyon, −38,1080 ; 166,4916 | 14,253505 → 14,253505 % | 0 → 0 % | 0 → 0 % | 44,060265 → 44,060258° |
+| Plat, 44,16 ; −60,08 | 0 → 0 % | 0 → 0 % | 0 → 0 % | 4,613229 → 4,613229° |
+| Arêtes, −46,9 ; −33,8 | 31,947848 → 31,947848 % | 0,862661 → 0,862661 % | 0 → 0 % | 47,432335 → 47,432339° |
+
+- **Le seuil rocheux ne suffit pas à restaurer les parois :** tan(70°) est bien appliqué, mais l’enveloppe conservatrice de C limite encore le motif à 0,255 mm dans la fenêtre d’arêtes. Le retour de parois au-dessus de 60° reste non obtenu ; il faudra resserrer les enveloppes de pente et de rotation, sans enlever la protection des sols.
+- **Les sols restent comme en C :** zéro au-dessus de 45° dans les quatre témoins ; le canyon avant érosion reste à 1,499853 %. Le raccord des fonds ne change pas leurs bruits sans ravines, identiques au bit près.
+- **Transects nord, 0 à 25 m à 0,25 m :** forêt, pente 17,267267 → 17,267291°, montée et variation absolue sur 0,5 m 0,155405864 → 0,155406092 m ; versant, 13,486420 → 13,485948°, 0,119753109 → 0,119749038 m pour les deux variations.
+- **Indépendance de la maille :** cinq fenêtres identiques au bit près entre des mailles résolues de 0,25 et 1 m.
+
+**Hc médiane / p90 / maximum :** mêmes six carrés de 60 km, 201² points ; mêmes points actifs avant/après D. Écart de champ nul partout.
+
+| Centre | Hc avant = après, m |
+|---|---:|
+| 8,54005 ; −103,23344 | 203,744 / 382,981 / 400,000 |
+| −23,01696 ; 158,00809 | 67,239 / 109,075 / 126,281 |
+| −3,34285 ; 169,01181 | 82,142 / 175,291 / 218,965 |
+| −51,89165 ; −40,94037 | 54,649 / 137,112 / 214,107 |
+| −8,11021 ; 131,04460 | 50,437 / 71,033 / 89,271 |
+| 8,76166 ; −103,24998 | 171,101 / 345,552 / 400,000 |
+
+- **`valleys=false` :** 288 points × trois mailles, graines 0 et 1, identiques au bit près.
+- **Côte plate :** 441 points du carré de 10 km à 16,71 ; −89,28, identiques au bit près ; le témoin plat C aussi.
+- **Contrôles :** `cp.py`, falaises, contrôle analytique du budget et raccord des fonds affichent `ok`. Le contrôle des fenêtres échoue désormais explicitement sur les parois d’arêtes au-dessus de 60°, non restaurées ; les fermetures grossières restent mesurées, sans être déclarées corrigées.
+- **Compilation :** Release x64 par `tools/lance.ps1 -Build -NoLaunch`, zéro erreur, aucun nouvel avertissement dans les fichiers modifiés ; avertissements restants dans les fichiers inchangés `Materials`, `Mesh`, `OceanSurface`, `PixelShader` et `PlanetFoliageMeshPixel`. Résultats dans `x64/Release/verification-build-fonds-final.txt`.
+- **Jugement en vol :** `tools/tests/2026-10-31-fonds-vallees.txt`, sans lancement automatique.
+
+
+**Le budget remplacé :**
+
+**Le budget de pente, `ReliefGullyGain` :**
+- **Le seuil des sols mobiles :** `EROSION_GULLY_CRITICAL = 1,25`, environ 51,3° ; valeur de travail issue de MR1, `1,25 ± 0,10`, [Roering, Kirchner et Dietrich 1999](https://seismo.berkeley.edu/~kirchner/reprints/1999_29_Roering_nonlinear.pdf), §5.2 et tableau 1. Leur transport croît sans borne à l’approche de ce seuil ; ce n’est pas l’angle de repos de grains sans cohésion.
+- **Le seuil rocheux :** `Sc = lerp(1,25, tan(70°), gullies.glacial)`, `EROSION_GULLY_ROCK = 2,74747742` ; seule la bande de ligne d’équilibre, jamais `valley.glacier`. Selby 1980 relie la pente rocheuse à la résistance du massif ; 70° est notre choix pour la roche forte, dans la plage 60–80° signalée, pas un seuil universel de l’article. Le [travail de terrain d’Augustinus 2002](https://pubs.geoscienceworld.org/gsl/sjg/article-abstract/38/1/15/114650/The-influence-of-rock-mass-strength-on-the-form) reprend cet équilibre de résistance sur des versants déglacés. Le bruit ordinaire, les profils des vallées et les falaises ne changent pas de loi.
+- **D’abord la place du bruit ordinaire :** `s` est la pente des octaves au-dessus, `N` une enveloppe de celle de l’octave ordinaire ; `L = max(Sc − s − N, 0)` et `B = L² / Sc`. Le carré raccorde la réserve à zéro avec une dérivée nulle.
+- **Puis le remplacement seul :** `D = share × (N + G)`, `gain = B / sqrt(B² + D²)` ; le motif est mêlé au bruit pour `share × gain`, sans écrêter une hauteur. Sa pente supplémentaire est au plus B, B au plus L ; réserve épuisée, le bruit ordinaire reste entier.
+- **G couvre les bandes et leur orientation :** période de l’onde, poids quintiques des huit coins et normalisation près des bifurcations ; la rotation de la direction suit l’enveloppe de courbure des octaves au-dessus, divisée par leur pente. Limiter la seule pente nominale de la sinusoïde ne suffisait pas.
+- **Les enveloppes du bruit quintique :** 26 pour son gradient, 512 pour sa courbure en unités de maille ; des majorants conservateurs depuis les coins unitaires et les dérivées des poids, pas des réglages par lieu. La courbure des crêtes arrondies utilise le plancher physique de 2 m et la géologie ; jamais la maille courante, ni le poids de filtrage de l’octave.
+- **La moyenne :** bruit et bande sont centrés séparément avant le remplacement ; pour les crêtes des bandes, moyenne exacte de la sinusoïde arrondie, affûtage compris. Le gain dépend des formes porteuses, pas de la phase de l’octave courante.
+- **Le coût :** aucune lecture voisine de terrain ni de carte ; un budget épuisé saute le calcul du motif, sauf l’octave côtière de calibration. Aucun banc GPU lancé.
+
+## 2026-10-31 · Estimateur côtier doublé de E, retiré
+
+- **La calibration est indépendante du creusement :** aux seuls points où les vagues peuvent agir, la lecture de vallée et les trois octaves de plus de 9 km gardent l’estimateur de D ; le sol réel utilise la projection sphérique et les nouvelles ravines. Hc reste ainsi identique aux mêmes points. Cela ajoute une requête de vallées et trois octaves dans cette seule bande côtière ; aucun sol voisin ni relief complet réévalué pour Hc.
+
+**Les témoins côtiers :** mêmes six carrés de 60 km, 201² points, même Hc aux mêmes points, écart de champ nul partout. Quantiles aux points actifs de D, médiane / p90 / maximum en m :
+
+| Centre | Hc D = E |
+|---|---:|
+| 8,54005 ; −103,23344 | 203,744 / 382,981 / 400,000 |
+| −23,01696 ; 158,00809 | 67,239 / 109,075 / 126,281 |
+| −3,34285 ; 169,01181 | 82,142 / 175,291 / 218,965 |
+| −51,89165 ; −40,94037 | 54,649 / 137,112 / 214,107 |
+| −8,11021 ; 131,04460 | 50,437 / 71,033 / 89,271 |
+| 8,76166 ; −103,24998 | 171,101 / 345,552 / 400,000 |
+
+- **Les points actifs changent avec le sol :** leurs quantiles peuvent donc varier sans changement du champ Hc.
+**Retiré à la demande de l’utilisateur :** l’identité de Hc au bit près était sur-spécifiée ; elle ne justifie ni une seconde lecture de vallées hors sphère, ni trois octaves recalculées. Les mesures courantes sont dans `../spec-erosion.md`.

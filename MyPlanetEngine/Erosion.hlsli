@@ -203,6 +203,12 @@ float2 ErosionProfile(float d, float z, float q, float ice, float slope, float w
 // The links whose curve's control is one of the 4 x 4 nodes around p; each valley reaches EROSION_REACH cells at most.
 ErosionValley ErosionValleys(double3 p, float cellKm, float walls)
 {
+    // Turbulence warps a direction in 3D. Its radial displacement is not distance from the river: put it back on the
+    // sphere before measuring against the links. One double Newton step keeps metre placement at planetary scale.
+    const double squared = p.x * p.x + p.y * p.y + p.z * p.z;
+    double inverse = (double)rsqrt((float)squared);
+    inverse *= 1.5 - 0.5 * squared * inverse * inverse;
+    p *= inverse;
     const uint n = ErosionSize();
     const float radius = 1000.0 * PLANET_RADIUS_KM, cellM = 2.0 * radius / n;
     uint face;

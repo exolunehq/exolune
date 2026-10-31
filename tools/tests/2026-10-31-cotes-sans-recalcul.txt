@@ -1,0 +1,11 @@
+# Graine 0 : Hc vient du seul relief principal, vallées toujours sur la sphère ; aucun lancement automatique. Mesures avant/après dans docs/spec-erosion.md.
+Première côte : hauteur et continuité des falaises | 3000 8.54005 -103.23344 40 180 | 10 -100
+Deuxième côte : falaises basses et platier | 3000 -23.01696 158.00809 40 180 | -25 155
+Troisième côte : maximum Hc relevé, accès marin à vérifier | 3000 -3.34285 169.01181 40 180 | -5 165
+Côte froide : paroi et platier | 3000 -51.89165 -40.94037 40 180 | -40 -10
+Côte active : pas de coupe hors portée marine | 3000 -8.11021 131.04460 40 180 | -10 130
+Cap tropical : contour côtier et mer devant le pied | 3000 8.76166 -103.24998 40 180 | 10 -100
+Première coupe fixe : paroi de 378 m et platier | 1000 8.72580 -103.29430 30 180 | 10 -100
+Deuxième coupe fixe : paroi de 42 m et platier | 1000 -23.18981 157.86949 30 180 | -25 155
+Troisième coupe fixe : paroi de 43 m et platier | 1000 -3.21302 169.26372 30 180 | -5 165
+Côte plate : témoin inchangé | 1000 16.71 -89.28 45 180 | 15 -85

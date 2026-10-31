@@ -132,6 +132,9 @@ static const float EROSION_GULLY_FORK       = 0.3;
 static const float EROSION_GULLY_CRITICAL   = 1.25;
 // Strong exposed rock can sustain 70 degrees; the equilibrium-line share opens this bound continuously.
 static const float EROSION_GULLY_ROCK       = 2.74747742;
+// Soil hillslopes, then rock gullies: full soil below 300 m, full scale transition at 1 km, regardless of the mesh.
+static const float2 EROSION_GULLY_MANTLE    = float2(0.3, 1.0);
+static const float2 EROSION_GULLY_ROCK_RELIEF = float2(600.0, 1400.0);
 // Above the ice, a monotone quadratic sharpens crests, with finite slope and the crease's rounding; 0 disables it.
 static const float EROSION_GLACIAL_SHARPEN  = 0.2;
 // The sharpening over EROSION_GLACIAL_BAND m around the glacial maximum's equilibrium line; the folds fade where the level
