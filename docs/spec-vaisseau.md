@@ -11,11 +11,15 @@ après `tools\lance.ps1 -Build -NoLaunch` si le code a changé.
 ## Le modèle dans le moteur
 
 - **La source est `assets/vaisseau/vaisseau.glb`** (`assets/vaisseau/README.md`).
+- **Le modèle est le chasseur du concept de l'utilisateur** (`assets/vaisseau/forme_chasseur.py`, `design_chasseur.py`, `cockpit_chasseur.py`) : coque à arêtes vives sous une bulle, atlas unique, équipement de peau, cockpit dégagé sous le seuil du verre, 29 555 triangles.
+- **`Ship.hlsli` recopie la bulle du chasseur** (`assets/vaisseau/forme_chasseur.py`), pour l'eau et le givre : son contour en plan, nez émoussé puis queue ronde, et sa section ronde ; la hauteur du pont et de la couronne, échantillonnée tous les 1/32 de sa longueur (`CanopyZ`, `CanopyInside`, `CanopyNormal`). `ShipPlume.hlsli` recopie ses quatre tuyères et ses dix jets. Les deux doivent rester d'accord avec le modèle.
+- **L'œil du pilote est à 1,03 m** (`kEyeUp`), en d 4,40, comme `forme_chasseur.OEIL`.
 - **Le moteur lit un paquet cuit, `vaisseau.vsx`,** écrit par `assets/vaisseau/paquet_moteur.py` :
   - nœuds aplatis et sommets entrelacés ;
   - plages de dessin, opaques d'abord ;
-  - matériaux PBR ;
+  - matériaux PBR, chacun avec son rôle : ce que le moteur anime, écrans, cœur des tuyères, feux (`ROLES`) ;
   - images PNG décodées par WIC.
+- **Le paquet est en version 3 :** le rôle allonge chaque matériau à 96 octets. `paquet_moteur.py` vérifie que chaque rôle y est ; un nom de matériau changé dans Blender le fait échouer.
 - **Il n'y a ni lecteur JSON ni glTF dans le moteur.** Il faut relancer le script après chaque export du GLB.
 - **`Ship::Load` cherche le paquet** dans le premier dossier au-dessus de l'exécutable. Sans paquet, le vaisseau reste absent et la caméra libre seule reste.
 - **Repère du vaisseau, celui de Blender :** nez vers −Y, haut +Z, gauche du pilote +X, en mètres.
@@ -25,6 +29,10 @@ après `tools\lance.ps1 -Build -NoLaunch` si le code a changé.
   - le paquet garde aussi leurs deux pivots, point et axe ;
   - `ShipPose` (`Ship.hlsli`) applique à leurs sommets une matrice de `Ship::Constants::pose`, dans la passe de scène comme dans les ombres ;
   - `D3DApp::UpdateShipFrame` remplit ces matrices, en un seul endroit.
+- **Les quatre élevons bougent aussi** (`assets/vaisseau/design_chasseur.py`) :
+  - leur pose va de 3 à 6, intérieur gauche, intérieur droit, extérieur gauche, extérieur droit ; leurs pivots, sur la charnière, suivent ceux du manche et de la manette dans le paquet, six en tout ;
+  - de chaque côté, le tangage et le roulis se mêlent, lus sur la rotation du vaisseau, donc adoucis en un dixième de seconde ;
+  - bord de fuite vers le haut pour cabrer, et du côté où le vaisseau s'incline ; dans les deux sens, 20° au plus.
 
 ## Le rendu (`Ship.h`, `Ship*.hlsl`)
 
@@ -34,7 +42,16 @@ après `tools\lance.ps1 -Build -NoLaunch` si le code a changé.
 - **Les surfaces opaques sont dessinées en premier dans la passe de scène :**
   - Lambert et GGX ;
   - soleil à travers l'air et ciel entier, comme les objets proches ;
+  - **le reflet du ciel suit la direction réfléchie,** comme sur la verrière : plus clair vers l'horizon, le sol dessous. Le métal nu et les tuyères le montrent ; une surface rugueuse le fond dans la lumière du ciel, et il s'éteint sous la coque avec le ciel ;
   - l'occlusion cuite sur la deuxième UV des tôles.
+- **Les feux s'animent par leur rôle** (`ShipPixel.hlsl`, `SHIP_ROLE_…`) :
+  - le cœur des quatre tuyères suit les gaz, de 4 % gaz coupés à plein au trentième cran ;
+  - les feux à éclats blancs, aux pointes de la poupe : double éclat toutes les 1,3 s ;
+  - les feux anticollision rouges, sur le dos et sous la quille : une pulsation à 0,8 Hz, l'un après l'autre ;
+  - les feux de position et de formation restent fixes ;
+  - **leur intensité :** 1 vaut un blanc au soleil. La nuit, l'exposition vaut environ 130 fois celle de midi, et la courbe du film blanchit ce qui la dépasse ;
+  - **les feux de position et de formation,** vers 0,01, restent rouges et verts la nuit et s'effacent en plein jour, comme les vrais ;
+  - **les éclats et les feux anticollision** se voient de jour ; la nuit, ils blanchissent, comme le cœur des tuyères.
 - **La part directe du soleil va dans la seconde cible :** les nuages ombrent le vaisseau comme le sol.
 - **La verrière est dessinée dans une couche à part, après l'atmosphère.** Le tone map l'applique après le lissage temporel : écran = lissé × alpha + rgb.
   - Ce qui colle au verre bouge avec le vaisseau, le monde derrière non.
@@ -53,20 +70,19 @@ après `tools\lance.ps1 -Build -NoLaunch` si le code a changé.
   - **Givre :** sous 0 °C, sur un verre humide ; la température est celle de la mer moins 6,5 °C/km.
 - **`ShipGlass.hlsl` dessine :**
   - le reflet de Fresnel, du ciel dehors ou du cockpit dedans, et l'éclat du soleil ;
-  - **l'eau** (`docs/recherche-eau-verriere.md`) : des gouttes simulées (`ShipWater.hlsli`), 8 192 au plus :
+  - **l'eau** (`docs/recherche-eau-verriere.md`) : des gouttes simulées (`ShipWater.hlsli`), 8 192 au plus, sur la bulle ; leur carte couvre la bulle, au millimètre et deux dixièmes, et les forces sont prises dans le plan tangent à la bulle sous chaque goutte :
     - elles naissent de la pluie ou de l'eau captée en nuage, grossissent, fusionnent, et coulent sous la gravité et l'air ;
     - **leur trajet :** droit, jusqu'à un défaut du verre, une cellule de 5 mm sur douze environ, où elles marquent un temps et repartent avec un cap jusqu'à 45° de côté, qui revient sur 5 cm ; elles penchent un peu vers une trace mouillée ;
     - **leur forme :** un bord jamais tout à fait rond, des flancs bombés ; en coulant, plus plates, pas plus larges que leur traînée ;
     - **leur traînée :** une pellicule de leur largeur, que les suivantes reprennent ; elle sèche en cinq secondes environ, plus lentement sous la pluie, en se morcelant ;
     - **la poussée de l'air croît de 0 à 100 km/h, puis reste celle de 100 km/h :** au-delà, l'eau défile toujours à 30 à 50 cm/s ;
   - **leur rendu :** chaque goutte est une lentille grand-angle. Elle a un bord sombre et, hors des nuages, un point de ciel ;
-  - le givre en frondes depuis les seuils, sur un verre humide seulement.
+  - le givre en frondes depuis le seuil de la bulle, sur un verre humide seulement.
 - **Pas de buée :** un voile sur tout le verre brouillait la vue sans rien montrer du temps.
 - **La verrière sert aussi de collimateur :**
   - horizon, échelle de tangage tous les 10° et marqueur de vecteur vitesse, à l'infini, dans un cône de 24° autour du nez ;
   - le petit combineur est sous la ligne des yeux, sans place sous le toit ;
   - éteint au démarrage, U l'allume ou l'éteint.
-- **L'arête des deux vitres avant ne se voit pas :** à 35 cm d'elle, la normale du verre se tourne vers celle de l'arête, comme sur une seule feuille pliée. Sinon leurs reflets se coupent net sur une ligne droite.
 - **Vue de dehors, la verrière est un miroir bronze sombre,** comme les verrières traitées des chasseurs :
   - elle reflète 30 % environ de face, tout aux incidences rasantes, et laisse passer 8 % ;
   - le ciel s'y reflète plus clair vers l'horizon, le sol sous l'horizon ;
@@ -75,7 +91,7 @@ après `tools\lance.ps1 -Build -NoLaunch` si le code a changé.
 
 ## Les écrans du tableau de bord
 
-- **Les trois écrans et les trois cadrans montrent le vol,** pour l'œil seulement : `ShipScreens.hlsli`, appelé par `ShipPixel.hlsl` pour les matériaux 13 à 18 du paquet.
+- **Les trois écrans et les trois cadrans montrent le vol,** pour l'œil seulement : `ShipScreens.hlsli`, appelé par `ShipPixel.hlsl` pour les rôles 1 à 6 du paquet.
 - **Leurs images restent le fond :** cadres, titres et libellés de `textures_cockpit.py`. Ce que le vol change y est effacé puis redessiné, dans les mêmes couleurs, en chiffres à segments.
 - **FLIGHT / ATTITUDE :**
   - horizon artificiel en roulis et en tangage, échelle tous les 5°, chiffrée tous les 10° ;
@@ -119,12 +135,13 @@ après `tools\lance.ps1 -Build -NoLaunch` si le code a changé.
 
 ## Les jets et les ombres
 
-- **Le panache des trois tuyères** (`ShipPlume.hlsli`, `ShipPlumeVertex.hlsl`, `ShipPlumePixel.hlsl`) :
-  - une flamme de lumière à la sortie de chaque tuyère, d'un cœur blanc bleuté vers le violet, avec de faibles losanges de choc ;
-  - **elle finit en pointe :** elle s'élargit un peu au sortir de la tuyère, puis s'affine et s'éteint jusqu'à sa pointe ;
+- **Le panache des quatre tuyères** (`ShipPlume.hlsli`, `ShipPlumeVertex.hlsl`, `ShipPlumePixel.hlsl`) : les deux grandes des capots, les deux petites des emplantures, plus courtes à proportion de leur rayon.
+  - une flamme de lumière à la sortie de chaque tuyère, d'un cœur blanc bleuté vers le violet, avec des losanges de choc et une faible lueur large autour du cœur ;
+  - **elle finit en pointe :** elle s'élargit un peu au sortir de la tuyère, puis s'affine et s'éteint jusqu'à une pointe effrangée ;
+  - **elle vit :** une turbulence à deux échelles descend le panache à une vingtaine de m/s, en fait onduler l'axe et strie le cœur ; les losanges tremblent ; chaque tuyère scintille une vingtaine de fois par seconde, à son propre rythme ;
   - **il suit les gaz, cran par cran,** de rien gaz coupés jusqu'à plein au trentième cran, avec le même temps de réponse que la vitesse. Lié à la vitesse, il était plein dès le premier cran en altitude, où la vitesse suit la hauteur ;
   - **sa longueur :** de 1,7 m au premier cran à 8 m.
-- **Les jets d'attitude :** dix petits jets de vapeur, aux deux pointes de la poupe et au nez, vers le haut, le bas et le côté.
+- **Les jets d'attitude :** dix petits jets de vapeur, percés dans la peau (`assets/vaisseau/design_chasseur.py` imprime leurs positions) : au bout des ailes, vers le haut et le bas ; sur les capots moteurs, sur le côté ; au nez, vers le haut, le bas et chaque côté.
   - **Chacun tire quand sa poussée sert la commande :** le glissement, ou le couple du roulis, du tangage et du lacet autour du centre du vaisseau.
   - **Les glissements tirent tant que la touche est tenue ;** les rotations, au début et à la fin du mouvement, sur l'accélération angulaire, comme de vrais propulseurs d'attitude.
   - **En bouffées douces,** deux ou trois par seconde, chaque jet décalé des autres.
@@ -148,9 +165,12 @@ après `tools\lance.ps1 -Build -NoLaunch` si le code a changé.
 - **Ombres :**
   - **le relief ombre le vaisseau d'un bloc,** depuis son origine : une crête ne coupe pas la coque en deux ;
   - **le vaisseau n'ombre pas les objets proches,** pierres et plantes ; seulement le terrain et la mer.
-- **Images :** mips calculés sur le CPU, en moyenne des codes sRGB, et sans compression. Les cartes du vaisseau prennent environ 120 Mo de mémoire vidéo.
+- **Images :** mips calculés sur le CPU, en moyenne des codes sRGB, et sans compression. Les cartes du vaisseau prennent environ 125 Mo de mémoire vidéo. Les 12 images du paquet remplissent `Ship::MaxImages` : une image de plus demande d'agrandir le tableau et de décaler les registres de `Ship.hlsli`.
+- **Les gouttes glissent sur la bulle comme sur son plan tangent :** près du pied, où les flancs se dressent, elles ne tombent pas de la verrière, elles s'y arrêtent au seuil.
 - **Écrans :** aucune interaction ; hors du manche et de la manette, les commandes et voyants restent statiques.
 - **Le lissage temporel ne suit pas le manche :** il reprojette ses pixels avec le vaisseau. Le jeu le coupe au démarrage ; la touche T le rétablit.
-- **Le reflet de la verrière** est celui d'un ciel et d'un sol moyens, sans les nuages ni le relief.
+- **Le reflet de la verrière et de la coque** est celui d'un ciel et d'un sol moyens, sans les nuages ni le relief.
+- **Le lissage temporel ne suit pas non plus les élevons.**
+- **Les feux n'éclairent rien :** ni la coque ni le sol autour d'eux.
 - **Jets :** ni lumière portée du panache sur le sol ou la coque, ni distorsion de chaleur.
 - **Givre :** sa température vient du climat moyen, pas de la météo du jour.

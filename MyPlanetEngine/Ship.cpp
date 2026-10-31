@@ -74,11 +74,11 @@ bool Ship::Load(const std::wstring& path)
     const std::vector<uint8_t> data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     if (data.size() < 32 || std::memcmp(data.data(), "VSX1", 4) != 0) throw std::runtime_error("Not a ship pack (VSX1).");
     size_t at = 4;
-    if (Read<uint32_t>(data, at) != 2) throw std::runtime_error("Ship pack version not supported.");
+    if (Read<uint32_t>(data, at) != 3) throw std::runtime_error("Ship pack version not supported.");
     const uint32_t vertices = Read<uint32_t>(data, at), indices = Read<uint32_t>(data, at), draws = Read<uint32_t>(data, at);
     const uint32_t materials = Read<uint32_t>(data, at), images = Read<uint32_t>(data, at);
     if (images > MaxImages) throw std::runtime_error("Ship pack has more images than Ship::MaxImages.");
-    const size_t vertexBytes = size_t(vertices) * 60, materialSize = 92;
+    const size_t vertexBytes = size_t(vertices) * 60, materialSize = 96;
     if (at + vertexBytes + size_t(indices) * 4 > data.size()) throw std::runtime_error("Ship pack truncated.");
     mVertexBytes.assign(data.begin() + at, data.begin() + at + vertexBytes);
     at += vertexBytes;
@@ -108,7 +108,7 @@ bool Ship::Load(const std::wstring& path)
         mImages.push_back(std::move(image));
     }
     for (uint32_t i = 0, count = Read<uint32_t>(data, at); i < count; ++i)
-        if (i < 2) pivots[i] = Read<Pivot>(data, at); else at += sizeof(Pivot);
+        if (i < _countof(pivots)) pivots[i] = Read<Pivot>(data, at); else at += sizeof(Pivot);
     mLoaded = true;
     return true;
 }
@@ -521,7 +521,7 @@ void Ship::DrawGlass(ID3D12GraphicsCommandList* list, const Tables& t, D3D12_CPU
                 list->DrawIndexedInstanced(d.count, 1, d.first, 0, 0);
             }
     list->SetPipelineState(mPlumePSO.Get()); // then the jets, 3 engines and 10 attitude jets
-    list->DrawInstanced(36, 13, 0, 0);
+    list->DrawInstanced(36, 14, 0, 0); // ShipPlume.hlsli's JET_COUNT
 }
 
 void Ship::OverlayToRead(ID3D12GraphicsCommandList* list)

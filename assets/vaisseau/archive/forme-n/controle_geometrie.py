@@ -1,4 +1,4 @@
-"""Contrôles de visibilité du pupitre et de raccord des panneaux à la verrière."""
+"""Contrôles de visibilité du pupitre, de raccord des tôles au pourtour de la bulle et du volume sous la bulle (forme.py)."""
 import bpy
 from mathutils import Vector
 s=bpy.context.scene; dg=bpy.context.evaluated_depsgraph_get()
@@ -17,12 +17,9 @@ for o in screens:
                 blocked.append((o.name,a,b,obj.name if hit else 'aucun'))
 print('VISIBILITE', 'OK' if not blocked else blocked)
 
-apex=Vector((0,-7.18,0)); top=Vector((0,2.3375,2.10)); chine=Vector((3.10,2.59525,.038))
-p=top-apex; q=chine-apex; pp=p.dot(p); pq=p.dot(q); qq=q.dot(q); den=pp*qq-pq*pq
-def coords(v,side):
-    v=Vector((v.x*side,v.y,v.z))-apex
-    a=(v.dot(p)*qq-v.dot(q)*pq)/den; b=(v.dot(q)*pp-v.dot(p)*pq)/den
-    return (a+b,b)
+import os, sys
+sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
+import forme as fm
 def clip(poly,a,b,c):
     result=[]
     for i,P in enumerate(poly):
@@ -33,31 +30,32 @@ def clip(poly,a,b,c):
     return result
 def area(poly):
     return abs(sum(poly[i][0]*poly[(i+1)%len(poly)][1]-poly[(i+1)%len(poly)][0]*poly[i][1] for i in range(len(poly)))/2) if len(poly)>=3 else 0
-F=.332; S=.692; A=.788; W=S*.437
-rules=[(1,-(S-F)/W,-F),(-1,-(A-S)/W,A),(0,-1,W),(0,1,0)]
+# La découpe des tôles autour de la bulle, en plan, côté gauche, fermée sur l'axe : convexe.
+coupe=fm.decoupe()+[(0.0,fm.decoupe()[0][1])]
+cx=sum(x for x,_ in coupe)/len(coupe); cy=sum(y for _,y in coupe)/len(coupe); rules=[]
+for (x0,y0),(x1,y1) in zip(coupe,coupe[1:]+coupe[:1]):
+    a,b=y1-y0,-(x1-x0); c=-(a*x0+b*y0)
+    if (a,b)!=(0,0): rules.append((a,b,c) if a*cx+b*cy+c>0 else (-a,-b,-c))
 overlaps=[]
 for name in ('Coque | sous-structure','Coque | panneaux structurels','Coque | trappes et marquages'):
     o=bpy.data.objects[name]
     for f in o.data.polygons:
         vs=[o.matrix_world @ o.data.vertices[i].co for i in f.vertices]
-        side=1 if sum(v.x for v in vs)>=0 else -1
-        poly=[coords(v,side) for v in vs]
+        if sum(v.z for v in vs)<0: continue   # le ventre : la verrière est sur le dessus
+        poly=[(abs(v.x),v.y) for v in vs]
         for a,b,c in rules:
             if not poly: break
             poly=clip(poly,a,b,c)
         ar=area(poly)
-        # La peau touche le vitrage bord à bord : tolérer les éclats numériques sous le mm².
-        if ar>1e-6: overlaps.append((name,f.index,ar))
+        # Les tôles touchent le pourtour bord à bord : tolérer les éclats de chanfrein sous 10 mm².
+        if ar>1e-5: overlaps.append((name,f.index,ar))
 print('RACCORD VERRIERE', 'OK' if not overlaps else overlaps[:20])
-# Sommets de l'ouverture originale, avant suppression de ses traverses. Les
-# panneaux originaux étaient en retrait et interrompus par les montants ; la
-# comparaison tolère ce retrait et les quelques millimètres de joint.
-reference=[Vector((0,-4.018789,.688474)),Vector((.935232,-.515229,.826394)),Vector((-.935232,-.515229,.826394)),Vector((0,.322132,1.638552))]
+# La bulle : son pied sur le dessus creusé, son sommet à la hauteur prévue.
 glass=bpy.data.objects['Canopy_Glass']
 verts=[glass.matrix_world @ v.co for v in glass.data.vertices]
-errors=[min((v-r).length for r in reference) for v in verts]
-shape_error=max(errors,default=0)
-print('CONTOUR ORIGINAL', 'OK' if shape_error<.025 else round(shape_error,4), 'ecart_max_m',round(shape_error,4))
+pied=[abs(v.z-fm.dessus_z(v.x,v.y)) for v in verts if fm.goutte(v.y)<1e-6 or abs(abs(v.x)-fm.goutte(v.y))<1e-4]
+shape_error=max(pied+[max(v.z for v in verts)-fm.GZT-.002,0])
+print('BULLE', 'OK' if shape_error<.012 else round(shape_error,4), 'ecart_max_m',round(shape_error,4))
 # Tester les sommets et les centres des faces de la cuve contre la surface
 # inférieure de la carène : une cuve ne doit pas percer la coque par-dessous.
 carene=bpy.data.objects['Coque | carene']; inv=carene.matrix_world.inverted()
@@ -76,9 +74,8 @@ above=[]
 for o in bpy.data.collections['Spaceship_Cockpit'].objects:
     if o.type!='MESH' or o.name=='Canopy_Glass' or o.name.startswith('Verriere |'): continue
     for vertex in o.data.vertices:
-        v=o.matrix_world @ vertex.co; w=abs(v.x)/3.10
-        u=(v.y+7.18-.25775*w)/9.5175
-        ztop=2.10*u-2.062*w
+        v=o.matrix_world @ vertex.co; zb=fm.bulle_z(v.x,v.y)
+        ztop=max(fm.dessus_z(v.x,v.y),zb if zb is not None else -9)
         if v.z>ztop+.01: above.append((o.name,round(v.z-ztop,3)))
 print('VOLUME SOUS VERRIERE', 'OK' if not above else above[:20])
 # Les tuyères restent dans la poupe : aucun sommet au-delà du plan y + 0,125 z = 2,6.
@@ -88,4 +85,4 @@ for o in bpy.data.collections['Spaceship_Engines'].objects:
     worst=max((o.matrix_world @ v.co).y+.125*(o.matrix_world @ v.co).z-2.6 for v in o.data.vertices)
     if worst>0: beyond.append((o.name,round(worst,3)))
 print('TUYERES DANS LA POUPE', 'OK' if not beyond else beyond)
-if blocked or overlaps or protrusions or above or beyond or shape_error>=.025: raise RuntimeError('Contrôle géométrique échoué')
+if blocked or overlaps or protrusions or above or beyond or shape_error>=.012: raise RuntimeError('Contrôle géométrique échoué')

@@ -1,4 +1,4 @@
-"""Exporte vaisseau.glb depuis la scène de travail ouverte ; appelé par preparer.py et pieces_mobiles.py.
+"""Exporte vaisseau.glb depuis la scène de travail ouverte ; appelé par design_chasseur.py et pieces_mobiles.py.
 
 Modifie la scène (fusion, triangulation) : à appeler après l'avoir sauvée.
 """
@@ -23,9 +23,9 @@ def exporter(root):
         bm.to_mesh(o.data); bm.free(); o.data.update()
     bpy.ops.object.select_all(action='DESELECT')
     for o in meshes: o.select_set(True)
-    for o in cockpit.objects:
+    for o in ship.all_objects:
         if o.name.startswith('Pivot |'): o.select_set(True)
-    bpy.context.view_layer.objects.active=bpy.data.objects['Coque | sous-structure']
+    bpy.context.view_layer.objects.active=bpy.data.objects.get('Coque | sous-structure') or bpy.data.objects.get('Coque | peau') or meshes[0]
     bpy.ops.export_scene.gltf(filepath=os.path.join(root,'vaisseau.glb'), export_format='GLB', use_selection=True, export_apply=True,
                               export_tangents=True, export_attributes=True)
     print('JEU OBJETS',len(meshes),'TRIANGLES',sum(sum(len(p.vertices)-2 for p in o.data.polygons) for o in meshes))

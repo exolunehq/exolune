@@ -7,7 +7,7 @@ namespace
 {
     // The pilot's eye in the ship frame (assets/vaisseau: 0.92 m behind the frame's origin, 1.07 m up), and the head's
     // rest, 10 degrees down: the horizon through the canopy, the displays' tops below it.
-    const double kEyeAhead = 0.9192, kEyeUp = 1.07, kHeadRest = -0.08;
+    const double kEyeAhead = 0.9192, kEyeUp = 1.03, kHeadRest = -0.08; // the pilot's eye (forme_chasseur.OEIL)
 }
 
 // The ship's flight, the standard of keyboard and mouse space games (Star Citizen, Everspace): the mouse pitches and yaws
@@ -239,6 +239,16 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
     XMStoreFloat4x4(&ship.pose[0], pivoted(pivots[0], XMMatrixRotationAxis(XMLoadFloat3(&pivots[0].axis), -0.26f * (float)mStickX)
         * XMMatrixRotationX(0.21f * (float)mStickY) * XMMatrixRotationY(-0.21f * (float)(mShipRate.z / 1.8))));
     XMStoreFloat4x4(&ship.pose[1], pivoted(pivots[1], XMMatrixRotationAxis(XMLoadFloat3(&pivots[1].axis), 0.7f * (float)(mThrottle / 30.0 - 0.5))));
+    // The elevons (design_chasseur.py), inner and outer on each wing: the pitch and the roll mixed, as the ship turns,
+    // both ways, 20 degrees at most. Trailing edge up for the nose up, and on the side the ship rolls towards. Their
+    // hinges run outwards: a positive turn lifts the left's trailing edge and lowers the right's.
+    const double pitchUp = mShipRate.x / 1.3, rollRight = mShipRate.z / 1.8;
+    const double elevon[2] = { std::min(std::max(pitchUp - rollRight, -1.0), 1.0), std::min(std::max(pitchUp + rollRight, -1.0), 1.0) };
+    for (int side = 0; side < 2; ++side) { // the pilot's left, then right
+        const float angle = (side == 0 ? 0.35f : -0.35f) * (float)elevon[side];
+        for (int k : { 2 + side, 4 + side })
+            XMStoreFloat4x4(&ship.pose[k], pivoted(pivots[k], XMMatrixRotationAxis(XMLoadFloat3(&pivots[k].axis), angle)));
+    }
     XMStoreFloat4(&ship.velocity, toLocal(speed > 1e-3 ? mShipVelocity * (1.0 / speed) : mShipForward));
     ship.velocity.w = (float)speed;
 }

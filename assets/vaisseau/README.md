@@ -1,83 +1,66 @@
-# Vaisseau triangulaire
+# Le chasseur
+
+**Le vaisseau du joueur, d'après le concept de l'utilisateur.** Sa vue de trois quarts est la cible artistique ; les vues de dessus, de profil et d'arrière n'ont servi qu'où elles s'accordent avec elle. Forme validée sur maquettes le 2026-10-31, puis détaillée.
 
 **Fichiers**
 
-- `vaisseau_travail.blend` : scène modifiable, pièces du cockpit séparées et textures incluses.
-- `vaisseau.glb` : modèle statique glTF 2.0, textures incluses, sans décor ni panaches.
-- `vaisseau.vsx` : le paquet lu par le moteur, cuit depuis le GLB par `paquet_moteur.py` (`python paquet_moteur.py`, sans Blender) ; à relancer après chaque export (`docs/spec-vaisseau.md`).
-- `pieces_mobiles.py` : marque le manche et la manette des gaz, que le moteur fait tourner, et pose leurs pivots.
-- `exporter.py` : l'export du GLB, commun à `preparer.py` et `pieces_mobiles.py`.
-- `modules_cockpit.py` : dimensions, commandes et place dans l'atlas de chaque module d'équipement. Source unique de la sérigraphie et de la géométrie.
-- `plaques.png` : atlas de sérigraphie des modules, 2048 × 2048.
-- `cockpit.png`, `commandes.png`, `pilote.png`, `pupitre.png`, `exterieur.png`, `arriere.png` : rendus de contrôle de la scène Blender. La verrière est masquée sur les vues du cockpit et des commandes.
-- `export_controle.png` et `export_pilote.png` : rendus du GLB réimporté dans une scène vide.
-
-**Modèle**
-
-- Reprise du fichier `spaceship.blend` d'Antigravity, conversation « Blender Spaceship 3D Modeling » du 25 octobre 2026. L'original reste intact.
-- Silhouette triangulaire d'origine conservée. Coque, poupe et cockpit sont reconstruits par `design_v2.py` ; aucune pièce d'origine ne reste dans le modèle.
-- Verrière revenue aux proportions d'origine, composée de deux faces jointives sans arceau central ni traverse. Un joint sombre suit son pourtour.
+- `forme_chasseur.py` : la forme, seule source de la géométrie, sans Blender. Coque en sections, bulle, aile et élevons, prises d'air, capots, tuyères, œil du pilote. `python forme_chasseur.py` contrôle les raccords.
+- `textures_chasseur.py` : l'atlas de la coque, 4096², en numpy (`python textures_chasseur.py`, 40 s). Couleur, normale, occlusion, métal-rugosité : `chasseur_*.png`.
+- `design_chasseur.py` : le modèle dans Blender, ses rendus de contrôle et l'export.
+- `cockpit_chasseur.py` : le cockpit, appelé par `design_chasseur.py`.
+- `modules_cockpit.py` et `textures_cockpit.py` : les plaques sérigraphiées (`plaques.png`), les écrans et les cadrans (`ecran_*.png`, `jauge_*.png`).
+- `pieces_mobiles.py` : marque le manche et la manette des gaz, pose leurs pivots.
+- `exporter.py`, `paquet_moteur.py` : le GLB, puis le paquet `vaisseau.vsx` lu par le moteur (`docs/spec-vaisseau.md`).
+- `vaisseau_travail.blend`, `vaisseau.glb`, `vaisseau.vsx` : la scène, le modèle, le paquet.
+- `exterieur.png`, `arriere.png`, `dessous.png`, `pilote.png`, `cockpit.png`, `siege.png`, `commandes.png` : rendus de contrôle ; `export_controle.png` et `export_pilote.png` : le GLB réimporté (`verifier_glb.py`).
+- **La forme N est archivée** dans `archive/forme-n/`, avec ses scripts et ses textures.
+- **Le moteur recopie la bulle et les tuyères** (`Ship.hlsli`, `ShipPlume.hlsli`) : à reporter après tout changement de `forme_chasseur.py`.
 
 **Coque**
 
-- Une peau continue ferme le volume, de la pointe au cadre de poupe. Les tôles affleurent toutes à 12 mm au-dessus, séparées par des joints gravés de 4 mm.
-- La tôlerie suit la structure. Des sections entre cadres principaux, aux pointes avant et arrière du vitrage, croisent des bandes entre lisses qui convergent vers le nez. Les joints sont décalés d'une bande à l'autre et ne forment jamais de grille.
-- Les tôles ont des tailles variées et un quart de leurs angles sont chanfreinés. Des rivets suivent les cadres et la lisse basse de chaque tôle.
-- Les rivets ne sont pas modélisés dans le modèle de jeu. Des dômes de 2 mm servent seulement à cuire une carte de normales et une carte d'occlusion, puis sont supprimés.
-- Ces cartes utilisent une deuxième UV des tôles, `UVDetail` : une île par tôle, sans recouvrement, à 371 px/m. Les îles sont projetées dans le même repère que l'UV de peinture, et les deux UV partagent donc les tangentes.
-- Les équipements de peau sont posés chacun dans une seule tôle, ce que le script vérifie :
-  - trappes rivetées à angles chanfreinés et trappes de train à joint large ;
-  - bouchons, grilles d'aération et marquages rouges et blancs ;
-  - une antenne sur le dos, deux sous la quille.
-- La peinture est mate, gris clair et légèrement usée : passé du soleil, coulures discrètes vers l'arrière, rares éclats groupés et rayures.
-- Livrée :
-  - la plupart des tôles gardent la peinture d'origine ;
-  - certaines sont des reprises à peine plus sombres, tirées au hasard ;
-  - une bande bleue passée couvre les capots arrière et suit les joints, d'où son bord en escalier ;
-  - le nez est bleu-gris, le ventre plus sombre.
-- Toutes ces teintes multiplient une même texture, et glTF les exporte en facteur de couleur. La texture fait 1024 × 1024 et couvre 2 m, plaquée à l'échelle du monde sans rupture d'une tôle à l'autre.
-
-**Poupe**
-
-- Un cadre ferme tout le losange arrière, pointes comprises, et dépasse de 4 cm de la peau. Le fond est en retrait de 40 cm et peint, pour rester lisible à l'ombre.
-- Trois tuyères compactes de 35 cm, perpendiculaires au fond, sur brides boulonnées : col usiné, divergent court, lèvre et raidisseur. Deux vérins d'orientation par tuyère.
-- Rien ne dépasse du vaisseau : la lèvre des tuyères s'arrête 5 cm en retrait du plan de poupe, et `controle_geometrie.py` le vérifie.
-- Longerons au-dessus et au-dessous des tuyères, raidisseurs entre elles, deux caissons de ventilation.
-- Feux de position aux pointes : rouge à gauche du pilote, vert à droite.
+- **Une seule grande arête court de la pointe à la poupe :** la chine, au bas de la bande orange, sous la bulle, au haut de la prise d'air, puis en arête d'épaule jusqu'au capot moteur.
+- **Derrière la bulle, deux arêtes de plus,** relevées sur les traits de l'utilisateur à la caméra du trois-quarts :
+  - la ligne haute quitte l'arceau et rejoint l'arête du dos ;
+  - la diagonale monte du coin bas de la bulle vers elle ;
+  - entre elles, le dos bombé, un pan raide de 48 à 57° et la terrasse, qui porte la bande bleue.
+- **Sous la chine,** le flanc, puis la chine basse, qui file au bord d'attaque de l'aile, le chanfrein bas et le ventre plat.
+- **La pointe :** un chanfrein tout autour, un cadre de tôle claire, la fenêtre du capteur en retrait de 3 cm.
+- **La peinture suit les pans :** tôles décalées d'une bande à l'autre, trappes, grilles ; bande orange du chanfrein, panneaux bleus, bande bleue de la terrasse, ventre plus sombre.
+- **Autour du verre, une bande anthracite de 5,5 cm.** L'orange ne passe pas devant la bulle : au coin, le chanfrein orange se resserre et file en bande de queue, d'un seul tenant.
+- **Le raccord du verre :** les sommets de peau sous le verre vont sur son bord, à sa hauteur ; la peau s'arrête net sur le contour. Le cadre tubulaire, 1,2 cm au-delà du bord, couvre le raccord.
+- **L'usure, d'après le concept :** têtes de rivet sombres et rouillées, auréolées de rouille ; crasse brune au bord des joints, voile de poussière ; éclats, rayures, coulures, suie de poupe. Un seul matériau, « Jeu | Tole », sur la deuxième UV, `UVDetail`.
+- **Les pièces :** bulle et son cadre, aile à nervure, quatre élevons, deux prises d'air à lames, quatre capots et quatre tuyères à foyer chaud, feux, dix jets d'attitude, antennes, écopes.
+- **L'équipement de peau,** petites pièces qui ont une fonction, profilées :
+  - trappes de train sous le ventre et trappes d'accès sur les flancs et le pont du nez, en relief de 3 mm sur un joint sombre, vissées ;
+  - deux aérofreins sur le dos, qui épousent la peau, charnière à l'avant ;
+  - deux bouches auxiliaires sur le dos, ouïes sur les capots moteurs ;
+  - deux ailettes ventrales déversées, deux lames le long de la chine basse du nez, une cloison sur chaque aile entre les élevons ;
+  - carénages d'articulation sous les élevons, sondes d'incidence à la pointe, déperditeurs au bout des ailes, feux de formation verts.
 
 **Cockpit**
 
-- Tout part de la verrière. Les parois de la cuve sont des plans qui passent par ses arêtes, évasés de 8 % vers le plancher. Un rail de seuil boulonné suit chaque arête, les deux rails se rejoignent en onglet aux pointes.
-- L'auvent est posé dans le plan du seuil, de la pointe avant du vitrage au pupitre. Le collimateur tête haute est dans l'axe de visée.
-- Le pupitre principal va d'une paroi à l'autre, incliné de 27° vers l'oeil. Les ailes et les consoles suivent chaque paroi avec un même profil : panneau incliné sous le rail, puis tablette à hauteur de coude.
-- L'équipement est fait de modules standards : plaque sérigraphiée, chant chanfreiné, quatre fixations quart de tour. Interrupteurs, gardes, rotacteurs, disjoncteurs, voyants, clavier et cadrans sont posés aux coordonnées de leurs légendes.
-- Le même boîtier d'affichage est monté trois fois : cadre usiné, touches de bord, vis.
-- Siège sur glissières, flasques et baquet en tôle, rails de guidage, coffre d'appui-tête et harnais. Baie d'équipements et trappes d'accès vissées derrière le siège et sur les consoles.
-- Palette des panneaux de la navette : gris peint, boîtiers noirs, métal brossé, légendes blanches.
-- Toutes les faces sont planes. Les pièces rondes sont lissées, les arêtes de plus de 35° restent vives. Gauche et droite sont celles du pilote, qui regarde vers −Y : sa gauche est en +X, côté manette des gaz.
+- **La verrière est dégagée :** tout l'équipement reste sous le seuil du verre, sauf le haut du pupitre, 5 cm au-dessus et sous la ligne qui rase le nez de la bulle.
+- **Un assemblage sans jour :** le pupitre va de paroi à paroi, ses coins sur le seuil ; les consoles partent de son plan, montent au seuil et finissent dans la cloison arrière ; le pont antireflet s'appuie sur le bord du verre ; la cloison et sa tablette ferment l'arrière, jusqu'à la paroi qui monte vers l'arceau.
+- **Le pupitre :** trois écrans dans leur boîtier usiné, le bandeau d'alarmes. Un pont antireflet le prolonge jusqu'au nez de la bulle.
+- **Les consoles,** le long de chaque paroi : un pan incliné, qui porte l'aile d'instruments et deux plaques, puis une tablette à hauteur de coude, avec deux plaques. Les commandes sont posées sur leurs légendes.
+- **Les plaques du pan incliné sont montées sur un socle** qui descend jusqu'au pan : il n'est pas plan le long de la paroi, une plaque plane s'y enfonçait par un bout. Deux petites plaques, LIGHTS et FUEL, sur les côtés du pupitre, au-dessus des consoles.
+- **Les grandes faces du cockpit portent leur tôlerie,** dans une région de l'atlas de la coque (`textures_chasseur.INTERIEUR`) : panneaux de 30 × 20 cm décalés, joints fins, vis aux coins, sans rouille ni crasse.
+- **Le siège baquet, d'après le concept :** dossier et assise à bourrelets ronds, coussins capitonnés, appui-tête rembourré. Coque basse de graphite sur glissières, rails d'éjection, coffre du parachute, harnais à réglages de cuir fauve.
+- **Les commandes :** palonnier, manche entre les genoux, manette des gaz sur la tablette gauche. Le manche et la manette bougent dans le moteur, par l'attribut `_POSE` et leurs pivots.
+- **L'œil est à 1,03 m,** en d 4,40 ; l'appui-tête est juste derrière le casque.
 
 **Maillage**
 
-- 21 237 triangles, 11 maillages et 60 primitives dans le GLB, 4,8 Mo. Le cockpit est fusionné en un seul maillage à l'export, une primitive par matériau ; le combineur et la verrière restent à part.
-- Unité Blender : mètre. Environ 9,8 m de long et 6,2 m de large. Dans Blender : avant vers −Y, haut vers +Z. À l'export glTF : avant vers −Z, haut vers +Y.
-- Matériaux PBR, verrière transparente et affichages émissifs. La coque utilise une couleur et une rugosité répétables en 1024 × 1024 sur `UVMap`. Les tôles ajoutent une normale de 4096 × 4096 et une occlusion de 2048 × 2048, cuites sur `UVDetail` : `coque_details_normale.png` et `coque_occlusion.png`. Ces textures sont une nouvelle approximation de jeu, pas une cuisson des matériaux procéduraux d'origine.
-- Normales et tangentes sont présentes dans chaque primitive. La carte normale est en espace tangent. Rugosité, normale et occlusion sont des données linéaires.
-- Le moteur devra lire la deuxième UV : `normalTexture` et `occlusionTexture` des matériaux « Jeu | Tole » portent `texCoord: 1`.
-
-**Intégration**
-
-- L'export a été réimporté et rendu dans Blender. Le moteur le charge par son paquet `vaisseau.vsx` (`docs/spec-vaisseau.md`).
-- `controle_geometrie.py` compare les coins de la verrière au modèle original, puis vérifie neuf points de chaque dalle d'écran vus de l'oeil du pilote, le raccord des plaques, le fond de cuve, la position des éléments sous le vitrage et celle des tuyères dans la poupe. La suppression des traverses et du retrait du vitrage crée un écart maximal de 1,7 cm aux coins de référence. Ce contrôle ne remplace pas une inspection depuis toutes les positions du joueur.
-- Le moteur devra importer glTF, gérer les matériaux PBR, la transparence de la verrière et les émissions, puis valider les axes, l'échelle et l'éclairage en vol. Les panaches sont à réaliser séparément.
-- **Le manche et la manette des gaz bougent dans le moteur** (`pieces_mobiles.py`) :
-  - chaque sommet porte un attribut `_POSE`, exporté dans le GLB : 0 fixe, de 0 à 1 le manche, de 1 à 2 la manette ;
-  - le soufflet du manche passe de 0 sur sa bride à 1 en haut, le carter reste fixe ;
-  - deux vides, `Pivot | manche` et `Pivot | gaz`, donnent le pivot et l'axe Z de chaque pièce ; ils sont retrouvés sur la géométrie, sans cote recopiée.
-- Les écrans sont des éléments statiques. Les cartes ne comprennent ni occlusion ambiante cuite ni niveaux de détail. L'éclairage de scène du cockpit n'est pas exporté : son éclairage en jeu reste à régler dans le moteur.
+- **29 555 triangles,** 16 maillages, 46 tracés, 10 images ; GLB et paquet de 8 Mo.
+- **Allégé de 35 000 :**
+  - anneaux de coque serrés là où la forme tourne vite, lâches ailleurs ;
+  - sections à 22 points sur le dessus ;
+  - verrière, cadre et tuyères moins découpés.
+- **Le cockpit fait environ 10 000 triangles, l'équipement de peau 2 200.** Il est fusionné en un seul maillage à l'export, une primitive par matériau ; la verrière reste à part.
+- **Repère :** nez vers −Y, haut +Z, gauche du pilote +X, en mètres ; d est la distance à la pointe du nez.
 
 **Reproduction**
 
-- Exécuter `textures_cockpit.py` avec Python et Pillow, puis ouvrir l'original en arrière-plan avec Blender 5.2 et exécuter `preparer.py`. Le script `design_v2.py` reconstruit la coque et le cockpit ; les textures et le GLB sont enregistrés dans ce dossier.
-- Pour modifier un panneau, éditer son module dans `modules_cockpit.py`, puis relancer les deux étapes : la légende et la commande bougent ensemble.
-- Après une retouche du manche ou de la manette dans la scène de travail : `blender -b vaisseau_travail.blend --python pieces_mobiles.py`, qui marque, sauve et exporte, puis `python paquet_moteur.py`.
-- `verifier.py` rend les vues de la scène ; `verifier_glb.py` réimporte et rend le GLB ; `controle_geometrie.py` contrôle ses raccords dans la scène de travail. Ces scripts ne nécessitent pas de fenêtre Blender.
+- `python textures_chasseur.py`, puis `blender -b --factory-startup --python design_chasseur.py`, puis `python paquet_moteur.py`.
+- `-- --sans-export` n'écrit rien dans ce dossier ; `-- --rendus DOSSIER` fait les vues de contrôle. `RENDU_VUES` les choisit, `RENDU_SPP` règle les échantillons.
+- Pour changer une plaque, éditer son module dans `modules_cockpit.py`, puis `python textures_cockpit.py`.

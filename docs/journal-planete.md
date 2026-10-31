@@ -214,6 +214,52 @@ Hors de ce fichier : `PLANT_CROWN` dans `Objects.hlsli`, 0,3, 0,45 et 1,1, les c
 
 ---
 
+## 2026-10-31 · Vaisseau : le chasseur du concept, détaillé, cockpit dégagé · en test
+
+- **Réglage, la forme :** le chasseur du concept de l'utilisateur remplace la forme N, archivée dans `assets/vaisseau/archive/forme-n/`. Cible : la vue de trois quarts du concept, symétrie gardée ; ses vues de dessus, de profil et d'arrière s'y adaptent. Source unique : `assets/vaisseau/forme_chasseur.py`.
+- **Réglage, les arêtes :** relevées sur les traits de l'utilisateur à la caméra calée du trois-quarts :
+  - la chine au bas de la bande orange, de la pointe au haut de la prise d'air ;
+  - derrière la bulle, la ligne haute et la diagonale ;
+  - la chine basse jusqu'au bord d'attaque ;
+  - la pointe chanfreinée, à fenêtre de capteur.
+- **Réglage, la peinture :** un atlas unique de 4096², peint en numpy sur les sections de la coque (`textures_chasseur.py`).
+- **Réglage, le maillage :** 29 555 triangles, 35 000 avant allègement ; le cockpit en fait 10 000.
+- **Réglage, la peinture :** bande anthracite autour du verre, l'orange seulement à la queue de la bulle, raccordé au chanfrein ; rivets rouillés, crasse brune aux joints, voile de poussière. Au coin de la bulle, le chanfrein orange file en bande de queue d'un seul tenant ; la peau s'arrête net sur le bord du verre, sous le cadre. Dans le cockpit, une tôlerie propre, à panneaux fins et vis ; plaques des consoles montées sur socle, plaques LIGHTS et FUEL au-dessus des consoles.
+- **Réglage, l'équipement de peau :** trappes de train et d'accès vissées, aérofreins, bouches auxiliaires, ouïes des capots, ailettes ventrales, lames de chine, cloisons d'aile, carénages d'articulation, sondes, déperditeurs, feux de formation.
+- **Réglage, le cockpit (`cockpit_chasseur.py`) :**
+  - tout sous le seuil du verre ;
+  - pupitre bas à trois écrans, consoles à plaques sérigraphiées ;
+  - siège baquet d'après le concept ;
+  - un assemblage sans jour : pupitre de paroi à paroi, consoles collées au pupitre et montées au seuil, pont antireflet sur le bord du verre, cloison et tablette derrière le siège ;
+  - manche et manette des gaz animés, repris du modèle précédent.
+- **Écarté :** un premier siège à grandes joues de graphite, qui le rendaient cubique.
+- **Réglage, le moteur :** le chasseur remplace la forme N. `Ship.hlsli` recopie sa bulle pour l'eau et le givre, carte d'eau de 1 684 × 2 450 texels ; quatre tuyères et dix jets (`ShipPlume.hlsli`) ; élevons dans les deux sens ; œil à 1,03 m.
+- **Réglage, le panache :** il vit, turbulence qui descend la flamme, axe qui ondule, pointe effrangée, losanges qui tremblent, scintillement par tuyère, lueur large. L'ancien, trop régulier, faisait presque une image plaquée.
+- **Coût, capture sans fenêtre, 1 280 × 720, 1 500 m :** rendu de 4,5 ms au cockpit, 7,0 ms en poursuite.
+- **En vol :** à juger, `tools/tests/2026-10-31-chasseur.txt`.
+
+## 2026-10-31 · Vaisseau : forme N, bulle assise dans le creux · en test
+
+- **Réglage, la forme** (`assets/vaisseau/forme.py`) : la verrière écrase la ligne. L'arête garde sa pente jusqu'au nez de la bulle, s'aplatit sous elle, 33 cm plus bas qu'avant à son arrière, puis remonte jusqu'au sommet de la poupe, qui ne bouge pas. Trois facettes de chaque côté, plis du nez et de la queue de la bulle vers le coin de poupe, renforcés de bandes boulonnées.
+- **Réglage, la verrière :** une bulle en goutte sans pointe, 4,24 m sur 1,60 m, sommet à 1,48 m, bordée d'un bourrelet de métal et d'un pourtour peint. Le moteur la suit pour l'eau et le givre (`Ship.hlsli`).
+- **Le chemin :** maquettes de volume en argile, sept variantes. Écartées : deux crêtes derrière la verrière ; la flèche ouverte par étapes en plan ; l'arête qui se raidit derrière la verrière ; le vaisseau tout écrasé, où la bulle ressortait ; la bulle fondue dans la coque. Retenue : le creux de la variante J, approfondi, avec la bulle de l'inspiration Antigravity `spaceship_verriere_arrondie.blend`.
+- **Réglage, le cockpit :** reconstruit autour de la bulle. Parois descendues de son seuil, rail tout autour, pupitre élargi au haut en arc, casquette de l'auvent qui suit la bulle, ailes et consoles abaissées sous le seuil. Les épaules du pilote dépassent du seuil ; sa tête garde 41 cm sous la bulle.
+- **Réglage, la poupe :** plus aucun bloc cubique. Colliers galbés autour des tuyères, conduites sur colliers ronds, vérins sous soufflet, évents arrondis à lames ; fond en carreaux de céramique bleuis par la chaleur.
+- **Contrôle :** `controle_geometrie.py` passe : écrans vus de l'œil, tôles raccordées au pourtour, pied de la bulle, cabine sous la bulle, fond de cuve, tuyères. 44 564 triangles.
+
+## 2026-10-31 · Vaisseau : détails de peau, feux et cockpit équipé · en test
+
+- **Réglage, le modèle :** `assets/vaisseau/details_v3.py` pose sur la scène de travail des pièces qui ont une fonction, sans changer la silhouette : volets de poupe avec carénages d'articulation, petites ailettes ventrales et de nez, écopes NACA, trappe de secours fléchée, marchepied, chemin antidérapant, tuyères d'attitude percées dans la peau, sonde de nez, feux. Dans le cockpit : couples, faisceaux bridés, poignées, extincteur, tuyau d'oxygène. 21 237 à 27 307 triangles.
+- **Écarté :** deux nacelles dorsales et deux dérives. Elles changeaient l'idée du vaisseau ; l'utilisateur veut du détail qui ancre le vaisseau dans le monde, pas une autre forme.
+- **Écarté :** des blocs carrés pour les propulseurs d'attitude, au nez et aux pointes de poupe. Ils cassaient l'aérodynamisme ; les tuyères sont maintenant percées dans la peau, et tout ce qui dépasse est profilé. Règle écrite dans `principes.md`.
+- **Réglage, les volets bougent :** comme des élevons, tangage et roulis mêlés de chaque côté, 20° au plus ; poses 3 à 6, six pivots dans le paquet.
+- **Réglage, les feux :** feux de position et de formation vers 0,01 d'émission. À 1,5, puis à 0,35, ils blanchissaient la nuit, où l'exposition vaut environ 130 fois celle de midi ; maintenant rouges et verts la nuit, effacés de jour comme les vrais. Éclats blancs sur le cadre de poupe.
+- **Réglage, le paquet :** version 3, un rôle par matériau. Les écrans ne dépendent plus de l'ordre des matériaux du GLB ; le cœur des tuyères suit les gaz, les feux à éclats et anticollision clignotent.
+- **Réglage, l'éclairage :** le reflet du ciel sur la coque suit la direction réfléchie, comme sur la verrière, au lieu d'un ciel moyen.
+- **Les jets d'attitude** sortent désormais des tuyères de leurs blocs.
+- **Coût, titre de la fenêtre, 1920×1080, 1 500 m au-dessus de la mer :** rendu de 11,4 ms vaisseau caché à 12,1 ms en poursuite, avec les détails ; 8,7 ms au cockpit. Le jeu reste au-dessus de 60 fps sur la RTX 4070 Ti.
+- **En vol :** à juger, `tools/tests/2026-10-31-vaisseau-details.txt`.
+- **Détail :** `spec-vaisseau.md`, `assets/vaisseau/README.md`.
 ## 2026-10-31 · L'orbite basse : des nappes texturées, des cumulus organisés
 
 - **Le défaut :** à 750 km, des nappes blanches uniformes aux bords nets ; un semis régulier de petits cumulus entre elles.

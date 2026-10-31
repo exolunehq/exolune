@@ -1,10 +1,10 @@
-// ShipScreens.hlsli - the dashboard's live screens and dials (ShipPixel.hlsl), visual only: the pack's materials 13 to 18
+// ShipScreens.hlsli - the dashboard's live screens and dials (ShipPixel.hlsl), visual only: the pack's roles 1 to 6
 // (assets/vaisseau/paquet_moteur.py). Their 512² images (assets/vaisseau/textures_cockpit.py) keep the frames and the
 // labels; what the flight changes is wiped and drawn again here, in the images' texels, y down, with their colours.
 #ifndef SHIP_SCREENS_HLSLI
 #define SHIP_SCREENS_HLSLI
 
-static const uint SCREEN_NAV = 13, SCREEN_FLIGHT = 14, SCREEN_SYSTEMS = 15, DIAL_GAS = 16, DIAL_PITCH = 17, DIAL_HEIGHT = 18;
+static const uint SCREEN_NAV = 1, SCREEN_FLIGHT = 2, SCREEN_SYSTEMS = 3, DIAL_GAS = 4, DIAL_PITCH = 5, DIAL_HEIGHT = 6; // roles
 
 // The images' colours, decoded as the GPU decodes their sRGB texels: a power law would darken the dark ones.
 float3 Srgb(float3 c) { c /= 255.0; return lerp(c / 12.92, pow((c + 0.055) / 1.055, 2.4), step(0.04045, c)); }
@@ -234,14 +234,14 @@ float3 Dial(float2 p, float3 c, float value)
     return c;
 }
 
-bool ShipIsScreen(uint material) { return material >= SCREEN_NAV && material <= DIAL_HEIGHT; }
+bool ShipIsScreen(uint role) { return role >= SCREEN_NAV && role <= DIAL_HEIGHT; }
 
-// The material's image at uv, `image` its printed colour, linear: what the screen shows now.
-float3 ShipScreen(uint material, float2 uv, float3 image)
+// The role's image at uv, `image` its printed colour, linear: what the screen shows now.
+float3 ShipScreen(uint role, float2 uv, float3 image)
 {
     const float2 p = uv * 512.0;
     screenPx = max(max(length(ddx(p)), length(ddy(p))), 1e-3);
-    switch (material)
+    switch (role)
     {
     case SCREEN_NAV:     return NavScreen(p, image);
     case SCREEN_FLIGHT:  return FlightScreen(p, image);

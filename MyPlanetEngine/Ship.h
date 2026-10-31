@@ -18,12 +18,13 @@ public:
     // The images, the two shadow maps, the overlay, then the water's: its drops, map, film and merges as UAVs, its map and
     // film as SRVs; then the climate map (Climate.hlsli), its view made by D3DApp.
     static constexpr UINT DescriptorCount = MaxImages + 10;
-    // The canopy's water (ShipWater.hlsli): the map over both panes at 1.2 mm, the simulated drops. Ship.hlsli's WATER_SIZE.
-    static constexpr UINT WaterWidth = 1584, WaterHeight = 3660, DropCount = 8192;
+    // The canopy's water (ShipWater.hlsli): the map around the bubble at 1.2 mm, the simulated drops.
+    // Ship.hlsli's WATER_SIZE.
+    static constexpr UINT WaterWidth = 1684, WaterHeight = 2450, DropCount = 8192;
     static constexpr UINT ShadowSize = 2048;
     static constexpr DXGI_FORMAT OverlayFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
     // The ship frame's point and radius that the shadow maps cover (m); Ship.hlsli's SHIP_CENTRE, SHIP_RADIUS.
-    static constexpr float CentreY = -2.15f, CentreZ = 0.05f, Radius = 6.7f;
+    static constexpr float CentreY = -0.25f, CentreZ = 0.55f, Radius = 6.7f;
 
     struct Constants {
         DirectX::XMFLOAT4X4 model;     // ship frame -> face-local, camera-relative, transposed for HLSL
@@ -34,11 +35,14 @@ public:
         DirectX::XMFLOAT4 turn;    // x: pitch up, y: yaw right, -1 to 1; z: clock (s), wraps at 3600
         DirectX::XMFLOAT4 course;  // the dashboard (ShipScreens.hlsli): heading, latitude, longitude (deg); w: the ground (km)
         DirectX::XMFLOAT4 gauges;  // x: the gas, 0 to 1
-        DirectX::XMFLOAT4X4 pose[2]; // ship frame -> ship frame: the stick, the throttle (Ship.hlsli's ShipPose), transposed
+        // ship frame -> ship frame (Ship.hlsli's ShipPose), transposed: the stick, the throttle, then the elevons, inner left,
+        // inner right, outer left, outer right
+        DirectX::XMFLOAT4X4 pose[6];
     };
-    // The moving parts' pivots, ship frame, from the pack (pieces_mobiles.py): the stick's twist axis, the throttle's.
+    // The moving parts' pivots, ship frame, from the pack (pieces_mobiles.py, design_chasseur.py): the stick's twist axis,
+    // the throttle's, the elevons' hinges, running outwards.
     struct Pivot { DirectX::XMFLOAT3 point, axis; };
-    Pivot pivots[2] = {};
+    Pivot pivots[6] = {};
 
     // The pack's path: false, and the ship stays out, when it cannot be read.
     bool Load(const std::wstring& path);

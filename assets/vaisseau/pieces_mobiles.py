@@ -1,7 +1,7 @@
 """Pièces mobiles du cockpit : le manche et la manette des gaz, que le moteur fait tourner (ShipPose, Ship.hlsli).
 
 Usage : blender -b vaisseau_travail.blend --python pieces_mobiles.py   (marque, sauve la scène, exporte le GLB)
-preparer.py l'appelle aussi, après design_v2.
+design_chasseur.py l'appelle aussi, après le cockpit.
 
 - Chaque sommet porte l'attribut _POSE, exporté dans le GLB et lu par paquet_moteur.py :
   0 fixe ; dans ]0, 1] le manche, ]1, 2] la manette, par la fraction au-delà de l'entier.

@@ -18,10 +18,10 @@ Output PSMain(ShipPixel input)
 {
     const ShipMaterial m = shipMaterials[shipMaterial];
     // The dashboard's screens and dials show the flight (ShipScreens.hlsli), in their colour and their light alike.
-    const bool screen = ShipIsScreen(shipMaterial);
+    const bool screen = ShipIsScreen(m.role);
     float3 image = ShipImage(m.image[0], m.uv[0], input.uv, 1.0).rgb;
     [branch] if (screen)
-        image = ShipScreen(shipMaterial, input.uv.xy, image);
+        image = ShipScreen(m.role, input.uv.xy, image);
     const float3 albedo = m.color.rgb * image;
     const float4 metalRough = ShipImage(m.image[1], m.uv[1], input.uv, 1.0);
     const float roughness = clamp(m.roughness * metalRough.g, 0.05, 1.0), metallic = saturate(m.metallic * metalRough.b);
@@ -62,12 +62,32 @@ Output PSMain(ShipPixel input)
     const float open = lerp(0.2, 1.0, ShipLight(1, input.local, 0.003, 5.0)), nu = dot(n, up);
     const float3 ground = beam * saturate(muS) + sky;
     const float3 skyE = (sky * (0.5 + 0.5 * nu) * open + GROUND_ALBEDO * ground * (0.5 - 0.5 * nu) * lerp(0.4, 1.0, open)) * occlusion;
-    const float3 sheen = f0 + (max(1.0 - roughness, f0) - f0) * pow(saturate(1.0 - nv), 5.0); // the sky's mirror image, rough;
+    const float3 sheen = f0 + (max(1.0 - roughness, f0) - f0) * pow(saturate(1.0 - nv), 5.0);
     // saturate: nv carries 1e-4 more, and pow of a negative is NaN, a black disc where a panel faces the eye
-    const float3 skyLit = diffuse * skyE + sheen * skyE / PI * (1.0 - 0.7 * roughness);
+    // The sky's mirror image along the reflection, as on the canopy (ShipGlass.hlsl): brighter towards the horizon, the
+    // ground below it. Rough surfaces blur it into the sky's light; under the hull it dims with the sky.
+    const float3 r = reflect(-v, n);
+    const float ru = dot(r, up);
+    const float3 env = lerp(GROUND_ALBEDO * ground / PI, sky / PI * (1.4 - 0.9 * saturate(ru)), smoothstep(-0.08, 0.08, ru));
+    const float3 skyLit = diffuse * skyE
+                        + sheen * lerp(env * lerp(0.2, 1.0, open) * occlusion, skyE / PI, sqrt(roughness)) * (1.0 - 0.5 * roughness);
+
+    // The lights that the flight animates (Ship.hlsli's roles): the nozzles' cores with the gas, the white strobes'
+    // double flash every 1.3 s, the red beacons' pulse, the top and the bottom one in turn.
+    float glow = 1.0;
+    const float clock = shipTurn.z;
+    if (m.role == SHIP_ROLE_HOT)
+        glow = 0.04 + 0.96 * pow(saturate(shipThrust.x), 1.5);
+    else if (m.role == SHIP_ROLE_STROBE)
+    {
+        const float t = frac(clock / 1.3);
+        glow = step(t, 0.035) + step(abs(t - 0.14), 0.0175);
+    }
+    else if (m.role == SHIP_ROLE_BEACON)
+        glow = 0.03 + pow(saturate(sin(2.0 * PI * (clock * 0.8 + (input.local.z < 0.0 ? 0.5 : 0.0)))), 6.0);
 
     Output o;
-    o.radiance = float4(sunLit + skyLit + m.emission * (screen ? image : ShipImage(m.image[4], m.uv[4], input.uv, 1.0).rgb),
+    o.radiance = float4(sunLit + skyLit + glow * m.emission * (screen ? image : ShipImage(m.image[4], m.uv[4], input.uv, 1.0).rgb),
                         length(input.pos) / 1000.0);
     o.sunPart = float4(sunLit, 0.0);
     return o;

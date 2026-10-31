@@ -170,6 +170,12 @@ Statut : référence, depuis le 2026-10-22. Toute correction et toute nouvelle f
 - **La caméra décide seulement s'il se voit,** par sa taille à l'écran et la finesse du maillage sous lui ; il sort du sol, sans pop.
 - **Son pied est sur le sol exact,** enfoui selon le sol, toujours de plus que l'écart mesuré au sol que dessine le maillage.
 
+**Le vaisseau garde sa forme ; ses détails ont une fonction et suivent l'écoulement** (`spec-vaisseau.md`, `assets/vaisseau/README.md`).
+- **Du détail, pas de la masse :** des nacelles et des dérives ajoutées changeaient l'idée du vaisseau.
+- **La forme ne change que par décision, sur maquettes :** des volumes en argile à comparer, puis une seule source, `assets/vaisseau/forme_chasseur.py`, que tout le reste suit.
+- **Chaque pièce a une fonction lisible,** comme sur un vrai appareil : volet, écope, trappe, feu, tuyère, poignée. Elle tient dans une tôle, à l'écart des autres équipements.
+- **Rien ne fait face à l'écoulement en arête vive :** tuyères d'attitude percées dans la peau, carénages profilés, bouts effilés, lèvres arrondies, panneaux presque affleurants. Des blocs posés sur la coque cassaient l'aérodynamisme.
+
 **La végétation suit le climat par des lois publiées** (`recherche-vegetation.md`).
 - **La diversité d'aspect reprend les champs du peuplement :** froid, aridité et exposition décident des familles, avec des mélanges continus aux frontières. La graine choisit la forme ; changer de modèle ne déplace pas la plante et n'en crée pas une nouvelle (`arbustes-climatiques.md`).
 - **Une représentation simplifiée se juge contre son propre modèle détaillé,** avec les mêmes arbres, poses, tailles et lumière (`log/prototype-vegetation-volumique.md`). Le couvert et les trouées comptent autant que les silhouettes ; des seuils d'opacité communs à tous les arbres ne doivent pas corréler leurs trous.

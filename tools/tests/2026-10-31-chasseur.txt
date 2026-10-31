@@ -1,0 +1,13 @@
+# Le chasseur : tools\lance.ps1 -Parcours tools\tests\2026-10-31-chasseur.txt
+# Il remplace la forme N. Tab : cockpit, poursuite, vaisseau caché ; en poursuite, clic droit maintenu : tourner autour.
+# Molette : les gaz ; clic droit maintenu au cockpit : regarder autour de soi.
+# Cockpit : verrière dégagée, pupitre bas, consoles, siège ; le manche et la manette suivent les commandes.
+# Dehors : les quatre élevons, dans les deux sens, cabrer et rouler ; le panache des quatre tuyères, qui vit et scintille.
+Cockpit, soleil haut : la vue dégagée, le pupitre sous la ligne du nez | 1500 30.68685 120.10788 0 -64.7 | 30.68685 120.10788
+Poursuite, soleil haut : cabrer et rouler, les élevons bougent dans les deux sens | 1500 30.68685 120.10788 0 -64.7 | 30.68685 120.10788
+Poursuite, gaz à fond : les quatre panaches, turbulence et scintillement | 1500 30.68685 120.10788 0 -64.7 | 30.68685 120.10788
+Soleil bas, poursuite : le reflet du ciel sur la coque et la verrière | 1500 30.68685 120.10788 0 -64.7 | 0 -165
+Nuit, poursuite : les feux, les panaches dans le noir | 1500 30.68685 120.10788 0 -64.7 | -30.68685 -59.89212
+Sous les cumulus, averse : l'eau coule sur la bulle, jusqu'à son bord | 1500 38.1445 103.5352 -5 90 | 38.1445 128.5352
+Au ras de la mer, à l'arrêt : les jets d'attitude, glisser et monter | 30 -20.47 -75.45 0 160 | -50.47 -75.45
+Orbite, poursuite : la silhouette au loin | 100000 38.1445 103.5352 60 90 | 38.1445 128.5352

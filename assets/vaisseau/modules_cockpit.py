@@ -1,7 +1,7 @@
 """Modules d'équipement du cockpit : dimensions, commandes et place dans l'atlas.
 
 Une seule source pour la sérigraphie (textures_cockpit.py) et la géométrie
-(design_v2.py) : chaque commande est posée là où sa légende est imprimée.
+(cockpit_chasseur.py) : chaque commande est posée là où sa légende est imprimée.
 Coordonnées en mètres dans le plan du module : u vers la droite du lecteur,
 v vers le haut des légendes. Sur les flancs, u va vers le nez à gauche du
 pilote et vers l'arrière à sa droite ; sur les tablettes, v va vers le nez.
@@ -83,21 +83,29 @@ MODULES = {
     'clavier': ((.13, .40), 'KEYBOARD',
         [('key', .028 + .025*i, .06 + .03*j, '') for j in range(7) for i in range(4)]
         + [('push', .035, .295, 'CLEAR', None), ('push', .095, .295, 'ENTER', 'cyan'), ('lamp', .065, .345, 'EXEC', 'cyan')]),
+    # Côtés du pupitre, au-dessus des consoles.
+    'feux': ((.12, .17), 'LIGHTS', [
+        ('tog', .03, .095, 'NAV'), ('tog', .06, .095, 'STRB'), ('tog', .09, .095, 'LAND'), ('rot', .06, .035, 'PANEL')]),
+    'carbu': ((.12, .17), 'FUEL', [
+        ('lamp', .035, .125, 'L', 'amber'), ('lamp', .085, .125, 'R', None),
+        ('tog', .035, .07, 'PUMP L'), ('tog', .085, .07, 'PUMP R'), ('push', .06, .025, 'XFEED', None)]),
     'com': ((.13, .28), 'COMM', [
         ('rot', .04, .19, 'VOL'), ('rot', .095, .19, 'CHAN'),
         ('tog', .035, .085, 'XMIT'), ('tog', .095, .085, 'ICS'), ('lamp', .065, .035, 'LINK', 'cyan')]),
 }
 
 def atlas():
-    """Rectangles (x0, y0, x1, y1) en pixels, rangés par hauteur décroissante."""
+    """Rectangles (x0, y0, x1, y1) en pixels, par hauteur décroissante, chacun dans la première rangée où il tient."""
     sizes = [(n, round(w*ECHELLE), round(h*ECHELLE)) for n, ((w, h), _, _) in MODULES.items()]
     sizes.append((TEINTE, 32, 32))
     sizes.sort(key=lambda s: -s[2])
-    rects = {}; x = y = MARGE; row = 0
+    rects = {}; rangees = []   # [y, hauteur, x libre]
     for n, w, h in sizes:
-        if x + w + MARGE > ATLAS: x = MARGE; y += row + MARGE; row = 0
-        rects[n] = (x, y, x + w, y + h); x += w + MARGE; row = max(row, h)
-    assert y + row <= ATLAS, 'atlas trop petit'
+        r = next((r for r in rangees if h <= r[1] and r[2] + w + MARGE <= ATLAS), None)
+        if r is None:
+            y = rangees[-1][0] + rangees[-1][1] + MARGE if rangees else MARGE; r = [y, h, MARGE]; rangees.append(r)
+        rects[n] = (r[2], r[0], r[2] + w, r[0] + h); r[2] += w + MARGE
+    assert rangees[-1][0] + rangees[-1][1] <= ATLAS, 'atlas trop petit'
     return rects
 
 if __name__ == '__main__':
