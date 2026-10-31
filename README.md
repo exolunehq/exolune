@@ -4,9 +4,9 @@
 
 **Real-scale planets. Seamless from orbit to the ground.**
 
-![From the whole planet down through the clouds to the forest, in one continuous shot](docs/media/trailer-descente.webp)
+![From the whole planet down to a forest clearing, in one continuous shot](docs/media/trailer-descente.webp)
 
-*One shot, no cut, no loading: from the whole globe down through the clouds to the treetops.*
+*One shot, no cut, no loading: from the whole globe down to a clearing in the forest.*
 
 </div>
 
@@ -39,14 +39,20 @@ The same planet at every scale: nothing is streamed, nothing is loaded, nothing 
 
 <table>
 <tr>
-<td width="33%"><img src="docs/media/mesa.jpg" alt="A mesa in the desert"></td>
-<td width="33%"><img src="docs/media/pitons.jpg" alt="Snowy pinnacles"></td>
-<td width="33%"><img src="docs/media/foret.jpg" alt="A forest under a cliff"></td>
+<td width="33%"><img src="docs/media/volcan-cordillere.jpg" alt="A snowy volcanic cordillera, its highest cone at 8,500 m"></td>
+<td width="33%"><img src="docs/media/caldeira.jpg" alt="A volcanic island and its summit caldera"></td>
+<td width="33%"><img src="docs/media/atoll.jpg" alt="An atoll, its reef ring and turquoise lagoon"></td>
+</tr>
+<tr align="center">
+<td><sub>A volcanic cordillera above a subduction zone</sub></td><td><sub>An island volcano and its caldera</sub></td><td><sub>An atoll on a sinking hotspot chain</sub></td>
 </tr>
 <tr>
-<td><img src="docs/media/cote.jpg" alt="A coastline"></td>
-<td><img src="docs/media/aiguille.jpg" alt="A rock needle above red ranges"></td>
-<td><img src="docs/media/roche.jpg" alt="Bedded red rock up close"></td>
+<td><img src="docs/media/chaine-collision.jpg" alt="A snowy collision range under the clouds"></td>
+<td><img src="docs/media/cote-active.jpg" alt="An active coast, 3,700 m of relief within 5 km of the shore"></td>
+<td><img src="docs/media/massif-mer.jpg" alt="A snowy massif plunging into the sea"></td>
+</tr>
+<tr align="center">
+<td><sub>A range raised where two continents collide</sub></td><td><sub>An active coast, seen from the sea</sub></td><td><sub>A snowy massif plunging into the sea</sub></td>
 </tr>
 </table>
 

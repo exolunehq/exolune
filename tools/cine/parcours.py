@@ -36,6 +36,24 @@ def ease(u):
     return u*u*u*(10+u*(-15+6*u))
 
 
+# L'orbite et la montée sont exponentielles en hauteur au-dessus du sol de leur bout bas, plus ce décalage (m) : la
+# vitesse décroît avec la hauteur jusqu'à celle d'une approche, sans freinage au raccord.
+ORBIT_OFFSET = 300.0
+
+
+def orbit_law(u, low, high, base):
+    """Hauteur de u = 0 en `low` à u = 1 en `high` (altitudes), exponentielle au-dessus de `base`."""
+    a, b = np.log(low-base+ORBIT_OFFSET), np.log(high-base+ORBIT_OFFSET)
+    return base + np.exp((1-u)*a + u*b) - ORBIT_OFFSET
+
+
+def orbit_share(alt, low, high, base):
+    """Part du trajet horizontal, de 0 en `low` à 1 en `high` : elle suit la hauteur, (h+décalage)^0,6, pour que la
+    pente s'adoucisse près du sol sans croisière horizontale jusqu'en bas."""
+    f = lambda a: (np.asarray(a)-base+ORBIT_OFFSET)**0.6
+    return np.clip((f(alt)-f(low))/(f(high)-f(low)), 0, 1)
+
+
 def route(controls, u):
     """Points de passage répartis par longueur, sans freinage aux extrémités."""
     lengths = np.linalg.norm(np.diff(controls, axis=0), axis=1)
@@ -249,19 +267,23 @@ def generate(scenario):
         if kind == "pause":
             p[:] = current; alt = np.full(len(u), altitude)
         elif kind == "orbite":
-            target = max(0, float(ground(p[-1:])[0])) + float(seg.get("hauteur", 150))
+            base = max(0, float(ground(p[-1:])[0]))
+            target = base + float(seg.get("hauteur", 150))
             if "altitude" in seg:
                 target = float(seg["altitude"])
-            if altitude <= target:
-                raise ValueError("orbite : altitude de départ supérieure à l'arrivée")
+            if altitude <= target or target < base:
+                raise ValueError("orbite : altitude de départ supérieure à l'arrivée, arrivée au-dessus du sol")
             # La descente exponentielle reste temporelle ; aucun arrêt en orbite.
-            alt = np.exp((1-u)*np.log(altitude+1000) + u*np.log(target+1000))-1000
+            alt = orbit_law(1-u, target, altitude, base)
+            p = route(controls, 1-orbit_share(alt, target, altitude, base))
         elif kind == "ascension":
             # La montée vers l'orbite : la même loi exponentielle, de bas en haut, jusqu'à `altitude`.
             target = float(seg["altitude"])
-            if altitude >= target:
-                raise ValueError("ascension : altitude d'arrivée supérieure au départ")
-            alt = np.exp((1-u)*np.log(altitude+1000) + u*np.log(target+1000))-1000
+            base = max(0, float(ground(current[None])[0]))
+            if altitude >= target or altitude < base:
+                raise ValueError("ascension : altitude d'arrivée supérieure au départ, départ au-dessus du sol")
+            alt = orbit_law(u, altitude, target, base)
+            p = route(controls, orbit_share(alt, altitude, target, base))
         elif kind in {"rase-mottes", "mer"}:
             floor = ground(p, cell) if kind == "rase-mottes" else np.zeros(len(p))
             target = np.maximum(floor, 0) + float(seg.get("hauteur", 150 if kind == "rase-mottes" else 20))
@@ -430,8 +452,10 @@ def generate(scenario):
     def camera_look(spec, sl, location):
         if spec.get("type") == "pleine":
             # Le regard suit le cap et le tangage du vaisseau, tourné de `cap_relatif` et `tangage` : un fondu entre
-            # deux vues pleines tourne la tête en douceur.
-            yaw = np.radians(float(spec.get("cap_relatif", 0))); pitch = np.radians(angles[sl,1] + float(spec.get("tangage", -4)))
+            # deux vues pleines tourne la tête en douceur. Jamais au-delà de ±88° : passé le nadir, le cap de la caméra
+            # basculerait de 180° et l'image ferait un tonneau.
+            yaw = np.radians(float(spec.get("cap_relatif", 0)))
+            pitch = np.radians(np.clip(angles[sl,1] + float(spec.get("tangage", -4)), -88, 88))
             right = unit(np.cross(p[sl], forward[sl]))
             level = forward[sl]*np.cos(yaw) + right*np.sin(yaw)
             return unit(level*np.cos(pitch)[:,None] + p[sl]*np.sin(pitch)[:,None])

@@ -113,6 +113,25 @@ class Scenarios(unittest.TestCase):
         xyz = cine.direction(cam[:,:2])*(cine.cp.R+cam[:,2:3])
         self.assertLess(np.linalg.norm(xyz[60]-xyz[59]),5)
 
+    def test_vue_pleine_sans_tonneau_au_nadir(self):
+        # Descente presque verticale : le regard ne dépasse pas le nadir, donc le cap de la caméra ne bascule pas.
+        s = {"fps":60,"graine":0,"depart":[0,0,9000000],
+             "segments":[{"type":"orbite","duree":3,"point":[0,.5],"hauteur":5000,"camera":{"type":"pleine","tangage":-6}}]}
+        _,views,_,cam,_,_,_ = cine.generate(s)
+        self.assertTrue((views=="pleine").all())
+        self.assertGreaterEqual(cam[:,4].min(),-88-1e-6)
+        turn = np.abs((np.diff(cam[:,3])+180)%360-180)
+        self.assertLess(turn.max(),5)
+
+    def test_orbite_ralentit_a_l_horizontale_pres_du_sol(self):
+        # L'avancée horizontale suit l'altitude : aucune croisière constante jusqu'en bas.
+        s = {"fps":60,"graine":0,"depart":[0,0,9000000],
+             "segments":[{"type":"orbite","duree":3,"point":[0,8],"hauteur":5000}]}
+        _,_,nav,_,_,_,_ = cine.generate(s)
+        p = cine.direction(nav[:,:2])
+        horizontal = np.arccos(np.clip(np.sum(p[1:]*p[:-1],axis=1),-1,1))*cine.cp.R*60
+        self.assertLess(horizontal[-10:].max(), 0.05*horizontal.max())
+
     def test_regard_paysage_oppose(self):
         s = copy.deepcopy(self.scenario)
         s["segments"][0]["camera"] = {"type":"libre","regard":"paysage","cap":0}
@@ -179,7 +198,8 @@ class Scenarios(unittest.TestCase):
             {'type':'approche','duree':4,'point':[0,.006],'hauteur':30}]}
         _,_,nav,_,_,_,summary = cine.generate(s)
         u = np.arange(0,240,15)/240
-        expected = np.exp((1-u)*np.log(3000)+u*np.log(1150))-1000
+        off = cine.ORBIT_OFFSET  # relief plat : le sol est à 0
+        expected = np.exp((1-u)*np.log(2000+off)+u*np.log(150+off))-off
         np.testing.assert_allclose(nav[:240:15,2],expected,atol=1e-7)
         for seg in summary['segments']:
             self.assertGreater(seg['vitesse_min_m_s'],0)
