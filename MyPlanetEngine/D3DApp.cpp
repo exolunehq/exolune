@@ -8,7 +8,9 @@
 #include "Scans.h"
 #include "Tectonics.h"
 #include "Climate.h"
+#include "Erosion.h"
 #include <windowsx.h>
+#include <future>
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
@@ -41,7 +43,7 @@ namespace
                              FoliageHiZSrv = PlanetImpostorSrv + PlanetFoliage::DescriptorCount,
                              CloudTemporalSrv = FoliageHiZSrv + 32, // per history read: fresh, history's, drifted's
                              ShipSrv = CloudTemporalSrv + 14, TectonicSrv = ShipSrv + Ship::DescriptorCount, // its views, the climate,
-                             DescriptorCount = TectonicSrv + 5 };                    // the volcanoes and their index
+                             DescriptorCount = TectonicSrv + 6 };                    // the volcanoes, their index and erosion
     // Render target views: the back buffers, then the HDR image, the composite image, the two histories and the terrain's
     // sunlit part, for the clouds' shade.
     // Then the cloud temporal pass's fresh light and data, its two histories, light, data and offset each, and the light
@@ -725,8 +727,8 @@ bool D3DApp::InitDirect3D() {
     CD3DX12_DESCRIPTOR_RANGE planetMapRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 29);
     CD3DX12_DESCRIPTOR_RANGE shipSunRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 44); // the ship's map towards the sun
     // The tectonic map and its views (Tectonics.hlsli), the climate map (Climate.hlsli), the volcanoes and their index
-    // (Volcanoes.hlsli): t18..t22.
-    CD3DX12_DESCRIPTOR_RANGE tectonicRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 18);
+    // (Volcanoes.hlsli), and the erosion map (Erosion.hlsli): t18..t23.
+    CD3DX12_DESCRIPTOR_RANGE tectonicRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 6, 18);
     CD3DX12_ROOT_PARAMETER params[12];
     params[0].InitAsConstantBufferView(0);
     params[1].InitAsShaderResourceView(0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
@@ -1198,7 +1200,19 @@ bool D3DApp::InitDirect3D() {
     mIndexBufferView.BufferLocation = mIndexBuffer->GetGPUVirtualAddress();
     mIndexBufferView.SizeInBytes = static_cast<UINT>(indexBufferSize);
     mIndexBufferView.Format = DXGI_FORMAT_R32_UINT;
-    CreateTectonicMap(); // the relief reads it, the planet map with it
+    // The relief reads the tectonic map and the erosion's, the planet map with them. The erosion's form pass is compiled
+    // while the tectonic map is computed: neither depends on the other.
+    std::future<ComPtr<ID3D12PipelineState>> erosionForm = std::async(std::launch::async, [this] {
+        ComPtr<ID3DBlob> shader = LoadShader(L"ErosionForm.cso");
+        D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
+        psoDesc.pRootSignature = mComputeRootSignature.Get();
+        psoDesc.CS = CD3DX12_SHADER_BYTECODE(shader.Get());
+        ComPtr<ID3D12PipelineState> pso;
+        Check(md3dDevice->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&pso)), "Erosion form PSO creation failed.");
+        return pso;
+    });
+    const Tectonics::Map tectonics = CreateTectonicMap();
+    CreateErosionMap(tectonics, erosionForm.get().Get());
     InitCine(GpuDescriptor(TectonicSrv));
     CreatePlanetMap();
     return true;
@@ -1310,7 +1324,7 @@ void D3DApp::CreatePlanetMap() {
 // resolution; every slice saved beside the executable for the relief's CPU port and the level 0 (tools/hydro/cp.py),
 // tectonique-<seed>.bin. The volcanoes and their index as two buffers, saved beside it too, volcans-<seed>.bin. Its time
 // and its size on the GPU go to the title. The planet's seed is PLANET_SEED (PlanetSettings.hlsli).
-void D3DApp::CreateTectonicMap() {
+Tectonics::Map D3DApp::CreateTectonicMap() {
     const uint32_t seed = mSettings.seed;
     const Tectonics::Map map = Tectonics::Build({ seed, PlanetRadius / 1000.0 });
     mTectonicMs = map.ms;
@@ -1397,6 +1411,90 @@ void D3DApp::CreateTectonicMap() {
     mVolcanoCount = UINT(map.volcanoes.size());
     mVolcanoMs = map.volcanoMs;
     CreateClimateMap(map, seed, cache.substr(0, cache.find_last_of(L"\\/") + 1) + L"climat-" + std::to_wstring(seed) + L".bin");
+    // The pre-erosion pass never reads erosion; reserve its slot until the network is ready.
+    srv.Format = DXGI_FORMAT_R32G32_UINT;
+    md3dDevice->CreateShaderResourceView(nullptr, &srv, CD3DX12_CPU_DESCRIPTOR_HANDLE(mSrvHeap->GetCPUDescriptorHandleForHeapStart(),
+        TectonicSrv + 5, step));
+    return map;
+}
+
+// The erosion level 0: pre-erosion ground on the GPU, drainage on the CPU, uploaded at t23.
+void D3DApp::CreateErosionMap(const Tectonics::Map& tectonics, ID3D12PipelineState* pso) {
+    LARGE_INTEGER t0, t1;
+    QueryPerformanceCounter(&t0);
+    const uint32_t seed = mSettings.seed, n = tectonics.size, cells = 6 * n * n;
+    const UINT64 bytes = sizeof(float) * cells;
+    ComPtr<ID3D12Resource> form = CreateBuffer(md3dDevice.Get(), bytes, D3D12_HEAP_TYPE_DEFAULT,
+        D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    ComPtr<ID3D12Resource> readback = CreateBuffer(md3dDevice.Get(), bytes, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
+    mCommandAllocator->Reset();
+    mCommandList->Reset(mCommandAllocator.Get(), pso);
+    auto toWrite = CD3DX12_RESOURCE_BARRIER::Transition(form.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    mCommandList->ResourceBarrier(1, &toWrite);
+    ID3D12DescriptorHeap* heaps[] = { mSrvHeap.Get() };
+    mCommandList->SetDescriptorHeaps(1, heaps);
+    mCommandList->SetComputeRootSignature(mComputeRootSignature.Get());
+    mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
+    mCommandList->SetComputeRootUnorderedAccessView(1, form->GetGPUVirtualAddress());
+    mCommandList->SetComputeRootDescriptorTable(2, GpuDescriptor(TectonicSrv));
+    mCommandList->Dispatch(n * n / 64, 6, 1);
+    auto toCopy = CD3DX12_RESOURCE_BARRIER::Transition(form.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+    mCommandList->ResourceBarrier(1, &toCopy);
+    mCommandList->CopyResource(readback.Get(), form.Get());
+    mCommandList->Close();
+    ID3D12CommandList* lists[] = { mCommandList.Get() };
+    mCommandQueue->ExecuteCommandLists(1, lists);
+    WaitForPreviousFrame();
+    std::vector<float> e(cells);
+    void* mapped = nullptr;
+    CD3DX12_RANGE readRange(0, bytes), noWrite(0, 0);
+    Check(readback->Map(0, &readRange, &mapped), "Erosion form readback failed.");
+    memcpy(e.data(), mapped, bytes);
+    readback->Unmap(0, &noWrite);
+
+    // The network from the cache when its key, the form, the seed and the executable's time, is the same; else computed.
+    wchar_t exePath[MAX_PATH] = {};
+    GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+    WIN32_FILE_ATTRIBUTE_DATA exeInfo = {};
+    GetFileAttributesExW(exePath, GetFileExInfoStandard, &exeInfo);
+    const uint64_t key = Erosion::Key(e, seed, uint64_t(exeInfo.ftLastWriteTime.dwHighDateTime) << 32 | exeInfo.ftLastWriteTime.dwLowDateTime);
+    std::wstring cache(exePath);
+    cache = cache.substr(0, cache.find_last_of(L"\\/") + 1) + L"erosion-" + std::to_wstring(seed) + L".bin";
+    Erosion::Map map;
+    if (!Erosion::Load(map, key, cache)) {
+        map = Erosion::Build(tectonics, e, PlanetRadius / 1000.0);
+        Erosion::Save(map, seed, key, cache);
+    }
+    mErosionBuildMs = map.ms;
+    CD3DX12_HEAP_PROPERTIES defaultHeap(D3D12_HEAP_TYPE_DEFAULT);
+    CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32G32_UINT, n, n, 6, 1);
+    Check(md3dDevice->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COPY_DEST,
+        nullptr, IID_PPV_ARGS(&mErosionMap)), "Erosion map creation failed.");
+    mErosionMb = double(cells) * 8.0 / (1024.0 * 1024.0);
+    ComPtr<ID3D12Resource> upload = CreateBuffer(md3dDevice.Get(), GetRequiredIntermediateSize(mErosionMap.Get(), 0, 6),
+        D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
+    std::vector<D3D12_SUBRESOURCE_DATA> data(6);
+    for (UINT face = 0; face < 6; ++face)
+        data[face] = { &map.texels[size_t(face) * n * n * 2], LONG_PTR(n) * 8, LONG_PTR(n) * n * 8 };
+    mCommandAllocator->Reset();
+    mCommandList->Reset(mCommandAllocator.Get(), nullptr);
+    UpdateSubresources(mCommandList.Get(), mErosionMap.Get(), upload.Get(), 0, 0, 6, data.data());
+    auto toRead = CD3DX12_RESOURCE_BARRIER::Transition(mErosionMap.Get(), D3D12_RESOURCE_STATE_COPY_DEST,
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    mCommandList->ResourceBarrier(1, &toRead);
+    mCommandList->Close();
+    mCommandQueue->ExecuteCommandLists(1, lists);
+    WaitForPreviousFrame();
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
+    srv.Format = DXGI_FORMAT_R32G32_UINT;
+    srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+    srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srv.Texture2DArray.MipLevels = 1;
+    srv.Texture2DArray.ArraySize = 6;
+    md3dDevice->CreateShaderResourceView(mErosionMap.Get(), &srv, CD3DX12_CPU_DESCRIPTOR_HANDLE(mSrvHeap->GetCPUDescriptorHandleForHeapStart(),
+        TectonicSrv + 5, md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+    QueryPerformanceCounter(&t1);
+    mErosionMs = 1000.0 * double(t1.QuadPart - t0.QuadPart) / mFrequency.QuadPart;
 }
 
 // The climate map (Climate.h, Climate.hlsli), once, from the tectonic map's large forms: computed on the CPU, saved beside
@@ -2299,9 +2397,9 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
         mFullscreen ? L"plein ecran" : L"fenetre",mSettings.vsync ? L"oui" : L"non",
         !mSettings.vsync && mAllowTearing ? L" (tearing autorise)" : L"");
     wcscat_s(title,display);
-    wchar_t tectonics[192];
-    swprintf_s(tectonics, L" | tectonique %.0f ms, %.0f Mo, %u volcans en %.0f ms | climat %.0f ms, %.1f Mo | meteo %.0f ms",
-        mTectonicMs, mTectonicMb, mVolcanoCount, mVolcanoMs, mClimateMs, mClimateMb, mWeatherMapMs);
+    wchar_t tectonics[256];
+    swprintf_s(tectonics, L" | tectonique %.0f ms, %.0f Mo, %u volcans en %.0f ms | climat %.0f ms, %.1f Mo | meteo %.0f ms | erosion %.0f ms (reseau %.0f), %.0f Mo",
+        mTectonicMs, mTectonicMb, mVolcanoCount, mVolcanoMs, mClimateMs, mClimateMb, mWeatherMapMs, mErosionMs, mErosionBuildMs, mErosionMb);
     wcscat_s(title, tectonics);
     if (!mGpuName.empty()) { wcscat_s(title,L" | "); wcscat_s(title,mGpuName.c_str()); }
     mTitle = title;

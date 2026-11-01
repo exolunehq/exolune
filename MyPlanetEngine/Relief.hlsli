@@ -10,8 +10,8 @@
 //    along them; terraces on the platforms, mesas; fine gullies in soft sediments, badlands.
 // 3. The volcanoes' edifices (Volcanoes.hlsli), on the large forms, before the detail, which their young flanks quiet;
 //    after it, the old islands' tops planed, the reefs and their lagoons.
-// 4. No valley is carved: the rivers will be the level 0's (docs/spec-relief-tectonique.md); with or without valleys,
-//    the same relief, the volcanoes' included: they are the form before erosion.
+// 4. The level 0 valleys, gullies and deposits, then wave-cut cliffs (Erosion.hlsli), before the barriers and volcanic
+//    finish. With valleys=false, the complete pre-erosion form, including volcanoes, supplies the drainage and sea witness.
 // Units: metres and kilometres; a noise frequency of 1 has a wavelength of one radius. The CPU port: tools/hydro/cp.py.
 #ifndef RELIEF_HLSLI
 #define RELIEF_HLSLI
@@ -20,6 +20,7 @@
 #include "Noise.hlsli"
 #include "Tectonics.hlsli"
 #include "Volcanoes.hlsli"
+#include "Erosion.hlsli"
 
 // The roughness of the last point evaluated, 0 smooth plains to 1 young mountains: the slopes the mesh hides
 // (Materials.hlsli).
@@ -94,18 +95,27 @@ float ReliefSeaProfile(float x, float w, float cellKm, float ground, float ampli
 // rounding. `sharp` blends them. Each octave is weakened by the slope of the octaves above, 1 / (1 + k s^2), s in m/m,
 // k RELIEF_EROSION for the hills, RELIEF_RIDGE_EROSION for the chains. The first `orientedOctaves` read `oriented`, the
 // others `plain`. The first ridged octave takes `fold` (its value, its gradient per radian; ReliefFold) for `foldShare` of
-// its noise, `foldWeight` its filtering and amplitude. slope: the slope vector of the octaves summed; wide: the value of
-// the `wideOctaves` widest alone.
+// wide captures the wideOctaves widest octaves for the smooth barrier shore.
+// its noise, `foldWeight` its filtering and amplitude. slope: the slope vector of the octaves summed; coarse: the sum of the
+// octaves wider than EROSION_COARSE km, what the valleys carve (Erosion.hlsli).
+// The gullies (ErosionGullies): from the octave EROSION_GULLY_FIRST on, the noise gives way, for `gullies.share` of it,
+// to stripes down the slope of the ground under the octave, the large forms', or a valley's walls where it is carved, and
+// the coarser octaves'; under the glaciers, U troughs and knife-edge crests.
 float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float topKm, int octaves, float relief, float sharp,
-                   float crease, uint seed, float4 fold, float foldShare, float foldWeight, int wideOctaves, out float wide,
-                   out float3 slope)
+                   float crease, uint seed, float4 fold, float foldShare, float foldWeight, int wideOctaves, out float wide, ReliefGullies gullies,
+                   out float3 slope, out float coarse, out float3 cliffSlope)
 {
+    coarse = 0.0;
+    cliffSlope = 0.0;
     const float3 up = normalize((float3)plain.p);
-    float round = 0.0, ridged = 0.0, chain = 1.0, amplitude = 1.0;
+    float round = 0.0, ridged = 0.0, chain = 1.0, amplitude = 1.0, crest = 0.0, top = 0.0;
+    float3 roundSlope = 0.0, ridgedSlope = 0.0, coarseSlope = 0.0;
     wide = 0.0;
-    float3 roundSlope = 0.0, ridgedSlope = 0.0;
     double f = ReliefFrequency(topKm);
     const float metres = relief / (1000.0 * PLANET_RADIUS_KM); // a unit of noise per radius, in m/m at this amplitude
+    // Under the glaciers the crests sharpen: |x|^power, its mean kept, E|cos|^power on the stripes.
+    const float power = lerp(1.0, EROSION_GLACIAL_POWER, gullies.glacial);
+    const float powerMean = lerp(2.0 / 3.14159265, EROSION_GLACIAL_POWER_MEAN, gullies.glacial);
     [loop] for (int o = 0; o < octaves; ++o)
     {
         const float w = RlWeight((float)f);
@@ -119,15 +129,40 @@ float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float t
         const float4 n = RlGradientNoiseD(l.cell, l.q + RlShift(o), seed + (uint)o);
         float3 g = n.yzw * (float)f * metres;
         g -= up * dot(g, up); // along the ground
+        float value = n.x, share = 0.0;
+        [branch] if (o >= EROSION_GULLY_FIRST && gullies.share > 0.0 && PLANET_RADIUS_KM / (float)f > EROSION_GULLY.z)
+        {
+            // The ground's slope under the octave: the coarse octaves' does not count where a valley replaces them.
+            const float3 under = gullies.slope + lerp(roundSlope, ridgedSlope, sharp) - gullies.carved * coarseSlope;
+            const float steep = length(under);
+            // None on the crests of the octave above and of the widest, the chains' and the folds', where the slope that
+            // orients them turns over.
+            share = gullies.share * smoothstep(EROSION_GULLY.x, EROSION_GULLY.y, steep) * (1.0 - smoothstep(0.85, 1.0, crest * sharp))
+                  * (1.0 - smoothstep(0.9, 1.0, top * sharp));
+            [branch] if (share > 0.0)
+            {
+                const float3 across = cross(up, under) / steep;
+                // The stripes' lattice: from the octave's own cell, halved, in floats; on the oriented octaves, the
+                // plain point's, the stripes drawn in the ground's own measure.
+                RlCell kernels;
+                [branch] if (o < orientedOctaves)
+                    kernels = RlSplit(plain, f / EROSION_GULLY_PERIODS);
+                else
+                    kernels.cell = l.cell >> 1, kernels.q = ((float3)(l.cell & 1) + l.q) * 0.5;
+                const float4 stripe = ErosionGullies(kernels, across, seed + 32u + (uint)o);
+                value = lerp(value, stripe.x, share);
+                g = lerp(g, stripe.yzw * (float)f * metres, share);
+            }
+        }
         [branch] if (sharp < 1.0)
         {
             const float a = amplitude * w / (1.0 + RELIEF_EROSION * dot(roundSlope, roundSlope));
-            round += a * n.x;
+            round += a * value;
             roundSlope += a * g;
         }
         [branch] if (sharp > 0.0)
         {
-            float x = n.x, wr = w;
+            float x = value, wr = w;
             float3 gr = g;
             [branch] if (o == 0 && foldShare > 0.0)
             {
@@ -136,21 +171,48 @@ float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float t
                 x = lerp(x, fold.x, foldShare), gr = lerp(gr, gf, foldShare), wr = lerp(w, foldWeight, foldShare);
             }
             float dc;
-            const float c = ReliefCrease(x, max(crease, CREASE_ROUNDING * (float)f / gCreaseMaxFrequency), dc);
+            float c = ReliefCrease(x, max(crease, CREASE_ROUNDING * (float)f / gCreaseMaxFrequency), dc);
+            [branch] if (share > 0.0 && gullies.glacial > 0.0)
+            {
+                const float meanAbs = 0.5 * (1.0 + RL_MEAN_BILLOW_BEST), scale = 0.5 * 3.14159265 * meanAbs; // the stripes' amplitude
+                const float u = max(c, 1e-4) / scale, k = (2.0 / 3.14159265) / powerMean;
+                const float sharpened = scale * k * pow(u, power);
+                dc *= lerp(1.0, k * power * pow(u, power - 1.0), share);
+                c = lerp(c, sharpened, share);
+            }
             const float r = 1.0 - c; // its mean, 1 - E|n|: the billow's mean says E|n| (Noise.hlsli)
             const float folded = o == 1 || o == 2 ? 1.0 - 0.5 * foldShare * saturate(foldWeight) : 1.0; // the folds' crests over the noise's
             const float a = 1.7 * amplitude * wr * chain * folded / (1.0 + RELIEF_RIDGE_EROSION * dot(ridgedSlope, ridgedSlope));
             ridged += a * (r - 0.5 * (1.0 - RL_MEAN_BILLOW_BEST));
             ridgedSlope += a * -dc * gr;
             chain = saturate(0.3 + 1.2 * r);
+            crest = r;
+            if (o == 0)
+                top = r;
         }
         [flatten] if (o < wideOctaves)
             wide = lerp(round, ridged, sharp);
+        if (f < PLANET_RADIUS_KM / EROSION_COARSE)
+            coarse = lerp(round, ridged, sharp), coarseSlope = lerp(roundSlope, ridgedSlope, sharp);
+        // Capture only scales broader than the maximum platform, in the existing sum with no additional noise read.
+        if (f < PLANET_RADIUS_KM / EROSION_CLIFF_SLOPE_KM)
+            cliffSlope = lerp(roundSlope, ridgedSlope, sharp);
         f *= RELIEF_LACUNARITY;
         amplitude *= 0.5;
     }
     slope = lerp(roundSlope, ridgedSlope, sharp);
     return lerp(round, ridged, sharp);
+}
+
+// Auxiliary detail calls keep the same full-resolution slope without requesting the coastal slope.
+float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float topKm, int octaves, float relief, float sharp,
+                   float crease, uint seed, float4 fold, float foldShare, float foldWeight, ReliefGullies gullies,
+                   out float3 slope, out float coarse)
+{
+    float3 unused;
+    float wide;
+    return ReliefDetail(oriented, plain, orientedOctaves, topKm, octaves, relief, sharp, crease, seed, fold, foldShare,
+                        foldWeight, 0, wide, gullies, slope, coarse, unused);
 }
 
 // One octave of noise of wavelength `km` at p, in deviations, and its gradient per radian; 0 where the mesh cannot carry it.
@@ -235,6 +297,29 @@ float ReliefCoastNoise(RlPoint p, float gain, float rias, uint seed, out float w
     return sum / RL_SIGMA * deviations;
 }
 
+// The same coast noise's gradient per radian. Only wave erosion needs it: shoreKm is a distance proxy whose gradient
+// changes in a bay. Its magnitude sets the height contour reached by a physical wave-cut width, including inside a ria.
+float3 ReliefCoastGradient(RlPoint p, float gain, float rias, uint seed)
+{
+    const float meanAbs = 0.5 * (1.0 + RL_MEAN_BILLOW_BEST), deviationAbs = sqrt(RL_SIGMA * RL_SIGMA - meanAbs * meanAbs);
+    double f = ReliefFrequency(RELIEF_COAST_NOISE.x);
+    float3 sum = 0.0;
+    float amplitude = 1.0;
+    [loop] for (int o = 0; o < (int)RELIEF_COAST_NOISE.y; ++o)
+    {
+        const float w = RlWeight((float)f);
+        if (w <= 0.0) break;
+        const RlCell l = RlSplit(p, f);
+        const float4 n = RlGradientNoiseD(l.cell, l.q + RlShift(o), seed + (uint)o);
+        float dc;
+        ReliefCrease(n.x, CREASE_ROUNDING * (float)f / gCreaseMaxFrequency, dc);
+        sum += amplitude * w * (float)f * n.yzw * lerp(1.0, dc * RL_SIGMA / deviationAbs, o > 0 ? rias : 0.0);
+        f *= 2.2;
+        amplitude *= gain;
+    }
+    return sum / RL_SIGMA * rsqrt((1.0 - pow(gain * gain, RELIEF_COAST_NOISE.y)) / (1.0 - gain * gain));
+}
+
 // Flat-lying strata: the elevation in steps of `step` (m), each riser a share of the step, never narrower than two mesh
 // cells across a ground of this slope; the steps' mean is the elevation's.
 float ReliefTerraces(float h, float step, float slope, float cellKm)
@@ -247,10 +332,17 @@ float ReliefTerraces(float h, float step, float slope, float cellKm)
     return (k + smoothstep(1.0 - riser, 1.0, x - k) + 0.5 * (1.0 - shift)) * step;
 }
 
-// Elevation (m) of the point p on the unit sphere, in the planet's fixed frame; 0 is sea level. It depends on p and the
-// thread's state only, to the bit. Writes gRoughness and gVolcanic. Without valleys, the form before any valley is carved, the one the
-// erosion reads.
-float ReliefElevation(double3 position, bool valleys)
+// Ground before wave erosion and barriers, with the point's own coastal inputs and roughness. The same evaluator
+// supplies an uneroded marine witness; it never invokes wave erosion itself.
+struct ReliefGround
+{
+    float height, shoreKm, coastSlope, rocky, near, offsetKm, erodibility, cellKm, relief, shoreMetric, roughness;
+    float3 formsGradient, cliffSlope;
+    float smoothKm, volcanicShare;
+    VolcanicFinish volcanic;
+};
+
+ReliefGround ReliefSampleGround(double3 position, bool valleys)
 {
     const RlPoint p = RlMakePoint(position);
     const float cellKm = ReliefCellKm();
@@ -303,6 +395,8 @@ float ReliefElevation(double3 position, bool valleys)
     const float rocky = smoothstep(RELIEF_COAST_SLOPE.y, RELIEF_COAST_SLOPE.z, coastSlope);
     float shoreKm = h / coastSlope; // + inland
     float smoothKm = shoreKm; // the barriers' smooth shore: without the coast's and the detail's finer octaves
+    const float originalShoreKm = shoreKm;
+    float shoreMetric = 1.0;
     const float near = exp(-shoreKm * shoreKm / (RELIEF_COAST.z * RELIEF_COAST.z) - h * h / (RELIEF_COAST.w * RELIEF_COAST.w));
     [branch] if (near > 1e-3)
     {
@@ -312,6 +406,19 @@ float ReliefElevation(double3 position, bool valleys)
         h += moved * ReliefCoastNoise(p, gain, rias, ReliefSeed(7), wide);
         smoothKm += moved * wide / coastSlope;
         shoreKm = h / coastSlope;
+        [branch] if (valleys && EROSION_CLIFF_RETREAT.x != 0.0 && rocky > 0.3
+                     && abs(shoreKm) < EROSION_CLIFF_REACH.z)
+        {
+            const float3 d = (float3)position;
+            const float3 baseGradient = map.formsGradient - dot(map.formsGradient, d) * d;
+            const float3 nearGradient = -2.0 * near * (originalShoreKm / (RELIEF_COAST.z * RELIEF_COAST.z * coastSlope)
+                                                       + originalShoreKm * coastSlope / (RELIEF_COAST.w * RELIEF_COAST.w)) * baseGradient;
+            const float3 noiseGradient = ReliefCoastGradient(p, gain, rias, ReliefSeed(7));
+            const float noise = (shoreKm - originalShoreKm) / (near * lerp(RELIEF_COAST.y, RELIEF_COAST.x, rocky));
+            const float3 coastGradient = baseGradient + coastSlope * lerp(RELIEF_COAST.y, RELIEF_COAST.x, rocky)
+                                        * (near * noiseGradient + noise * nearGradient);
+            shoreMetric = max(length(coastGradient - dot(coastGradient, d) * d) / (PLANET_RADIUS_KM * coastSlope), 0.25);
+        }
     }
 
     // The volcanoes' edifices, on the large forms; their young flanks quiet the detail.
@@ -321,6 +428,30 @@ float ReliefElevation(double3 position, bool valleys)
 
     // 2. The detail.
     const float relief = map.forms.y * (1.0 - volcanicQuiet), youth = saturate(map.forms.z), strata = map.forms.w;
+    const float mountains = smoothstep(300.0, 1200.0, relief);
+    // The level 0's valleys (Erosion.hlsli), their walls steeper on the chains: on their floor the detail fades, nothing
+    // finer than the level 0 bars its rivers.
+    ErosionValley valley = (ErosionValley)0;
+    valley.surface = 1e9, valley.deposit = -1e9;
+    [branch] if (valleys && h > -500.0) // deeper, no valley nor deposit reaches
+    {
+        // Read at a point warped by a few km, so that the links' straight runs wander.
+        const RlPoint wander = RlTurbulence(p, ReliefFrequency(EROSION_WARP.x), EROSION_WARP.y / (RL_SIGMA * PLANET_RADIUS_KM), 2,
+                                            ReliefSeed(9));
+        valley = ErosionValleys(wander.p, cellKm, lerp(EROSION_WALLS.x, EROSION_WALLS.y, mountains));
+    }
+    const float large = h;
+    const float open = 1.0 - valley.floorShare * smoothstep(-20.0, 20.0, h); // a floor ends at the sea: its last link reaches offshore
+    // The gullies (ReliefDetail): down the large forms, or down a valley's walls where it lies under them; on the land;
+    // under the glaciers within EROSION_GLACIAL_BAND of the glacial maximum's equilibrium line, and in the troughs.
+    ReliefGullies gullies = (ReliefGullies)0;
+    [branch] if (valleys)
+    {
+        gullies.carved = smoothstep(-500.0, 800.0, h - valley.surface);
+        gullies.slope = lerp(map.formsGradient / (1000.0 * PLANET_RADIUS_KM), valley.gradient, gullies.carved);
+        gullies.share = EROSION_GULLY_SHARE * smoothstep(-20.0, 60.0, h) * (1.0 - 4.0 * gullies.carved * (1.0 - gullies.carved)); // none on a valley's rim, a crest
+        gullies.glacial = max(valley.glacier, smoothstep(-0.5, 0.5, (h - ErosionEquilibriumLine((float3)position)) / EROSION_GLACIAL_BAND));
+    }
     // The widest octaves, the chains' own forms, read a point warped by a few km, so that no crest closes on itself, and
     // stretched along the chains: raised off the sphere by a measure of the smoothed distance to the plate's boundary,
     // whose level lines follow them, levelling off past RELIEF_ORIENTATION.y km. The finer octaves read the point itself.
@@ -333,44 +464,71 @@ float ReliefElevation(double3 position, bool valleys)
     const double t = min(max(map.along * (double)(8.0 / (15.0 * reach)), (double)-1.0), (double)1.0), t2 = t * t;
     const double lift = (double)(RELIEF_ORIENTATION.x * reach / PLANET_RADIUS_KM) * t * (1.875 + t2 * (-1.25 + 0.375 * t2));
     const RlPoint oriented = RlMakePoint(bent.p * (1.0 + lift));
-    const float mountains = smoothstep(300.0, 1200.0, relief);
     const float crease = lerp(RELIEF_OLD_CREASE, 0.0, youth);
     // The chains' widest crests in folds, where the boundary orients them.
     float4 fold = 0.0;
     float foldWeight = 0.0;
     const float foldShare = RELIEF_FOLD.w * (1.0 - smoothstep(RELIEF_FOLD_REACH.x, RELIEF_FOLD_REACH.y, map.side.y)) * mountains
-                          * smoothstep(RELIEF_FOLD_REACH.z, RELIEF_FOLD_REACH.w, length(map.orientationGradient) / PLANET_RADIUS_KM);
+                          * smoothstep(RELIEF_FOLD_REACH.z, RELIEF_FOLD_REACH.w, length(map.orientationGradient) / PLANET_RADIUS_KM)
+                          * (1.0 - smoothstep(EROSION_FOLD_DEPTH.x, EROSION_FOLD_DEPTH.y, valley.incision)); // the core is cut by valleys
     [branch] if (foldShare > 0.0)
         fold = ReliefFold(plain, map.along, map.orientationGradient, foldWeight);
     // Near a flat coast, quiet plains and soft sediments, where the barriers and the lagoons show.
-    const float quiet = lerp(1.0, RELIEF_COAST_QUIET.x, (1.0 - rocky) * exp(-shoreKm * shoreKm / (RELIEF_COAST_QUIET.y * RELIEF_COAST_QUIET.y)));
-    float3 slope;
-    float wide;
-    h += relief * quiet * ReliefDetail(oriented, plain, RELIEF_ORIENTED_OCTAVES, RELIEF_DETAIL_TOP, RELIEF_OCTAVES, relief * quiet,
-                                       mountains, crease, ReliefSeed(1), fold, foldShare, foldWeight,
-                                       (int)RELIEF_BARRIER_FORM.w, wide, slope);
-    smoothKm += relief * quiet * wide / coastSlope;
+    const float quiet = lerp(1.0, RELIEF_COAST_QUIET.x, (1.0 - rocky) * exp(-shoreKm * shoreKm / (RELIEF_COAST_QUIET.y * RELIEF_COAST_QUIET.y)))
+                      * open;
+    float3 slope, cliffSlope;
+    float coarse, wide;
+    // On a valley's walls, the detail at least a share of the depth carved there: spurs and side gullies on the scale of
+    // the wall; nothing more on a plain.
+    const float detail = max(relief, EROSION_WALL_RELIEF * min(valley.incision, max(large - valley.surface, 0.0))) * quiet;
+    h += detail * ReliefDetail(oriented, plain, RELIEF_ORIENTED_OCTAVES, RELIEF_DETAIL_TOP, RELIEF_OCTAVES, detail,
+                               mountains, crease, ReliefSeed(1), fold, foldShare, foldWeight, (int)RELIEF_BARRIER_FORM.w, wide, gullies, slope, coarse, cliffSlope);
+    coarse = large + detail * coarse;
+    smoothKm += detail * wide / coastSlope;
     const float s = length(slope), land = smoothstep(-20.0, 60.0, h);
 
     // Mesas on the platforms' strata: their own hills of a few km, then the relief in steps, flat tables between cliffs.
-    const float mesas = saturate(2.0 * strata) * land, badlands = saturate(-2.0 * strata) * land * quiet;
+    const float mesas = saturate(2.0 * strata) * land * open, badlands = saturate(-2.0 * strata) * land * quiet;
     [branch] if (mesas > 0.0)
     {
         float3 tableSlope;
-        float none;
+        float unused;
         h += mesas * RELIEF_MESAS.x * ReliefDetail(plain, plain, 0, RELIEF_MESAS.y, (int)RELIEF_MESAS.z, RELIEF_MESAS.x, 0.0, 0.0,
-                                                   ReliefSeed(5), 0.0, 0.0, 0.0, 0, none, tableSlope);
+                                                   ReliefSeed(5), 0.0, 0.0, 0.0, (ReliefGullies)0, tableSlope, unused);
         h = lerp(h, ReliefTerraces(h, RELIEF_MESA_STEP, length(slope + mesas * tableSlope), cellKm), mesas);
     }
     [branch] if (badlands > 0.0)
     {
         float3 gullySlope;
-        float none;
+        float unused;
         h += badlands * RELIEF_BADLANDS.x * ReliefDetail(plain, plain, 0, RELIEF_BADLANDS.y, (int)RELIEF_BADLANDS.z,
-                                                         RELIEF_BADLANDS.x, 1.0, 0.0, ReliefSeed(2), 0.0, 0.0, 0.0, 0, none,
-                                                         gullySlope);
+                                                         RELIEF_BADLANDS.x, 1.0, 0.0, ReliefSeed(2), 0.0, 0.0, 0.0, (ReliefGullies)0,
+                                                         gullySlope, unused);
     }
 
+    // 3. The valleys carved into the coarse ground, the finer detail riding on their walls.
+    [branch] if (valley.surface < 1e8)
+        h = ErosionCarve(h, coarse, valley, EROSION_SMOOTH);
+    // The deposits fill what lies under them: deltas, fans.
+    h = max(h, valley.deposit);
+
+    ReliefGround ground;
+    ground.smoothKm = smoothKm, ground.volcanic = volcanic, ground.volcanicShare = gVolcanic;
+    ground.height = h, ground.shoreKm = shoreKm, ground.coastSlope = coastSlope, ground.rocky = rocky, ground.near = near;
+    ground.offsetKm = shoreKm - originalShoreKm, ground.erodibility = map.erodibility, ground.cellKm = cellKm;
+    ground.relief = relief, ground.shoreMetric = shoreMetric, ground.formsGradient = map.formsGradient, ground.cliffSlope = cliffSlope;
+    // Roughness: plains 0.1, hills 0.35, old chains 0.5, terraces and badlands 0.6, young chains 1.
+    float rough = 0.1 + 0.25 * smoothstep(50.0, 400.0, relief) + 0.15 * smoothstep(400.0, 1500.0, relief);
+    rough = lerp(rough, 1.0, youth * smoothstep(500.0, 1500.0, relief));
+    ground.roughness = lerp(rough, 0.6, max(mesas, badlands));
+
+    return ground;
+}
+
+// Barriers and summit limiting are identical for the primary ground and the marine witness.
+float ReliefFinish(double3 position, float h, float near, float rocky, float smoothKm, float cellKm, VolcanicFinish volcanic)
+{
+    const RlPoint p = RlMakePoint(position);
     // The flat coasts' barriers, along the smooth shore, not the shore's contour, which the finer octaves fold into angles
     // and rias: arcs offshore between inlets, recurved toward them, a smooth beach, low dunes and washover fans behind.
     // Raised from the relief beneath them, their crests whole: from the smooth level, fine coast noise cut them to the sea.
@@ -400,15 +558,35 @@ float ReliefElevation(double3 position, bool valleys)
     // The old islands' planed tops, the reefs and their lagoons, on the detail.
     h = VolcanoFinish(h, volcanic);
 
-    // Roughness: plains 0.1, hills 0.35, old chains 0.5, terraces and badlands 0.6, young chains 1.
-    float rough = 0.1 + 0.25 * smoothstep(50.0, 400.0, relief) + 0.15 * smoothstep(400.0, 1500.0, relief);
-    rough = lerp(rough, 1.0, youth * smoothstep(500.0, 1500.0, relief));
-    gRoughness = lerp(rough, 0.6, max(mesas, badlands));
-
     // The highest summits level off under MAX_TERRAIN_HEIGHT.
     [branch] if (h > RELIEF_HIGHEST.x)
         h = RELIEF_HIGHEST.x + RELIEF_HIGHEST.y * tanh((h - RELIEF_HIGHEST.x) / RELIEF_HIGHEST.y);
     return h;
+}
+
+// Elevation in the planet's fixed frame, with the primary point's roughness. Without valleys this is the unchanged
+// pre-erosion form read by the level 0. Only a potential cut reads a second terrain point. Its witness has no valleys,
+// deposits or wave erosion, so its query cannot recurse or add another read of the erosion network.
+float ReliefElevation(double3 position, bool valleys)
+{
+    const ReliefGround ground = ReliefSampleGround(position, valleys);
+    float h = ground.height;
+    [branch] if (valleys)
+    {
+        const float candidate = ErosionCoast(RlMakePoint(position), h, ground.shoreKm, ground.coastSlope, ground.rocky,
+                                            ground.near, ground.offsetKm, ground.formsGradient, ground.erodibility,
+                                            ground.cellKm, ground.cliffSlope, ground.relief, ground.shoreMetric);
+        [branch] if (candidate < h)
+        {
+            const double3 witness = ErosionSeaPoint(position, ground.formsGradient);
+            const ReliefGround sea = ReliefSampleGround(witness, false);
+            const float level = ReliefFinish(witness, sea.height, sea.near, sea.rocky, sea.smoothKm, sea.cellKm, sea.volcanic);
+            h = lerp(h, candidate, ErosionSeaAccess(level, sea.coastSlope));
+        }
+    }
+    gRoughness = ground.roughness;
+    gVolcanic = ground.volcanicShare;
+    return ReliefFinish(position, h, ground.near, ground.rocky, ground.smoothKm, ground.cellKm, ground.volcanic);
 }
 
 float ReliefElevation(double3 position)

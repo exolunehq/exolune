@@ -114,6 +114,13 @@
       <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ProgramDatabase</DebugInformationFormat>
       <SupportJustMyCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</SupportJustMyCode>
     </ClCompile>
+    <!-- Optimised even in Debug: the erosion's level 0 floods 1.6 million cells twice at every startup. -->
+    <ClCompile Include="Erosion.cpp">
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MaxSpeed</Optimization>
+      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Default</BasicRuntimeChecks>
+      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ProgramDatabase</DebugInformationFormat>
+      <SupportJustMyCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</SupportJustMyCode>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio.h" />
@@ -128,6 +135,7 @@
     <ClInclude Include="PlanetMap.h" />
     <ClInclude Include="Tectonics.h" />
     <ClInclude Include="Climate.h" />
+    <ClInclude Include="Erosion.h" />
     <ClInclude Include="Ocean.h" />
     <ClInclude Include="Ship.h" />
   </ItemGroup>
@@ -161,6 +169,7 @@
     <None Include="Tectonics.hlsli" />
     <None Include="Climate.hlsli" />
     <None Include="Volcanoes.hlsli" />
+    <None Include="Erosion.hlsli" />
     <None Include="Sea.hlsli" />
     <None Include="OceanCompute.hlsl" />
     <None Include="OceanUniform.hlsli" />
@@ -293,6 +302,12 @@
       <DisableOptimizations>false</DisableOptimizations>
     </FxCompile>
     <FxCompile Include="PlanetMap.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ErosionForm.hlsl">
       <ShaderType>Compute</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>CSMain</EntryPointName>

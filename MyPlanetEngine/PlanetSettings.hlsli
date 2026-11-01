@@ -102,6 +102,78 @@ static const float3 VOLCANO_LOBES           = float3(0.12, 0.1, 0.35);
 // of the soil it covers where the ground is wholly fresh. Its rock is basalt (VertexShader.hlsl).
 static const float3 VOLCANIC_ASH            = float3(0.075, 0.07, 0.068);
 static const float VOLCANIC_COVER           = 0.85;
+
+// The erosion (Erosion.hlsli, docs/spec-erosion.md). Each level 0 cell's node moves within it by up to EROSION_JITTER of
+// a cell; a link's valley reaches EROSION_REACH cells at most.
+static const float EROSION_JITTER           = 0.3;
+static const float EROSION_REACH            = 0.6;
+// The fluvial floor's half-width: x sqrt(Q) (m, Q in m3/s), widened under a slope of y up to z times.
+static const float3 EROSION_FLOOR           = float3(2.0, 0.002, 15.0);
+// The walls' slope, on soft ground to the young chains.
+static const float2 EROSION_WALLS           = float2(0.25, 0.65);
+// The glacial trough: half-width x (m) at an ice flux of 1e8 m3/yr, growing with its power y; deepened by z of its
+// half-width; glacial from log2 of the flux w on. Its walls' slope.
+static const float4 EROSION_GLACIER         = float4(600.0, 0.4, 0.3, 22.0);
+static const float EROSION_GLACIER_WALLS    = 0.85;
+// The valleys meet the coarse ground by a minimum smoothed over this (m); the coarse ground: the large forms and the
+// detail's octaves wider than EROSION_COARSE (km).
+static const float EROSION_SMOOTH           = 60.0;
+static const float EROSION_COARSE           = 20.0;
+// The gullies, from the detail's octave EROSION_GULLY_FIRST on, 11 km: EROSION_GULLY_SHARE of each octave's pattern on a
+// steep ground; on a slope from x to y (m/m); none under z km. Their stripes keep their phase over EROSION_GULLY_PERIODS
+// periods, 2: their lattice is the octave's, halved (Relief.hlsli).
+static const int   EROSION_GULLY_FIRST      = 2;
+static const float EROSION_GULLY_SHARE      = 0.85;
+static const float3 EROSION_GULLY           = float3(0.02, 0.15, 0.1);
+static const int   EROSION_GULLY_PERIODS    = 2;
+// The stripes fade around their forks, where the sum of their waves, of unit weight, falls under this.
+static const float EROSION_GULLY_FORK       = 0.3;
+// Under the glaciers, the crests |x|^EROSION_GLACIAL_POWER, sharp, the troughs wide; E|cos|^power for the stripes' mean.
+static const float EROSION_GLACIAL_POWER    = 0.7;
+static const float EROSION_GLACIAL_POWER_MEAN = 0.7043;
+// The glaciers over EROSION_GLACIAL_BAND m around the glacial maximum's equilibrium line; the folds fade where the level
+// 0's valleys are deeper than x to y (m), in the chains' core.
+static const float EROSION_GLACIAL_BAND     = 600.0;
+// The valleys are read at a point warped by up to y km at one deviation, from x km down, so that the level 0's straight
+// links wander; on a valley's walls, the detail's relief is at least EROSION_WALL_RELIEF of its depth.
+static const float2 EROSION_WARP            = float2(40.0, 7.0);
+static const float EROSION_WALL_RELIEF      = 0.35;
+// A delta at a mouth whose discharge exceeds EROSION_DELTA_DISCHARGE (m3/s): its lobe x sqrt(Q) (m) seaward, y of that
+// landward, z of it across; its plain w (m) above the sea, its front falling EROSION_DELTA_FRONT of its length per length.
+static const float4 EROSION_DELTA           = float4(60.0, 0.3, 1.6, 3.0);
+static const float EROSION_DELTA_DISCHARGE  = 300.0;
+static const float EROSION_DELTA_FRONT      = 0.05;
+// A fan at the mountain front: x sqrt(Q) (m) down its valley, y of that back up it, its cone falling z per length.
+static const float3 EROSION_FAN             = float3(120.0, 0.2, 0.03);
+static const float2 EROSION_FOLD_DEPTH      = float2(800.0, 2000.0);
+// Wave erosion: x enables it; y is the accumulated retreat (km) at unit wave force and unit erodibility; z its maximum
+// (km); w the along-coast variation, as a fraction of that distance (Sunamura 1992, force over rock resistance).
+static const float4 EROSION_CLIFF_RETREAT   = float4(1.0, 1.2, 3.0, 0.45);
+// The retreat noise's wavelength (km); bays displaced inland by x to y km lose their incoming waves entirely.
+static const float EROSION_CLIFF_NOISE      = 2.4;
+static const float2 EROSION_CLIFF_BAY       = float2(-12.0, -6.0);
+// The inland reach adds x km and the detail's shoreline displacement to the retreat, capped by z km, fading over y km.
+// Seaward, only the original proxy's absolute z km bound applies, with the same fade. No mesh-dependent reach.
+static const float3 EROSION_CLIFF_REACH     = float3(1.0, 0.5, 8.0);
+// The marine witness is at RETREAT.z km seaward on the uneroded terrain. x is its minimum water depth (m), the -50 m
+// deep-sea criterion of the reach check; y is its smooth transition distance (km), converted by that coast's slope.
+static const float2 EROSION_CLIFF_SEA       = float2(50.0, 0.25);
+// The coastal height contour (m), from width times slope, bounded for common sea cliffs. 400 m is a calibration below
+// Conachair's 426 m (NatureScot, Coastal cliffs); it is not a universal geological maximum.
+static const float2 EROSION_CLIFF_HEIGHT    = float2(8.0, 400.0);
+// Only detail octaves wider than this (km) set the cliff's slope: three maximum retreats, the first three octaves,
+// 50, 23.7 and 11.2 km. The full ground is remapped; smaller spurs and gullies cannot move its height contour.
+static const float EROSION_CLIFF_SLOPE_KM   = 9.0;
+// The face's transition interval, as a share of its height, at least the height spanned by two cells on the coast.
+static const float EROSION_CLIFF_FACE       = 0.1;
+// Scree at 35 degrees, up to y of the contour's height, in discontinuous patches.
+static const float2 EROSION_CLIFF_SCREE     = float2(0.7002, 0.22);
+// The platform's foot (m), its nominal seaward slope (m/m), and maximum drop to the old shoreline (m), Trenhaile 1987.
+static const float3 EROSION_CLIFF_PLATFORM = float3(-1.0, 0.02, 4.0);
+// Remnants keep the original ground: half-width and noise wavelength (km), regional threshold in noise deviations.
+static const float3 EROSION_CLIFF_STACK    = float3(0.065, 0.8, 1.4);
+// The swell from every side, plus the directional waves; the westerlies' peak strength relative to the trades.
+static const float2 EROSION_CLIFF_WAVES    = float2(0.28, 1.6);
 // Highest possible terrain (m).
 static const float MAX_TERRAIN_HEIGHT       = 10000.0;
 

@@ -1,0 +1,5 @@
+# Falaises côtières, graine 1 (docs/spec-erosion.md) : à lancer sur un build de la graine 1, ce parcours ne la change pas ; les vues de la graine 0 sont dans 2026-10-31-erosion.txt.
+La plaine glaciaire : ni canaux au platier ni anneaux autour des lacs | 1500 -65.00789 -113.42094 65 90 relief | -50 -100
+La même plaine au second point : préserver les collines et les lacs | 1500 -65.01216 -113.39521 60 270 | -50 -100
+La côte tropicale : garder une abrasion proche de la mer | 1800 23.78161 -126.35919 50 270 relief | 20 -120
+La côte tempérée : garder la paroi et son platier | 1500 40.46592 -84.75513 50 270 relief | 30 -80

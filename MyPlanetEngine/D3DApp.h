@@ -16,6 +16,7 @@
 #include "Audio.h"
 #include "Glare.h"
 #include "Settings.h"
+#include "Tectonics.h"
 class Ocean;
 namespace Tectonics { struct Map; }
 
@@ -315,12 +316,17 @@ protected:
     UINT mVolcanoCount = 0;
     double mVolcanoMs = 0.0;
     double mTectonicMs = 0.0, mTectonicMb = 0.0;
-    void CreateTectonicMap();
+    Tectonics::Map CreateTectonicMap();
     // The climate map (Climate.h): the planet's rain, temperatures and winds from its large forms, once at startup, after the
     // tectonic map; its time (ms) and size (MB).
     ComPtr<ID3D12Resource> mClimateMap;
     double mClimateMs = 0.0, mClimateMb = 0.0, mWeatherMapMs = 0.0; // and the clouds' weather map's time (ms)
     void CreateClimateMap(const Tectonics::Map& tectonics, uint32_t seed, const std::wstring& cache);
+    // The erosion's level 0 (Erosion.h): the network of the rivers and the glaciers, once at startup, from the tectonic
+    // map; its time (ms), the network's alone, and its size (MB).
+    ComPtr<ID3D12Resource> mErosionMap;
+    double mErosionMs = 0.0, mErosionBuildMs = 0.0, mErosionMb = 0.0;
+    void CreateErosionMap(const Tectonics::Map& tectonics, ID3D12PipelineState* formPass);
 
     // Objects near the camera (docs/spec-objets-proximite.md): stones and grass tufts on the planet's lattice, placed
     // afresh every frame by a compute pass, drawn by one indirect draw per class. Must match Objects.hlsli and

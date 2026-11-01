@@ -41,6 +41,7 @@ struct TectonicSample
     float4 forms, sharp, side;
     float3 formsGradient, sideGradient, orientationGradient;
     double along;
+    float erodibility; // The rock converted per texel before interpolation, never an interpolated class.
 };
 
 uint TectonicSize()
@@ -104,6 +105,11 @@ TectonicSample TectonicFace(double3 q, uint face, uint n)
             formsDx += dx[i] * f.x;
             sharp += wx[i] * tectonicMap.Load(int4(at, layer + 1, 0));
             const float4 v = tectonicMap.Load(int4(at, layer + 2, 0));
+            // Tectonics.cpp's relative resistance, with soft strata up to twice as erodible. Converting the class
+            // before the spline keeps the coast continuous across rocks and cube faces; no fourth GPU slice is needed.
+            const float resistance[6] = { 1.0, 0.6, 1.0, 1.6, 0.45, 0.25 };
+            const uint rock = min(((uint)(v.z + 0.5)) % 8u, 5u);
+            s.erodibility += wy[j] * wx[i] * resistance[rock] * (1.0 + saturate(-f.w));
             side += wx[i] * v;
             sideDx += dx[i] * v;
             along += wxd[i] * (double)v.y;
@@ -145,6 +151,7 @@ TectonicSample TectonicFields(double3 q)
             sum.forms += w * s.forms;
             sum.sharp += w * s.sharp;
             sum.side += w * s.side;
+            sum.erodibility += w * s.erodibility;
             sum.formsGradient += w * s.formsGradient;
             sum.sideGradient += w * s.sideGradient;
             sum.orientationGradient += w * s.orientationGradient;
@@ -156,6 +163,7 @@ TectonicSample TectonicFields(double3 q)
     sum.forms /= total;
     sum.sharp /= total;
     sum.side /= total;
+    sum.erodibility /= total;
     sum.formsGradient /= total;
     sum.sideGradient /= total;
     sum.orientationGradient /= total;
