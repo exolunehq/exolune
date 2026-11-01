@@ -6,6 +6,6 @@ Thanks for wanting to help build Exolune.
 
 **How to propose a change:** open an issue to discuss anything large first, then a pull request. Say what you changed, why, and how you checked it: the views you flew, or the renders you compared before and after.
 
-**Licence:** Exolune is published under the Functional Source License, version 1.1, with Apache 2.0 as its future licence; see [`LICENSE.md`](LICENSE.md).
+**Licence:** Exolune is source available under the PolyForm Shield License 1.0.0; see [`LICENSE.md`](LICENSE.md).
 
 **Contributor licence agreement:** before your first pull request is merged, you will be asked to sign the project's contributor licence agreement, once, from the pull request itself.

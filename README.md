@@ -150,6 +150,6 @@ Start with [`docs/README.md`](docs/README.md), the map of the documentation. It 
 
 ## Licence
 
-Exolune is published under the **Functional Source License, version 1.1, with Apache 2.0 as its future licence** (FSL-1.1-ALv2); see [`LICENSE.md`](LICENSE.md). You may use, modify and redistribute it for any purpose other than a competing product or service, and each version becomes available under the Apache 2.0 licence two years after it is released. Contributions are welcome under a contributor licence agreement; see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Exolune is source available under the **PolyForm Shield License 1.0.0**; see [`LICENSE.md`](LICENSE.md). You may read, use, modify and redistribute it for any purpose other than a product or service that competes with Exolune. Contributions are welcome under a contributor licence agreement; see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 The relief, the noise, the climate and the volcanoes are original code. Exolune adapts code and data under MIT licences from Wicked Engine, web-ocean and TileableVolumeNoise; [`NOTICE`](NOTICE) lists every third-party part, its licence and its source.

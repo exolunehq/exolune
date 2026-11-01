@@ -1,11 +1,9 @@
 Exolune
 Copyright 2025-2026 Etienne Lescot
 
-Exolune est distribué sous la Functional Source License, version 1.1, avec la
-licence Apache 2.0 pour licence future (FSL-1.1-ALv2). Chaque version peut être
-utilisée, modifiée et redistribuée pour tout usage autre qu'un usage concurrent,
-et devient disponible sous la licence Apache 2.0 deux ans après sa mise à
-disposition. Texte de la licence : LICENSE.md.
+Exolune est distribué sous la PolyForm Shield License 1.0.0. Le code peut être
+lu, utilisé, modifié et redistribué pour tout usage autre qu'un produit ou un
+service concurrent d'Exolune. Texte de la licence : LICENSE.md.
 
 Le relief, MyPlanetEngine/Noise.hlsli, MyPlanetEngine/Relief.hlsli et la carte
 tectonique MyPlanetEngine/Tectonics.*, et son portage sur CPU, tools/hydro/cp.py,
