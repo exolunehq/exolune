@@ -31,6 +31,14 @@ Wicked Engine
   Les nuages volumétriques du jeu en sont adaptés, volumetricCloudsHF.hlsli et
   volumetricCloud_renderCS.hlsl (MyPlanetEngine/Clouds.hlsli).
 
+PCG3D
+  Copyright 2020 Mark Jarzynski & Marc Olano.
+  Licence : MIT. Texte : third_party/PCG3D/LICENSE.
+  Source : https://github.com/markjarzynski/PCG3D,
+  commit 1fb719e274fcb81a4bcbb10ba01d4f0021d1aaef.
+  Le hachage pcg3d du bruit en est repris (MyPlanetEngine/Materials.hlsli,
+  MyPlanetEngine/MaterialGenerator.hlsl).
+
 
 2. Données dérivées, dans assets/clouds/
 =========================================
