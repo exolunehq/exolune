@@ -37,10 +37,11 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 - **`-Position '<alt> <lat> <lon> <tangage> <cap>'`:** starting view, the globe by default.
 - **`-Soleil '<lat> <lon>'`:** sun position, `10 -5` by default.
 - **`-Resolution '1920 1080'`** by default, full screen; `fenetre` for a 1280x720 window, where the palette is visible.
+- **`-ModeleVaisseau chasseur|classique`:** the approved fighter by default; `classique` loads the preserved triangular ship. Direct executable launches use `MYPLANETENGINE_MODELE_VAISSEAU`; without it, the fighter.
 - **`-PassePleine`:** clouds in a single pass, without their temporal pass (`optimisation.md`); for comparison.
 - **`-Scans <dossier>`:** ground photos.
 
-**The launcher clears the session's `MYPLANETENGINE_*` variables during launch, then restores them.** It sets only `MYPLANETENGINE_TESTS`, `_SUN`, `_RESOLUTION` and `_FULLSCREEN`, `_SCANS`, and `_CLOUD_FULL` with `-PassePleine`.
+**The launcher clears the session's `MYPLANETENGINE_*` variables during launch, then restores them.** It sets only `MYPLANETENGINE_TESTS`, `_SUN`, `_RESOLUTION` and `_FULLSCREEN`, `_SCANS`, `_MODELE_VAISSEAU`, and `_CLOUD_FULL` with `-PassePleine`.
 
 ## Default game and benchmark variables
 

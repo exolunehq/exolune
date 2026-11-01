@@ -1,0 +1,10 @@
+# Ship finish review. F1-F8 select views; Tab cycles cockpit/chase; H frees the head; R recentres; M releases the mouse.
+# Inspect both curved console returns, visible wing-panel edges, the hidden nose and its exterior profile.
+Daylight: clear nose sightline and dashboard junctions | 9000 38.1445 103.5352 0 90 | 38.1445 128.5352
+Low sun: curved returns and closed panel seams | 1500 30.68685 120.10788 0 -64.7 | 0 -165
+Under cloud: petrol panels and switch readability | 1500 38.1445 103.5352 -5 90 | 38.1445 128.5352
+Sea level: rounded foredeck and glass contact in chase | 30 -20.47 -75.45 0 160 | -50.47 -75.45
+Polar cloud: glass, frost and cockpit silhouette | 4000 82.793 38.8477 0 90 | 82.793 63.8477
+Orbit: canopy sightline and hull silhouette | 100000 38.1445 103.5352 0 90 | 38.1445 128.5352
+Night: display readability and restrained lights | 9000 38.1445 103.5352 0 90 | -38.1445 -76.4648
+Controls: look down, move stick and throttle | 9000 38.1445 103.5352 0 90 | 38.1445 128.5352

@@ -4,27 +4,66 @@
 
 **Try, in the game (`AGENTS.md`, `lancement.md`):** from the root of the worktree,
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours tools\tests\2026-10-29-vaisseau.txt
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours tools\tests\2026-11-01-modeles-vaisseau.txt
 ```
 after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 
-## The model in the engine
+**Cabin finish and assembly · 2026-11-01**
 
-- **The source is `assets/vaisseau/vaisseau.glb`** (`assets/vaisseau/README.md`).
-- **The engine reads a cooked packet, `vaisseau.vsx`,** written by `assets/vaisseau/paquet_moteur.py`:
-  - flattened knots and intertwined vertices;
-  - drawing ranges, opaque first;
-  - materials PBR;
-  - images PNG decoded by WIC.
-- **There is no JSON or glTF drive in the engine.** You have to rerun the script after each export of the GLB.
-- **`Ship::Load` looks for the package** in the first folder above the executable. Without a package, the ship remains absent and the free camera alone remains.
-- **reference frame of the ship, Blender's:** nose to −Y, top +Z, left of the pilot +X, in meters.
-- **The planet's reference frame is left-handed** (is × north = down). `Cross(haut, avant)` is right there, as for the camera. The transition from one to the other is a symmetry: the X-axis of the vessel moves to its left, and the bitangent of glTF changes sign.
-- **The handle and throttle remain mobile:**
-  - each vertex of the packet bears its pose, the attribute `_POSE` of `assets/vaisseau/pieces_mobiles.py`;
-  - the package also keeps their two pivots, point and axis;
-  - `ShipPose` (`Ship.hlsli`) applies to their vertex a matrix of `Ship::Constants::pose`, in the stage pass as in the shadows;
-  - `D3DApp::UpdateShipFrame` fills these matrices, in one place.
+- The geometry rule is in `principes.md`; implementation and rebuild commands are in [the asset README](../assets/vaisseau/chasseur/README.md).
+- Continuous folded consoles meet the dashboard and receive instruments in real closed recesses.
+- Seven panels follow their mounting contours and sit 1.5 mm below the fascia; three display rims project by 1 mm.
+- Full-length console panels and tapered dashboard wings share one control and printing layout.
+- Wing panels stop at the visible console boundary; cubic returns replace the overlapping diagonal ends.
+- Four side service covers are also recessed; horizontal controls sit in the 18 cm shelf.
+- The dashboard crown and alert strip form a shallow curve, keeping the centre height and lowering the shoulders by 35 mm along the panel plane.
+- The nose shoulders roll down around the fixed glazing contour; an 18 mm forward rake clears the normal head travel.
+- The pilot camera and glass/weather geometry remain unchanged.
+- The canopy uses a flat 34 × 12 mm retainer and a separate 4 mm seal, following the glass tangent plane.
+- The glass keeps its analytic shape with finer tessellation, 64 columns × 52 rows.
+- Screen recesses have closed returns; structural housings have 1.5 mm bevels.
+- Service covers, defogging vents, cable clips, seat anchors and restraint straps make the assembly explicit.
+- Two 1024px micro-surface maps distinguish cabin paint, upholstery, webbing and machined metal.
+- The 4096px label atlas carries graphite/petrol panels, coating grain, restrained wear and cyan sector markings.
+- The package uses 12 images and 48 draw ranges; the engine retains its 12-image descriptor capacity.
+- `controle_finitions.py` checks 504 mounting samples, 14 closed pockets, fascia protrusion, control clearance, 27 display sightlines, eye clearance and six animation pivots.
+- `controle_visibilite.py` checks the forward cone and 1,180 wing-panel sightlines from five pilot-eye positions.
+- Reimported GLB captures verify the final asset; the in-flight route covers daylight, low sun, cloud, sea, polar conditions, orbit and night.
+- Earlier construction and counts: [ship history](log/spec-vaisseau-historique.md).
+
+**Model selection**
+
+| Model | Asset directory | Package | Pilot eye height | Main engines | Pivots | Water map |
+|---|---|---|---|---|---|---|
+| `chasseur` (default) | `assets/vaisseau/chasseur/` | VSX3 | 1.03 m | 4 | 6 | 1684 × 2450 |
+| `classique` | `assets/vaisseau/` | VSX2 | 1.07 m | 3 | 2 | 1584 × 3660 |
+
+- The executable alone selects the approved fighter.
+- `tools/lance.ps1 -ModeleVaisseau classique` selects the original triangular ship.
+- Direct launches can use `MYPLANETENGINE_MODELE_VAISSEAU=classique` or `chasseur`.
+- `MYPLANETENGINE_VAISSEAU` still selects the camera view, independently of the model.
+- Both source sets, Blender scenes, GLBs, textures and cooked packages remain in the repository.
+- `ShipProfiles.h` selects the package, pilot eye, shadow centre, water-map dimensions, jets and pivots.
+- `ShipClassique.hlsli` retains the original folded canopy and jet positions.
+- `ShipChasseur.hlsli` describes the curved canopy and four nozzles from `chasseur/forme_chasseur.py`.
+- The shader selector travels in `shipOptions.z`; geometry, water, frost and jets always use the same model.
+- Only the selected package is loaded into GPU memory.
+
+**Asset loading and animation**
+
+- Each directory contains its own `vaisseau.glb`, `paquet_moteur.py` and `vaisseau.vsx`.
+- The engine reads cooked vertices, draw ranges, PBR materials and PNGs; WIC decodes the images.
+- VSX3 materials carry explicit animation roles in 96 bytes.
+- VSX2 materials remain 92 bytes on disk; loading expands them and maps original screen indices 13–18 to roles 1–6.
+- The original package and generator remain unchanged.
+- `Ship::Load` validates the selected profile's pivot count.
+- The package is found above the executable; an absent package leaves the free camera available.
+- The ship frame uses metres: nose −Y, up +Z, pilot's left +X.
+- The planet frame is left-handed; the ship-to-world transform reflects X and the glTF bitangent sign.
+- Both models animate the stick and throttle through vertex `_POSE` weights and packet pivots.
+- The fighter also animates four elevons, mixing pitch and roll up to 20°.
+- The classic's unused pose matrices remain identity.
+- `UpdateShipFrame` fills the matrices once; scene and shadow passes share them.
 
 ## The rendering (`Ship.h`, `Ship*.hlsl`)
 
@@ -66,7 +105,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
   - horizon, pitch scale all 10° and speed vector marker, infinite, in a cone of 24° around the nose;
   - the small combiner is under the line of sight, with no space under the roof;
   - off on start, U turns it on or off.
-- **The edge of the two front windows is not seen:** at 35 cm from it, the normal glass turns to that of the edge, as on a single folded sheet. Otherwise their reflections cut off sharply on a straight line.
+- **On the classic model, the edge of the two front windows is not seen:** at 35 cm from it, the normal glass turns to that of the edge, as on a single folded sheet. Otherwise their reflections cut off sharply on a straight line.
 - **Viewed from the outside, the canopy glass is a dark bronze mirror,** like the treated hunters' skylights:
   - it reflects 30 % about from the front, all to the racing impacts, and lets through 8 %;
   - the sky is reflected clearer towards the horizon, the ground below the horizon;
@@ -119,7 +158,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 
 ## Jets and shadows
 
-- **The plume of the three nozzles** (`ShipPlume.hlsli`, `ShipPlumeVertex.hlsl`, `ShipPlumePixel.hlsl`):
+- **The plumes of the selected model’s nozzles** (`ShipPlume.hlsli`, `ShipPlumeVertex.hlsl`, `ShipPlumePixel.hlsl`):
   - a flame of light at the exit of each nozzle, of a blue-white heart to the purple, with weak shock diamonds;
   - **it ends in pointe:** it widens a little at the exit of the nozzle, then becomes thinner and extinguishes up to its tip;
   - **it follows the throttle, step by step,** from nothing throttle cut off until full at the thirtieth step, with the same response time as speed. Linked to speed, it was full from the first step in altitude, where speed follows height;
@@ -132,7 +171,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
   - **Never seen from the cockpit,** to keep the view clear.
   - **The water vapor is white and light,** lit by the sun and the sky.
 - **The rendering of the jets is done in the layer of the canopy glass:**
-  - each jet is run in its box, 24 not;
+  - each plume is marched through its box: 32 steps for main engines, 24 for attitude jets;
   - the walk stops at the distance of the stage, so that the hull and the floor hide what is behind them;
   - out of the temporal smoothing, nothing drags.
 - **The shadow of the relief on the ship:**
@@ -148,8 +187,8 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - **Shadows:**
   - **the relief shades the ship by a block,** since its origin: a ridge does not cut the hull in two;
   - **the ship does not shade nearby objects,** stones and plants; only the ground and the sea.
-- **Images:** mips calculated on the CPU, average of sRGB codes, and without compression. The ship maps take up about 120 MB of video memory.
-- **Screens:** No interaction; outside the handle and controller, controls and lights remain static.
+- **Images:** mips calculated on the CPU, average of sRGB codes, and without compression. Only the selected model’s images are uploaded; all 12 image slots are used by the fighter.
+- **Screens:** live flight displays, without interaction. Switches remain static; the fighter’s nozzle cores and navigation lights animate by material role.
 - **Time smoothing does not follow the handle:** it reprojects its pixels with the ship. The game cuts it off at startup; the T key restores it.
 - **The reflection of the canopy glass** is that of an average sky and ground, without clouds or relief.
 - **Jets:** no light from the plume on the ground or hull, no heat distortion.

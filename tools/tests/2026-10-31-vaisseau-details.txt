@@ -1,0 +1,13 @@
+# Forme N et détails du vaisseau : tools\lance.ps1 -Parcours tools\tests\2026-10-31-vaisseau-details.txt
+# La bulle en goutte, assise dans le creux du dessus ; le pupitre en arc dessous.
+# Tab : cockpit, poursuite, vaisseau caché ; en poursuite, clic droit maintenu : tourner autour du vaisseau.
+# Molette : les gaz ; clic droit maintenu au cockpit : regarder derrière soi.
+# Dehors : volets à la poupe, qui suivent tangage et roulis ; ailettes ventrales et de nez ; tuyères d'attitude percées
+# dans la peau ; écopes, trappe de secours fléchée, marchepied. Rien ne doit dépasser en arête vive.
+Poursuite, soleil haut : cabrer et rouler, les volets bougent ; Tab | 1500 30.68685 120.10788 0 -64.7 | 30.68685 120.10788
+Soleil bas, poursuite : le reflet du ciel sur la coque et les tuyères | 1500 30.68685 120.10788 0 -64.7 | 0 -165
+Nuit, poursuite : feux à éclats, anticollision, de formation | 1500 30.68685 120.10788 0 -64.7 | -30.68685 -59.89212
+Cockpit, regarder derrière : couples, faisceaux, poignées, extincteur | 1500 30.68685 120.10788 0 -64.7 | 30.68685 120.10788
+Sous les cumulus, averse : l'eau coule sur la bulle | 1500 38.1445 103.5352 -5 90 | 38.1445 128.5352
+Au ras de la mer, gaz à fond puis coupés : le cœur des tuyères | 30 -20.47 -75.45 0 160 | -50.47 -75.45
+Orbite, poursuite : la silhouette et la bulle au loin | 100000 38.1445 103.5352 60 90 | 38.1445 128.5352

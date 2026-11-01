@@ -10,6 +10,8 @@
 
 ## What it contains
 
+- **`spec-vaisseau-historique.md`:** superseded ship assemblies, junctions, panel layouts and their inspection measurements.
+
 **The origins of**
 
 | File | Why here |

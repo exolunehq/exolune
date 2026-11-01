@@ -1,11 +1,11 @@
-﻿# Le lanceur du jeu : compile au besoin, puis ouvre MyPlanetEngine.exe en plein écran avec la palette « Tests », un bouton
+# Le lanceur du jeu : compile au besoin, puis ouvre MyPlanetEngine.exe en plein écran avec la palette « Tests », un bouton
 # par ligne du fichier de tests et F1 à F12 (D3DApp, MYPLANETENGINE_TESTS). Le jeu est le comportement par défaut de l'exe :
-# le lanceur ne pose que la palette, le soleil, l'écran et les scans. Les MYPLANETENGINE_* de la session sont effacées le
+# le lanceur pose la palette, le soleil, l'écran, les scans et le modèle de vaisseau. Les MYPLANETENGINE_* sont effacées le
 # temps du lancement, puis restaurées.
 #
 # powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 [-Build] [-NoLaunch] [-Parcours tools\tests\<date>.txt]
 #     [-Position '<alt> <lat> <lon> <tangage> <cap>'] [-Soleil '<lat> <lon>'] [-Resolution '1920 1080' | fenetre]
-#     [-PassePleine] [-Exe <exécutable>] [-Scans <dossier>]
+#     [-ModeleVaisseau chasseur | classique] [-PassePleine] [-Exe <exécutable>] [-Scans <dossier>]
 param(
     [switch]$Build,
     [switch]$NoLaunch,
@@ -16,6 +16,8 @@ param(
     [string]$Resolution = '1920 1080',
     # Les nuages en passe unique, sans leur passe temporelle (docs/optimisation.md) : pour comparer.
     [switch]$PassePleine,
+    [ValidateSet('chasseur', 'classique')]
+    [string]$ModeleVaisseau = 'chasseur',
     # Un autre exécutable que x64\Release, par exemple une compilation à part (x64\Verif).
     [string]$Exe = '',
     [string]$Scans = $(if ($env:MYPLANETENGINE_SCANS) { $env:MYPLANETENGINE_SCANS } else { Join-Path (Split-Path (Split-Path $PSScriptRoot)) 'scans' })
@@ -44,6 +46,7 @@ try {
     $env:MYPLANETENGINE_TESTS = $tests
     $env:MYPLANETENGINE_SCANS = (Resolve-Path -LiteralPath $Scans).Path
     $env:MYPLANETENGINE_SUN = $Soleil
+    $env:MYPLANETENGINE_MODELE_VAISSEAU = $ModeleVaisseau
     if ($Resolution -ne 'fenetre') { $env:MYPLANETENGINE_RESOLUTION = $Resolution; $env:MYPLANETENGINE_FULLSCREEN = '1' }
     if ($PassePleine) { $env:MYPLANETENGINE_CLOUD_FULL = '1' }
     Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -ArgumentList $Position

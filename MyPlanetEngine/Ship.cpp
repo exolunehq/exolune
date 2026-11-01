@@ -57,14 +57,24 @@ namespace
         return dst;
     }
 
-    XMMATRIX LightFrame(const XMFLOAT3& towards)
+    XMMATRIX LightFrame(const XMFLOAT3& towards, const ShipProfile& profile)
     {
         const XMVECTOR d = XMVector3Normalize(XMLoadFloat3(&towards));
-        const XMVECTOR centre = XMVectorSet(0.0f, Ship::CentreY, Ship::CentreZ, 1.0f);
+        const XMVECTOR centre = XMVectorSet(0.0f, profile.centreY, profile.centreZ, 1.0f);
         const XMVECTOR up = std::fabs(towards.z) < 0.9f ? XMVectorSet(0, 0, 1, 0) : XMVectorSet(0, 1, 0, 0);
         return XMMatrixLookToLH(centre + d * 20.0f, -d, up)
              * XMMatrixOrthographicLH(2.0f * Ship::Radius, 2.0f * Ship::Radius, 0.1f, 40.0f);
     }
+}
+
+Ship::Ship()
+{
+    wchar_t model[32] = {};
+    const DWORD size = GetEnvironmentVariableW(L"MYPLANETENGINE_MODELE_VAISSEAU", model, _countof(model));
+    if (size == 0) return; // The executable alone starts with the fighter.
+    if (size < _countof(model) && _wcsicmp(model, L"classique") == 0) mProfile = ClassicShip;
+    else if (size >= _countof(model) || _wcsicmp(model, L"chasseur") != 0)
+        throw std::runtime_error("MYPLANETENGINE_MODELE_VAISSEAU must be chasseur or classique.");
 }
 
 bool Ship::Load(const std::wstring& path)
@@ -74,11 +84,12 @@ bool Ship::Load(const std::wstring& path)
     const std::vector<uint8_t> data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     if (data.size() < 32 || std::memcmp(data.data(), "VSX1", 4) != 0) throw std::runtime_error("Not a ship pack (VSX1).");
     size_t at = 4;
-    if (Read<uint32_t>(data, at) != 2) throw std::runtime_error("Ship pack version not supported.");
+    const uint32_t version = Read<uint32_t>(data, at);
+    if (version != 2 && version != 3) throw std::runtime_error("Ship pack version not supported.");
     const uint32_t vertices = Read<uint32_t>(data, at), indices = Read<uint32_t>(data, at), draws = Read<uint32_t>(data, at);
     const uint32_t materials = Read<uint32_t>(data, at), images = Read<uint32_t>(data, at);
     if (images > MaxImages) throw std::runtime_error("Ship pack has more images than Ship::MaxImages.");
-    const size_t vertexBytes = size_t(vertices) * 60, materialSize = 92;
+    const size_t vertexBytes = size_t(vertices) * 60, materialSize = version == 2 ? 92 : 96;
     if (at + vertexBytes + size_t(indices) * 4 > data.size()) throw std::runtime_error("Ship pack truncated.");
     mVertexBytes.assign(data.begin() + at, data.begin() + at + vertexBytes);
     at += vertexBytes;
@@ -91,10 +102,18 @@ bool Ship::Load(const std::wstring& path)
         mDraws.push_back(d);
     }
     if (at + materials * materialSize > data.size()) throw std::runtime_error("Ship pack truncated.");
-    mMaterialBytes.assign(data.begin() + at, data.begin() + at + materials * materialSize);
+    // VSX2's original material order encoded the screen roles. Expand it in memory to VSX3's layout;
+    // the classic asset and its generator remain unchanged on disk.
+    mMaterialBytes.resize(size_t(materials) * 96, 0);
     for (uint32_t m = 0; m < materials; ++m) {
+        uint8_t* material = mMaterialBytes.data() + size_t(m) * 96;
+        std::memcpy(material, data.data() + at + size_t(m) * materialSize, materialSize);
+        if (version == 2) {
+            const uint32_t role = m >= 13 && m <= 18 ? m - 12 : 0;
+            std::memcpy(material + 92, &role, 4);
+        }
         uint32_t mode;
-        std::memcpy(&mode, mMaterialBytes.data() + m * materialSize + 11 * 4, 4);
+        std::memcpy(&mode, material + 11 * 4, 4);
         mModes.push_back(mode);
     }
     at += materials * materialSize;
@@ -107,8 +126,9 @@ bool Ship::Load(const std::wstring& path)
         at += bytes;
         mImages.push_back(std::move(image));
     }
-    for (uint32_t i = 0, count = Read<uint32_t>(data, at); i < count; ++i)
-        if (i < 2) pivots[i] = Read<Pivot>(data, at); else at += sizeof(Pivot);
+    const uint32_t pivotCount = Read<uint32_t>(data, at);
+    if (pivotCount != mProfile.pivotCount) throw std::runtime_error("Ship pack does not match the selected profile.");
+    for (uint32_t i = 0; i < pivotCount; ++i) pivots[i] = Read<Pivot>(data, at);
     mLoaded = true;
     return true;
 }
@@ -226,7 +246,7 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
         const DXGI_FORMAT formats[2] = { DXGI_FORMAT_R32_UINT, DXGI_FORMAT_R32_FLOAT };
         Resource* maps[2] = { &mWaterMap, &mWaterFilm };
         for (UINT k = 0; k < 2; ++k) {
-            const auto desc = CD3DX12_RESOURCE_DESC::Tex2D(formats[k], WaterWidth, WaterHeight, 1, 1, 1, 0, uav);
+            const auto desc = CD3DX12_RESOURCE_DESC::Tex2D(formats[k], mProfile.waterWidth, mProfile.waterHeight, 1, 1, 1, 0, uav);
             Check(device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
                                                   nullptr, IID_PPV_ARGS(maps[k]->ReleaseAndGetAddressOf())), "Ship water map creation failed.");
             device->CreateUnorderedAccessView(maps[k]->Get(), nullptr, nullptr, Cpu(MaxImages + 4 + k));
@@ -271,6 +291,8 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
     const CD3DX12_RANGE noRead(0, 0);
     Check(mConstantsBuffer->Map(0, &noRead, reinterpret_cast<void**>(&mConstants)), "Ship constants map failed.");
     *mConstants = {};
+    mConstants->options.z = float(mProfile.model);
+    for (auto& pose : mConstants->pose) XMStoreFloat4x4(&pose, XMMatrixIdentity());
 
     // One root signature for every pass: frame constants (b0), the ship's (b3), the draw's (b2), its vertices and
     // materials, the atmosphere tables, the climate map, the planet map, the images and shadow maps, the weather state,
@@ -382,8 +404,8 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
 
 void Ship::SetLights(const XMFLOAT3& sun, const XMFLOAT3& up)
 {
-    XMStoreFloat4x4(&mConstants->shadow[0], XMMatrixTranspose(LightFrame(sun)));
-    XMStoreFloat4x4(&mConstants->shadow[1], XMMatrixTranspose(LightFrame(up)));
+    XMStoreFloat4x4(&mConstants->shadow[0], XMMatrixTranspose(LightFrame(sun, mProfile)));
+    XMStoreFloat4x4(&mConstants->shadow[1], XMMatrixTranspose(LightFrame(up, mProfile)));
 }
 
 void Ship::Bind(ID3D12GraphicsCommandList* list, const Tables& t, bool compute) const
@@ -489,7 +511,7 @@ void Ship::UpdateWeather(ID3D12GraphicsCommandList* list, const Tables& t)
     list->Dispatch(DropCount / 64, 1, 1);
     list->ResourceBarrier(1, &uavDone);
     list->SetPipelineState(mWaterPSO[1].Get());
-    list->Dispatch((WaterWidth + 7) / 8, (WaterHeight + 7) / 8, 1);
+    list->Dispatch((mProfile.waterWidth + 7) / 8, (mProfile.waterHeight + 7) / 8, 1);
     list->ResourceBarrier(1, &uavDone);
     list->SetPipelineState(mWaterPSO[2].Get());
     list->Dispatch(DropCount / 64, 1, 1);
@@ -520,8 +542,8 @@ void Ship::DrawGlass(ID3D12GraphicsCommandList* list, const Tables& t, D3D12_CPU
                 list->SetGraphicsRoot32BitConstant(2, d.material, 0);
                 list->DrawIndexedInstanced(d.count, 1, d.first, 0, 0);
             }
-    list->SetPipelineState(mPlumePSO.Get()); // then the jets, 3 engines and 10 attitude jets
-    list->DrawInstanced(36, 13, 0, 0);
+    list->SetPipelineState(mPlumePSO.Get()); // then the selected model's main engines and ten attitude jets
+    list->DrawInstanced(36, mProfile.jetCount, 0, 0); // ShipPlume.hlsli's selected profile
 }
 
 void Ship::OverlayToRead(ID3D12GraphicsCommandList* list)

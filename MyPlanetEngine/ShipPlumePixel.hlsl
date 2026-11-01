@@ -1,5 +1,6 @@
 // The jets marched through their boxes (ShipPlume.hlsli). The main engines' plumes give light, a hot blue-white core
-// fading along their length, with faint shock diamonds; the attitude jets' puffs are a white vapour that the sun and
+// fading along their length, with shock diamonds; they live: a turbulence that streams downstream, a ragged tip, a
+// flicker, a faint glow around the core; the attitude jets' puffs are a white vapour that the sun and
 // the sky light, and that hides what is behind it.
 #include "ShipPlume.hlsli"
 #include "PlanetSettings.hlsli"
@@ -35,7 +36,11 @@ float4 PSMain(PlumePixel input) : SV_Target
     const float3 vapourLight = 0.9 * (white * SunTransmittance(h, muS, haze) * shipWeather[2].y * 0.6
                                       + SkyIrradiance(h, muS, haze)) / PI;
     const bool engine = input.jet < MAIN_JETS;
-    const uint steps = 24;
+    const uint steps = engine ? 32 : 24;
+    // The flame's life: a flicker some twenty times a second, each engine out of step; the turbulence streams down the
+    // plume at about 20 m/s.
+    const float clock = shipTurn.z, seed = float(input.jet) * 7.31;
+    const float flicker = 0.85 + 0.3 * PlumeNoise(float3(clock * 23.0, seed, 0.5));
     const float ds = (end - start) / steps;
     float3 rgb = 0.0;
     float through = 1.0;
@@ -45,22 +50,31 @@ float4 PSMain(PlumePixel input) : SV_Target
         if (q.z < 0.0)
             continue;
         const float along = saturate(q.z / jet.length);
-        // The flame swells a little out of the nozzle, then narrows to a point at its tip; the vapour widens.
-        const float width = engine ? jet.radius * (1.0 + 0.5 * along) * pow(1.0 - along, 0.6) + 1e-3
-                                   : jet.radius + jet.spread * q.z;
-        const float across = dot(q.xy, q.xy) / (width * width);
         if (engine)
         {
+            // The turbulence, coarse and fine, carried downstream; it sways the flame's axis and frays it towards the tip.
+            const float3 s = q / jet.radius;
+            const float n1 = PlumeNoise(float3(s.xy * 1.6, s.z * 0.5 - clock * 65.0 + seed));
+            const float n2 = PlumeNoise(float3(s.xy * 4.0, s.z * 1.4 - clock * 110.0 - seed));
+            const float2 axis = 0.24 * jet.radius * along * float2(n1 - 0.5, n2 - 0.5);
+            const float tip = saturate(along * (0.9 + 0.25 * n1));
+            // The flame swells a little out of the nozzle, then narrows to a ragged point at its tip.
+            const float width = jet.radius * (1.0 + 0.5 * along) * pow(1.0 - tip, 0.6) * (1.0 + 0.3 * (n1 - 0.5) * along) + 1e-3;
+            const float across = dot(q.xy - axis, q.xy - axis) / (width * width);
             // Some 4 x the sunlit white's radiance at full push, along a core that cools from blue-white to violet and
-            // dies out at the tip.
-            const float core = exp(-3.0 * across), fade = pow(1.0 - along, 1.5);
-            const float diamonds = 0.8 + 0.2 * cos(6.2832 * q.z / (0.35 + 0.3 * jet.power));
-            const float3 tint = lerp(lerp(float3(0.5, 0.7, 1.0), float3(0.95, 0.97, 1.0), core * core),
-                                     float3(0.45, 0.4, 1.0), q.z / jet.length);
-            rgb += tint * jet.power * core * fade * diamonds * ds * 4.0 * dot(white, 1.0 / 3.0) / PI / jet.radius;
+            // dies out at the tip; streaks in it, standing shock diamonds that waver, a faint wide glow.
+            const float core = exp(-3.0 * across) * (0.7 + 0.6 * n2), fade = pow(1.0 - tip, 1.5);
+            const float diamonds = 0.75 + 0.25 * cos(6.2832 * q.z / (0.35 + 0.3 * jet.power) + 0.6 * (n1 - 0.5));
+            const float glow = 0.1 * exp(-0.6 * across) * (1.0 - along);
+            const float3 tint = lerp(lerp(float3(0.5, 0.7, 1.0), float3(0.95, 0.97, 1.0), saturate(core * core)), float3(0.45, 0.4, 1.0), along);
+            rgb += (tint * core * diamonds + float3(0.35, 0.45, 1.0) * glow) * jet.power * flicker * fade
+                 * ds * 4.0 * dot(white, 1.0 / 3.0) / PI / jet.radius;
         }
         else
         {
+            // The vapour widens.
+            const float width = jet.radius + jet.spread * q.z;
+            const float across = dot(q.xy, q.xy) / (width * width);
             // The vapour thins as it widens; dense at the mouth, it hides what is behind.
             const float density = 30.0 * jet.power * exp(-3.0 * across) * exp(-2.5 * q.z / jet.length)
                                 * (jet.radius * jet.radius) / (width * width);

@@ -24,6 +24,28 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 
 ## The established rules
 
+**Selecting a manufactured asset selects its complete geometry profile** (`spec-vaisseau.md`).
+- Keep each selectable model's source and delivery files in its own asset directory.
+- Match the pilot eye, canopy weather surface, shadow centre, engine mouths and animation pivots to that model.
+- Change the default through model selection; retain previous models and their packet compatibility.
+
+**Manufactured parts derive their interfaces from the visible support mesh** (`spec-vaisseau.md`).
+- Design the common fascia and instrument depth together; cut actual recesses for installed equipment.
+- Derive panel outlines from the usable support surface, with metric edge clearance; validate the actual control hardware against each outline.
+- The usable outline ends at the visible intersection with neighbouring parts, not at the hidden tub wall; check visibility from the pilot eye and its travel limits.
+- Console returns share their dashboard boundary and join the console tangentially; their sections must advance monotonically.
+- Keep fitted control positions and printed legends in the same coordinate mapping.
+- Cut each support's complete pocket layout together so adjacent coplanar floors remain closed.
+- Keep printed instrument faces below the fascia and exposed rims thin; mounting contact alone does not establish a coherent design.
+- Join coaming sheets at the chassis return instead of overlapping its top face.
+- Glazing retainers have flat structural faces and a separate narrow seal; their section follows the glazing tangent plane.
+- Fit the whole mounting perimeter along the mounting normal; a centre point or constant-depth block cannot establish contact with a curved panel.
+- Derive shelf width from module dimensions and assembly clearance.
+- Close recessed display rims and attach hoses, straps and handles to explicit fittings.
+- Preserve a finite orthogonal tangent frame at UV poles in both GLB and cooked packets.
+- Inspect the reimported asset from several viewpoints and retain the in-flight review route.
+- Solve nose visibility in the physical hull shape; keep the glazing contact, external paint layout and attitude-jet origins consistent with it.
+
 **Out-of-real-time rendering follows the movie clock, never the time of the calculation** (`lancement.md`, the cinematic mode).
 - **A common step to everything that advances:** sea, plants, glass and histories; poses and the weather moment come from the course.
 - **Safety does not draw the route:** the generator keeps a free band around the flight; any engine clamp is logged.

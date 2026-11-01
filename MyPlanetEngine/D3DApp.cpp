@@ -1098,8 +1098,8 @@ bool D3DApp::InitDirect3D() {
     mCommandList->CopyResource(mIndexBuffer.Get(), indexUpload.Get());
     mCommandList->CopyResource(mShapeVertices.Get(), shapeVertexUpload.Get());
     mCommandList->CopyResource(mShapeIndices.Get(), shapeIndexUpload.Get());
-    // The player's ship: the engine's pack of it (assets/vaisseau/paquet_moteur.py), found above the executable.
-    const std::wstring shipPack = FindAbove(L"assets\\vaisseau\\vaisseau.vsx");
+    // The selected ship's cooked package, found above the executable (ShipProfiles.h).
+    const std::wstring shipPack = FindAbove(mShip.Profile().packPath);
     if (!shipPack.empty()) mShip.Load(shipPack);
     mShip.Initialize(md3dDevice.Get(), mCommandList.Get(), mSrvHeap.Get(), ShipSrv, mClientWidth, mClientHeight, HdrFormat, SunFormat);
     if (!mShip.Ready()) mView = View::Free;
@@ -1654,7 +1654,7 @@ void D3DApp::Draw() {
         toPreviousShip.m[3][2] = (float)Dot(mPrevFaceZ, shift);
         toPreviousShip.m[3][3] = 1.0f;
         XMStoreFloat4x4(&mConstants->reprojectShip, XMMatrixTranspose(XMLoadFloat4x4(&toPreviousShip) * mPrevViewProj));
-        XMStoreFloat4(&mConstants->shipSphere, toLocal(mShipPos - mCamPos + shipBack * Ship::CentreY + mShipUp * Ship::CentreZ));
+        XMStoreFloat4(&mConstants->shipSphere, toLocal(mShipPos - mCamPos + shipBack * mShip.Profile().centreY + mShipUp * mShip.Profile().centreZ));
         mConstants->shipSphere.w = Ship::Radius;
     }
     if (mShip.Ready()) UpdateShipFrame(dt, faceX, faceY, faceZ);
@@ -2272,7 +2272,7 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
     if (!mTaa) wcscat_s(title, L" | sans lissage (T)");
     if (mView != View::Free) {
         wchar_t ship[80];
-        swprintf_s(ship, L" | %s, %.0f m/s (Tab)", mView == View::Cockpit ? L"cockpit" : mView == View::Chase ? L"poursuite" : L"sans vaisseau", Length(mShipVelocity));
+        swprintf_s(ship, L" | %s : %s, %.0f m/s (Tab)", mShip.Profile().name, mView == View::Cockpit ? L"cockpit" : mView == View::Chase ? L"poursuite" : L"sans vaisseau", Length(mShipVelocity));
         wcscat_s(title, ship);
     }
     // The camera as the command line takes it: altitude, latitude, longitude, pitch down, heading.

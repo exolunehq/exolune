@@ -2,6 +2,34 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-01 · Approved fighter becomes the default**
+
+- Milestone: `jalon/2026-11-01-chasseur-par-defaut`.
+- Approved finish source: `b43d8ee`, from `codex/vaisseau-finitions`.
+- Default model: `chasseur`; original triangular model: `classique`.
+- The fighter lives in `assets/vaisseau/chasseur/`; original source files and binaries remain in `assets/vaisseau/`.
+- `-ModeleVaisseau classique` restores the previous model at launch, with its original eye, folded canopy, water map and jets.
+- The executable alone selects the fighter; no environment variable is required.
+- Fighter eye: 1.03 m; classic eye: 1.07 m; shared forward offset: 0.9192 m.
+- Fighter shadow centre: (0, −0.25, 0.55) m; classic: (0, −2.15, 0.05) m; radius: 6.7 m.
+- Water maps: fighter 1684 × 2450, classic 1584 × 3660, both at 1.2 mm per texel.
+- Main engines: four on the fighter, three on the classic; ten attitude jets on each.
+- Pivots: six on the fighter, two on the classic; unused matrices are identity.
+- VSX2 remains readable; original screen indices convert to explicit roles at load time, without rewriting the package.
+- Accepted finish: seven fitted panels, curved console returns, recessed equipment, curved coaming and thin glazing retainer.
+- Nose shoulders lower smoothly by up to 220 mm; the forward centreline lowers by up to 18 mm; the glazing contact stays fixed.
+- Instrument faces: 1.5 mm recessed; display rims: 1 mm proud; pocket depths: 10/28/12 mm.
+- Dashboard centre: 0.845 m; shoulders: 35 mm lower along the panel; console returns: 65 mm lateral width.
+- Retainer: 34 × 12 mm, 2 mm chamfers, separate 4 mm seal; glass tessellation: 64 × 52.
+- Finish maps: 4096px panel atlas and two 1024px linear micro-surface maps.
+- Fighter asset: 61,698 triangles, 34 materials, 48 draw ranges and 12 images.
+- Terrain, flight controls and planet settings are unchanged.
+- Validation: Release x64 builds successfully; both VSX formats, screen roles and pivot counts pass the packet checks.
+- All 32 original source, texture and model files are unchanged; only their README gains the selection instructions.
+- Four direct engine captures verify cockpit and chase views for both models; the default captures set no model override.
+- Review route: `tools/tests/2026-11-01-modeles-vaisseau.txt`, shared by both models.
+- Construction and inspection details: [ship spec](spec-vaisseau.md); earlier measurements: [history](log/spec-vaisseau-historique.md).
+
 ## 2026-10-31 · Off-real-time cinematic path
 
 - **The `MYPLANETENGINE_CINE` mode:** independent poses of the ship and the camera, cockpit of the game, not fixed, without audio or controls; the history survives the movement, except the change of view.

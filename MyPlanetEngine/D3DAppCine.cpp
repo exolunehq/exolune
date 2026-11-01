@@ -101,7 +101,7 @@ bool D3DApp::BeginCineFrame() {
     mPlume = mThrottle / 30.0;
     if (f.cockpit) {
         // Same eye and resting head as UpdateShip, without interactive head inertia.
-        mCamPos = mShipPos + mShipForward * 0.9192 + mShipUp * 1.07;
+        mCamPos = mShipPos + mShipForward * 0.9192 + mShipUp * mShip.Profile().eyeUp;
         const Vec3d right = Normalize(Cross(mShipUp, mShipForward));
         mCamForward = Rotate(mShipForward, right, 0.08);
         mCamUp = Rotate(mShipUp, right, 0.08);

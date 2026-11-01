@@ -12,12 +12,12 @@ cbuffer ShipFrame : register(b3) // b1: the clouds' frame (Clouds.hlsli)
     float4   shipAir;       // x: airspeed as at sea level, the speed scaled by the air's thinning (m/s); y: frame time (s);
                             // z: clock (s), wraps at 3600; w: forced glass state, 0 off
     float4   shipVelocity;  // xyz: direction of flight, face-local; w: speed (m/s)
-    float4   shipOptions;   // x: 1 with the head-up display (U); y: 1 in the cockpit (the attitude jets hidden)
+    float4   shipOptions;   // x: 1 with the head-up display (U); y: 1 in the cockpit; z: ShipModel, 0 classic / 1 fighter
     float4   shipThrust;    // x: the main engines, 0 to 1; y: roll right, z: lift, w: slide right, -1 to 1 (ShipPlume.hlsli)
     float4   shipTurn;      // x: pitch up, y: yaw right, -1 to 1; z: clock (s), wraps at 3600
     float4   shipCourse;    // the dashboard (ShipScreens.hlsli): heading, latitude, longitude (deg); w: the ground's height (km)
     float4   shipGauges;    // x: the gas, 0 to 1
-    float4x4 shipPose[2];   // ship frame -> ship frame: the stick, the throttle (ShipPose)
+    float4x4 shipPose[6];   // ship frame -> ship frame: the stick, the throttle, the four volets (ShipPose)
 };
 
 cbuffer ShipDraw : register(b2)
@@ -37,8 +37,11 @@ struct ShipVertex
     float  pose;    // the moving parts (ShipPose): 0 fixed
 };
 
-// Must match assets/vaisseau/paquet_moteur.py. mode: 0 opaque, 1 blended (the head-up display's combiner), 2 the canopy.
-// image: colour, metal-roughness (g roughness, b metal), normal, occlusion, emission; -1 without.
+// Match chasseur/paquet_moteur.py (VSX3); Ship::Load expands classic VSX2 materials to this layout.
+// mode: 0 opaque, 1 blended (the head-up display's combiner), 2 the canopy.
+// image: colour, metal-roughness (g roughness, b metal), normal, occlusion, emission; -1 without. role: what the engine
+// animates, the pack's ROLES: the dashboard's screens and dials (ShipScreens.hlsli), then these.
+static const uint SHIP_ROLE_HOT = 7, SHIP_ROLE_STROBE = 8, SHIP_ROLE_BEACON = 9;
 struct ShipMaterial
 {
     float4 color;
@@ -51,6 +54,7 @@ struct ShipMaterial
     uint   doubleSided;
     int    image[5];
     uint   uv[5];
+    uint   role;
 };
 
 StructuredBuffer<ShipVertex> shipVertices : register(t30);
@@ -66,13 +70,33 @@ Texture2D<float> shipWaterFilm : register(t49);
 SamplerComparisonState shipShadowSampler : register(s4);
 SamplerState shipSampler : register(s5); // wrapping, anisotropic
 
-static const float3 SHIP_CENTRE = float3(0.0, -2.15, 0.05); // the shadow maps' sphere, ship frame (m)
+// The selected profile drives geometry and weather together. See ShipProfiles.h for the CPU dimensions.
+bool ShipClassic() { return shipOptions.z < 0.5; }
+#include "ShipClassique.hlsli"
+#include "ShipChasseur.hlsli"
+#define SHIP_CENTRE (ShipClassic() ? CLASSIC_CENTRE : FIGHTER_SHIP_CENTRE)
 static const float SHIP_RADIUS = 6.7;
-// The water map's rectangle in the ship's plan (m) and its size (texels, 1.2 mm): the canopy's two panes, nose F
-// (0, -4.02), sills S (+-0.9375, -0.523), apex A (0, 0.32). Must match Ship::WaterWidth, WaterHeight.
-static const float2 WATER_ORIGIN = float2(-0.95, -4.05);
+#define WATER_ORIGIN (ShipClassic() ? CLASSIC_WATER_ORIGIN : FIGHTER_WATER_ORIGIN)
+#define WATER_SIZE (ShipClassic() ? CLASSIC_WATER_SIZE : FIGHTER_WATER_SIZE)
 static const float WATER_TEXEL = 0.0012;
-static const uint2 WATER_SIZE = uint2(1584, 3660);
+#define CANOPY_W (ShipClassic() ? 0.94 : FIGHTER_CANOPY_W)
+#define CANOPY_Y0 (ShipClassic() ? -4.0 : FIGHTER_CANOPY_Y0)
+#define CANOPY_Y1 (ShipClassic() ? 0.3 : FIGHTER_CANOPY_Y1)
+bool OnCanopy(float2 p, float margin)
+{
+    if (ShipClassic()) return ClassicOnCanopy(p, margin);
+    return FighterOnCanopy(p, margin);
+}
+float3 CanopyNormal(float2 p)
+{
+    if (ShipClassic()) return ClassicCanopyNormal(p);
+    return FighterCanopyNormal(p);
+}
+float SillDistance(float3 local)
+{
+    if (ShipClassic()) return ClassicSillDistance(local);
+    return max(FighterCanopyInside(local.xy), 0.0);
+}
 
 struct ShipPixel
 {
@@ -87,14 +111,15 @@ struct ShipPixel
 // The air too thin to hold water on the glass: from 20 to 35 km up it boils off, as on Earth above the Armstrong limit.
 float ShipVacuum() { return smoothstep(20.0, 35.0, shipUp.w); }
 
-// A vertex's moving part (assets/vaisseau/pieces_mobiles.py): its pose is 0 when fixed, in (0, 1] on the stick, (1, 2] on
-// the throttle, its weight the fraction past the integer: the stick's boot bends from its flange.
+// A vertex's moving part (assets/vaisseau/pieces_mobiles.py, design_chasseur.py): its pose is 0 when fixed, in (0, 1] on
+// the stick, (1, 2] on the throttle, 3 to 6 on the elevons, its weight the fraction past the integer: the stick's boot bends
+// from its flange.
 float4x4 ShipPose(float pose)
 {
     const float4x4 still = float4x4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
     [branch] if (pose <= 0.0)
         return still;
-    const uint part = min((uint)ceil(pose), 2u) - 1;
+    const uint part = min((uint)ceil(pose), 6u) - 1;
     return lerp(still, shipPose[part], pose - part);
 }
 
