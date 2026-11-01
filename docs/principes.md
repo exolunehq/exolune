@@ -61,7 +61,25 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - **What is placed on a shape of the map is placed where the shader draws it:** its place read in the map, then brought back by the left reading of the map. Without this, the volcanoes of an arc fell down to 30 km from its ridge (`spec-volcanisme.md`, since the 2026-10-31).
 - **One shape placed on another follows the contour, and its width varies with what shapes it:** a reef, the leveled top of a guyot follow the contour of their volcano; the plateau widens windward, the passes open leeward. A separate circle, of constant width, made atolls in rings (`spec-volcanisme.md`).
 - **A pattern placed on a shape has a zero average:** it draws, it does not mount the shape. The flows of a volcano, laid on top of his building, drew a ring where they begin; their tongues are above him, the ground between them below (`spec-volcanisme.md`).
-- **Nothing thinner than the 0 level blocks any of its watercourses** (4 stage).
+- **Nothing finer than level 0 blocks any of its watercourses** (`spec-erosion.md`): detail fades on valley floors.
+
+**Water decides the shape of mountain ranges** (`spec-erosion.md`, since 2026-10-31).
+- **Water routing is global, its shape is local:** level 0, computed at startup over the whole planet, carries the network, lakes and water level; valleys and gullies only draw it, as point functions attached to it.
+- **A valley retains detail on its slopes:** the cutting envelope carries that detail, which fades only on the floor; a bare profile would leave smooth walls.
+- **A point representing a direction stays on the sphere after warping:** distances to its links use that unit direction, with the required placement precision. A radial offset must not close a thalweg; changing its water level does not correct this false sill (`spec-erosion.md`).
+- **The drained floor belongs to each link's profile:** the profile is built above it before valleys are combined. The level of an independently selected link never bounds another valley. Both signs of detail vanish on the floor actually carved (`spec-erosion.md`).
+- **The supporting terrain precedes its finishing:** folds and coarse octaves are identical with or without erosion; the network neither suppresses nor amplifies them before the incision decision. Gullies and slope reinforcement act after them; a profile above the support cannot orient it (`spec-erosion.md`, since 2026-11-01).
+- **A network join shares all its parameters:** position, height, slope, discharge and ice; geometry follows the curve, not the segments used to search for it (`spec-erosion.md`).
+- **An erosive cut never raises a hollow:** the envelope of the floor and its slopes cuts the full terrain. Removing detail is not deposition; checks concern the final height, not only the coarse support (`spec-erosion.md`).
+- **A closest point on a curve also carries a parameter:** an almost exact distance does not guarantee interpolated heights and fluxes. Check endpoints with zero tangent and use their regular limit (`spec-erosion.md`).
+- **A network warp preserves its local orientation:** check its Jacobian over several seeds and whether it can be inverted. A folding deformation can duplicate valleys and reverse their drainage (`spec-erosion.md`).
+- **Sharpening never creates a cusp:** its crest slope stays finite, rounded over at least the `ReliefCrease` interval, including `CREASE_ROUNDING × f / gCreaseMaxFrequency`; its mean remains that of the replaced profile. Glacial arêtes form near and above the equilibrium line; trough ice does not activate them (`spec-erosion.md`).
+- **A gully follows its supporting slope:** fine octaves take the slope direction of larger shapes, at equal roughness.
+- **A gully, like any pattern, never creates a slope its ground cannot sustain:** each octave reserves the slope of larger shapes and its ordinary noise before adding the pattern; continuous saturation, zero mean, physical threshold independent of grid spacing. The soil and scree threshold applies at mantle scales and outside mountains; broad incisions in mountain ranges follow rock, reinforced near the equilibrium line. The transition depends continuously on wavelength and terrain amplitude, never on grid spacing (`spec-erosion.md`).
+- **Incision retreats at finite speed:** beyond knickpoint reach, the ground retains its shape; plateaus are incised only at their edges.
+- **What a shape reads is continuous, even from a collection of elements:** never the value of only the nearest or lowest element, which jumps when it changes; use the maximum or blend of their influences, each fading before that change.
+- **Marine abrasion follows a full-ground contour:** the shore estimate only bounds its reach, extended by the possible detail displacement; the shore platform also cuts detail, and lowering stays bounded by the coastal contour (`spec-erosion.md`, coastal cliffs).
+- **A wave cut stays within reach of the sea:** its contour varies more broadly than its platform, and it requires deep sea at the retreat distance, read on the pre-erosion ground; never a valley or lake mistaken for the sea (`spec-erosion.md`).
 
 **The climate comes from geography, the noise details it** (`spec-climat.md`, from the 2026-10-31).
 - **Rain and temperature are calculated at startup,** on the large forms: the winds of the three cells, the water vapor carried from the seas, the rain windward of the reliefs. Never an imposed band of latitude: deserts fall where traffic and relief leave them.
@@ -138,6 +156,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - **All that decides it is continuous, and taken at the scale of its forms:** projection triplanar to continuous weights, normal on 32 grid cells, peaks never thinner than grid cells of 2 m.
 - **The copies of a tile blend without amplifying the heights.**
 - **The calculations remain accurate in simple precision:** no subtraction of almost equal terms; a series where it is needed.
+- **Only one double-precision read per vertex:** here, doubles run 64 times slower than floats. A neighboring position is taken relative to the point in floats: the difference of two neighboring floats is exact (Sterbenz), minus the point's remainder, read once in doubles. Valleys were reading it at every link (`spec-erosion.md`).
 - **The mesh slides continuously with the camera, never by step on the grid of the planet:** placed by step, its refinement would be seen, especially in fast movement. A calculation gain is not purchased in this way (`optimisation.md`, round 4).
 
 **No uniform stroke structure** (`spec-roche-organique.md`).
@@ -211,6 +230,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - **`tools/banc_tons.py`:** the luminance of the ground and sky against the photos; the exposure in descent and when the camera turns.
 - **`tools/banc_ombres.py`:** direct sunlight on a single ground, from 50 km to 200 m, at low sun. Its average must not move: on a rough soil, it is that of its average surface, regardless of the relief drawn. The shadow part, it, grows with him.
 - **`tools/banc_carte.py`:** the map of the planet checked against the port numpy of the relief and against a separate written fill; its lakes and network measured against the Earth.
+- **`tools/hydro/verifie_auges.py`:** valley profiles and joins, support conservation, bounded cuts, warping, soils and face boundaries on two seeds; complements the image benchmark without replacing it.
 - **`tools/banc_mer.py`:** the reflection of the sun against Cox and Munk, pixel by pixel, windward of the pixel; downhill, the average reflection and the share of whitecaps against Monahan; the wind map. **`tools/banc_tremblement_mer.py`:** the flicker out of the sea when it moves, and the sea movement with or without smoothing.
 - **`tools/banc_cretes.py`, `tools/banc_visuel.py`, `tools/realisme.py`:** peaks, views at multiple heights, distance to actual scans.
 - **`tools/banc_objets.py`:** objects per ground in the counted photos, the distance between their foot and the mesh's ground along an approach, the rises along a descent, and the man-height views next to the photos.

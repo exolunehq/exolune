@@ -23,7 +23,7 @@ Status: spec live, since the 2026-10-31. Steps 0 to 3 make the 2026-10-31 on the
 | 1. Tectonic map | plates from 1 000 to 10 000 km; fields to 20 km | CPU, at startup, less than 1 s, 38 MB on the GPU | made, corrected on 2026-10-31 |
 | 2. Large forms | 6 000 km to 50 km; coasts up to 3 km | map and analytical profiles, by vertex | Done on 2026-10-31 |
 | 3. Detail | 50 km to 13,5 m | noise of `Noise.hlsli` modulated by the map, by vertex | made the 2026-10-31 |
-| 4. Level 0 | above 20 to 40 km | Start-up | inputs ready; the connection to be made, branch `erosion-niveaux`  |
+| 4. Level 0 and erosion | network at 20 km, its valleys and gullies down to 100 m | at startup, then per point | done on 2026-10-31, branch `erosion-globale`, `spec-erosion.md` |
 
 ## The tectonic map, `Tectonics.cpp`
 
@@ -139,7 +139,7 @@ Status: spec live, since the 2026-10-31. Steps 0 to 3 make the 2026-10-31 on the
 
 ## The link with erosion: the level 0
 
-**The map shows what the 0 level expects,** on the `erosion-niveaux` branch (`recherche-relief.md`, 6.5).
+**The map exposes what level 0 expects** (`recherche-relief.md`, 6.5); it is connected on branch `erosion-globale` (`spec-erosion.md`).
 
 | Entrée | Where | What it is |
 |---|---|---|
@@ -150,12 +150,7 @@ Status: spec live, since the 2026-10-31. Steps 0 to 3 make the 2026-10-31 on the
 
 **Orders of magnitude, seed 0:** the elevation exceeds 1 mm/an on 9,5 % of the land, 1,7 mm/an in median above 2,5 km, 12 mm/an at most; erodibility is 0,25 on the shields, 1,6 on half of the land.
 
-**The connection, to do on `erosion-niveaux`:**
-1. **At startup, after the tectonic map:** `Tectonics::Map` keeps its five slices in memory up to the level 0; it reads U and K there, without reread the file.
-2. **On the grid of the level 0,** 20 to 40 km: the pre-erosion form filtered to two of its grid cells, U and K in B-spline; analytical equilibrium (Tzathas 2024), Priority-Flood, drained area, integral χ along the grid, two or three times.
-3. **The eroded relief replaces the large forms on the lands,** above two of its grid cells, read in B-spline; the detail extinguishes at the bottom of its valleys. `ReliefElevation(p, true)` makes it, `(p, false)` never: the 0 level does not read its own outputs.
-4. **The budget:** the level 0 is added to the second of the map; a cache per seed if it exceeds it.
-5. **The search scripts,** `tools/hydro/level0_*.py`, take `cp.uplift` and `cp.erodibility` instead of the raise taken from complexplanet.
+**The connection, completed on 2026-10-31 (`spec-erosion.md`):** `Tectonics::Map` stays in memory until level 0, which reads U and K per texel on the same grid; the pre-erosion form, filtered to two grid cells; water level at stream-power equilibrium, incision limited by knickpoint retreat (Tzathas 2024). Eroded terrain does not replace the large shapes: each valley lowers them around its link. `ReliefElevation(p, true)` renders it, `(p, false)` never does.
 
 **Distance to the front, vivid to the axis:** near the border, the distance signed, exact across it; further, the single distance. The sign changes sign at triple junctions: possible short false axes, on 40 km.
 
@@ -183,7 +178,7 @@ Status: spec live, since the 2026-10-31. Steps 0 to 3 make the 2026-10-31 on the
 
 **`gRoughness`,** of the same fields: 0,1 the plains, 0,35 the hills, 0,5 the old chains, 0,6 the mesas and badlands, 1 the young chains.
 
-**The valleys:** none is dug. The valleys in zeros of a noise drew looped channels; the rivers will be those of the level 0. `ReliefElevation(p, false)` gives the same relief.
+**The valleys:** none is carved by noise. Valleys at noise zeros drew looping channels; they now come from level 0 and its gullies (`spec-erosion.md`).
 
 **What holds:** the `ReliefElevation(p)` and `(p, valleys)` interface; the doubles for octave cutting; the filtering by `gMaxFrequency` and the rounding of peaks; no octave under two grid cells; the smoothly capped summits above 8 km.
 
@@ -241,7 +236,6 @@ Status: spec live, since the 2026-10-31. Steps 0 to 3 make the 2026-10-31 on the
 
 ## Known defects
 
-- **The valleys between 20 km and 1 km:** none is dug; the chains have their folds and their cols, no network that drains them. The 0 level and its fine valleys, stages 4 and 7.
 - **The estuaries at the river mouths:** the coastal rias are drowned valleys drawn by the noise; the real estuaries await the rivers of the 0 level.
 - **Plains follow the distance to the nearest border:** the sharpest rafters, near triple junctions, fade away; around a very curved border, its contour lines still draw concentric arcs, and a strong fold may serpentine there.
 - **The very low coastal plains,** below 0,5 m/km, still have basin below sea level inside; the 0 level will drain them.
@@ -249,7 +243,6 @@ Status: spec live, since the 2026-10-31. Steps 0 to 3 make the 2026-10-31 on the
 - **Not yet abyssal hills oriented by age:** volcanoes are made, `spec-volcanisme.md`.
 - **The reference of the quality benchmark is no longer valid:** its places are those of the old relief; it is re-registered on request.
 - **The memory peak of the calculation,** 0,5 GB: for a system calculated in parallel, to reduce or spread.
-- **No valleys dug:** waiting for level 0, `valleys` does not change anything.
 
 ## The plan in stages
 
@@ -259,10 +252,10 @@ Status: spec live, since the 2026-10-31. Steps 0 to 3 make the 2026-10-31 on the
 | 1 | The tectonic map and its diagnostic views; continents by location, margins | made the 2026-10-31, to be judged in flight |
 | 2 | The large forms: oceans, margins, pits, chains, plateaus, rifts, transforming, old chains | made the 2026-10-31, to be judged in flight |
 | 3 | Modulated detail: oriented chains, slope erosion, mesas, badlands, `gRoughness`  | made the 2026-10-31, to be judged in flight; quality benchmark to be redone on new views |
-| 4 | The 0 level on the tectonic elevation, at analytical equilibrium; its eroded relief above two cells | ready entries on 2026-10-31; to be done on `erosion-niveaux`  |
+| 4 | Level 0 on tectonic uplift, at analytical equilibrium; its valleys | done on 2026-10-31, `spec-erosion.md` |
 | 5 | Hot spots, volcanic cones, abyssal hills | volcanoes made the 2026-10-31, `spec-volcanisme.md`, experiment `piste/volcanisme` ; abyssal hills to do |
 | 6 | Costs by type of margin | made the 2026-10-31 by the slope of the margin; the estuaries with the rivers of the level 0 |
-| 7 | The fine valleys: Dendry by tiles, hung at level 0 | To be done |
+| 7 | Fine valleys attached to level 0: gullies from phasor noise, Dendry rejected for its cost | done on 2026-10-31, `spec-erosion.md` |
 | 8 | A simulated story in Cortial style, if the snapshot seems too regular | if necessary |
 
 The detail of each step: `recherche-relief.md`, section 7. The new rules are in `principes.md`.

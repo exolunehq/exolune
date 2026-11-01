@@ -1,13 +1,13 @@
-# E, graine 0 : ravines rocheuses selon leur échelle, thalwegs ouverts ; aucun lancement automatique. Altitudes au sol recalculées par le portage ; docs/spec-erosion.md.
-Chaîne signalée : ravines et neige vues de 3 km au-dessus du sol, vers le nord | 5556.607 -25.60 -26.94 25 0 | -25 -25
-Arêtes : bandes rocheuses depuis 5,8 km au-dessus du sol | 8581.038 -46.9 -33.8 45 0 | -40 -10
-Même chaîne depuis 8 km : organisation des ravines et fonds ouverts | 10556.607 -25.60 -26.94 55 0 relief | -25 -25
-Mêmes arêtes depuis 3 km : parois et crêtes sans cuspide | 5781.038 -46.9 -33.8 40 200 relief | -40 -10
-Première auge depuis 60 km : fond et sortie aval sans faux seuil radial | 65000 -25.566 -26.916 70 0 relief | -25 -25
-Seconde auge depuis 60 km : fond et sortie aval ouverts | 65000 -25.486 -27.075 70 0 relief | -25 -25
-Forêt : pas de lame, caméra à 1,8 m, vers le nord | 2219.725 34.1611352 -73.72443 0 0 | 25 -65
-Versant enneigé : pas de tranchée ni de palissade, caméra à 1,8 m | 2058.127 -48.3497 -44.8221 0 0 | -40 -10
-Canyon : grandes ravines sans murs du manteau, caméra à 1,8 m | 1006.363 -38.1080 166.4916 0 0 | -35 160
-Témoin plat de C : caméra à 1,8 m | 111.081 44.16 -60.08 0 0 | 35 -55
-Falaise tropicale : calibration Hc conservée | 3000 8.54005 -103.23344 40 180 | 10 -100
-Côte plate : forme inchangée | 1000 16.71 -89.28 45 180 | 15 -85
+# E, seed 0: rock gullies according to scale, open thalwegs; no automatic launch. Ground altitudes recalculated by the port; docs/spec-erosion.md.
+Reported range: gullies and snow seen from 3 km above ground, looking north | 5556.607 -25.60 -26.94 25 0 | -25 -25
+Arêtes: rock bands from 5.8 km above ground | 8581.038 -46.9 -33.8 45 0 | -40 -10
+Same range from 8 km: gully organization and open floors | 10556.607 -25.60 -26.94 55 0 relief | -25 -25
+Same arêtes from 3 km: walls and cusp-free crests | 5781.038 -46.9 -33.8 40 200 relief | -40 -10
+First trough from 60 km: floor and downstream outlet without a false radial sill | 65000 -25.566 -26.916 70 0 relief | -25 -25
+Second trough from 60 km: open floor and downstream outlet | 65000 -25.486 -27.075 70 0 relief | -25 -25
+Forest: no blade, camera at 1.8 m, looking north | 2219.725 34.1611352 -73.72443 0 0 | 25 -65
+Snowy slope: no trench or palisade, camera at 1.8 m | 2058.127 -48.3497 -44.8221 0 0 | -40 -10
+Canyon: broad gullies without mantle walls, camera at 1.8 m | 1006.363 -38.1080 166.4916 0 0 | -35 160
+C's flat control: camera at 1.8 m | 111.081 44.16 -60.08 0 0 | 35 -55
+Tropical cliff: Hc calibration preserved | 3000 8.54005 -103.23344 40 180 | 10 -100
+Flat coast: unchanged shape | 1000 16.71 -89.28 45 180 | 15 -85

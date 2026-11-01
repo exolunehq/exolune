@@ -10,6 +10,8 @@
 
 ## What it contains
 
+- **`spec-erosion-historique.md`:** old coastal profiles, comparison of the 9 km filter and expected slope; superseded symmetric band and reach without a sea probe; singular crests, provisional climate, gullies without a slope reserve and their old measurements; C and D measurements before scale separation and spherical valley projection; removed duplicate coastal estimator from E; flattened glacial profiles and measurements from `14c99ec`, superseded on 2026-11-01.
+
 **The origins of**
 
 | File | Why here |

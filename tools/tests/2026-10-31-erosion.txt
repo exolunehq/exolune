@@ -1,24 +1,24 @@
-# L'érosion globale (docs/spec-erosion.md) : le réseau du niveau 0, ses vallées, ses ravines, ses glaciers. Juger les chaînes de 300 km à 1 km : vallées transverses ramifiées, arêtes, contreforts, une ligne de partage continue, les plis gardés en avant-pays ; que tout fleuve aille à la mer ou à un lac ; rien de rectiligne, ni lame, ni marche, ni déchirure. Altitudes au-dessus de la mer ; lieux de la graine 0 ; la vue « relief » montre le relief sans l'eau ; N coupe les nuages.
-La chaîne de collision depuis 300 km : le cœur disséqué, les plis en avant-pays | 300159 -12 116.875 50 0 | -5 125
-La même en vue relief | 300159 -12 116.875 50 0 relief | -5 125
-La chaîne depuis 30 km : vallées transverses à travers les plis | 34594 -7.5 117 40 20 | -5 125
-Le plateau de la chaîne depuis 5 km : gardé, entaillé de gorges à ses bords | 9564 -6 117.6 30 20 | -5 125
-La chaîne de collision à 1 km au-dessus de ses 4 700 m : versants, contreforts | 5720 -7.37725 116.87998 10 108 | -20 100
-Une chaîne froide à 47° S depuis 3 km : crêtes vives, ravines, auges | 5792 -46.9 -33.8 15 200 | -40 -10
-La même chaîne, vers la côte est où les auges atteignent la mer | 2700 -47.1 -33.2 12 280 | -40 -10
-Auge glaciaire d'un plateau tropical depuis 5 km | 9190 -5.6 127.9 20 0 | -5 125
-Embouchure du plus grand fleuve depuis 25 km : le delta, la plaine | 25003 -7.815 27.188 75 0 | -5 20
-Le même delta en vue relief, vu d'en haut | 80000 -7.815 27.188 90 0 relief | -5 20
-Le continent depuis 1 500 km en vue relief : le réseau vu d'orbite | 1504212 -5 117 90 0 relief | -5 117
-Les fleuves du continent : la vue « rivers » de la carte de la planète | 3000000 -5 115 90 0 rivers | -5 115
-Une plaine de bouclier : peu d'entaille, des fleuves sur leur plaine | 3000 -37.75 -163.25 10 0 | -30 150
-Des cônes au pied des montagnes | 6000 -7.6 172.8 25 0 | -10 170
-Falaise du massif tropical depuis la mer à 1,2 km : paroi de 250 m sur un platier turquoise, un vestige à son pied | 60 8.73276 -103.30263 -5 130 | 30 -80
-La même côte depuis 2,5 km : une ligne de falaise le long du rivage, aucune bande de terre devant | 150 8.74029 -103.31166 -2 130 | 30 -80
-La même anse en vue relief depuis 1 500 m : le platier tient à la mer, aucune fosse dans les terres | 1500 8.73276 -103.30263 55 130 relief | 30 -80
-Falaise à 3° S depuis la mer : paroi de 120 m percée de gorges, rien sur le versant derrière | 60 -3.21606 169.25336 -5 74 | -10 140
-Falaise basse à 23° S depuis 2,5 km | 150 -23.21102 157.86145 -2 19 | -20 170
-Caps et anses à 3° S depuis 700 m : platiers turquoise, parois, vestiges | 700 -3.23652 169.27336 40 250 | -10 150
-Le massif tropical depuis 2 km : la bande de platier au pied des montagnes, aucune montagne rasée | 2200 8.76166 -103.24998 45 220 | 15 -120
-La côte froide à 52° S : une paroi de 90 m, rien dans les secteurs abrités | 3500 -51.89165 -40.94037 35 45 | -40 -10
-La côte plate témoin : cordons et lagune intacts, aucune falaise | 60 16.70628 -89.28981 6 9 | 30 -70
+# Global erosion (docs/spec-erosion.md): level 0 network, its valleys, gullies and glaciers. Judge ranges from 300 km to 1 km: branching transverse valleys, arêtes, buttresses, a continuous divide, folds retained in the foreland; every river reaches the sea or a lake; no straight lines, blades, steps or tears. Altitudes above sea level; seed 0 sites; the “relief” view shows terrain without water; N hides clouds.
+Collision range from 300 km: dissected core, folds in the foreland | 300159 -12 116.875 50 0 | -5 125
+Same range in relief view | 300159 -12 116.875 50 0 relief | -5 125
+Range from 30 km: transverse valleys through folds | 34594 -7.5 117 40 20 | -5 125
+Range plateau from 5 km: preserved, incised by gorges at its edges | 9564 -6 117.6 30 20 | -5 125
+Collision range 1 km above its 4 700 m: slopes, buttresses | 5720 -7.37725 116.87998 10 108 | -20 100
+Cold range at 47° S from 3 km: sharp crests, gullies, troughs | 5792 -46.9 -33.8 15 200 | -40 -10
+Same range, toward the east coast where troughs reach the sea | 2700 -47.1 -33.2 12 280 | -40 -10
+Glacial trough of a tropical plateau from 5 km | 9190 -5.6 127.9 20 0 | -5 125
+Largest river mouth from 25 km: delta, plain | 25003 -7.815 27.188 75 0 | -5 20
+Same delta in relief view, from above | 80000 -7.815 27.188 90 0 relief | -5 20
+Continent from 1 500 km in relief view: network from orbit | 1504212 -5 117 90 0 relief | -5 117
+Continental rivers: the planet map's “rivers” view | 3000000 -5 115 90 0 rivers | -5 115
+Shield plain: little incision, rivers on their plain | 3000 -37.75 -163.25 10 0 | -30 150
+Fans at the foot of mountains | 6000 -7.6 172.8 25 0 | -10 170
+Tropical massif cliff from the sea at 1.2 km: 250 m wall on a turquoise platform, a remnant at its foot | 60 8.73276 -103.30263 -5 130 | 30 -80
+Same coast from 2.5 km: cliff line along the shore, no land band in front | 150 8.74029 -103.31166 -2 130 | 30 -80
+Same cove in relief view from 1 500 m: platform meets the sea, no inland pit | 1500 8.73276 -103.30263 55 130 relief | 30 -80
+Cliff at 3° S from the sea: 120 m wall pierced by gorges, nothing on the slope behind | 60 -3.21606 169.25336 -5 74 | -10 140
+Low cliff at 23° S from 2.5 km | 150 -23.21102 157.86145 -2 19 | -20 170
+Capes and coves at 3° S from 700 m: turquoise platforms, walls, remnants | 700 -3.23652 169.27336 40 250 | -10 150
+Tropical massif from 2 km: platform band at the foot of mountains, no mountain flattened | 2200 8.76166 -103.24998 45 220 | 15 -120
+Cold coast at 52° S: 90 m wall, nothing in sheltered sectors | 3500 -51.89165 -40.94037 35 45 | -40 -10
+Flat-coast control: barriers and lagoon intact, no cliff | 60 16.70628 -89.28981 6 9 | 30 -70
