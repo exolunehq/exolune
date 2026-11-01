@@ -200,6 +200,16 @@ float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float t
         const float w = RlWeight((float)f);
         [branch] if (w <= 0.0)
             break; // the finer octaves are filtered out too; both shapes' means are 0
+        // Decide from the complete parent, including both >20 km octaves. Suppressing or amplifying those octaves
+        // before this decision made a valley invent the ground it was about to carve, including on uncut forest slopes.
+        [branch] if (o == EROSION_GULLY_FIRST)
+        {
+            const float depth = max(gullies.ground + relief * coarse - gullies.surface, 0.0);
+            gullies.carved = smoothstep(0.0, 800.0, depth);
+            gullies.slope = lerp(gullies.slope, gullies.valleySlope, gullies.carved);
+            gullies.share *= gullies.carved * (1.0 - 4.0 * gullies.carved * (1.0 - gullies.carved));
+            amplitude *= max(1.0, EROSION_WALL_RELIEF * min(gullies.incision, depth) / max(relief, 1e-6));
+        }
         RlCell l;
         [branch] if (o < orientedOctaves)
             l = RlSplit(oriented, f);
@@ -575,18 +585,17 @@ ReliefGround ReliefSampleGround(double3 position, bool valleys)
         valley = ErosionValleys(wander.p, cellKm, lerp(EROSION_WALLS.x, EROSION_WALLS.y, mountains));
     }
     const float large = h;
-    const float valleyBed = max(valley.surface, valley.level);
-    // A trough below its water level cannot quiet ground which is lower than that water and is not carved.
-    const float floor = valley.floorShare * smoothstep(0.0, EROSION_SMOOTH, h - valleyBed);
-    const float open = 1.0 - floor * smoothstep(-20.0, 20.0, h); // a floor ends at the sea: its last link reaches offshore
     // The gullies (ReliefDetail): down the large forms, or down a valley's walls where it lies under them; on the land;
     // near and above the glacial maximum's equilibrium line, never from the ice covering a trough.
     ReliefGullies gullies = (ReliefGullies)0;
     [branch] if (valleys)
     {
-        gullies.carved = smoothstep(-500.0, 800.0, h - valleyBed);
-        gullies.slope = lerp(map.formsGradient / (1000.0 * PLANET_RADIUS_KM), valley.gradient, gullies.carved);
-        gullies.share = EROSION_GULLY_SHARE * smoothstep(-20.0, 60.0, h) * (1.0 - 4.0 * gullies.carved * (1.0 - gullies.carved)); // none on a valley's rim, a crest
+        gullies.ground = h;
+        gullies.surface = valley.surface;
+        gullies.valleySlope = valley.gradient;
+        gullies.incision = valley.incision;
+        gullies.slope = map.formsGradient / (1000.0 * PLANET_RADIUS_KM);
+        gullies.share = EROSION_GULLY_SHARE * smoothstep(-20.0, 60.0, h);
         gullies.glacial = smoothstep(-0.5, 0.5, (h - ErosionEquilibriumLine((float3)position)) / EROSION_GLACIAL_BAND);
     }
     // The widest octaves, the chains' own forms, read a point warped by a few km, so that no crest closes on itself, and
@@ -602,22 +611,22 @@ ReliefGround ReliefSampleGround(double3 position, bool valleys)
     const double lift = (double)(RELIEF_ORIENTATION.x * reach / PLANET_RADIUS_KM) * t * (1.875 + t2 * (-1.25 + 0.375 * t2));
     const RlPoint oriented = RlMakePoint(bent.p * (1.0 + lift));
     const float crease = lerp(RELIEF_OLD_CREASE, 0.0, youth);
-    // The chains' widest crests in folds, where the boundary orients them.
+    // The chains' widest crests in folds, where the boundary orients them. This parent is identical with or without
+    // erosion: a network incision may cut it afterwards, never suppress its folds before deciding whether it is cut.
     float4 fold = 0.0;
     float foldWeight = 0.0;
     const float foldShare = RELIEF_FOLD.w * (1.0 - smoothstep(RELIEF_FOLD_REACH.x, RELIEF_FOLD_REACH.y, map.side.y)) * mountains
-                          * smoothstep(RELIEF_FOLD_REACH.z, RELIEF_FOLD_REACH.w, length(map.orientationGradient) / PLANET_RADIUS_KM)
-                          * (1.0 - smoothstep(EROSION_FOLD_DEPTH.x, EROSION_FOLD_DEPTH.y, valley.incision)); // the core is cut by valleys
+                          * smoothstep(RELIEF_FOLD_REACH.z, RELIEF_FOLD_REACH.w, length(map.orientationGradient) / PLANET_RADIUS_KM);
     [branch] if (foldShare > 0.0)
         fold = ReliefFold(plain, map.along, map.orientationGradient, foldWeight);
     // Near a flat coast, quiet plains and soft sediments, where the barriers and the lagoons show.
     const float coastQuiet = lerp(1.0, RELIEF_COAST_QUIET.x, (1.0 - rocky) * exp(-shoreKm * shoreKm / (RELIEF_COAST_QUIET.y * RELIEF_COAST_QUIET.y)));
-    const float quiet = coastQuiet * open;
+    const float quiet = coastQuiet;
     float3 slope, cliffSlope;
     float coarse, wide;
     // On a valley's walls, the detail at least a share of the depth carved there: spurs and side gullies on the scale of
     // the wall; nothing more on a plain.
-    const float detail = max(relief, EROSION_WALL_RELIEF * min(valley.incision, max(large - valleyBed, 0.0))) * quiet;
+    const float detail = relief * quiet;
     h += detail * ReliefDetail(oriented, plain, RELIEF_ORIENTED_OCTAVES, RELIEF_DETAIL_TOP, RELIEF_OCTAVES, detail,
                                mountains, crease, ReliefSeed(1), fold, foldShare, foldWeight, (int)RELIEF_BARRIER_FORM.w, wide, gullies, slope, coarse, cliffSlope);
     coarse = large + detail * coarse;
@@ -625,7 +634,8 @@ ReliefGround ReliefSampleGround(double3 position, bool valleys)
     const float s = length(slope), land = smoothstep(-20.0, 60.0, h);
 
     // Mesas on the platforms' strata: their own hills of a few km, then the relief in steps, flat tables between cliffs.
-    const float mesas = saturate(2.0 * strata) * land * open, badlands = saturate(-2.0 * strata) * land * quiet;
+    // The valley floor removes the complete detail once, in ErosionCarve, including mesas and badlands.
+    const float mesas = saturate(2.0 * strata) * land, badlands = saturate(-2.0 * strata) * land * quiet;
     [branch] if (mesas > 0.0)
     {
         float3 tableSlope;

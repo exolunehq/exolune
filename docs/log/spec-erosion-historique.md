@@ -2,6 +2,11 @@
 
 **Modèles côtiers remplacés ; voir [la spec actuelle](../spec-erosion.md).** Piste `piste/erosion-globale`.
 
+**2026-11-01 · L’atténuation des plis avant l’érosion, retirée.**
+- `EROSION_FOLD_DEPTH = (800, 2000)` effaçait les grands plis selon l’incision du réseau, avant la décision de creusement local.
+- Ce couplage pouvait changer un versant sans que la vallée l’entaille ; près du canyon boisé, le support perdait environ 933 m.
+- Le support est désormais indépendant ; seul le profil érosif peut le couper.
+
 **2026-10-31 · Le profil en distance.**
 - **Le modèle :** paroi tracée depuis le rivage estimé jusqu’au recul, hauteur extrapolée du point.
 - **Le défaut rendu :** le proxy ignore le détail ; montagnes rabattues au platier, canaux intérieurs et parois kilométriques.
@@ -326,3 +331,110 @@
 
 - **Les points actifs changent avec le sol :** leurs quantiles peuvent donc varier sans changement du champ Hc.
 **Retiré à la demande de l’utilisateur :** l’identité de Hc au bit près était sur-spécifiée ; elle ne justifie ni une seconde lecture de vallées hors sphère, ni trois octaves recalculées. Les mesures courantes sont dans `../spec-erosion.md`.
+
+
+## 2026-11-01 · Profils et mesures remplacés de la version 14c99ec
+
+Les auges surcreusées puis arasées à l’eau, les quatre cordes par courbe et le gauchissement de 7 km sont remplacés. Les mesures suivantes portent sur cet ancien état.
+
+## Le niveau 1 : les vallées du réseau, `ErosionValleys`
+
+**Chaque lien du niveau 0 est une courbe :** une B-spline quadratique entre les milieux des liens, tangente d'un lien à l'autre ; un affluent rejoint le tronc tangentiellement, vers l'aval. Le point se lit gauchi de 7 km, de 40 et 20 km de longueur d'onde, pour que les liens droits serpentent.
+
+**Un gauchissement de direction reste sur la sphère :**
+- **La cause des auges fermées :** la turbulence déplaçait p en 3D sans le renormaliser. La distance à la courbe comptait son décalage radial, parfois kilométrique, comme une distance transversale ; le profil remontait sur le thalweg et fermait le fond.
+- **La correction dans `ErosionValleys` :** retour à l’unité avant la localisation et les distances ; estimation de la racine inverse en flottant, un raffinement de Newton en doubles avant de multiplier p. Aucun niveau d’eau modifié, aucun seuil forcé ni drainage local.
+- **Le sol non creusé reste libre :** le fond ne calme le détail que si `h > max(surface, level)` ; la même surface bornée à l’eau sert à estimer la part creusée et le renfort de détail des parois. Le profil sous l’eau ne doit pas effacer un sol situé sous son niveau et qu’il ne peut creuser.
+
+**La vallée, autour de la courbe la plus proche :**
+- **le fond,** au niveau de l'eau interpolé le long de la courbe, d'une demi-largeur 2 √Q m, jusqu'à 15 fois plus sur un fleuve lent, 0,15 cellule au plus ; le détail s'y éteint, sauf sous la mer, rien de plus fin que le niveau 0 ne barre le cours ;
+- **les versants,** à la pente de seuil, 14° sur les sols tendres à 33° sur les chaînes jeunes ;
+- **sous la glace,** une auge en U : demi-largeur 600 m à 10⁸ m³/an de glace, comme sa puissance 0,4, de 150 m à 1,5 km ; surcreusée de 0,3 de sa demi-largeur, versants à 40° ; le détail s'éteint en son milieu, où se rencontreraient les ravines de ses deux versants. Près d'une côte froide, son fond passe sous la mer : un fjord ;
+- **le maillage :** une vallée moins large que deux mailles s'élargit, moins profonde d'autant.
+
+**Le creusement déplace le sol grossier, il ne le coupe pas :** le sol s'abaisse d'autant que la vallée passe sous les grandes formes et les octaves de plus de 20 km, par un minimum lissé sur 60 m, jamais sous le niveau de l'eau. Le détail plus fin reste sur les versants, renforcé jusqu'à 0,35 de la profondeur creusée au point : contreforts et ravines à l'échelle du versant, rien de plus sur une plaine.
+
+**Le fond se raccorde au niveau de l’eau, dans les deux sens (`ErosionCarve`) :**
+- **Le résidu fin est `h − coarse` :** le simple abaissement grossier le laissait creuser des fosses et dresser des seuils au milieu des auges.
+- **Le plateau réellement noyé compte entier :** le profil brut `bed` est borné par `min(coarse, level)` ; là où cette borne impose l’eau, le raccord retire tout le résidu, positif ou négatif. Le seul `floorShare` ne suffisait pas : le milieu calme du U s’arrête avant toute sa partie sous l’eau.
+- **Vers les parois :** part `max(floorShare, 1 − smoothstep(0, 60, bed − level))` ; même part du fond, complétée par le plateau réellement borné à l’eau. Un `smoothstep(0, 60, coarse − cut)` ouvre le raccord avec le creusement ; aucun creusement, aucun changement. Le relief grossier et le profil restent entiers.
+- **Le niveau vient toujours du lien lu :** un lac du niveau 0 garde son niveau propre ; aucune hauteur d’eau locale inventée. Ces fonds indiquent où sera l’eau des fleuves et des lacs ; elle n’est pas encore rendue.
+
+**Les dépôts :** un delta, un lobe vers le large à 3 m au-dessus de la mer, 60 √Q m, 1,6 fois plus large le long de la côte, son front descendant vers le plateau ; un cône, de 120 √Q m vers l'aval, pente de 3 %, son pied à 45°. L'un et l'autre bornés à 0,25 cellule, éteints à 0,3 cellule de leur sommet : les nœuds lus les tiennent toujours.
+
+**Les recherches dans la texture :** les 4 × 4 nœuds autour du point, chacun avec ses affluents et son receveur ; un nœud à plus de 1,75 cellule est sauté ; aucune vallée ne porte au-delà de 0,5 cellule, ni en mer à plus de 500 m de fond. Les positions sont relatives au point, en flottants : une seule lecture en doubles par sommet.
+
+**Ce que le détail lit en est continu :** la profondeur et la glace d'une vallée sont le maximum de celles des liens proches, chacune éteinte avant que les liens lus ne changent. Prises au seul lien le plus bas, elles sautaient d'un lien à l'autre, et le détail avec elles.
+
+## Les mesures CPU des ravines rocheuses et des auges ouvertes, graine 0
+
+**Références sur les mêmes caches :** intégration `fe22cfe`, D `1ca9743`, sources chargées directement par `git show` ; aucune reconstruction du niveau 0. Commande : `python tools/hydro/verifie_erosion_roche.py`, ou `--only windows`, `troughs`, `coasts`.
+
+**Les chaînes vues de loin :** carrés de 5 × 5 km entre les bords, 201² points à 25 m, maille de 25 m ; gradient centré, différence à un côté sur le bord. Parts en pour cent.
+
+| Lieu | Version | >35° | >45° | >60° |
+|---|---|---:|---:|---:|
+| −25,60 ; −26,94 | Intégration | 56,867 | 40,472 | 7,039 |
+| | D | 45,595 | 26,715 | 0,196 |
+| | E | 51,432 | 44,746 | 6,307 |
+| −46,9 ; −33,8 | Intégration | 26,390 | 9,784 | 1,017 |
+| | D | 5,745 | 0,183 | 0 |
+| | E | 27,645 | 11,599 | 2,193 |
+
+- **Même échantillonnage, maille de 5 m pour contrôle :** chaîne E 51,662 / 44,454 / 6,903 %, arêtes E 29,455 / 12,178 / 2,205 % ; crêtes fines davantage résolues.
+- **La protection de C reste tenue :** dans les quatre carrés de 100 × 100 m à 1 m, zéro au-dessus de 45° et de 60°, avant et après E. Maxima D → E : forêt 30,648 → 31,358°, versant 22,577 → 20,052°, canyon 44,060 → 43,960°, plat 4,613 → 4,613°. Au-dessus de 35°, seul le canyon : 14,254 → 12,214 %.
+- **La petite fenêtre d’arêtes reste locale :** sur 100 m à 1 m, E atteint 14,626 % au-dessus de 45°, zéro au-dessus de 60°, maximum 52,675° ; elle peut tomber sur un seul flanc d’une bande kilométrique. Le contrôle rocheux de E porte sur le carré de 5 km demandé, où les parois au-dessus de 60° sont présentes. Le bruit sans érosion reste comparé par `valleys=false` ; le sol sans ravines mais creusé peut changer avec la correction des vallées.
+- **La moyenne des bandes reste nulle :** gain et part rocheuse indépendants de la phase courante ; mêmes profils centrés, même affûtage et même arrondi. Quadrature du profil : erreur sous 1,03·10⁻¹³ unité de bruit.
+
+**Les auges :** carrés de 4 km, 161² points à 25 m ; inondation à huit voisins, bords ouverts, maille de 5 m. Premier centre à −25,545112988 ; −26,901313945, soit le décalage signalé de 2 325 m nord et 1 475 m est ; second à −25,486 ; −27,075.
+
+| Zone | Fermeture du creusement grossier D → E | Fermeture du fond borné à l’eau D → E | Maximum sur tout le carré D → E |
+|---|---:|---:|---:|
+| Première auge | 72,964 → 0 m | 72,964 → 0 m | 72,964 → 57,498 m |
+| Seconde auge | 441,570 → 0 m | 609,559 → 0 m | 681,453 → 65,790 m |
+
+- **Les maxima restants sont hors creusement :** sol 3 067,853 m contre niveau d’eau 963,779 m pour le premier, 3 281,771 contre 1 225,714 m pour le second ; `coarse == cut`, `floorShare == 0`. Ils ne ferment pas les fonds des auges.
+- **Les vrais thalwegs sont suivis vers l’aval :** courbe du lien, puis de ses receveurs ; inversion du gauchissement angulaire, erreur sous 3,4 nm. Parcours de 5 002 et 5 046 m, sans interpoler des hauteurs hors de la courbe ; CSV `x64/Release/erosion-e-thalweg-*.csv`.
+- **Écart sol − eau, premier parcours :** D de 0 à +708,725 m à maille 5 m, 0 à +690,982 m à 200 m ; E zéro aux deux mailles. Creusement grossier E − eau : zéro aussi.
+- **Second parcours :** D de +571,903 à +3 177,031 m à maille 5 m, +592,529 à +3 180,971 m à 200 m ; E zéro aux deux mailles, sol complet et grossier. Le niveau d’eau descend sur les deux parcours.
+- **Les lacs du niveau 0 :** seize débouchés lacustres recevant un affluent ; niveau lu à leur nœud à moins de 0,000006 m de leur niveau stocké. Les cellules lacustres isolées n’ont pas de courbe de niveau 1 ; elles ne font pas partie de ce contrôle.
+
+**Les falaises sans recalcul côtier :** comparaison avant/après suppression du bloc qui conservait Hc au bit près. Même port E et mêmes caches actuels pour les deux versions ; référence `x64/Release/cp-avant-simplification-cotes.py`, SHA256 `b89e84542c3826aea5656bdc73315e366479693d32a10496781f5941f4c3ed01`. Commande du relevé : `python x64/Release/mesure-simplification-cotes.py` ; sortie `verification-simplification-cotes.txt` dans le même dossier.
+
+**Hc sur les six côtes, médiane / p90 / maximum en m :** carrés de 60 km, 201² points, maille de 10 m ; quantiles sur les points actifs de chaque version, comme `distribution` dans `verifie_falaises.py`.
+
+| Centre | Avant | Après |
+|---|---:|---:|
+| 8,54005 ; −103,23344 | 212,071 / 378,526 / 400,000 | identique |
+| −23,01696 ; 158,00809 | 70,800 / 109,075 / 119,508 | identique |
+| −3,34285 ; 169,01181 | 80,218 / 180,002 / 255,085 | 81,427 / 181,618 / 343,741 |
+| −51,89165 ; −40,94037 | 54,558 / 133,074 / 214,107 | identique à 0,001 m près |
+| −8,11021 ; 131,04460 | 51,545 / 68,277 / 89,271 | 51,969 / 68,365 / 89,271 |
+| 8,76166 ; −103,24998 | 170,834 / 345,453 / 400,000 | identique |
+
+- **La variation principale :** maximum de la troisième fenêtre +88,657 m ; médiane +1,209 m, p90 +1,616 m. Le plafond reste 400 m ; le maximum ne doit pas être décrit comme une petite variation.
+- **Le sol avant abrasion est identique au bit près** dans les six carrés ; seuls la pente fournie à Hc et le résultat des vagues changent.
+
+**Les trois coupes fixes :** avant = après aux précisions indiquées ; angle à pas de 10 m, platier adjacent à la face, terre au-dessus de +5 m jusqu’à la mer originale.
+
+| Coupe, latitude ; longitude | Paroi | Angle | Platier | Terre devant |
+|---|---:|---:|---:|---:|
+| 8,72580 ; −103,29430 | 377,816 m | 84,91° | −1,412 m | 0 m |
+| −23,18981 ; 157,86949 | 41,877 m | 72,47° | −1,099 m | 0 m |
+| −3,21302 ; 169,26372 | 42,519 m | 75,64° | −1,540 m | 0 m |
+
+**Les trois fenêtres de contrôle, graine 0 :** carrés de 10 km, 201² points à 50 m ; avant = après aux précisions indiquées.
+
+| Centre | Part enclavée avant → après | Portée marine p99 avant = après |
+|---|---:|---:|
+| 8,73276 ; −103,30263 | 0 → 0 % | 1 138,519 m |
+| −23,18173 ; 157,88952 | 0 → 0 % | 400,031 m |
+| −3,21302 ; 169,26372 | 0 → 0 % | 683,482 m |
+
+- **Aucune cible des falaises n’échoue :** trois faces actives, dont une de plus de 100 m, avant et après ; aucun seuil terrestre devant leur pied, aucune coupe enclavée dans ces trois fenêtres, p99 sous 4 km, abaissement sous Hc + 1 m. Le contrôle complet `python tools/cotes/verifie_falaises.py` affiche aussi `ok`.
+- **Les ressources :** une requête `ErosionValleys`, toujours sur la sphère, et le seul `ReliefDetail` principal pour `cliffSlope` ; paramètres `sphere` / `project` retirés. Aucun gain de temps GPU annoncé sans mesure.
+- **Le jugement en vol :** `tools/tests/2026-10-31-cotes-sans-recalcul.txt`, sans lancement automatique ; le parcours E des chaînes reste valable.
+
+- **`valleys=false` :** identique au bit près sur 288 points × trois mailles, graines 0 et 1. Côte plate, 441 points à 16,71 ; −89,28 : écart nul.
+- **Vérifications de la simplification :** `cp.py`, comparaison avant/après et contrôle complet des falaises affichent `ok` ; Release x64 sans erreur ni nouvel avertissement dans les fichiers modifiés (`verification-build-simplification-cotes.txt`). L’ancienne assertion d’identité de Hc est retirée ; les limites physiques restent testées.
+- **Limites :** ni moteur ni banc lancé ; le retour en vol reste nécessaire, `tools/tests/2026-10-31-ravines-roche-auges.txt`. Les caches ne sont pas réécrits.

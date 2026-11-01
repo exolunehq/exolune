@@ -95,7 +95,7 @@ struct ErosionValley
     float surface;    // the valleys' surface (m), a minimum over the links; far above the ground away from them
     float3 gradient;  // its slope (m/m), along the ground
     float floorShare; // 1 on a valley's floor, where the detail fades
-    float level;      // the water's level on the nearest link (m)
+    float level;      // the water's level on the link defining surface (m); never an independent nearest-link clamp
     float glacier;    // 1 in a glacial trough, fading away from it
     float incision;   // the links' valley depth at their node (m), fading away from them: continuous
     float deposit;    // the deposits' surface (m), deltas and fans; far below the ground away from them
@@ -105,6 +105,10 @@ struct ErosionValley
 struct ReliefGullies
 {
     float3 slope;  // the slope (m/m) of the ground under the detail: the large forms', or a valley's walls where it is carved
+    float3 valleySlope;
+    float ground;  // large forms before the coarse octaves
+    float surface; // valley envelope, independent of the detail it will receive
+    float incision;
     float carved;  // 1 where a valley replaces the coarse octaves: their slope no longer counts
     float share;   // the share of the octaves' pattern turned to gullies on a steep enough ground
     float glacial; // 1 above the equilibrium line: rounded knife-edge crests, never from trough ice
@@ -151,10 +155,20 @@ float4 ErosionGullies(RlCell l, float3 across, uint seed)
     return float4(amplitude * sum.x / m, -amplitude * (sum.y / m) * 6.2831853 * across);
 }
 
-// A quadratic Bezier from a to c, control b, all relative to the point, in radii: its nearest sample to the origin among
-// five, refined on the polyline; the distance (radii) and the curve's parameter there; nearest: that point.
+// A quadratic Bezier, relative to the query in its tangent plane, in radii. The four chords only initialise the solve:
+// measuring the chords themselves makes four angular bends per link and jumps in the longitudinal profile's tangent.
 float2 ErosionCurveDistance(float3 a, float3 b, float3 c, out float3 nearest)
 {
+    // A head or outlet repeats a control point. Its tangent vanishes at that end: Newton can retain a wrong t even
+    // when its distance is almost exact, then jump the interpolated height and ice flux. Solve this straight run.
+    const bool head = all(a == b), outlet = all(b == c);
+    [branch] if (head || outlet)
+    {
+        const float3 e = c - a;
+        const float u = saturate(-dot(a, e) / max(dot(e, e), 1e-30));
+        nearest = a + u * e;
+        return float2(length(nearest), head ? sqrt(u) : 1.0 - sqrt(1.0 - u));
+    }
     float best = 1e30, at = 0.0;
     nearest = a;
     float3 prev = a;
@@ -169,7 +183,19 @@ float2 ErosionCurveDistance(float3 a, float3 b, float3 c, out float3 nearest)
         if (d < best) best = d, at = (k - 1 + u) * 0.25, nearest = q;
         prev = next;
     }
-    return float2(sqrt(best), at);
+    const float3 bend = a - 2.0 * b + c;
+    [unroll] for (int step = 0; step < 4; ++step)
+    {
+        const float3 q = lerp(lerp(a, b, at), lerp(b, c, at), at);
+        const float3 tangent = 2.0 * lerp(b - a, c - b, at);
+        const float denom = dot(tangent, tangent) + 2.0 * dot(q, bend);
+        at = saturate(at - clamp(dot(q, tangent) / max(denom, 1e-20), -0.25, 0.25));
+    }
+    nearest = lerp(lerp(a, b, at), lerp(b, c, at), at);
+    best = dot(nearest, nearest);
+    if (dot(a, a) < best) nearest = a, at = 0.0, best = dot(a, a);
+    if (dot(c, c) < best) nearest = c, at = 1.0;
+    return float2(length(nearest), at);
 }
 
 // One link's valley at distance d (m) from its axis: the water's level z, the discharge q (m3/s), the ice flux, the slope
@@ -180,19 +206,31 @@ float2 ErosionProfile(float d, float z, float q, float ice, float slope, float w
 {
     // The fluvial floor, wider on a gentle river; never wider than `widest`, so that it ends before the links read change.
     const float floorWidth = min(EROSION_FLOOR.x * sqrt(q) * clamp(EROSION_FLOOR.y / max(slope, 1e-6), 1.0, EROSION_FLOOR.z), widest);
-    // The glacial trough: its half-width with the ice flux, deepened by a share of it.
+    // A parabolic U above its drained floor (Hirano & Aniya 1988), extended by its tangent at the wall slope.
+    // Subtracting an overdepth before clamping to water would flatten the whole U into a kilometre-wide ribbon.
     glacier = saturate(log2(max(ice, 1.0)) - EROSION_GLACIER.w);
     const float trough = clamp(EROSION_GLACIER.x * pow(max(ice, 1.0) / 1e8, EROSION_GLACIER.y), 150.0, 1500.0);
-    const float over = EROSION_GLACIER.z * trough * glacier;
-    // Two mesh cells at least across the top: wider, shallower.
-    const float top = lerp(floorWidth, trough, glacier) + max(depth, 0.0) / walls;
+    const float curvature = EROSION_GLACIER.z / trough;
+    const float shoulder = EROSION_GLACIER_WALLS / (2.0 * curvature);
+    // Find where this blended profile meets its parent, through the three quadratic/linear intervals.
+    // The old estimate used trough + depth/walls even for a shallow U, leaving it narrower than two mesh cells.
+    const float A = glacier * curvature, B = (1.0 - glacier) * walls, G = glacier * EROSION_GLACIER_WALLS;
+    const float D = max(depth, 0.0), first = sqrt(D / max(A, 1e-20));
+    const float rhs = D + B * floorWidth;
+    const float middle = floorWidth < shoulder ? 2.0 * rhs / max(B + sqrt(B * B + 4.0 * A * rhs), 1e-20)
+                                               : D / max(G, 1e-20) + 0.5 * shoulder;
+    float top = first <= min(floorWidth, shoulder) ? first
+              : middle <= max(floorWidth, shoulder) ? middle
+              : (rhs + 0.5 * G * shoulder) / max(B + G, 1e-20);
+    if (glacier == 0.0) top = floorWidth + D / walls;
+    // Dilation horizontally and reciprocal contraction vertically preserve the incision's cross-sectional area.
     const float stretch = max(1.0, wide / max(top, 1.0));
-    const float x = d / stretch, lift = (depth + over) * (1.0 - 1.0 / stretch);
+    const float x = d / stretch, lift = depth * (1.0 - 1.0 / stretch);
     const float fluvial = walls * max(x - floorWidth, 0.0);
-    const float u = min(x / trough, 1.0);
-    const float glacial = -over + over * u * u + EROSION_GLACIER_WALLS * max(x - trough, 0.0);
-    const float surface = z + lift + lerp(fluvial, glacial, glacier);
-    rise = lerp(x > floorWidth ? walls : 0.0, 2.0 * over * u / trough + (x > trough ? EROSION_GLACIER_WALLS : 0.0), glacier) / stretch;
+    const float u = min(x, shoulder);
+    const float glacial = curvature * u * u + EROSION_GLACIER_WALLS * max(x - shoulder, 0.0);
+    const float surface = z + lift + lerp(fluvial, glacial, glacier) / stretch;
+    rise = lerp(x > floorWidth ? walls : 0.0, 2.0 * curvature * u, glacier) / (stretch * stretch);
     // The floor, where the detail fades: the river's; the trough's middle, where the gullies of its two walls would meet.
     const float flat = lerp(1.0 - smoothstep(floorWidth, floorWidth + max(floorWidth, 200.0), x),
                             1.0 - smoothstep(0.25 * trough, 0.7 * trough, x), glacier);
@@ -217,7 +255,7 @@ ErosionValley ErosionValleys(double3 p, float cellKm, float walls)
     const int2 origin = (int2)floor(x) - 1;
     ErosionValley v;
     v.surface = 1e9, v.gradient = 0.0, v.floorShare = 0.0, v.level = 0.0, v.glacier = 0.0, v.incision = 0.0, v.deposit = -1e9;
-    float nearest = 1e30;
+    float guideSurface = 1e9;
     const float wide = 2000.0 * cellKm;
     // Positions relative to the point, in floats: a node less the point's float, exact between neighbours (Sterbenz), less
     // the point's rest, the one reading in doubles. Doubles run 64 times slower than floats here.
@@ -233,13 +271,16 @@ ErosionValley ErosionValleys(double3 p, float cellKm, float walls)
         const bool outlet = (dr.bits & (EROSION_SEA | EROSION_LAKE)) != 0;
         // Downstream: the midpoint to the receiver, or the node itself at an outlet.
         float3 c = b;
-        float zDown = dr.level, qDown = dr.discharge, iceDown = dr.ice;
+        float zDown = dr.level, qDown = dr.discharge, iceDown = dr.ice, groundDown = dr.ground;
         [branch] if (dr.bits & EROSION_HAS_RECEIVER)
         {
             const uint rr = ErosionNeighbour(r, dr.bits & 7u, n);
             const ErosionData drr = ErosionRead(rr, n);
             c = 0.5 * ((pr - pf) + (ErosionNode(rr, n) - pf)) - rest;
             zDown = 0.5 * (dr.level + drr.level);
+            qDown = sqrt(dr.discharge * drr.discharge);
+            iceDown = 0.5 * (dr.ice + drr.ice);
+            groundDown = 0.5 * (dr.ground + drr.ground);
         }
         // The deposits: a delta at a mouth without ice, its lobe seaward, a plain a few metres above the sea, its front
         // sloping down to the shelf; a fan at the mountain front, a cone from the river's level down its valley. Both
@@ -264,7 +305,7 @@ ErosionValley ErosionValleys(double3 p, float cellKm, float walls)
         [loop] while (inflows != 0u || head)
         {
             float3 a = b;
-            float zUp = dr.level, qUp = dr.discharge, iceUp = dr.ice;
+            float zUp = dr.level, qUp = dr.discharge, iceUp = dr.ice, groundUp = dr.ground;
             [branch] if (inflows != 0u)
             {
                 const uint kq = firstbitlow(inflows);
@@ -272,25 +313,47 @@ ErosionValley ErosionValleys(double3 p, float cellKm, float walls)
                 const uint q = ErosionNeighbour(r, kq, n);
                 const ErosionData dq = ErosionRead(q, n);
                 a = 0.5 * ((ErosionNode(q, n) - pf) + (pr - pf)) - rest;
-                zUp = 0.5 * (dq.level + dr.level), qUp = dq.discharge, iceUp = dq.ice;
+                zUp = 0.5 * (dq.level + dr.level), qUp = sqrt(dq.discharge * dr.discharge);
+                iceUp = 0.5 * (dq.ice + dr.ice), groundUp = 0.5 * (dq.ground + dr.ground);
             }
             float3 nearestPoint;
-            const float2 dt = ErosionCurveDistance(a, b, outlet ? b : c, nearestPoint);
+            // A chord lies below the sphere even when its direction is on the river. Its radial sag is not a bank.
+            const float3 end = outlet ? b : c;
+            const float2 dt = ErosionCurveDistance(a - dot(a, pf) * pf, b - dot(b, pf) * pf,
+                                                   end - dot(end, pf) * pf, nearestPoint);
             const float d = dt.x * radius;
             [branch] if (d < EROSION_REACH * cellM)
             {
-                const float z = lerp(zUp, outlet ? dr.level : zDown, dt.y);
-                const float q = exp2(lerp(log2(qUp), log2(qDown), dt.y)), ice = lerp(iceUp, iceDown, dt.y);
-                const float span = max(distance(a, outlet ? b : c), 1e-9) * radius;
-                const float depth = max(dr.ground - dr.level, 0.0);
+                // Height and flux use the same shared midpoints as the curve. Its quadratic height has the same
+                // tangent on both sides of a join; a per-link linear slope made the floodplain width jump there.
+                const float t = dt.y, s0 = 1.0 - t, zEnd = outlet ? dr.level : zDown;
+                const float z = s0 * s0 * zUp + 2.0 * s0 * t * dr.level + t * t * zEnd;
+                const float q = exp2(s0 * s0 * log2(qUp) + 2.0 * s0 * t * log2(dr.discharge)
+                                    + t * t * log2(outlet ? dr.discharge : qDown));
+                const float ice = s0 * s0 * iceUp + 2.0 * s0 * t * dr.ice + t * t * (outlet ? dr.ice : iceDown);
+                const float3 tangent = 2.0 * lerp(b - a, (outlet ? b : c) - b, t);
+                const float span = max(length(tangent), 1e-9) * radius;
+                // At a repeated control, both derivatives vanish together: use their finite straight-run limit.
+                const float waterSlope = head ? abs(zEnd - dr.level) / max(length(end - b) * radius, 1e-6)
+                                       : outlet ? abs(dr.level - zUp) / max(length(b - a) * radius, 1e-6)
+                                       : abs(2.0 * lerp(dr.level - zUp, zEnd - dr.level, t)) / span;
+                const float ground = s0 * s0 * groundUp + 2.0 * s0 * t * dr.ground
+                                   + t * t * (outlet ? dr.ground : groundDown);
+                const float depth = max(ground - z, 0.0);
                 float glacier, rise;
-                const float2 s = ErosionProfile(d, z, q, ice, abs(zUp - zDown) / span, walls, depth, wide, 0.15 * cellM, glacier, rise);
+                const float2 s = ErosionProfile(d, z, q, ice, waterSlope, walls, depth, wide, 0.15 * cellM, glacier, rise);
                 // Past three quarters of the reach the valley rises out of every ground: the links read change there.
                 const float beyond = smoothstep(0.35, 0.5, d / cellM);
-                [branch] if (s.x + 1e4 * beyond < v.surface)
+                const float candidate = s.x + 1e4 * beyond;
+                // The carved envelope is the union of the profiles, each already above its own drainage level.
+                // Only the slope guiding the gullies blends over 60 m at divides; it must not jump between links.
+                const float guide = saturate(0.5 + 0.5 * (guideSurface - candidate) / EROSION_SMOOTH);
+                v.gradient = lerp(v.gradient, -rise * nearestPoint / max(length(nearestPoint), 1e-12), guide);
+                guideSurface = lerp(guideSurface, candidate, guide) - EROSION_SMOOTH * guide * (1.0 - guide);
+                [branch] if (candidate < v.surface)
                 {
-                    v.surface = s.x + 1e4 * beyond;
-                    v.gradient = -rise * nearestPoint / max(length(nearestPoint), 1e-12);
+                    v.surface = candidate;
+                    v.level = z;
                 }
                 // What the detail reads, continuous where the lowest or the nearest link changes: each link's, fading
                 // from its axis to before the links read change, the largest.
@@ -298,7 +361,6 @@ ErosionValley ErosionValleys(double3 p, float cellKm, float walls)
                 v.incision = max(v.incision, depth * near);
                 v.glacier = max(v.glacier, glacier * near);
                 v.floorShare = max(v.floorShare, outlet ? 0.0 : s.y * (1.0 - beyond));
-                if (d < nearest) nearest = d, v.level = z;
             }
             if (head) break;
         }
@@ -306,20 +368,19 @@ ErosionValley ErosionValleys(double3 p, float cellKm, float walls)
     return v;
 }
 
-// The ground h lowered by the valleys: by as much as their surface lies under the coarse ground, the large forms and the
-// widest octaves, by a minimum smoothed over k (m), never under the water's level. The finer detail rides on the valley's
-// walls; on its floor both signs of the residual detail fade to the water level. The carving distance opens the
-// correction continuously: a valley which does not lower the coarse ground cannot move its detail either.
+// A bounded cut: water belongs to each link before their union, never to an independently chosen nearest link.
+float ErosionCut(float coarse, float surface, float k)
+{
+    const float depth = max(coarse - surface, 0.0);
+    return coarse - depth * smoothstep(0.0, k, depth);
+}
+
 float ErosionCarve(float h, float coarse, ErosionValley v, float k)
 {
-    const float e = max(k - abs(coarse - v.surface), 0.0) / k;
-    const float bed = min(coarse, v.surface) - 0.25 * k * e * e;
-    const float cut = max(bed, min(coarse, v.level));
-    // The water clamp makes a flat floor across the submerged part of a U profile, beyond its quiet middle.
-    // Include that whole floor; on the walls use the same floor share as the detail, with a k-metre height transition.
-    const float wet = 1.0 - smoothstep(0.0, k, bed - v.level);
-    const float floor = max(v.floorShare, wet) * smoothstep(0.0, k, coarse - cut);
-    return lerp(h - coarse + cut, cut, floor);
+    // Carry the detail on the walls, fade it on the floor, then intersect that envelope with the full ground.
+    // Gating its removal by coarse incision alone could raise a deep hollow by hundreds of metres over a narrow rim.
+    const float surface = v.surface + (h - coarse) * (1.0 - v.floorShare);
+    return ErosionCut(h, surface, k);
 }
 
 // The only wind reading for wave erosion: the climate's mean surface wind, in its own east/north basis.

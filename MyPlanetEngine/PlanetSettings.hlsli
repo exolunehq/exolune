@@ -111,12 +111,12 @@ static const float EROSION_REACH            = 0.6;
 static const float3 EROSION_FLOOR           = float3(2.0, 0.002, 15.0);
 // The walls' slope, on soft ground to the young chains.
 static const float2 EROSION_WALLS           = float2(0.25, 0.65);
-// The glacial trough: half-width x (m) at an ice flux of 1e8 m3/yr, growing with its power y; deepened by z of its
-// half-width; glacial from log2 of the flux w on. Its walls' slope.
+// The glacial trough: transverse scale W=x (m) at an ice flux of 1e8 m3/yr, growing with its power y; curvature z/W
+// above its drained floor. Glacial from log2 of the flux w on. Its tangent walls' slope.
 static const float4 EROSION_GLACIER         = float4(600.0, 0.4, 0.3, 22.0);
 static const float EROSION_GLACIER_WALLS    = 0.85;
-// The valleys meet the coarse ground by a minimum smoothed over this (m); the coarse ground: the large forms and the
-// detail's octaves wider than EROSION_COARSE (km).
+// The final cut blends over this height difference (m), without raising the full ground. Its guide's coarse parent:
+// the large forms and the detail's octaves wider than EROSION_COARSE (km).
 static const float EROSION_SMOOTH           = 60.0;
 static const float EROSION_COARSE           = 20.0;
 // The gullies, from the detail's octave EROSION_GULLY_FIRST on, 11 km: EROSION_GULLY_SHARE of each octave's pattern on a
@@ -142,7 +142,8 @@ static const float EROSION_GLACIAL_SHARPEN  = 0.2;
 static const float EROSION_GLACIAL_BAND     = 600.0;
 // The valleys are read at a point warped by up to y km at one deviation, from x km down, so that the level 0's straight
 // links wander; on a valley's walls, the detail's relief is at least EROSION_WALL_RELIEF of its depth.
-static const float2 EROSION_WARP            = float2(40.0, 7.0);
+// 7 km folded the angular map (negative Jacobian on about 13% of two global samples), duplicating valleys.
+static const float2 EROSION_WARP            = float2(40.0, 2.0);
 static const float EROSION_WALL_RELIEF      = 0.35;
 // A delta at a mouth whose discharge exceeds EROSION_DELTA_DISCHARGE (m3/s): its lobe x sqrt(Q) (m) seaward, y of that
 // landward, z of it across; its plain w (m) above the sea, its front falling EROSION_DELTA_FRONT of its length per length.
@@ -151,7 +152,6 @@ static const float EROSION_DELTA_DISCHARGE  = 300.0;
 static const float EROSION_DELTA_FRONT      = 0.05;
 // A fan at the mountain front: x sqrt(Q) (m) down its valley, y of that back up it, its cone falling z per length.
 static const float3 EROSION_FAN             = float3(120.0, 0.2, 0.03);
-static const float2 EROSION_FOLD_DEPTH      = float2(800.0, 2000.0);
 // Wave erosion: x enables it; y is the accumulated retreat (km) at unit wave force and unit erodibility; z its maximum
 // (km); w the along-coast variation, as a fraction of that distance (Sunamura 1992, force over rock resistance).
 static const float4 EROSION_CLIFF_RETREAT   = float4(1.0, 1.2, 3.0, 0.45);
