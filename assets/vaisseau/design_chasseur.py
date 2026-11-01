@@ -16,6 +16,8 @@ import forme_chasseur as F, textures_chasseur as T
 ARGS = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 SANS_EXPORT = '--sans-export' in ARGS
 RENDUS = ARGS[ARGS.index('--rendus') + 1] if '--rendus' in ARGS else None
+if RENDUS and not os.path.isabs(RENDUS):
+    RENDUS = os.path.abspath(os.path.join(ROOT, '..', '..', RENDUS))
 Y = F.Y
 
 for o in list(bpy.data.objects): bpy.data.objects.remove(o, do_unlink=True)
@@ -53,7 +55,7 @@ def tole():
     g = nt.nodes.new('ShaderNodeGroup'); g.node_tree = sortie; nt.links.new(tex('chasseur_occlusion.png', True).outputs['Color'], g.inputs['Occlusion'])
     return m
 TOLE = tole()
-TOLE_INT = TOLE   # la tôlerie du cockpit a sa région dans l'atlas (textures_chasseur.INTERIEUR)
+TOLE_INT = material('Jeu | Structure cabine', (.115, .130, .140), .025, .64)
 VERRE = material('Jeu | Verriere fumee', (.075, .16, .20), .1, .16); VERRE.diffuse_color = (.075, .16, .20, .22)
 VERRE.node_tree.nodes['Principled BSDF'].inputs['Alpha'].default_value = .22; VERRE.surface_render_method = 'BLENDED'; VERRE.use_transparency_overlap = False
 CUVE = material('Jeu | Structure graphite', (.055, .068, .075), .6, .46)
@@ -112,9 +114,9 @@ def uv_interieur(pts):
     # hauteur ou en travers selon l'orientation de la face, ancrés au monde pour que les joints se suivent d'une face à
     # l'autre.
     n = newell([Vector(p) for p in pts]); n = n.normalized() if n.length > 1e-12 else Vector((0, 0, 1))
-    if abs(n.z) > .7: ab = [(p[1] + 2.8, abs(p[0])) for p in pts]
+    if abs(n.z) > .7: ab = [(p[1] + 2.8, p[0] + 1.2) for p in pts]
     elif abs(n.x) >= abs(n.y): ab = [(p[1] + 2.8, p[2]) for p in pts]
-    else: ab = [(abs(p[0]) + .1, p[2]) for p in pts]
+    else: ab = [(p[0] + 1.2, p[2]) for p in pts]
     u0, v0 = T.INTERIEUR[:2]
     return [(u0 + T.ECH * a, v0 + T.ECH * .78 * b) for a, b in ab], [(a / 2, .78 * b / 2) for a, b in ab]
 def projection(pts):
@@ -218,7 +220,7 @@ pc.face(bas, CUVE, n=(0, 0, 1))
 pc.fin(40)
 
 # --- La verrière : colonnes c = x / demi-largeur, du nez de la bulle au cadre arrière ; son cadre et son collier.
-NC, NR = 36, 26
+NC, NR = 64, 52
 def d_cadre(c):
     a, b = F.V0 + 1e-6, F.VF
     for _ in range(50):
@@ -245,25 +247,12 @@ TOUR_VERRE = ([grille[i][0].co.copy() for i in range(NR - 1, -1, -1)] + [pole.co
 me = bpy.data.meshes.new('Canopy_Glass'); bg.to_mesh(me); bg.free(); me.materials.append(VERRE); me.shade_smooth()
 verre = bpy.data.objects.new('Canopy_Glass', me); cockpit.objects.link(verre)
 
-def tube(pc, pts, r, teinte, nseg=10, m=None):
-    # Tube rond le long d'une boucle fermée, repère transporté sans torsion, l'écart de fermeture réparti.
-    M = len(pts); Tg = [(pts[(k + 1) % M] - pts[k - 1]).normalized() for k in range(M)]
-    n = Tg[0].orthogonal().normalized(); n0 = n.copy(); ns = []
-    for k in range(M): n = (n - n.dot(Tg[k]) * Tg[k]).normalized(); ns.append(n)
-    ne = (n - n.dot(Tg[0]) * Tg[0]).normalized(); ang = math.atan2(n0.cross(ne).dot(Tg[0]), n0.dot(ne)); rings = []
-    for k in range(M):
-        th = -ang * k / M; b = Tg[k].cross(ns[k]); nk = math.cos(th) * ns[k] + math.sin(th) * b; bk = Tg[k].cross(nk)
-        rings.append([pts[k] + r * (math.cos(2 * math.pi * s / nseg) * nk + math.sin(2 * math.pi * s / nseg) * bk) for s in range(nseg)])
-    for k in range(M):
-        A, B = rings[k], rings[(k + 1) % M]
-        for s in range(nseg):
-            q = [A[s], A[(s + 1) % nseg], B[(s + 1) % nseg], B[s]]; pc.face(q, m or TOLE, nuancier(q, teinte), dehors_de=.5 * (pts[k] + pts[(k + 1) % M]))
-# Le cadre, 1,2 cm au-delà du bord du verre : il couvre le raccord du verre à la peau, haché au coin arrière où la peau
-# monte raide contre l'arceau.
+# The rigid retainer follows the glass tangent plane, with a separate thin seal.
 M = len(TOUR_VERRE); aire = sum(TOUR_VERRE[k].x * TOUR_VERRE[(k + 1) % M].y - TOUR_VERRE[(k + 1) % M].x * TOUR_VERRE[k].y for k in range(M))
 def dehors(k):
     t = TOUR_VERRE[(k + 1) % M] - TOUR_VERRE[k - 1]; return Vector((t.y, -t.x, 0)).normalized() * (1 if aire > 0 else -1)
-pc = Piece('Verriere | cadre'); tube(pc, [TOUR_VERRE[k] + dehors(k) * .012 for k in range(M)], .052, 'metal', 8); pc.souder(); pc.fin(60)
+import cadre_verriere
+cadre_verriere.construire(globals())
 
 # --- Les ailes : section à huit points (bord d'attaque, nervure, charnière, culot) ; là où sont les élevons, la partie
 # fixe s'arrête à la charnière. Dessus et dessous peints dans l'atlas, en plan.
@@ -557,6 +546,8 @@ pc.fin(30)
 import cockpit_chasseur, pieces_mobiles
 cockpit_chasseur.construire(globals())
 pieces_mobiles.marquer(cockpit)
+import textures_finitions
+textures_finitions.appliquer(globals())
 
 print('JETS', JETS)
 TRI = {o.name: sum(len(p.vertices) - 2 for p in o.data.polygons) for o in ship.all_objects if o.type == 'MESH'}

@@ -66,3 +66,21 @@ Ouverte le 2026-10-23, à reprendre après le rendu. **La géométrie de proximi
 - **Des bruits ou des algorithmes :** le filtre d'érosion, `spec-parois-minerales.md`.
 - **Du relief réel :** des patchs lidar fondus par nos bruits.
 - **Des objets :** des rochers semés en vrais volumes, `log/spec-parois.md`, option 3. Ouverte le 2026-10-24 pour les pierres et les blocs : `spec-objets-proximite.md`.
+
+
+**2026-11-01 · Manufactured ship geometry**
+
+- **Classification:** added detail on a manufactured asset, outside the terrain-overlay system.
+- **Scope:** fitted console panels, curved console returns, integrated dashboard recesses, curved coaming, rolled foredeck, glazing retainer, seat upholstery, service fittings and identification plates.
+- **Scale:** 1.5 mm recessed instrument faces, 10–28 mm pockets, a 34 × 12 mm glazing retainer and 4 mm seal.
+- **Panel outlines:** seven custom skins follow their support contours with 7–12 mm margins and chamfered corners.
+- **Dashboard curve:** the centre stays at 0.845 m; the shoulders lower by 35 mm along the dashboard plane.
+- **Console junction:** a 65 mm lateral return meets the dashboard and the flat console bay at d = 3.84 m with tangent cubic sections.
+- **Foredeck:** shoulder relief rises smoothly to at most 220 mm and fades before d = 3.8 m; the forward centreline lowers by at most 18 mm, fading before d = 2 m.
+- **Sightline:** five eye positions cover the nominal eye, ±30 mm sideways and ±60 mm fore/aft; the camera settings are unchanged.
+- **Attached details:** hull paint is regenerated from the new sections; the top and side forward attitude jets follow the revised skin.
+- **Glass:** unchanged analytic shape, tessellated at 64 × 52 for the thinner retainer.
+- **Reference frame:** the ship; no change to Exolune relief, planetary meshes or terrain settings.
+- **Source:** `assets/vaisseau/forme_chasseur.py`, `cockpit_chasseur.py`, `panneaux_cockpit.py`, `encastrements.py`, `cadre_verriere.py` and `finitions_cockpit.py`.
+- **Return point:** `piste/2026-11-01-vaisseau-finitions-base` (`ad981f4`); current edits remain on `codex/vaisseau-finitions`.
+- **Specification:** [ship assembly](spec-vaisseau.md).

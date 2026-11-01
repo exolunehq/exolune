@@ -46,14 +46,19 @@ def chine_x(d):
     if d <= D_K: w = pont_bord(d); return w + part_chanfrein(d) * (chine_brute(d) - w)
     u = lisse((d - D_K) / .58); return arete_x(d) + (1 - u) * EK + u * .015
 def chine_z(d):
-    if d <= D_K: return pont(d) + part_chanfrein(d) * (chine_z_brute(d) - pont(d))
+    if d <= D_K:
+        deck = pont_nez(pont_bord(d),d)
+        return deck + part_chanfrein(d)*(chine_z_brute(d)-deck)
     u = lisse((d - D_K) / .58); return arete_z(d) - (1 - u) * DK - u * .015
 retrait_bas = courbe((0, .04), (4.4, .04), (5.6, .03), (7.0, .02), (10, .02))
 def bas_x(d): return sil(d) - retrait_bas(d)
 basse_z = courbe((0, .21), (1.5, .19), (3.0, .26), (3.5, .296), (4.0, .326), (4.5, .352), (5.0, .40), (5.6, .44), (6.5, .45), (7.5, .46),
                  (8.5, .46), (10, .46))   # relevée jusqu'au bord d'attaque de l'aile (image 4)
-pont = courbe((0, .38), (.3, .45), (1, .53), (2.0, .68), (2.5, .745), (3.0, .76), (3.5, .79), (4.4, .845), (5.0, .90), (5.5, .95),
+_pont_initial = courbe((0, .38), (.3, .45), (1, .53), (2.0, .68), (2.5, .745), (3.0, .76), (3.5, .79), (4.4, .845), (5.0, .90), (5.5, .95),
               (6.5, .94), (7.5, .95), (8.5, .96), (9.4, .96), (10, .94))
+def pont(d):
+    # A slight forward rake also clears the pilot's 6 cm head travel.
+    return _pont_initial(d)-.018*lisse(d/.20)*(1-lisse((d-1.3)/.7))
 ventre_x = courbe((0, .10), (1, .27), (2.5, .56), (3.5, .74), (4.4, .84), (5.0, .90), (5.62, .94), (7.0, 1.0), (8.5, 1.0), (10, .95))
 ventre_z = courbe((0, .15), (1, .05), (2.5, -.05), (3.5, -.09), (4.4, -.11), (5.0, -.12), (5.62, -.12), (7.0, -.10), (8.5, -.06), (10, .08))
 
@@ -88,6 +93,20 @@ def pont_bord(d):
     if d <= VW: return long
     t = lisse((d - VW) / .85); return (1 - t) * (1.0 + .05) + t * (chine_brute(d) - .03)
 def bord(d): return pont_bord(d) if d <= D_K else arete_x(d)
+
+# The foredeck rolls down beside the canopy instead of presenting a broad flat
+# shoulder to the pilot. The glazing boundary and all weather geometry stay fixed.
+_NEZ_VERRE = [(bulle_l(V0+i*(3.85-V0)/160),V0+i*(3.85-V0)/160) for i in range(161)]
+def pont_nez(x,d):
+    weight = lisse(d/2.4)*(1-lisse((d-3.15)/.65))
+    if weight == 0 or sous_verre(x,d): return pont(d)
+    x = abs(x); distance = math.inf
+    for (ax,ad),(bx,bd) in zip(_NEZ_VERRE,_NEZ_VERRE[1:]):
+        dx,dd=bx-ax,bd-ad
+        t=min(1,max(0,((x-ax)*dx+(d-ad)*dd)/(dx*dx+dd*dd)))
+        distance=min(distance,math.hypot(x-ax-t*dx,d-ad-t*dd))
+    roll = (1-math.exp(-(distance/.12)**2))*(1-math.exp(-(x/.26)**2))
+    return pont(d)-.22*weight*roll
 
 # --- Derrière la bulle, les arêtes des images 4 et 5 de l'utilisateur (2026-10-31). La ligne haute quitte l'arceau à
 # 80 cm de l'axe (A) et rejoint l'arête d'échine en M ; la diagonale monte du coin bas du verre (K) vers M ; l'arête
@@ -126,7 +145,7 @@ def epine(x, d):
 def dessus(x, d):
     # Sous le verre, la cuve du cockpit ; derrière le cadre, la bulle passe à l'échine en 15 cm, sous le collier.
     x = abs(x); zb = bulle(x, d); f = cadre(x)
-    if d < f: return max(pont(d), zb - 2 * (f - d)) if x < bulle_l(d) else pont(d)
+    if d < f: return max(pont(d), zb - 2 * (f - d)) if x < bulle_l(d) else pont_nez(x,d)
     k = lisse((d - f) / .15); return (1 - k) * zb + k * epine(x, d)
 
 # --- La section, demi-coque gauche de x = 0 vers l'extérieur : le dessus en trois tranches (le milieu de la bulle, son

@@ -4,14 +4,37 @@
 
 **Essayer, dans le jeu (`AGENTS.md`, `lancement.md`) :** depuis la racine du worktree,
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours tools\tests\2026-10-29-vaisseau.txt
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours tools\tests\2026-11-01-vaisseau-finitions.txt
 ```
 après `tools\lance.ps1 -Build -NoLaunch` si le code a changé.
+
+**Cabin finish and assembly · 2026-11-01**
+
+- The geometry rule is in `principes.md`; implementation and rebuild commands are in [the asset README](../assets/vaisseau/README.md).
+- Continuous folded consoles meet the dashboard and receive instruments in real closed recesses.
+- Seven panels follow their mounting contours and sit 1.5 mm below the fascia; three display rims project by 1 mm.
+- Full-length console panels and tapered dashboard wings share one control and printing layout.
+- Wing panels stop at the visible console boundary; cubic returns replace the overlapping diagonal ends.
+- Four side service covers are also recessed; horizontal controls sit in the 18 cm shelf.
+- The dashboard crown and alert strip form a shallow curve, keeping the centre height and lowering the shoulders by 35 mm along the panel plane.
+- The nose shoulders roll down around the fixed glazing contour; an 18 mm forward rake clears the normal head travel.
+- The pilot camera and glass/weather geometry remain unchanged.
+- The canopy uses a flat 34 × 12 mm retainer and a separate 4 mm seal, following the glass tangent plane.
+- The glass keeps its analytic shape with finer tessellation, 64 columns × 52 rows.
+- Screen recesses have closed returns; structural housings have 1.5 mm bevels.
+- Service covers, defogging vents, cable clips, seat anchors and restraint straps make the assembly explicit.
+- Two 1024px micro-surface maps distinguish cabin paint, upholstery, webbing and machined metal.
+- The 4096px label atlas carries graphite/petrol panels, coating grain, restrained wear and cyan sector markings.
+- The package uses 12 images and 48 draw ranges; no shader or descriptor layout change is required.
+- `controle_finitions.py` checks 504 mounting samples, 14 closed pockets, fascia protrusion, control clearance, 27 display sightlines, eye clearance and six animation pivots.
+- `controle_visibilite.py` checks the forward cone and 1,180 wing-panel sightlines from five pilot-eye positions.
+- Reimported GLB captures verify the final asset; the in-flight route covers daylight, low sun, cloud, sea, polar conditions, orbit and night.
+- Earlier construction and counts: [ship history](log/spec-vaisseau-historique.md).
 
 ## Le modèle dans le moteur
 
 - **La source est `assets/vaisseau/vaisseau.glb`** (`assets/vaisseau/README.md`).
-- **Le modèle est le chasseur du concept de l'utilisateur** (`assets/vaisseau/forme_chasseur.py`, `design_chasseur.py`, `cockpit_chasseur.py`) : coque à arêtes vives sous une bulle, atlas unique, équipement de peau, cockpit dégagé sous le seuil du verre, 29 555 triangles.
+- **The model follows the user's fighter concept** (`assets/vaisseau/forme_chasseur.py`, `design_chasseur.py`, `cockpit_chasseur.py`): a sharp hull under a bubble canopy, shared hull and cabin atlases, surface fittings and a clear cockpit sightline; 61,698 triangles.
 - **`Ship.hlsli` recopie la bulle du chasseur** (`assets/vaisseau/forme_chasseur.py`), pour l'eau et le givre : son contour en plan, nez émoussé puis queue ronde, et sa section ronde ; la hauteur du pont et de la couronne, échantillonnée tous les 1/32 de sa longueur (`CanopyZ`, `CanopyInside`, `CanopyNormal`). `ShipPlume.hlsli` recopie ses quatre tuyères et ses dix jets. Les deux doivent rester d'accord avec le modèle.
 - **L'œil du pilote est à 1,03 m** (`kEyeUp`), en d 4,40, comme `forme_chasseur.OEIL`.
 - **Le moteur lit un paquet cuit, `vaisseau.vsx`,** écrit par `assets/vaisseau/paquet_moteur.py` :

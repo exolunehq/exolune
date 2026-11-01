@@ -2,6 +2,7 @@
 from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
 import math
+import numpy as np
 ROOT=Path(__file__).resolve().parent
 FONT='C:/Windows/Fonts/consola.ttf'
 FONT_BOLD='C:/Windows/Fonts/consolab.ttf'
@@ -62,16 +63,29 @@ im.save(ROOT/'ecran_systemes.png')
 # Sérigraphie des modules dans un seul atlas : les commandes sont modélisées
 # aux mêmes coordonnées (modules_cockpit.py), l'image ne porte que peinture et légendes.
 from modules_cockpit import MODULES, ECHELLE as K, ATLAS, atlas
-PEINTURE=(146,151,153); BLANC=(238,238,232); ARETE=(86,90,92); FENTE=(24,27,28)
+PEINTURE=(61,78,86); BLANC=(218,226,216); ARETE=(28,40,46); FENTE=(12,22,28)
 im=Image.new('RGB',(ATLAS,ATLAS),PEINTURE); d=ImageDraw.Draw(im)
 small=font(round(.0052*K),True); tiny=font(round(.0042*K),True); head=font(round(.0075*K),True)
+fitted={'flanc_g','flanc_d','gaz','clavier','feux','carbu','alarme'}
+rectangles=atlas()
 for name,((w,h),title,items) in MODULES.items():
-    x0,y0,x1,y1=atlas()[name]
+    x0,y0,x1,y1=rectangles[name]
+    PEINTURE=(49,65,74) if name in ('gaz','clavier','alarme') else (62,80,88) if name in fitted else (97,111,116)
+    rng=np.random.default_rng(110126+sum(ord(c)*i for i,c in enumerate(name,1)))
+    yy,xx=np.mgrid[:y1-y0,:x1-x0]
+    grain=rng.normal(0,1.6,xx.shape)+.6*np.sin(xx*.48)*np.sin(yy*.63)
+    base=np.clip(np.array(PEINTURE)+grain[:,:,None],0,255).astype(np.uint8)
+    im.paste(Image.fromarray(base),(x0,y0)); d=ImageDraw.Draw(im)
     def px(u,v): return (x0+u*K, y1-v*K)
-    d.rectangle((x0,y0,x1-1,y1-1),outline=ARETE,width=3)
-    for u in (.008,w-.008):
-        for v in (.008,h-.008):
-            x,y=px(u,v); r=.0058*K; d.ellipse((x-r,y-r,x+r,y+r),fill=ARETE)
+    if name not in fitted:
+        d.rectangle((x0,y0,x1-1,y1-1),outline=ARETE,width=3)
+    # Subtle rubbed paint follows hand-operated controls; legends stay crisp.
+    for item in items:
+        if item[0] not in ('rot','tog','gtog','key'): continue
+        x,y=px(item[1],item[2]); r=(.018 if item[0]=='rot' else .010)*K
+        wear=tuple(c+14 for c in PEINTURE)
+        d.arc((x-r,y-r,x+r,y+r),25,63,fill=wear,width=1)
+        if item[0]=='rot': d.arc((x-r-3,y-r-2,x+r+3,y+r+2),95,117,fill=wear,width=1)
     if title:
         d.text(px(.016,h-.007),title,font=head,fill=BLANC,anchor='lt')
         x,y=px(.016,h-.017); d.line((x,y,x1-.016*K,y),fill=BLANC,width=2)
@@ -86,7 +100,19 @@ for name,((w,h),title,items) in MODULES.items():
             _,u0,v0,u1,v1=it; a=px(u0-.006,v1); b=px(u1+.006,v0)
             d.rounded_rectangle((*a,*b),radius=.006*K,fill=FENTE,outline=ARETE,width=2); continue
         _,u,v,label,*opt=it
-        if kind=='text': d.text(px(u,v),label,font=small,fill=BLANC,anchor='mm')
+        if kind=='sector':
+            x,y=px(u,v); length=min(.255,w-u-.012)*K
+            d.polygon([(x,y),(x+length-9,y),(x+length,y+9),(x+length,y+.018*K),(x,y+.018*K)],fill=(36,58,67))
+            accent=(189,136,65) if any(t in label for t in ('POWER','THRUST','CIRCUITS')) else (96,153,158)
+            d.rectangle((x,y,x+3,y+.018*K),fill=accent)
+            d.text((x+11,y+5),label,font=head,fill=BLANC)
+        elif kind=='trace':
+            x,y=px(u,v); span=min(.10,w*.36)*K
+            d.line((x-span,y,x-span+12,y-7,x-8,y-7),fill=(76,126,137),width=2)
+            d.line((x+8,y+7,x+span-12,y+7,x+span,y),fill=(76,126,137),width=2)
+            d.text((x,y),label,font=tiny,fill=(147,173,179),anchor='mm')
+        elif kind=='text': d.text(px(u,v),label,font=small,fill=BLANC,anchor='mm')
+        elif kind=='mark': d.text(px(u,v),label,font=font(round(.035*K),True),fill=BLANC,anchor='mm')
         elif kind in ('tog','gtog'): d.text(px(u,v+.016),label,font=small,fill=BLANC,anchor='mb')
         elif kind=='rot':
             x,y=px(u,v)

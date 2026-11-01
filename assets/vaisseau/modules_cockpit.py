@@ -7,7 +7,7 @@ v vers le haut des légendes. Sur les flancs, u va vers le nez à gauche du
 pilote et vers l'arrière à sa droite ; sur les tablettes, v va vers le nez.
 """
 ECHELLE = 1800   # pixels par mètre dans l'atlas
-ATLAS = 2048
+ATLAS = 4096
 MARGE = 10
 TEINTE = 'teinte'  # carré de peinture unie pour les chants des plaques
 
@@ -43,8 +43,8 @@ MODULES = {
         ('box', .02, .012, .19, .15, 'STANDBY'),
         ('tog', .055, .10, 'STBY'), ('tog', .105, .10, 'CAGE'), ('tog', .155, .10, 'BARO'),
         ('push', .065, .04, 'TEST', None), ('push', .145, .04, 'RESET', None),
-        ('gauge', .28, .075, 'ATT', 'jauge_att'), ('gauge', .395, .075, 'ALT', 'jauge_alt'),
-        ('rot', .468, .075, 'BRT')]),
+        ('gauge', .260, .075, 'ATT', 'jauge_att'), ('gauge', .405, .075, 'ALT', 'jauge_alt'),
+        ('rot', .340, .180, 'BRT')]),
     'aile_d': ((.50, .17), None, [
         ('gauge', .07, .075, 'THRUST', 'jauge_prop'),
         ('box', .135, .012, .275, .15, 'EVENT TIMER'),
@@ -92,20 +92,89 @@ MODULES = {
     'com': ((.13, .28), 'COMM', [
         ('rot', .04, .19, 'VOL'), ('rot', .095, .19, 'CHAN'),
         ('tog', .035, .085, 'XMIT'), ('tog', .095, .085, 'ICS'), ('lamp', .065, .035, 'LINK', 'cyan')]),
+    'identite': ((.20, .035), None, [
+        ('text', .10, .022, 'EXOLUNE  /  EX-01'), ('text', .10, .011, 'FLIGHT SYSTEMS   S/N 0047')]),
+    'secours': ((.17, .075), 'RESCUE', [
+        ('text', .085, .038, 'HARNESS RELEASE'), ('text', .085, .023, 'TURN / LIFT')]),
+    'oxygene': ((.17, .075), 'LIFE SUPPORT', [
+        ('text', .085, .038, 'O2  /  28 VDC'), ('text', .085, .023, 'SERVICE ACCESS')]),
+    'immatriculation': ((.28, .095), None, [
+        ('mark', .14, .058, 'EX-01'), ('text', .14, .021, 'EXOLUNE  /  SURVEY CRAFT')]),
 }
 
+def deplacer(items, du, dv):
+    result=[]
+    for item in items:
+        kind=item[0]
+        if kind=='line': result.append((kind,[(u+du,v+dv) for u,v in item[1]]))
+        elif kind in ('box','slot'):
+            result.append((kind,item[1]+du,item[2]+dv,item[3]+du,item[4]+dv,*item[5:]))
+        else: result.append((kind,item[1]+du,item[2]+dv,*item[3:]))
+    return result
+
+
+# One fitted skin per console face. Functional sectors share its surface rather
+# than repeating rectangular equipment trays inside a larger trapezoid.
+MODULES['flanc_g'] = ((1.36,.28), None,
+    deplacer(MODULES['elec'][2],.025,.018)+deplacer(MODULES['prop'][2],.405,.018)+deplacer(MODULES['aile_g'][2],.795,.045)+[
+    ('sector',.025,.264,'01 / POWER'),('sector',.405,.264,'02 / PROPULSION'),('sector',.795,.264,'03 / INERTIAL'),
+    ('text',1.05,.244,'ATTITUDE  /  ALTITUDE'),('trace',1.06,.027,'EX-01 / VECTOR BUS')])
+MODULES['flanc_d'] = ((1.36,.28), None,
+    deplacer(MODULES['aile_d'][2],.045,.045)+deplacer(MODULES['disj'][2],.585,.018)+deplacer(MODULES['env'][2],.975,.018)+[
+    ('sector',.045,.264,'04 / FLIGHT'),('sector',.585,.264,'05 / CIRCUITS'),('sector',.975,.264,'06 / HABITAT'),
+    ('text',.295,.244,'RCS  /  VECTOR CONTROL'),('trace',.295,.027,'EX-01 / FLIGHT BUS')])
+old_gaz,old_keyboard = MODULES['gaz'][2],MODULES['clavier'][2]
+MODULES['gaz'] = ((.16,1.30),None,
+    deplacer(old_gaz,.015,.51)+deplacer(MODULES['trim'][2],.015,.08)+[
+    ('sector',.018,1.245,'VECTOR'),('sector',.018,.935,'THRUST'),('sector',.018,.395,'TRIM'),
+    ('rot',.045,1.14,'GAIN'),('rot',.115,1.14,'AXIS'),('tog',.045,1.055,'HOLD'),('gtog',.115,1.055,'DOCK'),
+    ('trace',.08,.455,'A / 28 VDC')])
+MODULES['clavier'] = ((.16,1.30),None,
+    deplacer(old_keyboard,.015,.51)+deplacer(MODULES['com'][2],.015,.08)+[
+    ('sector',.018,1.245,'NAV'),('sector',.018,.935,'INPUT'),('sector',.018,.395,'COMM'),
+    ('rot',.045,1.14,'RANGE'),('rot',.115,1.14,'SCAN'),('push',.045,1.055,'MARK','cyan'),('tog',.115,1.055,'TRACK'),
+    ('trace',.08,.455,'B / DATA LINK')])
+MODULES['feux'] = ((.32,.21),'LIGHT / DOCK',[
+    ('tog',.045,.125,'NAV'),('tog',.105,.125,'STRB'),('tog',.165,.125,'BEACON'),('tog',.225,.125,'DOCK'),
+    ('rot',.045,.045,'PANEL'),('rot',.115,.045,'CABIN'),('push',.165,.045,'TEST','cyan'),
+    ('trace',.16,.175,'EX / GUIDANCE')])
+MODULES['carbu'] = ((.32,.21),'FEED / RCS',[
+    ('lamp',.080,.135,'MAIN','amber'),('lamp',.160,.135,'AUX',None),('lamp',.240,.135,'RCS','cyan'),
+    ('tog',.140,.06,'PUMP L'),('tog',.190,.06,'PUMP R'),('gtog',.240,.06,'CROSS'),('rot',.282,.06,'MODE'),
+    ('trace',.16,.175,'EX / PROPULSION')])
+def alarme_v(u): return .086-.060*(2*u/1.36-1)**2
+MODULES['alarme'] = ((1.36,.11),None,[('push',.035,alarme_v(.035),'ALARM',None),('push',1.325,alarme_v(1.325),'CAUTION','amber')]+[
+    ('lamp',.105+i*.096,alarme_v(.105+i*.096),label,'amber' if label=='ENG 2' else None)
+    for i,label in enumerate(('FUEL','HYD','ELEC','ENG 1','ENG 2','ENG 3','RCS','O2','COMM','NAV','DOCK','CABIN','AIRLOCK'))])
+for name in ('bas_g','bas_d','aile_g','aile_d','prop','elec','disj','env','trim','com'):
+    del MODULES[name]
+
 def atlas():
-    """Rectangles (x0, y0, x1, y1) en pixels, par hauteur décroissante, chacun dans la première rangée où il tient."""
+    """Deterministic nonrotating MaxRects packing, including the service plates.
+
+    Reuse gaps below shorter panels instead of allocating full-height shelves.
+    Preserve 1800 px/m labels; full-length console skins require a 4096px atlas.
+    """
     sizes = [(n, round(w*ECHELLE), round(h*ECHELLE)) for n, ((w, h), _, _) in MODULES.items()]
     sizes.append((TEINTE, 32, 32))
-    sizes.sort(key=lambda s: -s[2])
-    rects = {}; rangees = []   # [y, hauteur, x libre]
+    sizes.sort(key=lambda s: (-max(s[1:]), -s[1]*s[2], s[0]))
+    rects = {}; free = [(MARGE, MARGE, ATLAS-MARGE, ATLAS-MARGE)]
     for n, w, h in sizes:
-        r = next((r for r in rangees if h <= r[1] and r[2] + w + MARGE <= ATLAS), None)
-        if r is None:
-            y = rangees[-1][0] + rangees[-1][1] + MARGE if rangees else MARGE; r = [y, h, MARGE]; rangees.append(r)
-        rects[n] = (r[2], r[0], r[2] + w, r[0] + h); r[2] += w + MARGE
-    assert rangees[-1][0] + rangees[-1][1] <= ATLAS, 'atlas trop petit'
+        candidates = [r for r in free if r[2]-r[0] >= w+MARGE and r[3]-r[1] >= h+MARGE]
+        assert candidates, f'atlas too small for {n}'
+        x, y, _, _ = min(candidates, key=lambda r: (min(r[2]-r[0]-w-MARGE, r[3]-r[1]-h-MARGE), r[1], r[0]))
+        rects[n] = (x, y, x+w, y+h)
+        right, bottom = x+w+MARGE, y+h+MARGE
+        split = []
+        for a, b, d, e in free:
+            if right <= a or x >= d or bottom <= b or y >= e:
+                split.append((a, b, d, e)); continue
+            if a < x: split.append((a, b, x, e))
+            if right < d: split.append((right, b, d, e))
+            if b < y: split.append((a, b, d, y))
+            if bottom < e: split.append((a, bottom, d, e))
+        split = sorted(set(split))
+        free = [r for r in split if not any(r != q and q[0] <= r[0] and q[1] <= r[1] and q[2] >= r[2] and q[3] >= r[3] for q in split)]
     return rects
 
 if __name__ == '__main__':

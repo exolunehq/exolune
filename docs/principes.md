@@ -14,6 +14,23 @@ Statut : référence, depuis le 2026-10-22. Toute correction et toute nouvelle f
 
 ## Les règles établies
 
+**Manufactured parts derive their interfaces from the visible support mesh** (`spec-vaisseau.md`).
+- Design the common fascia and instrument depth together; cut actual recesses for installed equipment.
+- Derive panel outlines from the usable support surface, with metric edge clearance; validate the actual control hardware against each outline.
+- The usable outline ends at the visible intersection with neighbouring parts, not at the hidden tub wall; check visibility from the pilot eye and its travel limits.
+- Console returns share their dashboard boundary and join the console tangentially; their sections must advance monotonically.
+- Keep fitted control positions and printed legends in the same coordinate mapping.
+- Cut each support's complete pocket layout together so adjacent coplanar floors remain closed.
+- Keep printed instrument faces below the fascia and exposed rims thin; mounting contact alone does not establish a coherent design.
+- Join coaming sheets at the chassis return instead of overlapping its top face.
+- Glazing retainers have flat structural faces and a separate narrow seal; their section follows the glazing tangent plane.
+- Fit the whole mounting perimeter along the mounting normal; a centre point or constant-depth block cannot establish contact with a curved panel.
+- Derive shelf width from module dimensions and assembly clearance.
+- Close recessed display rims and attach hoses, straps and handles to explicit fittings.
+- Preserve a finite orthogonal tangent frame at UV poles in both GLB and cooked packets.
+- Inspect the reimported asset from several viewpoints and retain the in-flight review route.
+- Solve nose visibility in the physical hull shape; keep the glazing contact, external paint layout and attitude-jet origins consistent with it.
+
 **Un rendu hors temps réel suit l'horloge du film, jamais la durée du calcul** (`lancement.md`, le mode cinématique).
 - **Un pas commun à tout ce qui avance :** mer, plantes, verre et historiques ; les poses et l'instant météo viennent du parcours.
 - **La sécurité ne dessine pas le trajet :** le générateur garde une bande libre autour du vol ; toute pince du moteur est journalisée.

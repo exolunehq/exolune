@@ -80,3 +80,4 @@
 | `vegetation-hiz-historique.md` | Les témoins du HiZ, profondeur historique et modes intercalés, retirés le 2026-10-30 ; la comparaison intercalée et son vol. |
 | `optimisation-vegetation-historique.md` | Essais de compaction et de déplacement des calculs des imposteurs ; limites des mesures sur GPU partagé ; le vol de comparaison, retiré le 2026-10-30. |
 | `optimisation-historique.md` | L'analyse de départ de chaque round de `../optimisation.md` : le coût de chaque part, mesuré par variantes. |
+| [Ship assembly history](spec-vaisseau-historique.md) | Former cockpit supports, panel layouts, junctions, foredeck profile and intermediate asset counts. |

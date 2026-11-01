@@ -1,66 +1,96 @@
-# Le chasseur
+# The concept fighter
 
-**Le vaisseau du joueur, d'après le concept de l'utilisateur.** Sa vue de trois quarts est la cible artistique ; les vues de dessus, de profil et d'arrière n'ont servi qu'où elles s'accordent avec elle. Forme validée sur maquettes le 2026-10-31, puis détaillée.
+**Source and silhouette**
 
-**Fichiers**
+- The user's three-quarter concept is the artistic reference.
+- `forme_chasseur.py` defines the hull, canopy, wings, elevons, intakes, nozzles and pilot eye in metres.
+- The nose points toward -Y, up is +Z, and the pilot's left is +X.
+- The chine, blue shoulder stripe, orange nose band and four engine outlets retain the concept's overall proportions.
+- The foredeck rolls down beside the canopy, with up to 22 cm of shoulder relief and an 18 mm forward rake.
+- The glazing boundary and canopy shape stay fixed; the nose is hidden by physical geometry from the pilot eye and its normal translation range.
+- The previous form N remains in `archive/forme-n/`.
+- Historical construction and measurements are in [the ship history](../../docs/log/spec-vaisseau-historique.md).
 
-- `forme_chasseur.py` : la forme, seule source de la géométrie, sans Blender. Coque en sections, bulle, aile et élevons, prises d'air, capots, tuyères, œil du pilote. `python forme_chasseur.py` contrôle les raccords.
-- `textures_chasseur.py` : l'atlas de la coque, 4096², en numpy (`python textures_chasseur.py`, 40 s). Couleur, normale, occlusion, métal-rugosité : `chasseur_*.png`.
-- `design_chasseur.py` : le modèle dans Blender, ses rendus de contrôle et l'export.
-- `cockpit_chasseur.py` : le cockpit, appelé par `design_chasseur.py`.
-- `modules_cockpit.py` et `textures_cockpit.py` : les plaques sérigraphiées (`plaques.png`), les écrans et les cadrans (`ecran_*.png`, `jauge_*.png`).
-- `pieces_mobiles.py` : marque le manche et la manette des gaz, pose leurs pivots.
-- `exporter.py`, `paquet_moteur.py` : le GLB, puis le paquet `vaisseau.vsx` lu par le moteur (`docs/spec-vaisseau.md`).
-- `vaisseau_travail.blend`, `vaisseau.glb`, `vaisseau.vsx` : la scène, le modèle, le paquet.
-- `exterieur.png`, `arriere.png`, `dessous.png`, `pilote.png`, `cockpit.png`, `siege.png`, `commandes.png` : rendus de contrôle ; `export_controle.png` et `export_pilote.png` : le GLB réimporté (`verifier_glb.py`).
-- **La forme N est archivée** dans `archive/forme-n/`, avec ses scripts et ses textures.
-- **Le moteur recopie la bulle et les tuyères** (`Ship.hlsli`, `ShipPlume.hlsli`) : à reporter après tout changement de `forme_chasseur.py`.
+**Cabin assembly**
 
-**Coque**
+- `cockpit_chasseur.py` builds the tub, dashboard, consoles, controls and seat.
+- Each console has one continuous inclined fascia, a horizontal control shelf and a folded knee panel.
+- The fascia defines the instrument layout; upper infill joins it to the curved cockpit wall.
+- `encastrements.py` cuts closed pockets into the actual chassis before fitting the instruments.
+- Seven fitted printed panels and three live displays are inset; four side service covers use the same construction.
+- `panneaux_cockpit.py` derives each panel outline from the usable support surface, with 7–12 mm edge margins and chamfered corners.
+- Each side has one full-length fascia panel and one shelf panel; tapered dashboard wings fill the space beside the displays.
+- Dashboard wings stop at the visible console junction, rather than extending behind it.
+- A 65 mm lateral return follows a cubic curve from the dashboard into each console; the flat instrument bays begin at d = 3.84 m.
+- Return sections advance monotonically toward the seat and meet the neighbouring faces tangentially.
+- Control hardware and printed legends share the same coordinates after fitting the panel outline.
+- Each support receives one compound Boolean cut with Blender's manifold solver, preserving the coplanar pocket floors.
+- Printed faces sit 1.5 mm below the fascia; display rims project by only 1 mm.
+- Pockets are 10 mm deep for controls, 28 mm for displays and 12 mm for service covers.
+- The 18 cm shelf follows the console direction and leaves clearance around the horizontal controls.
+- Only the two exterior identification plates retain fitted mounting sockets.
+- The dashboard spans the tub; its coaming meets the canopy sill.
+- Its shallow curved crown keeps the centre at 0.845 m and lowers the shoulders by 35 mm along the dashboard plane.
+- The alert strip follows this curve; the coaming meets the dark chassis return without overlapping it.
+- The pilot eye, camera settings and three display planes retain their previous positions.
+- Display bezels return to the recessed screen surface instead of leaving an open rim.
+- Structural housings carry 1.5 mm bevels with two segments.
+- `cadre_verriere.py` builds a flat glazing retainer, 34 mm wide and 12 mm thick, with 2 mm edge chamfers and a separate 4 mm seal.
+- The glass retains its analytic shape, sampled at 64 columns and 52 rows to resolve the thin frame.
+- The pilot eye and three live display roles stay the same.
 
-- **Une seule grande arête court de la pointe à la poupe :** la chine, au bas de la bande orange, sous la bulle, au haut de la prise d'air, puis en arête d'épaule jusqu'au capot moteur.
-- **Derrière la bulle, deux arêtes de plus,** relevées sur les traits de l'utilisateur à la caméra du trois-quarts :
-  - la ligne haute quitte l'arceau et rejoint l'arête du dos ;
-  - la diagonale monte du coin bas de la bulle vers elle ;
-  - entre elles, le dos bombé, un pan raide de 48 à 57° et la terrasse, qui porte la bande bleue.
-- **Sous la chine,** le flanc, puis la chine basse, qui file au bord d'attaque de l'aile, le chanfrein bas et le ventre plat.
-- **La pointe :** un chanfrein tout autour, un cadre de tôle claire, la fenêtre du capteur en retrait de 3 cm.
-- **La peinture suit les pans :** tôles décalées d'une bande à l'autre, trappes, grilles ; bande orange du chanfrein, panneaux bleus, bande bleue de la terrasse, ventre plus sombre.
-- **Autour du verre, une bande anthracite de 5,5 cm.** L'orange ne passe pas devant la bulle : au coin, le chanfrein orange se resserre et file en bande de queue, d'un seul tenant.
-- **Le raccord du verre :** les sommets de peau sous le verre vont sur son bord, à sa hauteur ; la peau s'arrête net sur le contour. Le cadre tubulaire, 1,2 cm au-delà du bord, couvre le raccord.
-- **L'usure, d'après le concept :** têtes de rivet sombres et rouillées, auréolées de rouille ; crasse brune au bord des joints, voile de poussière ; éclats, rayures, coulures, suie de poupe. Un seul matériau, « Jeu | Tole », sur la deuxième UV, `UVDetail`.
-- **Les pièces :** bulle et son cadre, aile à nervure, quatre élevons, deux prises d'air à lames, quatre capots et quatre tuyères à foyer chaud, feux, dix jets d'attitude, antennes, écopes.
-- **L'équipement de peau,** petites pièces qui ont une fonction, profilées :
-  - trappes de train sous le ventre et trappes d'accès sur les flancs et le pont du nez, en relief de 3 mm sur un joint sombre, vissées ;
-  - deux aérofreins sur le dos, qui épousent la peau, charnière à l'avant ;
-  - deux bouches auxiliaires sur le dos, ouïes sur les capots moteurs ;
-  - deux ailettes ventrales déversées, deux lames le long de la chine basse du nez, une cloison sur chaque aile entre les élevons ;
-  - carénages d'articulation sous les élevons, sondes d'incidence à la pointe, déperditeurs au bout des ailes, feux de formation verts.
+**Visible fittings**
 
-**Cockpit**
+- `finitions_cockpit.py` adds fitted defogging grilles, screwed service covers, knee rails and canopy latch housings.
+- Electrical harnesses terminate in connectors and have bolted clips along their route.
+- Seat feet bolt to the floor rails; shoulder and lap restraints have anchors and continue to the central buckle.
+- Upholstery uses curved bolsters, a rounded headrest, welts and stitch rows.
+- A guarded emergency handle mounts to the front of the seat bucket.
+- Service placards and exterior EX-01 identification plates share the panel label atlas.
+- The stick, throttle and four elevons keep their six animation pivots and `_POSE` attributes.
 
-- **La verrière est dégagée :** tout l'équipement reste sous le seuil du verre, sauf le haut du pupitre, 5 cm au-dessus et sous la ligne qui rase le nez de la bulle.
-- **Un assemblage sans jour :** le pupitre va de paroi à paroi, ses coins sur le seuil ; les consoles partent de son plan, montent au seuil et finissent dans la cloison arrière ; le pont antireflet s'appuie sur le bord du verre ; la cloison et sa tablette ferment l'arrière, jusqu'à la paroi qui monte vers l'arceau.
-- **Le pupitre :** trois écrans dans leur boîtier usiné, le bandeau d'alarmes. Un pont antireflet le prolonge jusqu'au nez de la bulle.
-- **Les consoles,** le long de chaque paroi : un pan incliné, qui porte l'aile d'instruments et deux plaques, puis une tablette à hauteur de coude, avec deux plaques. Les commandes sont posées sur leurs légendes.
-- **Les plaques du pan incliné sont montées sur un socle** qui descend jusqu'au pan : il n'est pas plan le long de la paroi, une plaque plane s'y enfonçait par un bout. Deux petites plaques, LIGHTS et FUEL, sur les côtés du pupitre, au-dessus des consoles.
-- **Les grandes faces du cockpit portent leur tôlerie,** dans une région de l'atlas de la coque (`textures_chasseur.INTERIEUR`) : panneaux de 30 × 20 cm décalés, joints fins, vis aux coins, sans rouille ni crasse.
-- **Le siège baquet, d'après le concept :** dossier et assise à bourrelets ronds, coussins capitonnés, appui-tête rembourré. Coque basse de graphite sur glissières, rails d'éjection, coffre du parachute, harnais à réglages de cuir fauve.
-- **Les commandes :** palonnier, manche entre les genoux, manette des gaz sur la tablette gauche. Le manche et la manette bougent dans le moteur, par l'attribut `_POSE` et leurs pivots.
-- **L'œil est à 1,03 m,** en d 4,40 ; l'appui-tête est juste derrière le casque.
+**Materials and export**
 
-**Maillage**
+- The exterior retains its 4096px hull atlas: colour, roughness/metallic, normal and occlusion.
+- Cabin paint, rubber, upholstery, woven straps and brushed metal use distinct material factors.
+- `textures_finitions.py` generates two shared 1024px linear maps: `cabine_normale.png` and `cabine_metal_rugosite.png`.
+- Four padded swatches describe coating grain, leather pores, woven fibres and directional machining.
+- Cabin normals and roughness use nondegenerate `UVMap` coordinates; the hull and printed panels use `UVDetail` for micro-surfaces.
+- The panel atlas combines graphite and petrol paint, fine coating grain, subtle hand wear, pale legends and cyan sector markings.
+- `modules_cockpit.py` remains the common source of control positions and panel printing.
+- Its deterministic atlas packer preserves 1800 px/m source labels within 4096px, including the full-length panels and placards.
+- `exporter.py` applies each part's modifiers before joining the cockpit and exporting the GLB.
+- `paquet_moteur.py` writes VSX version 3, validates all material roles and six pivots, and repairs singular tangent frames in both delivery formats.
+- The current GLB contains **61,698 triangles, 15 meshes, 34 materials, 48 draw ranges and 12 images**.
+- GLB: about 17.3 MB; VSX: about 17.8 MB.
+- All 12 engine image slots are used; another image needs a deliberate descriptor-layout change.
+- These are asset counts, not performance measurements.
 
-- **29 555 triangles,** 16 maillages, 46 tracés, 10 images ; GLB et paquet de 8 Mo.
-- **Allégé de 35 000 :**
-  - anneaux de coque serrés là où la forme tourne vite, lâches ailleurs ;
-  - sections à 22 points sur le dessus ;
-  - verrière, cadre et tuyères moins découpés.
-- **Le cockpit fait environ 10 000 triangles, l'équipement de peau 2 200.** Il est fusionné en un seul maillage à l'export, une primitive par matériau ; la verrière reste à part.
-- **Repère :** nez vers −Y, haut +Z, gauche du pilote +X, en mètres ; d est la distance à la pointe du nez.
+**Rebuild from the worktree root**
 
-**Reproduction**
+```powershell
+python assets/vaisseau/textures_cockpit.py
+python assets/vaisseau/textures_finitions.py
+& 'C:/Program Files/Blender Foundation/Blender 5.2/blender.exe' -b --factory-startup --python-exit-code 1 --python assets/vaisseau/design_chasseur.py
+python assets/vaisseau/paquet_moteur.py
+```
 
-- `python textures_chasseur.py`, puis `blender -b --factory-startup --python design_chasseur.py`, puis `python paquet_moteur.py`.
-- `-- --sans-export` n'écrit rien dans ce dossier ; `-- --rendus DOSSIER` fait les vues de contrôle. `RENDU_VUES` les choisit, `RENDU_SPP` règle les échantillons.
-- Pour changer une plaque, éditer son module dans `modules_cockpit.py`, puis `python textures_cockpit.py`.
+- Rebuild `textures_chasseur.py` when the exterior shape or atlas changes; its paint boundaries follow the hull sections.
+- The working scene is `vaisseau_travail.blend`; deliverables are `vaisseau.glb` and `vaisseau.vsx`.
+- Relative render destinations in design_chasseur.py resolve from the worktree root; rendus_finitions.py takes an absolute path.
+- `Ship.hlsli` and `ShipPlume.hlsli` duplicate the canopy and nozzle definitions; update them if those shapes change.
+
+**Review**
+
+- `controle_finitions.py`, run in Blender on the working scene, checks 504 support contacts, 14 pocket depths, fascia protrusion, actual control clearance, 27 display sightlines, eye clearance and six pivots.
+- `controle_visibilite.py` checks that no foredeck is visible in the forward cone from five pilot-eye positions and that all 1,180 dashboard-wing samples remain visible.
+- `rendus_finitions.py -- ABSOLUTE_OUTPUT --glb`, run in an empty Blender scene, imports the delivered GLB and renders eight inspection views on the CPU.
+- Its canopy is hidden in the four assembly views and visible in the forward pilot, canopy, exterior and rear views.
+- `verifier_glb.py` checks two additional views of the reimported GLB with the canopy present.
+- `cockpit.png`, `commandes.png`, `siege.png` and `pilote.png` show the current reimported cabin under inspection lighting.
+- `vue_vol.png` shows the forward sightline from the pilot eye at 16:9; its camera looks horizontally, while the game's resting head looks 4.5° down.
+- `verriere.png`, `exterieur.png` and `arriere.png` show the revised frame and exterior; `dessous.png` documents the unchanged underside.
+- `export_controle.png` and `export_pilote.png` show the additional GLB checks.
+- These studio views verify the asset; the engine has its own sky, shadows, exposure and glass shader.
+- In-flight review: `tools/tests/2026-11-01-vaisseau-finitions.txt`; use F1-F8, Tab, H and R.
+- Build first with `tools/lance.ps1 -Build -NoLaunch`, then launch that route with `tools/lance.ps1 -Parcours tools/tests/2026-11-01-vaisseau-finitions.txt -Resolution fenetre`.

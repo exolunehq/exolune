@@ -10,6 +10,13 @@ def exporter(root):
     # pièces restent séparées dans le fichier de travail. Les vitrages restent à part
     # pour le tri de transparence. Le manche et la manette gardent leur attribut _POSE.
     parts=[o for o in cockpit.objects if o.type=='MESH' and o.name!='Canopy_Glass' and 'combineur' not in o.name]
+    # Join keeps only the active object's modifier stack. Apply each part's
+    # manufactured bevels before joining, or the delivered cockpit loses them.
+    for o in parts:
+        if not o.modifiers: continue
+        bpy.ops.object.select_all(action='DESELECT')
+        o.select_set(True); bpy.context.view_layer.objects.active=o
+        for mod in list(o.modifiers): bpy.ops.object.modifier_apply(modifier=mod.name)
     bpy.ops.object.select_all(action='DESELECT')
     for o in parts: o.select_set(True)
     bpy.context.view_layer.objects.active=parts[0]
@@ -28,4 +35,7 @@ def exporter(root):
     bpy.context.view_layer.objects.active=bpy.data.objects.get('Coque | sous-structure') or bpy.data.objects.get('Coque | peau') or meshes[0]
     bpy.ops.export_scene.gltf(filepath=os.path.join(root,'vaisseau.glb'), export_format='GLB', use_selection=True, export_apply=True,
                               export_tangents=True, export_attributes=True)
+    from pathlib import Path
+    from paquet_moteur import normaliser_tangentes_glb
+    normaliser_tangentes_glb(Path(root) / 'vaisseau.glb')
     print('JEU OBJETS',len(meshes),'TRIANGLES',sum(sum(len(p.vertices)-2 for p in o.data.polygons) for o in meshes))

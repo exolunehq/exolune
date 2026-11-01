@@ -2,6 +2,36 @@
 
 Historique des réglages du terrain : ce qui a changé, pourquoi, ce que ça a coûté ou rapporté, et comment revenir en arrière. L'entrée la plus récente est en haut.
 
+
+**2026-11-01 · Ship cabin finish, isolated branch**
+
+- Branch: `codex/vaisseau-finitions`, based on the concept fighter `ad981f4`.
+- Baseline tag: `piste/2026-11-01-vaisseau-finitions-base`; it identifies the starting asset, not the uncommitted finish work.
+- Fitted revision: seven shaped printed panels cover the console fascias, 18 cm shelves, dashboard wings and curved alert strip.
+- Panel boundaries follow the support mesh with 7–12 mm margins; hardware and legends use one mapping.
+- Dashboard wings now end at the visible console junction; 65 mm curved returns join the flat side bays at d = 3.84 m.
+- Closed instrument pockets use one compound cut per support with Blender's manifold solver.
+- Dashboard crown: 0.845 m centre height; shoulders lowered 35 mm along the dashboard plane; dark coaming meets the chassis return.
+- Printed faces: 1.5 mm recessed; display rims: 1 mm proud; pockets: 10 mm controls, 28 mm displays, 12 mm service covers.
+- Glazing retainer: flat 34 × 12 mm section, 2 mm chamfers, separate 4 mm seal; glass tessellation: 64 × 52.
+- Structural bevel: 1.5 mm; two exterior identification sockets retain 1 mm contact overlap.
+- Seat cross-sections and headrest are rounded; painted alloy, upholstery, straps and brushed metal use separate micro-surfaces.
+- Panel finish: graphite/petrol coating, fine grain, subtle hand wear and cyan sector markings in a 4096px label atlas.
+- Panel roughness and normals use the shared micro-surface maps through UVDetail.
+- Asset budget: 61,698 triangles, 34 materials, 48 draw ranges, 12 images; two additional 1024px linear maps.
+- Foredeck: smooth shoulder relief up to 220 mm; forward centreline rake up to 18 mm; hull atlases regenerated.
+- Ship axes, canopy shape, camera and world settings stay as at the branch base.
+- Forward attitude-jet heights now match the revised skin: top 0.542 m, sides 0.310 m in `ShipPlume.hlsli`.
+- Geometry and export checks pass: 504 support samples, 14 closed recesses, 27 visible screen samples and six pivots.
+- Additional visibility checks cover five pilot-eye positions, including ±30 mm sideways and ±60 mm fore/aft, plus 1,180 wing-panel samples.
+- Final GLB inspection uses eight CPU renders, including a horizontal forward pilot view and exterior views with the glass present.
+- Release x64 build succeeds; existing foliage shader warnings remain.
+- Earlier mounting design and in-engine observations are in [the ship history](log/spec-vaisseau-historique.md).
+- The junction and foredeck revision needs a fresh in-flight review; an existing process does not reload the asset.
+- Review route: `tools/tests/2026-11-01-vaisseau-finitions.txt`; user flight judgement remains pending.
+- The revised package was launched from this worktree in windowed mode at the daylight review location.
+- No performance or quality benchmark, commit, push or merge was performed.
+
 ## 2026-10-31 · Parcours cinématique hors temps réel
 
 - **Le mode `MYPLANETENGINE_CINE` :** poses indépendantes du vaisseau et de la caméra, cockpit du jeu, pas fixe, sans audio ni commandes ; les historiques survivent au mouvement, sauf au changement de vue.

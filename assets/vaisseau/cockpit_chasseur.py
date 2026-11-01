@@ -8,8 +8,11 @@ le concept. Appelé par design_chasseur.py : construire(globals()).
 Repère du vaisseau : nez vers -Y, haut +Z, gauche du pilote +X ; d est la distance à la pointe du nez.
 """
 import math
+import bpy
 from mathutils import Vector
 import modules_cockpit as mc
+from encastrements import logement, annoter
+import panneaux_cockpit as contours
 
 X, Z = Vector((1, 0, 0)), Vector((0, 0, 1))
 # L'oeil est en d 4,40 ; le dossier passe 26 cm derrière lui, l'appui-tête juste derrière le casque, incliné de 18° ; le manche entre les genoux, à portée
@@ -35,20 +38,21 @@ def construire(g):
     SURETE = material('Jeu | Plastique securite', (.32, .018, .012), .05, .42)
     GRAPHITE = material('Jeu | Ceramique graphite', (.055, .075, .082), .55, .56)
     ANTIREFLET = material('Jeu | Antireflet', (.028, .032, .035), 0, .92)
-    CUIR = material('Jeu | Cuir', (.045, .047, .052), .02, .45)
-    SANGLE = material('Jeu | Sangle', (.05, .052, .056), 0, .85)
+    CUIR = material('Jeu | Cuir', (.068, .073, .078), .02, .70)
+    SANGLE = material('Jeu | Sangle', (.030, .034, .038), 0, .85)
     BOUCLE = material('Jeu | Boucle cuir', (.42, .25, .12), .05, .6)
 
-    def loft_c(pc, rings, m, teinte='metal', bouts=(True, True), uv0=None):
+    def loft_c(pc, rings, m, teinte='metal', bouts=(True, True), uv0=None, side_materials=None):
         # Comme loft de design_chasseur, avec des UV de plaque au besoin (uv0 : point -> uv).
         rings = [[Vector(p) for p in r] for r in rings]; ctr = [sum(r, Vector()) / len(r) for r in rings]
         uvs = (lambda q: [uv0(p) for p in q]) if uv0 else (lambda q: None)
-        def f(q, **k):
-            if m is CUVE: pc.face(q, m, *uv_int(q), **k)
-            else: pc.face(q, m, nuancier(q, teinte), uvs(q), **k)
+        def f(q, material=m, **k):
+            if material is CUVE: pc.face(q, material, *uv_int(q), **k)
+            else: pc.face(q, material, nuancier(q, teinte), uvs(q), **k)
         for (a, ca), (b, cb) in zip(zip(rings, ctr), zip(rings[1:], ctr[1:])):
             for i in range(len(a)):
-                j = (i + 1) % len(a); f([a[i], a[j], b[j], b[i]], dehors_de=(ca + cb) / 2)
+                j = (i + 1) % len(a)
+                f([a[i], a[j], b[j], b[i]], material=(side_materials or {}).get(i, m), dehors_de=(ca + cb) / 2)
         if bouts[0]: f(rings[0], n=ctr[0] - ctr[1])
         if bouts[1]: f(rings[-1], n=ctr[-1] - ctr[-2])
     def tige(pc, a, b, r, m, n=8, r2=None, bouts=(False, True), teinte='metal'):
@@ -84,7 +88,7 @@ def construire(g):
     def uv_teinte(p): return (tu + (p.x * 7.1 + p.y * 3.3) % .006 - .003, tv + (p.z * 6.7 + p.y * 2.9) % .006 - .003)
     def equip(pc, it, haut, U, V, N, k):
         kind = it[0]
-        if kind in ('line', 'box', 'slot', 'text'): return
+        if kind in ('line', 'box', 'slot', 'text', 'mark', 'sector', 'trace'): return
         _, u, v, label, *opt = it; opt = opt[0] if opt else None; P = haut(u, v)
         if kind in ('tog', 'gtog'):
             tige(pc, P, P + N * .004, .0055, BROSSE, 6)
@@ -114,34 +118,88 @@ def construire(g):
             pc.face(anneau, ECRANS[opt], nuancier(anneau, 'metal'), [(.5 + .48 * math.cos(2 * math.pi * i / 16), .5 + .48 * math.sin(2 * math.pi * i / 16)) for i in range(16)], n=N)
         elif kind == 'timer':
             pave(pc, P, U, V, N, .072, .028, .005, CAOUTCHOUC, .001); pave(pc, P + N * .005, U, V, N, .062, .02, .0004, LIT['amber'])
-    def module(nom, c, U, V, N, surface=None):
-        # surface(p) : le point du support sous p, le long de N ; la plaque monte alors au-dessus du point le plus
-        # haut de ses quatre coins, sur un socle de graphite qui descend jusqu'au support.
+    def module(nom, c, U, V, N, surface=None, encastre=False, contour=None, marge=.012):
+        # Instruments are recessed into the common fascia. Exterior plates use
+        # fitted sockets sampled around the actual mounting perimeter.
         (w, h), _, items = mc.MODULES[nom]; x0, y0, x1, y1 = rects[nom]
-        c = Vector(c); pc = Piece('Module | ' + nom, cockpit)
-        if surface:
-            coins = [c + U * a * w / 2 + V * b * h / 2 for a in (-1, 1) for b in (-1, 1)]
-            levee = max(max((surface(p) - p).dot(N) for p in coins), 0.0) + .004
-            pave(pc, c - N * .012, U, V, N, w + .014, h + .014, levee + .012, CUVE_UNIE, .003); c = c + N * levee
+        c = Vector(c); U,V,N = (Vector(a).normalized() for a in (U,V,N))
+        pc = Piece('Module | ' + nom, cockpit)
+        sw,sh=w,h
+        outline=[(-w/2,-h/2),(w/2,-h/2),(w/2,h/2),(-w/2,h/2)]
+        if contour:
+            outline=contours.offset([(Vector(p-c).dot(U),Vector(p-c).dot(V)) for p in contour],marge)
+            outline=contours.chamfer(outline,.009)
+            left,right=min(p[0] for p in outline),max(p[0] for p in outline)
+            bottom,top=min(p[1] for p in outline),max(p[1] for p in outline)
+            sw,sh=right-left,top-bottom
+            du,dv=(left+right)/2,(bottom+top)/2
+            c+=U*du+V*dv; outline=[(x-du,y-dv) for x,y in outline]
+        contacts = []
+        mounting = None
+        if encastre:
+            mounting = logement(g, surface, c, U, V, N, sw, sh, contour=outline)
+            c -= N*.006
+        elif surface:
+            bpy.context.view_layer.update()
+            corners = rect(c, U, V, w + .012, h + .012)
+            perimeter = [a.lerp(b, k/4) for a, b in zip(corners, corners[1:]+corners[:1]) for k in range(4)]
+            for p in perimeter:
+                hit, location, _, _ = surface.ray_cast(p + N*.35, -N, distance=.7)
+                if not hit:
+                    raise ValueError(f'{nom}: socket misses {surface.name} at {tuple(p)}')
+                contacts.append(location.copy())
+            lift = max((q-p).dot(N) for p, q in zip(perimeter, contacts)) + .006
+            c += N*lift
+            top = [p+N*lift for p in perimeter]
+            loft_c(pc, [[q-N*.001 for q in contacts], top], CUVE_UNIE)
+            loft_c(pc, [top, [p+N*.001 for p in top]], CAOUTCHOUC)
+            c += N*.001
         c = c + N * .0005
         def uv(p):
-            q = p - c; return ((x0 + (q.dot(U) + w / 2) * K) / TA, 1 - (y1 - (q.dot(V) + h / 2) * K) / TA)
-        an = [rect(c, U, V, w, h), rect(c + N * .0025, U, V, w, h), rect(c + N * .004, U, V, w - .003, h - .003)]
+            q = p - c; return ((x0 + (q.dot(U)/sw+.5)*w*K) / TA, 1 - (y1 - (q.dot(V)/sh+.5)*h*K) / TA)
+        an = [[c+U*x+V*y+N*z for x,y in contours.offset(outline,inset)] for z,inset in ((0,0),(.0025,0),(.004,.0015))]
         loft_c(pc, an, plaques, bouts=(False, False), uv0=uv_teinte)
         pc.face(an[-1], plaques, nuancier(an[-1], 'metal'), [uv(p) for p in an[-1]], n=N)
-        def haut(u, v, z=.004): return c + U * (u - w / 2) + V * (v - h / 2) + N * z
-        for u in (.008, w - .008):
-            for v in (.008, h - .008): tige(pc, haut(u, v), haut(u, v, .0055), .0042, BROSSE, 6)
-        for k, it in enumerate(items): equip(pc, it, haut, U, V, N, k)
-        pc.fin(35)
+        def haut(u, v, z=.004): return c + U * (u/w-.5)*sw + V * (v/h-.5)*sh + N*z
+        fasteners = contours.offset(outline,.008)
+        # One fastener per distinct corner; close chamfer corners share one.
+        used=[]
+        for x,y in fasteners:
+            if any(math.hypot(x-a,y-b)<.025 for a,b in used): continue
+            used.append((x,y)); p=c+U*x+V*y+N*.004
+            tige(pc,p,p+N*.0015,.0032,BROSSE,10)
+            pave(pc,p+N*.0016,U,V,N,.004,.0008,.0002,CAOUTCHOUC)
+        control_clearance=1.0
+        for k,it in enumerate(items):
+            start=len(pc.bm.verts); equip(pc,it,haut,U,V,N,k)
+            for vertex in list(pc.bm.verts)[start:]:
+                q=vertex.co-c; distance=contours.clearance(outline,(q.dot(U),q.dot(V)))
+                control_clearance=min(control_clearance,distance)
+                if distance < -.0001:
+                    raise ValueError(f'{nom}: {it[0]} {it[3]} crosses the fitted panel by {-distance*1000:.1f} mm')
+        obj = pc.fin(35)
+        if mounting:
+            annoter(obj, mounting)
+            obj['fascia_depth'] = -.0015
+            obj['control_clearance'] = control_clearance
+            obj['fitted_panel'] = bool(contour)
+        elif surface:
+            obj['support_mesh'] = surface.name
+            obj['support_normal'] = list(N)
+            obj['support_contacts'] = [v for q in contacts for v in q]
         return haut, U, V, N
-    def ecran(nom, c, N):
+    def ecran(nom, c, N, surface):
         # Boîtier usiné, six touches de bord, quatre vis ; l'image lit UVMap, u = 0 à gauche du pilote, v = 1 en haut.
         Up = Vector((1, 0, 0)); Vp = N.cross(Up).normalized(); pc = Piece('Ecran | ' + nom, cockpit)
+        mounting = logement(g, surface, c, Up, Vp, N, .25, .30, .028)
+        c -= N*.020
         f = rect(c + N * .021, Up, Vp, .244, .294); fen = rect(c - Vp * .03 + N * .021, Up, Vp, .20, .20)
         loft_c(pc, [rect(c, Up, Vp, .25, .30), rect(c + N * .018, Up, Vp, .25, .30), f], CAOUTCHOUC, bouts=(False, False))
         for i in range(4):
             j = (i + 1) % 4; q = [f[i], f[j], fen[j], fen[i]]; pc.face(q, CAOUTCHOUC, nuancier(q, 'noir'), n=N)
+            # Return the bezel to the recessed display: no open 5mm rim.
+            q = [fen[i], fen[j], fen[j]-N*.0055, fen[i]-N*.0055]
+            pc.face(q, GRAPHITE, nuancier(q, 'noir'), dehors_de=c)
         for i in range(6):
             q = c + N * .021 + Up * (-.0875 + .035 * i) + Vp * .11
             pave(pc, q, Up, Vp, N, .022, .016, .005, GRAPHITE, .001); pave(pc, q + N * .005, Up, Vp, N, .010, .0016, .0003, BLANC)
@@ -149,7 +207,7 @@ def construire(g):
             for sv in (-.14, .14): tige(pc, c + N * .021 + Up * su + Vp * sv, c + N * .0222 + Up * su + Vp * sv, .003, BROSSE, 6)
         q = [c - Vp * .03 + N * .016 - Up * a * .10 - Vp * b * .10 for a, b in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
         uv = [(0, 0), (1, 0), (1, 1), (0, 1)]; pc.face(q, ECRANS[nom], uv, uv0=uv, n=N)
-        pc.fin(35)
+        obj = pc.fin(35); annoter(obj, mounting); obj['fascia_depth'] = .001
 
     # --- Le plancher strié, de paroi à paroi.
     pc = Piece('Cockpit | plancher', cockpit)
@@ -171,14 +229,69 @@ def construire(g):
     vc = .35
     for _ in range(8): vc = (F.pont(dz(bas_p + Vm * vc)[0]) - bas_p.z) / Vm.z   # le coin, au seuil
     def largeur(v): return paroi(*dz(bas_p + Vm * v)) - .004
-    xc = largeur(vc); NA = 16
-    arc = [bas_p + X * (-xc + 2 * xc * i / NA) + Vm * (.40 - (.40 - vc) * abs(-1 + 2 * i / NA) ** 3) for i in range(NA + 1)]
+    xc = largeur(vc); NA = 32
+    # A shallow crown keeps the centre height and lowers the outer shoulders.
+    vc -= .035
+    def courbe_pupitre(u): return .40-(.40-vc)*(abs(u)/xc)**2
+    arc = [bas_p + X * (-xc + 2 * xc * i / NA) + Vm*courbe_pupitre(-xc + 2*xc*i/NA) for i in range(NA+1)]
+
+    # One shared boundary for the dashboard, the curved console return and the
+    # wing instruments. The dashboard's outer wall is not usable panel space.
+    D0C, D1C, RETURN_WIDTH = 3.84, 4.98, .065
+    shelf_width = max(mc.MODULES[name][0][0] for name in ('gaz','clavier'))+.02
+    stations = (3.70, 4.24, 4.61, 4.98)
+    top_x = [paroi(d, .80)-.016 for d in stations]
+    def console_x(d):
+        t = (d-stations[0])/(stations[-1]-stations[0])
+        return top_x[0]+t*(top_x[-1]-top_x[0])
+    def profil_xz(d):
+        zt = F.pont(d); xt = paroi(d, zt) - .002; panel = console_x(d)
+        inner = panel - .18 - shelf_width
+        return [(xt, zt), (panel, .80), (panel-.18, Z_TABLETTE),
+                (inner, Z_TABLETTE), (inner-.009, Z_TABLETTE-.012),
+                (inner+.025, PL+.05), (paroi(d, PL+.02)-.004, PL+.02)]
+    def anneau(d, s): return [Vector((s*x, Y(d), z)) for x,z in profil_xz(d)]
+    def anneau_avant(s):
+        pts = []
+        for k in range(7):
+            d = D_PUPITRE
+            for _ in range(12):
+                x,z = profil_xz(d)[k]; x -= RETURN_WIDTH
+                if k < 2: z = min(z, bas_p.z+Vm.z*courbe_pupitre(x)-.002)
+                d = D_PUPITRE+(haut_p.z-z)*(-Vm.y/Vm.z)-.004
+            pts.append(Vector((s*x, Y(d), z)))
+        return pts
+    def largeur_visible(v):
+        upper,lower = anneau_avant(1)[1:3]
+        z = mip(0,v).z
+        return lower.x+(upper.x-lower.x)*(z-lower.z)/(upper.z-lower.z)
+    def retour_console(s):
+        start, end = anneau_avant(s), anneau(D0C,s)
+        derivative = [(b-a)/.001 for a,b in zip(anneau(D0C-.001,s),end)]
+        controls = []
+        for k,(a,b,tangent) in enumerate(zip(start,end,derivative)):
+            # Enter along the dashboard face, leave tangent to the console.
+            dzdx = Vm.z*(courbe_pupitre(abs(a.x)+.001)-courbe_pupitre(abs(a.x)-.001))/.002 if k<2 else 0.0
+            c = a+Vector((s*.045,-.045*dzdx*(-Vm.y/Vm.z),.045*dzdx))
+            assert b.y > a.y, 'Console return must advance monotonically from the dashboard'
+            controls.append((a,c,b-tangent*min(.065,.45*(b.y-a.y)),b))
+        return [[(1-t)**3*a+3*(1-t)**2*t*c+3*(1-t)*t*t*d+t**3*b for a,c,d,b in controls]
+                for t in (i/12 for i in range(13))]
+
     cotes = (0, .1, .2, .3)
     contour = [bas_p + X * largeur(v) + Vm * v for v in cotes] + arc[::-1] + [bas_p - X * largeur(v) + Vm * v for v in reversed(cotes)]
     pc = Piece('Pupitre | chassis', cockpit)
-    loft_c(pc, [[p - Nm * .035 for p in contour], contour], CUVE, bouts=(False, True))
-    for i, (a, b) in enumerate(zip(arc, arc[1:])): tige(pc, a + Nm * .006 - Vm * .006, b + Nm * .006 - Vm * .006, .013, CAOUTCHOUC, 6, bouts=(i == 0, i == NA - 1))
-    rangs = [[p - Vm * .002 for p in arc]]
+    loft_c(pc, [[p - Nm * .035 for p in contour], contour], CUVE,
+           side_materials={i: ANTIREFLET for i in range(len(cotes), len(cotes)+NA)})
+    pc.souder()
+    dashboard = pc.fin(35)
+    pc = Piece('Pupitre | auvent', cockpit)
+    # A shallow folded lip continues the dashboard; it is not a round bumper.
+    for a,b in zip(arc, arc[1:]):
+        pc.face([a-Vm*.007, b-Vm*.007, b+Nm*.005, a+Nm*.005], ANTIREFLET, n=Nm)
+    # Start at the chassis back edge, sharing its dark top cap instead of
+    # intersecting the 35 mm return with a steeper, overlapping sheet.
+    rangs = [[p - Nm * .035 for p in arc]]
     for k in range(1, 6):
         dk = D_PUPITRE - .04 - (D_PUPITRE - .04 - (F.V0 + .012)) * (k - 1) / 4; xe = F.bulle_l(dk) - .002
         rangs.append([Vector((-xe + 2 * xe * i / NA, Y(dk), F.pont(dk) + .025 * (1 - (-1 + 2 * i / NA) ** 2) * (1 - (k - 1) / 4))) for i in range(NA + 1)])
@@ -188,47 +301,48 @@ def construire(g):
     for rang in rangs[2:5]:   # les joints du pont
         for p0, p1 in zip(rang, rang[1:]): pave(pc, p0.lerp(p1, .5), (p1 - p0).normalized(), Vector((0, 1, 0)), Z, (p1 - p0).length, .006, .002, CAOUTCHOUC)
     pc.fin(35)
-    module('alarme', mip(0, .355), Um, Vm, Nm)
-    module('feux', mip(.465, .245), Um, Vm, Nm); module('carbu', mip(-.465, .245), Um, Vm, Nm)   # les côtés du pupitre, au-dessus des consoles
-    for u, nom in ((-.26, 'ecran_nav'), (0, 'ecran_vol'), (.26, 'ecran_systemes')): ecran(nom, mip(u, .18), Nm)
+    alarm_width=min(.72,xc*.79)
+    alarm_us=[-alarm_width+2*alarm_width*i/16 for i in range(17)]
+    alarm_outline=[mip(u,courbe_pupitre(u)-.057) for u in alarm_us]+[mip(u,courbe_pupitre(u)-.002) for u in reversed(alarm_us)]
+    module('alarme',mip(0,.36),Um,Vm,Nm,surface=dashboard,encastre=True,contour=alarm_outline,marge=.007)
+    for side,name in ((1,'feux'),(-1,'carbu')):
+        wing=[mip(side*.401,.125),mip(side*.401,.326),mip(side*(largeur_visible(.28)-.012),.28),mip(side*(largeur_visible(.20)-.012),.20),mip(side*(largeur_visible(.125)-.012),.125)]
+        module(name,mip(side*.5,.23),Um,Vm,Nm,surface=dashboard,encastre=True,contour=wing,marge=.009)
+    for u, nom in ((-.26, 'ecran_nav'), (0, 'ecran_vol'), (.26, 'ecran_systemes')): ecran(nom, mip(u, .170), Nm, dashboard)
 
     # --- Les consoles : le long de chaque paroi, un pan incliné du seuil du verre à la tablette, puis la tablette à
     # hauteur de coude. Elles partent du pupitre, coupées dans son plan, et finissent dans la cloison arrière. Le pan
-    # porte l'aile d'instruments puis deux plaques, la tablette deux plaques.
-    D0C, D1C = 3.70, 4.98
-    def profil_xz(d):
-        zt = F.pont(d); xt = paroi(d, zt) - .002
-        return [(xt, zt), (xt - .17, Z_TABLETTE), (xt - .31, Z_TABLETTE), (xt - .31, PL + .02), (paroi(d, PL + .02) - .004, PL + .02)]
-    def anneau(d, s): return [Vector((s * x, Y(d), z)) for x, z in profil_xz(d)]
-    def anneau_avant(s):
-        # Chaque point du profil sur le plan du pupitre, 4 mm dedans.
-        pts = []
-        for k in range(5):
-            d = D_PUPITRE
-            for _ in range(8): d = D_PUPITRE + (haut_p.z - profil_xz(d)[k][1]) * (-Vm.y / Vm.z) - .004
-            x, z = profil_xz(d)[k]; pts.append(Vector((s * x, Y(d), z)))
-        return pts
+    # porte une plaque ajustée à son contour, comme la tablette.
     for s in (1, -1):
         pc = Piece('Console | ' + ('gauche' if s > 0 else 'droite'), cockpit)
-        loft_c(pc, [anneau_avant(s)] + [anneau(d, s) for d in (3.95, 4.25, 4.55, 4.80, D1C + .004)], CUVE)
-        pc.fin(8)   # pans plats : pas de dégradé en diagonale sur les grands quadrilatères
+        shell_stations = [D0C+i*(D1C-D0C)/24 for i in range(25)]
+        loft_c(pc, retour_console(s)[:-1]+[anneau(d,s) for d in shell_stations]+[anneau(D1C+.004,s)], CUVE)
+        pc.souder()
+        support = pc.fin(8)   # The visible shell also defines every instrument pocket.
         def pan(dc):
-            a, b = anneau(dc, s)[:2]; V = (a - b).normalized(); U = Vector((0, -s, 0)); N = U.cross(V).normalized()
-            if N.x * s > 0: N = -N
+            a, b = anneau(dc, s)[1:3]
+            U = (anneau(dc-s*.001, s)[1]-anneau(dc+s*.001, s)[1]).normalized()
+            V = ((a-b)-U*(a-b).dot(U)).normalized(); N = U.cross(V).normalized()
             return a.lerp(b, .5), U, V, N
         def tablette(dc):
-            a, b = anneau(dc, s)[1:3]; return a.lerp(b, .5), -X, Vector((0, -1, 0)), Z
-        noms = ('aile_g', 'prop', 'elec') if s > 0 else ('aile_d', 'disj', 'env')
-        def sur_pan(p, s=s):
-            # Le point du pan incliné à la station de p, à la même fraction de sa hauteur.
-            d = p.y - F.NEZ; a, b = anneau(d, s)[:2]; t = max(0.0, min(1.0, (p - b).dot(a - b) / (a - b).length_squared)); return b.lerp(a, t)
-        for nom, dc in zip(noms, (D0C + .27, D0C + .73, D0C + 1.10)): module(nom, *pan(dc), surface=sur_pan)
-        for nom, dc in zip(('gaz', 'trim') if s > 0 else ('clavier', 'com'), (4.27, 4.66)):
-            haut, U, V, N = module(nom, *tablette(dc))
+            def centre(d):
+                a, b = anneau(d, s)[2:4]; return a.lerp(b, .5)
+            forward = (centre(dc-.01)-centre(dc+.01)).normalized()
+            return centre(dc), forward.cross(Z).normalized(), forward, Z
+        front,rear=anneau(D0C+.012,s),anneau(D1C-.008,s)
+        # The forward seam follows the dashboard transition, clear of the
+        # structural end return; the inner shelf corner has the same sweep.
+        front[2]=anneau(D0C+.025,s)[2]
+        front[3]=anneau(D0C+.040,s)[3]
+        module('flanc_g' if s>0 else 'flanc_d',*pan(4.34),surface=support,encastre=True,
+               contour=[front[1],front[2],rear[2],rear[1]])
+        for nom in ('gaz',) if s>0 else ('clavier',):
+            haut,U,V,N=module(nom,*tablette(4.34),surface=support,encastre=True,
+                             contour=[front[2],front[3],rear[3],rear[2]],marge=.010)
             if nom != 'gaz': continue
             # La manette : levier dans la fente sérigraphiée, poignée vers la main.
             pc = Piece('Manette | gaz', cockpit)
-            P = haut(.085, .21); tete = P + N * .075 + V * .012
+            P = haut(.100,.72); tete = P + N * .075 + V * .012
             tige(pc, P - N * .02, tete, .0065, BROSSE, 8)
             tige(pc, tete - U * .006, tete + U * .085, .019, CAOUTCHOUC, 12, bouts=(True, True))
             for k in range(3): tige(pc, tete + U * (.02 + .02 * k), tete + U * (.026 + .02 * k), .0205, GRAPHITE, 12)
@@ -298,7 +412,17 @@ def construire(g):
     def dos(u, s, w): return J + X * u + Vb * s + Nb * w
     def bourrelets(W, B):
         # Demi-section d'un coussin à bourrelet rond : (u, w), du milieu plat vers le bord, puis le dessous.
-        return [(.50 * W, 0), (.60 * W, .012), (.69 * W, .045), (.76 * W, B - .025), (.83 * W, B), (.92 * W, B - .006), (.985 * W, B - .035), (W, .01), (.96 * W, -.06)]
+        controls = [(.50 * W, 0), (.60 * W, .012), (.69 * W, .045), (.76 * W, B - .025), (.83 * W, B), (.92 * W, B - .006), (.985 * W, B - .035), (W, .01), (.96 * W, -.06)]
+        # Rounded upholstery needs a curved cross-section, not the chamfers of
+        # the metal bucket. Interpolate only the bolster, leaving the pad flat.
+        result = []
+        for i in range(len(controls)-1):
+            a, b, d, e = [Vector(controls[max(0,min(j,len(controls)-1))]) for j in (i-1,i,i+1,i+2)]
+            for k in range(3):
+                t = k/3
+                p = .5*((2*b)+(-a+d)*t+(2*a-5*b+4*d-e)*t*t+(-a+3*b-3*d+e)*t*t*t)
+                result.append(tuple(p))
+        return result+[controls[-1]]
     def miroir(cote, f): return [f(-u, w) for u, w in reversed(cote)] + [f(u, w) for u, w in cote]
     def section_dos(s):
         t = s / .70; W = .25 - .035 * t * t; B = .115 - .05 * max(0.0, t - .55) / .45
@@ -314,7 +438,11 @@ def construire(g):
     loft_c(pc, [section_assise(da), section_assise(da - .12), section_assise(da - .26), section_assise(da - .33, .7), section_assise(da - .36, .35, -.03)], CUIR)
     for dk in (da - .085, da - .22): pave(pc, Vector((0, Y(dk), zc(dk))), X, Vector((0, 1, 0)), Z, .235, .125, .014, CUIR, .006)
     # L'appui-tête : bloc à coins arrondis, bord avant roulé, coussin central ; sur deux tiges.
-    def rond(c, hu, hs, k): return [c + X * (hu * a) + Vb * (hs * b) for a, b in ((-1, -1 + k), (-1 + k, -1), (1 - k, -1), (1, -1 + k), (1, 1 - k), (1 - k, 1), (-1 + k, 1), (-1, 1 - k))]
+    def rond(c, hu, hs, k):
+        radius = min(hu, hs)*k
+        return [c+X*(sx*(hu-radius)+radius*math.cos(t))+Vb*(sy*(hs-radius)+radius*math.sin(t))
+                for sx,sy,start in ((1,1,0),(-1,1,90),(-1,-1,180),(1,-1,270))
+                for t in [math.radians(start+i*90/4) for i in range(5)]]
     ca = dos(0, .81, 0)
     loft_c(pc, [rond(ca - Nb * .05, .135, .095, .35), rond(ca + Nb * .045, .135, .095, .35), rond(ca + Nb * .07, .115, .075, .35)], CUIR)
     pave(pc, ca + Nb * .07, X, Vb, Nb, .15, .09, .008, CUIR, .004)
@@ -341,4 +469,7 @@ def construire(g):
         sangle(Vector((sx * .19, Y(da - .09), zc(da - .09) + .06)), Vector((sx * .13, Y(da - .12), zc(da - .12) + .03)), Z, .055, BOUCLE)
     sangle(Vector((0, Y(da - .34), zc(da - .34) + .01)), boucle, Z, .04)
     tige(pc, boucle, boucle + Z * .012, .034, BROSSE, 14)
-    pc.fin(35)
+    pc.fin(65)
+
+    import finitions_cockpit
+    finitions_cockpit.construire(g, locals())

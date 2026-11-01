@@ -42,6 +42,7 @@
 
 **Le vaisseau et l'exécution**
 - **`spec-vaisseau.md` :** le vaisseau du joueur, son cockpit, son pilotage clavier-souris et la météo sur sa verrière.
+- **[Ship assembly history](log/spec-vaisseau-historique.md):** former mounting rules, panel layouts, junctions, foredeck profile and intermediate asset counts.
 - **`recherche-eau-verriere.md` :** l'eau sur la verrière, gouttes, filets et film en vol ; état de l'art ; gouttes simulées et leurs traînées en place, à juger en vol.
 - **`recherche-son.md` :** le son du vaisseau, moteur, stabilisateurs et vent ; état de l'art, choix de la synthèse procédurale sur XAudio2, en place à juger en vol.
 - **`execution-optimisee.md` :** exécutable Release avec profil local, plein écran sans bordure, résolution au démarrage et présentation libre optionnelle.

@@ -67,6 +67,59 @@ def matrice(node):
     m = np.eye(4); m[:3, :3] = r * np.array(node.get('scale', (1, 1, 1))); m[:3, 3] = node.get('translation', (0, 0, 0))
     return m
 
+def tangentes_valides(t, n, p, uv, indices):
+    """Keep the shading frame finite at UV poles and collapsed imported tangents.
+
+    Prefer the adjacent UV derivative; only a singular UV uses an arbitrary
+    perpendicular. Ordinary authored tangents and their handedness are retained.
+    """
+    direction = t[:, :3] - n * np.sum(t[:, :3] * n, axis=1, keepdims=True)
+    length = np.linalg.norm(direction, axis=1)
+    bad = length < 1e-6
+    if bad.any():
+        triangles = indices.reshape(-1, 3)
+        edges = p[triangles[:, 1:]] - p[triangles[:, :1]]
+        delta = uv[triangles[:, 1:]] - uv[triangles[:, :1]]
+        det = delta[:, 0, 0]*delta[:, 1, 1] - delta[:, 0, 1]*delta[:, 1, 0]
+        derivative = np.zeros((len(triangles), 3))
+        valid = np.abs(det) > 1e-12
+        derivative[valid] = (edges[valid, 0]*delta[valid, 1, 1, None] - edges[valid, 1]*delta[valid, 0, 1, None]) / det[valid, None]
+        accumulated = np.zeros_like(direction)
+        for corner in range(3): np.add.at(accumulated, triangles[:, corner], derivative)
+        accumulated -= n*np.sum(accumulated*n, axis=1, keepdims=True)
+        direction[bad] = accumulated[bad]
+        singular = np.linalg.norm(direction, axis=1) < 1e-6
+        axes = np.eye(3)[np.argmin(np.abs(n[singular]), axis=1)]
+        direction[singular] = np.cross(axes, n[singular])
+    t[:, :3] = direction / np.linalg.norm(direction, axis=1, keepdims=True)
+    t[:, 3] = np.where(t[:, 3] < 0, -1.0, 1.0)
+    return t
+
+def normaliser_tangentes_glb(path):
+    """Repair singular exporter tangents in the delivered GLB as well as VSX."""
+    gltf, binary = lire_glb(path)
+    mutable = bytearray(binary); repaired = 0
+    for mesh in gltf['meshes']:
+        for prim in mesh['primitives']:
+            a = prim['attributes']
+            if 'TANGENT' not in a: continue
+            t = accesseur(gltf, binary, a['TANGENT']).astype(np.float64)
+            normals = accesseur(gltf, binary, a['NORMAL'])
+            invalid = (np.abs(np.linalg.norm(t[:, :3], axis=1)-1) > 1e-5) | (np.abs(np.sum(t[:, :3]*normals, axis=1)) > 1e-5)
+            if not invalid.any(): continue
+            mat = gltf['materials'][prim.get('material', 0)]
+            uv_key = 'TEXCOORD_'+str(mat.get('normalTexture', {}).get('texCoord', 0))
+            t = tangentes_valides(t, normals, accesseur(gltf, binary, a['POSITION']),
+                                 accesseur(gltf, binary, a[uv_key]), accesseur(gltf, binary, prim['indices']))
+            accessor = gltf['accessors'][a['TANGENT']]; view = gltf['bufferViews'][accessor['bufferView']]
+            offset = view.get('byteOffset', 0)+accessor.get('byteOffset', 0)
+            target = np.ndarray((accessor['count'], 4), np.float32, buffer=mutable, offset=offset, strides=(view.get('byteStride', 16), 4))
+            target[:] = t; repaired += int(invalid.sum())
+    if repaired:
+        data = bytearray(path.read_bytes()); json_length = struct.unpack_from('<I', data, 12)[0]
+        start = 28+json_length; data[start:start+len(mutable)] = mutable; path.write_bytes(data)
+    print('GLB tangent poles repaired:', repaired)
+
 def cuire():
     gltf, binary = lire_glb(ROOT / 'vaisseau.glb')
     # glTF (x, y, z) vers Blender (x, -z, y).
@@ -94,9 +147,12 @@ def cuire():
                     t[:, 3] = tan[:, 3] * np.sign(np.linalg.det(lin))
                 u0 = uv0 if uv0 is not None else np.zeros((count, 2)); u1 = uv1 if uv1 is not None else u0
                 pose = get('_POSE'); pose = pose if pose is not None else np.zeros((count, 1))
-                v = np.hstack((p, n, t, u0, u1, pose)).astype(np.float32)
                 idx = accesseur(gltf, binary, prim['indices']).astype(np.uint32).ravel()
                 if np.linalg.det(lin) < 0: idx = idx.reshape(-1, 3)[:, ::-1].ravel()
+                mat = gltf.get('materials', [])[prim.get('material', 0)]
+                normal_uv = u1 if mat.get('normalTexture', {}).get('texCoord', 0) == 1 else u0
+                t = tangentes_valides(t, n, p, normal_uv, idx)
+                v = np.hstack((p, n, t, u0, u1, pose)).astype(np.float32)
                 blocs.append((prim.get('material', 0), v, idx))
         for c in node.get('children', []): visiter(c, m)
     for i in gltf['scenes'][gltf.get('scene', 0)]['nodes']: visiter(i, np.eye(4))
@@ -112,6 +168,7 @@ def cuire():
     materiaux = []
     for mat in gltf['materials']:
         pbr = mat.get('pbrMetallicRoughness', {})
+        assert all(0 <= pbr.get(key, 1) <= 1 for key in ('roughnessFactor', 'metallicFactor')), ('invalid PBR factor', mat['name'])
         force = mat.get('extensions', {}).get('KHR_materials_emissive_strength', {}).get('emissiveStrength', 1)
         mode = 0 if mat.get('alphaMode', 'OPAQUE') != 'BLEND' else 2 if 'Verriere' in mat['name'] else 1
         tex = [image(pbr.get('baseColorTexture'), 1), image(pbr.get('metallicRoughnessTexture'), 0),
@@ -127,6 +184,7 @@ def cuire():
     for mat, v, idx in blocs:
         traces.append((sum(len(i) for i in indices), len(idx), mat)); sommets.append(v); indices.append(idx + base); base += len(v)
     sommets = np.vstack(sommets); indices = np.concatenate(indices)
+    assert len(images) <= 12, 'Ship::MaxImages exceeded'
     with open(ROOT / 'vaisseau.vsx', 'wb') as f:
         f.write(b'VSX1' + struct.pack('<6I', 3, len(sommets), len(indices), len(traces), len(materiaux), len(images)))
         f.write(sommets.tobytes()); f.write(indices.tobytes())
@@ -151,6 +209,9 @@ if __name__ == '__main__':
     data = (ROOT / 'vaisseau.vsx').read_bytes(); assert data[:4] == b'VSX1'
     nv, ni = struct.unpack_from('<2I', data, 8); assert nv == len(s) and ni == len(i)
     assert np.allclose(np.linalg.norm(s[:, 3:6], axis=1), 1, atol=1e-3)
+    assert np.isfinite(s).all(), 'non-finite vertex data'
+    assert np.allclose(np.linalg.norm(s[:, 6:9], axis=1), 1, atol=1e-3), 'invalid tangent'
+    assert np.allclose(np.sum(s[:, 3:6]*s[:, 6:9], axis=1), 0, atol=1e-3), 'non-orthogonal tangent'
     assert ((s[:, 14] > 0) & (s[:, 14] <= 1)).any() and ((s[:, 14] > 1) & (s[:, 14] <= 2)).any(), 'manche ou manette absents'
     assert all((s[:, 14] == k).any() for k in (3, 4, 5, 6)) and s[:, 14].max() <= 6, 'volets absents'
     assert struct.unpack_from('<I', data, len(data) - 4 - 24 * len(PIVOTS))[0] == len(PIVOTS), 'pivots absents'

@@ -18,7 +18,7 @@ static const float4 NOZZLE[4] = { float4(0.93, 4.78, 0.50, 0.31), float4(-0.93, 
 static const float3 JET_AT[10] = {
     float3(3.05, 1.632, 0.297), float3(3.05, 1.632, 0.22), float3(1.378, 4.28, 0.5),
     float3(-3.05, 1.632, 0.297), float3(-3.05, 1.632, 0.22), float3(-1.378, 4.28, 0.5),
-    float3(0.0, -4.12, 0.56), float3(0.0, -4.12, 0.032), float3(0.45, -4.12, 0.33), float3(-0.45, -4.12, 0.33) };
+    float3(0.0, -4.12, 0.542), float3(0.0, -4.12, 0.032), float3(0.45, -4.12, 0.31), float3(-0.45, -4.12, 0.31) };
 static const float3 JET_TO[10] = {
     float3(0, 0, 1), float3(0, 0, -1), float3(1, 0, 0),
     float3(0, 0, 1), float3(0, 0, -1), float3(-1, 0, 0),
