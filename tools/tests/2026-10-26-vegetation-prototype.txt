@@ -1,10 +1,10 @@
-# Mode retiré le 2026-10-30 : le prototype volumique et son lanceur lance_foliage.ps1, au tag `piste/vegetation-relais-fondu` (docs/log/prototype-vegetation-volumique.md). Altitudes absolues : par tools\lance.ps1 -Parcours, ces lieux montrent la végétation du jeu.
-# Ancre pour lance_foliage.ps1 -Anchor : 30.37 120.53
-# Positions absolues relevées sur les captures de référence du banc.
-# libellé | altitude absolue latitude longitude inclinaison cap | latitude longitude du soleil
+# Mode removed the 2026-10-30: the volume prototype and its launcher lance_foliage.ps1, with the tag `piste/vegetation-relais-fondu` (docs/log/prototype-vegetation-volumique.md). Absolute altitudes: by tools\lance.ps1 -Route, these places show the vegetation of the game.
+# Anchor for lance_foliage.ps1 -Anchor: 30.37 120.53
+# Absolute positions recorded on the reference captures of the benchmark.
+# label | absolute altitude latitude longitude inclination cap | latitude longitude of the sun
 p128 oblique cote | 620.5 30.36956983 120.53000000 35.00 0.00 | 9.957594 -166.903629
 p128 oblique cote translation | 620.5 30.36956803 120.53000000 35.00 0.00 | 9.957594 -166.903629
 p128 oblique cote rotation | 620.5 30.36956983 120.53000000 35.00 0.50 | 9.957594 -166.903629
-p32 rasant contrejour | 613.0 30.36790745 120.53000000 5.00 0.00 | 79.63 -59.47
-p8 dessus cote | 1495.1 30.36782535 120.53000000 75.00 0.00 | 9.957594 -166.903629
+p32 rasant contre-jour | 613.0 30.36790745 120.53000000 5.00 0.00 | 79.63 -59.47
+p8 above cote | 1495.1 30.36782535 120.53000000 75.00 0.00 | 9.957594 -166.903629
 p512 oblique cote | 595.2 30.36989246 120.53000000 35.00 0.00 | 9.957594 -166.903629

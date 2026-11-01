@@ -1,420 +1,420 @@
-# Recherche : dire la distance par l'atmosphère
+# Search: tell the distance by the atmosphere
 
-Statut : recherche, le 2026-10-24. Aucun code changé, moteur non lancé : tout vient de la lecture du code et des sources, listées en fin de fichier. Étapes 2 à 5 faites le même jour, visibilité de 40 km (`journal-planete.md`, la brume de la couche limite). Le 2026-10-25, la couche suit le sol régional, lu sur la carte de la planète (3.5 ; `journal-planete.md`, la carte de la planète). Le banc de l'étape 1 reste à faire.
+Status: research, the 2026-10-24. No code changed, engine not started: everything comes from reading the code and sources, listed at the end of the file. Steps 2 to 5 made the same day, visibility of 40 km (`journal-planete.md`, the fog of the boundary layer). The 2026-10-25, the layer follows the regional ground, read on the planet map (3.5; `journal-planete.md`, the planet map). The benchmark of the 1 stage remains to be done.
 
-**Dans le jeu :** l'air passe par la composition des nuages (`spec-nuages.md`, `CloudAirPiece`), 12 pas vers une surface, 24 vers le ciel. La brume sur le sol régional le long de la vue y est rendue le 2026-10-30, à juger en vol (`tools/tests/2026-10-30-lumiere.txt`) ; jusque-là, son air était celui d'un sol au niveau de la mer. La section 2 décrit l'état d'avant ces travaux.
+**In the game:** air passes through the composition of clouds (`spec-nuages.md`, `CloudAirPiece`), 12 not towards a surface, 24 towards the sky. The fog on the regional ground along the view there is made the 2026-10-30, to judge in flight (`tools/tests/2026-10-30-lumiere.txt`); until then, its air was that of a ground at sea level. The section 2 describes the state before this work.
 
-## 1. Conclusion et ordre de travail
+## 1. Conclusion and order of work
 
-**Notre air est presque parfaitement pur : c'est la cause principale du manque de profondeur.**
-- Nos aérosols sont ceux de la démo de Bruneton, repris tels quels par Hillaire et par Unreal : une épaisseur optique de 0,005.
-- La moyenne mesurée par satellite est de 0,19 sur les terres et de 0,13 sur les océans.
-- La visibilité au sol vaut donc 217 km chez nous. Un beau jour ordinaire en donne 20 à 60.
-- À 10 km, une crête garde 84 % de son contraste chez nous, 38 % par temps clair ordinaire. Le second plan ne se détache pas du premier.
+**Our air is almost perfectly pure: this is the main cause of the lack of depth.**
+- Our aerosols are those of the demo of Bruneton, taken as is by Hillaire and by Unreal: an optical thickness of 0,005.
+- The average measured by satellite is 0,19 on land and 0,13 on oceans.
+- The visibility on the ground is worth 217 km here. An ordinary day gives 20 to 60.
+- At 10 km, a peak keeps 84 % of its contrast here, 38 % in ordinary clear weather. The second plan does not detach from the first.
 
-**Le « léger flou de distance » cherché est ce voile, pas un flou.**
-- L'air retire le même contraste à toutes les échelles. Il n'enlève aucun détail.
-- L'œil perd d'abord les détails fins peu contrastés : la douceur du lointain vient seule.
-- Une vraie profondeur de champ est fausse à notre champ de vision, et fait lire le paysage comme une maquette.
+**The “slight blur of distance” sought is this veil, not a blur.**
+- Air removes the same contrast at all scales. It does not remove any detail.
+- The eye first loses the fine details with little contrast: the sweetness of the distant comes alone.
+- A true depth of field is false to our field of vision, and makes the landscape read like a model.
 
-**L'effet d'altitude vient du même air, sans règle par altitude.**
-- Au sol, le voile croît avec la distance : premier plan net, plans successifs de plus en plus pâles et bleus.
-- Au-dessus de la couche de brume, il dépend de l'angle de vue et non de la distance : tout est « loin pareil ».
-- Il suffit que l'air ait la bonne quantité et la bonne hauteur, et que le calcul le voie à toute altitude.
+**The altitude effect comes from the same air, without altitude rule.**
+- On the ground, the veil grows with the distance: clear foreground, successive shots increasingly pale and blue.
+- Above the fog layer, it depends on the angle of view and not on the distance: everything is "far the same".
+- It is enough that the air has the right amount and the right height, and that the calculation sees it at any altitude.
 
-**L'ordre recommandé : corriger l'existant d'abord.** Les étapes 2 à 5 ne touchent que l'atmosphère existante, pour un coût nul.
-1. **Le banc de profondeur :** voile, couleur et contraste selon la distance, sur des photos à profondeur connue et sur nos rendus. Rien ne se règle sans lui.
-2. **Des pas qui montrent la moyenne de l'air :** vue d'orbite, le calcul compte aujourd'hui 4,6 fois trop peu de brume. Invisible tant qu'elle est faible ; une brume réaliste muterait en descente. C'est le prérequis.
-3. **La visibilité réglée sur les photos :** un seul réglage, la visibilité en km, d'où se déduit la densité des aérosols. Départ vers 40 km. Le plus gros gain.
-4. **La couleur et la phase des aérosols :** un voile un peu plus bleu, exposant d'Ångström vers 1,3 ; une asymétrie de 0,8 ramenée vers 0,7.
-5. **La couche limite :** une brume à sommet doux vers 1,5 à 2 km, au lieu d'une exponentielle seule. Elle fait la bande de brume vue d'avion.
-6. **Les ombres portées du relief, puis les rayons de soleil :** le plus fort indice restant pour séparer les plans. Une spec à part, au coût réel.
+**Recommended order: correct the existing one first.** The steps 2 to 5 only affect the existing atmosphere, at zero cost.
+1. **The benchmark of depth:** veil, color and contrast according to distance, on photos with known depth and on our renderings. Nothing can be done without him.
+2. **Steps that show the average of the air:** orbit view, the calculation counts today 4,6 times too little fog. Invisible as long as it is weak; a realistic fog would mutate into a descent. That is the prerequisite.
+3. **The visibility adjusted on the photos:** a single setting, the visibility in km, from which the density of aerosols is deduced. Departure towards 40 km. The biggest win.
+4. **The color and phase of the aerosols:** a slightly more blue veil, exposing from Ångström to 1,3; an asymmetry of 0,8 brought back to 0,7.
+5. **The boundary layer:** a soft peak mist towards 1,5 at 2 km, instead of a single exponential. It makes the fog strip viewed from an airplane.
+6. **The shadows cast by the relief, then the sun rays:** the strongest clue remaining to separate the plans. A spec apart, at the real cost.
 
-**À ne pas faire :** profondeur de champ sur le paysage, filtre de flou selon la distance, miroitement de chaleur.
+**Do not do:** depth of field on the landscape, blur filter according to distance, heat reflection.
 
-**Plus tard, avec la météo :** brouillards de vallée, ombres des nuages, exposition réglée sur l'éclairement, voile optique autour du soleil.
+**Later, with weather:** valley fogs, cloud shadows, exposure set on the illuminance, optical veil around the sun.
 
-## 2. Ce que nous avons
+## 2. What we have
 
-**La perspective aérienne est calculée à chaque pixel, une seule fois** (`AtmospherePass.hlsl`).
-- Un rayon va de la caméra au terrain, à la distance que le terrain écrit dans l'alpha de l'image HDR, en flottant 32 bits.
-- 12 pas réguliers pour le terrain, 32 pour le ciel. Chaque pas prend la densité de l'air en son milieu.
-- Diffusion simple de Rayleigh et de Mie à chaque pas, plus la diffusion multiple de la table de Hillaire.
-- Le soleil n'y est masqué que par la Terre : aucune ombre du relief, ni dans l'air ni au sol.
+**Aerial perspective is calculated at each pixel, only once** (`AtmospherePass.hlsl`).
+- A radius goes from the camera to the field, to the distance that the field writes in the alpha of the image HDR, floating 32 bits.
+- 12 not regular for the ground, 32 for the sky. Each step takes the density of the air in its midst.
+- Rayleigh and Mie's single scattering at every step, plus the multiple scattering of Hillaire's table.
+- The sun is only hidden by the Earth: no shadows of the relief, neither in the air nor on the ground.
 
-**L'air, dans `PlanetSettings.hlsli`, est celui de la démo de Bruneton 2017 :**
+**The air, in `PlanetSettings.hlsli`, is that of the demo of Bruneton 2017:**
 
-| Composante | Coefficient au niveau de la mer | Hauteur d'échelle | Phase |
+| Component | Sea level coefficient | Height of ladder | Phase |
 |---|---|---|---|
-| Rayleigh | 5,8, 13,6 et 33,1 × 10⁻³ km⁻¹ à 680, 550 et 440 nm | 8 km | Rayleigh |
-| Mie | diffusion 4,0 × 10⁻³, extinction 4,4 × 10⁻³ km⁻¹, sans couleur | 1,2 km | Cornette-Shanks, g = 0,8 |
-| Ozone | absorption seule, en tente de 10 à 40 km | sans objet | sans objet |
+| Rayleigh | 5,8, 13,6 and 33,1 × 10⁻³ km⁻¹ to 680, 550 and 440 nm | 8 km | Rayleigh |
+| Mie | diffusion 4,0 × 10⁻³, extinction 4,4 × 10⁻³ km⁻¹, colourless | 1,2 km | Cornette-Shanks, g = 0,8 |
+| Ozone | absorption only, in tent from 10 to 40 km | not applicable | not applicable |
 
-- **L'altitude est prise au-dessus de la mer.** Un sol à 4 km ne voit que 3,6 % de la brume du niveau de la mer.
-- **Épaisseur optique des aérosols :** 4,44 × 10⁻³ × 1,2 = 0,005. Celle de Rayleigh à 550 nm : 0,11.
+- **Altitude is taken above sea level.** A ground at 4 km sees only 3,6 % of the sea level fog.
+- **Optical thickness of aerosols:** 4,44 × 10⁻³ × 1,2 = 0,005. Rayleigh at 550 nm: 0,11.
 
-**La visibilité au sol, par la loi de Koschmieder :** V = 3,912 / β, avec β l'extinction à 550 nm.
-- β = 13,6 × 10⁻³ + 4,4 × 10⁻³ = 18,0 × 10⁻³ km⁻¹, donc **V = 217 km.**
-- Rayleigh seul donnerait 289 km : notre air est aux trois quarts moléculaire.
-- Le contraste ne baisse de moitié qu'en 38 km.
+**Visibility on the ground, by Koschmieder's law:** V = 3,912 / β, with β extinction at 550 nm.
+- β = 13,6 × 10⁻³ + 4,4 × 10⁻³ = 18,0 × 10⁻³ km⁻¹, therefore **V = 217 km.**
+- Rayleigh alone would give 289 km: our air is three-quarters molecular.
+- The contrast is halved only in 38 km.
 
-**Ni brouillard en hauteur, ni couche de brume au sol.** La seule brume est l'exponentielle de Mie. Pas de nuages, pas de brouillard local, pas de volume éclairé.
+**No fog above, no fog layer on the ground.** The only fog is Mie's exponential. No clouds, no local fog, no illuminated volume.
 
-**L'éclairage du terrain** (`PixelShader.hlsl`) :
-- le soleil filtré par l'air au-dessus du point ;
-- le ciel d'un sol horizontal, pondéré par l'orientation de la normale et par la cavité des textures ;
-- des micro-ombres de cavité.
-- **Manquent :** les ombres portées du relief et le ciel caché par les versants des vallées.
+**The lighting of the field** (`PixelShader.hlsl`):
+- the sun filtered by the air above the point;
+- the sky of a horizontal floor, weighted by the orientation of the normal and by the cavity of the textures;
+- micro-shadows of cavity.
+- **Missing:** the shadows carried by the relief and the sky hidden by the slopes of the valleys.
 
-**Le passage à l'écran** (`ToneMap.hlsl`) :
-- lissage temporel, 10 % d'image nouvelle, reprojection exacte ;
-- compression des hautes lumières de Khronos PBR Neutral : identité sous 0,76, puis fondu vers le blanc, désaturation 0,15 ;
-- sortie sRGB par le matériel.
-- **Pas d'exposition :** une radiance de 1 donne le blanc. Ni exposition automatique, ni halo, ni profondeur de champ, ni étalonnage.
+**The transition to the screen** (`ToneMap.hlsl`):
+- temporal smoothing, 10 % of new image, exact reprojection;
+- compression of Khronos PBR Neutral highlights: identity under 0,76, then faded to white, desaturation 0,15;
+- sRGB output by hardware.
+- **No exposure:** a radiance of 1 gives white. No auto exposure, no halo, no depth of field, no calibration.
 
-**Un défaut d'échantillonnage, invisible aujourd'hui :**
-- Vu d'orbite, le rayon entre dans l'air à 100 km ; ses 12 pas font 8,3 km.
-- Le dernier pas lit la brume à 4,2 km d'altitude : 3 % de sa densité au sol. La moyenne vraie sur ce pas est de 14 %.
-- La brume y est donc comptée 4,6 fois trop faible ; Rayleigh, 5 % trop faible.
-- À 10 km d'altitude, les pas font 0,8 km et l'erreur tombe à 2 %.
-- Avec une brume réaliste, elle grossirait d'un facteur 4 en descendant : une mutation, contraire aux principes.
+**A sampling defect, invisible today:**
+- Seen from orbit, the radius enters the air at 100 km; its 12 steps make 8,3 km.
+- The last step reads the fog at 4,2 km altitude: 3 % of its density on the ground. The true mean on this step is 14 %.
+- The fog is therefore counted 4,6 times too low; Rayleigh, 5 % too low.
+- At 10 km altitude, the steps are 0,8 km and the error falls to 2 %.
+- With a realistic fog, it would grow by a factor 4 as it descends: a mutation, contrary to principles.
 
-**Ce que montrent les images.** `images/actuel-cote.png` contre l'image cible `images/cible-cote.jpg` :
-- chez nous, le ciel reste bleu saturé jusqu'à l'horizon, et la mer bleu sombre jusqu'à la ligne ;
-- sur la cible, l'horizon blanchit et la mer pâlit au loin.
-- Les bords flous de la cible sont un effet de bascule, à ne pas copier (3.13).
+**As shown in the images.** `images/actuel-cote.png` vs. target image `images/cible-cote.jpg`:
+- at our place, the sky remains saturated blue to the horizon, and the sea dark blue to the line;
+- on the target, the horizon whitens and the sea pales in the distance.
+- The blurred edges of the target are a flip effect, not to be copied (3.13).
 
-## 3. Les indices, par impact et coût
+## 3. Indices, by impact and cost
 
-| # | Indice | Impact | Coût | Chez nous |
+| # | Index | Impact | Cost | At our house |
 |---|---|---|---|---|
-| 3.1 | Voile de l'air : contraste et clarté selon la distance | très fort | nul, un réglage | trop faible, V = 217 km |
-| 3.2 | Pas d'intégration justes | prérequis | nul | brume sous-comptée vue d'en haut |
-| 3.3 | Couleur du voile, désaturation | fort, vient avec 3.1 | nul | aérosols sans couleur |
-| 3.4 | Brume plus claire vers le soleil | moyen, fort à contre-jour | nul | g = 0,8, un peu fort |
-| 3.5 | Couche limite, hauteur de la brume | fort en altitude, moyen au sol | faible | exponentielle seule |
-| 3.6 | Ombres portées, ciel caché des vallées | très fort pour les plans | élevé | absent |
-| 3.7 | Rayons de soleil, air à l'ombre | moyen, selon la scène | 1 ms | piste `rayons-soleil`, `recherche-rayons.md` |
-| 3.8 | Brouillards de vallée | fort mais selon la météo | moyen à élevé | absent |
-| 3.9 | Ombres des nuages | fort | élevé, il faut des nuages | absent |
-| 3.10 | Exposition | faible pour la profondeur | faible | fixe |
-| 3.11 | Voile optique près du soleil | faible | faible | fait, `recherche-halo.md` |
-| 3.12 | Flou atmosphérique | négligeable à notre pixel | sans objet | à ne pas faire |
-| 3.13 | Profondeur de champ | contre-productif | sans objet | à ne pas faire |
-| 3.14 | Miroitement de chaleur | négligeable | sans objet | à ne pas faire |
-| 3.15 | Premier plan : détail, micro-ombres | fort | fait | en place |
+| 3.1 | Air veil: contrast and clarity depending on distance | very strong | zero, one adjustment | too low, V = 217 km |
+| 3.2 | No integration just | prerequisite | zero | undercounted fog viewed from above |
+| 3.3 | Color of the veil, desaturation | strong, comes with 3.1 | zero | Colourless aerosols |
+| 3.4 | Fog clearer towards the sun | medium, strong backlight | zero | g = 0,8, a little strong |
+| 3.5 | Boundary layer, fog height | strong at altitude, medium at ground | low | exponential only |
+| 3.6 | Cast shadows, hidden sky of the valleys | very strong for plans | High | absent |
+| 3.7 | Sunshine, air in the shade | average, depending on scene | 1 ms | experiment `rayons-soleil`, `recherche-rayons.md`  |
+| 3.8 | Valley Fogs | strong but depending on the weather | Medium to high | absent |
+| 3.9 | Shadows of the Clouds | strong | high, clouds are needed | absent |
+| 3.10 | Exposition | low for depth | low | fixed |
+| 3.11 | Optical sail near the sun | low | low | done, `recherche-halo.md`  |
+| 3.12 | Atmospheric blur | negligible to our pixel | not applicable | Not to do |
+| 3.13 | Depth of Field | counterproductive | not applicable | Not to do |
+| 3.14 | Mirroring of heat | Negligible | not applicable | Not to do |
+| 3.15 | Close-up: detail, micro-shadows | strong | Done | in place |
 
-### 3.1 Le voile de l'air
+### 3.1 The veil of air
 
-**Physique.**
-- La lumière de l'objet s'éteint en chemin : t(d) = exp(−β d) sur un trajet horizontal.
-- L'air entre l'objet et l'œil renvoie vers l'œil la lumière du soleil et du ciel : la lumière de l'air. On voit L₀ t + L_air (1 − t).
-- Un objet sombre s'éclaircit vers la couleur de l'horizon. Les contrastes baissent tous du même facteur t.
-- Koschmieder définit la visibilité : la distance où un objet noir ne garde que 2 % de contraste sur le ciel d'horizon. V = 3,912 / β.
-- D'un jour à l'autre, ce sont les aérosols qui changent ; Rayleigh varie peu.
+**Physics.**
+- The light of the object goes out on the way: t(d) = exp(−β d) on a horizontal path.
+- The air between the object and the eye returns the light from the sun and the sky to the eye: the light of the air. We see L₀ t + L_air (1 − t).
+- A dark object lightens towards the color of the horizon. The contrasts all decrease by the same t factor.
+- Koschmieder defines visibility as the distance at which a black object retains only 2% of contrast on the sky horizon. "= 3,912 / β".
+- From one day to the next, it is the aerosols that change; Rayleigh varies little.
 
-**Les ordres de grandeur.**
-- Brouillard sous 1 km, brume humide de 1 à 2 km, brume sèche de 2 à 5 km.
-- 23 km : le réglage « clair » usuel du modèle rural de MODTRAN.
-- Parcs nationaux américains : 53 à 145 km à l'ouest, 23 à 39 km à l'est.
-- Air arctique ou de montagne très pur : jusqu'à 240 km. Limite de Rayleigh : 296 km.
-- Épaisseur optique des aérosols à 550 nm, moyenne MODIS : 0,19 sur les terres, 0,13 à 0,14 sur les océans.
+**Orders of magnitude.**
+- Fog below 1 km, wet mist from 1 to 2 km, dry mist from 2 to 5 km.
+- 23 km: the usual "clear" setting of the rural model of MODTRAN.
+- U.S. National Parks: 53 to 145 km west, 23 to 39 km east.
+- Very pure Arctic or mountain air: up to 240 km. Rayleigh limit: 296 km.
+- Aerosol optical thickness at 550 nm, average MODIS: 0,19 on land, 0,13 to 0,14 on oceans.
 
-**Contraste gardé au sol, sur un trajet horizontal :**
+**Contrast kept at the ground, on a horizontal path:**
 
-| Visibilité | Mie au sol, km⁻¹ | Fois aujourd'hui | Épaisseur optique, H = 1,2 km | 1 km | 5 km | 10 km | 30 km |
+| Visibility | Mie at ground level, km⁻¹ | Times today | Optical thickness, H = 1,2 km | 1 km | 5 km | 10 km | 30 km |
 |---|---|---|---|---|---|---|---|
-| 217 km, aujourd'hui | 0,004 | 1 | 0,005 | 98 % | 91 % | 84 % | 58 % |
+| 217 km, today | 0,004 | 1 | 0,005 | 98 % | 91 % | 84 % | 58 % |
 | 60 km | 0,052 | 12 | 0,06 | 94 % | 72 % | 52 % | 14 % |
 | 40 km | 0,084 | 19 | 0,10 | 91 % | 61 % | 38 % | 5 % |
 | 23 km | 0,157 | 35 | 0,19 | 84 % | 43 % | 18 % | 1 % |
 
-- **Le premier plan reste net :** à 40 km de visibilité, un objet à 300 m ne prend que 3 % de voile.
-- **Les plans se séparent :** des crêtes à 2, 5, 10 et 20 km prennent 18, 39, 62 et 86 % de voile. Aujourd'hui : 3, 9, 17 et 30 %.
-- **Tout l'éclairage suit :** soleil direct un peu plus faible, ciel plus clair, ombres plus claires et plus bleues, couchers plus orangés. C'est attendu, et voulu.
-
-**Qui le fait, et comment.**
-- **Unreal 5, Sky Atmosphere :** la méthode de Hillaire 2020. Sa doc précise que la Mie est « en soi un brouillard en hauteur ». Ses valeurs par défaut sont les nôtres ; les scènes y ajoutent l'Exponential Height Fog pour avoir de la brume.
-- **Frostbite 2016 :** même modèle. Le coefficient de Mie y « dépend de l'état de l'atmosphère » : pureté, pollution, poussière. Un brouillard en hauteur s'y ajoute, coloré par la table à l'horizon.
-- **Decima, pour Death Stranding :** un brouillard en hauteur analytique, à une seule hauteur d'échelle, éclairé par le soleil et le ciel des tables. Deux jeux de tables, temps clair et brouillard dense, mélangés selon la météo.
-- **Ghost of Tsushima :** tables de Rayleigh et de Mie, plus un volume de brume de 128 × 64 × 64 cellules, de 10 cm à 100 km.
-- **Flight Simulator :** la brume suit la visibilité des bulletins METAR. En 2024, la diffusion est refaite en lancer de rayons, brouillard, nuages et brume ensemble.
-- **Hoffman et Preetham 2002 :** l'origine dans le jeu vidéo, extinction et lumière de l'air d'une densité constante.
-
-**Paramètres proposés.**
-- **Un seul réglage, `VISIBILITY_KM`,** la visibilité au niveau de la mer. L'extinction de Mie s'en déduit : 3,912 / V, moins Rayleigh à 550 nm. La diffusion en garde 90 %, comme aujourd'hui.
-- **Départ : 40 km,** soit une épaisseur optique de 0,10. Plage plausible : 23 à 60 km. La valeur finale vient du banc.
-- **Les tables du démarrage prennent plus de pas :** une couche mince et dense le demande, et ce coût n'est payé qu'une fois.
-
-**Mesure.**
-- **Le voile, par les pixels sombres :** dans chaque tranche de distance, le 2ᵉ centile de luminance, rapporté au ciel d'horizon de la même image, vaut à peu près 1 − t(d). C'est l'idée du canal sombre de He et al. On en tire β, donc V.
-- **Les moyennes par tranche de distance,** comme Kopf et al. 2008 sur des photos recalées sur un modèle de terrain. Leurs courbes s'écartent nettement d'une exponentielle : on compare des courbes, pas un seul β.
-- **Les photos à profondeur connue :** GeoPose3K, plus de 3 000 photos de montagne, avec position, champ, orientation et carte de profondeur tirée du terrain. On garde les photos de beau temps.
-- **Nos rendus :** il faut la distance de chaque pixel. L'alpha de l'image HDR la porte déjà ; une vue de diagnostic `MYPLANETENGINE_VIEW=distance` suffit.
-- **Les mêmes prises que la photo :** caméra à 2 m et 100 m, trois sites, soleil de face et de dos.
-- **Critère :** nos courbes dans l'écart interquartile des photos de beau temps.
-- **Le banc de qualité à surveiller :** ses rapports d'octaves ne voient pas un voile uniforme, mais le détail relatif baisse à 800 et 3 000 m. Le comparer avec et sans brume.
-
-### 3.2 Des pas qui montrent la moyenne de l'air
-
-**La règle proposée :** un pas d'intégration montre la moyenne de l'air qu'il traverse. C'est la règle du pixel de `principes.md`, appliquée au rayon.
-- Pour une densité exponentielle, la moyenne sur un pas est exacte : H (e^(−h₁/H) − e^(−h₂/H)) / (h₂ − h₁), avec h₁ et h₂ les altitudes de ses bouts.
-- Pour un petit écart d'altitude, sa série : pas de soustraction de termes presque égaux.
-- La source de lumière reste prise au milieu du pas.
+- **The foreground remains sharp:** at 40 km of visibility, an object at 300 m takes only 3 % of sail.
+- **Planes separate:** from the crests at 2, 5, 10 and 20 km take 18, 39, 62 and 86 % of sail. Today: 3, 9, 17 and 30 %.
+- **All the lighting follows:** direct sunlight a little weaker, clearer sky, shadows lighter and more blue, sunsets more orange. It is expected, and wanted.
+
+**Who does it, and how.**
+- **Unreal 5, Sky Atmosphere:** the Hillaire 2020 method. His doc specifies that the Mie is "in itself a fog in height". Its default values are ours; scenes add the Exponential Height Fog to have fog.
+- **Frostbite 2016:** Same model. Mie's coefficient there "depends on the state of the atmosphere": purity, pollution, dust. A fog in height is added, colored by the table on the horizon.
+- **Decima, for Death Stranding:** a fog in analytical height, at a single scale height, illuminated by the sun and the table sky. Two table games, clear weather and dense fog, mixed according to the weather.
+- **Ghost of Tsushima:** Rayleigh and Mie tables, plus a fog volume of 128 × 64 × 64 cells, from 10 cm to 100 km.
+- **Flight Simulator:** the fog follows the visibility of the bulletins METAR. In 2024, the broadcast is redone by throwing rays, fog, clouds and fog together.
+- **Hoffman and Preetham 2002:** the origin in video game, extinction and light of air of constant density.
+
+**Proposed parameters.**
+- **One single setting, `VISIBILITY_KM`,** the visibility at sea level. Mie extinction is derived from this: 3,912 / V, less Rayleigh at 550 nm. The broadcast in guard 90 %, as today.
+- **Starting: 40 km,** which is an optical thickness of 0,10. Plausible range: 23 to 60 km. The final value comes from the benchmark.
+- **Startup tables take more steps:** a thin and dense layer requires it, and this cost is paid only once.
+
+**Measure.**
+- **The veil, by dark pixels:** in each distance band, the 2ᵉ percentile of luminance, compared to the sky horizon of the same image, is about 1 − t(d). This is the idea of the dark channel of He et al. We get β, so V.
+- **Means by distance band,** as Kopf et al. 2008 on photos offset on a field model. Their curves deviate significantly from an exponential: we compare curves, not a single β.
+- **Photos at known depth:** GeoPose3K, more 3 000 mountain photos, with position, field, orientation and depth map drawn from the ground. We keep the photos of good weather.
+- **Our renderings:** it takes the distance of each pixel. The alpha of the HDR image already has it; a `MYPLANETENGINE_VIEW=distance` diagnostic view is enough.
+- **The same shots as the picture:** camera at 2 m and 100 m, three sites, sun front and back.
+- **Criterion:** our curves in the interquartile deviation of the good weather photos.
+- **The quality benchmark to watch out for:** its octave ratios do not see a uniform veil, but the relative detail drops to 800 and 3 000 m. Compare it with and without fog.
+
+### 3.2 Steps that show the average of the air
+
+**The proposed rule:** an integration step shows the average of the air it passes through. This is the pixel rule of `principes.md`, applied to the radius.
+- For an exponential density, the average over one step is exactly: H (e^(−h₁/H) − e^(−h₂/H)) / (h₂ − h₁), with h₁ and h₂ the altitudes of its ends.
+- For a small difference in altitude, its series: no subtraction of almost equal terms.
+- The light source remains in the middle of the step.
 
-**Qui le fait.**
-- **Hillaire 2020, code de référence :** 4 à 14 pas selon la longueur du rayon, répartis en carré, serrés près de la caméra.
-- **Ghost of Tsushima :** des tranches en progression de 1,2.
-- **Red Dead Redemption 2 :** un volume de cellules jusqu'à 160 m, puis un lancer de rayons au-delà.
-- Ces répartitions servent une caméra au sol. Vue d'en haut, la brume est au bout du rayon : seule la moyenne exacte vaut à toute altitude.
+**Who does it.**
+- **Hillaire 2020, reference code:** 4 to 14 not according to the length of the radius, distributed in square, tight near the camera.
+- **Ghost of Tsushima:** Progressive slices of 1,2.
+- **Red Dead Redemption 2:** a cell volume up to 160 m, then a ray throw beyond.
+- These distributions serve a camera on the ground. Viewed from above, the fog is at the end of the radius: only the exact average is valid at any altitude.
 
-**Paramètres.** Les 12 et 32 pas actuels ; peut-être moins une fois la moyenne exacte.
+**Parameters.** The 12 and 32 not current; maybe less once the exact average.
 
-**Mesure.**
-- **Une référence à 512 pas** contre le calcul courant : caméra à 2 m, 1 km, 10 km, 100 km et 1 000 km ; vers le nadir, à 45° et vers l'horizon.
-- **Critère :** moins de 1/255 d'écart après compression.
-- **Le banc de descente :** la part du voile au nadir, sans saut de 1 000 km au sol.
-- **Les silhouettes sur le ciel :** le terrain, en 12 pas, et le ciel derrière lui, en 32, se raccordent sans liseré.
+**Measure.**
+- **A reference to 512 step** against the current calculation: camera at 2 m, 1 km, 10 km, 100 km and 1 000 km; to the nadir, at 45° and to the horizon.
+- **Criterion:** less than 1/255 gap after compression.
+- **The benchmark of descent:** the part of the sail at the nadir, without jumping 1 000 km to the ground.
+- **The silhouettes on the sky:** the ground, in 12 not, and the sky behind it, in 32, connect without liseré.
 
-### 3.3 La couleur du voile, la désaturation
+### 3.3 The color of the veil, desaturation
 
-**Physique.**
-- La lumière de l'air a la couleur du ciel près de l'horizon : bleue par Rayleigh, blanchie par les aérosols.
-- Les objets sombres bleuissent au loin. Les objets clairs, neige et nuages, jaunissent un peu : l'air leur retire du bleu.
-- La saturation baisse à mesure que la lumière de l'air domine.
-- Les aérosols fins diffusent davantage le bleu. Exposant d'Ångström de 1,2 à 2,5 pour la pollution et les fumées, de 0 à 1,6 pour la poussière (Dubovik et al. 2002).
+**Physics.**
+- The light from the air has the color of the sky near the horizon: blue by Rayleigh, whitened by aerosols.
+- Dark objects bluish in the distance. Clear objects, snow and clouds, yellow a little: the air removes the blue.
+- Saturation decreases as light from the air dominates.
+- Fine aerosols spread blue more. Exponer of Ångström from 1,2 to 2,5 for pollution and fumes, from 0 to 1,6 for dust (Dubovik et al. 2002).
 
-**Chez nous.** Tout est calculé par longueur d'onde, sauf la Mie, sans couleur : exposant d'Ångström nul, comme dans la démo de Bruneton.
+**At our house.** Everything is calculated by wavelength, except Mie, without color: zero exponent of Ångström, as in the demo of Bruneton.
 
-**Qui.** Bruneton prévoit l'exposant d'Ångström dans ses réglages. Les moteurs en temps réel laissent la Mie grise et colorent les brouillards qu'ils ajoutent.
+**Here.** Bruneton expects the exponent of Ångström in its settings. Real-time engines leave the Mie gray and color the fogs they add.
 
-**Paramètres.**
-- La Mie en trois canaux, proportionnelle à (λ / 550 nm)^(−α), α vers 1,3 au départ.
-- La poussière des déserts, α proche de 0, attendra un air qui varie selon la région, tiré du climat existant.
+**Parameters.**
+- The Mie in three channels, proportional to (λ / 550 nm)^(−α), α to 1,3 at the start.
+- The desert dust, α close to 0, will wait for air that varies according to the region, drawn from the existing climate.
 
-**Mesure.** La teinte et la chroma CIELAB des pixels sombres et des moyennes, par tranche de distance, sur photos et rendus. La teinte du ciel à l'horizon.
+**Measurement.** The hue and chroma CIELAB of dark and medium pixels, by distance band, on photos and renderings. The shade of the sky on the horizon.
 
-### 3.4 La brume plus claire vers le soleil
+### 3.4 The clearer fog towards the sun
 
-**Physique.**
-- Les aérosols diffusent surtout vers l'avant. À contre-jour, le voile est clair et chaud ; dos au soleil, plus sombre et plus bleu.
-- Autour du soleil, une auréole blanche.
-- Mesures AERONET : asymétrie g de 0,68 à 0,69 à 440 nm, de 0,58 à 0,66 à 670 nm, pour la pollution, les fumées et la poussière ; 0,75 sur l'océan (Dubovik et al. 2002). Soit 0,65 à 0,7 à 550 nm.
+**Physics.**
+- Aerosols diffuse mainly forward. Backlit, the veil is clear and warm; back to the sun, darker and bluer.
+- Around the sun, a white halo.
+- Measurements AERONET: g asymmetry from 0,68 to 0,69 to 440 nm, from 0,58 to 0,66 to 670 nm, for pollution, fumes and dust; 0,75 on the ocean (Dubovik et al. 2002). Or 0,65 to 0,7 to 550 nm.
 
-**Chez nous.** Cornette-Shanks avec g = 0,8, la valeur de Bruneton, de Hillaire et d'Unreal. Un peu trop vers l'avant : une fois la brume dense, elle sera trop sombre dos au soleil.
+**At our house.** Cornette-Shanks with g = 0,8, the value of Bruneton, Hillaire and Unreal. A little too far forward: once the fog is thick, it will be too dark back to the sun.
 
-**Qui.**
-- **Ghost of Tsushima :** la Mie reçoit l'ombre du soleil, Rayleigh l'occultation du ciel, car la Mie vient surtout du soleil.
-- **Red Dead Redemption 2 :** plusieurs phases de Henyey-Greenstein, d'asymétrie décroissante, pour approcher la diffusion multiple.
+**Here.**
+- **Ghost of Tsushima:** Mie receives the shadow of the sun, Rayleigh the occultation of the sky, because Mie comes mainly from the sun.
+- **Red Dead Redemption 2:** several Henyey-Greenstein phases, of decreasing asymmetry, to approach the multiple scattering.
 
-**Paramètres.** g vers 0,7, réglé au banc.
+**Parameters.** g to 0,7, set to benchmark.
 
-**Mesure.**
-- Le ciel à 10° au-dessus de l'horizon, à 30°, 90° et 180° du soleil, rapporté au zénith.
-- Références : les types de ciel clair du ciel standard CIE, que la bibliothèque Python `colour` calcule ; des photos.
-- Sur les photos à profondeur connue : le voile d'une même distance, vers le soleil et dos à lui.
+**Measure.**
+- The sky at 10° above the horizon, at 30°, 90° and 180° from the sun, relative to the zenith.
+- References: clear sky types of the standard CIE sky, which the Python library `colour` calculates; photos.
+- On the photos at known depth: the veil from the same distance, towards the sun and back to him.
 
-### 3.5 La couche limite, la hauteur de la brume
+### 3.5 The boundary layer, the height of the fog
 
-**Physique.**
-- Les aérosols restent dans la couche que le soleil brasse le jour : 1 à 2 km sur les terres, plafonnée par une inversion. La nuit et l'hiver, elle tombe à quelques centaines de mètres.
-- CALIOP : plus de la moitié de l'épaisseur optique sous 2 km, sur les douze régions étudiées.
-- Vue d'avion : une bande blanche sous l'horizon, au bord net, et un voile égal quand on regarde vers le bas.
-- Les sommets qui sortent de la couche se découpent nets sur la brume.
+**Physics.**
+- Aerosols remain in the layer that the sun brews during the day: 1 to 2 km on land, capped by an inversion. At night and in winter, it falls to a few hundred meters.
+- CALIOP: more than half of the optical thickness under 2 km, on the twelve regions studied.
+- Air view: a white stripe below the horizon, at the sharp edge, and an equal veil when looking down.
+- The peaks that come out of the layer cut clearly on the fog.
 
-**Chez nous.** Une exponentielle de 1,2 km au-dessus de la mer : pas de sommet de couche, donc pas de bande nette vue d'en haut.
+**At our house.** An exponential of 1,2 km above sea level: no layer top, therefore no net band seen from above.
 
-**Qui.**
-- **Ghost of Tsushima :** une densité exponentielle et une densité en sigmoïde selon la hauteur, toutes deux intégrables exactement.
-- **Unreal :** deux couches exponentielles, chacune avec sa densité, sa décroissance et son décalage.
-- **Red Dead Redemption 2 :** un brouillard global en hauteur, plus une carte de 8 × 8 km : hauteur de départ, décroissance, densité, selon la météo et l'heure.
-- **Flight Simulator :** selon les joueurs, la brume s'arrête vers 900 m au-dessus du sol, et forme vue d'en haut une tache blanche. Un plafond trop net ou trop bas se voit.
+**Here.**
+- **Ghost of Tsushima:** an exponential density and a sigmoid density according to height, both exactly integrable.
+- **Unreal:** two exponential layers, each with its density, decrease and shift.
+- **Red Dead Redemption 2:** a global fog in height, plus a map of 8 × 8 km: starting height, decrease, density, depending on the weather and time.
+- **Flight Simulator:** According to the players, the fog stops at 900 m above the ground, and forms a white spot seen from above. A ceiling too sharp or too low is seen.
 
-**Paramètres proposés.**
-- **Dans `MediumAt`, la brume devient une couche à sommet doux plus un fond faible.**
-- **La couche :** densité constante jusqu'à un sommet vers 1,5 à 2 km, puis une descente logistique sur 0,3 à 0,5 km. Son intégrale est exacte, donc la moyenne par pas de 3.2 aussi.
-- **Le fond :** une exponentielle de quelques kilomètres, 20 à 30 % de l'épaisseur optique.
-- **Hauteur prise au-dessus du sol régional,** fait le 2026-10-25 : le sol de la carte de la planète, lissé sur 10 km d'écart type, `HAZE_GROUND_SCALE_KM`. Un plateau bien plus large que la couche est épaisse fait sa propre couche ; une crête ou une vallée de quelques fois cette épaisseur, non : le sommet de la couche reste de niveau au-dessus d'elles (De Wekker et Kossmann 2015). La brume s'amincit sur les sommets et remplit les vallées.
-- **Les tables du démarrage** prennent le sol de la brume en troisième dimension : 25 tranches de 0 à 6 km. Le reste de l'air garde l'altitude au-dessus de la mer.
+**Proposed parameters.**
+- **In `MediumAt`, the fog becomes a soft top layer plus a weak bottom.**
+- **The layer:** constant density up to a summit towards 1,5 at 2 km, then a logistic descent on 0,3 at 0,5 km. Its integral is exact, so the step average of 3.2 is also exact.
+- **The bottom:** an exponential of a few kilometers, 20 to 30 % of the optical thickness.
+- **Height taken above the regional ground,** makes the 2026-10-25: the ground of the planet map, smoothed on 10 km of standard deviation, `HAZE_GROUND_SCALE_KM`. A plateau much wider than the layer is thick makes its own layer; a ridge or valley of several times this thickness, no: the top of the layer remains level above them (De Wekker and Kossmann 2015). The fog thins on the summits and fills the valleys.
+- **The tables of the start** take the ground of the mist in third dimension: 25 slices of 0 to 6 km. The rest of the air keeps the altitude above the sea.
 
-**Mesure.**
-- **Le banc de descente :** le voile vers le nadir, à 60° et à 80° du nadir, de 1 000 km à 10 m. Une courbe sans saut, qui se stabilise au-dessus de la couche.
-- **Des photos d'avion et de sommet :** l'épaisseur angulaire de la bande de brume sous l'horizon, la netteté de son bord.
-- **Les profils CALIOP,** comme a priori, pas comme cible.
+**Measure.**
+- **The benchmark of descent:** the sail towards the nadir, at 60° and 80° of the nadir, from 1 000 km to 10 m. A jumpless curve, which stabilizes above the layer.
+- **Plane and summit photos:** the angular thickness of the fog band under the horizon, the sharpness of its edge.
+- **The CALIOP profiles,** as a priori, not as target.
 
-### 3.6 Les ombres portées du relief, le ciel caché des vallées
+### 3.6 The shadows cast by the relief, the hidden sky of the valleys
 
-**Physique.**
-- Une pente à l'ombre ne reçoit que le ciel. Le voile devant elle reste le même : sur une surface sombre, il se voit beaucoup plus. Les montagnes bleues des peintres sont surtout leurs faces à l'ombre.
-- Chaque crête jette son ombre sur la vallée derrière elle : les plans se découpent en bandes claires et sombres.
-- Au fond d'une vallée, les versants cachent une partie du ciel : le fond s'assombrit.
+**Physics.**
+- A slope in the shade receives only the sky. The veil in front of her remains the same: on a dark surface, it is seen much more. The blue mountains of the painters are mostly their faces in the shadow.
+- Each ridge casts its shadow on the valley behind it: the planes are cut into light and dark bands.
+- At the bottom of a valley, the slopes hide a part of the sky: the bottom darkens.
 
-**Chez nous.** Ni ombre portée, ni occultation du ciel par le relief ; seulement les micro-ombres des textures.
+**At our house.** No cast shadow, no obstruction of the sky by the relief; only the micro-shadows of the textures.
 
-**Qui.**
-- **Red Dead Redemption 2 :** une carte d'ombre du terrain, par un lancer de rayon sur la carte des hauteurs vers le soleil. 128 × 128 texels, adoucie selon la longueur du rayon. Elle sert au sol et à l'air.
-- **Ghost of Tsushima :** la brume prend la visibilité moyenne du ciel comme occultation.
+**Here.**
+- **Red Dead Redemption 2:** a shadow map of the field, by a ray throw on the map from the heights to the sun. 128 × 128 texels, softened according to the radius length. It serves on the ground and in the air.
+- **Ghost of Tsushima:** the fog takes the average visibility of the sky as occultation.
 
-**Paramètres.** Une spec à part, avec les contraintes de nos principes :
-- rien ne saute quand le maillage s'affine ;
-- l'ombre de ce que le pixel ne voit pas est une part, comme pour la règle des limites.
+**Parameters.** A spec apart, with the constraints of our principles:
+- nothing jumps when the mesh is sharpened;
+- the shadow of what the pixel does not see is a part, as for the limit rule.
 
-**Mesure.** Sur des photos de montagne à hauteur de soleil connue : la part d'ombre, et la luminance des faces à l'ombre selon la distance.
+**Measurement.** On mountain photos at sun height known: the share of shadow, and the luminance of the shadow faces according to the distance.
 
-### 3.7 Les rayons de soleil, l'air à l'ombre
+### 3.7 The sun's rays, the air in the shade
 
-**Physique.** L'air dans l'ombre d'une montagne ne renvoie plus le soleil : voile plus sombre derrière les crêtes, rayons vers un soleil bas.
+**Physics.** The air in the shadow of a mountain no longer reflects the sun: dark veil behind the ridges, rays towards a low sun.
 
-**Qui.**
-- **Unreal :** un brouillard volumétrique en cellules de l'écran, ombré.
-- **Frostbite 2015 :** des cartes d'ombre volumétriques.
-- **Red Dead Redemption 2 :** un volume d'ombre près de la caméra, un lancer de rayons au loin, avec l'ombre du terrain.
-- **Star Citizen :** annonce des rayons de soleil, sans détail technique publié.
+**Here.**
+- **Unreal:** a volumetric fog in cells of the screen, shaded.
+- **Frostbite 2015:** volumetric shadow cards.
+- **Red Dead Redemption 2:** a shadow volume near the camera, a ray throw in the distance, with the shadow of the field.
+- **Star Citizen:** announcement of sun rays, no technical detail published.
 
-**Coût.** Élevé, et il faut d'abord 3.6.
+**Cost.** High, and it must first 3.6.
 
-**Fait, en piste :** la hauteur d'ombre du relief, lue par les pas du rayon de vue, sans attendre 3.6 ; le même champ peut donner l'ombre du sol (`recherche-rayons.md`).
+**Make, in experiment:** the shadow height of the relief, read by the steps of the viewing radius, without waiting 3.6; the same field can give the shadow of the ground (`recherche-rayons.md`).
 
-**Mesure.** À contre-jour, soleil bas : la luminance de l'air devant une crête à l'ombre, contre le ciel au-dessus d'elle.
+**Measurement.** Backlit, low sun: the luminance of the air in front of a ridge in the shade, against the sky above it.
 
-### 3.8 Les brouillards de vallée, la brume au ras du sol
+### 3.8 Valley mists, the mist at the ground level
 
-**Physique.** La nuit, l'air froid descend dans les vallées et s'y accumule sous une inversion. Brume et brouillard y restent le matin ; sur l'eau, la brume se lève.
+**Physics.** At night, cold air descends into the valleys and accumulates there under an inversion. Fog and fog remain there in the morning; on the water, the fog rises.
 
-**Qui.**
-- **Red Dead Redemption 2 :** sa carte de brouillard fait la brume du matin sur l'eau, qui se dissipe avec l'heure.
-- **Unreal :** la seconde couche de brouillard. **Star Citizen :** un brouillard au sol intégré à l'atmosphère.
+**Here.**
+- **Red Dead Redemption 2:** its fog card makes morning mist on the water, which dissipates with the hour.
+- **Unreal:** the second layer of fog. **Star Citizen:** a ground fog integrated into the atmosphere.
 
-**Chez nous.** Rien. Il faut une densité relative au fond des vallées, donc une carte du relief lissé autour de la caméra, et une météo.
+**At our house.** Nothing. It takes a density relative to the bottom of the valleys, so a map of the relief smoothed around the camera, and a weather.
 
-**Coût.** Moyen à élevé. Signature forte, mais selon l'heure et le temps : avec la météo.
+**Cost.** Medium to high. Strong signature, but according to the time and the weather: with the weather.
 
-**Mesure.** Photos d'inversions : hauteur du toit de brume au-dessus du fond de vallée.
+**Measurement.** Inversions photos: height of the fog roof above the valley bottom.
 
-### 3.9 Les ombres des nuages
+### 3.9 The Shadows of Clouds
 
-- **Physique :** des taches d'ombre à toutes les distances, qui découpent le paysage en plans. Les peintres s'en servent.
-- **Qui :** Red Dead Redemption 2, une carte d'ombre des nuages de 768 × 768.
-- **Chez nous :** faites avec les nuages du jeu, tracées vers le soleil à chaque pixel de surface (`spec-nuages.md`) ; pas encore dans l'air.
+- **Physical:** shadow spots at all distances, which cut the landscape into planes. Painters use it.
+- **Who:** Red Dead Redemption 2, a cloud shadow map of 768 × 768.
+- **At home:** made with the clouds of the game, traced towards the sun at every pixel of surface (`spec-nuages.md`); not yet in the air.
 
-### 3.10 L'exposition
+### 3.10 The exhibition
 
-- **Faite le 2026-10-24,** réglée sur l'éclairement, avec une courbe de tons à pied et épaule : `recherche-tons-exposition.md`.
-- **Pas un indice de distance,** mais elle décide de la lecture du voile.
-- **Une brume réaliste éclaircit l'horizon et le ciel.** L'exposition fixe suffit le jour ; pas au coucher, déjà noté (`log/spec-rendu.md`, étape B).
-- **Ghost of Tsushima règle l'exposition sur l'éclairement,** pas sur la luminance : les sols clairs ne font pas assombrir l'image.
-- **Plus tard.**
+- **Does the 2026-10-24,** set on the illuminance, with a tone curve at foot and shoulder: `recherche-tons-exposition.md`.
+- **Not a distance indicator,** but it determines the reading of the veil.
+- **A realistic fog clears the horizon and the sky.** Fixed exposure is sufficient during the day; not at bedtime, already noted (`log/spec-rendu.md`, step B).
+- **Ghost of Tsushima sets the exposure on the illuminance,** not on the luminance: light floors do not darken the image.
+- **Later.**
 
-### 3.11 Le voile optique près du soleil
+### 3.11 The optical veil near the sun
 
-- **Physique :** la diffusion dans l'œil ou l'objectif ajoute un halo autour du soleil et du ciel très clair, et baisse le contraste près de lui (Spencer et al. 1995).
-- **Qui :** Unreal, un halo par convolution.
-- **Impact faible,** seulement vers le soleil. Après le reste.
-- **Fait le 2026-10-24 :** un halo en 1/θ², celui d'un objectif récent, avant la courbe de tons (`recherche-halo.md`). Coupé par défaut ; `MYPLANETENGINE_GLARE` l'active.
+- **Physical:** Scatter in the eye or lens adds a halo around the sun and very clear sky, and lowers contrast near it (Spencer et al. 1995).
+- **Who:** Unreal, a halo by convolution.
+- **Low impact,** only towards the sun. After the rest.
+- **Make the 2026-10-24:** a halo in 1/θ², that of a recent objective, before the tone curve (`recherche-halo.md`). Off by default; `MYPLANETENGINE_GLARE` enables it.
 
-### 3.12 Le flou atmosphérique
+### 3.12 The atmospheric blur
 
-- **Physique :** la diffusion vers l'avant des aérosols floute un peu les images sur de longs trajets. Son importance est débattue (Kopeika et al.).
-- **Notre pixel couvre 1,45 mrad,** 60° sur 720 lignes : ce flou reste en dessous, sauf brume épaisse.
-- **La douceur du lointain vient du voile :** l'œil voit mal les détails fins peu contrastés (Campbell et Robson 1968).
-- **Pas de filtre de flou.** Il irait contre tout le travail des textures, pour un effet qui vient déjà de 3.1.
+- **Physics:** the diffusion to the front of aerosols blurs a little images on long trips. Its importance is debated (Kopeika et al.).
+- **Our pixel covers 1,45 mrad,** 60° on 720 lines: this blur remains below, except thick fog.
+- **The softness of the distant comes from the veil:** the eye sees hard the fine details little contrast (Campbell and Robson 1968).
+- **No blur filter.** It would go against all the texture work, for an effect that already comes from 3.1.
 
-### 3.13 La profondeur de champ
+### 3.13 The depth of field
 
-- **Notre champ :** 60° en hauteur, 92° en largeur, soit un objectif de 18 à 21 mm en plein format.
-- **À f/8, l'hyperfocale est de 1,4 à 1,8 m :** tout est net d'environ 0,8 m à l'infini.
-- **L'œil refait sa mise au point** là où il regarde.
-- **Un flou sur le lointain fait lire une maquette :** c'est l'effet de bascule et décentrement, expliqué et mesuré par Held et al. 2010.
-- **Les bords flous de `cible-cote.jpg`** sont de cet ordre : à ne pas copier.
-- **Elle relève de la mise en scène :** cinématiques, mode photo. Pas d'une caméra libre au-dessus d'un paysage.
+- **Our field:** 60° in height, 92° in width, or a lens of 18 to 21 mm in full frame.
+- **At f/8, the hyperfocal is from 1,4 to 1,8 m:** everything is clear from about 0,8 m to infinity.
+- **The eye refocuses** where it looks.
+- **A blur on the distant makes a model read:** this is the effect of tilt and offset, explained and measured by Held et al. 2010.
+- **The blurred edges of `cible-cote.jpg`** are of this order: not to be copied.
+- **It is part of the staging:** cinematics, photo mode. Not of a free camera over a landscape.
 
-### 3.14 Le miroitement de chaleur
+### 3.14 The reflection of heat
 
-- **Physique :** la turbulence au ras d'un sol chaud fait trembler l'image sur de longs trajets.
-- **Visible surtout au téléobjectif :** ses déviations restent bien sous notre pixel. Les mirages au ras de sols brûlants sont un cas à part.
-- **Pas maintenant.**
+- **Physics:** Turbulence at the level of a warm ground makes the image shake over long distances.
+- **Visible especially at telephoto:** its deviations remain well below our pixel. Mirages at the level of burning grounds are a case in point.
+- **Not now.**
 
-### 3.15 Le premier plan
+### 3.15 The foreground
 
-- **Ce n'est pas l'air :** à 300 m, il ne voile que 3 %, même à 40 km de visibilité.
-- **C'est le gradient de texture, la netteté, la saturation, les petites ombres.** Les textures à toutes les échelles et les micro-ombres le donnent déjà.
-- **Manquent :** les ombres portées (3.6) ; les ombres de contact, quand il y aura des objets.
+- **It's not the air:** at 300 m, it veils only 3 %, even at 40 km of visibility.
+- **This is the texture gradient, sharpness, saturation, small shadows.** Textures on all scales and micro-shades already give it.
+- **Missing:** cast shadows (3.6); contact shadows, when there will be objects.
 
-### Le contrôle par la peinture et la photo
+### Control by painting and photo
 
-- **Léonard de Vinci :** les montagnes lointaines prennent la couleur de l'air ; plus loin, plus bleues et moins définies.
-- **Les plans de valeur :** les peintres de paysage pensent en trois ou quatre plans, du premier plan contrasté et chaud au lointain clair et froid.
-- **Carlson et sa théorie des angles :** le ciel est le plus clair, puis le sol plat, puis les pentes, puis les verticales. Notre ciel sur le terrain, pondéré par l'orientation, suit déjà cette règle.
-- **Les photographes :** le téléobjectif empile les plans et montre le voile ; le polariseur le réduit, car la lumière de l'air est polarisée (Schechner et al. 2003).
-- **L'accord avec la physique :** voile, bleuissement, contraste en baisse, plans. Les peintres adoucissent aussi les bords lointains : c'est ce que l'œil perçoit d'un détail peu contrasté, pas un flou de l'air.
+- **Leonardo da Vinci:** the distant mountains take the color of the air; further away, bluer and less defined.
+- **The value shots:** landscape painters think in three or four shots, from the contrasting and warm foreground to the clear and cold distant.
+- **Carlson and his theory of angles:** the sky is the clearest, then the flat ground, then the slopes, then the verticals. Our sky on the ground, weighted by orientation, already follows this rule.
+- **Photographers:** the telephoto lens stacks the shots and shows the veil; the polarizer reduces it, because the light from the air is polarized (Schechner et al. 2003).
+- **The agreement with physics:** veil, blurring, contrast decreasing, plans. Painters also soften the distant edges: this is what the eye perceives of a low-contrast detail, not a blur of the air.
 
-## 4. Selon l'altitude
+## 4. Depending on altitude
 
-**Une seule règle :** l'air voile selon ce qu'il y a d'air sur le trajet. Les régimes suivants en découlent, sans réglage par altitude.
+**One rule only:** the air sails according to the amount of air on the route. The following speeds are derived from this, without altitude adjustment.
 
-**Au ras du sol, dans la couche :**
-- Les trajets sont horizontaux : le voile croît avec la distance.
-- **Premier plan, sous 300 m :** net, saturé, presque sans voile. Le détail et les ombres le portent.
-- **Second plan, de 1 à 10 km :** les crêtes se séparent en plans de plus en plus pâles et bleus. C'est le gain principal.
-- **Lointain, au-delà de 30 km :** le relief se fond dans un horizon blanchi.
+**At ground level, in the layer:**
+- The journeys are horizontal: the veil grows with the distance.
+- **Close-up, under 300 m:** clear, saturated, almost without veil. The detail and shadows carry it.
+- **Second plan, from 1 to 10 km:** the ridges separate into increasingly pale and blue plans. This is the main gain.
+- **Far away, beyond 30 km:** the relief blends into a white horizon.
 
-**En montée, dans la couche, jusqu'à 1,5 à 2 km :**
-- Vers le bas, les trajets sortent vite de la brume : le sol sous soi reprend du contraste.
-- Vers l'horizon, la brume s'épaissit en bande.
+**Climbing, in the layer, up to 1,5 to 2 km:**
+- Downwards, the trails quickly come out of the fog: the ground below you regains contrast.
+- Towards the horizon, the fog thickens in strips.
 
-**Au-dessus de la couche, de 2 à 15 km :**
-- **Le voile dépend de l'angle, plus de la distance :** traverser la couche coûte son épaisseur divisée par le cosinus de l'angle au nadir.
-- **Exemple à 10 km d'altitude, épaisseur optique de 0,10,** Rayleigh compris : le sol garde 84 % de son contraste vers le nadir, 70 % à 60° et 36 % à 80° du nadir.
-- **D'où le « tout est loin pareil » :** deux points vus sous le même angle ont le même voile, quelle que soit leur distance.
-- **À l'horizon, une bande blanche,** nette si la couche a un sommet (3.5). Les sommets qui dépassent restent nets.
+**Above the layer, from 2 to 15 km:**
+- **The veil depends on the angle, more on the distance:** crossing the layer costs its thickness divided by the cosinus of the angle at the nadir.
+- **Example at 10 km altitude, optical thickness of 0,10,** Rayleigh included: the ground retains 84 % of its contrast towards the nadir, 70 % at 60° and 36 % at 80° of the nadir.
+- **Hence the "everything is far from the same":** two points seen from the same angle have the same veil, regardless of their distance.
+- **On the horizon, a white band,** clear if the layer has a vertex (3.5). The peaks that overhang remain sharp.
 
-**Vers l'orbite, au-delà de 100 km :**
-- Les terres prennent un voile blanchâtre, celui de l'épaisseur optique, qui croît vers le limbe.
-- C'est la « brume rose vers l'horizon » de `spec-rendu-lointain.md`, piste 3 : à revoir avec la brume réaliste, contre des photos d'orbite.
+**Toward orbit, beyond 100 km:**
+- The lands take on a whitish veil, that of the optical thickness, which grows towards the limb.
+- This is the "pink fog towards the horizon" of `spec-rendu-lointain.md`, experiment 3: to be reviewed with the realistic fog, against orbit photos.
 
-**Ce que cela demande au calcul :**
-- **Que la couche soit vue à toute altitude :** les pas exacts de 3.2. Sinon la brume change en descente.
-- **Le banc de descente le vérifie,** comme pour les matériaux : une courbe sans saut.
+**What this requires in the calculation:**
+- **The layer is seen at any altitude:** the exact steps of 3.2. Otherwise the fog changes in descent.
+- **The benchmark of descent checks it,** as for materials: a curve without jump.
 
-**Les indices de premier plan qui ne viennent pas de l'air :**
-- **Profondeur de champ :** non, à aucune altitude (3.13).
-- **Ombres de contact et occultation :** avec les ombres portées et les objets.
+**The leading clues that don't come from the air:**
+- **Depth of Field:** no, at no altitude (3.13).
+- **Contact shadows and occultation:** with cast shadows and objects.
 
 ## 5. Sources
 
-**Moteurs et jeux**
-- Hillaire 2020, *A Scalable and Production Ready Sky and Atmosphere Rendering Technique*, EGSR : [article](https://diglib.eg.org/handle/10.1111/cgf14050), [code de référence](https://github.com/sebh/UnrealEngineSkyAtmosphere).
-- Hillaire 2016, *Physically Based Sky, Atmosphere and Cloud Rendering in Frostbite* : [notes de cours](https://media.contentapi.ea.com/content/dam/eacom/frostbite/files/s2016_pbs_frostbite_sky_clouds.pdf).
-- Hillaire 2015, *Physically Based and Unified Volumetric Rendering in Frostbite* : [présentation](https://www.ea.com/news/physically-based-unified-volumetric-rendering-in-frostbite), [cours SIGGRAPH 2015](https://advances.realtimerendering.com/s2015/).
+**Engines and games**
+- Hillaire 2020, *A Scalable and Production Ready Sky and Atmosphere Rendering Technique*, EGSR : [article](https://diglib.eg.org/handle/10.1111/cgf14050), [Reference code](https://github.com/sebh/UnrealEngineSkyAtmosphere).
+- Hillaire 2016, *Physically Based Sky, Atmosphere and Cloud Rendering in Frostbite* : [Notes de cours](https://media.contentapi.ea.com/content/dam/eacom/frostbite/files/s2016_pbs_frostbite_sky_clouds.pdf).
+- Hillaire 2015, *Physically Based and Unified Volumetric Rendering in Frostbite* : [presentation](https://www.ea.com/news/physically-based-unified-volumetric-rendering-in-frostbite), [course SIGGRAPH 2015](https://advances.realtimerendering.com/s2015/).
 - Unreal Engine : [Sky Atmosphere](https://dev.epicgames.com/documentation/en-us/unreal-engine/sky-atmosphere-component-in-unreal-engine), [Exponential Height Fog](https://dev.epicgames.com/documentation/en-us/unreal-engine/exponential-height-fog-in-unreal-engine).
-- de Carpentier et Ishiyama 2017, *Decima Engine: Advances in Lighting and AA*, brouillard en hauteur de Death Stranding : [diapositives](https://advances.realtimerendering.com/s2017/DecimaSiggraph2017.pdf).
-- Patry 2021, *Lighting, Atmosphere, and Tonemapping in Real-Time Samurai Cinema*, Ghost of Tsushima : [diapositives](https://www.advances.realtimerendering.com/s2021/jpatry_advances2021/index.html).
-- Bauer 2019, *Creating the Atmospheric World of Red Dead Redemption 2* : [cours SIGGRAPH 2019](https://advances.realtimerendering.com/s2019/index.htm), fichier `slides_public_release.pptx`.
-- Bruneton 2017, *Precomputed Atmospheric Scattering*, nouvelle implémentation : [code](https://github.com/ebruneton/precomputed_atmospheric_scattering), valeurs de Mie dans `atmosphere/demo/demo.cc`.
-- Hoffman et Preetham 2002, *Rendering Outdoor Light Scattering in Real Time* : [GDC 2002](https://renderwonk.com/publications/gdc-2002/).
-- Flight Simulator 2024, compte rendu d'un stream des développeurs : [msfsaddons](https://msfsaddons.com/2024/09/25/msfs-team-answers-questions-about-msfs-2024-in-latest-developer-livestream) ; la brume et les METAR, selon les joueurs : [forum](https://forums.flightsimulator.com/t/missing-haze-visibility-outside-metar-vicinity/550442).
-- Star Citizen, démo de la CitizenCon 2953, source promotionnelle : [overclock3d](https://overclock3d.net/?p=265778).
-- **Sans source primaire trouvée :** Outerra ; un exposé de Guerrilla sur l'atmosphère d'Horizon, hors Decima 2017.
+- Carpentier and Ishiyama 2017, *Decima Engine: Advances in Lighting and AA*, Death Stranding fog: [slides](https://advances.realtimerendering.com/s2017/DecimaSiggraph2017.pdf).
+- Patry 2021, *Lighting, Atmosphere, and Tonemapping in Real-Time Samurai Cinema*, Ghost of Tsushima : [slides](https://www.advances.realtimerendering.com/s2021/jpatry_advances2021/index.html).
+- Bauer 2019, *Creating the Atmospheric World of Red Dead Redemption 2*: [course SIGGRAPH 2019](https://advances.realtimerendering.com/s2019/index.htm), file `slides_public_release.pptx`.
+- Bruneton 2017, *Precomputed Atmospheric Scattering*, new implementation: [code](https://github.com/ebruneton/precomputed_atmospheric_scattering), Mie values in `atmosphere/demo/demo.cc`.
+- Hoffman and Preetham 2002, Rendering Outdoor Light Scattering in Real Time: [GDC 2002](https://renderwonk.com/publications/gdc-2002/).
+- Flight Simulator 2024, report from a stream of the developers: [msfsaddons](https://msfsaddons.com/2024/09/25/msfs-team-answers-questions-about-msfs-2024-in-latest-developer-livestream); the fog and the METAR, according to the players: [forum](https://forums.flightsimulator.com/t/missing-haze-visibility-outside-metar-vicinity/550442).
+- Star Citizen, demo from CitizenCon 2953, promotional source: [overclock3d](https://overclock3d.net/?p=265778).
+- **No primary source found:** Outerra; a Guerrilla's presentation on the Horizon atmosphere, outside Decima 2017.
 
-**Physique, mesures, données**
-- Visibilité, loi de Koschmieder, seuils du brouillard et des brumes, limite de Rayleigh : [Wikipédia, Visibility](https://en.wikipedia.org/wiki/Visibility).
-- MODTRAN, modèle rural à 23 km, exemple d'usage : [Sensors 2021, tableau 1](https://pmc.ncbi.nlm.nih.gov/articles/PMC8271715/table/sensors-21-04313-t001).
-- Visibilité dans les parcs nationaux américains : [EPA](https://archive.epa.gov/ttn/naaqsimp/web/html/hazefs.html).
-- Remer et al. 2008, climatologie MODIS des aérosols : [résumé](https://espo.nasa.gov/aaoe/node/14101).
-- Répartition verticale des aérosols par CALIOP, ACP 2021 : [article](https://acp.copernicus.org/articles/21/15309/2021/acp-21-15309-2021.html).
-- De Wekker et Kossmann 2015, *Convective Boundary Layer Heights Over Mountainous Terrain—A Review of Concepts*, Frontiers in Earth Science : [article](https://www.frontiersin.org/journals/earth-science/articles/10.3389/feart.2015.00077/full).
-- Dubovik et al. 2002, propriétés optiques des aérosols AERONET : [article](https://www.cfa.harvard.edu/hitran/HITRAN2012/Aerosols/papers/dubovik_et_al._(2002).pdf).
-- Narasimhan et Nayar 2002, *Vision and the Atmosphere* : [article](https://www.cs.cmu.edu/~ILIM/publications/PDFs/NN-IJCV02.pdf).
-- He, Sun et Tang, canal sombre : [article PAMI](https://people.csail.mit.edu/kaiming/publications/pami10dehaze.pdf).
-- Kopf et al. 2008, *Deep Photo*, courbes de brume selon la profondeur : [article](https://johanneskopf.de/publications/deep_photo/deep_photo.pdf).
-- Brejcha et Čadík 2017, GeoPose3K : [jeu de données](https://cphoto.fit.vutbr.cz/geoPose3K/).
-- Ciel standard CIE : [CIE](https://cie.co.at/publications/spatial-distribution-daylight-cie-standard-general-sky-0), [implémentation dans `colour`](https://colour.readthedocs.io/en/latest/_modules/colour/phenomena/sky/cie2003.html).
-- Schechner et al. 2003, la brume vue par la polarisation : [article](https://webee.technion.ac.il/~yoav/publications/haze_osa.pdf).
-- Flou des aérosols : [Kopeika et al., JOSA A 1995](https://www.doi.org/10.1364/JOSAA.12.000970), [*Aerosol MTF revisited*](https://cris.iucc.ac.il/en/publications/aerosol-mtf-revisited/).
+**Physics, measurements, data**
+- Visibility, Koschmieder law, thresholds of fog and fogs, Rayleigh limit: [Wikipedia, Visibility](https://en.wikipedia.org/wiki/Visibility).
+- MODTRAN, rural model at 23 km, example of use: [Sensors 2021, table 1](https://pmc.ncbi.nlm.nih.gov/articles/PMC8271715/table/sensors-21-04313-t001).
+- Visibility in U.S. National Parks: [EPA](https://archive.epa.gov/ttn/naaqsimp/web/html/hazefs.html).
+- Remer et al. 2008, aerosol climatology MODIS: [Summary](https://espo.nasa.gov/aaoe/node/14101).
+- Vertical distribution of aerosols by CALIOP, ACP 2021: [article](https://acp.copernicus.org/articles/21/15309/2021/acp-21-15309-2021.html).
+- De Wekker and Kossmann 2015, Convective Boundary Layer Heights Over Mountainous Terrain—A Review of Concepts*, Frontiers in Earth Science: [article](https://www.frontiersin.org/journals/earth-science/articles/10.3389/feart.2015.00077/full).
+- Dubovik et al. 2002, optical properties of aerosols AERONET: [article](https://www.cfa.harvard.edu/hitran/HITRAN2012/Aerosols/papers/dubovik_et_al._(2002).pdf).
+- Narasimhan and Nayar 2002, Vision and the Atmosphere: [article](https://www.cs.cmu.edu/~ILIM/publications/PDFs/NN-IJCV02.pdf).
+- He, Sun and Tang, dark channel: [article PAMI](https://people.csail.mit.edu/kaiming/publications/pami10dehaze.pdf).
+- Kopf et al. 2008, *Deep Photo*, fog curves according to depth: [article](https://johanneskopf.de/publications/deep_photo/deep_photo.pdf).
+- Brejcha and Čadík 2017, GeoPose3K: [data set](https://cphoto.fit.vutbr.cz/geoPose3K/).
+- Standard sky CIE: [CIE](https://cie.co.at/publications/spatial-distribution-daylight-cie-standard-general-sky-0), [implementation in `colour`](https://colour.readthedocs.io/en/latest/_modules/colour/phenomena/sky/cie2003.html).
+- Schechner et al. 2003, the fog seen by polarization: [article](https://webee.technion.ac.il/~yoav/publications/haze_osa.pdf).
+- Aerosol blur: [Kopeika et al., JOSA and 1995](https://www.doi.org/10.1364/JOSAA.12.000970), [*Aerosol MTF revisited*](https://cris.iucc.ac.il/en/publications/aerosol-mtf-revisited/).
 - Spencer et al. 1995, *Physically-Based Glare Effects for Digital Images* : [article](https://en-cg-web.coecis.cornell.edu/pubs/1995/SSZG95.pdf).
 
-**Perception, peinture**
-- Campbell et Robson 1968, sensibilité au contraste selon la finesse : [article](https://doi.org/10.1113/jphysiol.1968.sp008574).
+**Perception, painting**
+- Campbell and Robson 1968, contrast sensitivity according to fineness: [article](https://doi.org/10.1113/jphysiol.1968.sp008574).
 - Held et al. 2010, *Using Blur to Affect Perceived Distance and Size* : [article](https://pmc.ncbi.nlm.nih.gov/articles/PMC3088122).
-- Léonard de Vinci, carnets, perspective aérienne : [Richter, § 295](https://www.fromoldbooks.org/Richter-NotebooksOfLeonardo/section-6/item-295.html).
-- Carlson, théorie des angles : [résumé](https://theartistsroad.net/articles/thecarlsontheoryofangles).
+- Leonardo da Vinci, notebooks, aerial perspective: [Richter, § 295](https://www.fromoldbooks.org/Richter-NotebooksOfLeonardo/section-6/item-295.html).
+- Carlson, angle theory: [Summary](https://theartistsroad.net/articles/thecarlsontheoryofangles).

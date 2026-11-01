@@ -1,14 +1,14 @@
-# Mode retiré le 2026-10-30, au tag `jalon/29-avant-ouverture` et `piste/nuages-orbite-spike` : le spike Familles, scène locale. Par tools\lance.ps1 -Parcours, ces lieux montrent les nuages du jeu ; touches et options ci-dessous, celles d'alors.
-# Familles locales : B opacité, C qualité, Espace pause. R/G météo Frostbite, B météo cirrus.
-Ensemble oblique, trois familles | 30000 0.15 161.775 35 0 | -15 175
-Cumulus validé, ensemble depuis l'ouest | 4000 0.5 161.28 0 90 | -15 175
-Cumulus validé, approche centrale | 4000 0.5 161.5 0 90 | -15 175
-Nappe validée, ensemble | 3400 0.5 161.80 0 90 | -15 175
-Nappe validée, traversée | 3100 0.5 162.03 0 90 | -15 175
-Cirrus, dessous de couche | 2000 0.5 161.600 -40 90 | -15 175
-Cirrus, approche | 10800 0.5 161.400 0 90 | -15 175
-Cirrus, traversée haute | 10800 0.5 161.775 0 90 | -15 175
-Cirrus, dessus depuis 20 km | 20000 0.5 161.700 45 90 | -15 175
-Familles, vue plongeante depuis 50 km | 50000 0.5 161.775 80 0 | -15 175
-Cirrus au soleil bas | 10800 0.5 161.775 0 90 | -5 245
-Région entière à 80 km | 80000 0.15 161.775 80 0 | -15 175
+# Mode removed the 2026-10-30, tag `jalon/29-avant-ouverture` and `piste/nuages-orbite-spike`: the spike Families, local scene. By tools\lance.ps1 -Route, these places show the clouds of the game; keys and options below, those of then.
+# Local families: B opacity, C quality, Break space. R/G weather Frostbite, B weather cirrus.
+Oblique set, three families | 30000 0.15 161.775 35 0 | -15 175
+Cumulus validated, together from the west | 4000 0.5 161.28 0 90 | -15 175
+Cumulus validated, central approach | 4000 0.5 161.5 0 90 | -15 175
+Validated layer, set | 3400 0.5 161.80 0 90 | -15 175
+Validated layer, crossed | 3100 0.5 162.03 0 90 | -15 175
+Cirrus, underwear | 2000 0.5 161.600 -40 90 | -15 175
+Cirrus, approaching | 10800 0.5 161.400 0 90 | -15 175
+Cirrus, high crossing | 10800 0.5 161.775 0 90 | -15 175
+Cirrus, above from 20 km | 20000 0.5 161.700 45 90 | -15 175
+Families, view from 50 km | 50000 0.5 161.775 80 0 | -15 175
+Cirrus in the sun low | 10800 0.5 161.775 0 90 | -5 245
+Entire region to 80 km | 80000 0.15 161.775 80 0 | -15 175

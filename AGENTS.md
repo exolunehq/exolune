@@ -1,29 +1,30 @@
-# Consignes pour les agents
+# Instructions for agents
 
-## La documentation
+## Documentation
 
-- **`docs/` ne garde que ce qui est d'actualité.** Ce qui ne l'est plus passe dans `docs/log/` (`docs/log/README.md`) :
-  - une spec close, remplacée ou désactivée, entière, par `git mv`, en mettant à jour ses renvois dans le code et les docs ;
-  - les sections dépassées d'une spec vivante, essais, mesures intermédiaires, options écartées, dans `docs/log/<spec>-historique.md`.
-- **`docs/README.md` est l'index :** à tenir à jour quand une spec naît ou passe au log.
-- **`docs/principes.md` fait référence :** on corrige des règles, pas des cas. Une règle nouvelle y est écrite.
-- **`docs/geometrie.md` :** la géométrie vient du relief d'Exolune ; toute modification de la géométrie y est classée.
-- **`docs/journal-planete.md` :** chaque changement de réglage y a son entrée ; chaque étape ou piste a un tag git, `jalon/…` ou `piste/…`.
-- **Le style :** en français, concis ; titres en gras, listes, une idée par phrase.
+- **`docs/` contains only current material.** Move outdated material to `docs/log/` (`docs/log/README.md`):
+  - move an entire closed, superseded or disabled spec with `git mv`, and update its references in the code and documentation;
+  - move outdated sections of a living spec, experiments, intermediate measurements and discarded options to `docs/log/<spec>-historique.md`.
+- **`docs/README.md` is the index:** update it whenever a spec is created or archived.
+- **`docs/principes.md` is authoritative:** fix rules, not individual cases. Record new rules there.
+- **`docs/geometrie.md`:** geometry comes from Exolune's terrain; classify every geometry change there.
+- **`docs/journal-planete.md`:** record every settings change; give each milestone or experiment a git tag, `jalon/…` or `piste/…`.
+- **Style:** concise English; bold headings, lists, one idea per sentence.
 
-## Le travail
+## Work
 
-- **Une correction se juge en vol, par l'utilisateur, sur plusieurs lieux,** jamais sur la seule vue signalée : un fichier `tools/tests/<date>.txt`, un test par ligne, lancé depuis la racine du worktree par :
+- **The user reviews a fix in flight, at several locations,** never only in the reported view: create `tools/tests/<date>.txt`, one test per line, and launch it from the worktree root with:
   ```powershell
   powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours tools\tests\<date>.txt
   ```
-  - **Après un changement de code,** d'abord `tools\lance.ps1 -Build -NoLaunch` : la solution en Release x64, dans `x64\Release`.
-  - **L'exe seul est le jeu :** nuages, mer FFT, végétation détaillée, sans aucune variable. Le lanceur ajoute la palette, le soleil et le plein écran 1920x1080 (`docs/lancement.md`).
-  - **La palette « Tests » :** un bouton par ligne, en fenêtre seulement (`-Resolution fenetre`, ou Alt+Entrée) ; F1 à F12 partout.
-  - **Les photos de sol ne sont pas dans git :** sable et roche, Poly Haven CC0, dans `..\scans`. Si le titre dit « scans absents », ou si la roche tourne au damier, `tools\telecharger_scans.ps1` les retélécharge (28 Mo).
-- **Les bancs de `tools/` ne tournent que sur demande de l'utilisateur.** Aucun banc de perf ni de qualité de sa propre initiative.
-- **Quand un banc est demandé :**
-  - il rend sans fenêtre et ne prend pas le focus ;
-  - un seul moteur à la fois sur le GPU ;
-  - le banc de qualité, `tools/banc_qualite.py`, se compare à `tools/banc_qualite_reference.json` par `--before` : aucun p95 ne se dégrade de plus de 10 % (`docs/spec-texturage-universel.md`).
-- **Commits et push sur demande seulement.**
+  - **After changing code,** first run `tools\lance.ps1 -Build -NoLaunch`: the Release x64 solution, in `x64\Release`.
+  - **The executable alone runs the game:** clouds, FFT sea and detailed vegetation, without any environment variables. The launcher adds the palette, the sun and 1920x1080 full screen (`docs/lancement.md`).
+  - **The “Tests” palette:** one button per line, in windowed mode only (`-Resolution fenetre`, or Alt+Enter); F1 to F12 work everywhere.
+  - **Ground photos are not in git:** sand and rock, Poly Haven CC0, in `..\scans`. If the title says “scans absents”, or the rock becomes a checkerboard, `tools\telecharger_scans.ps1` downloads them again (28 MB).
+- **Run the benchmarks in `tools/` only at the user's request.** Do not run performance or quality benchmarks on your own initiative.
+- **When a benchmark is requested:**
+  - it renders without a window and does not take focus;
+  - only one engine runs on the GPU at a time;
+  - compare the quality benchmark, `tools/banc_qualite.py`, with `tools/banc_qualite_reference.json` using `--before`: no p95 may worsen by more than 10% (`docs/spec-texturage-universel.md`).
+- **Public remote:** the only remote is `origin`, `https://github.com/exolunehq/exolune.git`. Never publish commits from the old-license history, including through ancestry, branches or tags. Follow the [public Git history rule](docs/principes.md#public-git-history) before any requested push.
+- **Commit and push only on request.**

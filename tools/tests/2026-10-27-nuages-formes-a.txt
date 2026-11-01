@@ -1,15 +1,15 @@
-# Mode retiré le 2026-10-30, au tag `jalon/29-avant-ouverture` et `piste/nuages-orbite-spike` : le spike Formes A et son témoin. Par tools\lance.ps1 -Parcours, ces lieux montrent les nuages du jeu ; touches et options ci-dessous, celles d'alors.
-# Formes A / -Temoin meteo A : memes positions, carte, soleil et temps.
-# Espace pause meteo ; C qualite ; N nuages ; B opacite. Pas de LOD V5.
-Cumulus, profil et lobes à 4,8 km | 4800 21.621 131.66 0 90 | 5 135
-Cumulus, base vue de dessous | 3300 21.621 131.66 -12 90 | 5 135
-Cumulus, sommets vus depuis 8 km | 8000 21.621 131.66 35 90 | 5 135
-Cumulus, vue à 10 km | 10000 21.621 131.66 20 90 | 5 135
-Nappe, base vue de dessous | 1900 8.613 -165.762 -8 90 | 8 -160
-Nappe, profil et épaisseur à 3,5 km | 3500 8.613 -165.762 0 90 | 8 -160
-Nappe, dessus depuis 6 km | 6000 8.613 -165.762 35 90 | 8 -160
-Nappe, vue à 30 km | 30000 8.613 -165.762 55 90 | 8 -160
-Autre nappe, profil à 3,8 km | 3800 -65.918 66.6211 0 90 | -50 65
-Autre nappe, dessus depuis 10 km | 10000 -65.918 66.6211 50 90 | -50 65
-Ancienne vue des motifs à 271 km | 271100 17.14299 116.89183 55.1 133.3 | 5 135
-Planète entière, contrôle à 2601 km | 2601300 21.621 131.66 90 0 | 5 135
+# Mode removed the 2026-10-30, at the tag `jalon/29-avant-ouverture` and `piste/nuages-orbite-spike`: the spike Formes A and its witness. By tools\lance.ps1 -Route, these places show the clouds of the game; keys and options below, those of then.
+# Forms A / -Weather witness A: same positions, map, sun and weather.
+# Weather break space; C quality; N clouds; B opacity. No LOD V5.
+Cumulus, profile and lobes at 4,8 km | 4800 21.621 131.66 0 90 | 5 135
+Cumulus, base view from below | 3300 21.621 131.66 -12 90 | 5 135
+Cumulus, peaks seen from 8 km | 8000 21.621 131.66 35 90 | 5 135
+Cumulus, view at 10 km | 10000 21.621 131.66 20 90 | 5 135
+layer, base view from below | 1900 8.613 -165.762 -8 90 | 8 -160
+Sheet, profile and thickness at 3,5 km | 3500 8.613 -165.762 0 90 | 8 -160
+layer, top from 6 km | 6000 8.613 -165.762 35 90 | 8 -160
+layer, view at 30 km | 30000 8.613 -165.762 55 90 | 8 -160
+Other layer, profile at 3,8 km | 3800 -65.918 66.6211 0 90 | -50 65
+Other layer, top from 10 km | 10000 -65.918 66.6211 50 90 | -50 65
+Old view of the patterns at 271 km | 271100 17.14299 116.89183 55.1 133.3 | 5 135
+Whole planet, control at 2601 km | 2601300 21.621 131.66 90 0 | 5 135

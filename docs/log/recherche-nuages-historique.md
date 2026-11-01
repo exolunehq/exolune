@@ -1,69 +1,69 @@
-# Historique des nuages : la couche 2D et l'ancien volume
+# Cloud history: the 2D layer and the old volume
 
-**Ce qu'a donné `../recherche-nuages.md` les 24 et 25 octobre 2026,** sorti de la recherche le 2026-10-30 : la carte du temps et la couche 2D, commit `6a88d33`, puis le volume en cascades de l'orbite au sol, tag `piste/nuages`, et sa stabilité, branche `muse-nuages-stabilite`. Les nuages du jeu les remplacent : `../spec-nuages.md`.
+**What gave `../recherche-nuages.md` the 24 and 25 October 2026,** out of the search the 2026-10-30: the time map and the layer 2D, commit `6a88d33`, then the volume in cascades of the ground orbit, tag `piste/nuages`, and its stability, branch `muse-nuages-stabilite`. The clouds in the game replace them: `../spec-nuages.md`.
 
-Les sections suivent, telles qu'elles étaient dans la recherche, la plus récente en haut.
+The sections follow, as they were in the search, the most recent at the top.
 
-## Fait : le volume, de l'orbite au sol (2026-10-25)
+## Fact: volume, from orbit to ground (2026-10-25)
 
-**La couche 2D est retirée.** Les nuages sont un volume lancé au quart des pixels partout où ils sont en vue, de l'orbite au sol, la moitié d'entre eux par image en damier, accumulé d'une image à l'autre. Le plan gardait une couche 2D de loin : en vol, elle était plate, pleine, sans transparence, et coupait les ponts aux côtes.
+**The 2D layer is removed.** Clouds are a volume thrown at the quarter of pixels everywhere they are in view, from orbit to ground, half of them per checkerboard frame, accumulated from one frame to another. The plane kept a layer 2D from far: in flight, it was flat, full, without transparency, and cut the bridges at the ribs.
 
-**Le champ.**
-- **La carte du temps est cuite au démarrage,** sur un cube : le climat et les octaves du temps de 131 km et plus.
-- **Les colonnes tiennent dans cinq cascades fixées sur la planète,** de 62,5 m à 16 km le texel, chaque texel la moyenne de la colonne sur lui. Une cascade n'est recalculée que quand la caméra a parcouru le quart de sa largeur. Au-delà de la dernière, au limbe, la colonne est calculée sur place.
-- **Les octaves de 1 km et moins passent en 3D.** Une tuile de cellules en volutes les remplace, de même écart-type (0,389 de celui des nuages). Elles découpent les bords et soulèvent le sommet : cumulus en chou-fleur, ponts bosselés. De loin, les mips de la tuile en rendent la moyenne : la règle universelle.
-- **Le sommet monte avec la profondeur dans le champ :** les nuages s'amincissent à leur bord, en dômes pour les cumulus, à flancs raides pour les ponts.
-- **Les cumulonimbus :** en forte convection, les pics des octaves de 16 et 8 km, un dixième de l'air environ. Tours jusqu'à la tropopause, flancs bosselés par un décalage de lecture qui varie avec la hauteur ; enclumes parmi les cirrus.
-- **Les cirrus en fibres,** d'est en ouest, la tuile étirée huit fois.
-- **Plus de grilles de points vues d'orbite.** Les octaves d'un bruit de gradient partageaient les nœuds de leurs grilles emboîtées, où toutes s'annulent ensemble. Chaque octave est décalée d'une fraction du nombre d'or (`CloudFbm`).
+**The field.**
+- **The weather map is cooked at startup,** on a cube: the climate and the octaves of time of 131 km and more.
+- **The columns hold in five cascades fixed on the planet,** from 62,5 m to 16 km the texel, each texel the average of the column on it. A cascade is recalculated only when the camera has traveled a quarter of its width. Beyond the last one, at the limb, the column is calculated on site.
+- **Octaves of 1 km and less are converted to 3D.** A tile of volute cells replaces them, of the same standard deviation (0,389 of that of the clouds). They cut the edges and raise the summit: cumulus in cauliflower, bumped bridges. From afar, the mips of the tile makes the average: the universal rule.
+- **The summit rises with the depth in the field:** clouds thin at their edge, in domes for cumulus, steep sides for bridges.
+- **Cumulonimbus:** in strong convection, the peaks of the octaves of 16 and 8 km, a tenth of the air about. Tours up to the tropopause, flanks bumped by a reading shift that varies with height; anvils among cirrus.
+- **The cirrus fibers,** from east to west, the tile stretched eight times.
+- **no more grids of orbit points views.** The octaves of a gradient noise shared the nodes of their nested grids, where all cancel out together. Each octave is shifted by a fraction of the golden number (`CloudFbm`).
 
-**La lumière.**
-- **Simple diffusion :** trois points vers le soleil, de 50 m à 1,5 km ; deux lobes de Henyey-Greenstein ; la poudre des bords à contre-jour.
-- **Diffusion multiple à deux flux (Bohren 1987) :** R sur la face éclairée, le diffus transmis sur l'autre, entre les deux selon la part de l'épaisseur optique côté soleil, prise le long du rayon du soleil. Flancs éclairés, bases et faces à l'ombre sombres. La première version inversait les deux faces : des sommets gris, des nuages minces laiteux.
-- **Le ciel par le haut, le sol par le bas.**
-- **Un pas par unité d'épaisseur optique environ,** pour ne pas sauter la peau éclairée ; le pied d'un pas vaut l'empreinte du pixel, plus un quart du pas.
+**The light.**
+- **Simple diffusion:** three points towards the sun, from 50 m to 1,5 km; two Henyey-Greenstein lobes; the powder of the backlit edges.
+- **multiple scattering two-flow (Bohren 1987):** R on the illuminated side, diffuse transmitted on the other, between the two according to the part of the optical thickness on the sun side, taken along the sun ray. Sides illuminated, bases and faces with dark shadow. The first version reversed the two faces: gray peaks, thin milky clouds.
+- **The sky from above, the ground from below.**
+- **One step per unit of optical thickness approximately,** to avoid skipping the illuminated skin; the foot of one step is worth the pixel footprint, plus one quarter of the step.
 
-**Dans les autres passes.** Le terrain écrit sa lumière du soleil seule dans une seconde cible ; la passe d'atmosphère y applique l'ombre des nuages et la lumière diffuse sous eux, et coupe l'air à la profondeur des nuages.
+**In other passes.** The ground writes its sunlight alone into a second target; the atmosphere pass applies there the shadow of clouds and the light diffuses under them, and cuts the air at the depth of clouds.
 
-**La stabilité (2026-10-25, branche `muse-nuages-stabilite`).** En vol : fourmillements, coutures carrées puis tournées des cascades, disque du détail proche, mutations à l'approche. Le champ est figé : tout ce mouvement était de l'échantillonnage.
-- **L'historique se gouverne par l'erreur de reprojection** (`CloudResolve.hlsl`) : en texels du quart de résolution. Dessous, la marche de l'image précédente, fraîche ou autre moitié du damier, est un échantillon du même nuage et s'accumule ; au-delà d'un texel, le texel non marché porte son passé reprojeté seul, et un écart de distance (le centroïde d'opacité, en rampe large) retire le passé. La distance elle-même s'accumule. Le passé est clipsé aux moments du voisinage, deux écarts-types.
-- **Les cascades ne dessinent plus leur carré** : portée en distance sur le plan, fondu de 0,35 à 0,98 du demi-côté, niveau fin fractionnaire en descente, maximum lissé entre contraintes de niveau (`LevelMax`, règle dans `../principes.md`), recentrage par texels entiers du plan propre, axes transportés.
-- **Le détail proche garde la moyenne** : fondu par octaves d'empreinte ; sommet multiplié en lognormal, de moyenne la colonne ; porte décalée de la corrélation porte × plafond, `fine × lift`.
-- **La coupure au terrain** lit la distance des nuages filtrée comme leur lumière ; la distance de reprojection du lissage est pondérée par l'opacité.
-- **Le décalage de la marche reste renouvelé par image** : fixe par pixel, il laissait le biais de quadrature de chaque texel en pointillé régulier sur les images convergées, mesuré ; en progression dorée commune, le tremblement doublait. C'est l'historique gouverné qui l'absorbe.
-- **Mesures :** `tools/banc_nuages.py --parts stabilite` (nouveau) et `docs/journal-planete.md`, même jour.
+**Stability (2026-10-25, branch `muse-nuages-stabilite`).** In flight: tingling, square seams then turned cascades, disk of close detail, mutations to approach. The field is frozen: all this movement was sampling.
+- **The history is governed by the reprojection error** (`CloudResolve.hlsl`): in texels of the quarter of resolution. Below, the previous image's march, fresh or other half of the checkerboard, is a sample of the same cloud and accumulates; beyond a texel, the unmarched texel carries its reprojected past alone, and a distance shift (the opacity centroid, in wide ramp) removes the past. The distance itself accumulates. The past is clipped to the moments of neighborhood, two standard deviations.
+- **cascades no longer draw their square**: distance on the plane, blend of 0,35 to 0,98 half-side, fractional fine level in descent, smoothed maximum between level constraints (`LevelMax`, rule in `../principes.md`), refocus by texels wholes of the own plane, transported axes.
+- **Near detail keeps the average**: faded by octaves of footprint; vertex multiplied in lognormal, average the column; offset gate of the correlation gate × ceiling, `fine × lift`.
+- **Field cutoff** reads the distance of the filtered clouds as their light; the smoothing reprojection distance is weighted by opacity.
+- **The shift of the march remains renewed per frame**: fixed by pixel, it left the bias of quadrature of each texel in regular dotted on the converged frames, measured; in common golden progression, the jitter doubled. It is the historical governed that absorbs it.
+- **Measurements:** `tools/banc_nuages.py --parts stabilite` (new) and `docs/journal-planete.md`, same day.
 
-**Les mesures :** `../journal-planete.md`, 2026-10-25.
+**Measurements:** `../journal-planete.md`, 2026-10-25.
 
-**Ce qui reste :**
-- **le coût dépasse le budget sous les cirrus,** 3,6 ms, voir le journal ;
-- **les tours de cumulonimbus sont trop régulières,** des cylindres bosselés coiffés d'un disque ;
-- **pas de vent :** cirrus et rues de nuages figés ; le mouvement ample des formations est le chantier suivant, le champ restant une fonction pure du lieu et du temps pour que l'historique se reprojette ;
-- **un arc fin au passage de portée des cascades,** adouci mais visible sur les captures à 54 et 135 km : plafond et sigma d'un texel grossier ne sont pas la moyenne des texels fins qu'il couvre. La règle voudrait des cascades grossières moyennées depuis les fines là où elles se recouvrent, au lieu d'un `ColumnAt` par texel à chaque échelle.
+**What remains:**
+- **cost exceeds budget under cirrus,** 3,6 ms, see log;
+- **cumulonimbus towers are too regular,** cylinders with a disk on top;
+- **no wind:** cirrus and streets of frozen clouds; the wide movement of formations is the next work, the field remaining a pure function of place and time for the historical to reproject;
+- **a fine arc at the crossing of range of the cascades,** softened but visible on the captures at 54 and 135 km: ceiling and sigma of a coarse texel are not the average of the fine texels it covers. The rule would want coarse cascadess averaged from fines where they overlap, instead of a `ColumnAt` by texel at each scale.
 
-## Fait : étapes 1 et 2
+## Done: steps 1 and 2
 
-**La carte du temps décide, par colonne d'air :**
-- **la nébulosité,** la part moyenne de ciel couvert : l'humidité du climat et une ceinture montante au front polaire, de 19 à 56° ;
-- **la convection,** de 0 à 1 : chaleur et humidité au niveau de la mer, et `W.y` ;
-- **le type :** stratiforme sans convection, cumulus avec, cumulonimbus au cœur des nuages en forte convection ;
-- **la base,** par la formule de Lawrence ; le brouillard quand elle touche le sol, 2 à 3 % des colonnes ;
-- **le sommet :** 0,3 km pour les stratus, 1,5 km pour les cumulus ;
-- **les cirrus :** une couche de 1,5 km, 3 km sous la tropopause, leur nébulosité tirée du front polaire et des enclumes.
+**The weather map decides, by air column:**
+- **cloud cover,** the average share of cloudy sky: humidity of the climate and a rising belt at the polar front, from 19 to 56°;
+- **convection,** from 0 to 1: heat and humidity at sea level, and `W.y`;
+- **the type:** stratiform without convection, cumulus with, cumulonimbus at the heart of clouds in strong convection;
+- **the base,** by Lawrence formula; fog when it touches the ground, 2 to 3 % of columns;
+- **the summit:** 0,3 km for stratus, 1,5 km for cumulus;
+- **cirrus:** a layer of 1,5 km, 3 km below the tropopause, their cloudiness drawn from the polar front and anvils.
 
-**Ce qui s'écarte du plan.**
-- **Un seul spectre, du millier de km au mètre.** Le temps `W` et les nuages `M` sont les octaves d'un même bruit de gain 0,79, le spectre en k^-5/3 des champs nuageux (Cahalan et Snider 1989). Les fronts sont dans le champ seuillé, pas dans la nébulosité. Avec les gains 0,5 et 0,55 du plan, rien entre 30 et 300 km : tous les nuages avaient la même taille, en peau de léopard.
-- **Les cumulus pèsent leurs petites octaves 2,5 fois plus :** des champs épars sur des régions entières. Les fronts font des nappes.
-- **Pas de ceinture intertropicale :** l'ajustement lui donnait 0,065. Le creux d'humidité des déserts porte déjà le profil.
-- **Les couches sont des coquilles épaisses,** de la base au sommet, placées par les octaves du temps de 131 km et plus.
-- **Un rayon voit la première cellule qu'il rencontre,** celle du pixel, puis la moyenne de la région derrière elle : une cellule tous les 5 km le long du trajet, mesurés sur le champ. La moyenne sur tout le trajet rendait flou un champ vu de biais.
-- **La lumière : deux flux, g = 0,85.** La part diffusée vers l'avant reste dans le faisceau (delta, 1 − g²) : un cirrus laisse voir ce qu'il couvre. Le sommet des cumulus est éclairé selon sa pente, chaque octave l'inclinant autant, comme les bandes de détail du sol.
+**This deviates from the plan.**
+- **One spectrum, from thousands of kilometers to meters.** The time `W` and the clouds `M` are the octaves of a same noise gain 0,79, the spectrum in k^-5/3 of the cloud fields (Cahalan and Snider 1989). Fronts are in the threshold field, not in cloudiness. With the gains 0,5 and 0,55 of the plan, nothing between 30 and 300 km: all clouds had the same size, in leopard skin.
+- **Cumulus weigh their small octaves 2,5 times more:** fields scattered over entire regions. The fronts make layers.
+- **No intertropical belt:** the fit gave him 0,065. The humidity depression of the deserts already bears the profile.
+- **Layers are thick shells,** from base to top, placed by octaves of time of 131 km and more.
+- **A ray sees the first cell it encounters,** that of the pixel, then the average of the region behind it: a cell every 5 km along the path, measured on the field. The average over the entire journey blurred a field seen from bias.
+- **Light: two fluxes, g = 0,85.** The part diffused forward remains in the beam (delta, 1 − g²): a cirrus shows what it covers. The summit of the cumulus is illuminated according to its slope, each octave tilting it as much as the detail bands of the ground.
 
-**Les mesures :** `../journal-planete.md`, 2026-10-24. Bancs : `tools/banc_nuages.py`. Tests en vol : `tools/tests/2026-10-24-nuages.txt`.
+**Measurements:** `../journal-planete.md`, 2026-10-24. benchmarks : `tools/banc_nuages.py`. Flight tests: `tools/tests/2026-10-24-nuages.txt`.
 
-**Ce qui restait plat ou manquait après l'étape 2,** traité par le volume sauf le vent :
-- **dans la couche, tout est plat :** pas de tours ni de flancs. La caméra dans le nuage y voit un brouillard uniforme ;
-- **les cirrus ne sont pas effilochés :** il faudrait le vent ;
-- **l'air sous les nuages est ombré par la moyenne de la région,** pas nuage par nuage ;
-- **le sol ne renvoie pas sa lumière vers la base des nuages ;**
-- **le coût dépasse le budget du plan,** voir le journal.
+**What was flat or missing after step 2,** processed by volume except wind:
+- **in the diaper, everything is flat:** no turns or sides. The camera in the cloud sees a uniform fog;
+- **the cirrus are not frayed:** it would take the wind;
+- **the air under the clouds is shaded by the average of the region,** not cloud by cloud;
+- **the ground does not reflect its light back to the base of the clouds;**
+- **cost exceeds plan budget,** see journal.

@@ -1,27 +1,27 @@
-# Historique : la hauteur d'ombre sur une grille polaire
+# History: the shadow height on a polar grid
 
-Étape 1 des rayons de soleil, du 2026-10-24, tag `piste/rayons-soleil`. Remplacée le 2026-10-25 par la hauteur d'ombre marchée à chaque sommet du maillage, avec l'horizon des ombres portées (`../recherche-rayons.md`, tag `piste/ombre-unique`).
+Step 1 of sun rays, of the 2026-10-24, tag `piste/rayons-soleil`. Replaced the 2026-10-25 by the shadow height marked at each vertex of the mesh, with the horizon of the cast shadows (`../recherche-rayons.md`, tag `piste/ombre-unique`).
 
-## La grille (`SunShadow.hlsli`)
+## The grid (`SunShadow.hlsli`)
 
-- 512 directions sur 512 rayons, autour du centre de la face du maillage, jusqu'à la portée de ses anneaux.
-- Les rayons croissent en proportion de la distance au-delà d'un rayon intérieur, la demi-largeur de la face ou 1 km. Une cellule couvre 1,2 % de sa distance, près du 1 % des anneaux.
-- Toutes les directions sont calculées : un relief hors de l'image projette son ombre dans l'image.
+- 512 directions on 512 radii, around the center of the face of the mesh, up to the reach of its rings.
+- Radii increase in proportion to the distance beyond an inner radius, half the width of the face or 1 km. A cell covers 1,2% of its distance, close to the 1% of the rings.
+- All directions are calculated: a relief outside the image casts its shadow into the image.
 
-## Les deux passes, à chaque image
+## Both passes, at every frame
 
-- **Le relief (`SunShadowTerrain.hlsl`) :** l'altitude du terrain en chaque point de la grille, filtrée à la cellule comme le maillage, `MESH_BAND_LIMIT`.
-- **La marche (`SunShadow.hlsl`) :** de chaque point, une marche vers le soleil sur la sphère, d'une demi-cellule par pas. La hauteur d'ombre est la plus haute altitude cachée par un point du relief : h cos φ − 2R sin²(φ/2) − (R + h) sin φ tan θ, pour un relief h à l'angle φ, un soleil à la hauteur θ. Elle s'arrête quand rien de plus haut que `MAX_TERRAIN_HEIGHT` ne peut plus cacher le soleil.
+- **The relief (`SunShadowTerrain.hlsl`):** the elevation of the terrain at each point of the grid, filtered to the cell like the mesh, `MESH_BAND_LIMIT`.
+- **The walk (`SunShadow.hlsl`):** from each point, a walk to the sun on the sphere, of half a cell per step. The shadow height is the highest altitude hidden by a point of the relief: h cos φ − 2R sin²(φ/2) − (R + h) sin φ tan θ, for a relief h at the angle φ, a sun at the height θ. It stops when nothing higher than `MAX_TERRAIN_HEIGHT` can hide the sun anymore.
 
-## Pourquoi elle est partie
+## Why she left
 
-- **Deux sources pour une ombre :** la grille recalculait le relief et marchait vers le soleil, quand la passe `Horizon.hlsl` marchait déjà, à chaque sommet, sur les hauteurs de l'image.
-- **Son relief n'était pas celui de l'image :** une autre grille, d'autres cellules.
-- **Son coût :** relief 0,50 à 0,67 ms, marche 0,27 à 0,37 ms.
+- **Two sources for one shadow:** the grid recalculated the relief and walked towards the sun, when the pass `Horizon.hlsl` already walked, at each vertex, on the heights of the image.
+- **Its relief was not that of the image:** another grid, other cells.
+- **Cost:** relief 0,50 to 0,67 ms, step 0,27 to 0,37 ms.
 
-## Ses mesures
+## Its measures
 
-- **Coût,** minimum sur les images, RTX 4070 Ti, 1280 × 720 : relief 0,50 à 0,67 ms, marche 0,27 à 0,37 ms, lecture dans l'atmosphère 0,02 à 0,09 ms.
-- **Tremblement,** avec et sans lissage : pic à 14°, 0,04 / 0,34 → 0,06 / 0,46 ; vallées à 9°, 0,06 / 0,40 → 0,06 / 0,44 ; aiguille à 11°, 0,04 / 0,30 → 0,05 / 0,34. L'air seul, sans le sol : 0,05 → 0,09 sans lissage, aux bords des faisceaux, et 0,01 inchangé avec.
-- **Rotation de 1° :** l'air seul, ramené sur l'image précédente, s'écarte de 0,41 avec l'ombre, 0,43 sans.
-- **La résolution :** une grille de 256 × 256 abaissait les aiguilles, l'air devant le haut d'un pic restait au soleil et cette bande tremblait. 768 × 768 ne changeait presque plus l'image, pour 2,4 ms.
+- **Cost,** minimum on images, RTX 4070 Ti, 1280 × 720: relief 0,50 to 0,67 ms, walk 0,27 to 0,37 ms, reading in atmosphere 0,02 to 0,09 ms.
+- **jitter,** with and without smoothing: peak at 14°, 0,04/0,34 → 0,06/0,46; valleys at 9°, 0,06/0,40 → 0,06/0,44; needle at 11°, 0,04/0,30 → 0,05/0,34. Air alone, without ground: 0,05 → 0,09 without smoothing, at the edges of the beams, and 0,01 unchanged with.
+- **Rotation of 1°:** air alone, returned on the previous image, departs from 0,41 with shadow, 0,43 without.
+- **Resolution:** a grid of 256 × 256 lowered the hands, the air in front of the top of a peak remained in the sun and this band shook. 768 × 768 did not change almost anymore the image, for 2,4 ms.

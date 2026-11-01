@@ -1,175 +1,175 @@
-# Spécification : couvrir le champ de vision, puis optimiser
+# Specification: cover the field of view, then optimize
 
-Statut : à valider avant implémentation dans le POC. Fait suite au jet 1 décrit dans `concept.md`.
+Status: to be validated before implementation in the POC. Follows the 1 jet described in `concept.md`.
 
-## Le problème
+## The problem
 
-**Plus on descend, moins la face couvre le champ de vision.** Sa demi-largeur vaut k × la hauteur au-dessus du sol. Elle couvre donc le dessous de la caméra, jamais l'horizon.
+**The lower you go, the less the face covers the field of vision.** Its half width is equal to k × the height above the ground. It covers the bottom of the camera, never the horizon.
 
-- À 10 km d'altitude avec k = 4, la face couvre ±40 km. L'horizon est à 357 km.
-- Les montagnes dépassent l'horizon : un sommet de 8 km reste visible jusqu'à 323 km au-delà, soit √(2 R H).
+- At 10 km altitude with k = 4, the face covers ±40 km. The horizon is at 357 km.
+- The mountains go beyond the horizon: a summit of 8 km remains visible until 323 km beyond, or √(2 R H).
 
-**Objectif :** de 1 m à environ 5 000 km d'altitude, couvrir tout le champ de vision jusqu'à l'horizon, montagnes comprises. Le détail à l'écran doit rester à peu près constant, pour un coût maîtrisé.
+**Objective:** from 1 m to about 5 000 km altitude, cover the entire field of view to the horizon, including mountains. The detail on the screen must remain fairly constant, for a controlled cost.
 
-## Axe 1 : couvrir le champ de vision
+## Axis 1: cover the field of view
 
-### Solution retenue : la face, prolongée par des anneaux géométriques
+### Solution chosen: the face, extended by geometric rings
 
-**On garde la face du jet 1 au centre, et on l'entoure d'anneaux carrés de plus en plus grands.** Tout reste dans le même plan, avec la même rotation et la même normalisation sur la sphère.
+**Keep the face of the jet 1 in the center, and surround it with square rings increasing in size.** Everything remains in the same plane, with the same rotation and normalization on the sphere.
 
-- Chaque anneau est un peu plus grand que le précédent : la taille de maille croît proportionnellement à la distance au centre.
-- Les anneaux s'arrêtent à l'horizon, plus la marge des montagnes.
-- C'est la version continue de la « pile de faces de taille ×2 » proposée au point 3 de `concept.md`.
+- Each ring is a little bigger than the previous one: the grid spacing grows proportionally with the distance to the center.
+- The rings stop at the horizon, plus the margin of the mountains.
+- This is the continuous version of the "×2 face size stack" proposed at the 3 point of `concept.md`.
 
-**Pourquoi c'est économique :** à l'écran, une maille occupe toujours à peu près le même angle, près comme loin, quelle que soit la direction du regard.
+**Why it's economical:** On the screen, a grid cell always occupies about the same angle, close as far, regardless of the direction of viewing.
 
-- Un seul maillage, un seul calcul, un seul affichage.
-- Pas de couture à traiter : chaque anneau se raccorde au précédent sommet par sommet.
+- One mesh, one calculation, one display.
+- No seam to be treated: each ring connects to the previous vertex by vertex.
 
-**Coût estimé** avec une face de 129 × 129 et des anneaux de 512 sommets :
+**Estimated cost** with a face of 129 × 129 and rings of 512 vertices:
 
-| Hauteur au-dessus du sol | Anneaux | Sommets au total |
+| Height above ground | Rings | Summits total |
 |---|---|---|
 | 1 m | 775 | 413 000 |
 | 10 km | 228 | 134 000 |
 | 300 km | 88 | 62 000 |
 
-Pour comparaison, la face actuelle de 257 × 257 compte 66 000 sommets.
+For comparison, the current face of 257 × 257 counts 66 000 vertices.
 
-### Règles de construction
+### Construction rules
 
-| Élément | Règle |
+| Component | Rule |
 |---|---|
-| Face centrale | Demi-largeur s0 = k × hauteur au-dessus du sol, avec k ≈ 2. Grille de (n + 1) × (n + 1), n = 128. |
-| Anneau i | Demi-largeur s0 × (1 + 2/n)^i, avec 4n sommets. Les mailles restent à peu près carrées. |
-| Rayon extérieur | Arc jusqu'à l'horizon + 323 km de marge pour les montagnes, ramené dans le plan : R × tan(arc / R). |
-| Nombre d'anneaux | ln(rayon extérieur / s0) / ln(1 + 2/n). Le maillage est construit une fois pour le maximum ; on n'affiche que les anneaux nécessaires. |
+| Central face | Half width s0 = k × height above ground, with k ≈ 2. Grid of (n + 1) × (n + 1), n = 128. |
+| Ring i | Half width s0 × (1 + 2/n)^i, with 4n vertices. The grid cells remains roughly square. |
+| Outer radius | Arc to the horizon + 323 km margin for mountains, brought back into the plan: R × tan(arc / R). |
+| Number of rings | ln(outer radius / s0) / ln(1 + 2/n). The mesh is built once for maximum; only the required rings are displayed. |
 
-### Condition indispensable : filtrer les octaves selon la taille de maille
+### Indispensable condition: filter the octaves according to the grid spacing
 
-**Sans filtrage, les anneaux lointains scintillent.** Leurs mailles font des kilomètres, alors que complexplanet contient des détails de quelques centaines de mètres. Chaque sommet tombe au hasard sur un détail plus fin que sa maille. L'horizon grésille et tout le relief ondule quand on se déplace.
+**Without filtering, the distant rings spark.** Their grid cellss are miles long, while complexplanet contains details of a few hundred meters. Each vertex randomly falls on a detail thinner than its grid cell. The horizon is sparkling and the whole relief waves when you move.
 
-**Règle :** chaque sommet n'évalue que les octaves dont la longueur d'onde dépasse deux mailles. La dernière octave retenue s'estompe progressivement, pour éviter les sauts.
+**Rule:** Each vertex evaluates only octaves whose wavelength exceeds two grid cells. The last octave held fades gradually, to avoid jumps.
 
-- Le calcul d'élévation reçoit la taille de maille du sommet.
-- Chaque générateur arrête sa boucle d'octaves à cette limite, turbulences comprises.
-- Bonus pour l'axe 2 : les anneaux lointains coûtent beaucoup moins cher.
+- The elevation calculation receives the grid spacing of the summit.
+- Each generator stops its octave loop at this limit, turbulence included.
+- Bonus for the 2 axis: the far rings cost much less.
 
-**Limite connue :** complexplanet n'est pas linéaire, à cause des sélecteurs, des terrasses et des courbes. Vu de loin, le relief filtré diffère un peu du relief complet. Le fondu garde la transition continue.
+**Known limitation:** complexplanet is not linear, because of selectors, terraces and curves. Seen from afar, the filtered relief differs a little from the full relief. The fade keeps the transition continuous.
 
-### Placement par rapport au regard (ancien jet 2)
+### Positioning relative to the look (old jet 2)
 
-**Recommandation : abandonner le décalage de la face vers le point regardé.**
+**Recommendation: abandon the offset of the face to the point looked at.**
 
-- Avec les anneaux, la densité à l'écran est déjà uniforme dans toutes les directions. Décaler le centre n'apporterait presque rien.
-- Le décalage ferait bouger le maillage à chaque mouvement de tête, et donc scintiller le relief.
+- With the rings, the density on the screen is already uniform in all directions. Moving the center would bring almost nothing.
+- The offset would move the mesh with every head movement, and thus sparkle the relief.
 
-Le regard compte vraiment à deux endroits :
+The look really counts in two places:
 
-- **Le zoom.** Quand le champ de vision se resserre, on diminue k et on augmente n pour affiner le détail.
-- **Ce qui est hors champ.** On évite de le calculer : c'est le premier chantier de l'axe 2.
+- **The zoom.** As the field of view narrows, k is reduced and n is increased to refine the detail.
+- **What is out of scope.** We avoid to calculate it: it is the first site of the axis 2.
 
-### Hors périmètre
+### Outside perimeter
 
-- **Au-dessus d'environ 5 000 km d'altitude**, la calotte visible dépasse ce qu'un seul plan peut couvrir, environ 60° autour du nadir. Il faudra une sphère complète grossière en arrière-plan.
-- Atmosphère, textures, éclairage réaliste.
+- **Above about 5 000 km of altitude**, the visible cap exceeds what a single plane can cover, about 60° around the nadir. It will take a coarse full sphere in the background.
+- Atmosphere, textures, realistic lighting.
 
-### Critères de validation
+### Validation criteria
 
-1. De 1 m à 5 000 km, regard à l'horizon dans toutes les directions : aucun vide entre le sol et l'horizon.
-2. Les montagnes lointaines apparaissent au-dessus de l'horizon.
-3. Aucune fissure dans le maillage.
-4. La taille des mailles à l'écran reste à peu près constante, vérifiée en fil de fer.
-5. En vol à vitesse constante, l'horizon ne scintille pas.
-6. La fréquence d'images est mesurée aux vues de référence de l'axe 2. Ces mesures servent de point de départ à l'axe 2.
+1. From 1 m to 5 000 km, look at the horizon in all directions: no gap between the ground and the horizon.
+2. The distant mountains appear above the horizon.
+3. No crack in the mesh.
+4. The size of the grid cells on the screen remains almost constant, checked in wire.
+5. In constant speed flight, the horizon does not sparkle.
+6. The frame rate is measured at the reference views of the 2 axis. These measurements serve as the starting point for the 2 axis.
 
-### Étapes d'implémentation
+### Steps of implementation
 
-1. **Mesurer avant de changer :** temps GPU du calcul et de l'affichage, affichés dans le titre.
-2. **Face et anneaux, sans filtrage :** valider la couverture et l'absence de fissures.
-3. **Filtrage des octaves :** valider la stabilité de l'horizon et du relief.
-4. **Mesures** aux altitudes de référence.
+1. **Measure before changing:** time GPU of calculation and display, displayed in the title.
+2. **Face and rings, without filtering:** validate the coverage and the absence of cracks.
+3. **Octaves filtering:** validate the stability of the horizon and relief.
+4. **Measurements** at reference altitudes.
 
-### Résultats de l'implémentation
+### Results of implementation
 
-**L'axe 1 est implémenté**, avec k = 2 et n = 128.
+**The 1 axis is implemented**, with k = 2 and n = 128.
 
-| Critère | Résultat |
+| Criteria | Result |
 |---|---|
-| 1. Aucun vide jusqu'à l'horizon | Vérifié en image fixe à 1 m, 69 m, 10 km, 300 km et 2 000 km. |
-| 2. Montagnes lointaines | Leur silhouette dépasse l'horizon dès 1 m de hauteur. |
-| 3. Aucune fissure | Vérifié en fil de fer à la jonction entre la face et les anneaux. |
-| 4. Taille des mailles à l'écran | À peu près constante du premier plan jusqu'au loin. Près de l'horizon, les mailles se tassent sous l'effet de la perspective rasante : c'est attendu. |
-| 5. Pas de scintillement en vol | Filtrage des octaves en place, à vérifier en vol : une image fixe ne le montre pas. |
-| 6. Mesures | Ci-dessous. |
+| 1. No void to the horizon | Verified in still image at 1 m, 69 m, 10 km, 300 km and 2 000 km. |
+| 2. Mountains far away | Their silhouette exceeds the horizon at 1 m of height. |
+| 3. No crack | Checked in iron wire at the junction between the face and rings. |
+| 4. grid cells on screen | Almost constant from the foreground to the distance. Near the horizon, the grid cellss are slowing down under the effect of the racing perspective: it is expected. |
+| 5. No flicker in flight | Octave filtering in place, to be checked in flight: a still image does not show it. |
+| 6. Measures | See below. |
 
-**Mesures** au-dessus de 15° S, 50° E, regard à 3° sous l'horizon puis à 80°. Le temps de rendu reste sous 0,1 ms : tout le coût est dans le calcul du terrain.
+**Measurements** above 15° S, 50° E, look at 3° below the horizon then at 80°. The rendering time remains below 0,1 ms: all the cost is in the calculation of the terrain.
 
-| Hauteur au-dessus du sol | Anneaux | Calcul GPU | Images par seconde |
+| Height above ground | Rings | Calculation GPU | Images per second |
 |---|---|---|---|
-| 1 m | 795 | 15 ms | 54 à 62 |
+| 1 m | 795 | 15 ms | 54 to 62 |
 | 100 m | 499 | 11 ms | 70 |
-| 10 km | 230 | 6 ms | 131 à 140 |
-| 300 km | 88 | 2,4 ms | 272 à 276 |
+| 10 km | 230 | 6 ms | 131 to 140 |
+| 300 km | 88 | 2,4 ms | 272 to 276 |
 | 2 000 km | 27 | 0,7 ms | 280 |
 
-Le regard ne change rien au coût : tout le maillage est calculé, même hors champ. C'est la première piste de l'axe 2.
+Looking does not change the cost: all the mesh is calculated, even out of the field. It is the first experiment of the 2 axis.
 
-## Axe 2 : performances
+## Axis 2: performance
 
-**Principe :** on part des mesures de l'axe 1. On s'attaque d'abord au poste le plus coûteux, et chaque optimisation est mesurée avant et après.
+**Principle:** we start from the measurements of the axis 1. The most expensive job is tackled first, and every optimization is measured before and after.
 
-### Contraintes
+### Constraints
 
-- **Toute la géométrie visible est recalculée à chaque image.** C'est ce qui permet de se déplacer à n'importe quelle vitesse sans attendre de chargement. Aucune optimisation ne doit casser ce principe.
-- **Le relief doit rester planétaire et crédible**, avec des formes qui rappellent la Terre. Toute simplification du bruit passe par une comparaison visuelle.
+- **All visible geometry is recalculated at each frame.** This is what allows you to move at any speed without waiting for loading. No optimization should break this principle.
+- **The relief must remain planetary and credible**, with shapes that remind of the Earth. Any simplification of the noise passes through a visual comparison.
 
-### Cible
+### Target
 
-**Calcul du terrain : 3 ms au plus dans la pire vue de référence, idéalement 2 ms.** Aujourd'hui, c'est 15 ms au ras du sol. Le reste du budget ira aux shaders de rendu à venir : éclairage, atmosphère, textures.
+**Land calculation: 3 ms at most in the worst reference view, ideally 2 ms.** Today it is 15 ms at ground level. The rest of the budget will go to the rendering shaders coming: lighting, atmosphere, textures.
 
-**Vues de référence :** au-dessus du continent à 15° S, 50° E, à 1 m, 100 m, 10 km, 300 km et 2 000 km de hauteur, avec le regard à 3° sous l'horizon puis à 80°.
+**Reference views:** above the continent at 15° S, 50° E, at 1 m, 100 m, 10 km, 300 km and 2 000 km of height, with the look at 3° below the horizon and then at 80°.
 
-### Protocole de qualité
+### Quality protocol
 
-Pour chaque changement qui touche au bruit :
+For each change that affects the noise:
 
-1. Captures des vues de référence avant et après, par la capture intégrée au moteur.
-2. Comparaison côte à côte, avec l'écart moyen d'altitude.
-3. Validation à l'œil. Si le relief change de caractère, la décision te revient.
+1. Captures reference views before and after, by the capture built into the engine.
+2. Side-by-side comparison, with the average elevation difference.
+3. Validation by eye. If the relief changes character, the decision is up to you.
 
-### Étapes, par gain attendu
+### Steps, by expected gain
 
-1. **Ne calculer que ce qui est dans le champ de vision.** Le calcul saute les sommets hors du champ, avec une marge de deux mailles. Un sommet est testé avec toute sa plage d'altitude possible, du niveau de la mer à 8 192 m. Ainsi, une montagne qui entre dans le champ par le haut est toujours calculée. Le sommet sous la caméra est toujours calculé : il donne la hauteur du sol. Gain attendu : 3 à 4 fois en regardant l'horizon, bien plus en regardant vers le bas.
-2. **Mesurer le coût de chaque couche de complexplanet**, en les neutralisant une à une. On saura ainsi où porter l'effort. Les turbulences sont suspectes : elles représentent environ les deux tiers des octaves.
-3. **Simplifier les couches de bruit qui coûtent le plus**, selon le protocole de qualité. Les pistes à tester :
-   - **Un bruit de base plus rapide**, par exemple un bruit de gradient sans table, ou un simplex, qui interpole 4 points au lieu de 8.
-   - **Moins d'octaves dans les turbulences.** Leurs dernières octaves déforment très peu le relief.
-   - **Le type de terrain sans recalculer les continents.** Aujourd'hui, il réévalue toute la chaîne des continents en un second point.
-   - **L'océan simplifié.** Sous le niveau de la mer, la surface est plate : seule la profondeur colore l'eau.
-4. **Alléger le calcul en double précision.** Le double n'est utile que pour les octaves fines, d'une longueur d'onde inférieure à quelques centaines de mètres. Les octaves plus larges peuvent passer en float sans perte visible.
-5. **En dernier recours, rafraîchir moins souvent les anneaux lointains**, à deux conditions : jamais au-delà d'une vitesse donnée, et seulement si aucun retard n'est visible.
-6. **Adapter n au budget** : réduire la finesse du maillage si une image dépasse son temps.
+1. **Calculate only what is in the field of view.** The calculation skips vertices out of the field, with a margin of two grid cells. A summit is tested with its entire possible altitude range, from sea level to 8 192 m. Thus, a mountain that enters the field from above is always calculated. The vertex below the camera is always calculated: it gives the height of the ground. Expected gain: 3 to 4 times when looking at the horizon, much more when looking down.
+2. **Measure the cost of each complexplanet layer**, neutralizing them one by one. We will know where to put the effort. Turbulence is suspicious: it represents about two thirds of the octaves.
+3. **Simplify the noise layers that cost the most**, according to the quality protocol. The experiments to test:
+   - **A faster basic noise**, for example a tableless gradient noise, or a simplex, which interpolates 4 points instead of 8.
+   - **Fewer octaves in turbulence.** Their last octaves distort the relief very little.
+   - **The terrain type without recalculating the continents.** Today, he re-evaluates the whole chain of continents in a second point.
+   - **The ocean in a simplified way.** Below sea level, the surface is flat: only the depth colours the water.
+4. **Lighten the calculation in double precision precision.** The double is only useful for fine octaves, with a wavelength less than a few hundred meters. Wider octaves can float without visible loss.
+5. **As a last resort, refresh the distant rings less often**, under two conditions: never above a given speed, and only if no delay is visible.
+6. **Adapter n to budget**: reduce the fineness of the mesh if an image exceeds its time.
 
-### Résultats de l'axe 2, en cours
+### Results of the 2 axis, in progress
 
-**Le pire cas est passé de 15,1 à 1,6 ms**, sous la cible idéale de 2 ms. Toutes les vues sauf le ras du sol sont sous 0,3 ms. Le détail de chaque réglage est dans `journal-planete.md`.
+**The worst case has gone from 15,1 to 1,6 ms**, below the ideal target of 2 ms. All views except ground level are under 0,3 ms. The detail of each setting is in `journal-planete.md`.
 
-| Étape | Résultat |
+| Stage | Result |
 |---|---|
-| 1. Champ de vision | Fait. Pire cas de 15,1 à 7,6 ms, aucun trou sur les bords de l'image. |
-| 2. Coût des couches | Fait, au ras du sol, regard à l'horizon. Turbulences : ~72 % du coût. Second calcul des continents pour le type de terrain : ~51 %. Double précision : ~20 %. Ces parts se recouvrent. |
-| 3a. Type de terrain filtré | Fait. Ses octaves sont limitées à une longueur d'onde de ~100 km. Pire cas de 7,6 à 4,6 ms. |
-| 3b. Table de gradients en mémoire partagée | Fait. Les lectures de la table à des indices dispersés coûtaient cher en mémoire constante. Rendu identique au pixel près, de 16 à 50 % de gain selon la vue. |
-| 4. Double précision près de la caméra seulement | Fait. Le double ne sert qu'aux sommets dont la maille fait moins de 4 m ; plus loin, l'imprécision du float, 0,4 m, reste invisible. Jusqu'à 70 % de gain selon la vue. |
-| 3c. Turbulences des continents plafonnées à 1024 | Fait, validé. Pire cas de 3,2 à 2,8 ms. Seul le contour fin de quelques côtes change : 0,2 % des pixels sur la vue de côte, rien ailleurs. |
-| 3d. Turbulence vectorielle | Fait, validé en vol. Les trois axes d'une turbulence en un seul bruit : pire cas de 2,8 à 1,6 ms. La forme exacte des taches de roche et des ondulations change, sans différence remarquée à l'œil. |
+| 1. Field of vision | Done. Worst case of 15,1 to 7,6 ms, no holes on the edges of the image. |
+| 2. Cost of diapers | Made, at the ground level, look at the horizon. Turbulence: ~72 % of cost. Second continent calculation for terrain type: ~51 %. Double precision: ~20 %. These shares overlap. |
+| 3a. Type of filtered terrain | Done. Its octaves are limited to a wavelength of ~100 km. Worst case of 7,6 to 4,6 ms. |
+| 3b. Gradient table in shared memory | Done. Readings from the table to scattered indices cost a lot of constant memory. Render identical to pixel close, from 16 to 50 % gain depending on view. |
+| 4. Double precision near camera only | Done. The double is only used for vertices where the grid cell is less than 4 m; further on, the imprecision of the float, 0,4 m, remains invisible. Up to 70 % gain depending on view. |
+| 3c. Continental turbulence capped at 1024 | Done, validated. Worst case of 3,2 to 2,8 ms. Only the fine outline of some ribs changes: 0,2 % of pixels on the rib view, nothing else. |
+| 3d. Vector turbulence | Done, validated in flight. The three axes of a turbulence in one noise: worst case of 2,8 to 1,6 ms. The exact shape of the rock spots and waves changes, without any difference noticeable to the eye. |
 
-Chaque étape faite a été comparée sur six vues : deux au-dessus du continent de départ, une vue d'orbite, un autre continent et deux vues de côte. L'écart moyen est resté sous 0,13 sur 255, sans aucun pixel changé de plus de 8 niveaux.
+Each step was compared on six views: two over the continent of departure, one orbit view, another continent and two coast views. The average deviation remained below 0,13 on 255, with no pixel changed from more than 8 levels.
 
-**Mesures après ces étapes**, au-dessus de 15° S, 50° E :
+**Measurements after these steps**, above 15° S, 50° E:
 
-| Hauteur au-dessus du sol | Regard à l'horizon | Regard vers le bas |
+| Height above ground | Looking at the horizon | Looking down |
 |---|---|---|
 | 1 m | 1,5 ms | 1,6 ms |
 | 100 m | 0,3 ms | 0,3 ms |
@@ -177,10 +177,10 @@ Chaque étape faite a été comparée sur six vues : deux au-dessus du continent
 | 300 km | 0,1 ms | 0,0 ms |
 | 2 000 km | 0,0 ms | 0,0 ms |
 
-## Alternatives écartées
+## Alternatives rejected
 
-| Solution | Pourquoi elle est écartée |
+| Solution | Why it is rejected |
 |---|---|
-| Pile de faces imbriquées, de taille ×2 | Densité qui saute d'un facteur 2 entre niveaux, coutures à traiter. À densité minimale égale, environ deux fois plus de sommets que les anneaux. |
-| Arbre quaternaire sur un cube fixe, la méthode standard du jeu vidéo | Les morceaux de terrain sont fixés sur la planète et mis en cache : c'est la plus performante. Mais elle abandonne le principe d'une face qui suit la caméra, recalculée à chaque image. À garder en réserve si l'axe 2 ne suffit pas. |
-| Une seule face, plus grande | À 10 km d'altitude, il faudrait près de 90 000 sommets par côté pour garder le détail sous la caméra. |
+| Stack of nested faces, size ×2 | Density jumping by a factor 2 between levels, seams to be processed. At equal minimum density, about twice as many vertices as rings. |
+| Quaternary tree on a fixed cube, the standard method of video game | The land pieces are fixed on the planet and cached: this is the most efficient. But she abandons the principle of a face that follows the camera, recalculated at each frame. To keep in reserve if the 2 axis is not enough. |
+| One face, larger | At 10 km altitude, it would take close to 90 000 peaks per side to keep detail under the camera. |

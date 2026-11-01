@@ -1,179 +1,179 @@
-# Recherche : le ciel nocturne
+# Search: night sky
 
-**Statut : un plan. Le ciel nocturne est fait sur la branche `etoiles`, tag `piste/etoiles`, le 2026-10-25 ; il n'est pas dans `main` et reste à intégrer.**
+**Status: a plan. The night sky is made on the branch `etoiles`, tag `piste/etoiles`, the 2026-10-25; it is not in `main` and remains to be integrated.**
 
-**Ce qui est fait, sur la branche :**
-- les étoiles et les planètes en images de points, le seuil de l'œil, la Voie lactée, la lueur atmosphérique, l'exposition de nuit et les bâtonnets ;
-- le code : `Stars.hlsl`, `StarsPixel.hlsl`, `Sky.hlsli`, `NightSky.hlsli`, `BrightStars.hlsli`, et des crochets marqués dans `Atmosphere.hlsli`, `AtmospherePass.hlsl`, `AtmosphereSkyIrradiance.hlsl`, `ToneMap.hlsl`, `D3DApp.cpp` ;
-- les mesures : `tools/banc_etoiles.py`, les vues `tools/tests/2026-10-25-etoiles.txt`, l'entrée du 2026-10-25 de `journal-planete.md` ;
-- trois règles de `principes.md`, sur la branche seulement : le ciel est de la lumière, pas un décor ; la nuit reste la nuit ; une table résout la fonction qu'elle porte.
+**What is done, on the branch:**
+- stars and planets in point images, the eye threshold, the Milky Way, atmospheric glow, night exposure and sticks;
+- the code: `Stars.hlsl`, `StarsPixel.hlsl`, `Sky.hlsli`, `NightSky.hlsli`, `BrightStars.hlsli`, and brackets marked in `Atmosphere.hlsli`, `AtmospherePass.hlsl`, `AtmosphereSkyIrradiance.hlsl`, `ToneMap.hlsl`, `D3DApp.cpp`;
+- measures: `tools/banc_etoiles.py`, views `tools/tests/2026-10-25-etoiles.txt`, entry of 2026-10-25 of `journal-planete.md`;
+- three rules of `principes.md`, on the branch only: the sky is light, not a decor; night remains night; a table resolves the function it carries.
 
-**Pour l'intégrer :**
-- la branche part du `jalon/18-lumiere` : avant la mer FFT, les nuages planétaires, la végétation détaillée et le vaisseau ;
-- dans le jeu, l'air est intégré par la composition des nuages (`spec-nuages.md`, `Clouds.hlsli`) : la lueur atmosphérique et la lumière des étoiles sur le sol y sont à reporter, à vérifier à l'intégration ;
-- ses règles vont dans `principes.md`, ses réglages dans le tableau de `journal-planete.md`.
+**To integrate it:**
+- the branch starts from the `jalon/18-lumiere`: before the sea FFT, the planetary clouds, the detailed vegetation and the ship;
+- in the game, the air is integrated by the composition of the clouds (`spec-nuages.md`, `Clouds.hlsli`): the atmospheric glow and the light of the stars on the ground are to be reported, to be checked at the integration;
+- its rules go in `principes.md`, its settings in the table of `journal-planete.md`.
 
-**Ce qui reste,** d'après le journal de la branche :
-- le crépuscule de 0° à -6°, 1,7 à 4 fois trop clair, et la lumière zodiacale, absente ;
-- les catalogues, à télécharger sur demande, section 7 ; pas de Lune ;
-- le ciel de nuit à l'écran et le crépuscule, à juger en vol.
+**What remains,** according to the branch journal:
+- twilight from 0° to -6°, 1,7 to 4 times too clear, and zodiacal light, absent;
+- catalogues, downloadable on request, section 7; no Moon;
+- the night sky on the screen and the twilight, to judge in flight.
 
 ## Conclusion
 
-- **Une étoile est l'image d'un point.** Sa lumière, une magnitude rapportée à celle du Soleil, va aux pixels que couvre son image, chacun sa part : la règle du disque solaire. Pas de géométrie : 65 536 quads d'un seul dessin, calculés dans le vertex shader.
-- **L'œil décide de ce qu'on voit.** Le seuil de Schaefer (1993) contre la luminance du ciel derrière l'étoile : aucune le jour, les plus brillantes d'abord au crépuscule, jusqu'à la magnitude 6,6 à 7 la nuit, selon le ciel. Aucun fondu ajouté : seule la luminance du ciel compte.
-- **L'air agit par sa transmittance,** celle de la table de l'atmosphère : extinction et rougissement près de l'horizon.
-- **La Voie lactée est la lumière des étoiles trop faibles pour être des points.** Sa moyenne vient des comptes d'étoiles, sa forme des comptes par latitude galactique ; ses nuages, d'un bruit, en attendant une carte du ciel.
-- **La nuit a sa lumière.** La lueur atmosphérique, émise dans la marche du ciel, et la lumière des étoiles. Le sol la reçoit par la table d'éclairement du ciel : 6e-4 lux, contre 1e-3 lux publié avec la lumière zodiacale, absente.
-- **L'exposition suit le posemètre, qui lit la nuit.** La clarté que l'œil donne à une scène baisse avec la lumière (Krawczyk 2005) : -4,5 IL la nuit par rapport au jour. Les bâtonnets voient sans couleur ce qui est sombre ; les étoiles gardent la leur.
-- **Les planètes suivent les éphémérides de JPL,** à la date que donne la place du Soleil, en 2026.
-- **Pas de scintillation :** à 60 images par seconde, elle se lit comme un défaut.
-- **Catalogue :** 320 étoiles écrites ici jusqu'à 3,5, puis un champ procédural fidèle aux comptes. Fichiers souhaités en fin de document.
+- **A star is the image of a point.** Its light, a magnitude related to that of the Sun, goes to the pixels that cover its image, each its share: the rule of the solar disk. No geometry: 65 536 quads of a single drawing, calculated in the vertex shader.
+- **The eye decides what we see.** The Schaefer threshold (1993) against the luminance of the sky behind the star: none during the day, brightest first at twilight, up to magnitude 6,6 to 7 at night, depending on the sky. No fading added: only the luminance of the sky counts.
+- **Air acts by its transmittance,** that of the atmosphere table: extinction and redness near the horizon.
+- **The Milky Way is the light of stars too faint to be points.** Its average comes from the counts of stars, its shape from the counts by galactic latitude; its clouds, from a noise, waiting for a map of the sky.
+- **The night has its light.** The atmospheric glow, emitted in the walk of the sky, and the light of the stars. The ground receives it by the illuminance table from the sky: 6e-4 lux, against 1e-3 lux released with zodiacal light, absent.
+- **Exposure follows the exposure meter, which reads at night.** The clarity that the eye gives to a scene decreases with light (Krawczyk 2005): -4,5 EV at night compared to day. The sticks see without color what is dark; the stars keep theirs.
+- **The planets follow the ephemeris of JPL,** at the date given by the place of the Sun, in 2026.
+- **No flicker:** at 60 frames per second, it reads as a default.
+- **Catalogue:** 320 stars written here up to 3,5, then a procedural field faithful to the accounts. Files desired at the end of document.
 
-## 1. Comment font les autres
+## 1. How do others do
 
-**Jensen et al. 2001, « A Physically-Based Night Sky Model » (SIGGRAPH), la référence la plus complète.**
-- Le catalogue Yale Bright Star, environ 9 000 étoiles, position, magnitude et couleur.
-- Une image d'étoiles à part, multipliée par une image de transmittance de l'atmosphère, puis ajoutée au rendu.
-- Photométrie : E = 10^(0,4 (-m - 19)) W/m², soit 2,5e-8 W/m² pour m = 0.
-- Couleur : température tirée de B-V, puis spectre de Planck.
-- Forme des étoiles : un filtre d'éblouissement (Spencer 1995).
-- Voie lactée : une mosaïque photographique de 14 400 × 7 200, étoiles brillantes retirées.
-- Lumières diffuses : lumière intégrée des étoiles constante, lumière zodiacale en table, lueur atmosphérique en couche active à 80 km.
-- Rendu pour l'œil : opérateur de Ward pour la vision scotopique, et un décalage vers le bleu.
+**Jensen et al. 2001, "A Physically-Based Night Sky Model" (SIGGRAPH), the most comprehensive reference.**
+- The Yale Bright Star catalog, about 9 000 stars, position, magnitude and color.
+- A separate image of stars, multiplied by an image of atmosphere transmittance, then added to the rendering.
+- Photometry: E = 10^(0,4 (-m - 19)) W/m², or 2,5e-8 W/m² for m = 0.
+- Color: temperature derived from B-V, then Planck spectrum.
+- Star shape: a glare filter (Spencer 1995).
+- Milky Way: a photographic mosaic of 14 400 × 7 200, bright stars removed.
+- Diffuse lights: integrated constant star light, zodiacal light in table, atmospheric glow in active layer at 80 km.
+- Rendering for the eye: Ward operator for scotopic vision, and a shift to blue.
 
-**Stellarium (code ouvert, `StelSkyDrawer`).**
-- Chaque magnitude donne un rayon et une luminance à l'écran.
-- La magnitude limite dépend du champ, de l'adaptation de l'œil et des paramètres des sources ponctuelles ; extinction et scintillation en option.
+**Stellarium (open source, `StelSkyDrawer`).**
+- Each magnitude gives a radius and a luminance to the screen.
+- Limit magnitude depends on field, eye adaptation and point source parameters; extinction and scintillation optional.
 
-**Celestia.** Des disques gaussiens dont l'aire croît avec l'éclat, saturés au centre (forum des développeurs).
+**Celestia.** Gaussian disks whose area grows with brightness, saturated in the center (developer forum).
 
-**SpaceEngine.** Un menu règle l'exposition et la magnitude limite (manuel). Pas de détail public sur le rendu.
+**SpaceEngine.** A menu adjusts the exposure and limit magnitude (manual). No public details on the rendering.
 
-**Microsoft Flight Simulator.** Catalogue réel et planètes. Les retours d'utilisateurs reprochent trop d'étoiles et une Voie lactée trop vive. Pas de source primaire sur la méthode.
+**Microsoft Flight Simulator.** Real catalog and planets. User feedback criticizes too many stars and a Milky Way too bright. No primary source on the method.
 
-**Elite Dangerous, Star Citizen.** Le fond de ciel d'Elite vient de sa galaxie simulée (Stellar Forge) ; rien de publié sur sa photométrie. Rien trouvé pour Star Citizen.
+**Elite Dangerous, Star Citizen.** Elite's background sky comes from its simulated galaxy (Stellar Forge); nothing published on its photometry. Star Citizen.
 
-**Unreal, Sky Atmosphere.** Rien sur les étoiles dans ce qu'on a pu lire : l'usage est un dôme de ciel texturé, sans photométrie (tutoriels).
+**Unreal, Sky atmosphere.** Nothing about the stars in what we could read: the use is a textured sky dome, without photometry (tutorials).
 
-**Ce qu'on retient.**
-- La structure de Jensen : une couche d'étoiles à part, la transmittance de l'air, un catalogue et la photométrie des magnitudes.
-- De Stellarium : une magnitude limite qui vient de l'œil, pas d'un réglage.
-- De Celestia et des photos : une image qui grandit avec l'éclat. Sans elle, toute étoile plus brillante que 6 donne le même pixel blanc.
+**What we keep.**
+- Jensen's structure: a layer of stars apart, air transmittance, a catalog and photometry of magnitudes.
+- From Stellarium: a limit magnitude that comes from the eye, not from a setting.
+- Celestia and photos: an image that grows with the brightness. Without it, any star brighter than 6 gives the same white pixel.
 
-## 2. La photométrie
+## 2. Photometry
 
-**Une seule échelle, celle du Soleil.** Une magnitude m éclaire de E = E☉ 10^(-0,4 (m - m☉)), m☉ = -26,74 en V, E☉ = π dans les unités du moteur. Le zéro de Schaefer, un pied-bougie pour la magnitude -16,57, donne 1,26e5 lux au Soleil et 2,5e-6 lux à m = 0, comme Jensen.
+**Only one scale, that of the Sun.** A magnitude m illuminates from E = E☉ 10^(-0,4 (m - m☉)), m☉ = -26,74 in V, E☉ = π in the engine units. The Schaefer zero, a candlestick for magnitude -16,57, gives 1,26e5 lux to the Sun and 2,5e-6 lux to m = 0, as Jensen.
 
-**La couleur.** B-V donne la température (Ballesteros 2012), puis le rapport des lois de Planck de l'étoile et du Soleil aux trois primaires, de luminance 1. Le Soleil, B-V = 0,65, reste blanc ; Bételgeuse est orange, Rigel bleutée.
+**The color.** B-V gives the temperature (Ballesteros 2012), then the ratio of Planck's laws of the star and the Sun to the three primary, of luminance 1. The Sun, B-V = 0,65, remains white; Betelgeuse is orange, Rigel bluish.
 
-**L'image d'un point.**
-- Un point dans un seul pixel ne tremble pas, mais toutes les étoiles visibles y saturent : à deux fois le seuil de l'œil, une étoile vaut déjà treize fois le ciel de son pixel.
-- On prend donc l'image qu'en fait une optique : le profil de Moffat (1969), (1 + r²/a²)^-β, celui des images d'étoiles, β = 3, large de 2 pixels à mi-hauteur, le plus étroit sans repliement.
-- Chaque pixel prend la part de l'image qu'il couvre, moyenne de quatre points. L'image s'étend tant qu'elle dépasse une étoile au seuil ; sa part au-delà est rendue au reste.
-- Les étoiles brillantes paraissent plus larges, comme sur une photo ou à l'œil.
+**The image of a point.**
+- A point in a single pixel does not shake, but all visible stars saturate it: at twice the threshold of the eye, a star is already worth thirteen times the sky of its pixel.
+- We take the image that an optics makes of it: the Moffat profile (1969), (1 + r²/a²)^-β, that of the images of stars, β = 3, wide of 2 pixels at half-height, the narrowest without folding.
+- Each pixel takes the part of the image it covers, averaged by four points. The image extends as far as it passes a star at the threshold; its share beyond is returned to the rest.
+- Bright stars appear larger, as in a photo or in the eye.
 
-**Le lissage temporel.** Il étalerait les quelques pixels d'une étoile qui glisse. Les étoiles ont leur couche, ajoutée après lui par la courbe de tons.
+**Temporary smoothing.** It would spread the few pixels of a gliding star. The stars have their layer, added after him by the tone curve.
 
-**Les 8 bits de l'écran.** Le ciel de nuit est un dégradé lent et sombre : arrondi au niveau, il se coupe en paliers visibles. Un demi-niveau de bruit, fixe sur l'écran, avant l'arrondi (bruit à gradient entrelacé, Jimenez 2014) les efface.
+**The 8 bits of the screen.** The night sky is a slow and dark gradient: rounded at the level, it cuts into visible layers. A half level of noise, fixed on the screen, before rounding (noise gradient interlaced, Jimenez 2014) erases them.
 
-## 3. Catalogues et Voie lactée
+## 3. Catalogues and catalogues
 
-**Les catalogues.**
-- **Yale Bright Star, 5e édition (Hoffleit et Warren 1991) :** 9 110 étoiles, complet vers 6,5 ; J2000, V, B-V. Le CDS le diffuse (V/50) ; 574 ko compressé.
-- **Hipparcos (ESA 1997) :** 118 218 étoiles, complet vers V = 7,3 à 9.
-- **Tycho-2 :** 2,5 millions d'étoiles, jusqu'à 11,5.
-- **Gaia :** plus d'un milliard d'étoiles ; seuls des extraits sont utilisables.
-- Au-delà de la magnitude 8, aucun œil ne voit d'étoile isolée : le BSC suffit pour les points, et la Voie lactée prend le reste.
+**The catalogues.**
+- **Yale Bright Star, 5e edition (Hoffleit and Warren 1991):** 9 110 stars, complete to 6,5; J2000, V, B-V. The CDS broadcasts it (V/50); 574 KB compressed.
+- **Hipparcos (ESA 1997):** 118 218 stars, complete to V = 7,3 to 9.
+- **Tycho-2:** 2,5 millions of stars, up to 11,5.
+- **Gaia:** more than a billion stars; only extracts are usable.
+- Beyond the magnitude 8, no eye can see a single star: the BSC is enough for the points, and the Milky Way takes the rest.
 
-**Ce qui est fait sans téléchargement.**
-- **Les étoiles brillantes, écrites ici :** 320 étoiles, complètes à 3,0 (169 contre 171) et à 95 % à 3,5, plus les Pléiades, la Petite Ourse, la Clé de voûte d'Hercule, la Lyre et le Dauphin.
-- **Le champ procédural, de 3,5 à 8 :** les comptes de tout le ciel par magnitude (Sunspot 1997 : 4 800 à 6, 9 100 à 6,5, 42 000 à 8). La k-ième étoile prend la magnitude de son rang : les nombres sont exacts par construction.
-- **Sa latitude galactique :** les comptes d'Allen à 7, 0,407, 0,170 et 0,107 étoile par degré carré à 0, 30 et 90°.
-- **Sa couleur :** la répartition des B-V du BSC, par déciles.
-- **La Voie lactée :** la lumière des étoiles plus faibles que 8, intégrée sur les comptes jusqu'à 40, plus 30 % de lumière diffusée par la poussière (Leinert 1998 ; Jensen 2001). Sa moyenne : 22,6 mag/arcsec² ; 24,0 aux pôles galactiques, 21,4 dans le plan, comme mesuré.
-- **Sa forme :** un disque large et une bande étroite de 11°, d'après les comptes d'Allen de la lumière des étoiles faibles ; plus claire vers le centre galactique ; nuages et bandes sombres d'un bruit de gradient log-normal de moyenne 1.
-- **Sa limite :** elle ressemble à une Voie lactée, pas à la nôtre. La carte de la NASA la remplace.
+**This is done without downloading.**
+- **The bright stars, written here:** 320 stars, complete at 3,0 (169 against 171) and at 95 % at 3,5, plus the Pleiades, the Little Bear, the Key of Hercules, the Lyre and the Dolphin.
+- **The procedural field, from 3,5 to 8:** the counts of the whole sky by magnitude (Sunspot 1997: 4 800 to 6, 9 100 to 6,5, 42 000 to 8). The k-th star takes the magnitude of its rank: the numbers are exact by construction.
+- **His galactic latitude:** Allen's counts at 7, 0,407, 0,170 and 0,107 star per square degree at 0, 30 and 90°.
+- **Its color:** the distribution of the B-V of the BSC, by deciles.
+- **The Milky Way:** the light from stars fainter than 8, integrated on the counts up to 40, plus 30 % of light scattered by dust (Leinert 1998; Jensen 2001). Its average: 22,6 mag/arcsec²; 24,0 at the galactic poles, 21,4 in the plane, as measured.
+- **Its shape:** a wide disk and a narrow band of 11°, according to Allen's counts of light from faint stars; lighter towards the galactic center; clouds and dark bands of a noise of log-normal gradient of mean 1.
+- **Its limit:** it looks like a Milky Way, not ours. The NASA card replaces it.
 
-## 4. Les planètes
+## 4. The planets
 
-**Le choix : les vraies, à une date tirée du Soleil.**
-- **Pourquoi :** le ciel est celui de la Terre, mêmes constellations, sur une planète de son rayon et de son air. Les vraies configurations sont justes d'elles-mêmes : Vénus jamais à plus de 47° du Soleil, Mercure près de lui. Elles ne coûtent aucune donnée.
-- **Une position fixe** d'un système imaginaire aurait été plus simple, mais rien n'aurait dit où la placer.
-- **La date :** la déclinaison du Soleil, sa latitude subsolaire, donne sa longitude écliptique, puis la date en 2026 ; on prend la branche du solstice de décembre à celui de juin.
-- **Les orbites :** les éléments képlériens de JPL (Standish, table 1, 1800 à 2050), Kepler par Newton, dans le vertex shader.
-- **Les magnitudes :** celles de l'Astronomical Almanac (Meeus, chapitre 41), selon la distance et l'angle de phase. Les anneaux de Saturne, par la tranche en 2025 et 2026, ne comptent pas.
-- **En juin 2026,** Vénus (-4,0), Jupiter et Mercure brillent à l'ouest après le coucher ; **en décembre,** Vénus (-4,5) est l'étoile du matin, Jupiter et Mars sont hauts à minuit.
-- **Pas de Lune :** le projet n'en a pas.
+**The choice: the real ones, at a date drawn from the Sun.**
+- **Why:** the sky is that of the Earth, same constellations, on a planet of its radius and air. The real configurations are just by themselves: Venus never more than 47° from the Sun, Mercury close to it. They cost no data.
+- **A fixed position** of an imaginary system would have been simpler, but nothing would have said where to place it.
+- **The date:** the declination of the Sun, its subsolar latitude, gives its ecliptic longitude, then the date in 2026; we take the branch of the solstice of December to that of June.
+- **The orbits:** the Kepler elements of JPL (Standish, table 1, 1800 to 2050), Kepler by Newton, in the vertex shader.
+- **The magnitudes:** those of the Astronomical Almanac (Meeus, chapter 41), according to the distance and the angle of phase. Saturn's rings, by the slice in 2025 and 2026, do not count.
+- **In June 2026,** Venus (-4,0), Jupiter and Mercury shine west after sunset; **in December,** Venus (-4,5) is the morning star, Jupiter and Mars are high at midnight.
+- **No Moon:** the project does not have one.
 
-## 5. La visibilité
+## 5. Visibility
 
-**Les crépuscules (American Meteorological Society, glossaire).**
-- **Civil, jusqu'à -6° :** l'éclairement horizontal passe de 410 à 585 lux au coucher à 2 à 3,5 lux.
-- **Nautique, jusqu'à -12° :** 0,008 lux à la fin.
-- **Astronomique, jusqu'à -18° :** 6e-4 lux, la nuit.
+**Twilights (American Meteorological Society, glossary).**
+- **Civil, up to -6°:** the horizontal illuminance changes from 410 to 585 lux at nightfall to 2 to 3,5 lux.
+- **Nautical, up to -12°:** 0,008 lux at the end.
+- **Astronomical, up to -18°:** 6e-4 lux, at night.
 
-**La magnitude limite (Schaefer 1993, Vistas in Astronomy 36 ; son programme, Sky & Telescope, mai 1998).**
-- La loi de Hecht : le plus faible point vu contre un ciel de luminance B éclaire de I = c1 (1 + √(c2 B))², I en pieds-bougies, B en nanolamberts.
-- **Bâtonnets,** sous 1 500 nL : c1 = 10^-9,8, c2 = 10^-1,9. **Cônes,** au-dessus : c1 = 10^-8,35, c2 = 10^-5,9. On prend le plus sensible des deux : la loi reste continue.
-- **Repères :** un ciel noir donne 7,9 ; un ciel de nuit de 21,9 mag/arcsec² (54 nL), 6,6 ; un ciel de jour, -4, Vénus au mieux.
-- **Son modèle de ciel** sert de témoin : le crépuscule perd 0,4 magnitude par degré.
+**The limit magnitude (Schaefer 1993, Vistas in Astronomy 36; his program, Sky & Telescope, may 1998).**
+- Hecht's law: the fastest point seen against a sky of luminance B shines with I = c1 (1 + √(c2 B))², I in candlesticks, B in nanolamberts.
+- **Sticks,** under 1 500 nL: c1 = 10^-9,8, c2 = 10^-1,9. **Cones,** above: c1 = 10^-8,35, c2 = 10^-5,9. We take the more sensitive of the two: the law remains continuous.
+- **reference frames:** a black sky gives 7,9; a night sky of 21,9 mag/arcsec² (54 nL), 6,6; a day sky, -4, Venus at best.
+- **His sky model** serves as a witness: twilight loses 0,4 magnitude per degree.
 
-**Ce que le moteur fait.**
-- Chaque étoile compare sa lumière, après l'air, au seuil que donne le ciel derrière elle, lu dans l'image composite : diffusion, lueur atmosphérique, Voie lactée, halo.
-- **L'œil ne voit que l'excès.** Une étoile au double du seuil garde la moitié de sa lumière ; sous le seuil, rien. La transition reste continue.
-- **La physique décide :** pas de fondu selon l'heure. Le seuil suit la luminance du ciel, le reste suit la transmittance.
+**What the engine does.**
+- Each star compares its light, after the air, to the threshold given by the sky behind it, read in the composite image: diffusion, atmospheric glow, Milky Way, halo.
+- **The eye sees only excess.** A star twice the threshold keeps half of its light; below the threshold, nothing. The transition is ongoing.
+- **Physics decides:** no time-dependent fade. The threshold follows the luminance of the sky, the rest follows the transmittance.
 
-**La scintillation.**
-- Elle est réelle : environ 25 % d'écart à l'œil au zénith, bien plus près de l'horizon (Young 1967 ; Dravins et al. 1997), à 10 à 100 Hz.
-- Pas retenue : sur des images de 2 à 4 pixels à 60 images par seconde, elle se lit comme un tremblement, ce que le banc interdit.
-- Possible plus tard, lente et réservée à l'horizon.
+**The scintillation.**
+- It is real: about 25 % of eye-off at zenith, much closer to the horizon (Young 1967; Dravins et al. 1997), to 10 to 100 Hz.
+- Not retained: on images of 2 to 4 pixels to 60 frames per second, it is read as a jitter, which the benchmark prohibits.
+- Possible later, slow and reserved on the horizon.
 
-## 6. La lumière de la nuit
+## 6. The light of the night
 
-**Ses parts (Leinert et al. 1998 ; Jensen 2001).**
-- **La lueur atmosphérique :** raie verte de l'oxygène à 557,7 nm (environ 250 R), bandes OH, sodium, continuum ; une couche vers 85 à 100 km.
-- **La lumière zodiacale :** le Soleil diffusé par la poussière interplanétaire.
-- **La lumière intégrée des étoiles,** et celle que diffuse la poussière galactique.
-- **Le ciel naturel au zénith,** au minimum solaire : V = 21,9 à 22,0 mag/arcsec², B = 22,7, R = 21,0 (Hänel et al. 2018 ; La Palma).
-- **Le sol sans Lune :** environ 1e-3 lux, 6e-4 à la fin du crépuscule astronomique. La pleine Lune donne 0,05 à 0,3 lux.
+**Its shares (Leinert et al. 1998; Jensen 2001).**
+- **Atmospheric glow:** green line of oxygen at 557,7 nm (about 250 R), bands OH, sodium, continuum; a layer towards 85 at 100 km.
+- **Zodiacal light:** the Sun diffused by interplanetary dust.
+- **The integrated light of stars,** and that diffused by galactic dust.
+- **The natural sky at zenith,** at solar minimum: V = 21,9 to 22,0 mag/arcsec², B = 22,7, R = 21,0 (Hänel et al. 2018; La Palma).
+- **The ground without Moon:** about 1e-3 lux, 6e-4 at the end of the astronomical twilight. The full moon gives 0,05 to 0,3 lux.
 
-**Ce que le moteur fait.**
-- **La lueur atmosphérique est une émission du milieu,** dans la marche de `IntegrateScattering` : une couche en sech² à 90 km, 7 km à mi-hauteur. Chaque pas en prend la moyenne exacte, comme la brume.
-- **Sa luminance au zénith, hors de l'air :** 22,4 mag/arcsec², le ciel naturel moins la lumière zodiacale et celle des étoiles. Sa couleur : B-V = 0,8, celle du ciel mesuré.
-- **Il en vient tout seul :** l'éclaircissement vers l'horizon (van Rhijn), le rougissement près de l'horizon, la ligne du limbe vue d'orbite, la lumière qui tombe sur le sol par la table d'éclairement.
-- **La lumière des étoiles sur le sol :** la moyenne de toutes, points et Voie lactée, répartie sur le ciel, dans la même table.
-- **Il manque la lumière zodiacale :** environ 20 à 30 % de la nuit.
+**What the engine does.**
+- **Atmospheric glow is an emission from the middle,** in the walk of `IntegrateScattering`: a layer in six² at 90 km, 7 km at mid-height. Each step takes the exact average, like the fog.
+- **Sa luminance at zenith, out of the air:** 22,4 mag/arcsec², the natural sky less zodiacal light and that of the stars. Its color: B-V = 0,8, that of the sky measured.
+- **It comes by itself:** the lightening towards the horizon (van Rhijn), the blushing near the horizon, the line of the limb seen from orbit, the light that falls on the ground by the table of illuminance.
+- **The light of the stars on the ground:** the average of all, points and Milky Way, distributed over the sky, in the same table.
+- **Missing zodiacal light:** about 20 to 30 % of night.
 
-**L'œil et l'appareil la nuit.**
-- **L'adaptation (CIE 191:2010) :** vision photopique au-dessus de 5 cd/m², mésopique de 0,005 à 5, scotopique en dessous.
-- **Purkinje :** la sensibilité passe de 555 nm à 507 nm.
-- **Les couleurs disparaissent,** l'acuité tombe vers un dixième sous les étoiles. Le « bleu de la nuit » des films est une convention (Thompson et al. 2002) ; pas retenu.
-- **Un posemètre incident** lit 1e-3 lux sous les étoiles, IL100 = -11 : il ferait de la nuit un jour.
-- **Les astrophotographes exposent environ 5 IL en dessous :** 20 s, f/2,8, ISO 3 200, soit IL100 = -6,3.
-- **La clarté que l'œil donne à une scène :** la clé de Krawczyk, Myszkowski et Seidel (2005), 1,03 - 2 / (2 + log10(L + 1)), L la luminance d'adaptation en cd/m². Elle vaut 0,69 sous le Soleil de midi, 0,12 à la fin du crépuscule civil, 0,03 la nuit : -4,5 IL, comme les astrophotographes.
-- **Le choix :** le posemètre lit le crépuscule et la nuit ; l'exposition le suit, multipliée par la clé de l'œil rapportée à celle de midi. Le jour change à peine : -0,07 IL à 10° de hauteur, -0,15 à 5°, -0,45 au coucher ; puis -1,3 IL à -4°, -2,5 à -6°, -4,5 dès -12° (posemètre de midi : 1,13e5 lux).
-- **Les bâtonnets :** ce qui est sombre, pour un œil adapté au sombre, perd sa couleur, sa luminance gardée. Leur part va de 0 à 5 cd/m² à 1 à 0,005 cd/m², selon le plus clair du pixel et de l'adaptation. Le rougeoiement d'un crépuscule garde donc sa couleur, le ciel de nuit devient gris ; les étoiles gardent la leur.
+**The eye and the device at night.**
+- **The adaptation (CIE 191:2010):** photopic vision above 5 cd/m², mesopic from 0,005 to 5, scotopic below.
+- **Purkinje:** sensitivity changes from 555 nm to 507 nm.
+- **Colours fade,** sharpness drops to a tenth below the stars. The “blue of the night” of films is a convention (Thompson et al. 2002); not accepted.
+- **An incident exposure meter** reads 1e-3 lux under the stars, IL100 = -11: it would make night a day.
+- **Astrophotographers expose about 5 EV below:** 20 s, f/2,8, ISO 3 200, or IL100 = -6,3.
+- **The clarity that the eye gives to a scene:** the key of Krawczyk, Myszkowski and Seidel (2005), 1,03 - 2 / (2 + log10(L + 1)), L the luminance adaptation in cd/m². It is worth 0,69 under the Sun at noon, 0,12 at the end of civil twilight, 0,03 at night: -4,5 EV, like astrophotographers.
+- **The choice:** the exposure meter reads twilight and night; the exposure follows it, multiplied by the key of the eye compared to that of noon. The day barely changes: -0,07 EV to 10° of height, -0,15 to 5°, -0,45 at sunset; then -1,3 EV to -4°, -2,5 to -6°, -4,5 from -12° (postmeter at noon: 1,13e5 lux).
+- **The sticks:** what is dark, for an eye adapted to the dark, loses its color, its luminance kept. Their share goes from 0 to 5 cd/m² to 1 to 0,005 cd/m², depending on the clearer pixel and adaptation. The glow of a twilight therefore keeps its color, the night sky becomes gray; the stars keep theirs.
 
-## 7. À télécharger, sur demande
+## 7. Downloadable, on request
 
-- **Le Yale Bright Star Catalogue, 5e édition révisée, préliminaire :** `https://cdsarc.cds.unistra.fr/ftp/V/50/catalog.gz`, 573 921 octets, 9 110 étoiles. Le CDS demande de citer la source ; pas de licence explicite dans le `ReadMe`. Il remplacerait `BrightStars.hlsli` et le champ procédural jusqu'à 6,5.
-- **La Voie lactée de la NASA, « Deep Star Maps 2020 » :** `https://svs.gsfc.nasa.gov/vis/a000000/a004800/a004851/milkyway_2020_4k.exr`, 4 096 × 2 048, 34,7 Mo, fond sans les étoiles brillantes de Hipparcos et Tycho, en coordonnées équatoriales. Crédit : NASA/Goddard Space Flight Center Scientific Visualization Studio ; Gaia DR2 : ESA/Gaia/DPAC. Pas d'étalonnage publié : on le caserait sur la moyenne et le profil galactique d'ici.
-- **En option, la lumière zodiacale :** la table de Leinert et al. 1998, au CDS (J/A+AS/127/1), quelques ko.
+- **The Yale Bright Star Catalogue, 5e revised edition, preliminary:** `https://cdsarc.cds.unistra.fr/ftp/V/50/catalog.gz`, 573 921 bytes, 9 110 stars. The CDS requests credit; no explicit license in the `ReadMe`. It would replace `BrightStars.hlsli` and the procedural field up to 6,5.
+- **The Milky Way of the NASA, « Deep Star Maps 2020 »:** `https://svs.gsfc.nasa.gov/vis/a000000/a004800/a004851/milkyway_2020_4k.exr`, 4 096 × 2 048, 34,7 MB, background without the bright stars of Hipparcos and Tycho, in equatorial coordinates. Credit: NASA/Goddard Space Flight Center Scientific Visualization Studio; Gaia DR2: ESA/Gaia/DPAC. No published calibration: we would put it on the average and the galactic profile from here.
+- **Optionally, zodiacal light:** the table of Leinert et al. 1998, to CDS (J/A+AS/127/1), a few KB.
 
 ## Sources
 
 - Jensen, Durand, Stark, Premože, Dorsey, Shirley, « A Physically-Based Night Sky Model », SIGGRAPH 2001.
-- Schaefer, « Astronomy and the limits of vision », Vistas in Astronomy 36, 1993 ; « To the visual limits », Sky & Telescope, mai 1998, programme repris par L. Bogan (bogan.ca/astro/optics/vislimit.html).
+- Schaefer, « Astronomy and the limits of vision », Vistas in Astronomy 36, 1993; « To the visual limits », Sky & Telescope, May 1998, programme taken by L. Bogan (bogan.ca/astro/optics/vislimit.html).
 - Leinert et al., « The 1997 reference of diffuse night sky brightness », A&AS 127, 1998.
-- Hänel et al. 2018, cité par « Natural Night Sky Brightness during Solar Minimum », arXiv:2105.01066.
-- Allen, Astrophysical Quantities, comptes d'étoiles par latitude galactique (repris par l'Isaac Newton Group, WEAVE).
-- Comptes de tout le ciel : Sunspot Solar Observatory 1997, repris par Wikipédia, « Apparent magnitude ».
-- Standish, « Keplerian Elements for Approximate Positions of the Major Planets », JPL ; Meeus, Astronomical Algorithms, chapitre 41.
+- Hänel et al. 2018, cited by « Natural Night Sky Brightness during Solar Minimum », arXiv:2105.01066.
+- Allen, Astrophysical Quantities, counts of stars by galactic latitude (reprinted by the Isaac Newton Group, WEAVE).
+- Counts of the whole sky: Sunspot Solar Observatory 1997, quoted by Wikipedia, "Apparent magnitude".
+- Standish, "Keplerian Elements for Approximate Positions of the Major Planets", JPL; Meeus, Astronomical Algorithms, chapter 41.
 - Ballesteros, « New insights into black bodies », EPL 97, 2012.
 - Moffat, « A theoretical investigation of focal stellar images », A&A 3, 1969.
 - Krawczyk, Myszkowski, Seidel, « Lightness perception in tone reproduction for high dynamic range images », Eurographics 2005.
-- CIE 191:2010, photométrie mésopique ; Thompson, Shirley, Ferwerda, « A spatial post-processing algorithm for images of night scenes », 2002.
-- American Meteorological Society, Glossary of Meteorology : civil, nautical, astronomical twilight.
-- Young 1967, Astronomical Journal 72 ; Dravins, Lindegren, Mezey, Young, PASP 109, 1997 : scintillation.
+- CIE 191:2010, mesopic photometry; Thompson, Shirley, Ferwerda, « A spatial post-processing algorithm for images of night scenes », 2002.
+- American Meteorological Society, Glossary of Meteorology: civil, nautical, astronomical twilight.
+- Young 1967, Astronomical Journal 72; Dravins, Lindegren, Mezey, Young, PASP 109, 1997: scintillation.
 - NASA SVS 4851, Deep Star Maps 2020 ; CDS V/50, Bright Star Catalogue.

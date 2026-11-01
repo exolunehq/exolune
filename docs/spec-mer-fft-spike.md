@@ -1,58 +1,58 @@
-# Spike : océan FFT et écume persistante
+# Spike: FFT ocean and persistent foam
 
-**Statut :** aspect validé en vol le 2026-10-26 ; rebase sur main 083bfb1, puis intégration au jalon/23-mer-fft-main.
-**Jalon initial :** jalon/22-mer-fft ; base 47c404b conservée sous piste/mer-fft-spike.
+**Status:** appearance validated in flight on 2026-10-26; rebased onto main 083bfb1, then integrated at jalon/23-mer-fft-main.
+**Initial milestone:** jalon/22-mer-fft; base 47c404b preserved under piste/mer-fft-spike.
 
-**Objectif**
-- Repartir sur un noyau proche neuf après le rejet des filets blancs et des bandes de mousse.
-- Le premier jet reste au tag `piste/mer-animee` ; sa doc est dans `log/recherche-mer-historique.md`.
+**Goal**
+- Start again with a fresh near-field kernel after the rejection of white streaks and foam strips.
+- The first iteration remains at tag `piste/mer-animee`; its documentation is in `log/recherche-mer-historique.md`.
 
 **Architecture**
-- Spectre JONSWAP à fetch limité, étalement de Donelan-Banner, houle séparée.
-- Quatre cascades 256² : tuiles de 1 103, 113,1, 11,57 et 1,183 m ; bandes disjointes.
-- Choppiness 1,25, amortie sous 40 cm de longueur d'onde ; les rides capillaires restent proches du modèle linéaire.
-- Spectre initial précalculé ; évolution temporelle, FFT des lignes puis des colonnes.
-- Sorties communes : déplacement XYZ, cinq dérivées, premiers et seconds moments des pentes ; mips à chaque image.
-- Normale par inverse du Jacobien horizontal ; covariance non résolue transformée avec ce Jacobien.
-- Écume déposée selon le Jacobien ; densité et fraîcheur dans deux cartes toriques 512² de 128 et 1 024 m.
-- Dérive de 0,03 U dans le sens du vent ; densité dissipée à 0,22/s, fraîcheur à 1,6/s.
-- Pores périodiques multiéchelles précalculés sur GPU ; mousse blanche éclairée par la surface, traînées selon le vent.
-- Environ 40 Mio de ressources nominales ; aucune texture mondiale.
-- Hauteur locale pour la caméra, quatre itérations sur GPU et lecture de 16 octets ; garde de 75 cm.
-- Le compteur FFT sépare la simulation du reste des calculs GPU.
-- Sur main : SRV t11 à t16, après l'ombre t9 et la carte planétaire t10 ; horodatages FFT 6 et 7, distincts des objets.
-- Diagnostics de main conservés de 1 à 26 ; foam, glint, foamfresh, foamold et crest ajoutés de 27 à 31.
+- Fetch-limited JONSWAP spectrum, Donelan-Banner spreading, separate swell.
+- Four 256² cascades: tiles of 1,103, 113.1, 11.57 and 1.183 m; disjoint bands.
+- Choppiness 1.25, damped below 40 cm wavelength; capillary ripples remain close to the linear model.
+- Precomputed initial spectrum; time evolution, row FFT followed by column FFT.
+- Shared outputs: XYZ displacement, five derivatives, first and second slope moments; mips every frame.
+- Normal from the inverse horizontal Jacobian; unresolved covariance transformed by that Jacobian.
+- Foam deposited according to the Jacobian; density and freshness in two 512² toroidal maps covering 128 and 1,024 m.
+- Drift of 0.03 U downwind; density dissipates at 0.22/s, freshness at 1.6/s.
+- Multiscale periodic pores precomputed on the GPU; white foam lit by the surface, trails aligned with the wind.
+- About 40 MiB of nominal resources; no global texture.
+- Local height for the camera, four GPU iterations and a 16-byte readback; 75 cm clearance.
+- The FFT timer separates simulation from the remaining GPU work.
+- On main: SRV t11 to t16, after shadow t9 and planet map t10; FFT timestamps 6 and 7, separate from objects.
+- Main diagnostics 1 to 26 preserved; foam, glint, foamfresh, foamold and crest added as 27 to 31.
 
-**Planète**
-- Ciel, atmosphère, couleur des fonds, terrain et maillage sphérique conservés.
-- Plan tangent transporté ; coordonnées accumulées en double sur CPU.
-- Fractions modulo les tuiles et différences d'indices entiers dans les shaders.
-- Cartes d'écume vidées après un saut de caméra ou un changement de spectre.
-- Déplacement amorti par la profondeur ; vagues incluses dans la marge de visibilité.
+**Planet**
+- Sky, atmosphere, bottom color, terrain and spherical mesh preserved.
+- Transported tangent plane; coordinates accumulated in double precision on the CPU.
+- Fractions modulo the tiles and differences of integer indices in shaders.
+- Foam maps cleared after a camera jump or spectrum change.
+- Displacement damped by depth; waves included in the visibility margin.
 
-**Limites du spike**
-- Vent uniforme et houle réglés par vue ; carte de vent planétaire à raccorder.
-- Déferlement côtier et réfraction non traités.
-- Raccord lointain simplifié vers Cox-Munk et Monahan ; couverture proche non calibrée sur Monahan.
-- Reflet à 400 km : écart moyen de 2,8 % à 12 m/s, 6,2 % à 24 m/s ; la cible de 5 % n'est donc pas atteinte en vent fort.
-- La variation mesurée sur mer figée quand le maillage glisse n'est pas supprimée.
-- Champ de hauteur : pas de lame retournée ni de gouttelettes.
-- La réussite visuelle précède l'intégration ; compilation et moyennes ne suffisent pas à valider la mousse.
+**Spike limitations**
+- Uniform wind and swell set per view; planetary wind map remains to be connected.
+- Coastal breaking and refraction untreated.
+- Simplified distant transition to Cox-Munk and Monahan; near-field coverage not calibrated against Monahan.
+- Reflection at 400 km: mean error of 2.8% at 12 m/s, 6.2% at 24 m/s; the 5% target is therefore not met in strong wind.
+- The measured variation on a frozen sea as the mesh slides is not eliminated.
+- Height field: no overturning wave crests or droplets.
+- Visual success precedes integration; compilation and averages do not suffice to validate foam.
 
-**État**
-- Aspect accepté par l'utilisateur après essai ; le raccord au vent planétaire et les limites ci-dessus restent ouverts.
-- Saut de caméra : hauteur du sol en cache et lecture GPU de l'ancienne position invalidées avant la collision.
-- Banc initial sur 30 lieux, stabilité, pôles, intégration à main et coût : [mesures et limites dans le log](log/spec-mer-fft-spike-historique.md).
+**State**
+- Appearance accepted by the user after testing; connection to planetary wind and the limitations above remain open.
+- Camera jump: cached ground height and GPU readback from the old position invalidated before collision.
+- Initial benchmark at 30 locations, stability, poles, main integration and cost: [measurements and limitations in the log](log/spec-mer-fft-spike-historique.md).
 
-**Essayer et mesurer**
-- Palette `tools/tests/2026-10-26-mer-main.txt`, par `-Parcours` du lanceur de jeu (`lancement.md`) ; F1 à F7 pour la mer, F8 et F9 pour les forêts, F10 pour l'orbite, F11 et F12 pour les pôles.
-- Quatrième colonne facultative : vitesse du vent, direction en degrés, hauteur significative de houle.
-- MYPLANETENGINE_OCEAN_WIND fournit ces trois nombres au démarrage.
-- MYPLANETENGINE_CAPTURE_FRAME fixe l'image de capture pour laisser mûrir les traînées.
-- tools/banc_qualite.py --reuse-sites précédent/qualite.json réemploie les lieux et caps ; toutes les images, tous les masques et tous les scores sont recalculés.
+**Try and measure**
+- Palette `tools/tests/2026-10-26-mer-main.txt`, through the game launcher's `-Parcours` (`lancement.md`); F1 to F7 for the sea, F8 and F9 for forests, F10 for orbit, F11 and F12 for poles.
+- Optional fourth column: wind speed, direction in degrees, significant swell height.
+- MYPLANETENGINE_OCEAN_WIND supplies these three numbers at startup.
+- MYPLANETENGINE_CAPTURE_FRAME sets the capture frame to allow trails to mature.
+- tools/banc_qualite.py --reuse-sites précédent/qualite.json reuses locations and headings; all images, masks and scores are recalculated.
 
-**Provenance et code**
-- Simulation et matière d'écume adaptées de [Noniv/web-ocean](https://github.com/Noniv/web-ocean), commit a07c7fd522ef0a897601c114f927a49d93d95520.
-- MIT, copyright 2026 Maksymilian Dendura ; licence conservée dans third_party/web-ocean/LICENSE.
-- Ordonnancement DX12, barrières, transport du plan et coordonnées toriques précises propres au spike.
-- Ocean.cpp / Ocean.h : ressources et ordonnancement ; OceanCompute.hlsl : simulation ; OceanSurface.hlsli / Sea.hlsli : géométrie et lumière ; OceanUniform.hlsli : constantes.
+**Provenance and code**
+- Simulation and foam material adapted from [Noniv/web-ocean](https://github.com/Noniv/web-ocean), commit a07c7fd522ef0a897601c114f927a49d93d95520.
+- MIT, copyright 2026 Maksymilian Dendura; license preserved in third_party/web-ocean/LICENSE.
+- DX12 scheduling, barriers, plane transport and precise toroidal coordinates specific to this spike.
+- Ocean.cpp / Ocean.h: resources and scheduling; OceanCompute.hlsl: simulation; OceanSurface.hlsli / Sea.hlsli: geometry and light; OceanUniform.hlsli: constants.

@@ -1,501 +1,501 @@
-# Optimisation du rendu de vol
+# Optimized flight rendering
 
-**L'objectif :** 60 images par seconde au minimum en 1920×1080, 120 visées, à qualité perçue conservée. Départ le 2026-10-28 sur la branche `optimisation`, issue de `main` et du profil d'exécution optimisée (`execution-optimisee.md`).
+**The goal:** 60 frames per second minimum in 1920×1080, 120 targeted, with perceived quality retained. Starts the 2026-10-28 on the `optimisation` branch, originated from `main` and the optimized execution profile (`execution-optimisee.md`).
 
-## Le banc
+## The benchmark
 
-**`tools/banc_perf.py` fait foi pour le temps.**
-- **La configuration de vol :** le jeu, l'exe sans variable : nuages planétaires, mer FFT, végétation détaillée avec HiZ, sans TAA ni halo, coupés par défaut (`lancement.md`).
-- **Huit vues,** du sol en forêt à 2 m jusqu'au globe à 10 000 km : `foret_sol`, `lisiere`, `montagne`, `mer`, `survol`, `cumulus`, `orbite`, `globe`.
-- **1920×1080, VSync coupée, sans fenêtre.** Chaque vue donne le temps GPU de chaque passe, moyenné sur 120 images (`<capture>.perf`, `D3DApp::ReadGpuTimes`).
-- **La garde de qualité :** `--before <perf.json>` compare chaque image à la précédente : écart moyen en niveaux 8 bits, part des pixels qui bougent de plus de 8 niveaux.
-- **Le banc est déterministe :** deux passes donnent des images identiques au bit près. Le temps varie de 5 %, jusqu'à 10 % ; un gain se juge au-delà.
-- **Construire d'abord :** `tools/lance.ps1 -Build -NoLaunch`. Un banc à la fois : le GPU est ce qu'on mesure.
-- **La qualité du terrain** reste jugée par `tools/banc_qualite.py` ; ce qui se voit en mouvement, en vol (`tools/lance.ps1`).
-- **La colonne `nuages_trace`** isole la trace des nuages dans la passe de l'atmosphère.
-- **La colonne `terrain_dessin`** additionne la profondeur du terrain et sa couleur, dessinée après le feuillage (round 2).
-- **Les colonnes `objets_place` et `plantes_place` se chevauchent :** aucune barrière entre les objets et le tri des tuiles de plantes ; on juge leur somme.
-- **`--views a,b` :** un sous-ensemble des vues, pour itérer vite. Les images d'un sous-ensemble ne se comparent qu'à un sous-ensemble identique : la tuile 4×4 de chaque vue dépend des images rendues avant elle.
-- **`cumulus_sol`** (round 7) : 150 m au-dessus d'une forêt, des cumulus dans le ciel ; le vol rapide entre le sol et les nuages.
-- **Les options :** `--full` garde la passe unique des nuages en pleine résolution ; `--weather <s>` fixe le temps météo.
-- **La cadence réelle** (round 5) : après les passes du GPU, l'image du CPU, en ms. `cpu_prep` la préparation, `cpu_liste` l'enregistrement, `cpu_present` la soumission et la présentation, `cpu_attente` l'attente du GPU ; `cadence` le temps d'une présentation à la suivante, ce que l'œil reçoit ; `gpu_inactif` le GPU inoccupé entre deux images, par ses horodatages. La colonne `réel` du tableau est la cadence en fps ; `fps` reste celle du temps GPU.
-- **Le banc de mouvement :** `--motion "<cap °> <latitude °> <météo s>"`, par image. La caméra rejoint chaque vue à la capture en tournant et en volant vers le nord ; la météo court jusqu'à son temps. Comparé à un banc immobile, il montre ce qu'une passe temporelle perd en mouvement.
+**`tools/banc_perf.py` is authentic for the time.**
+- **The flight configuration:** the game, the exe without variable: planetary clouds, sea FFT, vegetation detailed with HiZ, without TAA or halo, cut by default (`lancement.md`).
+- **Eight views,** from the forest floor at 2 m to the globe at 10 000 km: `foret_sol`, `lisiere`, `montagne`, `mer`, `survol`, `cumulus`, `orbite`, `globe`.
+- **1920×1080, VSync off, no window.** Each view gives the GPU time of each pass, averaged on 120 images (`<capture>.perf`, `D3DApp::ReadGpuTimes`).
+- **Quality guard:** `--before <perf.json>` compares each frame to the previous one: average difference in levels 8 bits, share of pixels moving more than 8 levels.
+- **The benchmark is deterministic:** two passes give identical images to the bit. The time ranges from 5 %, up to 10 %; a gain is judged beyond.
+- **Build first:** `tools/lance.ps1 -Build -NoLaunch`. One benchmark at a time: the GPU is what we measure.
+- **The quality of the ground** remains judged by `tools/banc_qualite.py`; what is seen in movement, in flight (`tools/lance.ps1`).
+- **The `nuages_trace` column** isolates the cloud track in the atmosphere passage.
+- **The column `terrain_dessin`** adds the depth of the field and its color, drawn after the foliage (round 2).
+- **The columns `objets_place` and `plantes_place` overlap:** no barrier between objects and plant tiles sorting; their sum is judged.
+- **`--views a,b`:** a subset of views, to iterate quickly. Images in a subset are compared only to an identical subset: the 4×4 tile of each view depends on the images rendered before it.
+- **`cumulus_sol`** (round 7): 150 m above a forest, cumulus clouds in the sky; fast flight between the ground and clouds.
+- **The options:** `--full` keeps the single pass of clouds in full resolution; `--weather <s>` fixes the weather time.
+- **The actual cadence** (round 5): after the passes of the GPU, the image of the CPU, in ms. `cpu_prep` the preparation, `cpu_liste` the recording, `cpu_present` the submission and the presentation, `cpu_attente` the waiting of the GPU; `cadence` the time from one presentation to the next, what the eye receives; `gpu_inactif` the GPU unoccupied between two images, by its timestamps. The `réel` column of the table is the frame rate in fps; `fps` remains the time GPU.
+- **Motion benchmark:** `--motion "<cap °> <latitude °> <météo s>"`, per frame. The camera joins each view at capture by turning and flying north; the weather runs to its time. Compared to a benchmark stationary, it shows what a time pass loses in movement.
 
-## La référence
+## The reference
 
-**RTX 4070 Ti, commit `242d0f7`, ms GPU par image.** Le CPU attend le GPU à chaque image : le temps GPU fait la cadence.
+**RTX 4070 Ti, commit `242d0f7`, ms GPU per frame.** The CPU waits for the GPU at each frame: the time GPU makes the cadence.
 
-| Vue | Atmosphère et nuages | Terrain, dessin | Feuillage, dessin | Plantes, placement | Terrain, calcul | Total | fps |
+| View | Atmosphere and clouds | Land, drawing | Foliage, drawing | Plants, placement | Land, calculation | Total | fps |
 |---|---|---|---|---|---|---|---|
-| foret_sol | 13,1 | 12,6 | 9,9 | 7,1 | 4,2 | 48,8 | 21 |
-| lisiere | 19,0 | 11,2 | 9,4 | 7,2 | 4,2 | 53,0 | 19 |
-| montagne | 14,3 | 16,3 | 3,7 | 8,3 | 3,2 | 47,6 | 21 |
+| default_s | 13,1 | 12,6 | 9,9 | 7,1 | 4,2 | 48,8 | 21 |
+| slurry | 19,0 | 11,2 | 9,4 | 7,2 | 4,2 | 53,0 | 19 |
+| mountain | 14,3 | 16,3 | 3,7 | 8,3 | 3,2 | 47,6 | 21 |
 | mer | 41,2 | 1,1 | 0,1 | 0,8 | 2,1 | 46,0 | 22 |
-| survol | 9,7 | 11,6 | 1,8 | 4,9 | 1,4 | 30,0 | 33 |
+| overflow | 9,7 | 11,6 | 1,8 | 4,9 | 1,4 | 30,0 | 33 |
 | cumulus | 26,7 | 1,2 | 0,1 | 0 | 0,6 | 29,0 | 34 |
 | orbite | 51,2 | 5,0 | 0,1 | 0 | 0,5 | 57,3 | 17 |
 | globe | 45,5 | 2,1 | 0,1 | 0 | 1,2 | 49,4 | 20 |
 
-**Les budgets :** 16,7 ms pour 60 fps, 8,3 ms pour 120.
+**The budgets:** 16,7 ms for 60 fps, 8,3 ms for 120.
 
-**L'analyse de départ de la passe des nuages,** coût par part : `log/optimisation-historique.md`.
+**The initial analysis of the cloud pass,** cost per share: `log/optimisation-historique.md`.
 
-## Les rounds
+## The rounds
 
-**Un round par poste, du plus lourd au plus léger, l'un après l'autre.** Chacun : mesure, changement, banc avant et après, garde de qualité ; ce qui se voit en mouvement passe en vol.
+**One round per post, from the heaviest to the lightest, one after the other.** Each: measure, change, benchmark before and after, quality guard; what is seen in movement passes in flight.
 
-1. **Nuages et atmosphère, fait :** une trace par tuile 4×4 en pleine résolution, reprojetée dans le monde ; la quadrature lointaine étalée dans le temps ; l'ombre au sol amortie de même, sans carte d'ombre (Les résultats).
-2. **Le dessin du terrain, fait :** sa profondeur d'abord, sa couleur une fois par pixel montré ; le shader ne calcule plus ce qui ne change rien (Les résultats).
-3. **La végétation, fait :** le sol exact des tuiles gardé d'une image à l'autre ; les imposteurs en profondeur conservatrice ; les maillages proches en profondeur d'abord (Les résultats).
-4. **Le calcul du terrain, fait :** gardé tant que ses entrées sont celles de l'image précédente ; en vol, il reste refait en entier (Les résultats).
-5. **Plusieurs images en vol, mesuré et arrêté :** le GPU n'attend le CPU que 0,6 à 1,2 ms par image ; sous le seuil, aucune refonte (Les résultats).
-6. **Les nuages en mouvement, mis de côté :** chaque trace fraîche vérifiait l'historique reprojeté ; traînées, bruit et plongée corrigés, mais 4 à 6 ms de plus en vol lent en altitude. Au tag `piste/optimisation-r6-nuages-mouvement` (`016d9c7`), pour référence ; ses bancs `x64/r6_avant_*` et `x64/r6_full_*` servent au round 7.
-7. **Les nuages en vol rapide, fait :** sous 14 km, les pixels dont l'historique a glissé se rebâtissent d'un pixel tracé par carré 2×2 ; au-dessus, rien ne change (Les résultats).
-8. **Le sol en vol rapide, fait :** les trouées de ciel dans les feuilles remplies par l'historique au lieu d'être tracées par la résolution des nuages ; en vol, la grille du terrain en paires de floats ; forêt de 49 à 60 fps réels, lisière de 43 à 55, montagne de 48 à 54 (Les résultats).
+1. **Clouds and atmosphere, made:** a trace by tile 4×4 in full resolution, reprojected in the world; the distant quadrature spread out in time; the shadow on the ground amortized likewise, without shadow map (The results).
+2. **The drawing of the terrain, does:** its depth first, its color once per pixel shown; the shader does not calculate anymore what does not change anything (The results).
+3. **Vegetation, makes:** the exact floor of the tiles kept from one frame to another; the impostors in conservative depth; the meshes close in depth first (The results).
+4. **The calculation of the terrain, done:** kept as long as its inputs are those of the previous image; in flight, it remains redone in full (The results).
+5. **Multiple frames in flight, measured and stopped:** GPU waits for CPU only 0,6 to 1,2 ms per frame; below threshold, no rendering (Resultates).
+6. **Moving clouds, set aside:** each fresh track checked the reprojected history; drags, noise and dive corrected, but 4 to 6 ms more in slow altitude flight. To the tag `piste/optimisation-r6-nuages-mouvement` (`016d9c7`), for reference; its benchmarks `x64/r6_avant_*` and `x64/r6_full_*` serve the round 7.
+7. **The clouds in fast flight, made:** under 14 km, the pixels whose history has slipped are rebuilt by a pixel drawn by square 2×2; above, nothing changes (The results).
+8. **The ground in fast flight, makes:** the sky holes in the sheets filled by the history instead of being traced by the resolution of clouds; in flight, the terrain grid in float pairs; forest of 49 to 60 fps real, edge of 43 to 55, mountain of 48 to 54 (The results).
 
-## Les résultats
+## The results of the survey
 
-### Round 1 : nuages et atmosphère (2026-10-28)
+### Round 1: clouds and atmosphere (2026-10-28)
 
-**La passe tombe de 10 à 51 ms à 1,2 à 4,6 ms ; l'image immobile reste celle de la référence.** Banc `x64/banc_perf_round1`, ms GPU.
+**The pass falls from 10 to 51 ms to 1,2 to 4,6 ms; the still image remains that of the reference.** benchmark `x64/banc_perf_round1`, ms GPU.
 
-| Vue | Atmosphère, avant | Atmosphère, après | dont trace | Total, avant | Total, après | fps |
+| View | Atmosphere, before | Atmosphere, after | trace | Total, before | Total after | fps |
 |---|---|---|---|---|---|---|
-| foret_sol | 13,1 | 1,6 | 1,1 | 48,8 | 37,0 | 27 |
-| lisiere | 19,0 | 3,1 | 2,6 | 53,0 | 36,5 | 27 |
-| montagne | 14,3 | 2,0 | 1,4 | 47,6 | 35,5 | 28 |
+| default_s | 13,1 | 1,6 | 1,1 | 48,8 | 37,0 | 27 |
+| slurry | 19,0 | 3,1 | 2,6 | 53,0 | 36,5 | 27 |
+| mountain | 14,3 | 2,0 | 1,4 | 47,6 | 35,5 | 28 |
 | mer | 41,2 | 4,6 | 4,0 | 46,0 | 9,3 | 108 |
-| survol | 9,7 | 1,2 | 0,7 | 30,0 | 21,4 | 47 |
+| overflow | 9,7 | 1,2 | 0,7 | 30,0 | 21,4 | 47 |
 | cumulus | 26,7 | 3,0 | 2,5 | 29,0 | 5,2 | 192 |
 | orbite | 51,2 | 2,6 | 2,0 | 57,3 | 8,5 | 118 |
 | globe | 45,5 | 1,4 | 1,0 | 49,4 | 4,8 | 208 |
 
-**La garde de qualité :** écart moyen de 0 à 0,65 niveau ; aucun pixel au-delà de 8 niveaux, sauf 0,8 % au globe, dans le grain des nuages au bord du disque. Les autres passes ne bougent pas.
+**Quality guard:** average deviation from 0 to 0,65 level; no pixels beyond 8 levels, except 0,8 % to the globe, in the grain of clouds at the edge of the disk. The other passes do not move.
 
-**La passe temporelle** (`CloudsTemporal.hlsli`, `D3DApp::Draw`) :
-- **Chaque image trace un pixel par tuile 4×4,** en pleine résolution : 1/16 des rayons. Tout pixel a sa trace en 16 images ; l'image immobile converge vers la trace de chaque pixel.
-- **La résolution, en pleine résolution,** reprend les autres pixels de l'historique et compose l'air.
-- **L'historique se reprojette dans le repère où son contenu est fixe :** les nuages dans celui de la météo, que le vent tourne ; leur ombre au sol, sur le sol. Les nuages à leur distance pondérée, lue dans l'historique puis au point retrouvé.
-- **Le rejet :** la fin de rayon, surface ou ciel, doit concorder. Sinon, le pixel prend les tuiles fraîches voisines qui voient la même surface, la plus proche des 5×5 au besoin, comme le ciel entre des feuilles : bandes minces, aux bords de l'écran ou autour de ce qui bouge. Ce remplissage part avec les trois quarts de la dérive permise : en mouvement, la trace le remplace vite. Devant la couche, il n'y a rien à tracer : le relief proche découpe les nuages net.
-- **La distance des nuages se garde depuis la caméra courante.** L'historique la stocke depuis la caméra précédente : le point à cette distance de l'une est à une autre distance de l'autre, d'autant que la caméra a avancé le long de la vue. Sans cette correction, la distance gardée datait de la trace, jusqu'à 16 images : à 2 km par image en orbite, 10 % d'erreur, et chaque image reprojetait de travers, en traînées.
-- **La dérive :** un volume n'est pas à une seule distance. La trace mesure l'écart type de la distance d'où vient sa lumière ; à chaque image, sa reprojection devant et derrière mesure ce que l'historique a pu glisser, et le changement de distance compte aussi, 20 % valant la dérive permise. La dérive s'accumule jusqu'à la trace suivante ; une visite n'en renouvelle que sa part de la moyenne lointaine.
-- **Au-delà d'1 pixel de dérive, ou quand la direction d'où l'on voit un nuage tourne de plus d'1° en une image, la résolution trace le pixel elle-même,** comme la passe unique. Un remplissage par les tuiles fraîches n'irait pas : il lisse le grain des nuages lointains en plaques pâles et plates, celles vues en vol. En vol ordinaire, rien ne se retrace ; au-delà de x5 en orbite, la passe coûte la passe unique.
-- **Le rééchantillonnage :** Catmull-Rom, borné par les quatre texels voisins ; aux bords d'une surface, bilinéaire parmi les texels qui la voient. L'écart type et la dérive sont dans une image à part, en demi-flottants : rien n'est empaqueté, l'image immobile reste exacte.
-- **La quadrature lointaine s'étale dans le temps :** un rayon fin par visite, à l'une des quatre positions du 2×2 (neuf en référence) ; l'historique en moyenne jusqu'à huit, image immobile, deux en mouvement, ses rayons pris d'ailleurs. Même estimateur : lumière prémultipliée et transmittance moyennées. Les rayons proches remplacent l'historique ; un pixel retracé prend les quatre rayons d'un coup.
-- **L'historique repart** à chaque saut de la caméra, au changement de référence, à l'allumage des nuages, et quand le soleil bouge de plus d'un degré.
+**The passage of time** (`CloudsTemporal.hlsli`, `D3DApp::Draw`):
+- **Each frame traces one pixel per tile 4×4,** in full resolution: 1/16 of rays. Each pixel has its trace in 16 images; the still image converges to the trace of each pixel.
+- **The resolution, in full resolution,** takes the other pixels of the history and composes the air.
+- **The history is reprojected in the reference frame where its content is fixed:** the clouds in the weather, that the wind turns; their shadow on the ground, on the ground. Clouds at their weighted distance, read in the history and then at the point found.
+- **Rejection:** the end of the radius, surface or sky, must agree. Otherwise, the pixel takes the neighboring fresh tiles that see the same surface, the closest to the 5×5 as needed, like the sky between leaves: thin stripes, at the edges of the screen or around what moves. This fill leaves with three quarters of the allowed drift: in motion, the trace replaces it quickly. In front of the layer, there is nothing to trace: the near relief cuts the clouds net.
+- **Cloud distance is kept from the current camera.** The history stores it from the previous camera: the point at this distance from one is at another distance from the other, especially as the camera has moved along the view. Without this correction, the distance kept dated from the track, up to 16 frames: at 2 km per frame in orbit, 10 % error, and each frame reprojected off, in trails.
+- **Drifting:** a volume is not at a single distance. The trace measures the standard deviation of the distance from where its light comes; at each frame, its reprojection front and back measures what the history has slipped, and the change in distance counts also, 20 % worth the allowed drift. The drift accumulates until the next track; a visit only renews its part of the distant average.
+- **Beyond 1 pixel drift, or when the direction from which a cloud is seen rotates more than 1° in an image, the resolution traces the pixel itself,** as the single pass. A filling by the fresh tiles would not go: it smooths the grain of the distant clouds in pale and flat plates, those seen in flight. In ordinary flight, nothing is traced; beyond x5 in orbit, the pass costs the single pass.
+- **Resample:** Catmull-Rom, bounded by the four neighboring texels; at the edges of a surface, bilinear among the texels that see it. The standard deviation and drift are in a separate image, in semi-floating: nothing is packed, the still image remains accurate.
+- **The distant quadrature spreads in time:** a fine ray per visit, at one of the four positions of the 2×2 (nine in reference); the historical average up to eight, still image, two moving, its rays taken from elsewhere. Same estimator: light premultiplied and transmittance averaged. The near rays replace the history; a traced pixel takes all four rays at once.
+- **The history starts over** with every camera jump, reference change, cloud lightning, and when the sun moves more than one degree.
 
-**Dans la trace :**
-- **Un seul site d'appel de la marche par pixel :** le rayon central si le poids lointain est sous 1, un rayon fin s'il est positif. Le code des rayons lointains pesait sur les registres de tous les pixels : 10 à 20 % partout.
-- **Le pas borne l'altitude parcourue, pas la longueur :** au plus 240 m d'altitude par pas, la moitié de l'empreinte le long du rayon. Les rayons rasants du globe passent de 4,2 à 1,0 ms ; les rayons verticaux ne changent pas.
-- **Les quatre échantillons vers le soleil sont déroulés,** et dans un nuage la forme et l'érosion se lisent avec la météo : la marche attend deux lectures par pas au lieu de quatre. Résultat identique au bit près.
-- **Le saut de vide prend le seuil même de la densité :** couverture basse au plus 0,03 dans les mips maximum, au lieu de 0. C'est toujours une preuve.
+**In the track:**
+- **One single walk call site per pixel:** the central radius if the distant weight is below 1, a thin radius if it is positive. The far ray code weighed on the registers of all pixels: 10 to 20 % everywhere.
+- **The step limits the altitude travelled, not the length:** at most 240 m of altitude per step, half the footprint along the radius. The globe's rasant radii change from 4,2 to 1,0 ms; the vertical radii do not change.
+- **The four samples to the sun are unrolled,** and in a cloud the shape and erosion are read with the weather: the walking waits two readings per step instead of four. Result identical to the bit close.
+- **The vacuum jump takes the same density threshold:** low coverage at most 0,03 in the maximum mips, instead of 0. It's always a proof.
 
-**Dans la composition :**
-- **L'air en simple précision,** depuis l'altitude de la caméra le long du rayon (`HeightAlong`) : les doubles coûtaient 1,5 à 2,5 ms, plus que l'air lui-même.
-- **24 pas d'air vers le ciel, 12 vers une surface,** comme la passe de l'atmosphère, répartis sur l'air que la vue traverse. Le nuage ne coupe que le pas où il se trouve, en deux : les autres gardent les échantillons d'une marche unique, pour un pas de plus.
-- **L'air est ainsi continu dans la distance du nuage.** Avant, un nuage partageait les pas en deux moitiés : un nuage invisible faisait passer de 12 pas à 6 + 6, et la distance déplaçait tous les échantillons. La passe temporelle reprojette une distance plus ancienne : sur le continent, sous des nuages à peine visibles, l'air changeait par régions aux bords nets, une « seconde peau » vue en vol à 160 km. À 160 km en vol rapide, les plaques passent de 18 % à 3 % de l'image ; la passe unique change de moins de 0,3 niveau, le banc de qualité pas du tout.
+**In the composition:**
+- **Air in simple precision,** from the camera altitude along the radius (`HeightAlong`): doubles cost 1,5 to 2,5 ms, more than the air itself.
+- **24 no air towards the sky, 12 towards a surface,** as the passage of the atmosphere, spread over the air that the view passes through. The cloud only cuts the step where it is, in two: the others keep the samples of a single step, for one more step.
+- **The air is thus continuous in the distance of the cloud.** Before, a cloud divided the steps into two halves: an invisible cloud would change 12 steps to 6 + 6, and the distance would move all samples. The time pass reprojects an older distance: on the continent, under barely visible clouds, the air changed by regions with clear edges, a "second skin" seen in flight at 160 km. At 160 km in fast flight, the plates change from 18 % to 3 % of the image; the single pass changes less than 0,3 level, the quality benchmark not at all.
 
-**Ce qui borne encore :**
-- **La trace est limitée par la latence, pas par le nombre de rayons.** Une tuile 8×4, deux fois moins de rayons, ne gagne que 17 % en mer et rien au cumulus : chaque rayon enchaîne ses lectures de texture.
-- **La mer reste à 4,6 ms.** Ses rayons rasants marchent 150 km de couche basse au pas de 48 m, sans rien y trouver de visible. Ce vide vient du profil et de l'érosion, que les mips de la météo ne bornent pas : aucun saut n'y est prouvable.
-- **En mouvement, un pixel attend sa trace jusqu'à 16 images, tant que l'historique tient.** Les zones découvertes passent par le remplissage ; au globe, le grain de la quadrature se lisse au lieu de scintiller.
-- **Au-delà de x5 en orbite, la passe coûte la passe unique, de 10 à 38 ms :** la direction d'où l'on voit chaque nuage tourne de 3° par image, et un volume vu d'ailleurs montre d'autres faces ; aucune reprojection ne le rattrape. Retracer en ordre dispersé coûte autant que tout retracer ; un budget de 15° ne gagne presque rien.
-- **La plongée très rapide garde des erreurs.** Plongée de 1,5 % de la hauteur par image depuis 36 fois la hauteur : en orbite et au globe, l'écart se réduit de moitié ; à 440 km vers l'horizon, une bande de nuages reste fausse. Sa distance gardée y est fausse du double, et dérive, rotation et distance, toutes calculées depuis elle, ne le voient pas ; il faudrait vérifier la distance contre les traces fraîches.
-- **Très vite, les nuages s'adoucissent,** tant que l'historique tient : en 15 images, Catmull-Rom perd les plus hautes fréquences, d'où un tissage de la grille 4×4 entre pixels frais nets et historique doux. Un historique sans interpolation, l'échantillon le plus proche et son décalage gardés, n'y change rien : c'est la direction de vue qui tourne.
-- **L'ombre au sol est reprojetée sur le sol :** elle suit le vent avec un retard d'au plus 16 images, quelques mètres au vent réel.
+**What is still limiting:**
+- **Trace is limited by latency, not by the number of rays.** A 8×4 tile, with twice as few rays, gains only 17 % in sea and nothing in cumulus: each ray chains its texture readings.
+- **The sea remains at 4,6 ms.** Its racing rays walk 150 km of low layer at the pace of 48 m, without finding anything visible. This void comes from the profile and erosion, which the mips of the weather does not limit: no jump is there provenable.
+- **Moving, a pixel waits for its track up to 16 images, as long as the history holds.** The uncovered areas go through the filling; on the globe, the grain of the quadrature smooths instead of sparkling.
+- **Beyond x5 in orbit, the pass costs the single pass, from 10 to 38 ms:** the direction from which we see each cloud rotates of 3° per frame, and a volume seen from the other side shows other faces; no reprojection catches up. Retracing in scattered order costs as much as any trace; a budget of 15° gains almost nothing.
+- **Very fast dive keeps errors.** Dive of 1,5 % of the height per frame since 36 times the height: in orbit and on the globe, the difference is reduced by half; at 440 km towards the horizon, a band of clouds remains false. Its distance kept there is twice as false, and drift, rotation and distance, all calculated from it, do not see it; it would be necessary to check the distance against fresh traces.
+- **Very quickly, the clouds soften,** as long as the history holds: in 15 images, Catmull-Rom loses the highest frequencies, hence a weaving of the grid 4×4 between fresh pixels and soft history. A history without interpolation, the closest sample and its offset kept, does not change anything: it is the direction of view that turns.
+- **The shadow on the ground is reprojected on the ground:** it follows the wind with a delay of at most 16 images, a few meters windward real.
 
-**Les vérifications :**
-- **Le banc de mouvement, contre la passe unique en mouvement** (`--full`, sans historique) : écart moyen, part des pixels au-delà de 8 niveaux, et part des plaques, l'écart moyen sur 9×9 pixels au-delà de 2 niveaux. Les deux premiers ne voyaient pas la seconde peau : un décalage plat, faible et étendu.
+**Audits:**
+- **The benchmark of movement, against the single pass in movement** (`--full`, without history): average deviation, share of pixels beyond 8 levels, and share of plates, average deviation on 9×9 pixels beyond 2 levels. The first two did not see the second skin: a flat, weak and extended shift.
 
-| Vue | 0,5° et 0,02° par image, avant | après | 2° et 0,05° par image, après |
+| View | 0,5° and 0,02° per frame, before | After | 2° and 0,05° per frame, after |
 |---|---|---|---|
 | orbite | 10,35 ; 43,5 % | 3,45 ; 7,8 % | 4,47 ; 12,9 % |
 | globe | 1,69 ; 6,8 % | 1,37 ; 5,0 % | 1,38 ; 5,0 % |
 | cumulus | 1,01 ; 2,6 % | 0,24 ; 0 % | 0,24 ; 0 % |
-| survol | 0,21 ; 0 % | 0,21 ; 0 % | 0,15 ; 0 % |
+| overflow | 0,21 ; 0 % | 0,21 ; 0 % | 0,15 ; 0 % |
 
-- **Les plaques vues en vol,** à 160 et 440 km, vitesse x5 à x9 : `haut160` et `haut440`, ajoutées au banc, et `--motion "0.2 0 0 0 0 0.05"`, 5 % de la hauteur par image vers le nord, la règle de vitesse de l'application. Contre `--full` à même mouvement (`x64/vol_full`, `x64/vol_t`) ; ms de la passe :
+- **The plates seen in flight,** at 160 and 440 km, speed x5 to x9: `haut160` and `haut440`, added to the benchmark, and `--motion "0.2 0 0 0 0 0.05"`, 5 % of height per frame to the north, the speed rule of the application. Against `--full` with the same move (`x64/vol_full`, `x64/vol_t`); ms of the pass:
 
-| Vue | avant | après | ms, après | ms, passe unique |
+| View | Before | After | ms, after | ms, single pass |
 |---|---|---|---|---|
-| haut160 | 1,06 ; 1,2 % | 0,72 ; 0,6 % | 14,7 | 20,4 |
-| haut440 | 2,97 ; 8,9 % | 1,25 ; 3,8 % | 15,1 | 19,3 |
+| high160 | 1,06 ; 1,2 % | 0,72 ; 0,6 % | 14,7 | 20,4 |
+| high440 | 2,97 ; 8,9 % | 1,25 ; 3,8 % | 15,1 | 19,3 |
 | orbite | 5,24 ; 16,5 % | 0,66 ; 1,1 % | 38,1 | 39,1 |
 | globe | 1,39 ; 5,0 % | 0,56 ; 1,8 % | 9,5 | 12,8 |
 | cumulus | 0,24 ; 0 % | 0,06 ; 0 % | 23,6 | 23,6 |
-| lisière, mer, forêt | 0 à 0,3 | 0 à 0,3 | 2,9 à 6,7 | 13,6 à 38,2 |
+| border, sea, forest | 0 to 0,3 | 0 to 0,3 | 2,9 to 6,7 | 13,6 to 38,2 |
 
-- **Les plaques venaient du remplissage :** quand la dérive rejetait l'historique, des régions entières passaient aux tuiles fraîches, qui lissent le grain des nuages en voile pâle, aux bords nets. La colonne « avant » est mesurée avant ce traitement, à 13 km par image sur toutes les vues (`x64/pl_t`, supprimé).
-- **La plongée** (`--motion "0 0 0 1.015"`, `x64/plong_t` contre `x64/plong_full`) : orbite 9,51 → 4,31 niveaux, globe 3,74 → 2,00, haut440 3,05 → 2,85, haut160 0,89 ; passe de 1,2 à 17,9 ms.
+- **The plates came from the filling:** when the drift rejected the historical, whole regions passed to the fresh tiles, smoothing the grain of clouds in pale sail, with clean edges. The “before” column is measured before this processing, at 13 km per frame on all views (`x64/pl_t`, removed).
+- **The dive** (`--motion "0 0 0 1.015"`, `x64/plong_t` vs `x64/plong_full`): orbit 9,51 → 4,31 levels, globe 3,74 → 2,00, high440 3,05 → 2,85, high160 0,89; move from 1,2 to 17,9 ms.
 
-- **Avant, la faute vue en vol :** en orbite, les petits cumulus traînaient le long du mouvement ; au cumulus, des coutures séparaient des régions décalées. Après : formes et bords à leur place ; l'orbite reste un peu plus douce, le globe sans son grain. Images `x64/mvt_t`, `x64/mvt_full`. Au même banc après le traitement des plaques : orbite 3,37 ; 7,3 % à 3,0 ms, globe 1,36, cumulus 0,16 ; au sol, à 2,2 km par image, irréaliste près du sol, la passe retrace et monte jusqu'à 35 ms.
-- **L'image immobile ne change pas :** 0,00 niveau contre `x64/fixe_verif` sur neuf vues ; au globe, au plus 2 niveaux sur 2 % du disque (`x64/fixe_t`). La passe garde son coût, de 1,2 à 4,5 ms.
-- **Le vent,** 0,5 s de météo par image, trente fois le temps réel à 60 images par seconde : au plus 0,94 niveau et 1 % des pixels. À 30 s par image, le damier 4×4 apparaît sur les nuages lointains.
-- **`--full`,** la passe unique, rend la même image que la référence ; elle reste celle des vues de diagnostic `weather` et `cloudshadow` (`spec-nuages.md`).
-- **En vol :** `tools/tests/2026-10-28-optimisation-nuages.txt`, par `tools/lance.ps1 -Parcours`.
+- **Before, the fault seen in flight:** in orbit, small cumulus dragged along the movement; at the cumulus, seams separated offset regions. After: shapes and edges in place; the orbit remains a little softer, the globe without its grain. Images `x64/mvt_t`, `x64/mvt_full`. At the same benchmark after the processing of the plates: orbit 3,37; 7,3 % at 3,0 ms, globe 1,36, cumulus 0,16; on the ground, at 2,2 km per frame, unrealistic near the ground, the pass traces and rises up to 35 ms.
+- **Still image does not change:** 0,00 level against `x64/fixe_verif` on nine views; to the globe, at most 2 levels on 2 % of the disk (`x64/fixe_t`). The pass keeps its cost, from 1,2 to 4,5 ms.
+- **Wind,** 0,5 s of weather per frame, thirty times real time at 60 frames per second: at most 0,94 level and 1 % of pixels. At 30 s per frame, the checkered 4×4 appears on the distant clouds.
+- **`--full`,** the single pass, renders the same image as the reference; it remains that of the diagnostic views `weather` and `cloudshadow` (`spec-nuages.md`).
+- **In flight:** `tools/tests/2026-10-28-optimisation-nuages.txt`, by `tools/lance.ps1 -Parcours`.
 
-**Essayé et retiré :**
-- **Une tuile 8×4 :** 17 % de mieux en mer, rien ailleurs, pour deux fois plus d'attente en mouvement.
-- **Lire forme et érosion avec la météo à chaque pas :** 0,4 ms de moins au cumulus, 0,65 ms de plus en mer ; gardé seulement dans un nuage.
-- **Une borne de présence sur la forme :** sa médiane, 0,89, dépasse tout seuil de couverture ; elle ne prouve aucun vide.
-- **Une tuile 2×2 en vol rapide :** la trace triple partout, mer 3,6 → 10 ms.
-- **Retracer selon un budget de rotation cumulée (4 à 20°) :** en orbite à vitesse moyenne, 8 à 27 ms pour un gain nul ; la limite par image le remplace.
-- **Un historique sans interpolation,** l'échantillon le plus proche et son décalage gardés : plus net mais crénelé, plus loin de la passe unique (orbite 4,03 contre 3,45 à vitesse moyenne).
-- **Compter le flou du rééchantillonnage dans la dérive :** meilleur (orbite 6,5 → 3,5), mais 30 à 39 ms.
+**Tested and withdrawn:**
+- **A tile 8×4:** 17 % better at sea, nothing else, for twice as long waiting on the move.
+- **Read shape and erosion with weather at every step:** 0,4 ms less at cumulus, 0,65 ms more at sea; kept only in a cloud.
+- **A presence boundary on the form:** its median, 0,89, exceeds any coverage threshold; it does not prove any void.
+- **A tile 2×2 in fast flight:** the triple trace everywhere, sea 3,6 → 10 ms.
+- **Retracing according to a cumulative rotation budget (4 to 20°):** in orbit at medium speed, 8 to 27 ms for zero gain; the per-frame limit replaces it.
+- **A history without interpolation,** the closest sample and its offset kept: sharper but crenneled, further away from the single pass (orbite 4,03 against 3,45 at medium speed).
+- **Count re-sample blur in drift:** better (orbite 6,5 → 3,5), but 30 to 39 ms.
 
-### Round 2 : dessin du terrain (2026-10-28)
+### Round 2: terrain drawing (2026-10-28)
 
-**Le dessin tombe de 11 à 17 ms à 3 à 7 ms près du sol ; l'image reste celle de la référence.** Banc `x64/banc_perf_r2_terrain_bis`, comparé à `x64/banc_perf_r1_verif`, ms GPU.
+**The drawing falls from 11 to 17 ms to 3 to 7 ms near the ground; the image remains that of the reference.** benchmark `x64/banc_perf_r2_terrain_bis`, compared to `x64/banc_perf_r1_verif`, ms GPU.
 
-| Vue | Terrain, avant | Terrain, après | Total, avant | Total, après | fps |
+| View | Ground, front | Ground, after | Total, before | Total after | fps |
 |---|---|---|---|---|---|
-| foret_sol | 12,7 | 4,0 | 37,5 | 28,8 | 35 |
-| lisiere | 11,2 | 3,1 | 36,3 | 28,5 | 35 |
-| montagne | 16,5 | 6,8 | 35,7 | 26,1 | 38 |
+| default_s | 12,7 | 4,0 | 37,5 | 28,8 | 35 |
+| slurry | 11,2 | 3,1 | 36,3 | 28,5 | 35 |
+| mountain | 16,5 | 6,8 | 35,7 | 26,1 | 38 |
 | mer | 1,2 | 1,4 | 9,7 | 9,2 | 109 |
-| survol | 12,5 | 5,3 | 23,1 | 15,0 | 67 |
+| overflow | 12,5 | 5,3 | 23,1 | 15,0 | 67 |
 | cumulus | 1,3 | 1,2 | 5,6 | 5,2 | 192 |
 | orbite | 5,3 | 4,3 | 9,2 | 7,9 | 127 |
 | globe | 2,2 | 1,8 | 5,1 | 4,7 | 215 |
 
-**La garde de qualité :** aucun pixel ne bouge de plus d'un niveau sur les huit vues.
-- **Identiques au bit près :** forêt, montagne, cumulus, orbite, globe.
-- **Un niveau, sur quelques pixels :** 6 en lisière, 4 en survol, 7 en mer.
-- **`banc_qualite.py`,** 30 lieux, graine 1, contre `main` sur les mêmes lieux (`x64/qualite_r2_base`, `x64/qualite_r2_final`) : aucun p95 ne se dégrade, mutation comprise ; 87 crops sur 3 891 bougent, aucun pixel de plus de 8 niveaux. Contre `tools/banc_qualite_reference.json`, du 2026-10-24, `main` dépasse déjà les 10 % sur 26 mesures ; le round n'en ajoute aucune.
+**Quality guard:** no pixel moves more than one level across the eight views.
+- **Identical to the bit near:** forest, mountain, cumulus, orbit, globe.
+- **A level, on a few pixels:** 6 in edge, 4 in fly-over, 7 in sea.
+- **`banc_qualite.py`,** 30 locations, seed 1, against `main` on the same locations (`x64/qualite_r2_base`, `x64/qualite_r2_final`): no p95 degrades, including mutation; 87 crops on 3 891 move, no pixels of more than 8 levels. Against `tools/banc_qualite_reference.json`, of the 2026-10-24, `main` already exceeds the 10 % on 26 measures; the round adds no more.
 
-**La profondeur d'abord** (`D3DApp::Draw`) :
-- **Le terrain écrit sa profondeur seul,** même vertex shader, sans pixel shader : 0,2 à 0,3 ms.
-- **Puis les objets et le feuillage,** comme avant ; le HiZ du feuillage lit la même profondeur.
-- **Puis la couleur du terrain,** en profondeur égale, sans écriture : le shader des matériaux tourne une fois par pixel montré, ni sous les plantes, ni sous le relief qui le cache.
-- **Le gain :** 7 à 9 ms près du sol, 4,4 ms en survol. Le fil de fer garde l'ancien chemin.
+**Depth first** (`D3DApp::Draw`):
+- **The terrain writes its depth alone,** even vertex shader, without pixel shader: 0,2 to 0,3 ms.
+- **Then objects and foliage,** as before; the HiZ of foliage reads the same depth.
+- **Then the color of the terrain,** in equal depth, without writing: the shader of materials turns once per pixel shown, neither under the plants, nor under the relief that hides it.
+- **Gain:** 7 to 9 ms near the ground, 4,4 ms in the air. The wire keeps the old path.
 
-**Dans le shader, ce qui ne change rien n'est plus calculé :**
-- **Les strates, là où la roche les montre :** `StrataShift`, ses 12 octaves, et les lentilles, dans la branche de la roche et des parois seulement, une fois par pixel (`PixelStrataShift`). Les phases des bancs s'arrêtent où leurs sinus sont éteints, pixel de plus de 5,75 m ; les lentilles, où les bancs le sont, pas de la colonne de plus de 0,66 m.
-- **La présence des bois s'arrête dès que la suite ne peut plus la changer :** `PresenceField` somme ses octaves tant que le reste, borné, peut ramener le champ dans la largeur du seuil. Au-delà, `Presence` vaut 0 ou 1 quelle que soit la suite. La borne est une preuve : 3,135 par unité d'amplitude de `Noise3`, pas son écart-type, 0,40.
-- **Rien des bois où rien ne pousse ni ne s'enracine :** `WoodsAt` sauté où ni arbre ni arbuste n'est possible, ou sur la roche, l'éboulis ou la plage entiers.
-- **Les plantes dessinées, sans leurs fondus au loin :** quand même la plus haute tient sous le seuil de pixels, tous les fondus de `PlantsDrawn` valent 0.
-- **Une quadrature des pentes pour la roche, l'éboulis et la neige** (`SlopeShares3`), au lieu de deux.
-- **`FbmLostShare` en forme close :** une somme géométrique, bornée à [0, 1] ; égale à la boucle sur les octaves à 10⁻¹⁶ près en double.
-- **Pas à pas, ms en survol / montagne :** profondeur d'abord −4,4 / −9,4 ; strates et bois sans arbres −1,6 / −0,4 ; présence bornée −0,2 / 0 ; phases, lentilles et quadrature commune −0,3 / −0,7 ; le reste −0,3 / −0,3.
+**In the shader, what does not change anything is no longer calculated:**
+- **The strata, where the rock shows them:** `StrataShift`, its 12 octaves, and the lenses, in the branch of the rock and walls only, once per pixel (`PixelStrataShift`). The phases of the beds stop where their sinuses are off, pixel more than 5,75 m; the lenses, where the beds are, not of the column more than 0,66 m.
+- **The presence of woods stops as soon as the suite can no longer change it:** `PresenceField` sums its octaves as long as the rest, bounded, can bring the field back to the width of the threshold. Beyond this, `Presence` is equal to 0 or 1, whatever the sequence. The bound is a proof: 3,135 per unit amplitude of `Noise3`, not its standard deviation, 0,40.
+- **Nothing from the woods where nothing grows or roots:** `WoodsAt` jumped where neither tree nor bush is possible, or on the rock, the scree or the beach whole.
+- **The drawn plants, without their fades in the distance:** even though the highest holds under the pixel threshold, all the fades of `PlantsDrawn` are worth 0.
+- **One quadrature of the slopes for rock, scree and snow** (`SlopeShares3`), instead of two.
+- **`FbmLostShare` in closed form:** a geometric sum, bounded at [0, 1]; equal to the loop on octaves at 10⁻¹⁶ close to double.
+- **Step by step, ms in overflying / mountain:** depth first −4,4 / −9,4; strata and wood without trees −1,6 / −0,4; limited presence −0,2 / 0; phases, lenses and quadrature common −0,3 / −0,7; the rest −0,3 / −0,3.
 
-**Ce qui borne encore :**
-- **Le surcoût des quads.** Le GPU ombre par quads de 2×2 pixels ; les triangles du terrain couvrent 6 pixels environ, et le feuillage laisse des pixels de sol isolés. Mesuré par `IsHelperLane` : 2,0 voies par pixel montré en survol, 1,9 en forêt, 1,6 en montagne et au cumulus, 1,2 en orbite.
-- **La piste :** la couleur du terrain en compute, sur un tampon de visibilité, une voie par pixel. Un chantier : sorties des sommets en cache, dérivées analytiques au lieu des différences de quad, `ddx(q)` compris.
-- **Le calcul entier des hachages.** Chaque octave de `Noise3` hache ses 8 coins (pcg3d) ; près du sol, un pixel somme environ 80 octaves.
-- **Ce qui pèse encore,** variantes du shader, ms en survol / montagne / orbite : végétation 2,4 / 2,2 / 2,1, dont présence des bois 1,8 / 1,5 / 0,8 et dalle de la canopée 0,7 / 0,6 / 0 ; textures 0,8 / 3,6 / 2,0, dont roche 0,1 / 2,0 / 0 ; bruits local et de détail 1,2 / 0,7 / 1,0.
-- **Montagne, survol et orbite restent au-dessus des 4 ms visés.**
-- **En mouvement :** les trous éventuels de la profondeur égale, aux crêtes et sous les plantes, à juger en vol : `tools/tests/2026-10-28-optimisation-terrain.txt`. Les images immobiles n'en montrent aucun : elles restent celles de la référence à un niveau près.
+**What is still limiting:**
+- **The surcharge for quads.** The GPU shadows by quads of 2×2 pixels; the ground triangles cover 6 pixels about, and the foliage leaves isolated ground pixels. Measured by `IsHelperLane`: 2,0 paths per pixel shown in flyby, 1,9 in forest, 1,6 in mountain and cumulus, 1,2 in orbit.
+- **The experiment:** the color of the field in compute, on a visibility buffer, one way per pixel. A work: cached vertices outputs, analytic derivatives instead of quad differences, including `ddx(q)`.
+- **The entire calculation of hashes.** Each octave of `Noise3` hatches its 8 coins (pcg3d); near the ground, a pixel sums about 80 octaves.
+- **What weighs still,** shader variants, ms in flyover / mountain / orbit: vegetation 2,4 / 2,2 / 2,1, including presence of woods 1,8 / 1,5 / 0,8 and slab of the canopy 0,7 / 0,6 / 0; textures 0,8 / 3,6 / 2,0, including rock 0,1 / 2,0 / 0; noise functions local and detail 1,2 / 0,7 / 1,0.
+- **Mountain, flyover and orbit remain above the targeted 4 ms.**
+- **In motion:** the possible holes of the same depth, at the crests and under the plants, to be judged in flight: `tools/tests/2026-10-28-optimisation-terrain.txt`. Still images do not show any of them: they remain those of the reference at a level close.
 
-**Essayé et retiré :**
-- **DXC et le modèle 6.0 au lieu de FXC :** 5 % de mieux avant les autres changements, rien ou pire après ; la compilation passe de 88 s à 4 s.
-- **`precise` sur la position des sommets,** contre des trous supposés de la profondeur égale : sans effet, et la mer bougeait de 14 niveaux. Il n'y avait pas de trou.
-- **La forme close de `FbmLostShare` sans borne :** un arrondi sous 0, sous une racine, donnait des pixels blancs isolés, quelques-uns aux vues du banc, des centaines à 50 m dans `banc_qualite.py`. Bornée à 0, l'image est revenue.
-- **Les variantes du shader,** qui éteignent une part à la fois : diagnostic seulement (`log/optimisation-historique.md`).
+**Tested and withdrawn:**
+- **DXC and model 6.0 instead of FXC:** 5 % better before other changes, nothing or worse after; compilation changes from 88 s to 4 s.
+- **`precise` on the position of the summits,** against supposed holes of equal depth: without effect, and the sea moved of 14 levels. There was no hole.
+- **The closed form of `FbmLostShare` without bound:** a rounding under 0, under a root, gave isolated white pixels, a few in the views of the benchmark, hundreds to 50 m in `banc_qualite.py`. Bounded at 0, the image returned.
+- **Shader variants,** which turn off one part at a time: diagnostic only (`log/optimisation-historique.md`).
 
-### Round 3 : végétation (2026-10-28)
+### Round 3: vegetation (2026-10-28)
 
-**Placement et dessin du feuillage tombent de 18 à 20 ms à 6 ms en forêt ; l'image reste celle de la référence.** Banc `x64/r3_final`, comparé à `x64/sup_fixe2`, ms GPU.
+**Footprint and leaf pattern fall from 18 to 20 ms to 6 ms in forest; the image remains the reference one.** benchmark `x64/r3_final`, compared to `x64/sup_fixe2`, ms GPU.
 
-| Vue | Plantes, placement, avant | après | Objets, placement, avant | après | Feuillage, dessin, avant | après | Total, avant | après | fps |
+| View | Plants, placement, front | After | Objects, placement, before | After | Foliage, drawing, front | After | Total, before | After | fps |
 |---|---|---|---|---|---|---|---|---|---|
-| foret_sol | 7,7 | 2,2 | 1,1 | 0,8 | 10,5 | 3,8 | 30,3 | 17,6 | 57 |
-| lisiere | 8,4 | 2,3 | 1,1 | 1,0 | 9,7 | 3,6 | 30,7 | 18,5 | 54 |
-| montagne | 9,4 | 1,9 | 1,3 | 0,8 | 3,9 | 1,8 | 27,3 | 17,0 | 59 |
+| default_s | 7,7 | 2,2 | 1,1 | 0,8 | 10,5 | 3,8 | 30,3 | 17,6 | 57 |
+| slurry | 8,4 | 2,3 | 1,1 | 1,0 | 9,7 | 3,6 | 30,7 | 18,5 | 54 |
+| mountain | 9,4 | 1,9 | 1,3 | 0,8 | 3,9 | 1,8 | 27,3 | 17,0 | 59 |
 | mer | 0,8 | 0,2 | 0,4 | 0,3 | 0,1 | 0,1 | 9,6 | 8,7 | 115 |
-| survol | 5,1 | 1,4 | 0 | 0 | 1,9 | 1,9 | 15,8 | 12,0 | 83 |
+| overflow | 5,1 | 1,4 | 0 | 0 | 1,9 | 1,9 | 15,8 | 12,0 | 83 |
 
-- **Le GPU varie de 5 % d'une série à l'autre :** une série précédente du même code donnait 16,9 / 17,4 / 16,3 / 8,5 / 11,6 ms, ses vues sans plantes 4 à 8 % sous la référence ; celle-ci, à 2 % près de la référence.
-- **Le tri du feuillage** (`feuillage_tri`) ne change pas : 0,1 à 0,3 ms.
-- **Six vues de plus,** familles climatiques au sol et à 150 m (tropical, boréal, steppe, désert, tempéré), contre le binaire du commit `3817e79` : placement de 3,9-9,7 à 1,6-3,2 ms, feuillage de 0,3-12,0 à 0,3-5,8 ms ; tropical à 150 m de 24,8 à 12,3 ms au total.
+- **The GPU varies from 5 % from one series to another:** a previous series of the same code gave 16,9 / 17,4 / 16,3 / 8,5 / 11,6 ms, its plantless views 4 to 8 % below the reference; the latter, to 2 % near the reference.
+- **The sorting of foliage** (`feuillage_tri`) does not change: 0,1 to 0,3 ms.
+- **Six more views,** climate families at ground and at 150 m (tropical, boreal, steppe, desert, temperate), against the binary of the `3817e79` commit: placement of 3,9-9,7 to 1,6-3,2 ms, foliage of 0,3-12,0 to 0,3-5,8 ms; tropical at 150 m from 24,8 to 12,3 ms in total.
 
-**La garde de qualité :** aucun pixel ne bouge de plus d'un niveau, sauf un.
-- **Identiques au bit près :** mer, survol, cumulus, orbite, globe, haut160, haut440.
-- **Un niveau sur 3 pixels** en forêt et en lisière, 7 en montagne : deux maillages à la même profondeur (la couleur en profondeur égale, plus bas). Sur les six vues de plus, au plus 11 pixels d'un niveau.
-- **Un pixel de montagne,** le reflet d'une feuille, change de 76 niveaux d'une passe à l'autre, et un de boréal de 27 : l'ordre des plantes à profondeur égale, tiré par des opérations atomiques. Le binaire d'avant fait de même, d'une passe à l'autre.
-- **`banc_qualite.py`,** 30 lieux, graine 1, contre `x64/qualite_r2_final` (`x64/qualite_r3`) : aucun p95 ne bouge ; une image sur 3 903 change, d'un niveau.
+**Quality guard:** no pixel moves more than one level, except one.
+- **Identical to bit close:** sea, overflying, cumulus, orbit, globe, high160, high440.
+- **One level on 3 pixels** in forest and edge, 7 in mountain: two meshes at the same depth (the color in equal depth, below). On the six more views, at most 11 pixels of a level.
+- **A mountain pixel,** the reflection of a leaf, changes 76 levels from one pass to another, and a boreal one of 27: the order of plants at equal depth, drawn by atomic operations. The binary before does the same, from one pass to the next.
+- **`banc_qualite.py`,** 30 places, seed 1, against `x64/qualite_r2_final` (`x64/qualite_r3`): no p95 moves; an image on 3 903 changes, by one level.
 
-**Le profil de départ,** horodatages par étape, foret_sol / lisiere / montagne / survol, ms :
-- **Placement :** la passe lourde 6,2 / 6,1 / 7,6 / 2,8, une tuile par fil ; le tri des tuiles 0,2 / 0,4 / 0,3 / 1,8 ; scans, compaction et dispersion 0,1.
-- **Dans la passe lourde,** par variantes : les trois sols exacts de chaque tuile (`ExactElevation`), les trois quarts ; le sol exact des plantes proches 1 ; la présence des bois par candidat 0,85 ; les matériaux 0,2.
-- **Dans `ExactElevation`,** la moitié est la grille en doubles (`Lattice`) : le GPU fait un double au 64e du rythme des floats.
-- **Dessin :** imposteurs 6,2 / 5,2 / 1,7 / 1,7 ; maillages proches 3,6 / 4,0 / 1,9 / 0 ; HiZ 0,1.
+**The starting profile,** time stamps by stage, drilling_soil / slurry / mountain / overflying, ms:
+- **Placing:** heavy pass 6,2 / 6,1 / 7,6 / 2,8, one tile per wire; sorting of tiles 0,2 / 0,4 / 0,3 / 1,8; scans, compaction and dispersion 0,1.
+- **In the heavy pass,** by variants: the three exact floors of each tile (`ExactElevation`), the three quarters; the exact floor of nearby plants 1; the presence of woods per candidate 0,85; the materials 0,2.
+- **In `ExactElevation`,** half is the double grid (`Lattice`): the GPU doubles the 64e of the float rhythm.
+- **Drawing:** impostors 6,2 / 5,2 / 1,7 / 1,7; meshes close to 3,6 / 4,0 / 1,9 / 0; HiZ 0,1.
 
-**Le sol exact gardé d'une image à l'autre** (`PlantPlacement.hlsli`, `GroundCached` ; `PlanetPlantPlacement.cpp`) :
-- **Le sol exact d'une tuile,** à sa première cellule et à une demi-tuile sur ses deux axes, ne dépend que de la tuile : sa cellule sur la grille de la planète. De même le sol exact d'une plante proche.
-- **Une table de hachage sur le GPU les garde :** clé entière, tuile, tranche, plan, première cellule ; 2²⁰ cases de 32 octets, quatre par seau.
-- **Lue dans la table de l'image précédente, écrite dans celle-ci :** deux tables en alternance ; chaque case réclamée par un seul écrivain. Aucun fil ne lit une case qu'un autre écrit.
-- **Une clé sans case est recalculée,** et retente sa chance à l'image suivante.
-- **Un saut de la caméra efface les tables** (`Reset` : chaque vue du banc, chaque bouton de la palette « Tests ») : une vue ne dépend pas, au dernier bit, de celles vues avant. Sans cela, `tropical_sol` après `tropical_150`, 300 m plus loin, changeait sur 2 965 pixels, 38 de plus d'un niveau.
-- **64 Mo** de tables, 4 Mo de réclamations effacées à chaque image ; 32 Mo de zéros pour les effacer.
-- **Immobile :** passe lourde 6,2 → 1,9 ms en forêt, 7,6 → 1,7 en montagne.
-- **En mouvement,** cap 0,5° et 4 % de la hauteur par image, puis 2° et 20 % : placement 6,2 à 7,3 ms sans la table, 2,5 à 3,8 avec ; survol 4,6 → 3,2.
-- **Ce qui change en mouvement :** une valeur gardée vient d'une caméra précédente. `MakeCandidate` place la cellule depuis le pied de la caméra, en float : le point bouge de moins d'un millimètre d'une caméra à l'autre, son sol exact du dernier bit. Contre le calcul de chaque image, au même mouvement : écart moyen de 0,000 à 0,006 niveau, au plus 0,006 % des pixels au-delà de 8, aucune plaque. Une plante au seuil exact de sa décision naît une image plus tôt ou plus tard ; sans la table, elle clignotait au gré de ces arrondis.
-- **Rien à invalider :** le relief ne change pas en vol, et la clé nomme la cellule.
+**The exact ground kept from one frame to another** (`PlantPlacement.hlsli`, `GroundCached`; `PlanetPlantPlacement.cpp`):
+- **The exact ground of a tile,** at its first cell and half tile on its two axes, depends only on the tile: its cell on the grid of the planet. Similarly the exact soil of a nearby plant.
+- **A hash table on the GPU keeps them:** whole key, tile, slice, plane, first cell; 2²⁰ bytes of 32 cells, four per bucket.
+- **Read in the table of the previous image, written in this one:** two tables alternately; each box claimed by a single writer. No thread reads a box that another writes.
+- **A key without a box is recalculated,** and retries its chance at the next frame.
+- **A jump of the camera erases the tables** (`Reset`: every view of the benchmark, every button of the “Tests” palette): a view does not depend, at the last bit, on those seen before. Without this, `tropical_sol` after `tropical_150`, 300 m further, changed on 2 965 pixels, 38 of more than one level.
+- **64 MB** of tables, 4 MB of claims erased at each frame; 32 MB of zeros to erase them.
+- **Immobile:** heavy pass 6,2 → 1,9 ms in forest, 7,6 → 1,7 in mountain.
+- **In motion,** head 0,5° and 4 % of height per frame, then 2° and 20 %: placement 6,2 to 7,3 ms without table, 2,5 to 3,8 with; overflow 4,6 → 3,2.
+- **What changes in motion:** a saved value comes from a previous camera. `MakeCandidate` positions the cell from the foot of the camera, in float: the point moves less than a millimeter from one camera to another, its exact ground of the last bit. Against the calculation of each frame, at the same movement: average deviation of 0,000 to 0,006 level, at most 0,006 % of pixels beyond 8, no plate. A plant at the exact threshold of its decision is born an image sooner or later; without the table, it flashed at the will of these rounded.
+- **Nothing to invalidate:** the relief does not change in flight, and the key names the cell.
 
-**Les imposteurs en profondeur conservatrice** (`PlanetFoliageDepth.hlsli`, `PlanetFoliageProxyVertex.hlsl`, `PlanetFoliageImpostorPixel.hlsl`) :
-- **Le pixel d'un imposteur reconstruit sa profondeur** (`SV_Depth`) : le test attendait la fin du shader, quatre vues lues et éclairées, même pour un pixel caché.
-- **La borne de cette profondeur existait :** celle du HiZ (`vegetation-hiz.md`), prouvée sur les moments de chaque vue et de chaque mip. Elle passe dans `ImpostorDepthBound`, partagée par le test HiZ et le dessin ; les réglages du modèle la portent (`depthBounds`).
-- **Le quad se pose à la profondeur la plus proche possible ;** le pixel déclare la sienne au plus aussi proche (`SV_DepthLessEqual`). Le test rejette avant le shader ce que le terrain, les maillages ou un imposteur déjà dessiné cachent.
-- **Sans borne,** situation mal conditionnée, le quad est au plan proche : aucun rejet.
-- **Exigé par le compilateur :** la position du pixel au centroïde, sans perspective ; sans multiéchantillonnage, c'est le centre du pixel, comme avant.
-- **Gain :** 6,2 → 0,8 ms en forêt, 5,2 → 0,6 en lisière, 1,7 → 0,6 en montagne. Rien en survol : vus de dessus, les imposteurs se recouvrent peu.
+**The impostors in conservative depth** (`PlanetFoliageDepth.hlsli`, `PlanetFoliageProxyVertex.hlsl`, `PlanetFoliageImpostorPixel.hlsl`):
+- **The pixel of a impostor reconstructs its depth** (`SV_Depth`): the test waited for the end of the shader, four views read and illuminated, even for a hidden pixel.
+- **The limit of this depth existed:** that of the HiZ (`vegetation-hiz.md`), proven on the moments of each view and each mip. It passes in `ImpostorDepthBound`, shared by the HiZ test and the drawing; the model settings carry it (`depthBounds`).
+- **The quad poses at the closest possible depth;** the pixel declares its depth at the closest possible depth (`SV_DepthLessEqual`). The test rejects before the shader what the terrain, the meshes or a impostor already drawn hide.
+- **Without bound,** poorly conditioned situation, the quad is close to the plane: no rejection.
+- **Required by the compiler:** the pixel position at the centroid, without perspective; without multisampling, it is the pixel center, as before.
+- **Gain:** 6,2 → 0,8 ms in forest, 5,2 → 0,6 in edge, 1,7 → 0,6 in mountain. Nothing in flight: seen from above, the impostors overlap little.
 
-**Les maillages proches en profondeur d'abord** (`PlanetFoliage.cpp`, `PlanetFoliageMeshDepthPixel.hlsl`) :
-- **Leur profondeur seule,** mêmes sommets, mêmes rejets alpha ; puis leur couleur en profondeur égale, une fois par pixel montré. La règle du round 2, appliquée aux feuilles.
-- **À profondeur égale,** feuilles doublées, le test strict gardait le premier triangle ; le test égal les ombre tous et garde le dernier. La couleur se dessine donc dans l'ordre inverse des triangles (`meshIndicesReversed`) : le dernier ombré est le premier dessiné. Sans cela, 50 000 à 74 000 pixels changeaient, jusqu'à 95 niveaux.
-- **Gain :** 3,6 → 2,7 ms en forêt, 1,9 → 1,0 en montagne. La profondeur seule en coûte 1,3 à 1,5.
+**The meshes close in depth first** (`PlanetFoliage.cpp`, `PlanetFoliageMeshDepthPixel.hlsl`):
+- **Their depth alone,** same vertex, same alpha rejection; then their color in equal depth, once per pixel shown. The rule of the round 2, applied to the leaves.
+- **At equal depth,** doubled sheets, the strict test kept the first triangle; the equal test shaded all and kept the last one. The color is drawn in the reverse order of triangles (`meshIndicesReversed`): the last ombré is the first drawn. Without this, 50 000 to 74 000 pixels would change, up to 95 levels.
+- **Gain:** 3,6 → 2,7 ms in forest, 1,9 → 1,0 in mountain. The depth alone costs 1,3 to 1,5.
 
-**Le tri des tuiles sans ses seize plans** (`CullPlantTile`) :
-- **Chaque cellule d'une tuile vérifiait son plan :** son point sur la sphère, en doubles, seize fois. C'était presque tout le tri : 1,8 ms en survol, 0,7 en mer, où rien ne pousse.
-- **Quand l'axe du plan domine la verticale au milieu de la tuile** de plus que la tuile ne peut la tourner, toutes ses cellules y sont. La borne : aucun candidat à plus de d√2 du milieu sur le plan, √3 fois plus sur la sphère ; deux fois cela, et l'arrondi du float.
-- **Gain :** survol 1,8 → 0,4 ms, mer 0,7 → 0,1.
+**The sorting of tiles without its sixteen plans** (`CullPlantTile`):
+- **Each cell of a tile checked its plane:** its point on the sphere, in double precision, sixteen times. It was almost all sort: 1,8 ms in flying, 0,7 in sea, where nothing grows.
+- **When the axis of the plane dominates the vertical in the middle of the tile** more than the tile can rotate it, all its cells are there. The boundary: no candidates more than d√2 of the middle on the plane, √3 times more on the sphere; twice that, and the rounding of the float.
+- **Gain:** over 1,8 → 0,4 ms, more 0,7 → 0,1.
 
-**Ce qui borne encore :**
-- **La présence des bois par candidat,** 0,85 ms en forêt : deux champs de bruit par plante candidate.
-- **Les pixels des maillages proches,** 2,7 ms en forêt : des feuilles en triangles de moins d'un pixel. La piste : un niveau de détail des maillages, à silhouette égale ; il change l'image.
-- **Les imposteurs vus de dessus,** 1,8 ms en survol : peu de recouvrement, et la part transparente des quads des quatre vues.
-- **En mouvement rapide,** le placement remonte vers 3 à 4 ms : les tuiles nouvelles.
-- **Le reste de la forêt :** calcul du terrain 4,1 ms, dessin du terrain 3 à 4 ms, nuages et air 2,7 à 5,5 ms ; en montagne, le dessin du terrain, 6,5 ms.
-- **En vol :** `tools/tests/2026-10-28-optimisation-vegetation.txt`.
+**What is still limiting:**
+- **The presence of woods per candidate,** 0,85 ms in forest: two fields of noise per candidate plant.
+- **The pixels of the nearby meshes,** 2,7 ms in forest: leaves in triangles of less than one pixel. The experiment: a level of detail of the meshes, with equal silhouette; it changes the image.
+- **The impostors seen from above,** 1,8 ms in flight: little overlap, and the transparent part of the quads of the four views.
+- **Fast moving,** the placement goes back to 3 to 4 ms: the new tiles.
+- **Rest of the forest:** terrain calculation 4,1 ms, terrain drawing 3 to 4 ms, clouds and air 2,7 to 5,5 ms; in mountains, terrain drawing, 6,5 ms.
+- **In flight:** `tools/tests/2026-10-28-optimisation-vegetation.txt`.
 
-**Essayé et retiré :**
-- **La grille en paires de floats,** `Lattice` sans doubles : passe lourde −1 ms, mais l'image bouge partout près du sol, 1,2 % des pixels au-delà de 8 niveaux. Un écart au dernier bit du sol déplace la caméra et les feuilles d'une fraction de pixel ; les bords alpha basculent. Le calcul du terrain n'en gagnait rien.
-- **Garder aussi la présence des bois par candidat :** plus lent en forêt, 1,9 → 2,7 ms ; les clés débordent la table.
-- **Sauter les candidats rejetés avant leurs doubles** (`MakeCandidate`) : 0,1 ms au plus.
+**Tested and withdrawn:**
+- **The grid in pairs of floats,** `Lattice` without doubles: heavy pass −1 ms, but the image moves everywhere near the ground, 1,2 % of pixels beyond 8 levels. A shift at the last bit of the ground moves the camera and the leaves by a fraction of a pixel; the alpha edges tilt. The calculation of the terrain gained nothing.
+- **Keep also the presence of woods per candidate:** slower in forest, 1,9 → 2,7 ms; keys overflow the table.
+- **Skip rejected candidates before their doubles** (`MakeCandidate`): 0,1 ms maximum.
 
-### Round 4 : calcul du terrain (2026-10-28)
+### Round 4: terrain calculation (2026-10-28)
 
-**Le calcul du terrain n'est plus refait quand ses entrées sont celles de l'image précédente : de 4,2 ms à 0 au sol immobile, de 4,3 à 1,7 ms en tournant sur place. En vol, il reste à 2 à 4,6 ms : le maillage glisse avec la caméra, rien n'y est gardé.** Image identique au bit près, immobile comme en mouvement. Banc `x64/r4_final`, comparé à `x64/r3_verif`, ms GPU.
+**The calculation of the terrain is no longer redone when its inputs are those of the previous image: from 4,2 ms to 0 on the ground still, from 4,3 to 1,7 ms turning on the spot. In flight, it remains at 2 to 4,6 ms: the mesh slides with the camera, nothing is kept there.** Image identical to the bit, still as in motion. benchmark `x64/r4_final`, compared to `x64/r3_verif`, ms GPU.
 
-| Vue | Terrain, calcul, avant | après | Total, avant | après | fps |
+| View | Land, calculation, before | After | Total, before | After | fps |
 |---|---|---|---|---|---|
-| foret_sol | 4,23 | 0 | 17,3 | 13,2 | 76 |
-| lisiere | 4,22 | 0 | 17,8 | 13,8 | 73 |
-| montagne | 3,28 | 0 | 16,6 | 13,7 | 73 |
+| default_s | 4,23 | 0 | 17,3 | 13,2 | 76 |
+| slurry | 4,22 | 0 | 17,8 | 13,8 | 73 |
+| mountain | 3,28 | 0 | 16,6 | 13,7 | 73 |
 | mer | 2,12 | 0 | 8,7 | 6,7 | 150 |
-| survol | 1,44 | 0 | 11,8 | 10,4 | 96 |
+| overflow | 1,44 | 0 | 11,8 | 10,4 | 96 |
 | cumulus | 0,58 | 0 | 5,5 | 5,0 | 199 |
 | orbite | 0,47 | 0 | 8,3 | 8,0 | 124 |
 | globe | 1,05 | 0,14 | 4,9 | 4,1 | 243 |
-| haut160 | 0,41 | 0 | 4,0 | 3,5 | 283 |
-| haut440 | 0,42 | 0 | 3,7 | 3,4 | 291 |
+| high160 | 0,41 | 0 | 4,0 | 3,5 | 283 |
+| high440 | 0,42 | 0 | 3,7 | 3,4 | 291 |
 
-- **Les vues du banc sont immobiles :** ce tableau est le cas le plus favorable. Les deux bancs de mouvement suivants donnent ce qui vaut en vol.
-- **En tournant sur place,** 0,5° par image, contre le calcul entier à chaque image au même mouvement :
+- **The views of the benchmark are immobile:** this table is the most favorable case. The two following benchmarks movements give what is worth in flight.
+- **Turning on the spot,** 0,5° per frame, against the whole calculation at each frame at the same movement:
 
-| Vue | Terrain, calcul, entier | gardé | Total, entier | gardé | fps |
+| View | Field, calculation, integer | kept | Total, whole | kept | fps |
 |---|---|---|---|---|---|
-| foret_sol | 4,29 | 1,70 | 20,1 | 17,3 | 50 → 58 |
-| lisiere | 4,85 | 1,88 | 22,0 | 19,1 | 45 → 52 |
-| montagne | 3,29 | 1,08 | 19,3 | 17,1 | 52 → 59 |
+| default_s | 4,29 | 1,70 | 20,1 | 17,3 | 50 → 58 |
+| slurry | 4,85 | 1,88 | 22,0 | 19,1 | 45 → 52 |
+| mountain | 3,29 | 1,08 | 19,3 | 17,1 | 52 → 59 |
 | mer | 2,20 | 1,10 | 9,0 | 8,0 | 111 → 125 |
-| survol | 1,46 | 0,47 | 12,4 | 11,5 | 81 → 87 |
+| overflow | 1,46 | 0,47 | 12,4 | 11,5 | 81 → 87 |
 
-- **En vol,** `--motion "0.2 0 0 0 0 0.05"`, 5 % de la hauteur par image : rien ne change, terrain 4,3 / 4,6 à 5,0 / 3,4 à 3,7 / 2,2 / 1,4 ms en forêt, lisière, montagne, mer, survol ; total 19 à 24 ms au sol, 41 à 52 fps.
-- **Le GPU varie de 5 à 10 % d'une série à l'autre :** en vol, où rien n'est gardé, deux séries du même travail donnent 24,2 et 22,6 ms en lisière.
+- **In flight,** `--motion "0.2 0 0 0 0 0.05"`, 5 % of height per frame: nothing changes, terrain 4,3 / 4,6 to 5,0 / 3,4 to 3,7 / 2,2 / 1,4 ms in forest, edge, mountain, sea, flying over; total 19 to 24 ms on the ground, 41 to 52 fps.
+- **The GPU varies from 5 to 10 % from one series to another:** in flight, where nothing is kept, two series of the same work give 24,2 and 22,6 ms in margin.
 
-**La garde de qualité :** aucun pixel ne bouge.
-- **Immobile :** les dix vues identiques au bit près à `x64/r3_verif`.
-- **En mouvement,** contre le calcul entier à chaque image, au même mouvement : identiques au bit près en tournant (0,5° par image), en vol (5 % de la hauteur par image), en vol lent (0,2 %), et à l'arrêt après un mouvement (dix images immobiles avant la capture).
-- **`banc_qualite.py`,** les 30 lieux de `x64/qualite_r2_final` (`x64/qualite_r4`) : aucun p95 ne bouge. Un crop sur 3 891 change d'un pixel, de 3 niveaux, à 12 m : le même crop change d'une passe à l'autre depuis le round 2, l'ordre des plantes à profondeur égale.
+**Quality guard:** no pixel moves.
+- **Immobile:** the ten identical views bit close to `x64/r3_verif`.
+- **In motion,** against the whole calculation at each frame, at the same movement: identical to the bit near when rotating (0,5° per frame), in flight (5 % of height per frame), in slow flight (0,2 %), and at stop after a movement (ten still frames before capture).
+- **`banc_qualite.py`,** the 30 places of `x64/qualite_r2_final` (`x64/qualite_r4`): no p95 moves. A crop on 3 891 changes by one pixel, from 3 levels, to 12 m: the same crop changes from one pass to another since the round 2, the order of plants at equal depth.
 
-**Le profil de départ,** horodatages par étape, ms, foret_sol / lisiere / montagne / mer / survol :
-- **Les sommets du maillage** (`TerrainCompute.hlsl`) : 2,96 / 2,89 / 2,52 / 1,27 / 0,47. 1 114 anneaux au sol, 890 000 sommets, le tri en garde la part visible.
-- **La grille fine** (`FineTerrain.hlsl`, `FineNormals.hlsl`), loin du sol seulement : survol 0,85 et 0,01.
-- **Le relief des matériaux** (`MaterialRelief.hlsl`), éteint, une copie : 0,07 à 0,19. Retiré le 2026-10-30 : la marche vers le soleil écrit dans les sommets du terrain.
-- **La marche vers le soleil** (`Horizon.hlsl`) : 1,24 / 1,29 / 0,75 / 0,61 / 0,06.
-- **Le préfiltre des normales** (`SplinePrefilter.hlsl`) : 0,02 à 0,13. Retiré le 2026-10-30 : la spline lit les sommets eux-mêmes (`spec-normales-spline.md`).
-- **Dans les sommets,** par variantes : ceux de mailles de moins de 4 m, la grille en doubles (`EXACT_LATTICE_MAX_CELL`), coûtent 2,4 ms des 3 en forêt. La grille en floats partout ôterait 1,7 / 1,2 / 0,8 ms en forêt, montagne, mer : les doubles pèsent plus que tout le bruit en floats.
-- **Ce qui se refait à entrées égales :** tout, à chaque image. Immobile, rien n'a changé ; en tournant, la hauteur des sommets n'a pas changé, seul le tri.
+**The starting profile,** time stamps by stage, ms, foret_sol / slurry / mountain / sea / overfly:
+- **The summits of the mesh** (`TerrainCompute.hlsl`): 2,96 / 2,89 / 2,52 / 1,27 / 0,47. 1 114 rings on the ground, 890 000 vertex, sorting in keeps the visible part.
+- **The fine grid** (`FineTerrain.hlsl`, `FineNormals.hlsl`), far from the ground only: fly-over 0,85 and 0,01.
+- **The relief of materials** (`MaterialRelief.hlsl`), extinct, one copy: 0,07 to 0,19. Removed the 2026-10-30: the march to the sun written in the tops of the field.
+- **The walk to the sun** (`Horizon.hlsl`): 1,24 / 1,29 / 0,75 / 0,61 / 0,06.
+- **The prefilter of normals** (`SplinePrefilter.hlsl`): 0,02 to 0,13. Removed the 2026-10-30: the spline reads the vertex itself (`spec-normales-spline.md`).
+- **In the summits,** by variants: those of grid cells less than 4 m, the grid in double precision (`EXACT_LATTICE_MAX_CELL`), cost 2,4 ms of the 3 in forest. The float grid everywhere would remove 1,7 / 1,2 / 0,8 ms in forest, mountain, sea: the doubles weigh more than all the noise in floats.
+- **What is repeated at equal inputs:** everything, at each frame. Still, nothing has changed; while turning, the height of the summits has not changed, only the sorting.
 
-**Le calcul gardé** (`D3DApp::Draw`, `TerrainInputs` ; `TerrainCompute.hlsl`, `FineTerrain.hlsl`) :
-- **La clé est exacte :** les constantes que lisent les passes du terrain, relevées dans leur code compilé (`cbufferLoadLegacy` du DXIL), comparées au bit près. Rien d'autre n'entre : les tampons du terrain ne sont écrits que par ces passes, leurs textures sont fixes.
-- **Le maillage d'abord :** les axes de la face, sa demi-largeur, le nadir en doubles, les anneaux et la grille fine, la caméra sur la face. Égaux, chaque sommet est au même point de la planète, avec les mêmes octaves : sa hauteur est la même.
-- **Puis la vue et le soleil :** les axes de la caméra, le soleil, la marge des vagues. Ils ne décident que des sommets nécessaires et de l'horizon.
-- **Tout égal :** aucune de ces passes n'est lancée. Les transitions restent ; les tampons gardent ce qu'elles ont écrit.
-- **Le maillage seul égal,** la caméra tourne sur place : un sommet calculé à l'image précédente, `NaN` sinon, garde sa hauteur ; seuls ceux qui entrent dans la vue sont calculés. Un sommet sorti de la vue redevient `NaN`, comme dans le calcul entier : les normales et la marche vers le soleil voient le même maillage. Ces passes-là sont refaites.
-- **La marche vers le soleil est refaite en tournant :** elle lit les hauteurs des sommets voisins, nulles pour ceux que le tri écarte ; le tri changeant, son résultat peut changer.
-- **Aucun saut de la caméra n'est à traiter :** une clé égale donne un résultat égal au bit près, quel que soit ce qui précède.
+**The saved calculation** (`D3DApp::Draw`, `TerrainInputs`; `TerrainCompute.hlsl`, `FineTerrain.hlsl`):
+- **The key is exact:** the constants that the field passes read, recorded in their compiled code (`cbufferLoadLegacy` of DXIL), compared to the bit close. Nothing else enters: the field stamps are written only by these passes, their textures are fixed.
+- **The mesh first:** the face axes, its half width, the nadir in double precision, the rings and the fine grid, the camera on the face. Equal, each vertex is at the same point of the planet, with the same octaves: its height is the same.
+- **Then the view and the sun:** the camera axes, the sun, the margin of the waves. They only decide the necessary summits and the horizon.
+- **All the same:** none of these passes are carried out. Transitions remain; buffers keep what they wrote.
+- **mesh only equal,** the camera turns on the spot: a vertices calculated at the previous image, `NaN` otherwise, keeps its height; only those that enter the view are calculated. A vertices out of view becomes `NaN` again, as in the whole calculation: normals and the walk to the sun see the same mesh. These passes are redone.
+- **The walk to the sun is redone by turning:** it reads the heights of the neighboring vertices, zero for those that the sorting removes; changing the sorting, its result can change.
+- **No camera jumps are to be processed:** an equal key gives a result equal to the bit closest, regardless of the above.
 
-**Ce qui borne encore :**
-- **En vol, tout est refait.** Le maillage glisse en continu avec la caméra : aucun sommet ne reste au même point d'une image à l'autre. Un maillage posé par pas sur la grille de la planète garderait chaque sommet, mais il est écarté : son affinement se verrait en déplacement rapide (`principes.md`).
-- **La grille en doubles,** 1,7 ms en forêt : par axe et par octave, une multiplication et une addition en double, au 64e du rythme des floats. Approchée, elle change le dernier bit du sol sous la caméra, donc toute l'image (round 3).
-- **La marche vers le soleil,** 0,6 à 1,3 ms au sol : ses pas partent de la maille et croissent de 2 %, environ 500 près de la caméra ; la moitié du temps est la lecture des hauteurs.
-- **La marge des vagues s'applique aussi sur terre :** 16 à 128 m autour de la vue, pour les sommets de mer que les vagues déplacent. Sans elle, 0,3 ms de moins en forêt et 0,6 en mer, image inchangée sur cinq vues ; mais prouver qu'un sommet n'est pas de la mer demande sa hauteur.
-- **Le reste au sol en vol :** dessin du terrain 3 à 7 ms, feuillage 2 à 4 ms, nuages et air 3 à 7 ms ; la forêt et la lisière restent sous 60 fps en vol rapide.
-- **En vol :** `tools/tests/2026-10-28-optimisation-terrain.txt`.
+**What is still limiting:**
+- **In flight, everything is redone.** The mesh slides continuously with the camera: no vertex remains at the same point from one frame to another. A mesh placed by step on the planet grid would keep each vertex, but it is removed: its refinement would be seen in fast movement (`principes.md`).
+- **The grid in double precision,** 1,7 ms in forest: per axis and per octave, a multiplication and an addition in double precision, at the 64e of the rhythm of floats. Approached, it changes the last bit of the ground under the camera, thus the entire image (round 3).
+- **The walk to the sun,** 0,6 to 1,3 ms on the ground: his steps start from the grid cell and grow by 2 %, about 500 near the camera; half the time is reading the heights.
+- **The wave margin also applies on land:** 16 to 128 m around the view, for sea summits that the waves move. Without it, 0,3 ms less in forest and 0,6 in sea, unchanged image on five views; but to prove that a summit is not of the sea requires its height.
+- **Rest on the ground in flight:** terrain drawing 3 to 7 ms, foliage 2 to 4 ms, clouds and air 3 to 7 ms; forest and edge remain under 60 fps in fast flight.
+- **In flight:** `tools/tests/2026-10-28-optimisation-terrain.txt`.
 
-**Essayé et retiré :**
-- **La grille en entiers :** le découpage de `Lattice`, plancher et reste en float, refait par des opérations entières sur les bits du double, le produit seul en double. Exact au bit près sur 1,1 million de valeurs, arrondis et égalités compris, et sur toutes les vues ; mais pas plus rapide, 3,07 ms contre 2,96 en forêt. Une addition en double vaut une trentaine d'opérations entières, le découpage en demandait autant.
-- **Dérouler les boucles d'octaves,** pour que les fréquences en double deviennent des constantes : plus lent, 3,26 ms, et la mer changeait de 20 niveaux en moyenne.
-- **128 fils par groupe au lieu de 64 :** sans effet.
-- **Garder les hauteurs de la dernière maille dans la marche vers le soleil :** exact, sans effet ; les lectures étaient déjà en cache.
-- **Une borne de hauteur plus basse pour arrêter la marche :** 2 000 m au lieu de 10 000, non exacte, ne gagne que 0,25 ms en forêt. Une borne exacte, le maximum des hauteurs du maillage, gagnerait moins là où des montagnes sont en vue.
+**Tested and withdrawn:**
+- **The grid in integers:** the cutting of `Lattice`, floor and remains in float, redone by whole operations on the bits of the double, the product only in double precision. Exact to the bit on 1,1 million values, rounded and equals included, and on all views; but not faster, 3,07 ms against 2,96 in forest. A double addition is worth thirty whole operations, the cutting required as much.
+- **Unroll the octave loops,** so that the frequencies in double precision become constants: slower, 3,26 ms, and the sea changed 20 levels on average.
+- **128 threads per group instead of 64:** without effect.
+- **Keep the heights of the last grid cell in the march to the sun:** correct, no effect; the readings were already cached.
+- **A lower height limit to stop the walk:** 2 000 m instead of 10 000, not exact, only gains 0,25 ms in forest. An exact boundary, the maximum of the heights of the mesh, would gain less where mountains are in sight.
 
-### Round 5 : images en vol (2026-10-28)
+### Round 5: flight images (2026-10-28)
 
-**Arrêté à la mesure : le GPU n'attend le CPU que 0,7 à 0,9 ms par image au sol, immobile comme en vol.** Deux images en vol rendraient au plus ce temps : de 71 à 75 fps au sol immobile, de 50 à 52 en vol. C'est sous le seuil d'1 ms fixé au départ, dans le bruit du GPU, pour une refonte qui touche toutes les lectures du GPU vers le CPU.
+**Stop at measurement: the GPU waits for the CPU only 0,7 to 0,9 ms per frame on the ground, still as in flight.** Two images in flight would make at most this time: from 71 to 75 fps on the ground still, from 50 to 52 in flight. It is below the threshold of 1 ms set initially, in the noise of the GPU, for a redesign that affects all readings from the GPU to the CPU.
 
-**La mesure,** `tools/banc_perf.py`, nouvelles colonnes (Le banc). Immobile `x64/r5_mesure`, en vol `--motion "0.2 0 0 0 0 0.05"` `x64/r5_mesure_vol` ; ms par image.
+**The measure,** `tools/banc_perf.py`, new columns (The benchmark). Immobile `x64/r5_mesure`, in flight `--motion "0.2 0 0 0 0 0.05"` `x64/r5_mesure_vol`; ms per frame.
 
-| Vue | Liste et soumission, CPU | GPU inactif | Total GPU | Cadence | fps GPU | fps réels |
+| View | List and Submission, CPU | GPU inactive | Total GPU | Cadence | fps GPU | Actual fps |
 |---|---|---|---|---|---|---|
-| foret_sol | 0,83 | 0,77 | 13,3 | 14,1 | 75 | 71 |
-| lisiere | 0,93 | 0,89 | 14,7 | 15,6 | 68 | 64 |
-| montagne | 0,85 | 0,84 | 14,2 | 15,1 | 70 | 66 |
+| default_s | 0,83 | 0,77 | 13,3 | 14,1 | 75 | 71 |
+| slurry | 0,93 | 0,89 | 14,7 | 15,6 | 68 | 64 |
+| mountain | 0,85 | 0,84 | 14,2 | 15,1 | 70 | 66 |
 | mer | 0,73 | 0,73 | 6,8 | 7,5 | 147 | 133 |
-| survol | 0,86 | 0,82 | 10,8 | 11,6 | 92 | 86 |
+| overflow | 0,86 | 0,82 | 10,8 | 11,6 | 92 | 86 |
 | cumulus | 0,62 | 0,62 | 5,2 | 5,9 | 191 | 171 |
 | orbite | 0,82 | 0,83 | 8,3 | 9,1 | 120 | 109 |
 | globe | 0,76 | 0,77 | 4,1 | 4,9 | 244 | 205 |
-| foret_sol, en vol | 0,84 | 0,81 | 19,1 | 19,9 | 52 | 50 |
-| lisiere, en vol | 0,82 | 0,80 | 22,1 | 22,9 | 45 | 44 |
-| montagne, en vol | 0,87 | 0,81 | 19,1 | 19,9 | 52 | 50 |
-| survol, en vol | 0,76 | 0,71 | 12,5 | 13,2 | 80 | 76 |
-| orbite, en vol | 0,90 | 1,16 | 43,9 | 45,1 | 23 | 22 |
+| foret_sol, in flight | 0,84 | 0,81 | 19,1 | 19,9 | 52 | 50 |
+| slurry, in bulk | 0,82 | 0,80 | 22,1 | 22,9 | 45 | 44 |
+| mountain, in flight | 0,87 | 0,81 | 19,1 | 19,9 | 52 | 50 |
+| over, in flight | 0,76 | 0,71 | 12,5 | 13,2 | 80 | 76 |
+| orbit, in flight | 0,90 | 1,16 | 43,9 | 45,1 | 23 | 22 |
 
-- **La préparation de l'image coûte 0,01 à 0,04 ms ;** l'enregistrement des listes 0,35 à 0,53 ms ; la soumission et la présentation 0,27 à 0,40 ms.
-- **Le CPU attend le GPU presque tout le reste :** `cpu_attente` vaut le total GPU à 0,1 ms près.
-- **Le GPU inactif vaut ce que le CPU fait entre deux images :** il attend l'enregistrement et la soumission de la suivante. La cadence est le total GPU plus ce temps, à 0,05 ms près.
-- **Les fps des rounds 1 à 4 sont ceux du temps GPU :** la cadence réelle est de 4 à 16 % plus basse, le plus en haute altitude où l'image est courte.
-- **L'image ne change pas :** les dix vues immobiles identiques au bit près à `x64/r4_verif` ; la mesure n'ajoute que des horodatages du CPU.
+- **Imaging preparation costs 0,01 to 0,04 ms;** list registration costs 0,35 to 0,53 ms; submission and presentation costs 0,27 to 0,40 ms.
+- **The CPU waits for the GPU almost everything else:** `cpu_attente` is worth the total GPU to 0,1 ms close.
+- **The inactive GPU is worth what the CPU does between two images:** it waits for the next one to be recorded and submitted. The cadence is the total GPU plus this time, to 0,05 ms close.
+- **The fps of the rounds 1 to 4 are those of the time GPU:** the actual cadence is 4 to 16 % lower, the most in high altitude where the image is short.
+- **The image does not change:** the ten still views identical to the bit close to `x64/r4_verif`; the measurement only adds time stamps of the CPU.
 
-**Ce que deux images en vol demanderaient,** relevé dans le code et non fait :
-- **Doubler par image en vol** les tampons que le CPU écrit : constantes de l'image, des nuages, de la mer, des cascades.
-- **Lire chaque relevé dans l'image qui l'a écrit :** horodatages, compteurs des objets et des plantes, hauteur de la mer, capture.
-- **Le sol sous la caméra** (`mReadbackBuffer`) arriverait une image plus tard : la hauteur de la caméra changerait en vol, donc l'image. Le mode banc devrait garder une image en vol.
-- **Ce que le GPU garde d'une image à l'autre resterait exact sans rien faire :** le terrain du round 4, la table du sol des plantes, les historiques. La file exécute les images dans l'ordre ; la clé compare à l'image précédente, qui a écrit les tampons juste avant sur le GPU.
+**What two images in flight would ask for,** noted in the code and not done:
+- **Double by frame in flight** the buffers that the CPU writes: constants of the frame, clouds, sea, cascades.
+- **Read each record in the image that wrote it:** timestamps, object and plant counters, sea level, capture.
+- **The ground under the camera** (`mReadbackBuffer`) would arrive one frame later: the height of the camera would change in flight, so the image. The benchmark mode should keep an image in flight.
+- **What the GPU keeps from one frame to another would remain accurate without doing anything:** the terrain of the 4 round, the table of the soil of plants, the histories ones. The queue executes the images in order; the key compares to the previous image, which wrote the buffers just before on the GPU.
 
-**Ce qui borne la cadence :**
-- **Le temps GPU,** 94 à 96 % de la cadence au sol : 19 à 22 ms en vol en forêt et en lisière, dont le calcul du terrain refait à chaque image, 4,4 ms (round 4).
-- **En vol au-delà de x5 en altitude,** la passe des nuages, 15 à 38 ms (round 1).
-- **La part du CPU,** 0,8 ms, ne compte qu'au-dessus de 120 fps : 10 % de la cadence en mer, 16 % au globe.
+**What limits the pace:**
+- **The time GPU,** 94 to 96 % of the ground cadence: 19 to 22 ms in forest and edge flight, where the terrain calculation is redone at each frame, 4,4 ms (round 4).
+- **In flight beyond x5 in altitude,** cloud passage, 15 to 38 ms (round 1).
+- **The share of CPU,** 0,8 ms, counts only above 120 fps: 10 % of the cadence at sea, 16 % at the globe.
 
-**À reprendre si** le temps GPU tombe sous 8 ms au sol : le gain deviendrait 10 % de la cadence.
+**To be resumed if** the time GPU falls below 8 ms at the ground: the gain would become 10 % of the cadence.
 
 
-### Round 7 : nuages en vol rapide (2026-10-29)
+### Round 7: clouds in fast flight (2026-10-29)
 
-**Sous 14 km, le vol rapide ne retrace plus chaque pixel qui a glissé : un pixel par carré 2×2 est tracé, les trois autres en sont interpolés.** Cumulus à 10 km en vol rapide : la passe de 24,2 à 8,1 ms, de 36 à 90 fps réels ; 150 m sous les cumulus en plongée : de 18,1 à 9,5 ms, de 34 à 52 fps. Au-dessus de 14 km, rien ne change : 160 et 440 km restent à 15 ms, l'orbite à 38 ms. Image immobile identique au bit près. Bancs `x64/r7_final_*` contre la passe pleine au même mouvement, `x64/r6_full_*` ; avant, `x64/r6_avant_*`.
+**Below 14 km, the fast flight no longer traces every pixel that has slipped: one pixel per square 2×2 is traced, the other three are interpolated.** Cumulus to 10 km in fast flight: the change from 24,2 to 8,1 ms, from 36 to 90 fps real; 150 m under the cumulus in dive: from 18,1 to 9,5 ms, from 34 to 52 fps. Above 14 km, nothing changes: 160 and 440 km remain at 15 ms, the orbit at 38 ms. Still image identical to the bit. benchmarks `x64/r7_final_*` against full pass at the same movement, `x64/r6_full_*`; front, `x64/r6_avant_*`.
 
-**Pourquoi l'historique est rejeté en vol rapide,** mesuré à 5 % de la hauteur par image :
-- **Le virage n'est pas seul en cause.** Sans lui, cumulus 24,0 → 22,8 ms, haut160 14,9 → 13,2 ; l'orbite 38 → 20 ms, mais son écart à la passe pleine passe de 0,67 à 4,88 niveaux, 46 % de plaques.
-- **À 10 km, la dérive rejette :** 500 m par image, des nuages à quelques kilomètres ; l'étalement en distance d'un volume glisse de plus d'un pixel.
-- **La reprojection voit déjà la parallaxe du volume :** la dérive est le glissement entre l'avant et l'arrière de sa lumière. Le virage par image borne l'adoucissement du rééchantillonnage (round 6, tag `piste/optimisation-r6-nuages-mouvement`). Garder l'historique plus longtemps coûte de l'écart partout.
-- **Il reste à tracer moins cher ce qui a glissé.**
+**Why history is rejected in fast flight,** measured at 5 % of height per frame:
+- **The turn is not the only reason.** Without it, cumulus 24,0 → 22,8 ms, high160 14,9 → 13,2; orbit 38 → 20 ms, but its deviation at full pass passes from 0,67 to 4,88 levels, 46 % of plates.
+- **At 10 km, the drift throws out:** 500 m per frame, clouds at a few kilometers; the spreading in distance of a volume slides by more than one pixel.
+- **The reprojection already sees the parallax of the volume:** the drift is the slip between the front and back of its light. The frame-by-frame turn limits the re-sampling softening (round 6, tag `piste/optimisation-r6-nuages-mouvement`). Keeping the history longer costs the gap everywhere.
+- **It remains to trace cheaper what has slipped.**
 
-**Les pixels qui ont glissé, un par carré 2×2** (`CloudsTemporal.hlsli`, `PSCloudTraceHalf`, `CloudTemporalHalfFill`) :
-- **Une passe à demi-résolution,** un texel par carré de 2×2 pixels ; le pixel tracé fait le tour du carré en quatre images, avec la tuile 4×4.
-- **Elle trace un carré quand l'historique d'un de ses quatre pixels a glissé ou tourné,** par la décision même de la résolution (`CloudTemporalLookup`, partagée).
-- **La résolution prend la trace telle quelle au pixel tracé,** et pour les trois autres l'interpolation bilinéaire des carrés voisins qui voient la même surface. Sans carré voisin, le pixel se trace, comme avant.
-- **Le pixel interpolé se garde comme un remplissage,** à 0,75 pixel de dérive : à l'arrêt, la tuile 4×4 le remplace en 16 images.
-- **Décidé par carré, non par pixel :** décidé au seul pixel tracé, ses voisins du même carré retraçaient en ordre dispersé ; cumulus 14,2 ms au lieu de 8,2.
+**The pixels that moved, one per square 2×2** (`CloudsTemporal.hlsli`, `PSCloudTraceHalf`, `CloudTemporalHalfFill`):
+- **A half resolution pass,** one texel per square of 2×2 pixels; the pixel tracked rounds the square in four frames, with the tile 4×4.
+- **It draws a square when the history of one of its four pixels has slipped or rotated,** by the resolution decision itself (`CloudTemporalLookup`, shared).
+- **The resolution takes the trace as it is at the pixel traced,** and for the other three the bilinear interpolation of the neighboring squares that see the same surface. Without a neighboring square, the pixel is plotted, as before.
+- **The interpolated pixel is kept as a fill,** at 0,75 drift pixel: at the stop, the tile 4×4 replaces it in 16 images.
+- **Decided by square, not by pixel:** decided at the single pixel plotted, its neighbors of the same square plotted in scattered order; cumulus 14,2 ms instead of 8,2.
 
-**Sous la porte de la quadrature lointaine seulement,** caméra sous 14 km (`CloudTemporalHalfOn`, `CLOUD_FROSTBITE_ORBIT_CAMERA_GATE_LOW_KM`) :
-- **Là, aucun pixel ne moyenne de rayons sous le pixel :** les nuages sont plus grands que lui. L'interpolation s'écarte d'un niveau sur 12 % des pixels du cumulus, de plus de 2 niveaux sur moins qu'avant.
-- **Au-dessus, le grain des nuages lointains est au pixel :** interpolé, il s'adoucit. Partout, l'orbite tombait de 38 à 14 ms, mais de 0,67 à 2,94 niveaux et de 1,1 à 7,5 % au-delà de 8 ; globe 0,55 → 1,13 ; haut440 1,15 → 1,78.
-- **haut160 n'en souffrait pas,** 15 → 7 ms à écart égal : son grain est faible. Aucune règle tirée de l'estimateur ne le distingue de l'orbite ; les seuils sur l'image ont échoué (plus bas).
-- **Au passage de 14 km,** l'écart entre les deux régimes est d'un niveau : rien ne saute.
-- **Au-dessus, la passe ne se lance pas** (`D3DApp::Draw`) : 0,2 à 0,7 ms de moins qu'en la lançant à vide, en plongée au-dessus de 14 km.
+**Under the door of the distant quadrature only,** camera under 14 km (`CloudTemporalHalfOn`, `CLOUD_FROSTBITE_ORBIT_CAMERA_GATE_LOW_KM`):
+- **There, no pixel does not mean rays under the pixel:** clouds are larger than it. The interpolation departs by one level on 12 % of the pixels of the cumulus, by more 2 levels on less than before.
+- **Above, the grain of the distant clouds is pixel:** interpolated, it softens. Everywhere, the orbit fell from 38 to 14 ms, but from 0,67 to 2,94 levels and from 1,1 to 7,5 % beyond 8; globe 0,55 → 1,13; high440 1,15 → 1,78.
+- **haut160 did not suffer from it,** 15 → 7 ms at equal margin: its grain is low. No rule from the estimator distinguishes it from the orbit; the thresholds on the image failed (below).
+- **At the passage of 14 km,** the difference between the two regimes is one level: nothing jumps.
+- **Above, the pass does not launch** (`D3DApp::Draw`): 0,2 to 0,7 ms less than launching it empty, diving above 14 km.
 
-**Le coût, passe de l'atmosphère et des nuages, ms, avant → après ; fps réels avant → après :**
+**The cost, pass of atmosphere and clouds, ms, before → after; actual fps before → after:**
 
-| Vue | vol rapide | fps réels | plongée | fps réels | vol lent |
+| View | fast flight | Actual fps | Diving | Actual fps | slow flight |
 |---|---|---|---|---|---|
 | cumulus | 24,2 → 8,1 | 36 → 90 | 17,3 → 16,6 | 50 → 50 | 23,4 → 8,8 |
 | cumulus_sol | 7,6 → 6,0 | 59 → 70 | 18,1 → 9,5 | 34 → 52 | 5,1 → 5,3 |
-| survol | 1,5 → 1,4 | 71 → 77 | 18,6 → 15,2 | 35 → 38 | 1,5 → 1,4 |
-| foret_sol | 3,2 → 3,0 | 48 → 52 | 5,5 → 5,2 | 43 → 49 | 2,9 → 2,8 |
-| lisiere | 7,1 → 6,9 | 41 → 43 | 7,5 → 7,2 | 45 → 48 | 6,7 → 6,3 |
-| montagne | 2,7 → 2,6 | 48 → 50 | 2,9 → 3,0 | 45 → 45 | 2,5 → 2,6 |
+| overflow | 1,5 → 1,4 | 71 → 77 | 18,6 → 15,2 | 35 → 38 | 1,5 → 1,4 |
+| default_s | 3,2 → 3,0 | 48 → 52 | 5,5 → 5,2 | 43 → 49 | 2,9 → 2,8 |
+| slurry | 7,1 → 6,9 | 41 → 43 | 7,5 → 7,2 | 45 → 48 | 6,7 → 6,3 |
+| mountain | 2,7 → 2,6 | 48 → 50 | 2,9 → 3,0 | 45 → 45 | 2,5 → 2,6 |
 | mer | 4,5 → 4,5 | 104 → 102 | 4,4 → 4,7 | 117 → 108 | 4,7 → 4,6 |
-| haut160 | 15,1 → 14,9 | 56 → 57 | 4,1 → 4,3 | 166 → 158 | 3,4 → 3,4 |
-| haut440 | 15,7 → 15,0 | 50 → 53 | 3,3 → 3,5 | 203 → 189 | 3,4 → 3,3 |
+| high160 | 15,1 → 14,9 | 56 → 57 | 4,1 → 4,3 | 166 → 158 | 3,4 → 3,4 |
+| high440 | 15,7 → 15,0 | 50 → 53 | 3,3 → 3,5 | 203 → 189 | 3,4 → 3,3 |
 | orbite | 38,3 → 38,0 | 22 → 22 | 17,6 → 18,1 | 43 → 43 | 4,0 → 3,8 |
 | globe | 9,7 → 9,4 | 74 → 77 | 2,8 → 3,0 | 189 → 182 | 10,8 → 10,5 |
 
-- **Vol rapide** `--motion "0.2 0 0 0 0 0.05"`, **plongée** `"0 0 0 1.025"`, **vol lent** `"0.1 0 0 0 0 0.01"`.
-- **En plongée, cumulus et survol gagnent peu :** la descente part de 36 fois la hauteur, au-dessus de 14 km pour la plupart des 120 images mesurées.
-- **Au-dessus de 14 km, les écarts sont dans le bruit du GPU,** 5 à 10 %. Avant/après mesurés le même jour en plongée, haut160 4,21 → 4,27 ms, orbite 17,59 → 17,73.
+- **Fast flight** `--motion "0.2 0 0 0 0 0.05"`, **diving** `"0 0 0 1.025"`, **slow flight** `"0.1 0 0 0 0 0.01"`.
+- **In diving, cumulus and flying gain little:** the descent starts from 36 times the height, above 14 km for most of the 120 images measured.
+- **Above 14 km, the variations are in the noise of the GPU,** 5 to 10 %. Avant/après measured on the same day in dive, high160 4,21 → 4,27 ms, orbit 17,59 → 17,73.
 
-**La garde de qualité :**
-- **Immobile :** les dix vues identiques au bit près à `x64/r4_verif`, montagne comprise (`x64/r7_final_fixe`).
-- **En mouvement, contre la passe pleine au même mouvement :** les onze vues donnent les mêmes écarts qu'avant, sauf deux, au centième près :
-  - **cumulus en vol rapide :** 0,06 → 0,13 niveau moyen ; au-delà de 8 niveaux, 0,01 → 0 % ; plaques 0,03 → 0 %. Le moyen monte par des écarts d'un niveau, sur 12 % des pixels ; ceux de 2 niveaux et plus baissent.
-  - **cumulus_sol en plongée :** plaques 4,91 → 4,95 %, le reste égal.
-- **Ce qui s'améliore :** cumulus en plongée, 1,66 → 1,55 % au-delà de 8 niveaux, plaques 3,26 → 2,19 % ; cumulus en vol lent, 0,21 → 0,19 niveau, plaques 0,06 → 0,01 %.
-- **`banc_qualite.py`,** les 30 lieux de `x64/qualite_r2_final` (`x64/qualite_r7`) : aucun p95 ne bouge.
+**Quality guard:**
+- **Immobile:** the ten identical views bit close to `x64/r4_verif`, including mountain (`x64/r7_final_fixe`).
+- **In motion, against the full pass at the same movement:** the eleven views give the same deviations as before, except two, to the hundredth:
+  - **cumulus in fast flight:** 0,06 → 0,13 medium level; beyond 8 levels, 0,01 → 0 %; plates 0,03 → 0 %. The mean rises by one level deviation, on 12 % of pixels; those of 2 levels and above decrease.
+  - **cumulus_sol in dive:** plates 4,91 → 4,95 %, the rest equal.
+- **What is improving:** cumulus in dive, 1,66 → 1,55 % beyond 8 levels, plates 3,26 → 2,19 %; cumulus in slow flight, 0,21 → 0,19 level, plates 0,06 → 0,01 %.
+- **`banc_qualite.py`,** the 30 places of `x64/qualite_r2_final` (`x64/qualite_r7`): no p95 moves.
 
-**Ce qui borne encore :**
-- **Au-dessus de 14 km en vol rapide, la passe coûte la passe pleine :** orbite 38 ms, 22 fps ; 160 et 440 km 15 ms, 53 à 57 fps ; globe 9,4 ms.
-- **La piste :** une quadrature lointaine moins chère sans grain, ses rayons sous le pixel partageant la marche, le saut du vide et la lumière vers le soleil ; ou une passe de calcul qui compacte les pixels à retracer.
-- **Le seuil de 14 km est celui de la quadrature lointaine,** pas une mesure du grain : à 160 km, la demi-résolution irait aussi bien, sans qu'une règle le prouve.
-- **En vol :** `tools/tests/2026-10-28-optimisation-nuages-rapides.txt`.
+**What is still limiting:**
+- **Above 14 km in fast flight, the pass costs the full pass:** orbit 38 ms, 22 fps; 160 and 440 km 15 ms, 53 to 57 fps; globe 9,4 ms.
+- **The experiment:** a cheaper grainless distant quadrature, its rays under the pixel sharing the walk, the jump of the void and the light towards the sun; or a computation pass that compacts the pixels to be traced.
+- **The threshold of 14 km is that of the distant quadrature,** not a measure of grain: at 160 km, half resolution would go as well, without a rule proving it.
+- **In flight:** `tools/tests/2026-10-28-optimisation-nuages-rapides.txt`.
 
-**Essayé et retiré,** vol rapide, contre la passe pleine :
-- **Sans le virage :** voir plus haut ; l'orbite à 4,88 niveaux.
-- **Un seul rayon lointain par pixel retracé :** orbite 38 → 19 ms, haut160 15 → 8,9 à écart égal ; mais globe 0,55 → 1,34 niveau, haut440 1,15 → 1,66, orbite 0,67 → 1,01 : un grain qui scintille.
-- **Un seul rayon lointain là où l'historique est lisse,** jugé sur la plage de ses quatre texels : seuils serrés, aucun gain ; lâches, haut160 15,6 → 14,0 ms, orbite 38,8 → 34,8, l'écart en hausse partout.
-- **La demi-résolution partout, l'historique borné aux carrés voisins,** comme un TAA : orbite 2,31 niveaux au lieu de 2,94, encore loin de 0,67 ; cumulus 0,32.
-- **La demi-résolution partout, retracée là où les carrés voisins s'écartent :** orbite 43 ms, plus lent qu'avant. Les retraces dispersées coûtent la vague entière.
-- **Le grain mesuré dans l'historique du carré :** encore dispersé, orbite 38 ms et 2,03 niveaux.
-- **Là où le poids lointain du pixel est nul :** haut160 ne gagne rien, et le globe passe de 1,80 à 2,23 % au-delà de 8 niveaux : son limbe, rasant, n'a pas de quadrature lointaine, mais du grain.
+**Tried and removed,** fast flight, against the full pass:
+- **Without the turn:** see above; orbit at 4,88 levels.
+- **A single distant ray per pixel traced:** orbit 38 → 19 ms, high160 15 → 8,9 at equal distance; but globe 0,55 → 1,34 level, high440 1,15 → 1,66, orbit 0,67 → 1,01: a grain that sparkles.
+- **A single distant radius where the history is smooth,** judged on the range of its four texels: tight thresholds, no gain; loose, high160 15,6 → 14,0 ms, orbit 38,8 → 34,8, the gap rising everywhere.
+- **Half resolution everywhere, history limited to neighboring squares,** like a TAA: orbit 2,31 levels instead of 2,94, still far from 0,67; cumulus 0,32.
+- **Half resolution everywhere, traced where neighboring squares diverge:** orbit 43 ms, slower than before. Scattered traces cost the whole wave.
+- **The grain measured in the square history:** still scattered, orbits 38 ms and 2,03 levels.
+- **Where the distant weight of the pixel is zero:** haut160 does not gain anything, and the globe goes from 1,80 to 2,23 % beyond 8 levels: its limb, rasant, has not distant quadrature, but grain.
 
-### Round 8 : le sol en vol rapide (2026-10-29)
+### Round 8: ground in fast flight (2026-10-29)
 
-**En vol rapide au sol, de 49 à 60 fps réels en forêt, de 43 à 55 en lisière, de 48 à 54 en montagne.** Deux changements : les trouées de ciel dans les feuilles ne sont plus tracées par la résolution des nuages ; en vol, la grille du terrain se découpe en paires de floats. Image immobile identique au bit près à `x64/r4_verif`. Bancs `x64/r8_final_*`, contre le binaire d'avant mesuré dans la même séance, `x64/r8_avant_seance_*` ; le premier « avant », `x64/r8_avant_*`, est d'une séance où le GPU allait 10 % plus vite.
+**In fast ground flight, from 49 to 60 real fps in forest, from 43 to 55 in edge, from 48 to 54 in mountain.** Two changes: the sky holes in the leaves are no longer traced by cloud resolution; in flight, the terrain grid is cut into pairs of floats. Still image identical to bit close to `x64/r4_verif`. benchmarks `x64/r8_final_*`, against the forward binary measured in the same session, `x64/r8_avant_seance_*`; the first "forward", `x64/r8_avant_*`, is from a session where the GPU was 10 % faster.
 
-**L'inactivité du GPU en montagne n'était pas du moteur :** 5,5 ms dans `x64/r7_verif_rapide`, mais tous les temps du CPU y étaient multipliés par quatre, la mer aussi. Refait, 0,55 ms, comme partout.
+**The idle of the GPU in the mountains was not the engine:** 5,5 ms in `x64/r7_verif_rapide`, but all the times of the CPU were multiplied by four, the sea too. Repeat, 0,55 ms, as everywhere.
 
-**Le vol rapide,** `--motion "0.2 0 0 0 0 0.05"`, ms GPU avant → après :
+**The fast flight,** `--motion "0.2 0 0 0 0 0.05"`, ms GPU before → after:
 
-| Vue | Terrain, calcul | Résolution des nuages | Total | Cadence | fps réels |
+| View | Land, calculation | Cloud resolution | Total | Cadence | Actual fps |
 |---|---|---|---|---|---|
-| foret_sol | 4,6 → 3,0 | 1,8 → 0,8 | 19,7 → 16,1 | 20,6 → 16,8 | 49 → 60 |
-| lisiere | 4,8 → 3,3 | 3,6 → 0,9 | 22,5 → 17,5 | 23,5 → 18,2 | 43 → 55 |
-| montagne | 3,6 → 2,5 | 1,2 → 1,0 | 19,7 → 17,6 | 20,6 → 18,4 | 48 → 54 |
+| default_s | 4,6 → 3,0 | 1,8 → 0,8 | 19,7 → 16,1 | 20,6 → 16,8 | 49 → 60 |
+| slurry | 4,8 → 3,3 | 3,6 → 0,9 | 22,5 → 17,5 | 23,5 → 18,2 | 43 → 55 |
+| mountain | 3,6 → 2,5 | 1,2 → 1,0 | 19,7 → 17,6 | 20,6 → 18,4 | 48 → 54 |
 | mer | 2,3 → 1,7 | 0,7 | 9,2 → 8,3 | 10,0 → 9,0 | 100 → 111 |
-| survol | 1,4 | 0,5 | 12,7 → 12,0 | 13,5 → 12,7 | 74 → 79 |
+| overflow | 1,4 | 0,5 | 12,7 → 12,0 | 13,5 → 12,7 | 74 → 79 |
 | cumulus_sol | 1,7 → 1,4 | 1,3 | 14,4 → 13,2 | 15,4 → 13,8 | 65 → 73 |
 
-- **La résolution :** la passe de l'atmosphère moins la trace des nuages.
-- **En vol lent,** `"0.1 0 0 0 0 0.01"` : forêt 51 → 57 fps réels, lisière 46 → 54, montagne 53 → 56. **En plongée,** `"0 0 0 1.025"` : forêt 48 → 56, lisière 47 → 55, montagne 47 → 48.
-- **Au-dessus du sol, rien ne change,** à 5 % près, le bruit du GPU : cumulus, orbite, globe, 160 et 440 km.
-- **La forêt atteint les 60 fps réels, de justesse :** 16,8 ms de cadence. Lisière et montagne restent au-dessus des 16,6 ms.
-- **Un autre moteur sur le GPU fausse le banc :** une session sur un autre worktree a fait monter cumulus_sol immobile de 11 à 15,7 ms ; signature, plus de 2 ms de GPU inactif et l'attente du CPU au-dessus du temps GPU. Les chiffres ci-dessus sont refaits sans elle.
+- **Resolution:** the passage of the atmosphere less the clouds trace.
+- **In slow flight,** `"0.1 0 0 0 0 0.01"`: forest 51 → 57 real fps, edge 46 → 54, mountain 53 → 56. **In diving,** `"0 0 0 1.025"`: forest 48 → 56, edge 47 → 55, mountain 47 → 48.
+- **Above the ground, nothing changes,** at 5 % close, the noise of the GPU: cumulus, orbit, globe, 160 and 440 km.
+- **The forest reaches the actual 60 fps, just right:** 16,8 ms of cadence. Lisière and mountain remain above the 16,6 ms.
+- **Another engine on the GPU fakes the benchmark:** a session on another worktree raised cumulus_sol immobile from 11 to 15,7 ms; signature, more than 2 ms of GPU inactive and waiting of the CPU over time GPU. The figures above are redone without it.
 
-**Les trouées de ciel tenaient la résolution des nuages** (`CloudsTemporal.hlsli`) :
-- **Immobile, la résolution coûte 0,6 ms ; en vol, 1,8 ms en forêt, 3,6 en lisière.**
-- **La cause :** 28 pixels par image en forêt, 45 en lisière, tracés par la résolution elle-même : des trouées de ciel nouvelles dans les feuilles, que ni l'historique ni les tuiles fraîches des 5×5 ne voient.
-- **Chacun tient sa vague :** un rayon de ciel presque horizontal marche des centaines de kilomètres, et la passe attend la dernière vague. Sans ces traces, lisière 6,1 → 3,2 ms, forêt 2,8 → 1,6.
-- **Désormais, sous la porte des 14 km** (`CloudTemporalHistoryFill`) : le texel le plus proche de l'historique, autour du pixel reprojeté, qui voit la même surface ; dans les 5×5, sinon sur une grille de 9×9 tous les 6 texels.
-- **Une trouée que rien ne voit reste claire pour cette image,** puis les carrés 2×2 la retracent. Une surface que rien ne voit est tracée comme avant : ses nuages devant elle diffèrent de ceux de ses voisines.
-- **Au-dessus de 14 km,** rien ne change.
+**The sky holes held the resolution of the clouds** (`CloudsTemporal.hlsli`):
+- **Still, the resolution costs 0,6 ms; in flight, 1,8 ms in forest, 3,6 in edge.**
+- **The cause:** 28 pixels per frame in forest, 45 in edge, traced by the resolution itself: new sky holes in the leaves, which neither the history nor the fresh tiles of the 5×5 see.
+- **Everyone holds his wave:** a ray of almost horizontal sky walks hundreds of kilometers, and the pass waits for the last wave. Without these traces, edge 6,1 → 3,2 ms, forest 2,8 → 1,6.
+- **Now, under the door of the 14 km** (`CloudTemporalHistoryFill`): the texel closest to the historical, around the reprojected pixel, which sees the same surface; in the 5×5, otherwise on a grid of 9×9 all the 6 texels.
+- **A hole that nothing sees remains clear for this image,** then the squares 2×2 retrace it. A surface that nothing sees is traced as before: its clouds in front of it differ from those of its neighbors.
+- **Above 14 km,** nothing changes.
 
-**La grille du terrain en paires de floats, en vol** (`Noise.hlsli`, `TerrainComputePairs.hlsl`, `D3DApp::Draw`) :
-- **La grille en doubles coûtait 2,4 ms des 3 du calcul des sommets en forêt** (round 4) : le GPU fait un double au 64ᵉ du rythme des floats.
-- **En paires :** le point et la fréquence, chacun en deux floats, environ 48 bits ; le produit exact par la méthode de Dekker. Par octave, deux opérations en double au lieu de sept.
-- **Le point est le même à 2·10⁻⁸ m près ;** seul le dernier bit d'une hauteur peut changer (`geometrie.md`).
-- **Seulement en vol :** le maillage a glissé à cette image et à la précédente, et ses mailles font moins de 4 m, là où la grille passe en doubles. Après un saut, la première image est exacte ; à l'arrêt, tout le maillage est recalculé en doubles, une fois.
-- **Un shader à part :** le même code exact, compilé dans un seul shader avec la voie en paires à côté, changeait ses derniers bits, et l'image immobile avec : lisière 1,11 niveau, 1,77 % au-delà de 8. Le shader exact reste le binaire d'avant, au bit près.
-- **Le sommet sous la caméra reste exact :** la voie en paires le laisse sans terrain ; le shader exact, relancé avec le maillage gardé (`camPlane.z`), ne calcule que lui. Calculé en paires, il déplaçait la caméra d'une fraction de millimètre : lisière 1,56 niveau, 2,7 % au-delà de 8, dans les bords des feuilles.
+**The grid of the field in pairs of floats, in flight** (`Noise.hlsli`, `TerrainComputePairs.hlsl`, `D3DApp::Draw`):
+- **The double grid cost 2,4 ms of the 3 of the forest vertices calculation** (round 4): the GPU doubles the 64ᵉ of the float rhythm.
+- **In pairs:** the point and frequency, each in two floats, about 48 bits; the exact product by Dekker method. Per octave, two double-precision operations instead of seven.
+- **The point is the same at 2·10⁻⁸ m;** only the last bit of a height can change (`geometrie.md`).
+- **Only in flight:** the mesh has slipped to this image and the previous one, and its grid cells is less than 4 m, where the grid goes into doubles. After a jump, the first image is accurate; at the stop, the entire mesh is recalculated into doubles, once.
+- **A shader apart:** the exact same code, compiled into a single shader with the pairs path next to it, changed its last bits, and the still image with: 1,11 level edge, 1,77 % beyond 8. The exact shader remains the binary from before, bit close.
+- **The vertex under the camera remains accurate:** the pairs lane leaves it without ground; the exact shader, re-launched with the mesh kept (`camPlane.z`), calculates only it. Calculated in pairs, it moved the camera by a fraction of a millimeter: 1,56 level edge, 2,7 % beyond 8, in the edges of the leaves.
 
-**La garde de qualité :**
-- **Immobile :** les dix vues identiques au bit près à `x64/r4_verif`, montagne comprise ; cumulus_sol identique à `x64/r8_avant_fixe` (`x64/r8_final_fixe`).
-- **En mouvement, contre le binaire d'avant au même mouvement :** au sol, 0,05 à 0,09 niveau moyen, 0,02 % des pixels au-delà de 8. Des pixels isolés aux bords des feuilles et du pied des troncs, que le dernier bit du sol déplace d'une fraction de pixel. En montagne, 0,15 % de plaques au pied des troncs, à 4 km d'altitude où le dernier bit vaut 0,5 mm. Au-dessus du sol, identique.
-- **Contre la passe pleine au même mouvement** (`x64/r6_full_*`) : les mêmes écarts qu'avant à 0,1 niveau près. Forêt 0,10 → 0,15, lisière 0,11 → 0,16, montagne 0,05 → 0,13 en vol rapide ; les autres vues inchangées, en vol rapide, lent et en plongée.
-- **`banc_qualite.py`,** les 30 lieux de `x64/qualite_r2_final` (`x64/qualite_r8`) : aucun p95 ne bouge, mutation comprise.
+**Quality guard:**
+- **Immobile:** the ten views identical to the bit close to `x64/r4_verif`, including mountain; cumulus_sol identical to `x64/r8_avant_fixe` (`x64/r8_final_fixe`).
+- **In motion, against the forward binary at the same motion:** on the ground, 0,05 to 0,09 medium level, 0,02 % of pixels beyond 8. Isolated pixels at the edges of leaves and trunks, which the last bit of ground moves by a fraction of a pixel. In mountains, 0,15 % of plates at the foot of the trunks, at 4 km altitude where the last bit is 0,5 mm. Above the ground, identical.
+- **Against the full pass at the same move** (`x64/r6_full_*`): the same gaps as before at 0,1 level close. Forest 0,10 → 0,15, edge 0,11 → 0,16, mountain 0,05 → 0,13 in fast flight; other views unchanged, in fast flight, slow flight and diving.
+- **`banc_qualite.py`,** the 30 places of `x64/qualite_r2_final` (`x64/qualite_r8`): no p95 moves, including mutation.
 
-**Ce qui borne encore :**
-- **Lisière et montagne restent sous 60 fps en vol rapide,** 55 et 54. La lisière : nuages et air 3,8 ms, dont la trace 2,6. La montagne : le dessin du terrain, 7 ms, deux fois la forêt.
-- **Le calcul du terrain en vol reste à 2,6 à 3,4 ms :** la marche vers le soleil, 0,6 à 1,3 ms, et le reste des sommets.
-- **La piste de la marche vers le soleil :** sauter les pas dont la plus haute des mailles de l'anneau ne peut changer ni l'horizon ni la hauteur d'ombre. Exacte, mais une passe de plus.
-- **Le placement des plantes en vol,** 2,1 à 2,6 ms : ses sols exacts sont aussi en doubles ; en paires, leur dernier bit entrerait dans la table gardée.
-- **En vol :** `tools/tests/2026-10-29-optimisation-sol-vol-rapide.txt`.
+**What is still limiting:**
+- **Lisière and mountain remain below 60 fps in fast flight,** 55 and 54. The edge: clouds and air 3,8 ms, including the trace 2,6. The mountain: the terrain drawing, 7 ms, twice the forest.
+- **The calculation of the terrain in flight remains at 2,6 to 3,4 ms:** the walk to the sun, 0,6 to 1,3 ms, and the rest of the summits.
+- **The experiment of the walk to the sun:** jump the steps of which the highest of the grid cells of the ring can not change neither the horizon nor the height of shadow. Exactly, but one more pass.
+- **The placement of plants in flight,** 2,1 to 2,6 ms: its exact floors are also in double precision; in pairs, their last bit would enter the table kept.
+- **In flight:** `tools/tests/2026-10-29-optimisation-sol-vol-rapide.txt`.
 
-**Essayé et retiré :**
-- **Élargir la recherche dans les tuiles fraîches,** 9×9 puis 17×17 : lisière 6,1 → 4,1 ms ; sa boucle devient la nouvelle traîne.
-- **Une recherche dense dans l'historique,** jusqu'à 25×25 : de même, 4,3 ms.
-- **Laisser claire toute surface que rien ne voit :** des points isolés sur le relief lointain de la montagne, 0,25 % de plaques.
-- **Remplir aussi les pixels glissés que les carrés 2×2 ne voient pas :** aucun cas mesuré.
-- **Les paires dans le même shader que le calcul exact :** l'image immobile changeait (plus haut).
+**Tested and withdrawn:**
+- **Expand search in fresh tiles,** 9×9 then 17×17: edge 6,1 → 4,1 ms; its loop becomes the new trail.
+- **Dense history search,** up to 25×25: likewise, 4,3 ms.
+- **Let clear any surface that nothing sees:** isolated points on the distant relief of the mountain, 0,25 % of plates.
+- **Fill also the pixels slided that the squares 2×2 do not see:** no measured case.
+- **Pairs in the same shader as the exact calculation:** the still image changed (above).

@@ -1,15 +1,15 @@
-# La planète vue d'orbite, côté rendu (docs/spec-rendu-orbite.md) : un océan bleu sombre et non lavande, des nuages blancs et opaques, des cœurs lisses aux bords effilochés sans grain, stables en mouvement, un limbe bleu fin. Comparer à la Terre d'Apollo 17, « Blue Marble ». Puis vérifier que rien ne se dégrade en descendant : bases des nuages grises et non crème, ombres au sol, brume. Altitudes au-dessus de la mer ; lieux de la graine 0 ; météo en pause.
-Orbite, soleil dans le dos, comme Apollo 17 : mer, nuages, limbe | 10000000 -0.5 -18.225 90 0 | 10 -5
-Orbite, soleil à 60° : terminateur, limbe côté soleil, rien de rose | 10000000 25 120 90 0 | 25 60
-Orbite, l'autre face, soleil dans le dos | 10000000 25 120 90 0 | 25 120
-Une dépression depuis 3 000 km : cœur lisse et blanc, bords effilochés, sans grain ; tourner la caméra | 3000000 50.6 -107.9 90 180 | 35 -95
-Les cumulus des alizés depuis 400 km : un voile régulier, pas de sable ; avancer vite (×5) | 400000 27.9 -164.4 40 0 | 25 -150
-Les nappes de la côte froide depuis 400 km : opaques, blanches, soleil haut | 400000 18.25 39 50 280 | 18 50
-Les mêmes nappes, soleil rasant : elles s'assombrissent avec lui | 400000 18.25 39 50 280 | 18 115
-Un amas de la ZCIT depuis 400 km, soleil haut | 400000 9.3 148.5 50 0 | 10 160
-À 12 km au-dessus de la chaîne tropicale : cumulus blancs, côtés ombrés, pas crème | 12000 -12.6 112.6 15 294 | -20 105
-À 1 km au-dessus de la forêt au vent : bases grises, ombres au sol | 2400 -12.375 112.125 4 294 | -5 125
-Sous la nappe, au ras de la mer froide : dessous gris bleuté | 1000 18.25 35.5 -5 270 | 18 50
-Au sol, plaine équatoriale sous la convection | 345 -7.75 -37.25 -6 0 | -5 -25
-Au sol, la même plaine, soleil bas devant : cumulus à contre-jour, liseré lumineux | 345 -7.75 -37.25 -6 0 | 72 -37.25
-Le désert subtropical depuis 30 km, ciel clair : ocre, sans voile | 30400 25.25 56.25 40 0 | 25 75
+# The planet seen from orbit, render side (docs/spec-rendu-orbite.md): a dark blue ocean and not lavender, white and opaque clouds, smooth hearts with frayed edges without grain, stable in motion, a thin blue limb. Compare to Apollo Earth 17, "Blue Marble". Then check that nothing degrades as you descend: gray and not cream cloud bases, shadows on the ground, fog. Altitudes above sea level; locations of the seed 0; weather pause.
+Orbite, sun in the back, like Apollo 17: sea, clouds, limbe | 10000000 -0.5 -18.225 90 0 | 10 -5
+Orbite, sole at 60°: terminateur, limbe côté soleil, rien de rose | 10000000 25 120 90 0 | 25 60
+Orbite, the other side, sun in the back | 10000000 25 120 90 0 | 25 120
+A depression since 3 000 km: smooth and white heart, frayed edges, grainless; turn the camera | 3000000 50.6 -107.9 90 180 | 35 -95
+Cumulus from the trade winds from 400 km: a regular veil, no sand; move fast (×5) | 400000 27.9 -164.4 40 0 | 25 -150
+The layers of the cold coast from 400 km: opaque, white, sun high | 400000 18.25 39 50 280 | 18 50
+The same layers, sun raging: they darken with him | 400000 18.25 39 50 280 | 18 115
+A cluster of the ZCIT from 400 km, sun high | 400000 9.3 148.5 50 0 | 10 160
+At 12 km above the tropical range: white cumulus, shaded sides, not cream | 12000 -12.6 112.6 15 294 | -20 105
+At 1 km above the forest windward: gray bases, shadows on the ground | 2400 -12.375 112.125 4 294 | -5 125
+Under the layer, at the level of the cold sea: blue-grey bottom | 1000 18.25 35.5 -5 270 | 18 50
+Ground, equatorial plain under convection | 345 -7.75 -37.25 -6 0 | -5 -25
+On the ground, the same plain, sun low in front: backlit cumulus, bright border | 345 -7.75 -37.25 -6 0 | 72 -37.25
+The subtropical desert from 30 km, clear sky: ocher, no wind | 30400 25.25 56.25 40 0 | 25 75

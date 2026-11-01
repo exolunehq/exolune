@@ -1,18 +1,18 @@
-# Tons et exposition, essai du 2026-10-24 : exposition réglée sur l'éclairement, courbe filmique (docs/recherche-tons-exposition.md).
-# Les vues de la profondeur atmosphérique, puis des soleils bas, un crépuscule et le terminateur vu d'orbite.
-# libellé | altitude (m) latitude longitude inclinaison cap | latitude longitude du soleil
-Désert à 800 m, vers le soleil | 800 26.0 45.0 5 110 | 20 110
-Désert à 800 m, dos au soleil | 800 26.0 45.0 5 290 | 20 110
-Montagnes, plans successifs | 1941.7 0.00280 118.14145 -0.2 156.6 | 10 70
-Plaines au loin depuis 4,4 km | 4432.9 16.26533 123.17704 8.9 122.0 | 10 70
-Avion à 10 km, la bande de brume | 10000 26.0 45.0 20 110 | 20 110
-Falaise orange | 1022.9 -0.23076 118.41645 7.3 61.0 | 10 70
-Côte et plages vues de la mer, à 120 m | 120 0.475 116.507 2 60 | 5 60
-Orbite basse, 160 km | 160551.2 1.12602 114.67687 31.2 -88.7 | 10 70
+# Tones and exposure, test of the 2026-10-24: exposure set on the illuminance, film curve (docs/recherche-tons-exposition.md).
+# Views of atmospheric depth, then low suns, a twilight and the terminator seen from orbit.
+# label | altitude (m) latitude longitude inclination cap | latitude longitude of the sun
+Desert at 800 m, towards the sun | 800 26.0 45.0 5 110 | 20 110
+Desert at 800 m, back to the sun | 800 26.0 45.0 5 290 | 20 110
+Mountains, successive plans | 1941.7 0.00280 118.14145 -0.2 156.6 | 10 70
+Plains far away from 4,4 km | 4432.9 16.26533 123.17704 8.9 122.0 | 10 70
+Plane at 10 km, the fog strip | 10000 26.0 45.0 20 110 | 20 110
+Orange Cliff | 1022.9 -0.23076 118.41645 7.3 61.0 | 10 70
+Coast and beach views from the sea, at 120 m | 120 0.475 116.507 2 60 | 5 60
+Low orbit, 160 km | 160551.2 1.12602 114.67687 31.2 -88.7 | 10 70
 Orbite, 1 200 km | 1228341.6 0.13844 115.66320 56.0 -33.3 | 10 70
-Désert, soleil bas à 6°, vers lui | 800 26.0 45.0 5 110 | -15.06 120.42
-Désert, soleil bas à 6°, dos à lui | 800 26.0 45.0 5 290 | -15.06 120.42
-Montagnes, soleil rasant de côté à 8° | 1941.7 0.00280 118.14145 -0.2 156.6 | -19.80 36.65
-Côte au coucher, soleil à 2° | 120 0.475 116.507 2 60 | 30.00 -155.53
-Désert au crépuscule, soleil à -3° | 800 26.0 45.0 5 110 | -19.26 128.76
+Desert, sun low at 6°, towards him | 800 26.0 45.0 5 110 | -15.06 120.42
+Desert, sun low at 6°, back to him | 800 26.0 45.0 5 290 | -15.06 120.42
+Mountains, sun racing from side to 8° | 1941.7 0.00280 118.14145 -0.2 156.6 | -19.80 36.65
+Coast at sunset, sun at 2° | 120 0.475 116.507 2 60 | 30.00 -155.53
+Desert at dusk, sun at -3° | 800 26.0 45.0 5 110 | -19.26 128.76
 Orbite, 1 200 km, vers le terminateur | 1228341.6 0.13844 115.66320 56.0 -33.3 | -55.07 -175.84

@@ -1,15 +1,15 @@
-# Historique des côtes
+# History of the coasts
 
-**Les sections dépassées de `../recherche-cotes.md`.** L'état présent y est.
+**The outdated sections of `../recherche-cotes.md`.** The present state is there.
 
-## 2026-10-24 · Le plan de l'étape 1, avant de la faire
+## 2026-10-24 · The plan of step 1, before doing it
 
-Remplacé le 2026-10-25 par l'étape faite sur la branche `plages`, tag `piste/plages` : la limite de pente y est de 0,12 à 0,22, et toutes les bandes suivent l'exposition de la côte.
+Replaced the 2026-10-25 by the step made on the branch `plages`, tag `piste/plages`: the slope limit there is from 0,12 to 0,22, and all the bands follow the exposure of the coast.
 
-**L'étape 1, petite et mesurable :**
-- **Le changement :** dans `GroundMaterials`, `beachBase` passe de `SpreadStep(5, 25, elevation - 60 * local.y)` à environ `SpreadStep(1.5, 3.5, elevation - 7 * local.y)`. Le bruit déplace la limite de ±1 m au lieu de ±9 m ; `beachSigma` suit, 1,04 au lieu de 76,7. Un facteur de pente retire le sable au-dessus de 0,12 à 0,22, par la règle universelle.
-- **La mesure, avant le moteur :** le banc CPU de la section 6 donne la distribution des largeurs.
-- **La mesure, dans le moteur :** `banc_descente.py` avec `BANC_MATERIAU=beach`, de 1 500 km au sol ; le banc de qualité, sans p95 dégradé.
-- **Ce qui change à l'œil :** les terres de 3 à 25 m reprennent les couleurs du climat, herbe ou sol nu. Derrière une vraie plage, c'est la dune et sa végétation.
+**The 1 step, small and measurable:**
+- **The change:** in `GroundMaterials`, `beachBase` goes from `SpreadStep(5, 25, elevation - 60 * local.y)` to about `SpreadStep(1.5, 3.5, elevation - 7 * local.y)`. The noise moves the limit of ±1 m instead of ±9 m; `beachSigma` follows, 1,04 instead of 76,7. A slope factor removes sand above 0,12 to 0,22, by the universal rule.
+- **Measurement, before the engine:** the benchmark CPU of the section 6 gives the distribution of the widths.
+- **The measurement, in the engine:** `banc_descente.py` with `BANC_MATERIAU=beach`, of 1 500 km to the ground; the quality benchmark, without p95 degraded.
+- **What changes to the eye:** the lands of 3 to 25 m take the colors of the climate, grass or bare ground. Behind a real beach, it is the dune and its vegetation.
 
-**Le statut d'alors :** « aucun code changé » ; les scripts du portage CPU, `cp.py` et `t2.py` à `t7.py`, étaient dans un dossier de travail volatil. Ils sont depuis dans `tools/cotes/`.
+**The status at that time:** "no code changed"; the scripts of port CPU, `cp.py` and `t2.py` to `t7.py`, were in a volatile working folder. They have since been in `tools/cotes/`.

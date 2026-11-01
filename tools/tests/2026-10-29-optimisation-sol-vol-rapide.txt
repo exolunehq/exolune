@@ -1,13 +1,13 @@
-# Le sol en vol rapide (docs/optimisation.md, round 8) : les trouées de ciel dans les feuilles remplies par l'historique au lieu d'être tracées ; en vol, la grille du terrain en paires de floats, le sommet sous la caméra en doubles, tout le maillage en doubles à l'arrêt.
-# Chercher : points clairs ou sombres qui clignotent dans le ciel entre les feuilles, relief ou ombres qui frémissent en vol, saut du sol ou des ombres à l'arrêt ; et la cadence, 60 fps visés au sol. V : x5, puis x9. Comparer avec tools/lance.ps1 -PassePleine.
-Vol rapide 1 : forêt au sol, filer à x5 puis x9 en tournant, le regard vers le ciel entre les arbres ; trouées de ciel sans points qui clignotent, cadence | 567.6 30.38761 120.5233 5 -115 | 20 120
-Vol rapide 2 : lisière à 3 m, filer à x5 puis x9 le long des arbres en tournant ; ciel entre les feuilles, nuages derrière, cadence | 584.5 30.37000 120.53027 3 0 | 20 140
-Vol rapide 3 : montagne à 30 m, filer à x5 puis x9 en tournant vers les sommets ; relief, ombres des crêtes et neige sans frémissement | 4093.1 -14.90437 119.94946 5 120 | -5 125
-Vol rapide 4 : forêt au sol, filer à x9 puis s'arrêter net ; ni le sol, ni les ombres, ni les plantes ne sautent à l'arrêt | 567.6 30.38761 120.5233 5 -115 | 20 120
-Vol rapide 5 : montagne à 30 m, tourner sur place puis filer, puis s'arrêter ; les ombres des crêtes ne bougent pas aux changements | 4093.1 -14.90437 119.94946 5 120 | -5 125
-Garde : forêt au sol immobile, puis tourner lentement ; rien ne change | 567.6 30.38761 120.5233 5 -115 | 20 120
-Garde : survol à 1,3 km, filer à x5 ; sol, plantes et nuages inchangés | 1740.2 30.68685 120.10788 32 -64.7 | 20 120
-Garde : 150 m au-dessus de la forêt, filer vers les cumulus à x5 ; silhouettes nettes | 627.1 -41.0 88.5 -12 60 | -41.66 112.71
-Garde : mer à 3 m, filer vers l'horizon ; rien ne change | 3 -20.47 -75.45 -5 160 | -50.47 -75.45
-Garde : cumulus à 10 km, filer à x5 ; inchangé | 10000 38.1445 103.5352 35 90 | 38.1445 128.5352
-Garde : orbite à 300 km, voler à x5 ; inchangé | 300000 -41.6602 87.7148 80 0 | -41.6602 112.7148
+# The ground in fast flight (docs/optimisation.md, round 8): the sky holes in the sheets filled by the history instead of being traced; in flight, the grid of the ground in float pairs, the top under the camera in double precision, all the mesh in double precision at a standstill.
+# Look for: light or dark dots flashing in the sky between leaves, relief or shadows that tremble in flight, jumping from the ground or shadows at a standstill; and cadence, 60 fps aimed at the ground. V: x5, then x9. Compare with tools/lance.ps1 -Full Pass.
+Fast flight 1: forest on the ground, spin at x5 then x9 turning, looking at the sky between the trees; holes in the sky without flashing points, cadence | 567.6 30.38761 120.5233 5 -115 | 20 120
+Fast flight 2: edge at 3 m, spin at x5 then x9 along the trees turning; sky between the leaves, clouds behind, cadence | 584.5 30.37000 120.53027 3 0 | 20 140
+Fast flight 3: mountain at 30 m, spin at x5 then x9 turning to the summits; relief, shadows of the crests and snow without trembling | 4093.1 -14.90437 119.94946 5 120 | -5 125
+Fast flight 4: forest on the ground, spin to x9 and stop net; neither the ground, nor the shadows, nor the plants jump at the stop | 567.6 30.38761 120.5233 5 -115 | 20 120
+Fast flight 5: mountain at 30 m, turn on place then turn, then stop; shadows of the ridges do not move at changes | 4093.1 -14.90437 119.94946 5 120 | -5 125
+Guard: forest on the ground still, then turn slowly; nothing changes | 567.6 30.38761 120.5233 5 -115 | 20 120
+Guard: overfly at 1,3 km, spin at x5; ground, plants and clouds unchanged | 1740.2 30.68685 120.10788 32 -64.7 | 20 120
+Guard: 150 m above the forest, turn to the cumulus at x5; clear silhouettes | 627.1 -41.0 88.5 -12 60 | -41.66 112.71
+Guard: sea at 3 m, turn to the horizon; nothing changes | 3 -20.47 -75.45 -5 160 | -50.47 -75.45
+Guard: cumulus at 10 km, spin at x5; unchanged | 10000 38.1445 103.5352 35 90 | 38.1445 128.5352
+Guard: orbit at 300 km, fly at x5; unchanged | 300000 -41.6602 87.7148 80 0 | -41.6602 112.7148

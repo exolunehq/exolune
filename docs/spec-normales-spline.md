@@ -1,86 +1,86 @@
-# Spécification : normales par pixel reconstruites en spline
+# Specification: normals per pixel reconstructed in spline
 
-Statut : piste 1 de `log/pistes-glissement.md`, mesurée au banc le 2026-10-21, tag `jalon/09-normales-spline`. Gain modeste, gardé avec la B-spline lissante ; la coupure du relief fait l'essentiel. Le préfiltre de la spline cardinale, retiré le 2026-10-30, est dans `log/spec-normales-spline-historique.md`.
+Status: experiment 1 of `log/pistes-glissement.md`, measured at benchmark the 2026-10-21, tag `jalon/09-normales-spline`. Modest gain, kept with the smoothing B-spline; the relief cut-off is the essential. The cardinal spline prefilter, removed the 2026-10-30, is in `log/spec-normales-spline-historique.md`.
 
-## Le but
+## The purpose
 
-**Un éclairage qui ne dépend plus de la position des sommets.** Les sommets du plan glissant sont exacts ; c'est la reconstruction entre eux qui tremble, surtout celle de la pente.
+**A lighting that no longer depends on the position of the vertices.** The vertices of the sliding plane are accurate; it is the reconstruction between them that shakes, especially that of the slope.
 
-- **Aujourd'hui :** la normale est calculée sur les sommets voisins, puis interpolée linéairement sur le triangle. Une onde de 8 mailles fait encore varier la pente de 17 % quand le maillage glisse.
-- **Avec la spline :** chaque pixel reconstruit la surface sur les 4 × 4 sommets voisins, avec une B-spline cubique lissante, et en tire sa normale. La spline cardinale du plan d'origine tremblait davantage (« Résultats du banc »).
-- **Rien d'autre ne change :** ni le relief, ni le maillage, ni la géométrie dessinée. Seule la normale de l'éclairage est remplacée.
+- **Today:** the normal is calculated on the neighboring vertices, then linearly interpolated on the triangle. A wave of 8 grid cells still varies the slope of 17 % when the mesh slides.
+- **With spline:** each pixel reconstructs the surface on the 4 × 4 neighboring vertices, with a smoothing cubic B-spline, and draws its normal from it. The cardinal spline of the original plane was shaking more (see benchmark results).
+- **Nothing else changes:** neither the relief, nor the mesh, nor the drawn geometry. Only the normal of the lighting is replaced.
 
-## Le principe
+## The principle
 
-### Les deux cartes du maillage
+### The two cards of the mesh
 
-**La spline travaille dans les coordonnées de la grille du maillage,** où les sommets sont espacés régulièrement.
+**The spline works in the coordinates of the grid of the mesh,** where the vertices are spaced evenly.
 
-- **La face :** coordonnées (i, j), de 0 à n, n = 192.
-- **Les anneaux :** coordonnées (b, r). b est la position sur l'anneau, de 0 à 4n, et revient à 0 après un tour. r est le numéro d'anneau, à partir de 1.
-- **La spline reconstruit la position 3D des sommets,** pas seulement leur hauteur. Le passage de la grille au plan est lisse dans chaque carte : linéaire dans la face, géométrique d'un anneau au suivant. La spline le reproduit sans erreur notable.
+- **The face:** coordinates (i, j), from 0 to n, n = 192.
+- **Rings:** coordinates (b, r). b is the position on the ring, from 0 to 4n, and returns to 0 after one turn. r is the ring number, starting from 1.
+- **The spline reconstructs the 3D position of the vertices,** not just their height. The transition from grid to plane is smooth in each map: linear in the face, geometric from one ring to the next. The spline reproduces it without any noticeable error.
 
-### Les sommets pour coefficients
+### Vertices for coefficients
 
-**La B-spline lissante prend les positions des sommets pour coefficients,** sans préfiltre : elle ne passe pas par eux, et adoucit les ondes de 2 à 3 mailles, celles qui tremblent.
+**The smoothing B-spline takes the positions of the coefficient vertex,** without prefilter: it does not pass through them, and softens the waves from 2 to 3 grid cells, those that shake.
 
-- **Aux bords d'une carte,** le voisin manquant est remplacé par le dernier sommet de la carte. Les anneaux commencent à r = 1 : le bord de la face n'est pas pris comme anneau 0, car ses voisins ne suivent pas la même grille.
+- **At the edges of a map,** the missing neighbor is replaced by the last vertex of the map. The rings start at r = 1: the edge of the face is not taken as the ring 0, because its neighbors do not follow the same grid.
 
-### La normale du pixel
+### The normal of the pixel
 
-- **Chaque pixel reçoit ses coordonnées dans sa carte,** interpolées depuis ses sommets.
-- **Il lit les 4 × 4 sommets voisins** et calcule les deux dérivées de la surface, le long de chaque axe de la carte. Leur produit vectoriel donne la normale.
-- **Aucun bruit n'est évalué :** 16 lectures et quelques multiplications par pixel.
+- **Each pixel receives its coordinates in its map,** interpolated from its vertex.
+- **It reads the 4 × 4 neighboring vertices** and calculates the two derivatives of the surface, along each axis of the map. Their vector product gives the normal.
+- **No noise is evaluated:** 16 readings and some multiplications per pixel.
 
-### Les zones de repli
+### Retreat areas
 
-**Là où la spline ne s'applique pas, le pixel garde la normale actuelle,** avec un fondu sur deux mailles.
+**Where spline does not apply, the pixel keeps the current normal,** with a fade on two grid cells.
 
-- **Le bord de la face :** les deux cartes ne se prolongent pas l'une l'autre. Normale actuelle jusqu'à 3 mailles du bord, spline complète à partir de 5 mailles, des deux côtés.
-- **Les coins des anneaux :** la grille y tourne d'un quart de tour. Même fondu, de 3 à 5 mailles du coin.
-- **Les triangles entre la face et le premier anneau,** qui mêlent les deux cartes : normale actuelle.
-- **Les sommets écartés hors du champ :** la marge d'écart passe de 3 à 6 mailles, pour que la spline n'en touche jamais à l'écran. Si l'un d'eux est touché malgré tout, normale actuelle.
+- **The edge of the face:** the two cards do not extend each other. Normal current up to 3 grid cells of the edge, full spline from 5 grid cells, on both sides.
+- **The corners of the rings:** the grid turns a quarter of a turn. Even faded, from 3 to 5 grid cells from the corner.
+- **The triangles between the face and the first ring,** which mix the two cards: normal current.
+- **Vertices offset out of field:** the margin of offset changes from 3 to 6 grid cells, so that the spline never touches the screen. If one of them is affected anyway, normal current.
 
-## Ce qui change dans le code
+## What changes in the code
 
-- **`VertexShader.hlsl`** transmet au pixel ses coordonnées de carte, sa carte et sa distance au coin le plus proche.
-- **`PixelShader.hlsl`** lit les sommets du maillage eux-mêmes, `splineVertices`, la ressource du vertex shader. Il reconstruit la normale et la mêle à la normale actuelle selon les zones de repli. Le grain fin par pixel s'ajoute ensuite, comme aujourd'hui.
-- **`TerrainCompute.hlsl`** : marge d'écart de 6 mailles.
-- **`PlanetSettings.hlsli`** : `SPLINE_NORMALS`, le poids de la normale spline. 1 l'active, 0 revient à la normale actuelle.
+- **`VertexShader.hlsl`** transmits to the pixel its map coordinates, its map and its distance to the nearest corner.
+- **`PixelShader.hlsl`** reads the vertex of the mesh themselves, `splineVertices`, the vertex shader resource. It reconstructs the normal and blends it with the current normal according to the retreat zones. Fine grain per pixel is added then, as today.
+- **`TerrainCompute.hlsl`**: margin of variation of 6 grid cells.
+- **`PlanetSettings.hlsli`**: `SPLINE_NORMALS`, the weight of the normal spline. 1 activates it, 0 returns to the current normal.
 
-## La mesure
+## The measure
 
-1. **Le banc de tremblement,** avec et sans lissage temporel, sur les trois vues de référence : montagne à 50 m et à 10 km, plaine à 10 km. `SPLINE_NORMALS` à 0 puis à 1, même binaire par ailleurs.
-2. **Les cartes de chaleur du banc,** pour voir où le tremblement reste : les zones de repli devraient ressortir.
-3. **Le coût GPU** de la spline.
-4. **Le jugement en vol.**
+1. **The benchmark of jitter,** with and without temporal smoothing, on the three reference views: mountain at 50 m and at 10 km, plain at 10 km. `SPLINE_NORMALS` to 0 then to 1, also binary by the way.
+2. **Heat maps of the benchmark,** to see where the jitter remains: the fold areas should come out.
+3. **The cost GPU** of the spline.
+4. **The judgment in vol.**
 
-## Critères de validation
+## Validation criteria
 
-- **Tremblement au banc nettement plus bas** sans lissage temporel, hors zones de repli.
-- **Pas de couture visible** entre la spline et les zones de repli.
-- **Coût :** moins de 0,3 ms en tout.
+- **jitter to benchmark significantly lower** without temporal smoothing, excluding fold zones.
+- **No visible seam** between the spline and the folding areas.
+- **Cost:** less than 0,3 ms in total.
 
-## Résultats du banc
+## Results of the benchmark
 
-Tremblement moyen entre deux images, sur 255, sans lissage temporel ; avec lissage entre parenthèses. Banc du 2026-10-21, mêmes vues que `log/spec-stabilite.md`.
+jitter mean between two images, on 255, without temporal smoothing; with smoothing in parentheses. benchmark of the 2026-10-21, same views as `log/spec-stabilite.md`.
 
-| Variante | Montagne, 50 m | Montagne, 10 km | Plaine, 10 km |
+| Variant | Mountain, 50 m | Mountain, 10 km | Plaine, 10 km |
 |---|---|---|---|
-| Normale actuelle, coupure à 2 mailles | 0,17 (0,04) | 1,20 (0,17) | 0,08 (0,01) |
-| Spline cardinale | 0,27 (0,06) | 1,52 (0,24) | 0,09 (0,01) |
-| Spline à moitié préfiltrée | 0,20 (0,04) | 1,24 (0,19) | 0,08 (0,01) |
-| B-spline lissante | 0,15 (0,03) | 1,04 (0,15) | 0,07 (0,01) |
-| B-spline lissante, matériaux sur la surface spline | 0,15 (0,03) | 1,01 (0,15) | 0,07 (0,01) |
-| Idem, coupure à 3 mailles | 0,13 (0,03) | 0,69 (0,11) | 0,05 (0,00) |
-| Idem, coupure à 4 mailles | 0,12 (0,02) | 0,51 (0,09) | 0,04 (0,00) |
-| Normale actuelle, coupure à 4 mailles | 0,13 (0,03) | 0,60 (0,09) | 0,04 (0,00) |
+| Normal current, cut-off at 2 grid cells | 0,17 (0,04) | 1,20 (0,17) | 0,08 (0,01) |
+| Cardinal spline | 0,27 (0,06) | 1,52 (0,24) | 0,09 (0,01) |
+| Spline half prefiltered | 0,20 (0,04) | 1,24 (0,19) | 0,08 (0,01) |
+| B-spline smoothing | 0,15 (0,03) | 1,04 (0,15) | 0,07 (0,01) |
+| B-spline smoothing, materials on the spline surface | 0,15 (0,03) | 1,01 (0,15) | 0,07 (0,01) |
+| Same, cut off at 3 grid cells | 0,13 (0,03) | 0,69 (0,11) | 0,05 (0,00) |
+| Same, cut off at 4 grid cells | 0,12 (0,02) | 0,51 (0,09) | 0,04 (0,00) |
+| Normal current, cut-off at 4 grid cells | 0,13 (0,03) | 0,60 (0,09) | 0,04 (0,00) |
 
-- **La spline cardinale aggrave le tremblement :** elle restitue la pente des ondes de 2 à 3 mailles, que la normale actuelle effaçait presque. La table de `log/pistes-glissement.md` est corrigée en conséquence.
-- **La B-spline lissante,** sans préfiltre, l'abaisse de 12 à 16 %. C'est le réglage gardé. Le préfiltre et son réglage, `SPLINE_SHARPENING`, sont retirés le 2026-10-30 ; tag `jalon/09-normales-spline`.
-- **Les matériaux pris sur la surface spline,** à la rencontre du rayon de vue, n'apportent presque rien : 1,04 → 1,01. Gardé, car sans coût notable.
-- **Le diagnostic :** éclairée avec une normale constante, la vue de montagne à 10 km tremble encore de 0,79. Les deux tiers du tremblement ne viennent donc pas de la normale, mais de la géométrie : les contours des reliefs qui se masquent.
-- **La coupure du relief fait l'essentiel :** à 4 mailles, le tremblement est divisé par deux. La spline y ajoute 15 % sur la vue de montagne à 10 km.
-- **Le prix de la coupure, jugé en vol :** chaque détail naît plus près de la caméra, donc plus grand à l'écran, et la forme mute davantage à l'approche. Coupure laissée à 2 mailles. Le banc ne mesure pas encore cette mutation lente.
-- **Coût,** mesuré avec le préfiltre : moins de 0,1 ms en tout.
-- **Les zones de repli** sont bien limitées : rendu du poids de la spline vérifié sur deux vues.
+- **The cardinal spline worsens the jitter:** it restores the slope of the waves from 2 to 3 grid cells, which the current normal almost erased. The `log/pistes-glissement.md` table is corrected accordingly.
+- **B-spline smoothing,** without prefilter, lowers it from 12 to 16 %. This is the saved setting. The prefilter and its adjustment, `SPLINE_SHARPENING`, are removed the 2026-10-30; tag `jalon/09-normales-spline`.
+- **The materials taken on the spline surface,** at the meeting of the radius of view, bring almost nothing: 1,04 → 1,01. Keep, because without noticeable cost.
+- **The diagnosis:** illuminated with a constant normal, the mountain view at 10 km still shakes from 0,79. The two thirds of the jitter do not come from the normal, but from geometry: the contours of the reliefs that mask themselves.
+- **The cut of the relief is essential:** at 4 grid cells, the jitter is divided by two. The spline adds 15 % on the mountain view at 10 km.
+- **The price of cut, judged in flight:** every detail is born closer to the camera, therefore larger on the screen, and the form mutes more as it approaches. Cut left at 2 grid cells. The benchmark does not yet measure this slow mutation.
+- **Cost,** measured with prefilter: less than 0,1 ms in total.
+- **The folding areas** are well limited: rendering of the spline weight checked on two views.

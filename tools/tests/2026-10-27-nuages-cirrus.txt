@@ -1,11 +1,11 @@
-# Mode retiré le 2026-10-30, au tag `jalon/29-avant-ouverture` et `piste/nuages-orbite-spike` : le spike Cirrus, scène locale. Par tools\lance.ps1 -Parcours, ces lieux montrent les nuages du jeu ; touches et options ci-dessous, celles d'alors.
-# Cirrus local : B opacite, C qualite, Espace pause. Masque artistique limite a ±30 km Est et ±14 km Nord.
-Sous la couche, vue montante | 2000 0.5 161.600 -40 90 | -15 175
-Ensemble depuis l'ouest | 10800 0.5 161.400 0 90 | -15 175
-Approche du voile | 10800 0.5 161.600 0 90 | -15 175
-Traversée du voile | 10800 0.5 161.775 0 90 | -15 175
-Au-dessus, regard vers l'est | 16000 0.5 161.700 45 90 | -15 175
-Vue d'ensemble à 30 km, vers le sol | 30000 0.5 161.775 80 0 | -15 175
-Vue d'ensemble à 80 km, vers le sol | 80000 0.5 161.775 80 0 | -15 175
-Traversée au soleil bas | 10800 0.5 161.775 0 90 | -5 245
-Sous le voile depuis l'est | 2000 0.5 161.850 -25 270 | -15 175
+# Mode removed the 2026-10-30, tag `jalon/29-avant-ouverture` and `piste/nuages-orbite-spike`: the spike Cirrus, local scene. By tools\lance.ps1 -Route, these places show the clouds of the game; keys and options below, those of then.
+# Local cirrus: B opacity, C quality, Break space. Artistic mask boundaries at ±30 km East and ±14 km North.
+Under the layer, upward view | 2000 0.5 161.600 -40 90 | -15 175
+Together from the west | 10800 0.5 161.400 0 90 | -15 175
+Approach of the veil | 10800 0.5 161.600 0 90 | -15 175
+Crossing the veil | 10800 0.5 161.775 0 90 | -15 175
+Above, look to the east | 16000 0.5 161.700 45 90 | -15 175
+Overview at 30 km, to the ground | 30000 0.5 161.775 80 0 | -15 175
+Overview at 80 km, to the ground | 80000 0.5 161.775 80 0 | -15 175
+Crossing in the low sun | 10800 0.5 161.775 0 90 | -5 245
+Under the veil from the east | 2000 0.5 161.850 -25 270 | -15 175

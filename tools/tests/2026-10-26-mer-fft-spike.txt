@@ -1,14 +1,14 @@
-# Spike FFT : cartes d'écume neuves au changement de vue, puis vieillissement.
-# libellé | altitude latitude longitude inclinaison cap | soleil latitude longitude | vent m/s direction degrés houle Hs m
-Mer calme, 1 m : ancien microrelief en créneaux | 1 23.52176 98.65264 32.8 -78.9 | 5 60 | 4 70 0.4
-Mer fraîche, 3 m : texture et profil proches | 3 -20.47 -75.45 5 200 | -50.47 -75.45 | 12 70 1.8
-Mer fraîche, 20 m : crêtes et mousse résiduelle | 20 -17.36 -26.84 20 180 | 42.64 -26.84 | 12 70 1.8
-Houle en contrejour, 3 m | 3 -17.36 -26.84 5 0 | 42.64 -26.84 | 8 70 2.5
-Tempête, 20 m : écume sur les crêtes | 20 -45 165 35 90 | 15 165 | 24 70 3.5
-Tempête, 200 m : groupes de vagues | 200 -45 165 35 90 | 15 165 | 24 70 3.5
-Vue signalée, 142 m : crêtes à la côte | 142.4 -44.75718 177.39448 22.5 -151.6 | 15 165 | 24 70 3.5
-Côte peu profonde, 120 m | 120 0.475 116.507 2 60 | 5 60 | 8 70 1.0
-Mer calme, 20 m : peu de moutons | 20 55.95 8.07 12 180 | -4.05 8.07 | 3 70 0.3
-Mer à 10 km : raccord statistique | 10000 -17.36 -26.84 30 180 | -77.36 -26.84 | 12 70 1.8
-Pôle nord, 100 m : plan tangent | 100 90 0 35 90 | 65 0 | 12 70 1.8
-Pôle sud, 100 m : plan tangent | 100 -90 0 35 90 | -65 0 | 12 70 1.8
+# Spike FFT: new foam maps at change of view, then aging.
+# label | altitude latitude longitude inclination cap | sun latitude longitude | wind m/s direction degrees swell Hs m
+Calm sea, 1 m: old micro relief in crenellations | 1 23.52176 98.65264 32.8 -78.9 | 5 60 | 4 70 0.4
+Fresh sea, 3 m: texture and profile close | 3 -20.47 -75.45 5 200 | -50.47 -75.45 | 12 70 1.8
+Freshwater, 20 m: ridges and residual foam | 20 -17.36 -26.84 20 180 | 42.64 -26.84 | 12 70 1.8
+Backlight swell, 3 m | 3 -17.36 -26.84 5 0 | 42.64 -26.84 | 8 70 2.5
+Storm, 20 m: foam on the ridges | 20 -45 165 35 90 | 15 165 | 24 70 3.5
+Storm, 200 m: wave groups | 200 -45 165 35 90 | 15 165 | 24 70 3.5
+Signaled view, 142 m: ridges to the coast | 142.4 -44.75718 177.39448 22.5 -151.6 | 15 165 | 24 70 3.5
+Shallow coast, 120 m | 120 0.475 116.507 2 60 | 5 60 | 8 70 1.0
+Calm sea, 20 m: little whitecaps | 20 55.95 8.07 12 180 | -4.05 8.07 | 3 70 0.3
+Sea at 10 km: statistical connection | 10000 -17.36 -26.84 30 180 | -77.36 -26.84 | 12 70 1.8
+North Pole, 100 m: tangent plane | 100 90 0 35 90 | 65 0 | 12 70 1.8
+South Pole, 100 m: tangent plane | 100 -90 0 35 90 | -65 0 | 12 70 1.8

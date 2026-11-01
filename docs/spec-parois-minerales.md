@@ -1,101 +1,101 @@
-# Spécification : des parois minérales de 100 m à 1 km
+# Specification: mineral walls from 100 m to 1 km
 
-Statut : recherche le 2026-10-23 ; deux voies séparées, le rendu d'abord. **En place :** la photo de paroi et les strates calculées au pixel. **Retirées le 2026-10-24 :** les bandes cassées, leurs failles et les familles de roche. La méthode est désormais celle de `spec-texturage-universel.md`. Les options, essais et mesures dépassés sont dans `log/spec-parois-minerales-historique.md`. Fait suite à `log/spec-parois.md`, dont les gradins restent sous le tag `piste/parois-gradins`. La géométrie reste à complexplanet : `geometrie.md`.
+Status: searching the 2026-10-23; two separate tracks, rendering first. **In place:** the wall photo and the strata calculated to pixel. **Removed the 2026-10-24:** the broken bands, their faults and the rock families. The method is now the same as `spec-texturage-universel.md`. The options, tests and measures outdated are in `log/spec-parois-minerales-historique.md`. Following on from `log/spec-parois.md`, whose stands remain under the `piste/parois-gradins` tag. The geometry remains at complexplanet: `geometrie.md`.
 
-## Le constat
+## The finding
 
-- **De près, le relief accidenté convient.** Le fourmillement et le scintillement restent à régler, plus tard.
-- **De 100 m à 1 km, les parois font tissu :** des bandes droites, continues et régulières sur une surface lisse. Elles ne font pas minéral.
-- **On tourne en rond :** couleurs des strates, arrondis, gradins n'y ont rien changé. C'est la méthode de base qui est en cause.
+- **Close up, the rugged terrain is suitable.** The tingling and the flicker remain to be settled, later.
+- **From 100 m to 1 km, the walls make fabric:** straight, continuous and regular strips on a smooth surface. They do not make mineral.
+- **We turn in circles:** colors of the strata, rounded, stands have not changed anything. It is the basic method that is at issue.
 
-## Le diagnostic, face aux photos
+## Diagnosis, face to face with photos
 
-![En haut, des parois réelles ; en bas, les nôtres à la même distance](images/parois-tissu.jpg)
+![Up, real walls; down, ours at the same distance](images/parois-tissu.jpg)
 
-- **Sur une vraie paroi, la structure dominante est perpendiculaire aux strates :** ravines, cannelures, diaclases, coulures de vernis sombre.
-- **Les strates y sont interrompues :** recoupées en V par les ravines, cachées par les éboulis et la végétation des vires, d'épaisseur variable, décalées par les failles.
-- **Les couleurs changent par grandes masses :** rouge en bas, blanc en haut à Zion, et peu de bandes franches.
-- **Les creux se lisent par l'ombre :** alcôves et ravines sont noires.
-- **Chez nous, c'est l'inverse :** les bandes sont nombreuses et continues, et rien ne les coupe.
+- **On a real wall, the dominant structure is perpendicular to the strata:** ravines, grooves, diaclases, dark varnish runs.
+- **The strata are interrupted there:** crossed in V by the ravines, hidden by the scree and the vegetation of the vires, of variable thickness, displaced by the faults.
+- **Colours change by large masses:** red at the bottom, white at the top at Zion, and few frank stripes.
+- **The hollows are read by the shadow:** alcoves and ravines are black.
+- **In our case, it is the opposite:** the strips are numerous and continuous, and nothing cuts them.
 
-**La méthode en cause :**
-- **Nous partons des strates pour faire la paroi.**
-- **Dans la nature, la paroi naît de l'érosion,** qui creuse à travers des couches planes. Les bandes en sont la conséquence : c'est la règle des V des géologues.
+**The method:**
+- **We start from the strata to make the wall.**
+- **In nature, the wall is born from erosion,** which digs through flat layers. The bands are the consequence: this is the geologists' rule of the Vs.
 
-## L'état de l'art
+## State of the art
 
-**Le filtre d'érosion par point,** la piste la plus neuve.
-- **Ce qu'il fait :** des ravines et des crêtes ramifiées, alignées sur la pente, posées sur n'importe quelle fonction de hauteur. Chaque point s'évalue seul, sans simulation : rapide, adapté au GPU, calculable par morceaux. [Johansen, mars 2026](https://blog.runevision.com/2026/03/), après [Clay John 2018](https://www.shadertoy.com/view/MtGcWh) et [Fewes 2023](https://www.shadertoy.com/view/7ljcRW).
-- **Le principe :** des rayures orientées par le gradient descendant, découpées en cellules à la Worley, fondues entre voisines, en octaves qui héritent chacune de la pente de la précédente.
-- **Ses pièges :** direction confuse sur les crêtes et les fonds plats, drains qui s'arrêtent à mi-pente. Sur une paroi, la pente forte rend la direction nette.
-- **Licence :** le code de référence est en MPL 2.0. On le réécrit depuis la description, sans copier le code.
+**The spot erosion filter,** the newest experiment.
+- **What it does:** branched ravines and ridges, aligned with the slope, placed on any height function. Each point is evaluated alone, without simulation: fast, adapted to GPU, calculable by pieces. [Johansen, March 2026](https://blog.runevision.com/2026/03/), after [Clay John 2018](https://www.shadertoy.com/view/MtGcWh) and [Rare 2023](https://www.shadertoy.com/view/7ljcRW).
+- **The principle:** stripes oriented by the descending gradient, cut into cells at the Worley, fused between neighbors, in octaves that each inherit the slope of the previous one.
+- **Traps:** confused direction on crests and flat bottoms, drains that stop halfway down. On a wall, the steep slope makes the direction clear.
+- **License:** the reference code is in MPL 2.0. We rewrite it from the description, without copying the code.
 
-**Les autres pistes procédurales :**
-- **Strates cassées en plaques :** le nœud [Stratify de Gaea](https://docs.quadspinner.com/Reference/Erosion/Stratify.html) fait des sous-strates locales entre plaques brisées, et non des terrasses.
-- **Diaclases et blocs :** [Paris et al. 2020](https://hal.archives-ouvertes.fr/hal-02926218), [Peytavie et al. 2009](https://diglib.eg.org/handle/10.2312/CGF.v28i7pp1801-1809). Volumiques et hors ligne ; transposables en Voronoi anisotrope.
-- **Ombre des creux :** les [screen-space shadows de Bend](https://www.bendstudio.com/blog/inside-bend-screen-space-shadows/), livrés dans Days Gone.
-- **Coulures et vernis :** un bruit étiré dans le sens de la pente sur l'albédo, presque gratuit. Base physique : [Dorsey 1996](https://graphics.stanford.edu/papers/flow).
+**Other procedural experiments:**
+- **strata plate broken:** the node [Stratify of Gaea](https://docs.quadspinner.com/Reference/Erosion/Stratify.html) makes local sub-strata between broken plates, not terraces.
+- **Diaclases and blocks:** [Paris et al. 2020](https://hal.archives-ouvertes.fr/hal-02926218), [Peytavie et al. 2009](https://diglib.eg.org/handle/10.2312/CGF.v28i7pp1801-1809). Volumetric and offline; transposable in anisotropic Voronoi.
+- **Shadow of the Hollows:** the [screen-space shadows by Bend](https://www.bendstudio.com/blog/inside-bend-screen-space-shadows/), delivered in Days Gone.
+- **Colours and varnishes:** a noise stretched in the direction of the slope on the albedo, almost free. Physical base: [Dorsey 1996](https://graphics.stanford.edu/papers/flow).
 
-**Les jeux :**
-- **Les falaises lisibles y sont des maillages photogrammétriques :** [Far Cry 5](https://gdcvault.com/play/1025557/Procedural-World-Generation-of-Far), [Valley of the Ancient](https://dev.epicgames.com/documentation/unreal-engine/valley-of-the-ancient-sample-game-for-unreal-engine), [Battlefront](https://gdcvault.com/play/1023272/Photogrammetry-and-Star-Wars-Battlefront).
-- **Star Citizen** pave des tuiles de hauteur selon la pente et la géologie ([Adobe](https://www.adobe.com/products/substance3d/magazine/star-citizen-texturing-sci-fi-open-world-game-substance.html)).
+**Games:**
+- **The cliffs readable there are photogrammetric meshes:** [Far Cry 5](https://gdcvault.com/play/1025557/Procedural-World-Generation-of-Far), [Valley of the Ancients](https://dev.epicgames.com/documentation/unreal-engine/valley-of-the-ancient-sample-game-for-unreal-engine), [Battlefront](https://gdcvault.com/play/1023272/Photogrammetry-and-Star-Wars-Battlefront).
+- **Star Citizen** paves height tiles according to slope and geology ([Adobe](https://www.adobe.com/products/substance3d/magazine/star-citizen-texturing-sci-fi-open-world-game-substance.html)).
 
-**Écartés :**
-- [Dendry](https://www.cs.purdue.edu/cgvlab/www/resources/papers/Gaillard-2019-Dendry_A_Procedural_Model_for_Dendritic_Patterns.pdf) : 10 s pour 512².
-- Le neuronal, [Terrain Diffusion 2025](https://arxiv.org/html/2512.08309v3) : des secondes par région, pas par image.
-- [Le fBm à dérivées](https://iquilezles.org/articles/morenoise) : il lisse les fortes pentes.
+**Dismissed:**
+- [Dendry](https://www.cs.purdue.edu/cgvlab/www/resources/papers/Gaillard-2019-Dendry_A_Procedural_Model_for_Dendritic_Patterns.pdf): 10 s for 512².
+- The neuronal, [Terrain Diffusion 2025](https://arxiv.org/html/2512.08309v3): seconds per region, not per frame.
+- [The derivative fBm](https://iquilezles.org/articles/morenoise): smooths out steep slopes.
 
-## L'hybride : les données libres
+## Hybrid: free data
 
-**Le relief réel, 1 m ou mieux :**
-- **[IGN LiDAR HD](https://cartes.gouv.fr/catalogue/dataset/IGNF_MNT-LIDAR-HD) :** 0,5 m, Licence Ouverte 2.0, dalles de 1 km d'environ 16 Mo. Vercors, Calanques, Verdon.
-- **[USGS 3DEP](https://apps.nationalmap.gov/downloader/) :** 1 m, domaine public. Grand Canyon, Yosemite.
-- **[swissALTI3D](https://www.swisstopo.admin.ch/en/height-model-swissalti3d) :** 0,5 m, données libres avec mention. Eiger, Lauterbrunnen.
+**The actual relief, 1 m or better:**
+- **[IGN LiDAR HD](https://cartes.gouv.fr/catalogue/dataset/IGNF_MNT-LIDAR-HD):** 0,5 m, Open License 2.0, slabs of 1 km of about 16 MB. Vercors, Calanques, Verdon.
+- **[USGS 3DEP](https://apps.nationalmap.gov/downloader/):** 1 m, public domain. Grand Canyon, Yosemite.
+- **[swissALTI3D](https://www.swisstopo.admin.ch/en/height-model-swissalti3d):** 0,5 m, free data with mention. Eiger, Lauterbrunnen.
 
-**Le piège :** un modèle d'élévation aérien n'a qu'une hauteur par point. Une paroi verticale y tient en quelques pixels. Pour la paroi elle-même, il faut un nuage de points pris de face :
-- **[San Gabriel et San Jacinto](https://doi.org/10.5069/G96H4FKG) :** CC0, parois de 10 à 300 m, environ 1 000 points par m², 4 Go, avec photos de face.
-- **[El Capitan](https://doi.org/10.5066/P1YT5RK3) :** CC0, lidar terrestre sur environ 1 km² de granite vertical.
+**The trap:** an aerial elevation model has only one height per point. A vertical wall fits in a few pixels. For the wall itself, you need a cloud of points taken from the front:
+- **[San Gabriel and San Jacinto](https://doi.org/10.5069/G96H4FKG):** CC0, walls from 10 to 300 m, about 1 000 points per m², 4 GB, with front photos.
+- **[El Capitan](https://doi.org/10.5066/P1YT5RK3):** CC0, terrestrial lidar on about 1 km² of vertical granite.
 
-**Les surfaces et maillages, CC0 chez Poly Haven :**
-- **Surfaces :** `marble_cliff_01` à `06`, de 4 à 20 m de paroi, avec déplacement.
-- **Maillages :** `coastal_cliff_04`, une falaise de 87 m.
+**Surfaces and meshes, CC0 at Poly Haven:**
+- **Surfaces:** `marble_cliff_01` to `06`, from 4 to 20 m wall, with displacement.
+- **meshes:** `coastal_cliff_04`, a cliff of 87 m.
 
-**Non redistribuables dans un dépôt public :** Megascans et Fab, Textures.com.
+**Not redistributable in a public repository:** Megascans and Fab, Textures.com.
 
-**L'usage chez nous :** un patch de relief réel, dont on ne garde que les détails fins, orienté par la pente, pavé sans répétition, de 1 à 30 m. **Le risque :** la répétition se voit à 1 km.
+**The use in our country:** a patch of real relief, of which we keep only the fine details, oriented by the slope, paved without repetition, from 1 to 30 m. **The risk:** the repetition is seen at 1 km.
 
-## Deux voies séparées
+## Two separate tracks
 
-**La géométrie vient de complexplanet** (`geometrie.md`). Le problème des parois se traite d'abord dans le rendu ; ce qui change la forme est un sujet à part.
+**Geometry comes from complexplanet** (`geometrie.md`). The problem of walls is first dealt with in the rendering; what changes the form is a separate subject.
 
-### La voie rendu : ce qui est en place
+### The rendered path: what is in place
 
-Ce qui rend une paroi minérale de 100 m à 1 km sans toucher la forme. Les pixels y couvrent de 8 cm à 1 m. Des cinq options étudiées le 2026-10-23, la photo de falaise reste. Les bandes cassées, leurs failles et l'ondulation des strates sont retirées le 2026-10-24 avec les familles de roche, `jalon/16-une-roche`. Les options, leurs mesures et les correctifs du premier vol sont dans `log/spec-parois-minerales-historique.md`.
+Which makes a mineral wall from 100 m to 1 km without touching the shape. Pixels cover from 8 cm to 1 m. Of the five options studied the 2026-10-23, the cliff photo remains. The broken bands, their faults and the ripple of the strata are removed the 2026-10-24 with the rock families, `jalon/16-une-roche`. The options, their measures and the fixes of the first flight are in `log/spec-parois-minerales-historique.md`.
 
-**La géométrie de proximité est retirée du code** le 2026-10-30, relief des matériaux et gradins ; tag `piste/parois-gradins`. Le rendu se règle sur la seule géométrie de complexplanet (`geometrie.md`).
+**Proximity geometry is removed from the code** the 2026-10-30, relief of materials and grades; tag `piste/parois-gradins`. The rendering is adjusted to the complexplanet geometry (`geometrie.md`).
 
-**Les strates au pixel.** Calculés par sommet et filtrés par la maille, les strates, leur décalage et les lentilles laissaient leurs octaves apparaître à vue quand les mailles rétrécissaient : une maille couvre environ 13 pixels. Ils sont calculés dans les pixels et filtrés par leur taille ; la géologie, régionale, reste aux sommets (`journal-planete.md`, 2026-10-23). La règle est dans `principes.md`.
+**The strata pixel.** Computed by vertex and filtered by the grid cell, the strata, their offset and lenses let their octaves appear in sight when the grid cells shrank: a grid cell covers about 13 pixels. They are calculated in pixels and filtered by their size; geology, regional, remains at the tops (`journal-planete.md`, 2026-10-23). The rule is in `principes.md`.
 
-### La photo de falaise
+### The photo of cliff
 
-![Base, puis photo de falaise : paroi raide, montagne à 45°, montagnes à 5 km, corniche](images/parois-photo.jpg)
+![Base, then cliff photo: steep wall, mountain at 45°, mountains at 5 km, cornice](images/parois-photo.jpg)
 
-- **La photo :** `marble_cliff_04` de Poly Haven, CC0, une paroi de 12,7 m photographiée de face, aux fractures et cannelures verticales. Elle est préférée à `marble_cliff_05`, 20 m, plus isotrope et prise de dessus.
-- **Où :** la tuile de la roche, `ROCK_TILE` = 64/5 m, au lieu de la tuile générée de 8 m ; la tuile fine reste générée. Depuis le 2026-10-24, toute la roche est cette photo, et la roche de moins de 45° prend `marble_cliff_05`, le même marbre pris de dessus (`journal-planete.md`).
-- **Ce qu'elle garde :**
-  - toutes ses longueurs d'onde jusqu'à la tuile, sans le passe-haut à 50 cm du sable ;
-  - 30 % de ses variations de teinte : les strates donnent la couleur ;
-  - 1,2 m de relief par unité, ce qui donne à ses pentes l'écart type de la règle universelle de la roche, `STONE_SLOPE_SIGMA`.
-- **Ce qu'on voit :** une matière fracturée et cannelée sur les parois raides et à la corniche, plus minérale. De 300 m à 1 km, les bandes de strates dominent encore.
-- **Mesures :**
-  - tremblement avec lissage 0,40 → 0,43, 0,19 → 0,23, 0,17 → 0,16 à la corniche ;
-  - coût du rendu inchangé ;
-  - descente de la roche inchangée de 800 à 8 km.
+- **The photo:** `marble_cliff_04` of Poly Haven, CC0, a wall of 12,7 m photographed from the front, with vertical fractures and grooves. It is preferred to `marble_cliff_05`, 20 m, more isotropic and top-taken.
+- **Where:** the tile of the rock, `ROCK_TILE` = 64/5 m, instead of the generated tile of 8 m; the fine tile remains generated. Since the 2026-10-24, all the rock is this photo, and the rock less than 45° takes `marble_cliff_05`, the same marble taken from above (`journal-planete.md`).
+- **What she keeps:**
+  - all its wavelengths up to the tile, without the high pass at 50 cm of sand;
+  - 30 % of its variations of hue: the strata give the color;
+  - 1,2 m of relief per unit, which gives its slopes the standard deviation of the universal rock rule, `STONE_SLOPE_SIGMA`.
+- **What we see:** a fractured and grooved material on the steep walls and the cornice, more mineral. From 300 m to 1 km, the bands of strata still dominate.
+- **Measures:**
+  - jitter with smoothing 0,40 → 0,43, 0,19 → 0,23, 0,17 → 0,16 to the cornice;
+  - cost of rendering unchanged;
+  - Rock descent unchanged from 800 to 8 km.
 
-### La voie géométrie, à part
+### The geometry track, apart
 
-Sur une branche, à reprendre après le rendu, et à décider explicitement : `geometrie.md`, famille « remplacement ».
+On a branch, to be taken after rendering, and to be explicitly decided: `geometrie.md`, family "replacement".
 
-**Le filtre d'érosion, essayé le 2026-10-23,** est mis de côté : tag `piste/erosion-filtre`. Ce qu'il donnait et coûtait : `log/spec-parois-minerales-historique.md`.
+**The erosion filter, tried the 2026-10-23,** is set aside: tag `piste/erosion-filtre`. What he gave and cost: `log/spec-parois-minerales-historique.md`.
 
-**Les autres pistes :** patchs de relief réel, dalles IGN LiDAR HD dans `../donnees-terre/lidar-hd`, hors du dépôt ; rochers semés, `log/spec-parois.md`, option 3.
+**Other experiments:** Real relief patches, IGN LiDAR HD slabs in `../donnees-terre/lidar-hd`, out of the depot; sown rocks, `log/spec-parois.md`, option 3.

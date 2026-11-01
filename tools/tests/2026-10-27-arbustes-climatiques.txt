@@ -1,14 +1,14 @@
-# Arbustes climatiques : mêmes instances et portée, six familles, deux formes chacune.
-# libellé | altitude absolue (m) latitude longitude inclinaison cap | latitude longitude du soleil
-Clairière tempérée : vue précédente | 567.2 30.38761 120.52330 -14.4 -115 | 20 120
-Lisière tempérée : touffes ramifiées | 583.5 30.37000 120.53027 3.0 0.0 | 20 140
-Boréal : buissons bas dans la clairière | 534.9 -49.63200 90.53100 5.0 -60.0 | -30 100
-Boréal : sous-bois et autre couvert | 537.3 -49.63000 90.53000 5.0 90.0 | -30 100
-Désert : bouquets gris-vert espacés | 119.9 -19.63100 0.52780 5.0 0.0 | -15 5
-Désert : autre tache d’arbustes | 122.2 -19.63300 0.52400 5.0 0.0 | -15 5
-Steppe : buissons étalés du maquis sec | 795.6 -29.63000 60.53000 5.0 -180.0 | -20 80
-Steppe chaude et transition vers la savane | 364.6 10.37168 -119.46971 1.1 89.2 | 15 -100
-Montagne : ligne des arbres | 4065.1 -14.90437 119.94946 5.0 120.0 | -5 125
-Montagne : vallée et versant exposé | 3878.4 -14.90000 119.95000 8.0 120.0 | -5 125
-Tropical : clairière à grandes feuilles | 324.7 0.37288 60.53092 3.0 0.0 | 10 80
-Tropical : sous-bois | 315.9 0.37000 60.53000 20.0 -0.0 | 10 80
+# Climatic shrubs: same instances and range, six families, two forms each.
+# label | absolute altitude (m) latitude longitude inclination cap | latitude longitude of the sun
+Tempered clearing: previous view | 567.2 30.38761 120.52330 -14.4 -115 | 20 120
+Tempered border: tufts branched | 583.5 30.37000 120.53027 3.0 0.0 | 20 140
+Boreal: low bushes in the clearing | 534.9 -49.63200 90.53100 5.0 -60.0 | -30 100
+Boreal: undergrowth and other cover | 537.3 -49.63000 90.53000 5.0 90.0 | -30 100
+Desert: gray-green bouquets spaced | 119.9 -19.63100 0.52780 5.0 0.0 | -15 5
+Desert: another patch of bushes | 122.2 -19.63300 0.52400 5.0 0.0 | -15 5
+Steppe: spreading bushes of dry maquis | 795.6 -29.63000 60.53000 5.0 -180.0 | -20 80
+Warm steppe and transition to savannah | 364.6 10.37168 -119.46971 1.1 89.2 | 15 -100
+Mountain: treeline | 4065.1 -14.90437 119.94946 5.0 120.0 | -5 125
+Mountain: valley and exposed slope | 3878.4 -14.90000 119.95000 8.0 120.0 | -5 125
+Tropical: large-leaved clearing | 324.7 0.37288 60.53092 3.0 0.0 | 10 80
+Tropical: undergrowth | 315.9 0.37000 60.53000 20.0 -0.0 | 10 80

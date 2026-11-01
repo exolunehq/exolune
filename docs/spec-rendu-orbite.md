@@ -1,166 +1,166 @@
-# La planète vue d'orbite
+# The planet seen from orbit
 
-**Le but :** que la planète vue d'orbite soutienne la comparaison avec la Terre d'Apollo 17, « Blue Marble » : un océan bleu sombre, des déserts ocre, des nuages blancs et opaques aux cœurs lisses, un limbe bleu fin. Sans rien dégrader à 10 km, à 1 km ni au sol.
+**The goal:** that the planet seen from orbit supports the comparison with the Earth of Apollo 17, "Blue Marble": a dark blue ocean, ochre deserts, white and opaque clouds with smooth hearts, a thin blue limb. Without degrading anything at 10 km, at 1 km or on the ground.
 
-**État, 2026-10-31 :** fait sur la piste `piste/orbite-rendu`, branche `claude/orbite-rendu-0e3f4e` ; à juger en vol, `tools/tests/2026-10-31-orbite-rendu.txt`.
+**State, 2026-10-31:** made on the experiment `piste/orbite-rendu`, branch `claude/orbite-rendu-0e3f4e`; to be judged in flight, `tools/tests/2026-10-31-orbite-rendu.txt`.
 
-- **Le code :** `Atmosphere.hlsli`, `AtmosphereMultiScattering.hlsl`, `Clouds.hlsli`, `CloudsTemporal.hlsli`, `ToneMap.hlsl`, `PlanetSettings.hlsli`, `D3DApp.cpp` (les écarts types des bruits au chargement), `ShipWeather.hlsl`.
-- **Les références et le calage :** `tools/calage_orbite.py`, Monte-Carlo de l'air vu d'orbite et des couches nuageuses ; `tools/nuages_statistique.py`, le contrôle des lois du pixel.
-- **Le détail des nuages :** `spec-nuages.md`, la lumière, la marche et la statistique au pixel.
+- **The code:** `Atmosphere.hlsli`, `AtmosphereMultiScattering.hlsl`, `Clouds.hlsli`, `CloudsTemporal.hlsli`, `ToneMap.hlsl`, `PlanetSettings.hlsli`, `D3DApp.cpp` (the standard deviations of noise functions at loading), `ShipWeather.hlsl`.
+- **References and timing:** `tools/calage_orbite.py`, Monte Carlo of the air seen of orbit and cloud layers; `tools/nuages_statistique.py`, the control of pixel laws.
+- **The detail of clouds:** `spec-nuages.md`, light, walk and statistics to pixel.
 
-## Le constat
+## The finding
 
-**Mesuré à 10 000 km, soleil dans le dos, contre « Blue Marble »** (médianes sRGB ; océan dégagé, nuages opaques, anneau du limbe) :
+**Measured at 10 000 km, sun in the back, against Blue Marble** (sRGB medians; clear ocean, opaque clouds, rim ring):
 
-| | Avant | Après | Apollo 17 |
+|  | Before | After | Apollo 17 |
 |---|---|---|---|
-| Océan | 102, 129, 177 | 56, 75, 111 | 45, 67, 100 |
-| Nuages épais | 189, 186, 195 | 208, 202, 204 | 220 à 233, neutres |
-| Limbe | 149, 165, 209 | 109, 123, 162 | 99, 133, 171 |
+| Ocean | 102, 129, 177 | 56, 75, 111 | 45, 67, 100 |
+| Thick clouds | 189, 186, 195 | 208, 202, 204 | 220 to 233, neutral |
+| Language | 149, 165, 209 | 109, 123, 162 | 99, 133, 171 |
 
-- **Trois écarts signalés :** des nuages ternes, gris rosé et translucides ; un grain sableux sur les nuages lointains ; un voile lavande sur toute la planète, le limbe bas qui rosit.
+- **Three deviations reported:** clouds dull, gray pink and translucent; a grain of sand on the distant clouds; a lavender veil over the whole planet, the lower limb that roses.
 
-**La réflectance équivalente,** `π L / E_soleil` avant la courbe, d'orbite, en passe unique ; la médiane de l'océan dégagé et des nuages opaques, au centre du disque :
+**The equivalent reflectance,** `π L / E_soleil` before the curve, orbit, single pass; the median of the clear ocean and opaque clouds, in the center of the disk:
 
-| | Océan | Nuage épais | Contraste |
+|  | Ocean | Thick cloud | Contrast |
 |---|---|---|---|
-| Avant, soleil dans le dos | 0,090 | 0,237 | 2,6 |
-| Après, soleil dans le dos | 0,061 | 0,645 | 10,5 |
-| Avant, soleil à 60° | 0,069 | 0,125 | 1,8 |
-| Après, soleil à 60° | 0,046 | 0,302 | 6,6 |
-| Terre, CERES | 0,08 à 0,1 | 0,5 à 0,8 | 6 à 8 |
+| Before, sun in the back | 0,090 | 0,237 | 2,6 |
+| After, sun in the back | 0,061 | 0,645 | 10,5 |
+| Before, sun at 60° | 0,069 | 0,125 | 1,8 |
+| After, sun at 60° | 0,046 | 0,302 | 6,6 |
+| Earth, CERES | 0,08 to 0,1 | 0,5 to 0,8 | 6 to 8 |
 
-- **Le nuage épais est dans la cible.**
-- **L'océan est plus sombre que la moyenne de CERES :** sous un soleil presque au zénith, sans reflet, le Monte-Carlo de notre air donne le même 0,06 ; CERES moyenne tous les angles du soleil et le reflet. D'où un contraste de 10 au zénith, de 6,6 au soleil oblique.
+- **The thick cloud is in the target.**
+- **The ocean is darker than the average of CERES:** under a sun almost at the zenith, without reflection, the Monte-Carlo of our air gives the same 0,06; CERES averages all the angles of the sun and reflection. Hence a contrast of 10 at the zenith, of 6,6 at the oblique sun.
 
-## Les causes, établies par élimination
+## Causes, established by elimination
 
-**Le voile lavande vient de l'air, pas des nuages.** Sans nuages, l'océan restait lavande. Variantes de la composition, au même lieu : sans air, sans aérosols, sans diffusion multiple, sans ozone, exposition à 0 IL.
-- **La diffusion multiple de l'air égalait la simple :** 0,7 à 1,0 fois, contre 0,15 à 0,37 au Monte-Carlo de la même atmosphère (`calage_orbite.py air`).
-- **Pour un air de Rayleigh seul, le moteur suivait le Monte-Carlo :** 0,31 contre 0,26 en bleu. L'excès venait des aérosols : la table de Hillaire 2020 suppose une phase isotrope, alors qu'ils diffusent vers l'avant, g = 0,7. Vus d'orbite, ils renvoyaient trois à cinq fois trop de lumière vers le haut.
-- **Un sol gris de 0,3 sous l'air,** l'océan compris, faisait un quart de l'excès.
-- **Un défaut :** dans la table, un booléen `ground` masquait le sol de la tranche ; la brume des rayons descendants était posée à 1 km.
-- **L'exposition** de +1 IL, calée sur des paysages, ajoutait un IL de trop pour une photo de la Terre.
+**The lavender veil comes from the air, not from the clouds.** Cloudless, the ocean remained lavender. Variants of composition, in the same place: airless, aerosol-free, multiple scattering-free, ozone-free, exposure to 0 EV.
+- **The multiple scattering of the air equaled the simple:** 0,7 to 1,0 times, against 0,15 to 0,37 in Monte-Carlo of the same atmosphere (`calage_orbite.py air`).
+- **For a Rayleigh air alone, the engine followed the Monte-Carlo:** 0,31 against 0,26 in blue. The excess came from aerosols: Hillaire's table 2020 assumes an isotropic phase, while they diffuse forward, g = 0,7. Seen from orbit, they reflected three to five times too much light upwards.
+- **A gray 0,3 ground under the air,** including the ocean, made a quarter of the excess.
+- **A fault:** in the table, a Boolean `ground` masked the floor of the slice; the fog of the descending rays was set at 1 km.
+- **The exposure** of +1 EV, set on landscapes, added one EV too much for a photo of the Earth.
 
-**Les nuages ternes.**
-- **Leur réflectance plafonnait vers 0,25,** même infiniment épais : diffusion simple et un second ordre approché, contre 0,86 à 0,99 au Monte-Carlo.
-- **Leur phase renvoyait trop vers l'arrière :** 20 % d'un lobe g = −0,5. Un nuage d'épaisseur optique 1 sortait à 0,15 au lieu de 0,02 : les nuages minces et les bords faisaient eux aussi un voile laiteux.
-- **Leur eau suivait la couverture du ciel :** la densité était multipliée par la couverture, et un champ de cumulus à 10 % était dix fois plus transparent qu'un front.
+**Dull clouds.**
+- **Their reflectance was capped towards 0,25,** even infinitely thick: single scattering and a second order approached, against 0,86 to 0,99 in Monte-Carlo.
+- **Their phase was too backward:** 20 % of a lobe g = −0,5. A cloud of optical thickness 1 came out at 0,15 instead of 0,02: thin clouds and edges also made a milky veil.
+- **Their water followed the cover of the sky:** density was multiplied by the cover, and a cumulus field at 10 % was ten times more transparent than a front.
 
-**Le grain.**
-- **Des pas optiquement épais :** d'orbite, des pas de 240 m dans un nuage de 24 /km, six épaisseurs optiques. La lumière d'un nuage épais variait de 0,18 à 0,64 selon l'endroit où son sommet tombait dans le pas.
-- **La quadrature lointaine :** 4 à 8 rayons ponctuels, au mip 0, pour un pixel de 10 km sur des cumulus de 1 à 4 km. L'écart type valait la moyenne.
+**The grain.**
+- **Optically thick steps:** orbit, steps of 240 m in a cloud of 24 /km, six optical thicknesses. The light of a thick cloud varied from 0,18 to 0,64 depending on where its summit fell into the step.
+- **The distant quadrature:** 4 to 8 point rays, at the mip 0, for a pixel of 10 km on cumulus of 1 to 4 km. The standard deviation was the mean.
 
-## Les corrections
+## Corrections
 
-### L'air
+### The air
 
-- **La similitude de van de Hulst :** la diffusion multiple d'un milieu anisotrope se traite comme isotrope avec une diffusion réduite, `σs (1 − g)`. Les aérosols y entrent pour `Mie × (1 − 0,7)`, dans la table et dans la source multiple de `IntegrateScattering`. La diffusion simple ne change pas. L'océan d'orbite rejoint le Monte-Carlo : 0,071, 0,125, 0,283 exposés, contre 0,067, 0,123, 0,279.
-- **Le sol sous l'air,** dans la table seulement : `AIR_GROUND_ALBEDO` = 0,12, l'albédo moyen par ciel clair, 70 % d'océan à 0,06 et des terres vers 0,25. `GROUND_ALBEDO` garde 0,3 pour les objets et les plantes.
-- **Le booléen** s'appelle `hitsGround` et ne masque plus le sol de la tranche.
+- **Van de Hulst similarity:** the multiple scattering of an anisotropic medium is treated as isotropic with reduced diffusion, `σs (1 − g)`. Aerosols enter for `Mie × (1 − 0,7)`, in the table and in the multiple source of `IntegrateScattering`. The single scattering does not change. The orbit ocean joins the Monte-Carlo: 0,071, 0,125, 0,283 exposed, against 0,067, 0,123, 0,279.
+- **Soil under air,** in table only: `AIR_GROUND_ALBEDO` = 0,12, clear sky average albedo, 70 % of ocean to 0,06 and land to 0,25. `GROUND_ALBEDO` guards 0,3 for objects and plants.
+- **The Boolean** is called `hitsGround` and no longer masks the floor of the slice.
 
-### La lumière des nuages
+### The light of the clouds
 
-- **La phase des gouttes :** Henyey-Greenstein, g = 0,85 (Bohren et Huffman).
-- **L'eau dans le nuage ne dépend plus de la couverture :** la densité finale se divise par la couverture R. La forme, le support et l'érosion restent. R ne dit plus que la part du ciel couverte ; l'eau suit l'épaisseur de la carte, de 20 à 80 /km (plus bas, vu d'orbite basse).
-- **La diffusion multiple, calée sur le Monte-Carlo :** une source isotrope par km, `σ W (S_soleil μ + E_ciel) / (1 + b τs) / 4π`, sommée le long de la vue, puis multipliée par `F = 1 − exp(−k τ / μ̄)`.
-  - W = 3,40, b = 0,040, k = 0,061, ajustés sur des couches de g = 0,85, épaisseurs 2 à 100, soleil au zénith et à 60°, vues de dessus et de dessous ; erreur 0,30 en log.
-  - **La décroissance vers le soleil est celle de la transmission diffuse d'une couche,** `1 / (1 + b τs)` (deux flux) : raide près d'une face éclairée, lente au fond. Une exponentielle ajustée sur les mêmes couches, 0,31 d'erreur, laissait la face à l'ombre d'une tour à 57 % de sa face éclairée, au lieu de 38 %.
-  - **μ, l'incidence du soleil sur le nuage :** une nappe le reçoit comme un sol, `dot(haut, soleil)` ; un cumulus comme une boule, 0,5 en moyenne sur sa face éclairée : `max(dot, 0,5 × famille, 0,05)`.
-  - **τ, l'épaisseur du nuage là où il existe :** la plus grande de deux. La colonne verticale au point vu, douze tranches de 0,5 km de la couche basse ou huit des cirrus, en densité dans le nuage, sans la part couverte, lue à environ 1 km (mip ≥ 2 de la forme, ≥ 3 de l'érosion) : la diffusion multiple étale la lumière sur quelques libres parcours de transport, 1 / (σ (1 − g)) ≈ 170 m. Et l'épaisseur que la marche a traversée. Pour une couche plane, c'est son épaisseur : la grandeur du calage. Le bord d'un nuage, vu rasant ou éclairé de dos, a la colonne de tout le nuage.
-  - **Le ciel y entre avec le soleil :** un nuage diffuse tout ce qu'il reçoit. Sans lui, les nuages sortaient crème.
-- **Six échantillons vers le soleil,** de 0,125 à 4 km, soit 7,875 km : toute la couche basse. Avec quatre, la base d'un nuage épais recevait la lumière d'un nuage mince.
-- **Un pas éclairé ne dépasse pas une épaisseur optique de 1** tant que la colonne est transparente.
+- **Drop phase:** Henyey-Greenstein, g = 0,85 (Bohren and Huffman).
+- **Water in the cloud no longer depends on cover:** the final density is divided by the cover R. The shape, support and erosion remain. R no longer says the part of the sky covered; water follows the thickness of the map, from 20 to 80 /km (lower, seen from low orbit).
+- **The multiple scattering, capped on Monte-Carlo:** an isotropic source per km, `σ W (S_soleil μ + E_ciel) / (1 + b τs) / 4π`, summed along the view, then multiplied by `F = 1 − exp(−k τ / μ̄)`.
+  - W = 3,40, b = 0,040, k = 0,061, adjusted on layers of g = 0,85, thicknesses 2 to 100, sun at zenith and at 60°, top and bottom views; error 0,30 in log.
+  - **The decay towards the sun is that of diffuse transmission of a layer,** `1 / (1 + b τs)` (two streams): steep near a lighted face, slow at the bottom. An exponential adjusted on the same layers, error 0,31, left the shadow face of a tower at 57 % of its illuminated face, instead of 38 %.
+  - **μ, the incidence of the sun on the cloud:** a sheet receives it as a ground, `dot(haut, soleil)`; a cumulus as a ball, 0,5 on average on its illuminated face: `max(dot, 0,5 × famille, 0,05)`.
+  - **τ, the thickness of the cloud where it exists:** the greater of two. The vertical column at the point of view, twelve strips of 0,5 km of the low layer or eight of the cirrus, in density in the cloud, without the covered part, read at about 1 km (mip ≥ 2 of the form, ≥ 3 of the erosion): the multiple scattering spreads the light on some free transport paths, 1 / (σ (1 − g)) ≈ 170 m. And the thickness that the walk has crossed. For a flat layer, it is its thickness: the size of the caling. The edge of a cloud, seen from the side or from behind, has the column of the entire cloud.
+  - **The sky enters it with the sun:** a cloud diffuses everything it receives. Without him, the clouds would come out creamy.
+- **Six samples towards the sun,** from 0,125 to 4 km, or 7,875 km: all the lower layer. With four, the base of a thick cloud received the light of a thin cloud.
+- **An illuminated step does not exceed an optical thickness of 1** as long as the column is transparent.
 
-### Le pixel : la statistique au lieu des rayons fins
+### The pixel: statistics instead of fine rays
 
-- **La loi jointe de la forme et de l'érosion :** X la forme, D l'érosion, sous l'empreinte du pixel, gaussiennes de moyenne lue au mip du pixel et d'écart type calculé au chargement (canal B des deux volumes). La marge `U = clamp(X − (1 − c), 0, c) p − D g` donne la part couverte `f = Φ(mU / sU)` et la densité dans le nuage `E[U⁺] / f / (1 − g μD) / c`.
-  - **Mesuré sur les textures :** à c = 0,2, f = 0,724 et une densité moyenne de 0,178, pour 0,727 et 0,183 vrais.
-  - **Les échelles plus fines que les texels** ajoutent leur variance à toute distance : 0,0124 pour la forme, 0,033 pour l'érosion. Un bord devient une frange partielle, comme un bord turbulent vu au pixel.
-  - **Prise à sa moyenne, l'érosion effaçait tout nuage mince au loin :** d'orbite, la part de pixels partiels tombait de 16 % à 2 %.
-- **Le recouvrement maximal sur une empreinte, aléatoire au-delà :** dans le pixel, les nuages d'une couche se superposent, la colonne nuageuse est la plus large rencontrée ; quand le rayon a quitté l'empreinte, une nouvelle colonne se compose à la précédente comme une couche.
-- **La quadrature lointaine est retirée,** et la moyenne des rayons lointains de la passe temporelle avec elle.
-- **La carte météo se lit au mip 0, 39 km, en B-spline cubique :** seuillée par une fonction raide, son interpolation bilinéaire dessinait des carrés et des losanges de 80 à 160 km ; au mip 0, la carte du climat dessine ses formes jusqu'à 80 km.
+- **The joined law of shape and erosion:** X the shape, D the erosion, under the pixel footprint, Gaussian mean read at the mip of the pixel and standard deviation calculated at loading (channel B of the two volumes). The margin `U = clamp(X − (1 − c), 0, c) p − D g` gives the covered part `f = Φ(mU / sU)` and the density in the cloud `E[U⁺] / f / (1 − g μD) / c`.
+  - **Measured on textures:** at c = 0,2, f = 0,724 and an average density of 0,178, for true 0,727 and 0,183.
+  - **Scales thinner than texels** add their variance at any distance: 0,0124 for shape, 0,033 for erosion. An edge becomes a partial fringe, like a turbulent edge seen at the pixel.
+  - **Taken at its average, erosion erased any thin cloud in the distance:** of orbit, the share of partial pixels fell from 16 % to 2 %.
+- **Maximum overlap on a footprint, random beyond:** In the pixel, clouds of a layer overlap, the cloudy column is the widest encountered; when the ray has left the footprint, a new column is composed to the previous one as a layer.
+- **The distant quadrature is removed,** and the average of the distant radii of the time pass with it.
+- **The weather map is read at the mip 0, 39 km, in cubic B-spline:** threshold by a steep function, its bilinear interpolation drew squares and diamonds from 80 to 160 km; at the mip 0, the climate map draws its shapes up to 80 km.
 
-### L'exposition
+### The exhibition
 
-- **0 IL en orbite, +1 IL au sol :** les photos de paysages sont exposées pour le sol, celles de la Terre pour ses nuages. Mesurée sur « Blue Marble », sa mer et ses nuages s'accordent aux nôtres à 0 IL.
-- **Entre les deux, la part de l'air sous la caméra,** `1 − exp(−h / 8 km)` : +0,88 IL à 1 km, +0,29 à 10 km. L'exposition reste un posemètre incident, sans lecture de l'image.
+- **0 EV in orbit, +1 EV on the ground:** landscape photos are exposed for the ground, those of the Earth for its clouds. Measured on "Blue Marble", its sea and clouds match ours at 0 EV.
+- **Between the two, the air under the camera,** `1 − exp(−h / 8 km)`: +0,88 EV to 1 km, +0,29 to 10 km. The exposure remains an incident exposure meter, without reading the image.
 
-## Le coût GPU
+## The cost of GPU
 
-**Mesuré au même lieu, avant puis après, en 1920 × 1080, l'exe seul du lanceur** (colonnes `nuages_trace` et `atmosphere`, ms ; d'autres moteurs tournaient sur le GPU) :
+**Measured at the same place, before and after, in 1920 × 1080, the launcher's only exe** (columns `nuages_trace` and `atmosphere`, ms; other engines were running on the GPU):
 
-| Vue | Trace avant | Trace après | Nuages et air avant | Nuages et air après |
+| View | Front track | Trace after | Clouds and air front | Clouds and air after |
 |---|---|---|---|---|
-| Orbite, soleil dans le dos | 0,92 | 1,44 | 1,58 | 2,09 |
+| Orbite, sun in the back | 0,92 | 1,44 | 1,58 | 2,09 |
 | Orbite, terminateur | 1,34 | 1,80 | 1,98 | 2,44 |
-| 10 km, cumulus sur la chaîne | 6,17 | 7,90 | 7,78 | 9,48 |
-| 10 km, nappe sur la mer | 4,88 | 7,73 | 6,41 | 9,21 |
-| 1 km, forêt sous les nuages | 4,55 | 5,33 | 6,02 | 6,80 |
-| 1 km, sous la nappe | 1,81 | 1,83 | 3,22 | 3,24 |
-| Au sol, plaine équatoriale | 1,49 | 1,14 | 2,93 | 2,58 |
-| Au ras de la mer | 2,73 | 1,75 | 4,14 | 3,15 |
+| 10 km, cumulus on the chain | 6,17 | 7,90 | 7,78 | 9,48 |
+| 10 km, layer on the sea | 4,88 | 7,73 | 6,41 | 9,21 |
+| 1 km, forest under the clouds | 4,55 | 5,33 | 6,02 | 6,80 |
+| 1 km, under the layer | 1,81 | 1,83 | 3,22 | 3,24 |
+| Ground, equatorial plain | 1,49 | 1,14 | 2,93 | 2,58 |
+| At the sea level | 2,73 | 1,75 | 4,14 | 3,15 |
 
-- **À 10 km, +1,7 à +2,8 ms :** l'image entière passe de 15,2 à 16,9 ms au-dessus des cumulus, sous les 60 images par seconde. Six échantillons vers le soleil au lieu de quatre et un pas optique de 2 au lieu de 1 n'en pèsent que 0,1 à 0,2 ms : le reste est la statistique, calculée à chaque échantillon, et des nuages plus denses, donc plus de pas éclairés.
-- **D'orbite, +0,5 ms ; au sol et au ras de la mer, 0,2 à 1 ms de moins :** un seul rayon par pixel au lieu de la quadrature lointaine.
+- **At 10 km, +1,7 to +2,8 ms:** the entire image changes from 15,2 to 16,9 ms above the cumulus, below the 60 images per second. Six samples towards the sun instead of four and an optical step of 2 instead of 1 weigh only 0,1 to 0,2 ms: the rest is the statistic, calculated at each sample, and denser clouds, therefore more illuminated steps.
+- **From orbit, +0,5 ms; at ground and sea level, 0,2 to 1 ms less:** one single ray per pixel instead of the distant quadrature.
 
-## Au-dessus et au-dessous des couches
+## Above and below layers
 
-**Le critère :** blanchir les nuages sans cramer le contraste au-dessus ni au-dessous d'une couche. Six vues, à midi et au soleil bas, à 12°, avant et après, en passe unique (planche).
-- **Au-dessus, à midi :** des sommets blancs, non écrêtés, 0,96 exposé au 90e centile, 226 en sRGB ; leurs ombres internes, rapport des 10e et 90e centiles de luminance, 0,65 contre 0,76 avant : plus marquées.
-- **Au-dessus, au soleil bas :** 0,68 contre 0,57 avant : moins marquées. Un cumulus y reçoit le soleil en moyenne, μ = 0,5, et non selon l'incidence de chaque face.
-- **Au-dessous :** des bases plus claires qu'avant, grises au soleil bas, crème à midi.
-- **Aucune exposition locale :** les réflectances justes et la courbe suffisent ; à envisager seulement si le relief manque encore au-dessus d'une couche.
-- **Rien dans l'historique ne garde la trace d'un blanchiment qui ait cramé le contraste :** le journal mesure le contraste de 2,5 ; l'ancien volume avait d'abord des sommets gris, deux flux inversés (`log/recherche-nuages-historique.md`).
+**The criterion:** whiten clouds without burning the contrast above or below a layer. Six views, at noon and low sun, at 12°, before and after, in single pass (board).
+- **Above, at noon:** white, uncut tops, 0,96 exposed to 90e percentile, 226 in sRGB; their internal shadows, ratio of 10e and 90e percentiles of luminance, 0,65 against 0,76 before: more marked.
+- **Above, in low sunlight:** 0,68 vs 0,57 before: less marked. A cumulus receives the sun on average, μ = 0,5, and not according to the incidence of each face.
+- **Below:** lighter bases than before, gray at low sun, cream at noon.
+- **No local exposure:** correct reflectances and curve are sufficient; to be considered only if relief is still missing above a layer.
+- **Nothing in the history keeps track of a bleaching that burned the contrast:** the journal measures the contrast of 2,5; the old volume had first gray peaks, two reversed flows (`log/recherche-nuages-historique.md`).
 
-## Vus de près : le reflet sur les contours, corrigé le même jour
+## Close-up: reflection on the contours, corrected on the same day
 
-**Le défaut, en vol, après fusion dans `integration` :** de 1 à 10 km, des nuages de plastique brillant, un cerne sombre sur leurs contours et sur les plis où un lobe passe devant un autre, un liseré éclatant à contre-jour, un intérieur plat.
+**The defect, in flight, after fusion in `integration`:** from 1 to 10 km, clouds of shiny plastic, a dark circle on their contours and on the folds where one lobe passes before another, a brilliant backlit border, a flat interior.
 
-**Les causes, par élimination,** sur des cumulus vus de 1,5 et 3 km, soleil de face, de côté et de dos, contre les shaders d'avant la piste et la même carte :
-- **F mesurait l'épaisseur le long de la vue :** sur un bord ou la silhouette d'un lobe, le rayon rasant ne traverse qu'une corde mince, F s'effondre, la diffusion multiple s'éteint : le cerne. Couper F l'efface.
-- **Les bords étaient des surfaces lisses :** l'eau physique du nuage, jusqu'à 80 /km, rend la frontière opaque en 12 m, et les bruits n'ont aucun détail sous leurs texels, 250 m et 125 m : leur isosurface lisse se voyait comme du plastique. L'ancienne loi, densité × R, les adoucissait par la transparence.
-- **Ni la phase ni la carte au mip 0** n'y étaient pour rien.
+**The causes, by elimination,** on cumulus seen from 1,5 and 3 km, sun from front, side and back, against the shaders before the experiment and the same map:
+- **F measured the thickness along the view:** on an edge or the silhouette of a lobe, the razor ray crosses only a thin string, F collapses, the multiple scattering extinguishes: the cerne. Cut F erases it.
+- **The edges were smooth surfaces:** the physical water of the cloud, up to 80 /km, makes the boundary opaque in 12 m, and the noise functions have no detail under their texels, 250 m and 125 m: their smooth isosurface looked like plastic. The old law, density × R, softened them by transparency.
+- **Neither the phase nor the card at the mip 0** were responsible for anything.
 
-**Les essais écartés :** F le long du soleil, des taches grises au cœur des cumulus là où la ligne du soleil sort par la base ; le long de la normale, un aspect de métal liquide, le gradient d'un bruit fin tournant d'un pixel à l'autre ; la colonne en densité moyenne, des anneaux, puis des cumulus gris là où la part couverte mêle le ciel clair.
+**The tests dismissed:** F along the sun, gray spots at the heart of the cumulus where the line of the sun comes out by the base; along the normal, an aspect of liquid metal, the gradient of a thin noise turning from one pixel to another; the column in medium density, rings, then gray cumulus where the covered part mixes the clear sky.
 
-**La correction :** l'épaisseur de F est celle du nuage là où il existe, sa colonne lissée à l'échelle de la diffusion (plus haut, la diffusion multiple) ; et la variance des échelles non résolues élargit les bords en franges. Plus de cerne, de pli ni de plastique ; les cibles d'orbite ne bougent pas, nuage épais à 0,685 avant comme après.
+**The correction:** the thickness of F is that of the cloud where it exists, its column smoothed at the scale of diffusion (above, the multiple scattering); and the variance of the unresolved scales broadens the edges in fringes. No more circle, fold or plastic; orbit targets do not move, thick cloud at 0,685 before as after.
 
-**Ce qui reste :** le relief des cumulus vus de près est plus doux qu'avant la piste ; rapport des 10e et 90e centiles de luminance, de côté et de dos, 0,68 et 0,77 contre 0,46 et 0,67. Leur source multiple prend une incidence moyenne, 0,5 pour un cumulus, et non celle de chaque face. Piste : l'incidence locale, par le gradient de la densité lissée à l'échelle de la diffusion, lisse à cette échelle.
+**What remains:** the cumulus relief close-up is softer than before the experiment; ratio of 10e and 90e percentiles of luminance, side and back, 0,68 and 0,77 against 0,46 and 0,67. Their multiple source takes an average incidence, 0,5 for a cumulus, and not that of each face. experiment: local bearing, by the density gradient smoothed at the diffusion scale, smooth at this scale.
 
-**Le coût :** +0,1 à +0,5 ms, la colonne de chaque segment.
+**Cost:** +0,1 to +0,5 ms, the column of each segment.
 
-## Vus d'orbite basse, 750 km : des nappes plates et un semis régulier, corrigés le même jour
+## Low orbit view, 750 km: flat sheets and regular seeding, corrected on the same day
 
-**Le défaut, en vol :** des nappes d'un blanc uniforme, sans texture, aux bords nets ; entre elles, un semis régulier de petits cumulus de même taille, partout.
+**The defect, in flight:** uniform white sheets, without texture, with clear edges; between them, a regular seeding of small cumulus of the same size, everywhere.
 
-**Les causes, par élimination,** à 750 km, sur deux lieux et trois soleils :
-- **Les nappes avaient l'eau d'un cœur de front,** 80 /km : τ ≈ 60 pour 1 km, où la réflectance sature. Avec un quart de cette eau, elles prennent une texture cellulaire.
-- **Une octave manquait entre 10 et 150 km :** l'érosion de 4 km plaçait seule les cumulus épars. La forme relue à 128 km les groupe en amas et en allées et effiloche les bords des nappes.
-- **Ni la carte au mip 0 ni la variance fine.** La même famille que le plastique vu de près : des nuages devenus physiquement denses montrent les lacunes du bruit. La couverture trop haute de la carte, elle, est reprise par la session du climat.
+**The causes, by elimination,** at 750 km, on two places and three suns:
+- **The layers had water from a front heart,** 80 /km: τ ≈ 60 for 1 km, where reflectance saturates. With a quarter of this water, they take on a cellular texture.
+- **An octave was missing between 10 and 150 km:** the erosion of 4 km placed only the scattered cumulus. The form reread at 128 km groups them in clusters and alleys and shreds the edges of the layers.
+- **Not the card with the mip 0 nor the fine variance.** The same family as plastic seen close up: clouds become physically dense show the shortcomings of the noise. The too high coverage of the map, it is taken up by the climate session.
 
-**Les corrections :** l'eau dans le nuage suit l'épaisseur que la carte porte, `0,25 + 0,75 e`, de 20 à 80 /km, convention partagée avec le climat ; l'octave de la forme à 128 km (`spec-nuages.md`).
+**Corrections:** water in the cloud follows the thickness that the map bears, `0,25 + 0,75 e`, from 20 to 80 /km, convention shared with climate; the octave of the form at 128 km (`spec-nuages.md`).
 
-**Le résultat :** des nappes texturées aux bords effilochés, des cumulus en amas et en allées, les fronts épais toujours blancs ; d'orbite, nuage épais à 0,674, contraste 8,1 au soleil oblique ; de près, des cumulus plus translucides et plus doux, plus proches d'avant la piste.
+**The result:** textured sheets with frayed edges, cumulus in clusters and alleys, thick fronts still white; orbit, thick cloud at 0,674, contrast 8,1 to the oblique sun; close up, more translucent and softer cumulus, closer to before the experiment.
 
-**Le coût, mesuré par paires :** +0,3 à +0,9 ms à 10 km, +0,4 à +0,5 à 1 km, +1,7 ms au sol sous la convection : des cumulus moins denses demandent plus de pas avant d'être opaques.
+**Cost, measured by pairs:** +0,3 to +0,9 ms to 10 km, +0,4 to +0,5 to 1 km, +1,7 ms to ground under convection: less dense cumulus requires more steps before being opaque.
 
-## Les limites
+## The limits
 
-- **Une octave manque entre 32 et 160 km :** entre la tuile du bruit de forme et deux texels de la carte météo. D'orbite, les champs partiels sont justes en moyenne mais flous, en taches ; le grain d'avant donnait l'illusion d'un détail. À voir avec la carte météo (`spec-climat.md`).
-- **Le dessous d'une nappe est plus clair qu'avant :** 0,45 en facteur de réflectance, ce que transmet une nappe d'épaisseur 10 à 20, contre 0,11 à 0,24. Il reste un peu chaud, R/B = 1,18 : la lumière du soleil à 2 km, sans balance des blancs.
-- **Le limbe** garde une bande un peu plus rouge qu'Apollo, R/B 0,67 contre 0,58 ; une brume deux fois plus claire n'y change rien.
-- **La diffusion multiple des nuages est un ajustement,** d'erreur 0,3 en log : les nuages minces au soleil bas sortent un peu trop clairs.
-- **Au soleil bas, le relief d'un cumulus vu de dessus est plus doux qu'avant :** sa source multiple prend une incidence moyenne. Piste : l'incidence locale, par le gradient de la densité, pour la face éclairée et la face à l'ombre.
-- **Un NaN,** sur 163 pixels de deux millions au sol en passe unique, que l'instrumentation fait disparaître : la lumière des nuages est bornée à 0 avant l'historique, qui l'étalait en blocs noirs.
-- **Le recouvrement maximal** suppose des nuages droits dans l'empreinte ; un cumulus incliné par le vent est un peu trop couvrant.
+- **One octave missing between 32 and 160 km:** between the tile of the noise shape and two texels of the weather map. From orbit, the partial fields are fair on average but blurred, in spots; the grain of front gave the illusion of a detail. To be seen with the weather map (`spec-climat.md`).
+- **The bottom of a layer is lighter than before:** 0,45 in reflectance factor, which transmits a layer thickness 10 to 20, against 0,11 to 0,24. It remains a little warm, R/B = 1,18: sunlight at 2 km, without white balance.
+- **The limb** keeps a band a little more red than Apollo, R/B 0,67 against 0,58; a mist twice as clear does not change it.
+- **The multiple scattering of the clouds is an adjustment,** of error 0,3 in log: thin clouds at low sun come out a little too clear.
+- **At low sun, the relief of a cumulus seen from above is softer than before:** its multiple source takes a medium incidence. experiment: the local bearing, by the density gradient, for the illuminated face and the shaded face.
+- **A NaN,** on 163 pixels of two million on the ground in single pass, which instrumentation makes disappear: the light of clouds is limited to 0 before the historical, which spread it in black blocks.
+- **Maximum cover** assumes straight clouds in the footprint; a cumulus inclined by the wind is a little too covering.
 
-## Les références
+## The references
 
-- **Hillaire 2020,** *A Scalable and Production Ready Sky and Atmosphere Rendering Technique* : la table de diffusion multiple isotrope.
-- **Van de Hulst 1980,** *Multiple Light Scattering* : les relations de similitude, `σs (1 − g)`.
-- **Bohren et Huffman 1983 :** la phase et l'extinction des gouttes, g ≈ 0,85.
-- **Sigg et Hadwiger 2005,** GPU Gems 2, chapitre 20 : la B-spline en lectures bilinéaires.
-- **Le recouvrement maximal des nuages,** des schémas de rayonnement des modèles de climat (Geleyn et Hollingsworth 1979).
-- **Apollo 17, AS17-148-22727, « Blue Marble »,** NASA, 1972.
+- **Hillaire 2020,** *A Scalable and Production Ready Sky and Atmosphere Rendering Technique*: the table of isotropic multiple scattering.
+- **Van de Hulst 1980,** *Multiple Light Scattering*: the similarity relationships, `σs (1 − g)`.
+- **Bohren and Huffman 1983:** the phase and extinction of the drops, g ≈ 0,85.
+- **Sigg and Hadwiger 2005,** GPU Gems 2, chapter 20: the B-spline in bilinear readings.
+- **Maximum cloud cover,** from radiation patterns of climate models (Geleyn and Hollingsworth 1979).
+- **Apollo 17, AS17-148-22727, "Blue Marble",** NASA, 1972.

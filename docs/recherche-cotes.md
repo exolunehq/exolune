@@ -1,384 +1,384 @@
-# Recherche : les côtes, plages, falaises et rivages rocheux
+# Search: coasts, beaches, cliffs and rocky shores
 
-Statut : recherche du 2026-10-24. **Étapes 1 et 2 faites le 2026-10-25 sur la branche `plages`, tag `piste/plages`, sur l'ancienne mer. L'étape 1 est portée sur la mer FFT le 2026-10-31, sa largeur plafonnée ; l'étape 2 reste à porter.** Les mesures viennent d'un portage CPU de complexplanet, `tools/cotes/`. Le plan d'origine de l'étape 1 est dans `log/recherche-cotes-historique.md`.
+Status: search for 2026-10-24. **Steps 1 and 2 make the 2026-10-25 on the branch `plages`, tag `piste/plages`, on the old sea. The 1 stage is carried on the sea FFT the 2026-10-31, its width capped; the 2 stage remains to be carried.** The measurements come from a port CPU from complexplanet, `tools/cotes/`. The original plan of the 1 stage is in `log/recherche-cotes-historique.md`.
 
-## 1. Conclusion et plan
+## 1. Conclusion and plan
 
-**La conclusion**
+**The conclusion**
 
-- **complexplanet n'a aucune forme côtière.** La côte est la courbe de niveau 0 d'une plaine douce qui s'enfonce sous la mer. 90 % des rivages sont des plaines, de pente médiane 6 % sur 20 m et 4 % sur 200 m. Rien n'y marque l'érosion, à aucune échelle.
-- **Notre plage est dix fois trop large.** Sa bande de 5 à 25 m d'altitude, centrée sur 15 m, donne une largeur médiane de 540 m, et plus de 1,9 km pour un rivage sur dix. Une vraie plage fait 20 à 80 m.
-- **Les bandes d'une côte réelle sont des hauteurs d'eau :** marée, jet de rive, berme. Une bande d'altitude est donc le bon outil pour le sable, le sable mouillé et les ceintures des roches. Sa largeur sort de la pente, comme dans la nature : largeur = hauteur / pente.
-- **Il suffit de la mettre à la bonne hauteur.** De 0 à 2,5 m environ, la plage mesure 40 à 70 m de large en médiane sur nos rivages.
-- **Une falaise demande la géométrie.** Sa pente vient de la roche, pas du terrain : il faut la distance au rivage. Estimée par l'altitude sur la pente d'un complexplanet privé de ses octaves sous 200 m, elle tombe à un facteur 2 près pour 82 à 86 % des points entre 25 et 100 m du rivage.
-- **Personne ne le fait en pure fonction de la position.** Outerra et Flight Simulator calculent un champ de distance par tuile ; Flight Simulator admet le popping. Gaea, World Machine et World Creator remappent l'altitude près de l'eau. La revue de Galin 2019 classe l'érosion côtière parmi les phénomènes presque jamais traités en synthèse d'images.
+- **complexplanet has no coastal shape.** The coast is the 0 contour line of a smooth plain that sinks under the sea. 90 % of the shores are plains, with median slope 6 % on 20 m and 4 % on 200 m. Nothing marks erosion, at any scale.
+- **Our range is ten times too wide.** Its band of 5 to 25 m of altitude, centered on 15 m, gives a median width of 540 m, and more than 1,9 km for one shore in ten. A real range makes 20 to 80 m.
+- **The strips of a real coast are water heights:** tide, shore jet, berm. An altitude band is therefore the right tool for sand, wet sand and rock belts. Its width comes out of the slope, as in nature: width = height / slope.
+- **Just put it at the right height.** From 0 to 2,5 m approximately, the beach measures 40 to 70 m wide in median on our shores.
+- **A cliff requires geometry.** Its slope comes from the rock, not the terrain: it needs the distance to the shore. Estimated by the elevation on the slope of a complexplanet deprived of its octaves under 200 m, it falls to a factor 2 close for 82 to 86 % of points between 25 and 100 m from the shore.
+- **No one does it just because of position.** Outerra and Flight Simulator calculate a distance field per tile; Flight Simulator supports popping. Gaea, World Machine and World Creator remap the altitude near the water. The review of Galin 2019 classifies coastal erosion among the phenomena almost never treated in image synthesis.
 
-**Le plan**
+**The plan**
 
-| Étape | Nature | Contenu | Mesure de réussite |
+| Stage | Nature | Contents | Measure of success |
 |---|---|---|---|
-| 1 | Rendu seul, **portée sur la mer FFT** | La plage de 0 à 2,5 m ± 1 m, au plus 120 m de large, sur les pentes de moins de 0,18 | Largeur médiane 40 à 70 m, contre 540 m ; courbe `beach` plate au banc de descente |
-| 2 | Rendu seul, **fait sur la branche `plages`** | Les bandes de l'eau : ligne d'eau nette, sable mouillé, laisse de mer, ceintures des roches | Sable mouillé de 10 à 45 m ; ligne d'eau nette au sol |
-| 3 | Rendu seul | Le type de côte : sable, galets, plateforme rocheuse, vase ; un champ partagé avec la mer | Parts de côte : environ 31 % sable, 14 % vase, le reste rocheux |
-| 4 | Surcouche géométrie, remplacement | Le profil d'érosion : plateforme et falaise, `min(h, P(d))` | Hauteurs de falaise contre Young et Carilli : moyenne 12 m, 90 % sous 30 m |
-| 5 | Surcouche géométrie, remplacement | Le dépôt et le plan : berme, dune, caps et baies, aiguilles | Largeurs de plateforme 80 à 500 m ; baies en arc |
-| 6 | Surcouche géométrie, ajout de détail sous 13,5 m | Blocs au pied des falaises, encoches, croissants de plage | Attend la voie géométrie de `geometrie.md` |
+| 1 | Made alone, **carried on the sea FFT** | The range of 0 to 2,5 m ± 1 m, at most 120 m wide, on slopes less than 0,18 | Median width 40 to 70 m, versus 540 m; curve `beach` flat to benchmark descent |
+| 2 | Made alone, **made on the branch `plages`** | Water bands: clean waterline, wet sand, sea leash, rock belts | Wet sand from 10 to 45 m; net waterline to ground |
+| 3 | Rendu seul | The type of coast: sand, pebbles, rocky platform, mud; a field shared with the sea | Coastal parts: approximately 31 % sand, 14 % mud, the rest rocky |
+| 4 | Overlay geometry, replacement | The erosion profile: platform and cliff, `min(h, P(d))`  | Cliff heights against Young and Carilli: average 12 m, 90 % under 30 m |
+| 5 | Overlay geometry, replacement | The deposit and the plan: berm, dune, caps and bays, needles | Platform widths 80 to 500 m; arc bays |
+| 6 | Overlay geometry, detail added under 13,5 m | Blocks at the foot of the cliffs, notches, beach croissant | Waiting for the geometry path of `geometrie.md`  |
 
-**Les étapes 1 et 2, faites le 2026-10-25 sur la branche `plages`, commit `c87dcd9`, tag `piste/plages`**
-- **Une seule échelle, l'exposition :** toutes les bandes sont des hauteurs d'eau multipliées par `CoastExposure`, de moyenne 1 et d'écart 0,41, tirée du bruit local. C'est le champ à partager avec la mer.
-- **Les bandes,** dans `GroundMaterials` :
-  - la plage jusqu'à 2,5 m, adoucie de ±1 m, sur les pentes de moins de 0,12 à 0,22, au-dessus de 0 °C ;
-  - le sol mouillé jusqu'à 1 m, deux fois plus sombre, et sa brillance, `WaterSheen` dans `PixelShader.hlsl` ;
-  - la laisse de mer, de 1,06 à 1,16 m, cassée en taches par un bruit de 16 m à 50 cm ;
-  - sur la roche, les algues jusqu'à 0,4 m, le lichen noir de 0,8 à 3 m.
-- **La règle universelle :** chaque bande est une part de la terre du pixel, `ShoreBelow`. La ligne d'eau est l'étalement des hauteurs, cachées et propres au pixel, `ShoreSpread` : nette de près, moyenne de loin.
-- **Mesures :**
-  - largeur de plage sur 968 rivages : médiane 39 m, 53 m là où il y a une plage, contre 502 m ; p90 209 m contre 2 196 m ; 18 % des rivages sans plage, trop raides ;
-  - sol mouillé : médiane 14 m, p90 51 m ;
-  - banc de descente, côte de 0,478° N 116,513° E : part de plage plate à 0,1 point près de 1 500 à 260 km, à 0,2 point de 800 à 60 km, à 1,4 point de 60 à 2 km.
-- **Ce qui change à l'œil :** les terres de 3 à 25 m reprennent les couleurs du climat ; une plage ne monte plus sur une falaise.
-- **Règles, sur la branche seulement :** la côte est une limite comme les autres ; un bruit élargit une limite de ce qu'il la déplace, pas plus. Elles vont dans `principes.md` avec l'intégration.
-- **Le détail :** l'entrée du 2026-10-25 de `journal-planete.md`.
+**Steps 1 and 2, do the 2026-10-25 on the branch `plages`, commit `c87dcd9`, tag `piste/plages`**
+- **One scale, exposure:** all bands are water heights multiplied by `CoastExposure`, average 1 and variance 0,41, taken from the local noise. It is the field to share with the sea.
+- **The tapes,** in `GroundMaterials`:
+  - range up to 2,5 m, softened by ±1 m, on slopes less than 0,12 to 0,22, above 0 °C;
+  - wet soil up to 1 m, twice darker, and its brightness, `WaterSheen` in `PixelShader.hlsl`;
+  - the sea leash, from 1,06 to 1,16 m, broken into spots by a noise from 16 m to 50 cm;
+  - on rock, algae up to 0,4 m, black lichen from 0,8 to 3 m.
+- **The universal rule:** each band is a part of the pixel ground, `ShoreBelow`. The waterline is the spread of heights, hidden and pixel-clean, `ShoreSpread`: clear from near, average from far.
+- **Measures:**
+  - width of beach on 968 shores: median 39 m, 53 m where there is a beach, against 502 m; p90 209 m against 2 196 m; 18 % of shores without beach, too steep;
+  - wet ground: median 14 m, p90 51 m;
+  - benchmark of descent, coast of 0,478° N 116,513° E: part of flat beach at 0,1 point near 1 500 at 260 km, at 0,2 point of 800 at 60 km, at 1,4 point of 60 at 2 km.
+- **What changes to the eye:** the lands of 3 to 25 m take over the colors of the climate; a beach no longer rises on a cliff.
+- **Rules, on the branch only:** The coast is a limit like any other; a noise expands a limit by what it moves it, not more. They go into `principes.md` with integration.
+- **Detail:** the input of the 2026-10-25 of `journal-planete.md`.
 
-**L'étape 1 sur la mer FFT, le 2026-10-31**
-- **Portée de `c87dcd9`,** dans `GroundMaterials` : `ShoreSpread`, `LandShare`, `ShoreBelow`, `CoastExposure` et la bande de plage. Sans l'étape 2.
-- **La largeur plafonnée :** le haut de la bande vaut `min(2,5 m, 120 m × pente)`, `BEACH.z`. Sans plafond, une bande de 2,5 m faisait 1,25 km sur les plaines côtières de pente 0,002, que le relief a (`RELIEF_COAST_QUIET`).
-- **La pente du plafond, sur 60 m :** une normale de rivage lue sur la surface du maillage à `SHORE_BASELINE` de part et d'autre (`VertexShader.hlsl`). La normale des matériaux, à 1 m, suivait les bosses : au portage, 73 % des terres d'une plaine côtière en plage, 3 % avec une pente prise sur 20 m. Au loin, la grille fine porte la normale de rivage dès que ses mailles couvrent 60 m (`PixelShader.hlsl`).
-- **L'exposition au large,** `CoastFetch` : l'eau ouverte à 3, 10 et 30 km vers le bas de la pente, sur la carte de la planète, une part continue du sol de 10 m à 0 ; une côte fermée garde `BEACH.w`, 40 % de son exposition.
-- **Vérifié en rendu,** avant et après : motus verts frangés de sable ; cordon de 20 km à 150 m, plage de 50 à 90 m côté mer ; plaine côtière aux couleurs du climat ; côte raide sans plage.
-- **Les limites :**
-  - une mare de quelques centaines de mètres garde un anneau de sable, la carte à 3 km ne la voit pas abritée ;
-  - au-delà de la face du maillage, sans grille fine, un cordon étroit perd sa plage ;
-  - l'exposition reste le bruit local, pas encore la houle de la mer FFT.
+**The step 1 on the sea FFT, the 2026-10-31**
+- **Scope of `c87dcd9`,** in `GroundMaterials`: `ShoreSpread`, `LandShare`, `ShoreBelow`, `CoastExposure` and the range band. Without the step 2.
+- **Cap width:** the top of the band is worth `min(2,5 m, 120 m × pente)`, `BEACH.z`. Without ceiling, a band of 2,5 m made 1,25 km on the coastal plains of slope 0,002, which relief has (`RELIEF_COAST_QUIET`).
+- **The slope of the ceiling, on 60 m:** a shore normal read on the surface of the mesh to `SHORE_BASELINE` on both sides (`VertexShader.hlsl`). The normal of materials, at 1 m, followed the bumps: at port, 73 % of the land of a coastal plain in beach, 3 % with a slope taken on 20 m. In the distance, the thin grid carries the shore normal as soon as its grid cells covers 60 m (`PixelShader.hlsl`).
+- **Offshore exposure,** `CoastFetch`: open water at 3, 10 and 30 km down the slope, on the planet map, a continuous portion of the ground from 10 m to 0; a closed coast keeps `BEACH.w`, 40 % of its exposure.
+- **Verified in rendering,** before and after: green motus fringed with sand; cordon of 20 km to 150 m, beach of 50 to 90 m seaside; coastal plain with the colors of the climate; steep coast without beach.
+- **Limitations:**
+  - a pond of a few hundred meters keeps a ring of sand, the map at 3 km does not see it sheltered;
+  - beyond the face of the mesh, without fine grid, a narrow cord loses its range;
+  - the exposure remains the local noise, not yet the swell of the sea FFT.
 
-**À porter sur la mer FFT**
-- **Faites sur l'ancienne mer :** la branche part du `jalon/18-lumiere`, avant la mer animée et la mer FFT. Un essai de fusion avec la mer animée, tag `piste/essai-fusion-mer-plages`, donnait au sable mouillé le reflet de la mer au lieu de `WaterSheen` ; il est resté avec l'ancienne mer (`log/recherche-mer-historique.md`).
-- **Ce qui reste à faire pour intégrer l'étape 2 :**
-  - la part de mer, `LandShare` et `ShoreSpread`, à la place du fondu fixe de `PixelShader.hlsl`, en accord avec la surface de la mer FFT ;
-  - la brillance du sable mouillé par la réflexion de l'eau de `Sea.hlsli`, que la mer FFT prévoit déjà pour le film d'un rivage mouillé ;
-  - `CoastExposure` partagé avec le vent et la houle de la mer.
-- **Restait sur la branche :** de près, le sable mouillé plus clair qu'une mer sans reflet, ce que la mer FFT peut régler ; la part de mer de loin, qui varie de 6 points sur 2 km ; le type de côte, étape 3.
+**To wear on the sea FFT**
+- **Make on the old sea:** the branch leaves the `jalon/18-lumiere`, before the animated sea and the sea FFT. A fusion test with the animated sea, tag `piste/essai-fusion-mer-plages`, gave the wet sand the reflection of the sea instead of `WaterSheen`; it remained with the old sea (`log/recherche-mer-historique.md`).
+- **What remains to be done to integrate the 2 step:**
+  - the sea share, `LandShare` and `ShoreSpread`, instead of the fixed fade of `PixelShader.hlsl`, in accordance with the sea surface FFT;
+  - the brightness of the wet sand by the reflection of the water of `Sea.hlsli`, which the sea FFT already foresees for the film of a wet shore;
+  - `CoastExposure` shared with the wind and the swell of the sea.
+- **Remained on the branch:** close, wet sand clearer than a sea without reflection, what the sea FFT can set; the part of sea from far, which varies from 6 points on 2 km; the type of coast, step 3.
 
-**Les étapes 4 et 5 sont des remplacements :** une spec dédiée, une branche, un tag `piste/cotes-erosion`, un réglage `COAST_EROSION` qui les ramène à 0.
+**The 4 and 5 steps are replacements:** a dedicated spec, a branch, a `piste/cotes-erosion` tag, a `COAST_EROSION` setting that brings them back to 0.
 
-## 2. Audit : complexplanet au bord de la mer
+## 2. Audit: complexplanet by the sea
 
-**Méthode**
-- **Un portage CPU** de `ComplexPlanet.hlsli` et `LibNoise.hlsli` en numpy, en double précision, avec le même filtrage des octaves et le même arrondi des crêtes.
-- **Validé contre le moteur :** quatre hauteurs de sol relevées dans `tools/tests/2026-10-24-detail-roche.txt` sont retrouvées à 0,2 m près, 1,8 m sur un sommet de 4 354 m.
-- **279 points de rivage,** trouvés sur 1 500 arcs tirés au hasard, de 150 km chacun. Un arc coupe la côte en proportion de sa longueur : chaque kilomètre de côte pèse autant.
-- **Détail complet,** celui que le maillage porte près du sol. Les scripts sont dans `tools/cotes/` : `cp.py` et `t0.py` à `t7.py` ; `t8.py` et `t9.py`, sur la branche `plages`, mesurent les bandes et les parts de sol.
+**Method**
+- **A port CPU** of `ComplexPlanet.hlsli` and `LibNoise.hlsli` in numpy, in double precision precision, with the same filtering of octaves and the same rounding of peaks.
+- **Validated against engine:** four ground heights measured in `tools/tests/2026-10-24-detail-roche.txt` are found at 0,2 m near, 1,8 m on a summit of 4 354 m.
+- **279 shore points,** found on 1 500 randomly drawn arcs, of 150 km each. An arc cuts the coast in proportion to its length: each kilometre of coast weighs as much.
+- **Full detail,** the one the mesh wears near the ground. The scripts are in `tools/cotes/`: `cp.py` and `t0.py` to `t7.py`; `t8.py` and `t9.py`, on the `plages` branch, measure the strips and the shares of the ground.
 
-**Les bruits qui touchent la côte, et leurs échelles**
+**The noise functions that touch the coast, and their scales**
 
-| Bruit | Longueurs d'onde | Amplitude au rivage | Rôle à la côte |
+| noise | Wavelengths of light | Amplitude at shore | Role at the coast |
 |---|---|---|---|
-| Continents, Perlin 14 octaves | 6 378 km à 214 m | pente 1,4 % sur 20 m, 0,9 % sur 2 km | pose la côte, en pente douce |
-| Turbulences des continents | plafonnées à 6 km | quelques mètres de déplacement de côte | sinuosité de grande échelle |
-| Plaines, deux Billow de 8 octaves | 5,8 km à 13,5 m | ±32 m autour de +64 m | **dessinent la côte fine** : pente 4,7 % sur 20 m |
-| Rivières, RidgedMulti | 340 et 150 km | −26 m médian au rivage | vallées larges, rias de 100 km |
-| Collines | 3,8 km à 81 m | jusqu'à 2 km | 9 % des rivages |
-| Montagnes | 4,6 km à 22 m | jusqu'à 8 km | aucun rivage mesuré |
-| Badlands, falaises en terrasses | 7,6 km à 143 m | des centaines de mètres | 1 % des rivages |
+| Continents, Perlin 14 octaves | 6 378 km to 214 m | slope 1,4 % on 20 m, 0,9 % on 2 km | lays the coast, gently sloping |
+| Turbulence of the continents | capped at 6 km | a few meters of coastal displacement | large-scale sinuosity |
+| Plains, two octaves Billow of 8 | 5,8 km to 13,5 m | ±32 m around +64 m | **draw the thin ridge**: slope 4,7 % on 20 m |
+| Rivers, RidgedMulti | 340 and 150 km | −26 m median to shore | Wide valleys, rivers of 100 km |
+| Collines | 3,8 km to 81 m | up to 2 km | 9 % of shoreline |
+| Mountains | 4,6 km to 22 m | up to 8 km | no coast measured |
+| Badlands, cliffs and terraces | 7,6 km to 143 m | hundreds of meters | 1 % of shoreline |
 
-**La courbe des continents autour de `SEA_LEVEL`**
-- **Le rivage tombe dans un seul morceau de cubique,** de l'entrée 0 à 0,0625 de la courbe : de −768 à +256 m. `continentDef` y vaut −0,016 en médiane, de −0,13 à +0,04.
-- **Le rivage n'est pas à `continentDef` = 0 :** les plaines ajoutent +42 m en médiane, la côte est donc où le continent descend à −42 m.
-- **La courbe a une cassure, mais pas à la côte.** libnoise interpole en paramètre uniforme sur des points d'écarts inégaux : la pente saute de 1,5 à 24 à l'entrée 0. Cette cassure est à `continentDef` = −0,375, soit −768 m, au bord du plateau.
-- **Un replat de basses terres suit la côte :** de l'entrée 0,0625 à 0,125, la courbe monte quatre fois moins vite. C'est une plaine côtière de dizaines de kilomètres.
+**The curve of the continents around `SEA_LEVEL`**
+- **The shore falls into a single piece of cubic,** from the input 0 to 0,0625 of the curve: from −768 to +256 m. `continentDef` is equal to −0,016 in median, from −0,13 to +0,04.
+- **The shoreline is not at `continentDef` = 0:** the plains add +42 m in median, the coast is therefore where the continent descends to −42 m.
+- **The curve has a break, but not at the edge.** libnoise interpolates in uniform parameter on points of unequal deviation: the slope jumps from 1,5 to 24 at the 0 input. This break is at `continentDef` = −0,375, or −768 m, at the edge of the plateau.
+- **A lowland plate follows the coast:** from the entrance 0,0625 to 0,125, the curve rises four times less quickly. It is a coastal plain of tens of kilometers.
 
-**Le plateau continental, `SHELF_LEVEL` = −0,375**
-- **Le « plateau » de complexplanet est une rampe** du rivage à −700 m. Il atteint −130 m à 20 km du rivage en médiane, et −700 m à 74 km.
-- **Puis le talus tombe d'un coup,** de −700 à −2 000 m en deux à trois kilomètres : c'est la marche du sélecteur, sur une transition de 0,03125.
-- **Sa terrasse est celle des abysses,** de −0,75 à −0,375 de `continentDef`, et ses fosses viennent d'un RidgedMulti de 16 octaves, jusqu'à 10 m.
-- **Au large du rivage, la pente est vraisemblable :** −5,7 m à 200 m et −12,4 m à 1 km en médiane. C'est un profil de Dean de coefficient A ≈ 0,12 à 0,17, dans la plage mesurée sur Terre, 0,08 à 0,40.
+**The continental shelf, `SHELF_LEVEL` = −0,375**
+- **The complexplanet “plateau” is a ramp** from the shore at −700 m. It reaches −130 m to 20 km from the shore in median, and −700 m to 74 km.
+- **Then the slope drops suddenly,** from −Z700 to −2 000 m in two to three kilometers: this is the walk of the selector, on a transition of 0,03125.
+- **His terrace is that of the abysses,** from −0,75 to −0,375 of `continentDef`, and his pits come from a RidgedMulti of 16 octaves, up to 10 m.
+- **Offshore, the slope is likely to be:** −5,7 m to 200 m and −12,4 m to 1 km in median. This is a Dean profile of coefficient A ≈ 0,12 to 0,17, in the range measured on Earth, 0,08 to 0,40.
 
-**Aucune forme côtière du mètre à la centaine de mètres**
-- **Aucun bruit ne dépend de la distance au rivage,** ni de l'altitude près de 0. Le seul sélecteur près du niveau de la mer est celui des rivières, qui creuse à demi-profondeur au rivage, à l'échelle de 100 km.
-- **La côte fine est une plaine de Billow noyée.** Un Billow a des creux en V et des bosses rondes : la mer remplit les creux. Nos caps sont des lobes arrondis, nos criques des entailles pointues. Une côte érodée fait l'inverse : baies en arcs lisses, caps anguleux.
+**No coastal form from meter to hundred meters**
+- **No noise depends on distance to shore,** or elevation near 0. The only selector near sea level is that of rivers, which digs half-depth to the shore, at the scale of 100 km.
+- **The thin coast is a drowned Billow plain.** A Billow has V-shaped hollows and round bumps: the sea fills the hollows. Our caps are rounded lobes, our creeks are sharp notches. An eroded coast does the opposite: smoothly curved bays, angled capes.
 
-**La pente du terrain au rivage**
+**The slope of the land to the shore**
 
-| Base de mesure | p10 | Médiane | p90 | Part au-delà de 0,65, la roche |
+| Base of measurement | p10 | Median | p90 | Part beyond 0,65, the rock |
 |---|---|---|---|---|
 | 2 m | 0,033 | 0,076 | 0,25 | 4 % |
 | 20 m | 0,030 | 0,065 | 0,22 | 3 % |
 | 200 m | 0,017 | 0,041 | 0,13 | 2 % |
 | 2 km | 0,006 | 0,017 | 0,06 | 0 % |
 
-- **Par type de terrain, sur 20 m :** plaines 0,06, 252 points ; collines 0,42, 24 points ; badlands 2,0, 3 points.
-- **La pente des plaines vient des Billow :** 0,047 sur 20 m, contre 0,014 pour les continents et 0,002 pour les rivières.
-- **De 0 à 3 m d'altitude, la pente moyenne** est de 0,045 en médiane : celle d'une vraie face de plage, 0,05 à 0,11. Mais elle continue des kilomètres sans berme, sans dune, sans falaise.
+- **By type of terrain, on 20 m:** plains 0,06, 252 points; hills 0,42, 24 points; badlands 2,0, 3 points.
+- **The slope of the plains comes from the Billow:** 0,047 on 20 m, against 0,014 for continents and 0,002 for rivers.
+- **From 0 to 3 m of altitude, the average slope** is 0,045 in median: that of a real beach face, 0,05 to 0,11. But it continues for miles without berm, without dune, without cliff.
 
-**Le profil vers l'intérieur, le long de la plus grande pente**
+**The profile to the interior, along the greatest slope**
 
-| Distance du rivage | 10 m | 50 m | 100 m | 200 m | 500 m | 1 km |
+| Distance from shore | 10 m | 50 m | 100 m | 200 m | 500 m | 1 km |
 |---|---|---|---|---|---|---|
-| Altitude médiane | 0,6 m | 2,4 m | 4,0 m | 6,1 m | 9,4 m | 11,9 m |
+| Median altitude | 0,6 m | 2,4 m | 4,0 m | 6,1 m | 9,4 m | 11,9 m |
 | Altitude p90 | 2,2 m | 6,9 m | 11,5 m | 19 m | 37 m | 49 m |
 
-- **Le relief de l'arrière-côte est presque juste.** À 100 m du rivage, 45 % de nos points dépassent 4,4 m, moyenne 8,1 m. Sur Terre : 52 % et 12 m, et au-delà de 4,4 m une falaise est plus probable qu'une plage (Young et Carilli 2019).
-- **Ce qui manque, c'est la forme abrupte.** Seuls 6,5 % des rivages montent de 20 m dans les 100 premiers mètres ; 7 % ont une pente de plus de 0,65 dans les 200 premiers mètres.
-- **La plaine côtière est vaste :** 50 m d'altitude à 6 km du rivage en médiane, 100 m à 15 km.
+- **The relief of the back-coast is almost just.** At 100 m from the shore, 45 % of our points exceed 4,4 m, average 8,1 m. On Earth: 52 % and 12 m, and beyond 4,4 m a cliff is more likely than a beach (Young and Carilli 2019).
+- **What is missing is the abrupt form.** Only 6,5 % of the banks rise by 20 m in the 100 first meters; 7 % have a slope of more than 0,65 in the 200 first meters.
+- **The coastal plain is vast:** 50 m of altitude to 6 km of the shore in median, 100 m to 15 km.
 
-**La largeur de notre plage, en pratique**
+**The width of our beach, in practice**
 
-| Haut de la bande | p10 | p25 | Médiane | p75 | p90 |
+| Top of the Band | p10 | p25 | Median | p75 | p90 |
 |---|---|---|---|---|---|
-| 15 m, la bande actuelle | 98 m | 286 m | 540 m | 1 090 m | 1 890 m |
+| 15 m, the current band | 98 m | 286 m | 540 m | 1 090 m | 1 890 m |
 | 4 m | 23 m | 50 m | 92 m | 188 m | 363 m |
 | 3 m | 18 m | 34 m | 66 m | 124 m | 286 m |
 | 2 m | 10 m | 22 m | 40 m | 74 m | 158 m |
 | 1 m | 6 m | 10 m | 18 m | 28 m | 44 m |
 
-- **La bande actuelle :** de 5 à 25 m, centre 15 m, déplacée par `60 * local.y`, un écart type de 8,8 m. 24 % des rivages n'atteignent pas 15 m dans les 3 premiers kilomètres.
-- **10 % des rivages sont plus raides que toute face de plage,** plus de 0,18 entre 0 et 3 m. 10 % sont plus plats que 0,01, des estrans.
+- **The current band:** from 5 to 25 m, center 15 m, displaced by `60 * local.y`, a standard deviation of 8,8 m. 24 % of shores do not reach 15 m in the 3 first kilometers.
+- **10 % of shores are steeper than any beach face,** more than 0,18 between 0 and 3 m. 10 % are flatter than 0,01, strange.
 
-**La ligne d'eau, au rendu**
-- **La mer couvre la part du pixel sous 0 :** `1 - SpreadStep(-1, 1, elevation, elevationSpread)` dans `PixelShader.hlsl`.
-- **Près du sol, l'étalement tombe à 0,** mais le fondu de −1 à +1 m reste. À la pente médiane, il fait 30 à 45 m de rivage flou. La terre jusqu'à 1 m prend la teinte de la mer, et le fond jusqu'à −1 m se voit sur la mer plate.
-- **Le fond peu profond ne se voit pas :** la géométrie est plafonnée à `max(e, 0)`, et la couleur de la mer ne dépend que de `-elevation / 3000`.
+**The waterline, at the rendering**
+- **The sea covers the pixel part under 0:** `1 - SpreadStep(-1, 1, elevation, elevationSpread)` in `PixelShader.hlsl`.
+- **Near the ground, the spread drops to 0,** but the fading from −1 to +1 m remains. At the middle slope, it makes 30 to 45 m of blurred shoreline. The land up to 1 m takes the shade of the sea, and the bottom up to −1 m is seen on the flat sea.
+- **The shallow bottom is not visible:** the geometry is capped at `max(e, 0)`, and the color of the sea depends only on `-elevation / 3000`.
 
-## 3. Les côtes réelles : types, tailles, ce qui les décide
+## 3. Real ribs: types, sizes, what decides them
 
-**Les parts du littoral mondial, qui se recouvrent**
-- **Sableux, graviers compris :** 31 % du littoral libre de glace, 1,11 million de km mesurés (Luijendijk 2018). Afrique 66 %, Europe 22 %.
-- **Probablement à falaise :** environ 52 % (Young et Carilli 2019). L'ancienne estimation de 80 % (Emery et Kuhn 1982) est trop haute. Europe 47 %, Californie 67 à 72 %, Malte 87 %.
-- **Vaseux :** 14 % du littoral libre de glace, dont 60 % entre 25° N et 25° S. Les mangroves couvrent 17 % du trait de côte mondial.
-- **Les parts se recouvrent :** une plage au pied d'une falaise compte dans les deux.
-- **Par latitude :** les falaises culminent à 45 à 50°, les plages à 25 à 30° ; sous les tropiques humides, moins de 20 % de sable.
+**The overlapping shares of the world’s coastline**
+- **Sandy, including gravel:** 31 % of ice-free coastline, 1,11 million km measured (Luijendijk 2018). Africa 66 %, Europe 22 %.
+- **Probably cliff:** about 52 % (Young and Carilli 2019). The old estimate of 80 % (Emery and Kuhn 1982) is too high. Europe 47 %, California 67 to 72 %, Malta 87 %.
+- **Vaseux:** 14 % of ice-free coastline, of which 60 % between 25° N and 25° S. Mangroves cover 17 % of the world's coastline.
+- **The shares overlap:** a beach at the foot of a cliff counts in both.
+- **By latitude:** cliffs culminate at 45 to 50°, beaches at 25 to 30°; in the humid tropics, less than 20 % sand.
 
-**Les plages**
-- **Largeur émergée, du rivage au pied de dune :** aucune base mondiale. Narrabeen, 40 à 80 m. Îles de l'Égée : 59 % des plages font moins de 20 m au plus large.
-- **Longueur :** 1,37 km en moyenne en Australie, 0,8 km pour les plages réfléchissantes, 15 km pour les dissipatives. Une plage de poche fait moins de 200 m de long.
-- **Pente de la face, tan β :** 0,01 à 0,18 ; médianes régionales 0,055 à 0,08 sur 5 207 plages australiennes. Plus le grain est fin et la houle forte, plus elle est plate.
-  - sable de 0,2 mm : 1/50 à 1/100 ;
-  - sable de 0,5 mm : 1/20 à 1/40 ;
-  - graviers de 5 mm : 1/8 à 1/15 ; bermes de galets, 0,1 à 0,25.
-- **Dissipative ou réfléchissante :** paramètre de Dean Ω = Hs / (w T). Sous 1, réfléchissante, raide, sans zone de surf ; au-dessus de 6, dissipative, plate, zone de surf jusqu'à 500 m.
-- **Berme :** 2 à 3,5 m au-dessus du niveau moyen ; c'est le niveau d'eau plus le jet de rive.
-- **Jet de rive, R2 :** environ 1 m. Sa largeur au sol vaut R2 / tan β : 45 m sur une plage dissipative, 15 m intermédiaire, 8 m réfléchissante. Mesuré : 13 à 32 m.
-- **Profil sous l'eau :** h = A x^(2/3), A de 0,08 à 0,40. Pour A = 0,1, 10 m de fond à 1 km. Profondeur de fermeture : 13 m en moyenne mondiale. Pente médiane mondiale jusque-là : 0,007.
+**The beaches of**
+- **Emergent width, from shore to dune foot:** no global base. Narrabeen, 40 to 80 m. Aegean Islands: 59 % of beaches are less than 20 m at the widest.
+- **Length:** 1,37 km average in Australia, 0,8 km for reflective beaches, 15 km for dissipative beaches. A pocket beach is less than 200 m long.
+- **Face slope, tan β:** 0,01 to 0,18; regional medians 0,055 to 0,08 on 5 207 Australian beaches. The finer the grain and the stronger the swell, the flatter it is.
+  - sand from 0,2 mm: 1/50 to 1/100;
+  - sand from 0,5 mm: 1/20 to 1/40;
+  - Gravel of 5 mm: 1/8 to 1/15; pebble berms, 0,1 to 0,25.
+- **Dissipative or reflective:** Dean parameter Ω = Hs / (w T). Under 1, reflective, steep, no surf zone; above 6, dissipative, flat, surf zone up to 500 m.
+- **Berm:** 2 to 3,5 m above the average level; this is the water level plus the shore jet.
+- **Shore jet, R2:** approx. 1 m. Its width at the ground is R2 / tan β: 45 m on a dissipative range, 15 m intermediate, 8 m reflective. Measured: 13 to 32 m.
+- **Underwater profile:** h = A x^(2/3), A from 0,08 to 0,40. For A = 0,1, 10 m of depth to 1 km. Closing depth: 13 m in global average. Global median slope so far: 0,007.
 
-**Les dunes**
-- **Avant-dune :** moins de 1 m à 10 ou 20 m de haut, jusqu'à 35 m. Narrabeen : 3 à 9 m.
-- **Champs de dunes :** de centaines de mètres à quelques kilomètres vers l'intérieur.
+**The dunes**
+- **Avant-dune:** less than 1 m to 10 or 20 m high, up to 35 m. Narrabeen: 3 to 9 m.
+- **Dune fields:** from hundreds of meters to a few kilometers inland.
 
-**Les falaises**
-- **Hauteur :** l'arrière-côte à 100 m du rivage fait 12 m en moyenne, écart type 15 m ; 90 % des régions sont sous 30 m ; plus de 500 m au Yémen et en Colombie-Britannique.
-- **Exemples :** Algarve, 10 à 120 m ; plateau du Caux en Normandie, 100 à 180 m ; aiguilles des Douze Apôtres, 45 m.
-- **Trois formes, selon Sunamura :**
-  - **type A :** une plateforme en pente douce, de 1 à 7,5°, du pied de falaise jusque sous la basse mer ;
-  - **type B :** une plateforme presque horizontale, de 0,2 à 1,3°, finie au large par une petite falaise ; 80 à 270 m de large en Nouvelle-Zélande ;
-  - **plongeante :** pas de plateforme, la falaise entre dans l'eau.
-- **Encoche :** de quelques centimètres à quelques mètres de creux. Sa hauteur vaut à peu près le marnage.
-- **Recul, médianes mondiales :** roche dure, 2,9 cm par an ; roche moyenne, 10 cm ; roche tendre, craie ou grès tendre, 23 cm. Craie normande : 0,1 à 0,5 m par an. Argiles glaciaires de Holderness : 0,8 à 2,1 m par an.
+**The cliffs**
+- **Height:** the back coast at 100 m from the shore is 12 m on average, standard deviation 15 m; 90 % of regions are below 30 m; more than 500 m in Yemen and British Columbia.
+- **Examples:** Algarve, 10 to 120 m; Caux plateau in Normandy, 100 to 180 m; Twelve Apostles sea stacks, 45 m.
+- **Three forms, according to Sunamura:**
+  - **type A:** a platform with a gentle slope, from 1 to 7,5°, from the foot of the cliff to below the low sea;
+  - **type B:** an almost horizontal platform, from 0,2 to 1,3°, ending off the coast with a small cliff; 80 to 270 m wide in New Zealand;
+  - **diving:** no platform, the cliff enters the water.
+- **Notch:** from a few centimeters to a few meters of hollow. Its height is worth about the marnage.
+- **Backlog, global medians:** hard rock, 2,9 cm per year; medium rock, 10 cm; soft rock, chalk or soft sandstone, 23 cm. Norman chalk: 0,1 to 0,5 m per year. Holderness glacial clays: 0,8 to 2,1 m per year.
 
-**Caps, baies, aiguilles**
-- **Baies en arc :** une spirale logarithmique ou une parabole, de quelques centaines de mètres à quelques kilomètres. La forme ne dépend pas de la taille entre 0,1 et 16 km.
-- **Caps :** leur avancée croît avec leur espacement et avec le contraste de dureté des roches ; elle décroît avec l'apport de sable.
-- **Aiguilles :** plus nombreuses là où le sédiment manque.
+**Caps, berries, needles**
+- **Arc bays:** a logarithmic spiral or parabola, from a few hundred meters to a few kilometers. The shape does not depend on the size between 0,1 and 16 km.
+- **Caps:** their advance increases with their spacing and with the contrast of hardness of the rocks; it decreases with the sand contribution.
+- **Needles:** more numerous where sediment is lacking.
 
-**Ce qui décide plage, falaise ou rocher**
-- **L'altitude de l'arrière-côte :** au-delà de 4,4 m à 100 m du rivage, la falaise devient probable. C'est la règle chiffrée la plus utile.
-- **La dureté de la roche :** elle règle le recul, donc la largeur des plateformes et l'avancée des caps.
-- **L'apport de sédiment :** du sable abondant fait des plages et des dunes ; rare, des aiguilles et de la roche nue.
-- **L'énergie des vagues :** les côtes de tempête, de 40 à 60° de latitude, ont de larges plages et des dunes ; les mers abritées, des vagues faibles.
-- **La marée :** au-delà d'un rapport de 15 entre marnage et hauteur des vagues, la plage devient estran.
-- **L'histoire du niveau marin :** rias et fjords sont des vallées noyées, fluviales ou glaciaires.
-- **Le cadre tectonique :** côtes de collision, plateau étroit et falaises ; marges passives, plateau large et cordons.
+**What decides beach, cliff or rock**
+- **The altitude of the back coast:** beyond 4,4 m to 100 m from the shore, the cliff becomes probable. This is the most useful cipher rule.
+- **The hardness of the rock:** it regulates the retreat, therefore the width of the platforms and the advance of the caps.
+- **Sediment contribution:** abundant sand makes beaches and dunes; rare, needles and bare rock.
+- **Wave energy:** storm coasts, from 40 to 60° latitude, have wide beaches and dunes; sheltered seas, weak waves.
+- **Tide:** beyond a ratio of 15 between tide and wave height, the beach becomes strange.
+- **The history of sea level:** rias and fjords are flooded valleys, river or glacier.
+- **The tectonic framework:** collision ridges, narrow plateau and cliffs; passive margins, wide plateau and cordons.
 
-## 4. Les construire dans notre moteur : options comparées
+## 4. Building them in our engine: options compared
 
-**Ce que font les autres**
-- **Outerra :** une carte de distance par tuile, seulement pour les tuiles qui ont terre et mer ; filtrée, son gradient oriente l'écume. Pour les parois, un déplacement horizontal dans le shader de sommets, dont l'auteur dit qu'il ne fait pas encore de vraies falaises.
-- **Flight Simulator :** un champ de distance par tuile, tiré de polygones vectoriels d'eau ; il sert au fondu eau-image, à l'écume, à l'aplanissement. Leur présentation GDC admet le popping aux changements de niveau de détail.
-- **Star Citizen, No Man's Sky, Elite Dangerous :** rien de publié sur les côtes.
-- **SpaceEngine, Terragen :** une couleur de plage par bande d'altitude, sans forme.
-- **Gaea, World Machine, World Creator :** des remappages de l'altitude près du niveau de l'eau. World Creator a un profil à deux côtés, terre et mer, avec longueurs, angles et bruit. Gaea choisit plage ou falaise par la raideur de la transition. World Machine se dit « une approximation sans simulation », et ses plages restent trop larges.
-- **Houdini :** aucun nœud de côte.
-- **La recherche :** Galin 2019 classe l'érosion côtière parmi les phénomènes presque jamais traités. Paris 2019 creuse falaises, grottes et arches par des primitives implicites, l'action de la mer limitée à ±8 m autour du niveau moyen. Génevaux 2013 adoucit ou raidit les versants selon la distance à la côte. Sapoval 2004 montre qu'une érosion qui s'amortit converge vers une côte fractale de dimension 4/3.
+**What others do**
+- **Outerra:** a distance map per tile, only for tiles that have land and sea; filtered, its gradient orients the foam. For walls, a horizontal shift in the shader of vertices, which the author says that it does not yet make real cliffs.
+- **Flight Simulator:** a distance field per tile, drawn from water vector polygons; it is used for water-image blending, foaming, flattening. Their GDC presentation admits popping at changes in detail level.
+- **Star Citizen, No Man's Sky, Elite Dangerous:** nothing published on the coasts.
+- **SpaceEngine, Terragen:** a range color per altitude band, without shape.
+- **Gaea, World Machine, World Creator:** Altitude remappings near water level. World Creator has a profile with two sides, land and sea, with lengths, angles and noise. Gaea chooses beach or cliff by the stiffness of the transition. World Machine says it is “an approximation without simulation”, and its ranges remain too wide.
+- **Houdini:** no rib node.
+- **Research:** Galin 2019 ranks coastal erosion among the phenomena almost never addressed. Paris 2019 carves cliffs, caves and arches by implicit primitives, the action of the sea limited to ±8 m around the average level. Génevaux 2013 softens or stiffens the slopes depending on the distance to the coast. Sapoval 2004 shows that an erosion that amortizes converges towards a fractal coast of dimension 4/3.
 
-**Nos règles, pour juger :** une pure fonction de la position ; la même à toute distance ; des motifs sur la grille de la planète ; pas de mutation quand le maillage s'affine.
+**Our rules, to judge:** a pure function of position; the same at any distance; patterns on the grid of the planet; no mutation when the mesh is refined.
 
-| Option | Pure fonction | Même à toute distance | Coût | Précision au mètre | Famille dans `geometrie.md` |
+| Option | Pure function | Even at any distance | Cost | Accuracy to the meter | Family in `geometrie.md`  |
 |---|---|---|---|---|---|
-| **(a) Bande d'altitude, rendu** | oui | oui, par `SpreadStep` | nul | exacte : les bandes sont des hauteurs d'eau | rendu seul |
-| **(b) Remappage de l'altitude près de 0,** `h' = F(h)`, type choisi par un bruit | oui | oui, si `F` est lissée par l'étalement caché | nul | largeurs en `1/pente` : bon pour une berme, faux pour une falaise | remplacement |
-| **(c) Distance estimée,** `d = h / s_L`, `s_L` la pente d'un complexplanet sans octaves sous 200 m | oui | oui, `s_L` est fixe | 2 évaluations plafonnées en plus, sur les sommets côtiers | facteur 2 pour 82 à 86 % des points de 25 à 100 m | remplacement |
-| **(d) Champ de distance tramé,** par tuile ou fenêtre, par inondation par sauts | non | non : dépend du texel et de la fenêtre | une passe par tuile | exacte au texel | hors règles |
-| **(e) Déformation du plan de côte,** caps et baies par un bruit de dureté | oui | oui | un bruit | ne donne pas de distance | remplacement |
-| **(f) Simulation,** érosion de Sapoval, primitives de Paris | non | non | lourd, précalculé | réaliste | hors règles |
+| **(a) Altitude band, rendered** | yes | yes, by `SpreadStep`  | zero | exact: the strips are water heights | left alone |
+| **(b) Altitude remapping near 0,** `h' = F(h)`, type chosen by a noise | yes | yes, if `F` is smoothed by the hidden spread | zero | widths in `1/pente` : good for a berm, bad for a cliff | replacement |
+| **(c) Estimated distance,** `d = h / s_L`, `s_L` the slope of a complexplanet without octaves under 200 m | yes | yes, `s_L` is fixed | 2 additional capped assessments on coastal peaks | factor 2 for 82 to 86 % of points from 25 to 100 m | replacement |
+| **(d) Distance field grid,** per tile or window, by jump flood | no | no: depends on texel and window | one pass per tile | exact to texel | out of order |
+| **(e) Deformation of the coast plane,** caps and bays by a noise hardness | yes | yes | and noise | does not give distance | replacement |
+| **(f) Simulation,** Sapoval erosion, Paris primitives | no | no | heavy, pre-calculated | realistic | out of order |
 
-**(b) Le remappage seul** ne suffit pas aux falaises. Une falaise de 20 m ne dépend pas de la pente du terrain ; un remappage en altitude en fait une rampe de 400 m sur une plaine à 5 %, et une paroi sur une colline.
+**(b) Remapping alone** is not enough for cliffs. A cliff of 20 m is not dependent on the slope of the terrain; an altitude remapping makes it a ramp of 400 m on a plain at 5 %, and a wall on a hill.
 
-**(c) La distance estimée est la clé des falaises.** Mesures du banc CPU, distance le long de la plus grande pente :
+**(c) The estimated distance is the key to the cliffs.** Measurements of the benchmark CPU, distance along the greatest slope:
 
-| Vraie distance | Pente prise sans les octaves sous 50 m | sous 200 m | sous 1 km |
+| True distance | Slope taken without octaves under 50 m | under 200 m | under 1 km |
 |---|---|---|---|
-| 10 m | 88 % à ×2 près | 67 % | 25 % |
+| 10 m | 88 % close to ×2 | 67 % | 25 % |
 | 25 m | 89 % | 82 % | 36 % |
 | 50 m | 81 % | 86 % | 46 % |
 | 100 m | 73 % | 82 % | 58 % |
 | 200 m | 63 % | 73 % | 66 % |
 | 400 m | 57 % | 66 % | 69 % |
 
-- **Une pente sans octaves sous 200 m, prise en différences avant au pas de 50 m,** couvre la bande de 20 à 200 m des plages et falaises. Les médianes tombent juste.
-- **L'erreur restante vient des octaves fines de `h`,** ±0,5 m environ : ±12 m de distance à 4 % de pente. Elle fait onduler le pied de falaise, ce qui est naturel.
-- **La direction de la mer** est la descente de cette pente : `-∇h_L / |∇h_L|`. Dans les pixels, la normale du terrain la donne déjà.
-- **Ne pas prendre la pente du maillage :** elle dépend de la maille, donc change en descendant.
+- **An octaveless slope under 200 m, taken in front differences at the step of 50 m,** covers the band of 20 to 200 m of beaches and cliffs. The medians fall just.
+- **Remaining error comes from the fine octaves of `h`,** ±0,5 m approximately: ±12 m distance to 4 % slope. It makes the foot of the cliff wavy, which is natural.
+- **The direction of the sea** is the descent of this slope: `-∇h_L / |∇h_L|`. In pixels, the normal of the field already gives it.
+- **Do not take the slope of the mesh:** it depends on the grid cell, so it changes as you go down.
 
-**Le profil recommandé, étape 4 : l'érosion retire, elle n'ajoute pas**
-- **`h' = min(h, P(d))`,** avec `d = h / s_L`. `P` est le profil érodé : une plateforme à +0,3 à +1 m jusqu'au recul `r`, puis une paroi de pente 2 à 6, soit 63 à 80°.
-- **Le rivage ne bouge pas :** `h' ≤ h` et `P ≥ 0` sur la terre.
-- **La hauteur de la falaise sort du terrain :** c'est l'altitude du terrain au recul `r`. Mesuré sur nos rivages :
+**Recommended profile, step 4: erosion removes, it does not add**
+- **`h' = min(h, P(d))`,** with `d = h / s_L`. `P` is the eroded profile: a platform at +0,3 to +1 m up to the `r` retreat, then a slope wall 2 to 6, or 63 to 80°.
+- **The shore does not move:** `h' ≤ h` and `P ≥ 0` on land.
+- **The height of the cliff out of the ground:** is the altitude of the ground at the retreat `r`. Measured on our shores:
 
-| Recul `r` | Falaise médiane | Falaise p90 |
+| Recul `r`  | Cliff median | Cliff p90 |
 |---|---|---|
 | 50 m | 2,4 m | 6,9 m |
 | 100 m | 4,0 m | 11,5 m |
 | 200 m | 6,1 m | 19 m |
 | 500 m | 9,4 m | 37 m |
 
-- **Un recul de 200 à 500 m approche les hauteurs de la Terre :** moyenne 12 m, 90 % sous 30 m. Il donne aussi des plateformes de la largeur des vraies, 80 à 500 m.
-- **Le recul vient de la dureté :** un bruit sur la grille de la planète, à prendre dans `Geology`, pour que couleur de roche et forme de côte s'accordent. Roche tendre, recul long ; roche dure, recul court et côte plongeante.
-- **De loin, une maille plus large que la falaise** prend la moyenne de `min(h, P)` sur ses hauteurs cachées, comme `SpreadStep` le fait pour les limites. Sans cela, le plateau et la falaise muteraient à l'approche.
-- **La roche vient seule :** la paroi dépasse 0,65 de pente, la règle des matériaux y pose la roche et ses photos de paroi ; la plateforme, douce, prend la photo prise de dessus.
-- **Coût :** deux évaluations plafonnées à 200 m, pour les seuls sommets entre 0 et 100 m d'altitude. À mesurer sur une vue côtière.
+- **A retreat of 200 to 500 m approaches the heights of the Earth:** average 12 m, 90 % under 30 m. It also gives platforms of the width of the real ones, 80 to 500 m.
+- **The backlash comes from the hardness:** a noise on the grid of the planet, to take in `Geology`, so that rock color and coast shape agree. Soft rock, long retreat; hard rock, short retreat and plunging coast.
+- **From far, a grid cell wider than the cliff** takes the average of `min(h, P)` on its hidden heights, as `SpreadStep` does for the limits. Without this, the plateau and cliff would mutate as they approached.
+- **The rock comes alone:** the wall exceeds 0,65 of slope, the rule of materials there puts the rock and its wall photos; the platform, soft, takes the photo taken from above.
+- **Cost:** two ratings capped at 200 m, for only summits between 0 and 100 m of altitude. To be measured on a coastal view.
 
-**L'étape 5 : le dépôt et le plan**
-- **Berme et dune :** `h' = max(h', B(d))` là où le type est sableux. Une face de pente 0,05 à 0,11 jusqu'à une berme de 2 à 3,5 m, un haut de plage plat, une avant-dune de 2 à 10 m.
-- **Caps et baies :** un bruit de dureté déplace le rivage, `h + a · dureté` près de 0. Avancée sur roche dure, baie sur roche tendre. Le rivage bouge : remplacement à l'échelle de 100 m à quelques kilomètres.
-- **Aiguilles :** dans la plateforme érodée, un bruit cellulaire garde des piliers à l'altitude d'origine, là où le sédiment manque.
+**The 5 step: the deposit and the plan**
+- **Berm and dune:** `h' = max(h', B(d))` where the type is sandy. A slope face 0,05 to 0,11 up to a berm of 2 to 3,5 m, a flat beach top, a front dune of 2 to 10 m.
+- **Capes and bays:** a noise of hardness moves the shore, `h + a · dureté` near 0. Advance on hard rock, bay on soft rock. The shore moves: replacement on the scale of 100 m to a few kilometers.
+- **Needles:** in the eroded platform, a cellular noise keeps pillars at the original altitude, where sediment is missing.
 
-## 5. Le rendu du rivage, sans géométrie
+## 5. The rendering of the shore, without geometry
 
-**Les bandes de l'eau, toutes en altitude, donc exactes et pures**
-- **La ligne d'eau, nette de près :** le fondu de −1 à +1 m devient l'étalement du pixel seul, sa pente fois sa taille. La transition se dessine par les bandes suivantes.
-- **Le sable mouillé :** de 0 au jet de rive, 0,5 à 1,5 m selon l'exposition. Albédo divisé par 2 environ : 0,18 sec contre 0,09 mouillé. Sur nos pentes, 0 à 1 m fait 18 m en médiane, 44 m au p90 ; le jet de rive réel fait 8 à 45 m.
-- **La brillance du mouillé :** il faut un lobe spéculaire, absent du sol aujourd'hui, qui n'est que diffus. Lagarde : diffus multiplié par `lerp(1, 0.2, porosité)`, brillance vers 1. À partager avec la mer.
-- **La laisse de mer :** une ligne sombre et cassée au plus haut du jet de rive, de quelques décimètres à 1 ou 2 m. Elle suit la règle universelle de loin.
-- **Les ceintures des roches,** sur la roche au rivage :
-  - **mouillée** sous le jet de rive, plus sombre ;
-  - **algues et balanes** sur le marnage, de −½ à +½ marnage, brun-vert ;
-  - **lichen noir,** *Verrucaria maura*, juste sous la pleine mer et au-dessus, plus large sur les côtes exposées ; les vagues y ajoutent 2 à 4,4 m ;
-  - **roche sèche** au-dessus.
-- **Le fond sous l'eau peu profonde :** sable ou roche, atténué par la profondeur `-h`, qui est exacte. C'est le côté mer qui l'absorbe.
+**The water strips, all at altitude, so accurate and pure**
+- **The waterline, sharp close up:** the fade from −1 to +1 m becomes the spread of the pixel alone, its slope times its size. The transition is marked by the following bands.
+- **Wet sand:** from 0 to shore jet, 0,5 to 1,5 m depending on exposure. Albedo divided by 2 approximately: 0,18 dry versus 0,09 wet. On our slopes, 0 to 1 m makes 18 m in median, 44 m at p90; the actual shore jet makes 8 to 45 m.
+- **The shine of wet:** it takes a specular lobe, absent from the soil today, which is only diffuse. Lagarde: diffus multiplied by `lerp(1, 0.2, porosité)`, brilliance towards 1. To share with the sea.
+- **The sea leash:** a dark and broken line at the highest point of the shore jet, of a few decimeters to 1 or 2 m. It follows the universal rule from far.
+- **The belts of rocks,** on the rock at the shore:
+  - **wetted** under the jet of shore, darker;
+  - **algae and balanes** on the marnage, from −½ to +½ marnage, brown-green;
+  - **black lichen,** *Verrucaria maura*, just below the high sea and above, wider on exposed coasts; waves add 2 to 4,4 m;
+  - **dry rock** above.
+- **The bottom under shallow water:** sand or rock, attenuated by the depth `-h`, which is accurate. It is the sea side that absorbs it.
 
-**Les matières**
-- **Le sable de plage :** le scan Aerial Beach 01 a des rides de 50 à 80 cm, en langues ; nos rides de vent font 12,5 cm (`spec-textures-generees.md`). Sur la face de plage, les rides de vent n'ont pas lieu d'être.
-- **Les galets :** une matière à part, sur les pentes de 0,1 à 0,25, là où le type de côte le dit.
-- **Les falaises :** les photos de paroi en place, `marble_cliff`, et la colonne des strates. Craie, granite, grès : des teintes de `Geology` et de `StrataColumn`.
-- **Candidats Poly Haven, à vérifier :** des textures de rivage, sable et roches mêlés, et le maillage `coastal_cliff_04` de 87 m déjà repéré dans `spec-parois-minerales.md`.
+**The materials**
+- **Beach sand:** the Aerial Beach scan 01 has wrinkles from 50 to 80 cm, in tongues; our wind wrinkles are 12,5 cm (`spec-textures-generees.md`). On the beach face, wind wrinkles have no place to be.
+- **Pebbles:** a matter of its own, on the slopes of 0,1 to 0,25, where the type of hill says it.
+- **The cliffs:** the photos of wall in place, `marble_cliff`, and the column of strata. Chalk, granite, sandstone: shades of `Geology` and `StrataColumn`.
+- **Poly Haven candidates, to check:** shoreline textures, sand and rock mixed, and the mesh `coastal_cliff_04` of 87 m already spotted in `spec-parois-minerales.md`.
 
-**Ce que la côte attend de la mer**
-- **La hauteur et la période des vagues,** pour fixer le jet de rive, donc la hauteur du sable mouillé et de la laisse.
-- **Un champ d'exposition partagé :** les côtes exposées ont falaises et ceintures larges, les abritées des plages et de la vase. Côte et vagues doivent lire le même bruit.
-- **Le marnage, s'il y en a :** il règle les bandes d'estran. Micro sous 2 m, méso de 2 à 4 m, macro au-delà.
-- **L'écume du déferlement et du jet de rive,** orientée par la direction de la mer : la descente de la pente.
-- **La transparence de l'eau peu profonde,** pour voir le fond de la côte.
+**What the coast expects from the sea**
+- **The height and period of the waves,** to fix the shore jet, therefore the height of the wet sand and the leash.
+- **A shared exposure field:** exposed coasts have cliffs and wide belts, sheltered ones have beaches and mud. Coast and waves must read the same noise.
+- **The marnage, if there is one:** it regulates the strain bands. Micro below 2 m, meso from 2 to 4 m, macro beyond.
+- **The foam of the flood and the jet of shore,** oriented by the direction of the sea: the descent of the slope.
+- **The transparency of shallow water,** to see the bottom of the coast.
 
-## 6. Mesurer contre le réel
+## 6. Measuring against the real
 
-**Le banc CPU, `tools/cotes/`**
-- **Le portage CPU de complexplanet** est validé à 0,2 m contre le moteur. Il mesure en quelques minutes, sans GPU, sur des centaines de points de rivage tirés au hasard.
-- **Ce qu'il sort :** largeur des bandes, pentes au rivage à six échelles, profils vers l'intérieur et le large, précision de la distance estimée, hauteurs de falaise d'un profil candidat.
-- **Les scripts :** `t2.py` trouve les rivages ; sur la branche `plages`, `t8.py` mesure la largeur des bandes, `t9.py` donne les parts vraies d'un carré de sol, pour le banc de descente.
+**The benchmark CPU, `tools/cotes/`**
+- **The port CPU of complexplanet** is validated at 0,2 m against the engine. It measures in minutes, without GPU, on hundreds of randomly drawn shore points.
+- **What it outputs:** Band width, six-scale shoreline slopes, inland and offshore profiles, accuracy of estimated distance, cliff heights of a candidate profile.
+- **The scripts:** `t2.py` finds the banks; on the branch `plages`, `t8.py` measures the width of the bands, `t9.py` gives the true shares of a square of ground, for the benchmark of descent.
 
-**Les cibles chiffrées**
+**Quantified targets**
 
-| Grandeur | Réel | Aujourd'hui | Source |
+| Size | Actual | Today | Source |
 |---|---|---|---|
-| Largeur de plage | 20 à 80 m ; Égée, 59 % sous 20 m | médiane 540 m ; 39 m sur la branche `plages` | Narrabeen, Égée |
-| Pente de la face de plage | médianes 0,055 à 0,08, 0,01 à 0,18 | 0,045 de 0 à 3 m | Vos 2022 |
-| Pente sous l'eau jusqu'à 13 m | médiane 0,007 | environ 0,012 | Athanasiou 2019 |
-| Arrière-côte à 100 m | moyenne 12 m ; 52 % au-delà de 4,4 m | moyenne 8,1 m ; 45 % | Young et Carilli 2019 |
-| Côte à falaise | environ 52 % | 7 % ont une pente de plus de 0,65 | Young et Carilli 2019 |
-| Côte sableuse | 31 % | toute côte tempérée | Luijendijk 2018 |
-| Côte vaseuse | 14 % | 0 % | côtes vaseuses, 2023 |
-| Largeur de plateforme | 80 à 500 m | aucune | Sunamura, Trenhaile |
+| Width of range | 20 to 80 m; Aegean, 59 % under 20 m | median 540 m; 39 m on the branch `plages`  | Narrabeen, Aegean Islands |
+| Slope of the beach face | medians 0,055 to 0,08, 0,01 to 0,18 | 0,045 from 0 to 3 | Your 2022 |
+| Underwater slope up to 13 m | median 0,007 | about 0,012 | Athanasiou 2019 |
+| Back coast to 100 m | average 12 m; 52 % beyond 4,4 m | average 8,1 m; 45 % | Young and Carilli 2019 |
+| Coast to cliff | approximately 52 % | 7 % have a slope of more than 0,65 | Young and Carilli 2019 |
+| Sandy coast | 31 % | all temperate coast | Luijendijk 2018 |
+| Coastal mud | 14 % | 0 % | Sandy coasts, 2023 |
+| Width of platform | 80 to 500 m | None | Sunamura, Trenhaile |
 
-**Les jeux de données ouverts**
-- **Pentes de plage :** Australie, 132 000 transects ; Pacifique, 3 000 plages ; Californie.
-- **Pentes du proche côtier, monde :** Athanasiou 2019, un point par kilomètre.
-- **Profils lidar des plages des États-Unis :** USGS, pied de dune, crête, largeur, tous les 10 m.
-- **Profils de Narrabeen depuis 1976.**
-- **Taux de recul des falaises :** GlobR2C2, plus de 1 680 valeurs.
-- **OpenStreetMap :** `natural=coastline`, `beach`, `cliff`, `bare_rock`, `shingle`. Les comptes de taginfo donnent un ordre de grandeur, les falaises intérieures comprises.
-- **Téléchargements :** à autoriser au cas par cas.
+**Open Data Sets**
+- **Beach slopes:** Australia, 132 000 transects; Pacific, 3 000 beaches; California.
+- **Near coast slopes, world:** Athanasiou 2019, one point per kilometer.
+- **Lidar profiles of US beaches:** USGS, dune foot, crest, width, all 10 m.
+- **Profiles of Narrabeen from 1976.**
+- **Cliff retreat rate:** GlobR2C2, more than 1 680 values.
+- **OpenStreetMap :** `natural=coastline`, `beach`, `cliff`, `bare_rock`, `shingle`. The taginfo counts give an order of magnitude, including the inner cliffs.
+- **Downloads:** to be authorized on a case-by-case basis.
 
-**Dans le moteur**
-- **`banc_descente.py`,** vues `beach` et `sea` : la part de plage de 1 500 km au sol doit rester plate.
-- **`banc_qualite.py` :** aucun p95 dégradé de plus de 10 %.
-- **`banc_visuel.py` :** des lieux de côte à plusieurs hauteurs, face à des photos cibles. Étretat pour la craie, l'Algarve pour le grès, la Côte de Granit rose, les Douze Apôtres pour les aiguilles, une plage australienne pour le sable. Images du domaine public, comme les `cible-*.jpg`.
-- **La dimension fractale du trait de côte :** par comptage de boîtes sur les points de rivage du banc CPU, de 10 m à 10 km. Côte ouest de la Grande-Bretagne : 1,25 selon Mandelbrot.
+**In the engine**
+- **`banc_descente.py`,** views `beach` and `sea`: the 1 500 km range part on the ground must remain flat.
+- **`banc_qualite.py`:** no p95 degraded by more than 10 %.
+- **`banc_visuel.py`:** coastal locations at different heights, facing target photos. Étretat for the chalk, the Algarve for the sandstone, the Côte de Granit rose, the Twelve Apostles for the needles, an Australian beach for the sand. Public domain images, such as the `cible-*.jpg`.
+- **The fractal dimension of the coastline:** by counting boxes on the shore points of the benchmark CPU, from 10 m to 10 km. West coast of Great Britain: 1,25 according to Mandelbrot.
 
 ## 7. Sources
 
-**Géomorphologie**
-- Young et Carilli 2019, falaises côtières du monde : https://escholarship.org/uc/item/579326kr
-- Luijendijk et al. 2018, l'état des plages du monde : https://www.vliz.be/imisdocs/publications/ocrd/312913.pdf
-- Côtes vaseuses du monde, 2023 : https://pmc.ncbi.nlm.nih.gov/articles/PMC10716179/
-- Vos et al. 2022, pentes de plage en Australie : https://essd.copernicus.org/articles/14/1345/2022/
-- Athanasiou et al. 2019, pentes du proche côtier, monde : https://essd.copernicus.org/articles/11/1515/2019/
-- Short 2006, plages australiennes : https://ozcoasts.org.au/wp-content/uploads/2018/05/ShortJCR06.pdf
-- Masselink et Short 1993, marnage relatif : https://journals.flvc.org/jcr/article/view/79047
-- Plages réfléchissantes et dissipatives, Coastal Wiki : https://coastalwiki.org/wiki/Reflective_beach , https://www.coastalwiki.org/wiki/Dissipative_beach
-- Jet de rive, Stockdon 2006, Coastal Wiki : https://www.coastalwiki.org/wiki/Wave_run-up
-- Pente selon le grain, CEDD Hong Kong : https://www.cedd.gov.hk/filemanager/eng/content_102/p5_table.pdf
-- Profil d'équilibre de Dean, Bosboom et Stive : https://geo.libretexts.org/Bookshelves/Oceanography/Coastal_Dynamics_(Bosboom_and_Stive)/07%3A_Cross-shore_transport_and_profile_development/7.02%3A_Equilibrium_shorface_profile/7.2.2%3A_(Semi-)_empirical_derivations
-- Classification tectonique, Bosboom et Stive : https://geo.libretexts.org/Bookshelves/Oceanography/Coastal_Dynamics_(Bosboom_and_Stive)/02%3A_Large-scale_geographical_variation_of_coasts/2.03%3A_Tectonic_control_of_coasts/2.3.4%3A_Summary_of_the_tectonic_classification
-- Environnements de vagues de Davies : https://geo.libretexts.org/Bookshelves/Oceanography/Coastal_Dynamics_(Bosboom_and_Stive)/04%3A_Global_wave_and_tidal_environments/4.03%3A_Large-scale_variation_in_wave_environments/4.3.2%3A_Wave_environments
-- Bermes des îles-barrières, USGS : https://www.usgs.gov/publications/predictions-barrier-island-berm-evolution-time-varying-storm-climatology
-- Narrabeen : https://pmc.ncbi.nlm.nih.gov/articles/PMC4828941/
-- Plages de l'Égée : https://nhess.copernicus.org/articles/17/449/2017/
-- Hesp 2011, dunes côtières : https://ref.coastalrestorationtrust.org.nz/site/assets/files/6990/568c626208ae153299b66729.pdf
-- Plateformes de type A et B : https://www.erudit.org/en/journals/gpq/2006-v60-n1-gpq1758/016362ar/ , https://pmc.ncbi.nlm.nih.gov/articles/PMC4754505
-- Plateformes de Nouvelle-Zélande : https://researchspace.auckland.ac.nz/handle/2292/19986
-- Encoches : https://www.redalyc.org/pdf/505/50544801002.pdf
-- Prémaillon et al. 2018, GlobR2C2, recul des falaises : https://esurf.copernicus.org/articles/6/651/2018/
-- Recul de la craie du Sussex : https://research.edgehill.ac.uk/en/publications/temporal-and-spatial-variations-of-chalk-cliff-retreat-in-east-su/
-- Baies en arc : https://nora.nerc.ac.uk/id/eprint/512322/
-- Limber et Murray 2014, caps : https://scholars.duke.edu/publication/1033824
-- Douze Apôtres : https://www.doi.org/10.2112/SI75-119.1
-- Bird et al. 2013, zones des rivages rocheux : https://pmc.ncbi.nlm.nih.gov/articles/PMC3792175/
-- Ceinture de *Verrucaria maura*, MarLIN : https://www.marlin.ac.uk/habitats/detail/120/verrucaria_maura_on_littoral_fringe_rock
-- Sable mouillé plus sombre : https://www.wgtn.ac.nz/scps/staff/pdf/darkerwhenwet.pdf , https://pmc.ncbi.nlm.nih.gov/articles/PMC4226492/
-- Morphologie des plages des États-Unis, USGS : https://www.usgs.gov/data/lidar-derived-beach-morphology-dune-crest-dune-toe-and-shoreline-us-sandy-coastlines
-- Profils de Narrabeen : https://datadryad.org/dataset/doi:10.5061/dryad.28g01
-- Pentes de plage du Pacifique : https://zenodo.org/records/18368941
-- OpenStreetMap, valeurs de `natural` : https://taginfo.openstreetmap.org/keys/natural#values
+**Geomorphology**
+- Young and Carilli 2019, coastal cliffs of the world: https://escholarship.org/uc/item/579326kr
+- Luijendijk et al. 2018, the state of the beaches of the world: https://www.vliz.be/imisdocs/publications/ocrd/312913.pdf
+- Sandy coasts of the world, 2023: https://pmc.ncbi.nlm.nih.gov/articles/PMC10716179/
+- Vos et al. 2022, beach slopes in Australia: https://essd.copernicus.org/articles/14/1345/2022/
+- Athanasiou et al. 2019, near coast slopes, world: https://essd.copernicus.org/articles/11/1515/2019/
+- Short 2006, Australian beaches: https://ozcoasts.org.au/wp-content/uploads/2018/05/ShortJCR06.pdf
+- Masselink and Short 1993, relative marking: https://journals.flvc.org/jcr/article/view/79047
+- Reflective and dissipative beaches, Coastal Wiki: https://coastalwiki.org/wiki/Reflective_beach, https://www.coastalwiki.org/wiki/Dissipative_beach
+- Shore jet, Stockdon 2006, Coastal Wiki: https://www.coastalwiki.org/wiki/Wave_run-up
+- Grain-dependent slope, CEDD Hong Kong: https://www.cedd.gov.hk/filemanager/eng/content_102/p5_table.pdf
+- Dean, Bosboom and Stive's balance profile: https://geo.libretexts.org/Bookshelves/Oceanography/Coastal_Dynamics_(Bosboom_and_Stive)/07%3A_Cross-shore_transport_and_profile_development/7.02%3A_Equilibrium_shorface_profile/7.2.2%3A_(Semi-)_empirical_derivations
+- Tectonic classification, Bosboom and Stive: https://geo.libretexts.org/Bookshelves/Oceanography/Coastal_Dynamics_(Bosboom_and_Stive)/02%3A_Large-scale_geographical_variation_of_coasts/2.03%3A_Tectonic_control_of_coasts/2.3.4%3A_Summary_of_the_tectonic_classification
+- Davies Surf Environments: https://geo.libretexts.org/Bookshelves/Oceanography/Coastal_Dynamics_(Bosboom_and_Stive)/04%3A_Global_wave_and_tidal_environments/4.03%3A_Large-scale_variation_in_wave_environments/4.3.2%3A_Wave_environments
+- Barrier Island Berms, USGS: https://www.usgs.gov/publications/predictions-barrier-island-berm-evolution-time-varying-storm-climatology
+- Narrated : https://pmc.ncbi.nlm.nih.gov/articles/PMC4828941/
+- Beaches of the Aegean: https://nhess.copernicus.org/articles/17/449/2017/
+- Hesp 2011, coastal dunes: https://ref.coastalrestorationtrust.org.nz/site/assets/files/6990/568c626208ae153299b66729.pdf
+- Type A and B platforms: https://www.erudit.org/en/journals/gpq/2006-v60-n1-gpq1758/016362ar/, https://pmc.ncbi.nlm.nih.gov/articles/PMC4754505
+- Platforms from New Zealand: https://researchspace.auckland.ac.nz/handle/2292/19986
+- Notches: https://www.redalyc.org/pdf/505/50544801002.pdf
+- Prémaillon et al. 2018, GlobR2C2, retreat of the cliffs: https://esurf.copernicus.org/articles/6/651/2018/
+- Sussex Chalk Retreat: https://research.edgehill.ac.uk/en/publications/temporal-and-spatial-variations-of-chalk-cliff-retreat-in-east-su/
+- Arc bays: https://nora.nerc.ac.uk/id/eprint/512322/
+- Limber and Murray 2014, caps: https://scholars.duke.edu/publication/1033824
+- Twelve Apostles: https://www.doi.org/10.2112/SI75-119.1
+- Bird et al. 2013, rocky shore areas: https://pmc.ncbi.nlm.nih.gov/articles/PMC3792175/
+- Belt of *Verrucaria maura*, MarLIN: https://www.marlin.ac.uk/habitats/detail/120/verrucaria_maura_on_littoral_fringe_rock
+- Darker wet sand: https://www.wgtn.ac.nz/scps/staff/pdf/darkerwhenwet.pdf, https://pmc.ncbi.nlm.nih.gov/articles/PMC4226492/
+- Morphology of beaches of the United States, USGS: https://www.usgs.gov/data/lidar-derived-beach-morphology-dune-crest-dune-toe-and-shoreline-us-sandy-coastlines
+- Profiles of Narrabeen: https://datadryad.org/dataset/doi:10.5061/dryad.28g01
+- Pacific Beach Slopes: https://zenodo.org/records/18368941
+- OpenStreetMap, values of `natural`: https://taginfo.openstreetmap.org/keys/natural#values
 - Mandelbrot 1967 : https://gis.humboldt.edu/olm/courses/gsp_510/Articles/Mandelbrot1967.pdf
 
-**Moteurs et outils**
-- Outerra, carte de distance du rivage : https://outerra.blogspot.com/2011/02/ocean-rendering.html
-- Outerra, algorithme du terrain : https://outerra.blogspot.com/2009/02/procedural-terrain-algorithm.html
-- Outerra, déplacement horizontal : https://outerra.blogspot.com/2009/05/horizontal-displacement.html
+**Engines and tools**
+- Outerra, map of distance from shore: https://outerra.blogspot.com/2011/02/ocean-rendering.html
+- Outerra, field algorithm: https://outerra.blogspot.com/2009/02/procedural-terrain-algorithm.html
+- Outterra, horizontal displacement: https://outerra.blogspot.com/2009/05/horizontal-displacement.html
 - Flight Simulator, Fuentes, GDC 2022 : https://www.asobostudio.com/files/inline-images/Designing_Terrain_System_Fuentes_Lionel.pdf
-- SpaceEngine, créer une planète : https://spaceengine.org/manual/making-addons/creating-a-planet/
-- Gaea, nœud Sea : https://docs.quadspinner.com/Reference/Water/Sea.html
-- Gaea, nœud Coast : https://docs.quadspinner.com/Reference/Water/Coast.html
-- World Machine, érosion côtière : https://www.world-machine.com/blog/?p=73
-- World Creator, filtre Shore : https://docs.world-creator.com/reference/terrain/filters/effect/shore
+- SpaceEngine, create a planet: https://spaceengine.org/manual/making-addons/creating-a-planet/
+- Gaea, Sea node: https://docs.quadspinner.com/Reference/Water/Sea.html
+- Gaea, Coast node: https://docs.quadspinner.com/Reference/Water/Coast.html
+- World Machine, coastal erosion: https://www.world-machine.com/blog/?p=73
+- World Creator, Shore filter: https://docs.world-creator.com/reference/terrain/filters/effect/shore
 - Houdini, HeightField Erode : https://www.sidefx.com/docs/houdini/nodes/sop/heightfield_erode.html
-- Crest, eaux peu profondes : https://crest.readthedocs.io/en/stable/user/shallows-and-shorelines.html
+- Crest, shallow water: https://crest.readthedocs.io/en/stable/user/shallows-and-shorelines.html
 - Sea of Thieves, SIGGRAPH 2018 : https://history.siggraph.org/wp-content/uploads/2022/09/2018-Talks-Ang_The-Technical-Art-of-Sea-of-Thieves.pdf
-- Lagarde, surfaces mouillées : https://seblagarde.wordpress.com/2013/04/14/water-drop-3b-physically-based-wet-surfaces/
+- Lagarde wet surfaces: https://seblagarde.wordpress.com/2013/04/14/water-drop-3b-physically-based-wet-surfaces/
 
-**Recherche en synthèse d'images**
-- Galin et al. 2019, revue de la modélisation des terrains : https://people.cs.uct.ac.za/~jgain/wp-content/papercite-data/pdf/galin2019.pdf
-- Génevaux et al. 2013, terrains par l'hydrologie : https://www.cs.purdue.edu/homes/bbenes/papers/Genevaux13ToG.pdf
-- Cordonnier et al. 2016, soulèvement et érosion fluviale : https://www.cs.purdue.edu/homes/bbenes/papers/Cordonier16CGF.pdf
-- Paris et al. 2019, amplification par formes implicites, falaises et arches marines : https://people.cs.uct.ac.za/~jgain/wp-content/papercite-data/pdf/paris2019.pdf
-- Paris et al. 2020, roches en blocs implicites : https://hal.science/hal-02926218
-- Doran et Parberry 2010, agents de plage : https://ianparberry.com/pubs/terrain.pdf
-- Sapoval et al. 2004, côtes fractales par érosion : https://arxiv.org/abs/cond-mat/0311509
-- Quilez, estimation de distance : https://iquilezles.org/articles/distance/
-- Quilez, dérivées du bruit de gradient : https://iquilezles.org/articles/gradientnoise/
-- Rong et Tan 2006, inondation par sauts : https://www.comp.nus.edu.sg/~tants/jfa/i3d06.pdf
+**Search in synthesis of images**
+- Galin et al. 2019, review of terrain modeling: https://people.cs.uct.ac.za/~jgain/wp-content/papercite-data/pdf/galin2019.pdf
+- Génevaux et al. 2013, land by hydrology: https://www.cs.purdue.edu/homes/bbenes/papers/Genevaux13ToG.pdf
+- Cordonnier et al. 2016, river lifting and erosion: https://www.cs.purdue.edu/homes/bbenes/papers/Cordonier16CGF.pdf
+- Paris et al. 2019, amplification by implicit forms, cliffs and marine arches: https://people.cs.uct.ac.za/~jgain/wp-content/papercite-data/pdf/paris2019.pdf
+- Paris et al. 2020, implied block rocks: https://hal.science/hal-02926218
+- Doran and Parberry 2010, beach officers: https://ianparberry.com/pubs/terrain.pdf
+- Sapoval et al. 2004, erosion fractal ribs: https://arxiv.org/abs/cond-mat/0311509
+- Quilez, distance estimate: https://iquilezles.org/articles/distance/
+- Quilez, derivatives of gradient noise: https://iquilezles.org/articles/gradientnoise/
+- Rong and Tan 2006, jump flood: https://www.comp.nus.edu.sg/~tants/jfa/i3d06.pdf
 - libnoise, complexplanet : https://raw.githubusercontent.com/eXpl0it3r/libnoise/master/examples/complexplanet.cpp
 
-**Non vérifié ou manquant**
-- Aucune statistique mondiale de largeur de plage, de hauteur ou de pente de falaise, de largeur d'avant-dune, de taille d'aiguille ou de crique.
-- Les hauteurs en mètres de la ceinture de lichen noir ; les parts mondiales de micro, méso et macro marées.
-- Les pages de Proland et de HAL n'ont pu être lues directement.
+**Not verified or missing**
+- No global statistics of beach width, cliff height or slope, fore-dune width, needle size or creek.
+- The heights in meters of the black lichen belt; the world shares of micro, meso and macro tides.
+- The pages of Proland and HAL could not be read directly.

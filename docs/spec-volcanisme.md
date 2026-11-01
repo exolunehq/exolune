@@ -1,136 +1,136 @@
-# Spec : le volcanisme
+# Spec: volcanism
 
-Statut : spec vivante, depuis le 2026-10-31. Faite le 2026-10-31 sur la branche `claude/volcanisme-7c3aea`, partie de `bruit-propre` ; piste `piste/volcanisme`, à juger en vol : `tools/tests/2026-10-31-volcanisme.txt`. C'est l'étape 5 de `spec-relief-tectonique.md`, ses collines abyssales exceptées.
+Status: spec live, since the 2026-10-31. Make the 2026-10-31 on the branch `claude/volcanisme-7c3aea`, part of `bruit-propre`; experiment `piste/volcanisme`, to judge in flight: `tools/tests/2026-10-31-volcanisme.txt`. It is the 5 stage of `spec-relief-tectonique.md`, its abyssal hills excepted.
 
-## L'objectif
+## The objective
 
-**Les volcans se déduisent de la carte tectonique :** arcs sur les subductions, points chauds et leurs chaînes, volcans des rifts. Avant, le volcanisme n'existait que comme type de roche.
+**Volcanoes are deduced from the tectonic map:** arcs on subductions, hot spots and their chains, volcanoes of the rifts. Before, volcanism existed only as a type of rock.
 
-- **Ce qu'on voit :** des stratovolcans en chaîne, en arcs insulaires et en cordillères ; des boucliers, des îles qui s'usent et s'enfoncent, des récifs-barrières, des atolls, des guyots ; des calderas, des coulées, des champs de petits cônes ; des traps en marches ; des basaltes et des cendres sombres.
-- **Le modèle suivi :** celui de la carte. La liste des volcans se calcule une fois au démarrage ; le relief les évalue point par point.
+- **What we see:** Stratovolcanoes in chains, in island arcs and in mountain ranges; shields, islands that wear out and sink, barrier reefs, atolls, guyots; calderas, flows, fields of small cones; traps in marches; basalts and dark ashes.
+- **The model followed:** that of the card. The list of volcanoes is calculated once at startup; the relief evaluates them point by point.
 
-## Les contraintes
+## The constraints
 
-- **Tout au démarrage, rien en route** (`principes.md`) : positions et formes des volcans dans une liste, avec un index sur un cube.
-- **Un point ne dépend jamais de la maille :** chaque édifice est une fonction du point, dans le repère de la planète ; le filtrage seul suit la maille, comme pour les profils de la carte.
-- **La forme avant érosion :** les édifices font partie de `ReliefElevation(p, false)` ; l'érosion les creusera.
-- **Du code original,** depuis les articles cités.
+- **Everything at start, nothing on the way** (`principes.md`): positions and shapes of volcanoes in a list, with an index on a cube.
+- **A point never depends on the grid cell:** each building is a function of the point, in the reference frame of the planet; the filtering only follows the grid cell, as for the map profiles.
+- **The shape before erosion:** the buildings are part of `ReliefElevation(p, false)`; erosion will dig them.
+- **From the original code,** from the articles cited.
 
-## La liste des volcans, `Tectonics.cpp`
+## List of volcanoes, `Tectonics.cpp`
 
-**À la fin de `Tectonics::Build`, avant le lissage des champs :** la liste, son index, et ce que les points chauds changent à la carte. Le même corps donne la même liste, au bit près.
+**At the end of `Tectonics::Build`, before smoothing the fields:** the list, its index, and what hot spots change to the map. The same body gives the same list, to the bit close.
 
-**Chaque volcan,** `Tectonics::Volcano`, 52 octets : sa direction, son rayon, sa hauteur au-dessus du sol alentour, son profil, son cratère, le niveau où son sommet a été arasé, son récif, son champ de cônes, sa fraîcheur, sa graine.
+**Each volcano,** `Tectonics::Volcano`, 52 bytes: its direction, its radius, its height above the surrounding ground, its profile, its crater, the level where its summit was leveled, its reef, its field of cones, its freshness, its seed.
 
-**Les arcs, sur la plaque chevauchante :**
-- **Le front volcanique** là où la plaque plongeante atteint une centaine de kilomètres de profondeur : à 140 à 230 km de la fosse, autour de l'arc de la carte, 175 km en mer, 170 à 200 km sur un continent (Stern 2002).
-- **Les candidats :** les cellules à cette distance du front, chacune portée exactement à la distance voulue le long du grand cercle qui la relie à son point de front. Aucun là où la plaque plonge à plat, par tronçons.
-- **Éclaircis dans l'ordre d'un tirage :** chacun gardé si aucun autre n'est à moins de 35 à 80 km.
-- **Les stratovolcans :** 2 à 4 km de haut, un quart de plus en mer, bâtis depuis le pied de la ride de l'arc ; un rayon de 4,5 à 7,5 fois la hauteur ; un cratère de 0,4 à 1,1 km ; 12 % effondrés en caldeira de 4 à 10 km (Crater Lake) ; un tiers avec des cônes sur leurs flancs.
-- **Derrière l'arc, sur un continent :** des champs de cônes sur un bouclier bas de coulées, tous les 180 à 300 km, à 110 km du front (le champ de Michoacán-Guanajuato).
+**The arches, on the overlapping plate:**
+- **The volcanic front** where the plunging plate reaches a hundred kilometers of depth: at 140 to 230 km of the pit, around the arc of the map, 175 km in the sea, 170 to 200 km on a continent (Stern 2002).
+- **Candidates:** cells at this distance from the forehead, each one carried exactly to the desired distance along the great circle that connects it to its point of forehead. None where the plate sinks flat, in sections.
+- **Cleared in order of a draw:** each kept if no other is within 35 to 80 km.
+- **Stratovolcanoes:** 2 to 4 km high, a quarter more in the sea, built from the foot of the ridge of the arc; a radius of 4,5 to 7,5 times the height; a crater of 0,4 to 1,1 km; 12 % collapsed into a caldera of 4 to 10 km (Crater Lake); a third with cones on their sides.
+- **Behind the arc, on a continent:** fields of cones on a low shield of flows, all 180 to 300 km, to 110 km from the front (the field of Michoacán-Guanajuato).
 
-**Les rifts continentaux,** à moins de 60 km de leur axe, tous les 70 à 150 km : stratovolcans jusqu'à 4,5 km (le Kilimandjaro), boucliers, calderas (Menengai), chacun dans un champ de cônes.
+**Continental rifts,** within 60 km of their axis, all 70 to 150 km: stratovolcanoes up to 4,5 km (Kilimanjaro), shields, calderas (Menengai), each in a field of cones.
 
-**Les points chauds :** 8 à 16 panaches fixes dans le manteau, les plaques en mouvement au-dessus (Wilson 1963, Morgan 1971).
-- **La chaîne :** un volcan tous les 40 à 90 km en mer, 120 à 200 km sur un continent ; le point formé il y a t Ma au-dessus du panache est aujourd'hui tourné autour du pôle d'Euler de sa plaque.
-- **Elle s'arrête** à la frontière de la plaque, là où la croûte est plus jeune que le volcan, ou à la tête du panache, 30 à 130 Ma.
-- **La tête du panache :** des traps sur un continent (le Deccan), un plateau océanique en mer (Ontong Java).
+**Hot spots:** 8 to 16 fixed plumes in the mantle, plates moving above (Wilson 1963, Morgan 1971).
+- **The chain:** a volcano all 40 to 90 km in sea, 120 to 200 km on a continent; the point formed there t Ma above the plume is now turned around the Euler pole of its plate.
+- **It stops** at the plate boundary, where the crust is younger than the volcano, or at the head of the plume, 30 to 130 Ma.
+- **The head of the plume:** traps on a continent (the Deccan), an oceanic shelf at sea (Ontong Java).
 
-**En mer, les boucliers :**
-- **4 à 9 km au-dessus du fond,** la plupart de faibles points chauds, donc des monts sous-marins ; un rayon de 7 à 10 fois la hauteur ; leur sommet à 4,5 km au-dessus de la mer au plus (Mauna Loa, Mauna Kea).
-- **Le plus jeune** avec sa caldeira sommitale et ses cônes.
-- **L'affaissement :** la houle du panache qui décroît et la plaque qui refroidit, 1 000 (1 − e^(−t/15)) + 6 t m, environ 1 km en 30 Ma.
-- **L'arasement :** une île est usée par les vagues, son sommet à H e^(−t/4) au-dessus de la mer d'alors, puis il s'enfonce : un guyot.
-- **Le récif, sous les tropiques, à moins de 26° :** sept fois sur dix, il s'installe sur la plate-forme usée de l'île, la moitié du rayon de son rivage à 1,5 Ma, et suit le niveau de la mer pendant qu'elle s'enfonce : un récif-barrière, puis un atoll (Darwin 1842).
+**At sea, shields:**
+- **4 to 9 km above the bottom,** most of them weak hot spots, therefore seamounts; a radius of 7 to 10 times the height; their summit at 4,5 km above the sea at most (Mauna Loa, Mauna Kea).
+- **The youngest** with its summit caldera and cones.
+- **The subsidence:** the plume swell decreasing and the plate cooling, 1 000 (1 − e^(−t/15)) + 6 t m, about 1 km in 30 Ma.
+- **The rasement:** an island is worn by the waves, its summit at H e^(−t/4) above the sea then, then it sinks: a guyot.
+- **The reef, in the tropics, within 26°:** seven times out of ten, it settles on the worn platform of the island, half the radius of its shore at 1,5 Ma, and follows the sea level as it sinks: a barrier reef, then an atoll (Darwin 1842).
 
-**Sur un continent,** une caldeira tous les 120 à 200 km pendant 15 Ma (de la plaine de la Snake River à Yellowstone) : un dôme bas de 40 à 70 km, une caldeira de 10 à 25 km.
+**On a continent,** a caldera every 120 to 200 km during 15 Ma (from the plain of the Snake River to Yellowstone): a low dome of 40 to 70 km, a caldera of 10 to 25 km.
 
-**Dans les champs de la carte,** avant leur lissage :
-- **La houle du panache** autour de la jeune chaîne : 0,6 à 1,3 km sur 380 km de part et d'autre, décroissant en 10 Ma ; 60 % sous un continent.
-- **Les traps :** 300 à 700 km de rayon, 0,8 à 1,6 km de haut, usés en 200 Ma ; leur bord en escarpement ; leurs strates en marches, les mesas des plates-formes (`Relief.hlsli`).
-- **Le plateau océanique :** un dôme de 1,5 à 2,5 km, 300 à 600 km de rayon.
-- **La roche volcanique** autour de chaque volcan et sur les traps : la classe et l'érodabilité, 0,6.
+**In the fields of the map,** before smoothing them:
+- **The plume swell** around the young chain: 0,6 to 1,3 km on 380 km on both sides, decreasing in 10 Ma; 60 % under a continent.
+- **Traps:** 300 to 700 km radius, 0,8 to 1,6 km high, worn in 200 Ma; their edge in steep; their strata in steps, the mesas of the platforms (`Relief.hlsli`).
+- **The ocean shelf:** a dome of 1,5 to 2,5 km, 300 to 600 km radius.
+- **The volcanic rock** around each volcano and on the traps: the class and erodibility, 0,6.
 
-**Où se pose chaque volcan :** là où la carte porte sa forme, ramené par le gauchissement de la lecture de la carte (`RlTurbulence`, porté en C++). Il tombe sur la forme telle que le shader la dessine ; sans cela, jusqu'à 30 km d'écart avec la ride de l'arc ou le graben (`principes.md`).
+**Where each volcano falls:** where the map bears its shape, brought back by the left-handed reading of the map (`RlTurbulence`, ported in C++). It falls on the shape as the shader draws it; without it, up to 30 km of deviation with the arc ridge or graben (`principes.md`).
 
-**L'index :** un cube de 64² cellules par face ; chaque cellule liste les volcans à portée, 1,65 fois leur rayon et 80 km au moins. Un tableau unique : la position de la liste de chaque cellule, puis les numéros.
+**The index:** a cube of 64² cells per face; each cell lists volcanoes at range, 1,65 times their radius and 80 km at least. A single table: the position of the list of each cell, then the numbers.
 
-## Les édifices, `Volcanoes.hlsli`
+## Buildings, `Volcanoes.hlsli`
 
-**Le shader lit la cellule du point, évalue ses volcans.** Deux structures, `t21` et `t22`, dans la table de la carte tectonique.
+**The shader reads the dot cell, evaluates its volcanoes.** Two structures, `t21` and `t22`, in the tectonic map table.
 
-| Forme | Profil | Source |
+| Forme | Profile | Source |
 |---|---|---|
-| Stratovolcan | flancs concaves, e^(−3x), un tablier jusqu'à 1,3 rayon | Karátson et al. 2010 |
-| Bouclier | presque droit du fond à son large sommet plat, 1 − x^1,3 ; son pied fondu sur les 40 % extérieurs | Mauna Loa |
-| Contour | allongé selon une direction tirée, jusqu'à 10 % du rayon pour un stratovolcan, 35 % pour un bouclier ; lobé et anguleux, deux octaves d'un bruit sur le cercle, 12 % à un écart-type ; 30 % au plus : zones de rift, coulées, effondrements. Le cratère, l'arasement et le récif le suivent | Hawaï |
-| Cratère | l'édifice tiré vers un fond, H profil(cratère) − profondeur ; une cuvette, (1 − u²)² | — |
-| Caldeira | un fond plat entre des murs raides, 1 − u⁸, au-delà de 0,8 à 2,5 km de rayon | Crater Lake |
-| Coulées | des langues de 1,5 km de large à mi-rayon, deux fois plus sur un bouclier, étirées le long de la pente ; 40 m d'épaisseur sur un stratovolcan, 15 sur un bouclier, jeunes ; elles partent du tiers du rayon, couvrent la moitié du flanc, puis quelques longues atteignent le pied | — |
-| Cônes | scories, une maille de 2,5 km, 0,25 à 0,75 km de rayon, hauts du quart, un cratère de 0,4 rayon | Wood 1980 |
-| Guyot | le sommet arasé à son niveau, plat sous la mer, arrondi au-dessus | — |
-| Récif, atoll | posé sur le contour de l'édifice, au niveau de l'ancien rivage, plus des éperons et des baies de quelques centaines de mètres ; un platier à −1,5 m, de 0,25 à 0,8 km, rongé, plus large au vent, l'est des alizés ; des motus séparés à +3 m, de 150 à 500 m de large, un tiers du platier au vent, un huitième sous le vent ; des passes de 8 m, surtout sous le vent ; un lagon à −12 m, 30 % plus ou moins profond par taches | Darwin 1842 |
+| Stratovolcano | Concave sides, e^(−3x), a apron up to 1,3 radius | Karátson et al. 2010 |
+| Shield | almost straight from the bottom to its wide flat top, 1 − x^1,3; its foot melted on the 40 % outside | Mauna Loa |
+| Contour | elongated in a drawn direction, up to 10 % of the radius for a stratovolcano, 35 % for a shield; lobed and angular, two octaves of a noise on the circle, 12 % to a standard deviation; 30 % at most: rift zones, flows, collapses. The crater, the terrain and the reef follow it | Hawaii |
+| Crater | the building drawn to a bottom, H profile (crater) − depth; a bowl, (1 − u²)² | — |
+| Caldeira | a flat bottom between steep walls, 1 − u⁸, beyond 0,8 to 2,5 km radius | Crater Lake |
+| Coulées | tongues of 1,5 km wide at half radius, twice as much on a shield, stretched along the slope; 40 m thick on a stratovolcano, 15 on a shield, young; they start from the third of the radius, cover half the flank, then some long reach the foot | — |
+| Cones | scories, a grid cell of 2,5 km, 0,25 to 0,75 km radius, quarter highs, a crater of 0,4 radius | Wood 1980 |
+| Guyot | the summit leveled at its level, flat under the sea, rounded above | — |
+| Reef, atoll | laid on the contour of the building, at the level of the old shore, plus spurs and bays of a few hundred meters; a plateau at −1,5 m, from 0,25 to 0,8 km, eroded, wider windward, east of the trade winds; motus separated at +3 m, from 150 to 500 m wide, a third of the plateau windward, an eighth leeward; passes of 8 m, especially leeward; a lagoon at −12 m, 30 % more or less deep by spots | Darwin 1842 |
 
-- **Les coulées en polaire :** (k cos a, k sin a, r / long), un cercle en travers, étiré le long de la pente, gauchi par un bruit plus large pour qu'elles serpentent. Leur moyenne est l'édifice même : les langues au-dessus, le sol entre elles en dessous. Sans cela, un anneau marquait leur départ.
-- **Plusieurs volcans se combinent en maximum lissé,** (Σ e⁴)^¼, comme les chaînes de la carte ; le fond d'une caldeira sous le sol alentour, le plus bas ; les cônes en plus.
-- **Le détail calmé sur les flancs jeunes :** jusqu'à 80 % du relief laissé au bruit, sinon une cordillère froisse le cône.
-- **Après le détail :** l'arasement, le récif et le lagon du volcan qui domine le point.
-- **Le récif suit l'édifice qu'il couronne :** le même contour, lu au niveau de l'ancien rivage ; un récif-barrière, un atoll et un guyot n'ont donc jamais d'autre forme que leur volcan. Avant le 2026-10-31 au soir, un cercle bruité à part et un platier de largeur constante, à +0,5 m : la houle le découvrait, une bande de plage continue.
-- **Tout profil sur deux mailles au moins :** l'édifice, le cratère et les cônes plus larges et plus bas d'autant, leur volume gardé ; les coulées et les cônes remplacés par leur moyenne là où la maille ne les porte pas.
+- **The fleece flows:** (k cos a, k sin a, r / long), a circle across, stretched along the slope, left by a wider noise so that they serpentine. Their average is the building itself: the tongues above, the ground between them below. Without it, a ring marked their departure.
+- **Several volcanoes combine in smoothed maximum,** (Σ e⁴)^Z¼, like the chains of the map; the bottom of a caldera under the ground around, the lowest; the cones in addition.
+- **The calm detail on the young flanks:** up to 80 % of the relief left at noise, otherwise a cordillera wrinkles the cone.
+- **After the detail:** the arasement, the reef and the lagoon of the volcano that dominates the point.
+- **The reef follows the building it crowns:** the same outline, read at the level of the old shore; a barrier reef, an atoll and a guyot therefore never have another shape than their volcano. Before the 2026-10-31 in the evening, a circle noise apart and a plateau of constant width, at +0,5 m: the swell discovered it, a strip of beach continuous.
+- **Any profile on two grid cells at least:** the building, the crater and the cones wider and lower so, their volume kept; the flows and cones replaced by their average where the grid cell does not bear them.
 
-**Où est l'appel :** `ReliefElevation`, après les côtes et avant le détail, puis `VolcanoFinish` après les cordons des côtes. Les réglages : `VOLCANO_*` dans `PlanetSettings.hlsli`.
+**Where is the call:** `ReliefElevation`, after the ribs and before the detail, then `VolcanoFinish` after the rib cords. The settings: `VOLCANO_*` in `PlanetSettings.hlsli`.
 
-## Les matériaux
+## The materials used
 
-**Le sol volcanique frais, `gVolcanic`, de 0 à 1 :** le cône de cendres et de scories d'un stratovolcan, le sommet d'un bouclier, les coulées, les cônes ; pondéré par la fraîcheur, e^(−t/3) sur une chaîne.
-- **Le chemin :** il remplace le champ `relief` inutilisé de `FaceVertex`, devenu `volcanic`, puis `geology.w` jusqu'au pixel.
-- **La roche :** le basalte, la plus sombre de la palette (`RockColor`).
-- **Le sol :** cendres et scories, réflectance 0,07, sur 85 % du sol ; les plages noires.
+**The fresh volcanic soil, `gVolcanic`, from 0 to 1:** the cone of ash and slag of a stratovolcano, the top of a shield, the flows, the cones; weighted by freshness, e^(−t/3) on a chain.
+- **The path:** it replaces the `relief` field unused from `FaceVertex`, which became `volcanic`, then `geology.w` up to the pixel.
+- **The rock:** the basalt, the darkest of the palette (`RockColor`).
+- **Soil:** ash and slag, reflectance 0,07, on 85 % of soil; black beaches.
 
-## Le portage CPU
+## The port CPU
 
-**`tools/hydro/cp.py` lit `x64/Release/volcans-<graine>.bin`,** écrit par le moteur à chaque démarrage, en-tête `EXOVOLC1` ; `EXOLUNE_VOLCANS` donne un autre chemin. `volcano_edifices` et `volcano_finish` suivent le shader ; `elevation(..., extra=True)` donne aussi `volcanoes` et `volcanic`.
+**`tools/hydro/cp.py` reads `x64/Release/volcans-<graine>.bin`,** written by the engine on each startup, header `EXOVOLC1`; `EXOLUNE_VOLCANS` gives another path. `volcano_edifices` and `volcano_finish` follow the shader; `elevation(..., extra=True)` also gives `volcanoes` and `volcanic`.
 
-**L'écart au moteur :**
-- **Contre la carte de la planète,** 200 texels sur des volcans, mailles de 12 km : 0,4 cm en médiane, 6 cm au plus.
-- **Au sol sous la caméra,** 33 points sur des volcans, mailles fines : 7,9 cm en médiane, 0,9 m au plus, depuis la correction de `bruit-propre` (`d304da0`) et les cônes en doubles. L'écart suit la pente, le moteur donnant sa position au décimètre ; avant elles, 11 cm, 6 sur sol doux et 13 sur les flancs, contre 4 et 43 cm pour le relief seul loin des volcans.
-- **Les cônes se placent en doubles :** à 120 km du sommet d'un bouclier, une position en float avance par pas de 8 mm, et le flanc d'un cône en escalier (`principes.md`, la précision de l'échelle où une grandeur sert).
+**The gap to the engine:**
+- **Against the map of the planet,** 200 texels on volcanoes, grid cells of 12 km: 0,4 cm in median, 6 cm at most.
+- **On the ground under the camera,** 33 points on volcanoes, grid cells fine: 7,9 cm in median, 0,9 m at most, since the correction of `bruit-propre` (`d304da0`) and cones in double precision. The gap follows the slope, the engine giving its position to the decimeter; before them, 11 cm, 6 on soft ground and 13 on the sides, against 4 and 43 cm for the relief only away from the volcanoes.
+- **The cones are placed in double precision:** at 120 km from the top of a shield, a float position advances by steps of 8 mm, and the side of a cone in stairs (`principes.md`, the precision of the scale where a quantity serves).
 
-## Les mesures
+## Measures
 
-**Graine 0 :** 1 113 volcans, 15 points chauds ; 697 stratovolcans, 352 boucliers, 163 calderas, 532 champs de cônes, 75 champs d'arrière-arc ; 26 atolls, 3 récifs-barrières, 113 guyots. Graines 1 et 2 : 1 060 et 1 041 volcans, 10 points chauds.
+**Seed 0:** 1 113 volcanoes, 15 hot spots; 697 stratovolcanoes, 352 shields, 163 calderas, 532 cone fields, 75 back arc fields; 26 atolls, 3 barrier reefs, 113 guyots. Seeds 1 and 2: 1 060 and 1 041 volcanoes, 10 hot spots.
 
-| Mesure | Avec | Sans | |
+| Measure | With | Sans |  |
 |---|---|---|---|
-| Démarrage, le volcanisme | 60 à 77 ms | — | sur 1,0 à 1,3 s de carte, machine chargée par d'autres sessions |
-| Mémoire GPU | +0,18 Mo | 38 Mo | la liste et l'index |
-| Calcul du terrain en mouvement, lieux volcaniques | 0,20 à 0,65 ms | 0,19 à 0,54 ms | +0,02 à +0,12 ms ; GPU partagé, au bruit près ailleurs |
-| Terres, graines 0, 1, 2 | 32,8, 34,3, 30,7 % | 32,6 % ; 34,0 et 30,5 % | portage, 400 000 points, mailles de 2 km |
-| Médiane des terres, graine 0 | 388 m | 380 m | |
-| Modes, graine 0 | +375 m, −4 525 m | +375 m, −4 525 m | bimodale |
-| Médiane des océans, graine 0 | −4 430 m | −4 450 m | la houle et les plateaux |
-| Au-dessus de 3 km, graine 0 | 2,03 % | 1,99 % | |
-| Sous un édifice de plus de 10 m | 0,5 à 0,6 % de la surface | — | |
+| Startup, volcanism | 60 to 77 ms | — | on 1,0 to 1,3 s of card, machine loaded by other sessions |
+| Memory GPU | +0,18 MB | 38 MB | the list and the index |
+| Calculation of moving terrain, volcanic sites | 0,20 to 0,65 ms | 0,19 to 0,54 ms | +0,02 to +0,12 ms; GPU shared, to noise near elsewhere |
+| Soils, seeds 0, 1, 2 | 32,8, 34,3, 30,7 % | 32,6 %; 34,0 and 30,5 % | port, 400 000 points, grid cells of 2 km |
+| Median land, seed 0 | 388 m | 380 m |  |
+| Modes, seed 0 | +375 m, −4 525 m | +375 m, −4 525 m | bimodal |
+| Median of oceans, seed 0 | −4 430 m | −4 450 m | the swell and the plateaus |
+| Above 3 km, seed 0 | 2,03 % | 1,99 % |  |
+| Under a building of more than 10 m | 0,5 to 0,6 % of area | — |  |
 
-- **Le calcul sans édifices :** `VolcanoEdifices` coupé à sa source, le temps et le reste égaux ; les terres sans volcanisme, la carte de `bruit-propre`.
-- **Les graines 1 et 2 :** leurs cartes calculées par `Tectonics.cpp` hors du moteur, un petit programme de la session ; le même fichier que le moteur pour la graine 0, au bit près.
-- **Le pic de mémoire du calcul** ne change pas : quelques mégaoctets de plus.
+- **The calculation without buildings:** `VolcanoEdifices` cut at its source, time and rest equal; the lands without volcanism, the map of `bruit-propre`.
+- **The seeds 1 and 2:** their maps calculated by `Tectonics.cpp` out of the engine, a small session program; the same file as the engine for the seed 0, bit close.
+- **The memory peak of the calculation** does not change: a few megabytes more.
 
-**Le jeu de vérification :** la compilation sans erreur ni avertissement nouveau ; `tools/tests/2026-10-31-volcanisme.txt` ; la planche `volcanisme_planche.jpg` dans les notes des sessions ; le relief ombré du portage autour d'un volcan d'arc, ses coulées et ses cônes.
+**The check set:** the compilation without error or warning new; `tools/tests/2026-10-31-volcanisme.txt`; the `volcanisme_planche.jpg` board in the session notes; the shaded relief of the port around an arc volcano, its flows and its cones.
 
-## Les défauts connus
+## Known defects
 
-- **Les cônes et les coulées se voient mal en lumière de face :** quelques dizaines de mètres sur un flanc boisé. Ils se jugent en lumière rasante, ou par le relief ombré du portage.
-- **Les îles hautes des tropiques paraissent pâles d'orbite :** le climat du sol, pas le volcanisme.
-- **Les arcs insulaires :** près d'un tiers de leurs volcans reste sous la mer, la ride de l'arc vers −1,5 km ; des monts sous-marins d'arc, comme aux Izu-Bonin.
-- **Les motus restent en sable nu près de l'eau :** la plage est une bande d'altitude, de 5 à 25 m (`Materials.hlsli`) ; quelques palmiers seulement, là où la végétation les admet. Une plage par la distance au rivage, une règle des matériaux, les couvrirait de végétation.
-- **Les petits cailloux posés** gardent la couleur de la roche régionale, pas celle du basalte (`ObjectPlacement.hlsl`).
-- **Les coulées fraîches portent encore la végétation du climat :** la carte des plantes ne lit pas `gVolcanic`.
-- **Pas de lacs de caldeira propres :** l'eau vient de la carte de la planète, qui remplit les cuvettes à sa maille.
-- **Pas encore de collines abyssales orientées par l'âge,** ni de monts sous-marins hors des chaînes.
+- **The cones and the flows are hard to see in front light:** a few tens of meters on a wooded flank. They are judged in racing light, or by the shaded relief of the port.
+- **The high islands of the tropics appear pale from orbit:** the climate of the ground, not volcanism.
+- **The island arcs:** near a third of their volcanoes remain under the sea, the ridge of the arc towards −1,5 km; of the underwater arc mountains, as to the Izu-Bonin.
+- **Motus remain in bare sand near the water:** the beach is a band of altitude, from 5 to 25 m (`Materials.hlsli`); only a few palm trees, where the vegetation admits them. A beach by the distance to the shore, a rule of materials, would cover them with vegetation.
+- **The small pebbles laid** keep the color of the regional rock, not that of the basalt (`ObjectPlacement.hlsl`).
+- **The fresh flows still carry the vegetation of the climate:** the plant map does not read `gVolcanic`.
+- **No clean caldera lakes:** water comes from the planet map, which fills the bowls at its grid cell.
+- **No age-oriented abyssal hills yet,** nor seamounts out of the chains.
 
-## Les suites
+## The suites
 
-- **L'érosion,** sur `erosion-niveaux` : creuser les édifices, ravines rayonnantes et barrancos ; les îles anciennes en amphithéâtres.
-- **Les plantes sur les coulées fraîches :** `gVolcanic` dans le placement et la canopée, ensemble, pour qu'un lieu reste le même de loin et de près.
-- **Les monts sous-marins isolés et les collines abyssales,** le reste de l'étape 5.
+- **The erosion,** on `erosion-niveaux`: digging the buildings, radiating ravines and barrancos; the ancient islands in amphitheatres.
+- **The plants on the fresh streams:** `gVolcanic` in the placement and the canopy, together, so that a place remains the same from far and near.
+- **The isolated seamounts and abyssal hills,** the rest of the 5 stage.

@@ -1,18 +1,18 @@
-# Le volcanisme (docs/spec-volcanisme.md) : arcs, points chauds et leurs chaînes, atolls, guyots, calderas, coulées, cônes, traps. Juger chaque édifice comme un volcanologue et comme un joueur : aucun cercle parfait, aucun anneau ni marche sur les flancs, aucun cône qui apparaît en approchant ; des îles d'arc en chapelet, des atolls turquoise. Altitudes au-dessus de la mer ; lieux de la graine 0 ; N coupe les nuages.
-Arc insulaire depuis 1 000 km : un chapelet d'îles le long de la fosse | 1000000 -17.5 -140 90 0 | -17 -95
-Le même arc depuis 400 km : îles lobées, sommets sombres de cendres | 400000 -17.6 -141 90 0 | -17 -95
-Chaîne de point chaud depuis 700 km : île active, îles usées, récifs-barrières, atolls | 700000 5.4 -115.8 90 0 | 5 -70
-L'île active depuis 120 km : un bouclier lobé, sa caldeira sommitale | 120000 7.9 -118.3 90 0 | 8 -75
-Les coulées du bouclier actif, basaltes sombres, depuis 1 km | 4060 8.12 -118.85 20 295 | 8 -60
-Un atoll depuis 25 km : lagon turquoise, platier, passes | 25000 5.593 -115.057 90 0 | 5 -75
-Le platier de l'atoll et un motu, au ras de l'eau | 300 5.47 -115.057 5 0 | 5 -75
-Les guyots d'une chaîne australe, sommets plats sous la mer, vue relief | 400000 -45.5 150.8 80 0 relief | -40 170
-Stratovolcan insulaire depuis 30 km : profil concave | 1500 11.41 -51.42 3 0 | 11 -5
-Le même à 2 km du sommet : cratère, cendres sombres | 3333 11.662 -51.42 8 0 | 11 -5
-Cordillère volcanique depuis 30 km, sommet vers 7,3 km | 7028 -6.77 124.354 4 0 | -6 170
-La même cordillère depuis 300 km : volcans en chaîne sur la crête | 300000 -6.6 124.5 90 0 | -6 170
-Caldeira d'un arc insulaire depuis 10 km : murs raides, fond plat | 6140 9.25 -50.04 25 0 | 9 -10
-Cônes et coulées sur les flancs d'un volcan d'arc | 3000 -20.38 -143.681 30 0 | -20 -75
-Traps d'une province basaltique, en marches, depuis 3 km | 3640 23.0 -146.0 15 0 | 23 -110
-Les mêmes traps depuis 400 km | 400000 23.0 -146.0 90 0 | 23 -110
-Caldeira de point chaud continental et sa traînée, depuis 150 km | 150000 41.81 77.28 90 0 | 41 125
+# Volcanism (docs/spec-volcanisme.md): arcs, hot spots and their chains, atolls, guyots, calderas, flows, cones, traps. Judge each building as a volcanologue and as a player: no perfect circle, no ring or steps on the sides, no cone that appears as you approach; rainbow islands in rosary, turquoise atolls. Altitudes above sea level; places of seed 0; N cuts clouds.
+Island arc from 1 000 km: a rosary of islands along the pit | 1000000 -17.5 -140 90 0 | -17 -95
+The same arc from 400 km: lobed islands, dark ash peaks | 400000 -17.6 -141 90 0 | -17 -95
+Hot spot chain from 700 km: active island, waste islands, barrier reefs, atolls | 700000 5.4 -115.8 90 0 | 5 -70
+The island active since 120 km: a lobed shield, its summit caldera | 120000 7.9 -118.3 90 0 | 8 -75
+The flows of the active shield, dark basalts, since 1 km | 4060 8.12 -118.85 20 295 | 8 -60
+An atoll from 25 km: turquoise lagoon, plateau, passes | 25000 5.593 -115.057 90 0 | 5 -75
+The plateau of the atoll and a motu, at the water level | 300 5.47 -115.057 5 0 | 5 -75
+Guyots of a southern chain, flat peaks under the sea, relief view | 400000 -45.5 150.8 80 0 relief | -40 170
+Stratovolcano island from 30 km: concave profile | 1500 11.41 -51.42 3 0 | 11 -5
+The same at 2 km from the summit: crater, dark ash | 3333 11.662 -51.42 8 0 | 11 -5
+Volcanic range from 30 km, summit to 7,3 km | 7028 -6.77 124.354 4 0 | -6 170
+The same mountain range from 300 km: chain volcanoes on the ridge | 300000 -6.6 124.5 90 0 | -6 170
+Caldeira of an island arc from 10 km: steep walls, flat bottom | 6140 9.25 -50.04 25 0 | 9 -10
+Cones and flows on the sides of an arc volcano | 3000 -20.38 -143.681 30 0 | -20 -75
+Traps of a basaltic province, in steps, from 3 km | 3640 23.0 -146.0 15 0 | 23 -110
+The same traps since 400 km | 400000 23.0 -146.0 90 0 | 23 -110
+Caldeira of continental hot spot and its trail, from 150 km | 150000 41.81 77.28 90 0 | 41 125

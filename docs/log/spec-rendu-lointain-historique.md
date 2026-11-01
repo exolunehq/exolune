@@ -1,6 +1,6 @@
-# Historique du rendu lointain
+# History of distant rendering
 
-**Les correctifs de la passe de relief des matériaux,** sortis de `../spec-rendu-lointain.md`, « Corrections faites en chemin », le 2026-10-30, quand la passe a quitté le moteur, commit `3a4508a`. Elle reste au tag `piste/parois-gradins`, où elle est active ; sa spec est `spec-relief-reel.md`. L'état présent est dans `../spec-rendu-lointain.md`.
+**The corrections of the material relief pass,** released from `../spec-rendu-lointain.md`, “Corrections made on the way”, the 2026-10-30, when the pass left the engine, commit `3a4508a`. It remains on the `piste/parois-gradins` tag, where it is active; its spec is `spec-relief-reel.md`. The present state is in `../spec-rendu-lointain.md`.
 
-- **Ailerons dans les éboulis, de près :** dans la passe de relief, la normale entre voisins immédiats variait d'un sommet à l'autre, et les choix qu'elle commande, roche ou non et plan de projection, faisaient sauter le relief d'un mètre. La passe prend maintenant la normale sur quatre mailles de chaque côté. Pas reproduit sur nos sites : à vérifier en vol.
-- **Relief des sommets plus loin :** il est porté jusqu'aux mailles de 8 m, au lieu de 1 m, pour que corniches et couloirs apparaissent plus tôt à l'approche. Coût et tremblement inchangés.
+- **Finners in the scree, close up:** in the relief pass, the normal between immediate neighbors varied from one summit to another, and the choices that it commands, rock or not and projection plane, made the relief jump by a meter. The pass now takes the normal on four grid cells on each side. Not reproduced on our sites: to be checked in flight.
+- **Relief of the summits further:** it is brought up to the grid cells of 8 m, instead of 1 m, so that cornices and corridors appear earlier on approach. Cost and jitter unchanged.

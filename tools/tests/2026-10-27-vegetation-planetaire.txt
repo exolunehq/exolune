@@ -1,14 +1,14 @@
-# Végétation planétaire : positions reprises des palettes du 25 octobre 2026.
-# libellé | altitude absolue (m) latitude longitude inclinaison cap | latitude longitude du soleil
-Forêt tempérée à 150 m | 730.8 30.37000 120.53000 20.0 0.0 | 20 140
-Forêt tempérée à 400 m : vue lointaine | 980.8 30.37000 120.53000 6.0 0.0 | 20 140
-Dans la forêt tempérée, 2 m | 583.7 30.36948 120.52781 5.0 0.0 | 20 140
-Lisière tempérée, 2 m | 583.5 30.37000 120.53027 3.0 0.0 | 20 140
-Forêt boréale à 400 m : avancer vers l’est | 935.4 -49.63000 90.53000 8.0 90.0 | -30 100
-Forêt boréale à 150 m | 685.4 -49.63000 90.53000 20.0 0.0 | -30 100
-Dans la forêt boréale, 2 m | 539.8 -49.62900 90.52900 3.0 -60.0 | -30 100
-Forêt tropicale à 150 m | 463.9 0.37000 60.53000 15.0 0.0 | 10 80
-Forêt tropicale à 100 m | 413.9 0.37000 60.53000 20.0 0.0 | 10 80
-Clairière tropicale, 2 m | 324.7 0.37288 60.53092 3.0 0.0 | 10 80
-Savane à 100 m | 462.6 10.37000 -119.47000 15.0 0.0 | 15 -100
-Savane au sol : silhouettes et arbustes (vue signalée) | 364.2 10.37168 -119.46971 1.1 89.2 | 15 -100
+# Planetary vegetation: positions taken from the pallets of October 25 2026.
+# label | absolute altitude (m) latitude longitude inclination cap | latitude longitude of the sun
+Temperature in Temperate forest at 150 m | 730.8 30.37000 120.53000 20.0 0.0 | 20 140
+Temperature forest at 400 m: distant view | 980.8 30.37000 120.53000 6.0 0.0 | 20 140
+In the temperate forest, 2 m | 583.7 30.36948 120.52781 5.0 0.0 | 20 140
+Tempered edge, 2 m | 583.5 30.37000 120.53027 3.0 0.0 | 20 140
+Boreal Forest at 400 m: move east | 935.4 -49.63000 90.53000 8.0 90.0 | -30 100
+Boreal forest at 150 m | 685.4 -49.63000 90.53000 20.0 0.0 | -30 100
+In the boreal forest, 2 m | 539.8 -49.62900 90.52900 3.0 -60.0 | -30 100
+Rainforest at 150 m | 463.9 0.37000 60.53000 15.0 0.0 | 10 80
+Rainforest at 100 m | 413.9 0.37000 60.53000 20.0 0.0 | 10 80
+Tropical clearing, 2 m | 324.7 0.37288 60.53092 3.0 0.0 | 10 80
+Savannah at 100 m | 462.6 10.37000 -119.47000 15.0 0.0 | 15 -100
+Savannah on the ground: silhouettes and shrubs (signposted view) | 364.2 10.37168 -119.46971 1.1 89.2 | 15 -100

@@ -1,55 +1,55 @@
-# Cirrus : premiers essais locaux
+# Cirrus: first local tests
 
-**Retour utilisateur, 27 octobre 2026 :** rendu inférieur au cumulus et à la nappe validés. Fibres trop larges, bords communs trop nets : les captures à33 km montrent une enveloppe qui coupe les ondulations. L’utilisateur demande de réunir les trois familles et de conserver une atténuation en traînées.
+**User feedback, 27 October 2026:** rendered lower than the validated cumulus and blanket. Fibers too wide, common edges too sharp: captures at 33 km show an envelope that cuts the waves. The user requests to reunite the three families and maintain a trail attenuation.
 
-**Notice de livraison du premier essai, conservée pour mémoire :**
+**Delivery notice of the first test, kept for record:**
 
-# Cirrus locaux
+# Local cirrus
 
-**État, 27 octobre 2026 :** premier essai prêt pour le vol. Rendu, opacité et coupe compilés ; quatre captures initiales puis deux captures après correction inspectées. Le rendu et la stabilité à l'approche du cumulus et de la nappe de référence sont validés en vol par l'utilisateur ; ceux des cirrus restent à juger.
+**State, 27 October 2026:** First test ready for flight. Rendering, opacity and cut compiled; four initial captures and two after-correcting captures inspected. The rendering and stability at the approach of the cumulus and the reference sheet are validated in flight by the user; those of cirrus remain to be judged.
 
-**Lancer :**
+**Launcher:**
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/nuages-frostbite-cirrus.ps1
 ```
 
-- F1 : dessous ; F2–F4 : ensemble, approche et traversée ; F5 : dessus ; F6–F7 : distance ; F8 : soleil bas ; F9 : dessous depuis l'est.
-- B : opacité ; C : qualité48/24 m ; Espace : pause météo, activée par défaut.
-- `-Temoin` ouvre le cumulus et la nappe validés, avec leur palette et leurs quatre assets figés ; aucune reconstruction des données du témoin.
-- `-Vue Opacite` : diagnostic3D ; `-Vue Densite` : coupe2D fixe Est/altitude0–16 km, densité normalisée par0,022.
-- `-Build -NoLaunch -Vue Rendu`, `Opacite` ou `Densite` recompile la variante isolée choisie.
+- F1: below; F2–F4: together, approach and crossing; F5: above; F6–F7: distance; F8: sunset; F9: below from the east.
+- B: opacity; C: qualité48/24 m; Space: weather pause, enabled by default.
+- `-Temoin` opens the validated cumulus and layer, with their palette and four assets frozen; no reconstruction of the witness data.
+- `-Vue Opacite`: diagnostic3D; `-Vue Densite`: fixed2D cut Est/altitude0-16 km, density normalized by0,022.
+- `-Build -NoLaunch -Vue Rendu`, `Opacite` or `Densite` recompiles the selected isolated variant.
 
-**Objectif :** ajouter des nuages hauts fibreux et peu opaques, à juger de dessous, de côté, en traversée et de dessus.
+**Objective:** add high clouds fibrous and little opaque, to be judged from below, side, cross and above.
 
-- Le champ reste fixé au monde à météo figée.
-- Une enveloppe d'altitude continue éteint la densité avant les bornes de parcours.
-- Les fibres ont leur propre champ3D ; elles ne viennent pas d'un profil de cumulus déplacé en altitude.
-- La scène locale est dessinée pour comparer les formes ; elle ne représente pas encore une distribution météorologique planétaire.
-- Les vérifications en vol appartiennent à l'utilisateur ; captures cachées courtes avant remise en main.
+- The field remains fixed to the world with frozen weather.
+- A continuous altitude envelope extinguishes density before the path markers.
+- The fibers have their own 3D field; they do not come from a cumulus profile moved in altitude.
+- The local scene is drawn to compare the shapes; it does not yet represent a planetary weather distribution.
+- Flight checks belong to the user; short hidden captures before return in main.
 
-**Réglages explicites de cet essai :**
+**Explicit settings of this test:**
 
-- Bruit128³ auteur : deux champs gaussiens filtrés par FFT, corrélations Est6/3,5 km, Nord0,75/0,40 km, vertical0,25/0,15 km ; poids0,55/0,45.
-- Domaine fixe Est64/Nord32/vertical8 km ; fibres façonnées au mip0 avant les moyennes3D.
-- Centre vers11 km, variation douce maximale±0,35 km ; épaisseur totale0,7–1,2 km, éteinte bien avant la coquille9–13 km.
-- Cisaillement Nord±0,8 km, période16 km Est et8 km en altitude ; ancrage mondial et continu.
-- Trois rubans météo à support compact ; emprise mesurée Est−28,625..25,625 km, Nord−12,875..12,875 km.
-- Densité maximale0,022, extinction80/km et intégration héritées de la référence.
-- Manifeste, empreintes et aperçus : `assets/frostbite-cirrus/scene-manifest.json` ; paramètres sources dans `tools/gen_frostbite_cirrus_scene.py`.
-- Exécutable natif V4 identique ; sorties `x64/NuageFrostbiteCirrusRendu/`, `NuageFrostbiteCirrusOpacite/`, `NuageFrostbiteCirrusDensite/`.
+- Noise128³ author: two Gaussian fields filtered by FFT, correlations Est6/3,5 km, North0,75/0,40 km, vertical0,25/0,15 km; weight0,55/0,45.
+- Fixed domain Est64/Nord32/vertical8 km; fibers shaped at mip0 before the 3D averages.
+- Center toward 11 km, maximum smooth variation±0,35 km; total thickness0,7–1,2 km, extinct well before shell9–13 km.
+- Shear North±0,8 km, period16 km East and 8 km in altitude; global and continuous anchorage.
+- Three weather tapes on compact support; measured holding East−28,625..25,625 km, North−12,875..12,875 km.
+- Maximum density0,022, extinction80/km and integration inherited from reference.
+- Manifest, footprints and previews: `assets/frostbite-cirrus/scene-manifest.json`; source parameters in `tools/gen_frostbite_cirrus_scene.py`.
+- Native executable V4 identical; outputs `x64/NuageFrostbiteCirrusRendu/`, `NuageFrostbiteCirrusOpacite/`, `NuageFrostbiteCirrusDensite/`.
 
-**Contrôle court :**
+**Short control:**
 
-- Trois variantes DXC compilées ; avertissement préexistant de décalage binaire dans `Materials.hlsli`.
-- Quatre vues initiales : dessous, côté, dessus,80 km ; correction du voile trop lisse et du support rectangulaire, puis deux vues finales dessous/80 km.
-- Captures et compte rendu : `x64/CirrusPreview/` ; premier jet dans `premier-jet/`.
-- Temps ponctuels nuages+air après correction :4,22 ms dessous,2,25 ms à80 km ; GPU partagé, aucun verdict de performance générale.
-- Le champ reste volontairement simple et lisse ; les captures ne valident ni le vol, ni la distribution planétaire, ni le rendu orbital.
-- Témoin complet, sources et assets de référence vérifiés inchangés.
+- Three DXC variants compiled; pre-existing binary shift warning in `Materials.hlsli`.
+- Four initial views: bottom, side, top,80 km; correction of the too smooth veil and the rectangular support, then two final views dessous/80 km.
+- Captures and report: `x64/CirrusPreview/`; first throw in `premier-jet/`.
+- Point times clouds+air after correction:4,22 ms below,2,25 ms at 80 km; GPU shared, no verdict of overall performance.
+- The field remains deliberately simple and smooth; the captures do not validate the flight, the planetary distribution, or the orbital rendering.
+- Full witness, sources and verified reference assets unchanged.
 
-**Témoin :** `x64/NuageFrostbiteReferenceTemoin/`, copie figée de l'exécutable, des shaders, des quatre assets et de la palette validés ; empreintes dans `witness.json`.
+**Witness:** `x64/NuageFrostbiteReferenceTemoin/`, frozen copy of executable, shaders, four assets and palette validated; printed in `witness.json`.
 
-**Mémoire pour la suite :** le 27 octobre 2026, l'utilisateur demande de conserver le cumulonimbus comme piste future. Prévoir des tours à forte extension verticale et des enclumes ; ce chantier vient après les formes locales courantes et ne fait pas partie du présent essai.
+**Memory for the following:** the 27 October 2026, the user requests to keep the cumulonimbus as experiment future. Provide high vertical extension towers and anvils; this work follows the locally common forms and is not part of this essay.
 
-**Références :** [familles locales guidées par Frostbite](spike-nuages-reference.md) ; [cirrus, Atlas international des nuages](https://cloudatlas.wmo.int/fr/clouds-genera-cirrus.html).
+**References:** [local families guided by Frostbite](spike-nuages-reference.md); [cirrus, International Cloud Atlas](https://cloudatlas.wmo.int/fr/clouds-genera-cirrus.html).

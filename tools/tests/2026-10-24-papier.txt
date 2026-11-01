@@ -1,11 +1,11 @@
-# Papier peint du 2026-10-24 : les parois de roche vues de 100 à 400 m, le même petit motif de la photo partout.
-# Deux photos du même marbre selon l'orientation, de face sur les parois, de dessus sur la roche douce ; les bandes de 8 à 64 m portent la pente de la photo.
-# libellé | altitude (m) latitude longitude inclinaison cap [| latitude longitude du soleil]
-Papier peint (1), roche dans l'ombre | 4363.2 16.26802 123.16025 23.7 -111.3
-Papier peint (2), sommet tapissé | 4376.2 16.42557 123.15934 7.3 63.0
-Papier peint (3), face entière, le pire | 2828.4 -0.03727 118.14886 -9.7 176.8
-Dallage : paroi à 68°, vue rasante de 32 m | 1758.2 0.00182 118.14986 -10.9 81.8
-Référence : falaise orange, à garder | 1022.9 -0.23076 118.41645 7.3 61.0
-Référence : roche sombre et herbe, à garder | 969.8 -0.23354 118.44158 4.2 -78.1
-Référence : gros plan « plutôt beau » | 2922.5 3.15497 110.91028 20.7 50.3
-Référence : butte grise, à garder | 487.8 -0.05421 112.67541 0.6 -25.5
+# Wallpaper of the 2026-10-24: the rock walls seen from 100 to 400 m, the same small pattern of the photo everywhere.
+# Two pictures of the same marble according to the orientation, from the face on the walls, from the top on the soft rock; the strips of 8 to 64 m bear the slope of the photo.
+# label | altitude (m) latitude longitude inclination cap [| latitude longitude of the sun]
+Wallpaper (1), rock in the shadow | 4363.2 16.26802 123.16025 23.7 -111.3
+Wallpaper (2), upholstered top | 4376.2 16.42557 123.15934 7.3 63.0
+Wallpaper (3), full face, worst | 2828.4 -0.03727 118.14886 -9.7 176.8
+Paving: wall at 68°, level view of 32 m | 1758.2 0.00182 118.14986 -10.9 81.8
+Reference: falaise orange, to keep | 1022.9 -0.23076 118.41645 7.3 61.0
+Reference: dark rock and grass, to keep | 969.8 -0.23354 118.44158 4.2 -78.1
+Reference: close-up "pretty nice" | 2922.5 3.15497 110.91028 20.7 50.3
+Reference: butte grise, to keep | 487.8 -0.05421 112.67541 0.6 -25.5

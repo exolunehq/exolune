@@ -1,419 +1,419 @@
-# Recherche : un relief planétaire tectonique pour Exolune
+# Research: a planetary tectonic relief for Exolune
 
-Statut : recherche du 2026-10-31. Elle fonde `spec-relief-tectonique.md`, la spec vivante du relief tectonique, le relief du jeu depuis le 2026-10-31. Les étapes 0 à 3 sont faites : la règle de la carte qui porte la géométrie, la carte tectonique, les grandes formes, le détail. Ce qui a changé depuis ce plan est dans la spec : la croûte continentale par lieu, une carte de 512² en texels de 20 km, aucune vallée creusée.
+Status: search for 2026-10-31. It founds `spec-relief-tectonique.md`, the living spec of tectonic relief, the relief of the game since the 2026-10-31. The steps 0 to 3 are made: the rule of the map that carries the geometry, the tectonic map, the large shapes, the detail. What has changed since this plan is in the spec: continental crust by location, a map of 512² in texels of 20 km, no valleys dug.
 
-**Les renvois au niveau 0,** `recherche-erosion-niveaux.md`, `recherche-dendry.md`, `level0_erosion.py` et `level0_cut.py`, visent la branche `erosion-niveaux`, pas encore fusionnée.
+**References to the 0,** `recherche-erosion-niveaux.md`, `recherche-dendry.md`, `level0_erosion.py` and `level0_cut.py` level, refer to the `erosion-niveaux` branch, which has not yet been merged.
 
 ## 1. Conclusion
 
-**Le relief part d'une carte tectonique calculée au démarrage, pas d'un bruit.** Le bruit ne fait plus que le détail, sous 50 km, modulé par la géologie.
+**The relief is based on a tectonic map calculated at startup, not a noise.** The noise only makes the detail, under 50 km, modulated by geology.
 
-- **Pourquoi :** le relief actuel n'a aucune structure qui s'accorde avec l'eau. 41 % des terres sont en cuvettes ; le niveau 0 doit inventer un soulèvement en copiant les hauteurs de complexplanet, et ses fleuves traversent les massifs (`recherche-erosion-niveaux.md`, 5 bis à 5 quinquies).
-- **Ce que la littérature et les jeux s'accordent à faire :** la structure globale se calcule une fois, hors du rendu ; le rendu l'évalue point par point et y ajoute du bruit. Personne ne simule les plaques par image.
-- **La recommandation, en quatre couches :**
-  1. **Le précalcul tectonique,** au démarrage, en C++ : des plaques, leurs mouvements, leurs frontières typées, et des champs lisses sur le cube de la planète, 6 × 1 024².
-  2. **Les grandes formes,** dans le shader : des profils analytiques appliqués aux distances aux frontières. Continents, plateaux, chaînes, fosses, arcs, rifts, dorsales.
-  3. **Le détail,** dans le shader : les briques de `Noise.hlsli`, orientées par la direction des plis et pondérées par l'âge et la roche.
-  4. **L'érosion,** au démarrage : le niveau 0 reçoit enfin un vrai soulèvement, celui des frontières convergentes ; son relief érodé devient le relief au-dessus de deux de ses cellules.
-- **Une simulation pas à pas, à la Cortial, n'est pas la première étape.** Un instantané cinématique, des plaques et leurs vitesses à un instant, donne déjà les frontières et leurs types, en quelques secondes et sans chaos. L'histoire, les sutures anciennes, se synthétise à part.
-- **Le coût par sommet baisse probablement.** Trois lectures de carte et 40 à 80 évaluations de bruit, contre environ 340 aujourd'hui (`concept.md`, point 7). À mesurer.
-- **Une règle de `principes.md` change :** la carte de la planète portera de la géométrie, au-dessus de deux texels. Décidée et écrite le 2026-10-31, avant tout code.
+- **Why:** The current relief has no structure that fits with water. 41 % of the lands are in cuvettes; the level 0 must invent a rise by copying the heights of complexplanet, and its rivers cross the massifs (`recherche-erosion-niveaux.md`, 5 bis to 5 quinquies).
+- **What literature and games agree to do:** the overall structure is calculated once, outside the rendering; the rendering evaluates it point by point and adds noise. No one simulates plates by frame.
+- **The recommendation, in four layers:**
+  1. **The tectonic precalculation,** at startup, in C++: plates, their movements, their typed borders, and smooth fields on the planet cube, 6 × 1 024².
+  2. **The large shapes,** in the shader: analytical profiles applied to distances at borders. Continents, plateaus, chains, pits, arcs, rifts, ridges.
+  3. **Detail,** in the shader: the bricks of `Noise.hlsli`, oriented by the direction of the folds and weighted by age and rock.
+  4. **The erosion,** at startup: the level 0 finally receives a real lift, that of the converging borders; its eroded relief becomes the relief above two of its cells.
+- **A step-by-step simulation, like Cortial, is not the first step.** A cinematic snapshot, of plates and their speeds at a moment, already gives the borders and their types, in a few seconds and without chaos. History, the ancient sutures, is synthesized apart.
+- **The cost per vertex is likely to decrease.** Three map readings and 40 to 80 evaluations of noise, against about 340 today (`concept.md`, point 7). To be measured.
+- **A rule of `principes.md` changes:** the planet map will carry geometry, above two texels. Decided and written the 2026-10-31, before any code.
 
-## 2. Le post Reddit signalé
+## 2. The Reddit post reported
 
-**Il n'a pas pu être lu.** reddit.com, old.reddit.com, l'URL en `.json` et api.reddit.com sont refusés par l'outil de lecture du web et par le navigateur intégré, pour raison de sécurité. Aucun moteur de recherche n'indexe encore le fil `1xhximl`.
+**It could not be read.** reddit.com, old.reddit.com, the URL in `.json` and api.reddit.com are refused by the web reader and by the built-in browser, for security reasons. No search engines index the thread `1xhximl` yet.
 
-- **Ce qui manque :** son texte, ses commentaires, et le dépôt ou la vidéo qu'il cite.
-- **Pour le lire :** coller le texte du post, ou le lien du dépôt ou de la vidéo, et je complète cette section.
-- **Le candidat le plus probable, non confirmé : World Orogen,** `orogen.studio`, dépôt `raguilar011095/planet_heightmap_generation`. Créé en février 2026, mis à jour le 2026-10-31, 135 étoiles, sous **GPL-3.0** : idées seulement, aucun code.
-  - **V1 :** sphère de Fibonacci, plaques par croissance concurrente, frontières convergentes, divergentes et transformantes, subduction selon la densité.
-  - **Le relief V1 :** trois champs de distance, montagne, océan, côte, combinés par une moyenne harmonique ; profils de chaînes asymétriques, plateau continental, bassins d'avant-pays, rifts en graben, dorsales, fosses, arcs insulaires, points chauds.
-  - **Puis :** gauchissement par bruit, Priority-Flood qui creuse les cols, puissance fluviale implicite à la Braun et Willett, érosion glaciaire et thermique.
-  - **V2, « Evolution » :** une vraie histoire tectonique, cycle des supercontinents, collisions, rifting, sutures, avec 20 000 à 80 000 cellules de simulation. Les roches de l'histoire règlent l'érodabilité.
-- **Les autres candidats récents :** la série « Plate Tectonics Simulation » de DasTobi, vidéo de février 2026 ; « Around the World » de Frozen Fractal, qui a abandonné sa simulation de plaques, trop lente et trop dure à contrôler, pour des plaques de Voronoï et du bruit.
+- **What is missing:** his text, comments, and the deposit or video he quotes.
+- **To read it:** paste the text of the post, or the link of the deposit or video, and I complete this section.
+- **Most likely, unconfirmed candidate: World Orogen,** `orogen.studio`, deposit `raguilar011095/planet_heightmap_generation`. Created in February 2026, updated the 2026-10-31, 135 stars, under **GPL-3.0**: ideas only, no code.
+  - **V1:** Fibonacci sphere, plates by concurrent growth, converging, diverging and transforming boundaries, subduction according to density.
+  - **The relief V1:** three fields of distance, mountain, ocean, coast, combined by a harmonic mean; profiles of asymmetric chains, continental shelf, outlying basins, graben rifts, ridges, pits, island arcs, hot spots.
+  - **Then:** lefting by noise, Priority-Flood that digs the passes, implied river power to the Braun and Willett, glacial and thermal erosion.
+  - **V2, “Evolution”:** a true tectonic history, supercontinent cycle, collisions, rifting, sutures, with 20 000 to 80 000 simulation cells. The rocks of history regulate erosion.
+- **Other recent candidates:** DasTobi’s “Plate Tectonics Simulation” series, February video 2026; Frozen Fractal’s “Around the World”, which abandoned its plate simulation, too slow and too hard to control, for Voronoi plates and noise.
 
-**La leçon commune de ces projets,** utile quel que soit le post : les plaques donnent la structure, mais l'érosion fait le réalisme ; et une simulation pas à pas se contrôle mal. World Orogen V1 et Frozen Fractal partent d'un instantané, pas d'une histoire.
+**The common lesson of these projects,** useful whatever the post: the plates give the structure, but erosion makes the realism; and a step by step simulation is poorly controlled. World Orogen V1 and Frozen Fractal are based on a snapshot, not a story.
 
-## 3. Ce que le relief actuel ne peut pas donner
+## 3. What the current relief cannot give
 
-- **Aucune structure géologique.** Les montagnes naissent d'un seuil sur un bruit, `RlTerrainType`, qui croît vers l'intérieur des terres. Elles ne suivent aucune frontière et n'ont aucun âge.
-- **Aucun drainage.** 41 % des terres en cuvettes fermées, profondes de 260 m en médiane (`recherche-rivieres.md`).
-- **Un niveau 0 qui travaille contre son entrée.** Son soulèvement est inversé pour retrouver les hauteurs de complexplanet ; les bassins restent géants ou les massifs s'abaissent ; ses tracés passent à travers les montagnes, 44 % de la longueur des fleuves creusée à plus de 50 m sous le sol.
-- **Pas de fond océanique.** Le plateau est une rampe jusqu'à −700 m, puis un bruit lisse ; ni dorsale, ni fosse, ni arc (`recherche-cotes.md`).
-- **La leçon du spike B :** à 1 km, complexplanet est un labyrinthe de cuvettes. Toute érosion qui s'y appuie le comble ou l'entaille. Le relief doit naître déjà organisé.
+- **No geological structure.** The mountains are born from a threshold on a noise, `RlTerrainType`, which grows inland. They follow no borders and have no age.
+- **No drainage.** 41 % of land in closed cups, 260 m deep in median (`recherche-rivieres.md`).
+- **A 0 level that works against its input.** Its rise is reversed to find the heights of complexplanet; the basins remain giant or the massifs lower; its routes pass through the mountains, 44 % of the length of rivers dug more than 50 m below ground.
+- **No ocean floor.** The plateau is a ramp up to −700 m, then a smooth noise; no ridge, no pit, no arch (`recherche-cotes.md`).
+- **The lesson of spike B:** at 1 km, complexplanet is a labyrinth of bowls. Any erosion that relies on it the roof or cut. The relief must be born already organized.
 
-## 4. L'état de l'art
+## 4. State of the art
 
-Pour chaque source : ce qu'elle apporte, son coût, et sa compatibilité avec notre contrainte, une fonction de la position évaluée par image avec des données précalculées au démarrage.
+For each source: what it brings, its cost, and its compatibility with our constraint, a function of the position evaluated by frame with data pre-calculated at startup.
 
-### 4.1 La tectonique procédurale
+### 4.1 The Procedural Tectonics
 
 **Cortial, Peytavie, Galin, Guérin, « Procedural Tectonic Planets », CGF 38(2), 2019.**
-- **L'apport :** la croûte est un nuage de points sur la sphère ; chaque point porte son épaisseur, son type, l'âge de la croûte océanique, le type et l'âge de l'orogenèse, la direction des plis. Les plaques tournent autour de leur pôle d'Euler.
-- **Les phénomènes :** le soulèvement par subduction, fonction de la distance au front, de la vitesse relative et de l'altitude de la plaque plongeante ; la collision continentale, qui soude un terrane et soulève une large zone ; la croûte neuve aux dorsales, selon un profil de dorsale ; le rifting, qui découpe une plaque ; l'érosion continentale et l'amortissement océanique, linéaires dans le temps.
-- **Les ordres de grandeur de l'article,** cités de mémoire, le PDF de plus de 10 Mo n'ayant pas pu être relu par l'outil : pas de temps de 2 Ma ; dorsale à −1 km, plaine abyssale à −6 km, fosse à −10 km, sommets jusqu'à 10 km ; portée de la subduction 1 800 km ; vitesse maximale 100 mm/an. À vérifier.
-- **L'amplification :** les paramètres de croûte choisissent le détail. Des primitives procédurales pour l'océan, orientées par la dorsale, avec ses failles transformantes ; des exemplaires de MNT réels pour les continents, orientés par les plis et choisis par type d'orogenèse.
-- **Le coût :** une simulation pas à pas sur CPU, puis une amplification coûteuse. Des secondes à des minutes selon la résolution, à relire dans l'article.
-- **La compatibilité :** la simulation, oui, au démarrage. L'amplification par exemplaires demande une base de MNT réels ; une version par primitives procédurales est évaluable point par point.
-- **Ce qu'on en prend :** les paramètres de croûte comme champs, et la forme des profils de subduction, de collision et de dorsale. Pas la boucle en temps, du moins pas d'abord.
+- **The contribution:** the crust is a cloud of points on the sphere; each point bears its thickness, its type, the age of the oceanic crust, the type and age of orogenesis, the direction of the folds. The plates rotate around their Euler pole.
+- **The phenomena:** subduction lifting, function of the distance to the front, the relative speed and the altitude of the sinking plate; continental collision, which welds a terrain and raises a large area; new crust to the ridges, according to a ridge profile; rifting, which cuts a plate; continental erosion and ocean damping, linear in time.
+- **The orders of magnitude of the article,** quoted from memory, the PDF of more than 10 MB could not be reread by the tool: no time of 2 Ma; ridge at −1 km, abyssal plain at −6 km, pit at −10 km, summits up to 10 km; subduction range 1 800 km; maximum speed 100 mm/an. To be verified.
+- **Magnification:** the crust parameters choose the detail. Procedural primitives for the ocean, oriented by the ridge, with its transforming faults; real MNT copies for the continents, oriented by the folds and chosen by type of orogenesis.
+- **The cost:** a step-by-step simulation on CPU, then an expensive amplification. Seconds to minutes depending on the resolution, to read in the article.
+- **Compatibility:** simulation, yes, at startup. The copy amplification requires a base of real MNT; a version by procedural primitives is evaluable point by point.
+- **What we get:** crustal parameters such as fields, and the shape of subduction, collision and ridge profiles. Not the loop in time, at least not at first.
 
 **Andy Gainey, Experilous, « Procedural Planet Generation », 2014.**
-- **L'apport :** l'instantané cinématique. Icosaèdre subdivisé, plaques par croissance aléatoire, un pôle de rotation par plaque. À chaque arête de frontière, la vitesse relative donne une pression, normale, et un cisaillement, tangent. Le type de frontière en découle : collision, subduction, divergence, transformante.
-- **Le relief :** l'altitude de chaque frontière, puis une interpolation vers l'intérieur des plaques selon la distance à la frontière et au centre de la plaque, puis du bruit.
-- **Le coût :** une seconde ou moins sur le navigateur, à quelques dizaines de milliers de cellules.
-- **La compatibilité :** directe pour le précalcul. C'est le modèle de la couche 1 recommandée.
-- **La limite :** le site est hors ligne au moment de cette recherche ; la licence du code n'a pas pu être vérifiée.
+- **The contribution:** the cinematic snapshot. Subdivided icosahedron, plates by random growth, one rotation pole per plate. At each boundary edge, the relative velocity gives a pressure, normal, and a shear, tangent. The type of boundary follows: collision, subduction, divergence, transformation.
+- **The relief:** the elevation of each border, then an interpolation to the inside of the plates according to the distance to the border and the center of the plate, then the noise.
+- **The cost:** a second or less on the browser, to a few tens of thousands of cells.
+- **Compatibility:** Direct for precalculation. This is the model of the recommended 1 layer.
+- **The limit:** the site is offline at the time of this search; the license of the code could not be verified.
 
 **Red Blob Games, « Procedural map generation on a sphere », 2018.**
-- **L'apport :** la même idée, plus simple : points de Fibonacci, triangulation de Delaunay, plaques par remplissage, montagnes là où les plaques se rapprochent, par des champs de distance aux montagnes, à l'océan et à la côte.
-- **Le coût :** quelques centaines de millisecondes.
-- **La licence :** Apache-2.0.
+- **The contribution:** the same idea, simpler: Fibonacci points, triangulation of Delaunay, plates by filling, mountains where the plates come closer, by fields of distance to mountains, ocean and coast.
+- **The cost:** a few hundred milliseconds.
+- **The license:** Apache-2.0.
 
-**PlaTec, Viitanen 2012,** et WorldEngine qui l'utilise.
-- **L'apport :** une simulation 2D de plaques sur une carte plane, rapide, pour des cartes de hauteur.
-- **La limite :** une carte plane qui se replie, pas une sphère.
-- **La licence :** LGPL-3.0 pour PlaTec ; WorldEngine est MIT mais embarque PlaTec. Rien à reprendre.
+**PlaTec, Viitanen 2012,** and WorldEngine that uses it.
+- **The contribution:** a 2D simulation of plates on a flat map, fast, for height maps.
+- **The limit:** a flat card that folds, not a sphere.
+- **License:** LGPL-3.0 for PlaTec; WorldEngine is MIT but embeds PlaTec. Nothing to complain about.
 
-**World Orogen, 2026,** décrit à la section 2.
-- **L'apport :** la chaîne complète la plus aboutie en accès libre : plaques, profils par type de frontière, puis érosion fluviale, glaciaire, thermique, et roches qui règlent l'érodabilité.
-- **La licence :** GPL-3.0. Idées seulement.
+**World Orogen, 2026,** described in section 2.
+- **The contribution:** the complete chain most successful in free access: plates, profiles by type of border, then river erosion, glacial, thermal, and rocks that regulate erodibility.
+- **The license:** GPL-3.0. Ideas only.
 
 **Michel, Emilien, Cani, « Generation of Folded Terrains from Simple Vector Maps », Eurographics short 2015.**
-- **L'apport :** des plis à grande échelle à partir d'un modèle de plaques simplifié, affinés ensuite par une érosion hydraulique qui tient compte des rivières.
-- **Ce qu'on en prend :** les plis comme champ orienté, parallèle au front.
+- **The contribution:** large-scale folds from a simplified plate model, then refined by hydraulic erosion that takes into account rivers.
+- **What we get from it:** the folds as oriented field, parallel to the front.
 
-**Les autres projets ouverts, vus pour leurs licences :** tectonics.js, CC-BY-4.0 ; SimpleTectonics, sans licence, donc tous droits réservés ; realistic-planet-generation-and-simulation, sans licence. Rien à reprendre.
+**Other open projects, see for their licenses:** tectonics.js, CC-BY-4.0; SimpleTectonics, license free, so all rights reserved; realistic-planet-generation-and-simulation, license free. Nothing to complain about.
 
-### 4.2 Le soulèvement et l'érosion
+### 4.2 The rise and erosion
 
 **Cordonnier, Braun, Cani, Benes, Galin, Peytavie, Guérin, « Large Scale Terrain Generation from Tectonic Uplift and Fluvial Erosion », CGF 35(2), 2016.**
-- **L'apport :** le terrain naît d'une carte de soulèvement et de la loi de puissance fluviale. Un graphe de drainage sur des points de Poisson, un solveur implicite à la Braun et Willett, les lacs résolus par un graphe des bassins. Les chaînes apparaissent là où le soulèvement est fort ; le réseau est en arbre et va à la mer.
-- **Le coût :** des minutes sur CPU pour un domaine régional.
-- **La compatibilité :** au démarrage, oui. C'est exactement le niveau 0 actuel ; il ne lui manque qu'un soulèvement qui ait un sens.
-- **Ce qu'on en prend :** le soulèvement vient de la tectonique, pas des hauteurs voulues.
+- **The contribution:** the terrain is born from a map of elevation and the law of river power. A drainage graph on Poisson points, an implicit solver to the Braun and Willett, lakes resolved by a graph of basins. Chains appear where the uprising is strong; the net is in tree and goes to the sea.
+- **Cost:** minutes on CPU for a regional domain.
+- **Compatibility:** at startup, yes. It is exactly the current 0 level; it only lacks a meaningful uprising.
+- **What we take from it:** the rise comes from tectonics, not from desired heights.
 
 **Cordonnier, Cani, Benes, Braun, Galin, « Sculpting Mountains », TVCG 2018.**
-- **L'apport :** des couches de roche plissées sous le terrain ; l'érosion dépend de la dureté de la roche affleurante.
-- **Ce qu'on en prend :** un champ de roche qui règle l'érodabilité K du niveau 0 et le type de bruit en surface.
+- **Input:** layers of rock that are pleated under the ground; erosion depends on the hardness of the surface rock.
+- **What we get:** a rock field that regulates the erodibility K of the 0 level and the type of noise on the surface.
 
 **Schott, Paris, Fournier, Guérin, Galin, « Large-scale Terrain Authoring Through Interactive Erosion Simulation », ACM TOG 42, 2023.**
-- **L'apport :** la puissance fluviale avec soulèvement, entièrement sur GPU, interactive d'après les auteurs. L'utilisateur peint le soulèvement ; la chaîne et son réseau suivent.
-- **La compatibilité :** au démarrage, sur GPU. C'est la voie pour passer le niveau 0 de 10 minutes en Python à quelques secondes.
-- **La licence :** MIT, dépôt `H-Schott/StreamPowerErosion`. Lisible, mais le code d'Exolune reste original.
+- **The contribution:** the river power with lift, entirely on GPU, interactive according to the authors. The user paints the uprising; the channel and its network follow.
+- **Compatibility:** at startup, on GPU. This is the path to pass the 0 level from 10 minutes in Python to seconds.
+- **License:** MIT, deposit `H-Schott/StreamPowerErosion`. Readable, but the Exolune code remains original.
 
 **Tzathas, Gailleton, Steer, Cordonnier, « Physically-based Analytical Erosion for fast Terrain Generation », CGF 43(2), 2024.**
-- **L'apport :** une solution analytique de la loi de puissance fluviale sous soulèvement. Plus d'intégration en temps : le relief d'équilibre se calcule le long du réseau, comme l'intégrale χ de Perron et Royden 2013.
-- **Le coût :** de l'ordre d'une passe sur le réseau, après le drainage. Le code de `level0_erosion.py` a déjà une `chi_integral`.
-- **La compatibilité :** au démarrage, directe. C'est le niveau 0 le moins cher.
+- **The contribution:** an analytical solution of the river power law under rise. no more time integration: the equilibrium relief is calculated along the network, like the integral χ of Perron and Royden 2013.
+- **The cost:** the order of a pass on the network, after drainage. The code of `level0_erosion.py` already has a `chi_integral`.
+- **Compatibility:** at startup, direct. This is the 0 level cheapest.
 
-**Braun et Willett, FastScape, 2013.**
-- **L'apport :** le solveur implicite en O(n) le long du réseau, que `level0_erosion.py` met déjà en œuvre.
-- **La licence :** fastscapelib, la bibliothèque de référence, est GPL-3.0 ; son enveloppe Python `fastscape` est BSD-3 mais dépend d'elle. L'algorithme publié est libre ; le code d'Exolune est le sien.
+**Braun and Willett, FastScape, 2013.**
+- **The input:** the implicit solver in O(n) along the network, which `level0_erosion.py` already implements.
+- **License:** fastscapelib, the reference library, is GPL-3.0; its Python envelope `fastscape` is BSD-3 but depends on it. The published algorithm is free; Exolune's code is his own.
 
 **Schott, Galin, Guérin, Paris, Peytavie, « Terrain Amplification using Multi-scale Erosion », ACM TOG 43(4), 2024.**
-- **L'apport :** une amplification par érosions fluviale, thermique et de dépôt, alternées avec des suréchantillonnages ×2.
-- **La compatibilité :** sur une grille entière, oui ; par tuiles, non : le spike B a montré qu'une érosion simulée diverge selon ses bords. Utilisable une fois sur la carte de la planète, pas autour de la caméra.
-- **La licence :** MIT, `H-Schott/MultiScaleErosion`.
+- **The input:** an amplification by river erosion, thermal and deposit, alternated with oversampling ×2.
+- **Compatibility:** on a whole grid, yes; by tiles, no: spike B showed that a simulated erosion diverges according to its edges. Useable once on the planet map, not around the camera.
+- **License:** MIT, `H-Schott/MultiScaleErosion`.
 
-### 4.3 L'hydrologie d'abord
+### 4.3 Hydrology first
 
 **Génevaux, Galin, Guérin, Peytavie, Benes, « Terrain Generation Using Procedural Models Based on Hydrology », ACM TOG 32(4), 2013.**
-- **L'apport :** le réseau de rivières d'abord, à partir des embouchures sur une côte ; ordre de Strahler ; un type de lit par pente, selon Rosgen. Le terrain est un arbre de construction de primitives, vallées, collines, lacs, mêlées par des opérateurs.
-- **La compatibilité :** le terrain est une fonction continue de la position, évaluable partout, à partir d'un réseau précalculé. Son coût par point est le nombre de primitives qui le couvrent, accéléré par une structure spatiale.
-- **Ce qu'on en prend :** des primitives de vallée posées sur les fleuves du niveau 0, au profil réglé par leur débit et leur pente.
+- **Input:** the network of rivers first, from the mouths on a coast; order of Strahler; a type of bed by slope, according to Rosgen. The terrain is a primitive construction tree, valleys, hills, lakes, mixed by operators.
+- **Compatibility:** the terrain is a continuous function of position, evaluable everywhere, from a pre-calculated network. Its cost per point is the number of primitives that cover it, accelerated by a spatial structure.
+- **What we get from it:** valley primitives laid on rivers of the level 0, profile set by their flow and slope.
 
 **Derzapf, Ganster, Guthe, Klein, « River Networks for Instant Procedural Planets », CGF 30(7), 2011.**
-- **L'apport :** un réseau planétaire hiérarchique, raffiné à la volée.
-- **La limite :** le relief y suit le réseau ; il ne sert pas un relief déjà donné.
+- **The input:** a hierarchical planetary network, refined on the fly.
+- **The limit:** the relief follows the network; it does not serve a relief already given.
 
-**Gaillard et al., « Dendry », I3D 2019.**
-- **L'apport :** un arbre dendritique calculable localement, niveau par niveau. Environ 10 s pour une grille de 512² sur un CPU à quatre cœurs.
-- **La compatibilité :** par tuiles autour de la caméra, pas par sommet à chaque image (`recherche-dendry.md`, section 6).
-- **La licence :** le code des auteurs, `mgaillard/Noise`, est **GPL-3.0**. Rien à reprendre ; la maquette d'Exolune est son propre code.
+**Gaillard et al., “Dendry”, I3D 2019.**
+- **The input:** a locally calculable dendritic tree, level by level. About 10 s for a grid of 512² on a four-core CPU.
+- **Compatibility:** by tiles around the camera, not by vertex at each frame (`recherche-dendry.md`, section 6).
+- **License:** the authors code, `mgaillard/Noise`, is **GPL-3.0**. Nothing to take back; the Exolune model is its own code.
 
-### 4.4 L'amplification et l'analyse
+### 4.4 Amplification and Analysis
 
-**Guérin, Digne, Galin, Peytavie, « Sparse Representation of Terrains for Procedural Modeling », CGF 35(2), 2016.**
-- **L'apport :** le relief comme combinaison creuse d'atomes appris sur des MNT réels ; l'amplification remplace chaque atome grossier par son jumeau fin.
-- **La compatibilité :** évaluable par point, mais il faut un dictionnaire appris sur des données réelles.
-- **La licence :** MIT, en Matlab, `eric-guerin/terrain-amplification`.
+**Guérin, Digne, Galin, Peytavie, « The spatial and temporal distribution of the spatial data in the spatial modeling of the spatial data », CGF 35(2), 2016.**
+- **The input:** the relief as a hollow combination of atoms learned on real MNT; the amplification replaces each coarse atom with its fine twin.
+- **Compatibility:** evaluable by point, but it takes a dictionary learned on real data.
+- **The license:** MIT, in Matlab, `eric-guerin/terrain-amplification`.
 
 **Galin et al., « A Review of Digital Terrain Modeling », CGF 38(2), STAR Eurographics 2019.**
-- **L'apport :** la revue de référence : procédural, simulation, exemples. Elle situe chaque méthode ci-dessus.
+- **The contribution:** the reference review: procedural, simulation, examples. It places each method above.
 
 **Grenier, Guérin, Galin, Sauvage, « Real-time Terrain Enhancement with Controlled Procedural Patterns », CGF 43(1), 2024.**
-- **L'apport :** des motifs de phase, indépendants de la résolution, dont on contrôle la direction en chaque point.
-- **La compatibilité :** directe, par point. C'est l'outil pour orienter les crêtes le long des plis sans cisailler le bruit.
+- **The input:** phase patterns, independent of the resolution, whose direction is controlled at each point.
+- **Compatibility:** Direct, by point. It is the tool for orienting the crests along the folds without shearing the noise.
 
 **Argudo et al., « Terrain descriptors for landscape synthesis, analysis and simulation », Eurographics STAR 2025.**
-- **L'apport :** des descripteurs mesurables : hypsométrie, pentes, proéminence, réseaux. Pour juger un relief contre la Terre.
-- **La licence :** MIT, `oargudo/terrain-descriptors`. Utile pour les bancs, hors du moteur.
+- **The contribution:** measurable descriptors: hypsometry, slopes, prominence, networks. To judge a relief against the Earth.
+- **License:** MIT, `oargudo/terrain-descriptors`. Useful for benchmarks, off the engine.
 
-**Les modèles appris :** Borg et al., « Authoring Terrestrial Planets with Diffusion Models », CGF 45(2), 2026, conditionnés par un réseau fluvial global ; « Terrain Diffusion », arXiv 2025.
-- **La compatibilité :** non par image. Un réseau de diffusion au démarrage sur la carte de la planète serait possible, mais il apporte un poids appris et des données d'entraînement : contraire à un code entièrement original.
+**Models learned:** Borg et al., “Authoring Terrestrial Planets with Diffusion Models”, CGF 45(2), 2026, conditioned by a global river network; “Terrain Diffusion”, arXiv 2025.
+- **Compatibility:** not per frame. A network broadcast at start on the planet map would be possible, but it brings a learned weight and training data: contrary to a completely original code.
 
-### 4.5 Les bruits « érodés »
+### 4.5 The noise functions "eroded"
 
-**Quilez, le bruit à dérivées analytiques.**
-- **L'apport :** chaque octave du fBm est atténuée par la pente accumulée des octaves plus grossières, en 1 / (1 + |∇|²). Les pentes restent lisses, les creux et les replats se couvrent de détail : un aspect érodé, sans érosion.
-- **Le coût :** une évaluation de bruit avec ses dérivées, environ 1,5 à 2 fois une évaluation simple.
-- **La compatibilité :** directe, par point.
-- **La licence :** le site de Quilez met sous MIT le code qui implémente un algorithme, et garde ses œuvres sous droit d'auteur ; ses shaders artistiques, comme « Elevated », interdisent toute réutilisation depuis 2021. L'idée est libre ; on l'écrit nous-mêmes.
+**Quilez, the noise with analytic derivatives.**
+- **Input:** each octave of the fBm is attenuated by the accumulated slope of the coarser octaves, in 1 / (1 + |∇|²). The slopes remain smooth, the hollows and the replat are covered with detail: an eroded appearance, without erosion.
+- **Cost:** an evaluation of noise with its derivatives, about 1,5 to 2 once a single evaluation.
+- **Compatibility:** Direct, by point.
+- **The license:** Quilez's site puts under MIT the code that implements an algorithm, and keeps his works under copyright; his artistic shaders, like "Elevated", prohibit any reuse since 2021. The idea is free; we write it ourselves.
 
-**Le filtre d'érosion de runevision, Rune Skovbo Johansen, 2026.**
-- **L'apport :** des ravines en ondes alignées sur la pente, posées sur des cellules à pivot aléatoire et mêlées entre voisines ; octave après octave, elles bifurquent. Chaque point s'évalue isolément.
-- **Ses limites, dites par l'auteur :** pas de réseau global ; des lignes qui s'arrêtent à mi-pente ; un fondu selon l'altitude qui n'est pas robuste.
-- **La licence :** le billet publie le code sous MPL-2.0. Un gist de l'auteur précise que la fonction centrale dérive de shaders de Fewes et clayjohn sous CC BY-NC-SA 3.0. Idée seulement.
-- **Dans le projet :** une piste existe déjà, `piste/erosion-filtre` (`geometrie.md`).
+**The runevision erosion filter, Rune Skovbo Johansen, 2026.**
+- **The contribution:** waves ravines aligned on the slope, placed on random pivot cells and mixed between neighbors; octave after octave, they fork. Each point is evaluated separately.
+- **Its limitations, said by the author:** no global network; lines that stop at half-slope; a fade according to altitude that is not robust.
+- **License:** the ticket publishes the code as MPL-2.0. An author's gist specifies that the core function derives from shaders by Fewes and clayjohn under CC BY-NC-SA 3.0. Idea only.
+- **In the project:** a experiment already exists, `piste/erosion-filtre` (`geometrie.md`).
 
-### 4.6 Les jeux
+### 4.6 The games
 
-**No Man's Sky,** GDC 2017, Innes McKendrick et Sean Murray.
-- **Ce qu'on en sait :** un « uber noise » par point, sur des voxels : gauchissement du domaine, atténuation par les dérivées, crêtes, plateaux, régions. Aucune tectonique ; une variété d'aspect, pas une géologie.
+**No Man's Sky,** GDC 2017, Innes McKendrick and Sean Murray.
+- **What we know about it:** a "uber noise" per point, on voxels: left domain, attenuation by derivatives, peaks, plateaus, regions. No tectonics; a variety of aspect, not a geology.
 
 **Elite: Dangerous, Stellar Forge.**
-- **Ce qu'on en sait :** une simulation du haut vers le bas, de la galaxie à la planète. Les propriétés de chaque planète, matériaux, volcanisme, tectonique, températures, sont envoyées au GPU dans un tampon ; des graphes de bruit en compute shaders les évaluent, fonction de la position et de l'identifiant de la planète. Double précision ou paires de floats, comme nous.
-- **Ce qu'on en prend :** la confirmation du modèle : des paramètres géologiques précalculés, un relief évalué par point.
+- **What we know about it:** a top-down simulation, from galaxy to planet. The properties of each planet, materials, volcanism, tectonics, temperatures, are sent to the GPU in a buffer; graphs of noise in compute shaders evaluate them, function of the position and the identifier of the planet. Double precision or pairs of floats, like us.
+- **What we get:** the confirmation of the model: pre-calculated geological parameters, a relief evaluated by point.
 
-**Star Citizen, Planet Tech v4 et v5.**
-- **Ce qu'on en sait :** des cartes globales créées par les artistes, puis des tuiles de hauteur de 4 km, en 2k, distribuées par écosystème. La v5, dite Genesis, ajoute des cartes de climat, de sol, de géologie et d'érosion qui décident du détail.
-- **La différence :** de l'auteur, pas de la génération pure.
+**Star Citizen, Planet Tech v4 and v5.**
+- **What we know about it:** global maps created by artists, then tiles of height of 4 km, in 2k, distributed by ecosystem. The v5, called Genesis, adds climate, soil, geology and erosion maps that determine the detail.
+- **The difference:** of the author, not of the pure generation.
 
 **SpaceEngine.**
-- **Ce qu'on en sait :** des tuiles en arbre quaternaire générées sur GPU et gardées ; des bruits à crêtes, cratères, volcans ; des pseudo-rivières en boucles depuis 2013 (`recherche-rivieres.md`).
+- **What we know about it:** quaternary tree tiles generated on GPU and kept; noise functions with ridges, craters, volcanoes; pseudo-rivers in loops since 2013 (`recherche-rivieres.md`).
 
-**Outerra.**
-- **Ce qu'on en sait, de ses présentations publiques :** le MNT réel de la Terre, raffiné par du fractal sur GPU. Pas de génération de planète.
+**Outland.**
+- **What we know about it, from its public presentations:** the real MNT of the Earth, refined by fractal on GPU. No planet generation.
 
-**Le constat :** aucun de ces jeux ne simule les plaques en vol. La géologie, quand elle existe, est un précalcul ou une donnée ; le rendu évalue une fonction de la position, comme Exolune.
+**The finding:** none of these games simulate the plates in flight. Geology, when it exists, is a precalculation or a data; the rendering evaluates a function of position, like Exolune.
 
-## 5. Les licences
+## 5. Licenses
 
-| Code | Licence | Verdict |
+| Code | License | Verdict |
 |---|---|---|
-| libnoise, dont complexplanet | LGPL | interdit, déjà écarté |
-| PlaTec, plate-tectonics | LGPL-3.0 | interdit |
-| WorldEngine | MIT, embarque PlaTec | interdit tel quel |
-| fastscapelib | GPL-3.0 | interdit ; l'algorithme reste libre |
-| fastscape, l'enveloppe | BSD-3, dépend de fastscapelib | à écarter |
-| World Orogen | GPL-3.0 | interdit |
-| Dendry, `mgaillard/Noise` | GPL-3.0 | interdit |
-| tectonics.js | CC-BY-4.0 | à écarter, licence non logicielle |
-| SimpleTectonics | aucune, tous droits réservés | interdit |
-| realistic-planet-generation-and-simulation | aucune | interdit |
-| Experilous, générateur de planète | non vérifiée, site hors ligne | à écarter |
-| Red Blob Games, 1843-planet-generation | Apache-2.0 | permis, avec avis ; inutile |
-| StreamPowerErosion, Schott 2023 | MIT | permis ; on le lit, on n'en copie rien |
-| MultiScaleErosion, Schott 2024 | MIT | idem |
-| terrain-amplification, Guérin 2016 | MIT | idem |
-| terrain-descriptors, Argudo 2025 | MIT | pour les bancs |
-| Filtre d'érosion de runevision | MPL-2.0, une fonction d'origine CC BY-NC-SA | interdit |
-| Shaders de Quilez | MIT pour les algorithmes, droit d'auteur pour les œuvres | à écarter ; l'idée est libre |
+| libnoise, not including complexplanet | LGPL | prohibited, already dismissed |
+| PlaTec, plate tectonics | LGPL-3.0 | prohibited |
+| WorldEngine | MIT, PlaTec shipment | prohibited as such |
+| fastscapelib | GPL-3.0 | prohibited; the algorithm remains free |
+| fastscape, the envelope | BSD-3, depends on fastscapelib | to be dismissed |
+| World Orogen | GPL-3.0 | prohibited |
+| Dendry, `mgaillard/Noise`  | GPL-3.0 | prohibited |
+| tectonics.js | CC-BY-4.0 | Discard, non-software license |
+| SimpleTectonics | none, all rights reserved | prohibited |
+| realistic-planet-generation-and-simulation | None | prohibited |
+| Experilous, planet generator | not verified, site offline | to be dismissed |
+| Red Blob Games, 1843-planet-generation | Apache-2.0 | permission, with notice; unnecessary |
+| StreamPowerErosion, Schott 2023 | MIT | license; we read it, we do not copy anything |
+| MultiScaleErosion, Schott 2024 | MIT | Same |
+| terrain-amplification, Guérin 2016 | MIT | Same |
+| terrain-descriptors, Argudo 2025 | MIT | for benchmarks |
+| Runevision Erosion Filter | MPL-2.0, a function of original CC BY-NC-SA | prohibited |
+| Shaders by Quilez | MIT for algorithms, copyright for works | to be dismissed; the idea is free |
 
-**La règle suivie :** aucune ligne n'est reprise, même sous MIT. Le relief est écrit en salle blanche depuis cette recherche et les articles, comme `Relief.hlsli` l'a été depuis complexplanet.
+**The rule followed:** no line is taken, even under MIT. Relief is written in clean room since this research and articles, as `Relief.hlsli` has been since complexplanet.
 
-## 6. L'architecture recommandée
+## 6. Recommended architecture
 
-### 6.1 Vue d'ensemble
+### 6.1 Overview
 
-| Couche | Échelles | Où, quand | Ce qu'elle donne |
+| Layer | Scales | Where, when | What it gives |
 |---|---|---|---|
-| 1. Précalcul tectonique | plaques de 1 000 à 10 000 km ; champs à 10 km | CPU, au démarrage, environ 1 à 3 s | plaques, frontières typées, distances, vitesses, âges, roche, soulèvement |
-| 2. Grandes formes | 6 000 km à 50 km | shader, par sommet, depuis la carte | croûte, plateau, chaînes, fosses, arcs, rifts, dorsales, points chauds |
-| 3. Détail | 50 km à 13,5 m | shader, par sommet, bruit | crêtes orientées, ravines, plaines, terrasses, volcans |
-| 4. Niveau 0 | au-dessus de 20 à 40 km | au démarrage, CPU puis GPU | relief érodé, drainage, lacs, débit |
+| 1. Tectonic precalculation | plates from 1 000 to 10 000 km; fields to 10 km | CPU, at startup, approximately 1 to 3 s | plates, typed boundaries, distances, speeds, ages, rock, elevation |
+| 2. Large forms | 6 000 km to 50 km | shader, by vertex, from map | crust, plateau, chains, pits, arcs, rifts, ridges, hot spots |
+| 3. Detail | 50 km to 13,5 m | shader, per vertex, noise | oriented ridges, ravines, plains, terraces, volcanoes |
+| 4. Level 0 | above 20 to 40 km | on startup, CPU then GPU | eroded relief, drainage, lakes, flow |
 
-**Le relief final, par sommet :**
-- au-dessus de deux cellules du niveau 0 : le relief érodé du niveau 0, lu en B-spline cubique ;
-- sur la mer, et partout où l'eau n'agit pas : les grandes formes de la couche 2 ;
-- en dessous : le détail de la couche 3, pondéré par la géologie et éteint dans les vallées du niveau 0.
+**Final relief, by vertex:**
+- above two cells of the 0 level: the eroded relief of the 0 level, read in cubic B-spline;
+- on the sea, and wherever water does not act: the large shapes of the layer 2;
+- below: detail of layer 3, weighted by geology and extinct in the valleys of level 0.
 
-### 6.2 Le précalcul au démarrage
+### 6.2 The precalculation at startup
 
-**La grille :** le cube de la planète de `PlanetMap`, 6 × 1 024², 9,8 km au centre d'une face, 4,6 km aux coins. Ses voisins à travers les arêtes existent déjà, `ForNeighbours`.
+**The grid:** the cube of the planet of `PlanetMap`, 6 × 1 024², 9,8 km in the center of a face, 4,6 km at the corners. Its neighbors across the edges already exist, `ForNeighbours`.
 
-**Les étapes, toutes déterministes, sur un seul fil ou sans ordre variable :**
-1. **Les cratons et les continents.** Des noyaux continentaux posés par tirage du point le plus éloigné, puis grandis par un remplissage à coût bruité jusqu'à la part voulue. Environ 65 % de croûte continentale pour 60 % de terres, le reste en plateaux noyés. Indépendants des plaques : là où un continent chevauche une frontière naissent collisions et rifts.
-2. **Les plaques.** 12 à 20 plaques, de tailles en loi de puissance comme sur Terre (Bird 2003). Germes par point le plus éloigné, croissance concurrente à coût bruité : des frontières irrégulières, jamais des arcs de grand cercle.
-3. **Les mouvements.** Un pôle d'Euler et une vitesse angulaire par plaque, de 1 à 10 cm/an ; les plaques continentales plus lentes que les océaniques.
-4. **Les frontières.** En chaque cellule de frontière, la vitesse relative (ω_a − ω_b) × p, projetée sur la normale et la tangente. Le type en découle :
-   - convergente, avec sa polarité : l'océanique plonge sous la continentale, la plus vieille sous la plus jeune ; deux continents se heurtent ;
-   - divergente : dorsale en mer, rift sur un continent ;
-   - transformante, si le cisaillement domine.
-   Des segments de dorsale décalés par des failles transformantes, tous les 100 à 500 km.
-5. **Les champs de distance.** Une propagation du germe le plus proche sur la grille, comme la Priority-Flood existante : distance signée au front convergent, distance à l'axe divergent, distance signée à la marge continentale, distance à la faille transformante. Précision au kilomètre ; lissés sur deux texels.
-6. **Les âges.**
-   - Croûte océanique : la distance à sa dorsale sur la demi-vitesse d'expansion.
-   - Chaînes actives : de 0 à 50 Ma selon la durée supposée de la convergence.
-   - Sutures anciennes, à l'intérieur des continents, entre les cratons : de 100 à 1 000 Ma, tirés par graine. C'est l'histoire synthétisée, sans simulation : les Appalaches et l'Oural d'Exolune.
-7. **La roche.** Un indice continu : socle cristallin des cratons, bassins sédimentaires, roches volcaniques des arcs et des points chauds, roches plissées des chaînes. Il règle le bruit et l'érodabilité.
-8. **Le soulèvement.** Positif sur les fronts convergents, selon la vitesse de convergence et un profil en travers ; négatif dans les avant-pays et les rifts ; nul sur les cratons.
+**The steps, all deterministic, on a single wire or without variable order:**
+1. **Cratons and continents.** Continental cores laid by drawing from the farthest point, then grown by a noise cost filling up to the desired part. About 65 % continental crust for 60 % land, the rest in sunken plateaus. Independent of plates: where a continent overlaps a boundary collisions and rifts arise.
+2. **The plates.** 12 to 20 plates, sizes in power law as on Earth (Bird 2003). Germs by the most distant point, competing growth at noise cost: irregular borders, never arcs of great circle.
+3. **The movements.** One Euler pole and one angular velocity per plate, from 1 to 10 cm/an; continental plates slower than oceanic plates.
+4. **Borders.** In each boundary cell, the relative velocity (ω_a − ω_b) × p, projected on the normal and the tangent. The type is:
+   - convergent, with its polarity: the oceanic plunges under the continental, the oldest under the youngest; two continents collide;
+   - divergent: ridge in the sea, rift on a continent;
+   - transformation, if shear is dominant.
+   Dorsal segments shifted by transforming faults, all 100 to 500 km.
+5. **Distance fields.** A propagation of the nearest germ on the grid, like the existing Priority-Flood: signed distance to the convergent front, distance to the divergent axis, signed distance to the continental margin, distance to the transforming fault. Accuracy to the kilometer; smoothed on two texels.
+6. **Ages.**
+   - Oceanic crust: the distance to its ridge at half the expansion speed.
+   - Active channels: from 0 to 50 Ma according to the assumed duration of the convergence.
+   - Ancient sutures, inside the continents, between cratons: from 100 to 1 000 Ma, drawn by seed. This is the synthesised history, without simulation: the Appalachian and Ural of Exolune.
+7. **The rock.** A continuous clue: crystalline base of cratons, sedimentary basins, volcanic rocks of arcs and hot spots, pleated rocks of chains. It regulates the noise and erodibility.
+8. **The uprising.** Positive on converging fronts, according to the speed of convergence and a cross profile; negative in the forelands and rifts; zero on cratons.
 
-**Le stockage :** deux cubes RGBA16F de 1 024², mipmappés comme `planetMap`, environ 100 Mo en tout avec les mips.
-- **Le premier :** distance signée au front convergent ; distance à l'axe divergent ; distance signée à la marge continentale ; vitesse de convergence au front le plus proche.
-- **Le second :** âge, de la croûte ou de l'orogenèse ; type de collision, en poids continu d'océan à continent ; indice de roche ; soulèvement.
-- **La direction des plis n'est pas stockée :** elle est perpendiculaire au gradient de la distance au front, lu par deux lectures voisines.
-- **Le demi-flottant suffit :** des distances au kilomètre sur 20 000 km tiennent en 11 bits de mantisse à 10 km près ; la distance fine se reconstruit par le profil.
+**Storage:** two RGBA16F cubes of 1 024², mipmapped as `planetMap`, about 100 MB in total with the mips.
+- **The first:** signed distance to the converging front; distance to the diverging axis; signed distance to the continental margin; speed of convergence to the nearest front.
+- **The second:** age, of the crust or of the orogenesis; type of collision, in continuous weight of ocean to continent; rock index; elevation.
+- **The direction of the folds is not stored:** it is perpendicular to the gradient of the distance to the front, read by two neighboring readings.
+- **The semifloat is sufficient:** distances per kilometer on 20 000 km hold in 11 bits of mantisse to 10 km close; the fine distance is reconstructed by the profile.
 
-**La résolution :** 1 024² pour les champs, la grille de la carte actuelle. Les formes qu'ils portent font plus de 50 km, au moins cinq texels. 512² suffirait à l'essai ; 2 048² n'apporterait rien que le bruit ne fasse mieux.
+**The resolution:** 1 024² for fields, the grid of the current map. The shapes they carry make more than 50 km, at least five texels. 512² would be enough for the test; 2 048² would not bring anything that the noise does not better.
 
-**Le temps, estimé :** les étapes 1 à 8 sont des remplissages et des propagations sur 6,3 millions de cellules, comme la Priority-Flood qui tourne déjà à chaque démarrage. De l'ordre de la seconde à quelques secondes en C++. À mesurer.
+**Time, estimated:** the steps 1 to 8 are fills and spreads on 6,3 millions of cells, like the Priority-Flood that already runs at every start. From the order of a second to a few seconds in C++. To be measured.
 
-### 6.3 Les grandes formes
+### 6.3 The large forms
 
-**Le principe :** la carte donne des distances lisses ; le shader en fait des formes nettes par des profils analytiques. Les arêtes vives, l'axe d'une fosse, le bord d'un graben, viennent du profil, jamais des texels.
+**The principle:** the map gives smooth distances; the shader makes clear shapes by analytical profiles. Sharp edges, the axis of a pit, the edge of a graben, come from the profile, never from the texels.
 
-**Les valeurs de départ,** tirées de la géophysique publiée, à régler pour 60 % de terres, des sommets de 5 à 8 km et des fosses à −8 km :
+**The starting values,** derived from published geophysics, to be set for 60 % of land, summits from 5 to 8 km and pits at −8 km:
 
-| Forme | Où | Profil |
+| Forme | Where | Profile |
 |---|---|---|
-| Craton | loin de toute frontière, sur la croûte continentale | +200 à +600 m, ondulations de 500 à 2 000 km de ±300 m : bassins et dômes intracratoniques |
-| Plateau continental | de la côte à la rupture de pente | jusqu'à −130 m ; 80 à 300 km de large sur une marge passive, 10 à 40 km sur une marge active |
-| Talus et glacis | après la rupture | jusqu'à −3 000 m sur 50 à 100 km, puis la plaine abyssale |
-| Croûte océanique | partout en mer | −(2 500 + 350 √âge) m, l'âge en Ma, plafonné à −6 000 m (Parsons et Sclater 1977 ; Stein et Stein 1992) |
-| Dorsale lente | axe divergent océanique | vallée axiale de 1 à 2 km de creux, 20 à 30 km de large ; failles transformantes et zones de fracture perpendiculaires |
-| Dorsale rapide | idem, expansion rapide | un dôme axial de quelques centaines de mètres |
-| Fosse | front convergent, côté plongeant | −8 000 m à l'axe, 50 à 100 km de large ; bourrelet externe par flexion, w₀ e^(−x/α) cos(x/α), α ≈ 70 km, +300 à +500 m |
-| Arc insulaire | océan contre océan, à 150 à 300 km du front | chapelet de cônes, quelques îles au-dessus de la mer, et un bassin d'arrière-arc |
-| Cordillère | océan contre continent | une chaîne de 150 à 400 km de large, jusqu'à 6 à 7 km selon la convergence, un arc volcanique sur sa crête, un haut plateau derrière si la convergence est forte |
-| Chaîne de collision | continent contre continent | 200 à 400 km de large, 6 à 8 km ; un plateau de 4,5 à 5 km jusqu'à des centaines de km derrière si la collision est forte |
-| Bassin d'avant-pays | devant la chaîne, sur la plaque plongeante | une flexion de −200 à −500 m avant comblement, α ≈ 100 à 150 km ; le niveau 0 la comble en plaine |
-| Rift continental | axe divergent sur un continent | un graben de 40 à 60 km, fond 1 à 2 km sous des épaulements de +0,5 à +1,5 km ; une mer étroite s'il s'ouvre |
-| Faille transformante | sur un continent | une vallée linéaire, ±200 m, des bassins en losange |
-| Point chaud | tirés par graine, avec leur traînée le long du mouvement de la plaque | un bombement de +1 km sur 500 km ; des boucliers volcaniques qui vieillissent et s'enfoncent le long de la traînée |
-| Chaîne ancienne | suture intracontinentale | l'amplitude décroît avec l'âge, A₀ e^(−âge/τ), τ de 100 à 200 Ma, un réglage ; 1 à 2 km à 300 Ma |
+| Craton | far from any borders, on the continental crust | +200 to +600 m, ripples from 500 to 2 000 km from ±300 m: intracratonic basins and domes |
+| Continental shelf | Coast to slope break | up to −130 m; 80 to 300 km wide on passive margin, 10 to 40 km on active margin |
+| Talus and glacis | after break-up | up to −3 000 m on 50 to 100 km, then the abyssal plain |
+| Oceanic crust | everywhere at sea | −(2 500 + 350 √age) m, age in Ma, capped at −6 000 m (Parsons and Sclater 1977; Stein and Stein 1992) |
+| Dorsal lens | Oceanic divergent axis | Axial valley of 1 to 2 km deep, 20 to 30 km wide; transforming faults and perpendicular fracture zones |
+| Rapid back | idem, rapid expansion | an axial dome of a few hundred meters |
+| Fosse | Front converging, side plunging | −8 000 m at axis, 50 to 100 km wide; external burr by bending, w₀ e^(−x/α) cos(x/α), α ≈ 70 km, +300 to +500 m |
+| Island arc | ocean against ocean, at 150 to 300 km from the front | rosary of cones, some islands above the sea, and a back-arc basin |
+| Cordillera | ocean versus continent | a chain of 150 to 400 km wide, up to 6 to 7 km depending on convergence, a volcanic arc on its ridge, a high plateau behind if convergence is strong |
+| Collision chain | continent against continent | 200 to 400 km wide, 6 to 8 km; a plateau of 4,5 to 5 km up to hundreds of km behind if collision is strong |
+| Basin of the Outback | in front of the chain, on the diving plate | a bend of −200 to −500 m before filling, α ≈ 100 to 150 km; level 0 the plain ceiling |
+| Continental rift | axis on a continent | a graben of 40 to 60 km, bottom 1 to 2 km under shoulders of +0,5 to +1,5 km; a narrow sea if it opens |
+| Faille transformante | on a continent | a linear valley, ±200 m, diamond-shaped pools |
+| Hot spot | seed-drawn, with their drag along the movement of the plate | a bulge of +1 km on 500 km; volcanic shields that age and sink along the trail |
+| Old chain | intracontinental suture | amplitude decreases with age, A₀ e^(−âge/τ), τ from 100 to 200 Ma, one adjustment; 1 to 2 km to 300 Ma |
 
-**La hypsométrie qui en sort est bimodale,** comme sur Terre : des continents vers +500 m, des océans vers −4 à −5 km. complexplanet n'a qu'un mode étalé.
+**The hypsometry that comes out is bimodal,** as on Earth: from continents to +500 m, from oceans to −4 to −5 km. complexplanet has only one spread mode.
 
-**Le gauchissement :** un léger gauchissement des coordonnées de lecture, de 5 à 50 km, filtré par la maille, casse ce que les profils auraient de trop régulier. Il est appliqué avant toute lecture de carte, pour que toutes les couches restent d'accord.
+**Left-handedness:** a slight left-handedness of the reading coordinates, from 5 to 50 km, filtered by the grid cell, breaks what the profiles would have too regular. It is applied before any card reading, so that all layers remain agreed.
 
-### 6.4 Les échelles moyennes et fines
+### 6.4 Medium and fine scales
 
-**Les briques :** `Noise.hlsli` reste tel quel : fBm, billow, ridged, Voronoi, turbulence, et leur filtrage. Deux briques s'ajoutent, écrites ici :
-- **un bruit avec ses dérivées analytiques,** pour l'atténuation par la pente à la Quilez et pour orienter les ravines ;
-- **un bruit orienté,** des crêtes alignées sur un champ de directions. Pas un étirement des coordonnées, qui cisaillerait là où la direction tourne : des cellules à orientation fixe mêlées entre voisines, l'idée des motifs de phase de Grenier 2024 et des pivots de runevision.
+**The bricks:** `Noise.hlsli` remains as it is: fBm, billow, ridged, Voronoi, turbulence, and their filtering. Two bricks are added, written here:
+- **a noise with its analytical derivatives,** for attenuation by the slope at the Quilez and to orient the ravines;
+- **a noise oriented,** ridge aligned on a field of directions. Not a stretching of coordinates, shearing where the direction turns: fixed orientation cells mixed between neighbors, the idea of Grenier's phase patterns 2024 and runevision pivots.
 
-**Ce que la géologie module :**
-- **Les chaînes jeunes :** un ridged de 8 à 12 octaves, aligné sur les plis, d'amplitude donnée par le profil de la chaîne ; des ravines sur les versants. La rugosité la plus forte.
-- **Les chaînes anciennes :** le même bruit, octaves fines atténuées par l'âge, crêtes arrondies. Rugosité moyenne.
-- **Les plateaux et les bassins sédimentaires :** des terrasses où la roche est litée et le climat sec, les badlands d'aujourd'hui à leur place géologique.
-- **Les cratons :** billow doux, collines de socle.
-- **Les arcs et les points chauds :** des cônes posés par cellule hachée le long de l'arc ou de la traînée, cratère au sommet, pente de 5 à 30° selon le type.
-- **Le fond océanique :** des collines abyssales allongées parallèlement à la dorsale, d'autant plus enfouies sous les sédiments que la croûte est vieille.
+**What geology modules:**
+- **The young chains:** a ridged of 8 to 12 octaves, aligned on the folds, of amplitude given by the profile of the chain; ravines on the slopes. The strongest roughness.
+- **The old strings:** the same noise, thin octaves attenuated by age, rounded peaks. roughness average.
+- **Sedimentary plateaus and basins:** terraces where the rock is lit and the dry climate, today's badlands at their geological place.
+- **The cratons:** soft billow, base hills.
+- **Arcs and hot spots:** cones laid by hacked cell along the arc or trail, crater at the top, slope of 5 to 30° depending on type.
+- **The ocean floor:** abyssal hills elongated parallel to the ridge, buried under sediments as the crust is old.
 
-**La rugosité `gRoughness` :** calculée des mêmes champs, continue : 0,1 sur les plaines, 0,3 sur les cratons, 0,5 sur les chaînes anciennes, 0,6 sur les terrasses, 1 sur les chaînes jeunes.
+**The roughness `gRoughness`:** calculated from the same fields, continues: 0,1 on the plains, 0,3 on the cratons, 0,5 on the old chains, 0,6 on the terraces, 1 on the young chains.
 
-**Le filtrage :** chaque bande lit `gMaxFrequency`, comme aujourd'hui. Chaque profil analytique a une largeur d'au moins deux mailles, comme l'arrondi des crêtes : une fosse vue de 400 km n'est pas une fente d'un pixel.
+**Filtering:** Each band reads `gMaxFrequency`, as today. Each analytical profile has a width of at least two grid cells, as the rounding of the ridges: a pit seen of 400 km is not a pixel slot.
 
-### 6.5 Le lien avec l'érosion
+### 6.5 The link with erosion
 
-**Ce que le niveau 0 attend en entrée, et ce qu'il reçoit enfin :**
+**What the 0 level expects in input, and what it finally receives:**
 
-| Entrée du niveau 0 | Aujourd'hui | Demain |
+| Level entry 0 | Today | Tomorrow |
 |---|---|---|
-| Soulèvement U | proportionnel à complexplanet, plus un minimum, inversé vers ses hauteurs | celui des fronts convergents, nul sur les cratons, négatif dans les avant-pays et les rifts |
-| Relief initial | complexplanet sans ses vallées | les grandes formes, `ReliefElevation(p, false)` |
-| Érodabilité K | uniforme | selon la roche : forte sur les sédiments, faible sur le socle (Cordonnier 2018) |
-| Niveau de base | la mer et les lacs terminaux | idem, la côte venant de la marge continentale |
-| Pluie | décroissante vers l'intérieur | idem, puis l'ombre des chaînes, que la tectonique place enfin |
+| U-Uprising | proportional to complexplanet, plus a minimum, reversed to its heights | that of converging fronts, zero on cratons, negative in the forelands and rifts |
+| Initial relief | complexplanet without its valleys | the large forms, `ReliefElevation(p, false)`  |
+| Erosion K | uniform | Rock-based: strong on sediments, weak on the base (Cordonnier 2018) |
+| Basic level | sea and terminal lakes | idem, the coast from the continental margin |
+| Rain | decreasing inward | idem, then the shadow of chains, which tectonics finally places |
 
-**Pourquoi c'est plus simple pour lui :**
-- **Les chaînes sont là où le soulèvement les tient.** À l'équilibre, la hauteur d'une chaîne vient de U / K et de l'aire drainée ; le niveau 0 n'a plus à les copier. L'inversion du spike A3 peut rester, vers les hauteurs des profils, mais elle part d'un soulèvement déjà cohérent.
-- **Les cuvettes ont une cause.** Les bassins d'avant-pays, les rifts et les intérieurs arides sont des cuvettes réelles ; le reste se draine vers la mer par construction.
-- **Les bassins ont une taille terrestre.** Les chaînes côtières, les rifts et les sutures découpent les continents en plusieurs bassins ; le bassin géant du spike A2 venait d'un intérieur sans relief organisé.
-- **Les fleuves contournent les massifs.** Les massifs sont ceux que l'érosion a laissés debout ; ils ne viennent plus d'un bruit que le tracé ignore.
+**Why it is easier for him:**
+- **Chains are where the uprising holds them.** At equilibrium, the height of a string comes from U/K and the drained area; the level 0 no longer has to copy them. The inversion of the A3 spike can remain, towards the heights of the profiles, but it starts from an already coherent rise.
+- **The cuvettes have a cause.** The outlying basins, rifts and arid interiors are actual cuvettes; the rest drains to the sea by construction.
+- **Basins are land size.** Coastal chains, rifts and sutures cut the continents into several basins; the giant basin of spike A2 came from an interior without organized relief.
+- **Rivers bypass the mountains.** The massifs are those that erosion has left standing; they no longer come from a noise that the trace ignores.
 
-**Le solveur, du moins cher au plus cher :**
-1. **L'équilibre analytique** (Tzathas 2024) : Priority-Flood, aire drainée, puis l'intégrale χ le long du réseau, deux ou trois fois, car le réseau dépend du relief. Quelques secondes estimées.
-2. **FastScape transitoire sur GPU** (Schott 2023), si l'équilibre manque de variété. Quelques secondes estimées pour un millier de pas.
-3. **Un cache sur disque par graine,** en attendant le GPU, comme le bake actuel `x64\Erosion`.
+**The solver, from cheapest to most expensive:**
+1. **Analytical balance** (Tzathas 2024): Priority-Flood, drained area, then the integral χ along the network, two or three times, because the network depends on the relief. A few seconds estimated.
+2. **FastScape transient on GPU** (Schott 2023), if balance lacks variety. A few seconds estimated for a thousand steps.
+3. **One disk cache per seed,** waiting for the GPU, like the current bake `x64\Erosion`.
 
-**Ce qu'il rend, et comment le relief l'emploie :**
-- **Le relief érodé** remplace les grandes formes au-dessus de deux de ses cellules, sur les terres ; lu en B-spline, par mips.
-- **L'aire drainée et le niveau de l'eau** donnent le masque des vallées : le bruit des couches moyennes s'éteint sur le fond, que suit le profil du fleuve. Le fond a la largeur du lit, puis de la plaine, selon le débit (`recherche-dendry.md`).
-- **La pente du niveau 0** oriente les ravines : elles descendent vers ses fleuves.
-- **La moyenne reste juste :** la carte est calculée avec les octaves filtrées à deux texels et remplacées par leur moyenne. Le niveau 0 voit la hauteur moyenne du relief qu'il érode.
+**What it does, and how relief uses it:**
+- **The eroded relief** replaces the large shapes above two of its cells, on the lands; read in B-spline, by mips.
+- **The drained area and the water level** give the mask of the valleys: the noise of the middle layers extinguishes on the bottom, which follows the profile of the river. The bottom has the width of the bed, then of the plain, according to the flow (`recherche-dendry.md`).
+- **The slope of the 0 level** orients the ravines: they descend towards its rivers.
+- **The average remains correct:** the map is calculated with the octaves filtered to two texels and replaced by their average. The level 0 sees the average height of the relief that it erodes.
 
-**Ce qui reste ouvert :** les vallées entre 20 km et 1 km. Le bruit orienté y creuse des vallées longitudinales, parallèles aux plis, qui peuvent se fermer. Deux réponses, dans l'ordre :
-1. **Le masque et la pente vers le fleuve le plus proche,** dans la fonction elle-même : bon marché, à mesurer.
-2. **Les niveaux fins de Dendry,** par tuiles autour de la caméra, accrochés aux fleuves du niveau 0 (`recherche-dendry.md`, section 6).
+**What remains open:** the valleys between 20 km and 1 km. The noise oriented therein carves longitudinal valleys, parallel to the folds, which can close. Two answers, in order:
+1. **The mask and the slope to the nearest river,** in the function itself: cheap, to measure.
+2. **The fine levels of Dendry,** by tiles around the camera, hanging on the rivers of the level 0 (`recherche-dendry.md`, section 6).
 
-### 6.6 Ce qui reste du projet
+### 6.6 What remains of the project
 
-- **L'interface :** `ReliefElevation(double3 p)` et `ReliefElevation(double3 p, bool valleys)`.
-  - Avec `valleys`, le relief complet, niveau 0 compris.
-  - Sans, la forme avant érosion, celle que lit le niveau 0. Elle ne lit jamais ses propres sorties.
-- **`gRoughness` :** écrite à chaque appel, de 0 à 1, calculée des champs géologiques.
-- **La double précision :** seulement pour la découpe des octaves sur la grille, comme aujourd'hui. Les lectures de carte se font en float : 0,4 m d'erreur de direction contre 10 km de texel.
-- **Le filtrage par la maille :** `gMaxFrequency`, `gCreaseMaxFrequency`, `MapLevel` pour les mips des cartes.
-- **La stabilité quand la maille glisse :** tout est ancré sur la planète ; aucun calcul ne dépend de l'ancre ni de la caméra.
-- **Les ordres de grandeur :** environ 60 % de terres, sommets de 5 à 8 km, fosses à −8 km, dans `MAX_ELEV` = 8 192 m. La part de terres se règle à l'étape 1 du précalcul, la hauteur des sommets par les profils et le soulèvement.
-- **Le portage CPU des bancs :** comme `tools/hydro/cp.py` pour le relief actuel, un portage numpy du précalcul et des profils, pour `banc_carte.py` et les planches.
+- **The interface:** `ReliefElevation(double3 p)` and `ReliefElevation(double3 p, bool valleys)`.
+  - With `valleys`, the complete relief, level 0 including.
+  - Without, the form before erosion, the one that reads the level 0. She never reads her own outputs.
+- **`gRoughness`:** written at each call, from 0 to 1, calculated from geological fields.
+- **Double precision:** only for cutting octaves on the grid, as today. Map readings are made in float: 0,4 m of error of direction against 10 km of texel.
+- **Filtering by the grid cell:** `gMaxFrequency`, `gCreaseMaxFrequency`, `MapLevel` for the mips cards.
+- **Stability when the grid cell slides:** everything is anchored on the planet; no calculation depends on the anchor or the camera.
+- **The orders of magnitude:** about 60 % of land, summits from 5 to 8 km, pits at −8 km, in `MAX_ELEV` = 8 192 m. The land share is set at the step 1 of the precalculation, the height of the peaks by profiles and elevation.
+- **The port CPU of the benchmarks:** as `tools/hydro/cp.py` for the current relief, a port numpy of the precalculation and profiles, for `banc_carte.py` and the planks.
 
-### 6.7 Le coût par sommet, estimé
+### 6.7 Cost per vertex, estimated
 
-| Poste | Aujourd'hui | Demain, estimé |
+| Poste | Today | Tomorrow, estimated |
 |---|---|---|
-| Lectures de carte | 0 | 2 cubes en B-spline, environ 8 lectures bilinéaires ; plus le niveau 0 |
-| Profils analytiques | 0 | quelques dizaines d'opérations |
-| Turbulences | 12, à 3 bruits chacune | un gauchissement de 2 octaves, 6 bruits |
-| Octaves | environ 114 dans les générateurs, et des sous-graphes recalculés | 30 à 70 selon le terrain, dans des branches réelles |
-| Total | environ 340 évaluations de bruit | 40 à 80, à mesurer |
+| Map readings | 0 | 2 cubes in B-spline, about 8 bilinear readings; plus the level 0 |
+| Analytical profiles | 0 | a few dozen operations |
+| Turbulences | 12, at 3 noise functions each | a left shift of 2 octaves, 6 noise functions |
+| Octaves | about 114 in generators, and recalculated subgraphs | 30 to 70 depending on the terrain, in real branches |
+| Total | about 340 ratings of noise | 40 to 80, to be measured |
 
-### 6.8 Les règles nouvelles, pour `principes.md`
+### 6.8 The new rules, for `principes.md`
 
-- **La géologie décide, le bruit détaille.** Toute forme de plus de 50 km vient de la carte tectonique ; aucun bruit n'a d'octave au-dessus.
-- **Une carte précalculée peut porter la géométrie,** à trois conditions : ancrée sur la planète, lue en B-spline cubique et par mips, au-dessus de deux de ses texels seulement. Elle remplace la règle « de la donnée, jamais de la géométrie », que le niveau 0 enfreint déjà sur `erosion-niveaux`.
-- **Une carte qui porte une forme ne se lit jamais en bilinéaire :** la pente y saute à chaque texel, et la lumière dessine la grille.
-- **Tout profil analytique a une largeur d'au moins deux mailles.**
-- **Rien de plus fin que le niveau 0 ne barre un de ses cours d'eau.**
-- **Chaque profil suit une loi publiée,** citée avec sa source : profondeur océanique par l'âge, flexion de la lithosphère, largeur des plateaux.
+- **Geology decides, the noise details.** Any form of more than 50 km comes from the tectonic map; no noise has an octave above.
+- **A pre-calculated map can carry geometry,** under three conditions: anchored on the planet, read in cubic B-spline and by mips, above two of its texels only. It replaces the rule “data, never geometry”, which the 0 level already violates on `erosion-niveaux`.
+- **A map that bears a shape is never read in bilinear:** the slope jumps at every texel, and the light draws the grid.
+- **Any analytical profile has a width of at least two grid cells.**
+- **Nothing thinner than the level 0 blocks one of its waterways.**
+- **Each profile follows a published law,** cited with its source: ocean depth by age, bending of the lithosphere, width of the plateaus.
 
-## 7. Le plan par étapes
+## 7. The plan in stages
 
-Chaque étape se juge en vol, avec un fichier `tools/tests/<date>.txt` et `tools/lance.ps1`, sur plusieurs graines et plusieurs lieux. Chacune est sur la piste `piste/relief-tectonique`, avec un réglage qui ramène au relief actuel ; le relief actuel reste le rendu sans variable jusqu'à la décision.
+Each stage is judged in flight, with a `tools/tests/<date>.txt` and `tools/lance.ps1` file, on several seeds and several locations. Each is on the experiment `piste/relief-tectonique`, with a setting that returns to the current relief; the current relief remains the unchanged rendering until the decision.
 
-| Étape | Contenu | Ce qui se juge en vol | Mesure |
+| Stage | Contents | What is judged in flight | Measure |
 |---|---|---|---|
-| 0 | Décider de la règle de la carte qui porte la géométrie ; écrire la spec | rien | la décision |
-| 1 | Le précalcul tectonique et ses vues de diagnostic, `MYPLANETENGINE_VIEW` : plaques, type de frontière, âge, roche. Le relief ne change pas | depuis l'orbite, les plaques et leurs frontières sur la planète actuelle : formes, tailles, irrégularité | temps de démarrage ajouté ; tailles des plaques contre Bird 2003 |
-| 2 | Les grandes formes seules, sur les briques actuelles pour le détail | depuis l'orbite et à 50 km : continents, plateaux, chaînes le long des fronts, fosses, dorsales, rifts | 60 % de terres ; hypsométrie bimodale ; sommets de 5 à 8 km ; fosses à −8 km |
-| 3 | Le détail modulé : bruit orienté par les plis, âge, roche, `gRoughness` | de 10 km à 100 m : crêtes parallèles aux chaînes, chaînes vieilles arrondies, terrasses des bassins secs | banc de qualité : aucun p95 dégradé de plus de 10 % ; banc de descente plat |
-| 4 | Le niveau 0 sur le soulèvement tectonique, à l'équilibre analytique ; son relief érodé au-dessus de deux cellules ; le masque des vallées | aux sources des fleuves, là où ils traversaient les montagnes : ils les contournent ; bassins et lacs | `level0_cut.py` : part des fleuves creusée à plus de 50 m sous le sol, contre 44 % ; tailles des bassins contre la Terre ; corrélation des massifs avec la couche 2 |
-| 5 | Les arcs, les points chauds, les failles transformantes, les collines abyssales | les chapelets d'îles, les volcans, le fond océanique vu en basse altitude | nombre et espacement des volcans d'arc |
-| 6 | Les côtes par type de marge : plateaux larges et plages sur les marges passives, côtes raides et falaises sur les actives | le long de plusieurs côtes de chaque type | parts de côte de `recherche-cotes.md`, étape 3 |
-| 7 | Les vallées fines : Dendry par tuiles, accroché au niveau 0 | en montagne à 2 km : affluents en arbre, sans cuvettes | lacs de moins de 1 % des terres à 300 m ; banc de tremblement |
-| 8, si besoin | Une histoire simulée à la Cortial, si l'instantané paraît trop régulier | des continents assemblés de terranes, des sutures multiples | — |
+| 0 | Decide on the rule of the card that carries the geometry; write the spec | none | decision |
+| 1 | The tectonic precalculation and its diagnostic views, `MYPLANETENGINE_VIEW` : plates, boundary type, age, rock. The relief does not change | from orbit, plates and their boundaries on the current planet: shapes, sizes, irregularity | start-up time added; plate sizes against Bird 2003 |
+| 2 | The large forms alone, on the current bricks for the detail | from orbit and at 50 km: continents, plateaus, chains along fronts, pits, ridges, rifts | 60 % of land; bimodal hypsometry; summits from 5 to 8 km; pits at −8 km |
+| 3 | Modulated detail: noise oriented by folds, age, rock, `gRoughness`  | from 10 km to 100 m: ridges parallel to the chains, rounded old chains, terraces of dry pools | quality benchmark: no gradient p95 of more than 10 %; flat descent benchmark |
+| 4 | The level 0 on the tectonic elevation, at analytical equilibrium; its eroded relief above two cells; the mask of the valleys | at the sources of rivers, where they crossed the mountains: they circumvent them; ponds and lakes |  `level0_cut.py` : share of rivers dug more than 50 m below ground, vs. 44 %; basin sizes vs. Earth; correlation of masses with 2 layer |
+| 5 | Arcs, hot spots, transforming faults, abyssal hills | the island rosaries, the volcanoes, the ocean floor seen at low altitude | number and spacing of arc volcanoes |
+| 6 | Coasts by type of margin: broad plateaus and beaches on passive margins, steep coasts and cliffs on active ones | along several ribs of each type | parts of coast of `recherche-cotes.md`, step 3 |
+| 7 | The fine valleys: Dendry by tiles, hung at level 0 | mountains at 2 km: tree tributaries, without basin | Lakes less than 1 % of land at 300 m; benchmark of jitter |
+| 8, if necessary | A simulated story in Cortial style, if the snapshot seems too regular | continents assembled of terranes, multiple sutures | — |
 
-**L'étape 2 est le premier vrai jugement.** Elle montre à elle seule si la planète a une géologie lisible de l'orbite. Les étapes 1 et 2 ne touchent ni au niveau 0 ni aux matériaux.
+**The 2 step is the first true judgment.** It shows on its own whether the planet has a legible orbit geology. The steps 1 and 2 do not affect the 0 level or materials.
 
-## 8. Risques et questions
+## 8. Risks and issues
 
-- **La décision de la règle de la carte,** étape 0, prise le 2026-10-31 (`principes.md`). Sans elle, le niveau 0 ne pouvait pas porter le relief au-dessus de 20 km, et l'architecture perdait sa couche 4.
-- **Le démarrage s'allonge :** quelques secondes pour les plaques, quelques secondes pour le niveau 0 sur GPU, peut-être une minute sur CPU. Un cache par graine borne le pire cas.
-- **Les lectures en B-spline aux arêtes du cube :** les lectures décalées traversent les faces ; à vérifier aux coins, où trois faces se rencontrent.
-- **Le bruit orienté :** là où la direction des plis tourne vite, aux coudes des chaînes, le mélange des cellules peut brouiller les crêtes.
-- **L'instantané cinématique manque d'histoire :** des chaînes toutes jeunes, des continents sans terranes. Les sutures synthétisées de l'étape 1 sont la parade ; la simulation pas à pas, l'étape 8, le recours.
-- **Le niveau 0 à 20 km :** il ne voit pas les vallées entre 20 et 1 km. La question ouverte de la section 6.5.
-- **Le post Reddit :** non lu. Il peut changer une recommandation s'il apporte une méthode absente d'ici.
+- **The decision of the card rule,** step 0, taken the 2026-10-31 (`principes.md`). Without it, the 0 level could not carry the relief above 20 km, and the architecture lost its 4 layer.
+- **Startup time is longer:** a few seconds for plates, a few seconds for 0 level on GPU, maybe a minute on CPU. A cache per seed limits the worst case.
+- **B-spline readings at the edges of the cube:** offset readings cross the faces; to be checked at the corners, where three faces meet.
+- **The noise oriented:** where the direction of the folds turns fast, at the elbows of the chains, the mixture of cells can blur the ridges.
+- **The cinematic snapshot lacks history:** young chains, continents without terranes. The synthesized sutures of the 1 step are the parade; the step-by-step simulation, the 8 step, the recourse.
+- **The level 0 to 20 km:** it does not see the valleys between 20 and 1 km. The open question of the section 6.5.
+- **Reddit posts:** not read. He can change a recommendation if he brings a method missing here.
 
 ## 9. Sources
 
-**Le post et les projets récents**
-- Le post signalé : https://www.reddit.com/r/proceduralgeneration/comments/1xhximl/procedural_plate_tectonics_simulation_for_a/ (non lu, accès refusé).
-- World Orogen : https://github.com/raguilar011095/planet_heightmap_generation ; https://orogen.studio/
-- Frozen Fractal, « Around The World, Part 29: One year in », 2026 : https://frozenfractal.com/blog/2026/2/14/around-the-world-29-one-year-in/
+**The post and recent projects**
+- The post reported: https://www.reddit.com/r/proceduralgeneration/comments/1xhximl/procedural_plate_tectonics_simulation_for_a/ (unread, access denied).
+- World Orogen : https://github.com/raguilar011095/planet_heightmap_generation; https://orogen.studio/
+- Frozen Fractal, "Around The World, Part 29: One year in", 2026: https://frozenfractal.com/blog/2026/2/14/around-the-world-29-one-year-in/
 - DasTobi, « Plate Tectonics Simulation, Oceans and Mountains », 2026 : https://www.youtube.com/watch?v=cP-5czRuTII
 
-**La tectonique procédurale**
+**Procedural tectonics**
 - Cortial, Peytavie, Galin, Guérin, *Procedural Tectonic Planets*, CGF 38(2), 2019 : https://perso.liris.cnrs.fr/eric.galin/Articles/2019-planets.pdf ; https://onlinelibrary.wiley.com/doi/abs/10.1111/cgf.13614
-- Gainey, *Procedural Planet Generation*, Experilous, 2014 : https://www.experilous.com/1/blog/post/procedural-planet-generation (hors ligne le 2026-10-31).
+- Gainey, *Procedural Planet Generation*, Experilous, 2014: https://www.experilous.com/1/blog/post/procedural-planet-generation (offline the 2026-10-31).
 - Red Blob Games, *1843-planet-generation* : https://github.com/redblobgames/1843-planet-generation
-- PlaTec : https://github.com/Mindwerks/plate-tectonics ; WorldEngine : https://github.com/Mindwerks/worldengine
+- PlaTec : https://github.com/Mindwerks/plate-tectonics; WorldEngine : https://github.com/Mindwerks/worldengine
 - tectonics.js : https://github.com/davidson16807/tectonics.js ; SimpleTectonics : https://github.com/weigert/SimpleTectonics ; https://github.com/FreezeDriedMangos/realistic-planet-generation-and-simulation
 - Michel, Emilien, Cani, *Generation of Folded Terrains from Simple Vector Maps*, Eurographics short 2015 : https://diglib7.eg.org/bitstream/handle/10.2312/egsh.20151019.077-080/077-080.pdf
 
-**Le soulèvement et l'érosion**
+**Rise and erosion**
 - Cordonnier et al., *Large Scale Terrain Generation from Tectonic Uplift and Fluvial Erosion*, CGF 35(2), 2016 : https://hal.archives-ouvertes.fr/hal-01262376 ; https://www.cs.purdue.edu/homes/bbenes/papers/Cordonier16CGF.pdf
 - Cordonnier et al., *Sculpting Mountains: Interactive Terrain Modeling Based on Subsurface Geology*, TVCG 2018 : https://www.cs.purdue.edu/homes/bbenes/papers/Cordonnier18TVCG.pdf
 - Schott et al., *Large-scale Terrain Authoring Through Interactive Erosion Simulation*, ACM TOG 42, 2023 : https://hal.science/hal-04049125v1 ; https://github.com/H-Schott/StreamPowerErosion
@@ -422,8 +422,8 @@ Chaque étape se juge en vol, avec un fichier `tools/tests/<date>.txt` et `tools
 - fastscapelib : https://github.com/fastscape-lem/fastscapelib ; fastscape : https://github.com/fastscape-lem/fastscape
 - Astrolith, *Real-time planet scale erosion* : https://gamedev.net/blogs/entry/2275217-real-time-planet-scale-erosion
 
-**L'hydrologie et l'amplification**
-- Génevaux et al., *Terrain Generation Using Procedural Models Based on Hydrology*, ACM TOG 32(4), 2013 : https://www.cs.purdue.edu/homes/bbenes/papers/Genevaux13ToG.pdf ; https://hal.archives-ouvertes.fr/hal-01339224
+**Hydrology and Amplification**
+- Génevaux et al., *Terrain Generation Using Procedural Models Based on Hydrology*, ACM TOG 32(4), 2013: https://www.cs.purdue.edu/homes/bbenes/papers/Genevaux13ToG.pdf; https://hal.archives-ouvertes.fr/hal-01339224
 - Derzapf et al., *River Networks for Instant Procedural Planets*, CGF 30(7), 2011 : https://diglib.eg.org/handle/10.1111/v30i7pp2031-2040
 - Gaillard et al., *Dendry: A Procedural Model for Dendritic Patterns*, I3D 2019 : https://www.cs.purdue.edu/cgvlab/www/resources/papers/Gaillard-2019-Dendry_A_Procedural_Model_for_Dendritic_Patterns.pdf ; code GPL-3.0 : https://github.com/mgaillard/Noise
 - Guérin, Digne, Galin, Peytavie, *Sparse Representation of Terrains for Procedural Modeling*, CGF 35(2), 2016 : https://diglib.eg.org/handle/10.1111/cgf12821 ; https://github.com/eric-guerin/terrain-amplification
@@ -431,24 +431,24 @@ Chaque étape se juge en vol, avec un fichier `tools/tests/<date>.txt` et `tools
 - Grenier, Guérin, Galin, Sauvage, *Real-time Terrain Enhancement with Controlled Procedural Patterns*, CGF 43(1), 2024 : https://diglib.eg.org/handle/10.1111/cgf14992
 - Argudo et al., *Terrain descriptors for landscape synthesis, analysis and simulation*, Eurographics 2025 : https://hal.science/hal-05246144/document ; https://github.com/oargudo/terrain-descriptors
 - Borg et al., *Authoring Terrestrial Planets with Diffusion Models*, CGF 45(2), 2026 : https://diglib.eg.org/handle/10.1111/cgf70390
-- *Terrain Diffusion*, arXiv 2025 : https://arxiv.org/abs/2512.08309
+- *Terrain Diffusion*, arXiv 2025: https://arxiv.org/abs/2512.08309
 
-**Les bruits érodés**
-- Quilez, articles sur le bruit et ses dérivées : https://iquilezles.org/ ; le changement de licence de 2021 : https://github.com/huwb/volsample/issues/1
+**The noise functions eroded**
+- Quilez, articles on the noise and its derivatives: https://iquilezles.org/; the license change of 2021: https://github.com/huwb/volsample/issues/1
 - Johansen, *Fast and Gorgeous Erosion Filter*, 2026 : https://blog.runevision.com/2026/03/ ; https://www.shadertoy.com/view/wXcfWn ; https://gist.github.com/runevision
 
-**Les jeux**
+**The games**
 - McKendrick, *Continuous World Generation in No Man's Sky*, GDC 2017 : https://gdcvault.com/play/1024265/Continuous-World-Generation-in-No
 - Murray, *Building Worlds Using Math(s)*, GDC 2017 : https://gdcvault.com/play/1024514/Building-Worlds-Using
 - *Generating the Universe in Elite: Dangerous*, 80.lv : https://80.lv/articles/generating-the-universe-in-elite-dangerous/
-- Star Citizen, Planet Tech v5 : https://starcitizen.tools/Planet_Tech_v5 ; https://theimpound.com/pages/star-citizen-starchitect-planet-tech-v5
-- SpaceEngine, *First procedural terrain* : https://spaceengine.org/news/blog100531/
+- Star Citizen, Planet Tech v5: https://starcitizen.tools/Planet_Tech_v5; https://theimpound.com/pages/star-citizen-starchitect-planet-tech-v5
+- SpaceEngine, *First procedural terrain*: https://spaceengine.org/news/blog100531/
 
-**La géophysique des profils** (lois publiées, sans code)
-- Parsons, Sclater, *An analysis of the variation of ocean floor bathymetry and heat flow with age*, JGR 82, 1977, doi:10.1029/JB082i005p00803.
+**The geophysics of profiles** (published laws, without code)
+- Parsons, Sclater, An analysis of the variation of ocean floor bathymetry and heat flow with age, JGR 82, 1977, doi:10.1029/JB082i005p00803.
 - Stein, Stein, *A model for the global variation in oceanic depth and heat flow with lithospheric age*, Nature 359, 1992, doi:10.1038/359123a0.
 - Bird, *An updated digital model of plate boundaries*, G³ 4(3), 2003, doi:10.1029/2001GC000252.
-- Turcotte, Schubert, *Geodynamics*, la flexion de la lithosphère : bourrelet externe et bassins d'avant-pays.
+- Turcotte, Schubert, *Geodynamics*, the bending of the lithosphere: external burrelet and outlying basins.
 - Perron, Royden, *An integral approach to bedrock river profile analysis*, 2013 : https://dspace.mit.edu/handle/1721.1/75359
 - Braun, Willett, *A very efficient O(n), implicit and parallel method to solve the stream power equation*, Geomorphology 180, 2013.
-- Barnes, Lehman, Mulla, *Priority-Flood*, 2014.
+- Barnes, Lehman, Mulla, Priority Flood, 2014.

@@ -1,6 +1,6 @@
-# Mode retiré le 2026-10-30 : le prototype volumique et son lanceur lance_foliage.ps1, au tag `piste/vegetation-relais-fondu` (docs/log/prototype-vegetation-volumique.md). Altitudes absolues : par tools\lance.ps1 -Parcours, ces lieux montrent la végétation du jeu.
-# Ancre pour lance_foliage.ps1 -Anchor : 0.37 60.53
-# Positions absolues relevées sur les captures de référence du banc.
-# libellé | altitude absolue latitude longitude inclinaison cap | latitude longitude du soleil
-p128 rasant contrejour | 325.2 0.36947686 60.53000000 5.00 0.00 | 70.37 60.53
+# Mode removed the 2026-10-30: the volume prototype and its launcher lance_foliage.ps1, with the tag `piste/vegetation-relais-fondu` (docs/log/prototype-vegetation-volumique.md). Absolute altitudes: by tools\lance.ps1 -Route, these places show the vegetation of the game.
+# Anchor for lance_foliage.ps1 -Anchor: 0.37 60.53
+# Absolute positions recorded on the reference captures of the benchmark.
+# label | absolute altitude latitude longitude inclination cap | latitude longitude of the sun
+p128 rasant contre-jour | 325.2 0.36947686 60.53000000 5.00 0.00 | 70.37 60.53
 p8 oblique cote | 854.1 0.36311733 60.53000000 35.00 0.00 | 0.126547 130.530384

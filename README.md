@@ -146,7 +146,7 @@ Exolune needs people who want to turn a world into a game:
 - **3D art and sound:** ships, props, creatures, ambiences;
 - **procedural generation:** erosion and rivers are in progress, other planets and moons are ahead.
 
-Start with [`docs/README.md`](docs/README.md), the map of the documentation. It is written in French, one spec per system. Every experiment is kept in [`docs/log/`](docs/log), with a git tag to return to it. [`docs/principes.md`](docs/principes.md) holds the rules every change follows, and [`AGENTS.md`](AGENTS.md) the guidance for coding agents.
+Start with [`docs/README.md`](docs/README.md), the map of the documentation. It is written in English, one spec per system. Every experiment is kept in [`docs/log/`](docs/log), with a git tag to return to it. [`docs/principes.md`](docs/principes.md) holds the rules every change follows, and [`AGENTS.md`](AGENTS.md) the guidance for coding agents.
 
 ## Licence
 

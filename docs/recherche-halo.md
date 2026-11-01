@@ -1,94 +1,94 @@
-# Recherche : le halo optique autour du soleil et de la neige
+# Research: the optical halo around the sun and snow
 
-Statut : recherche et première mise en œuvre, le 2026-10-24, piste `piste/halo-optique`. Item 3.11 de `recherche-profondeur-atmospherique.md`. Sources en fin de fichier.
+Status: research and first implementation, the 2026-10-24, experiment `piste/halo-optique`. Item 3.11 from `recherche-profondeur-atmospherique.md`. Sources at the end of the file.
 
-**Dans le jeu, le halo est coupé par défaut.** `MYPLANETENGINE_GLARE` l'active, au lancement direct de l'exe : `tools/lance.ps1` efface les variables (`lancement.md`). Depuis le 2026-10-30, il ne dépend plus des nuages.
+**In-game, the Halo is off by default.** `MYPLANETENGINE_GLARE` activates it, at the direct launch of the exe: `tools/lance.ps1` deletes the variables (`lancement.md`). Since the 2026-10-30, it no longer depends on clouds.
 
 ## 1. Conclusion
 
-**Un seul halo, linéaire, qui conserve l'énergie, sur l'image avant la courbe de tons.**
-- **La loi :** loin d'un point lumineux, le halo décroît comme s E / θ². C'est le halo lointain de l'œil, loi de Stiles-Holladay et terme dominant de l'équation CIE (Vos 2003). C'est aussi celui de la diffusion des surfaces optiques polies.
-- **Un seul réglage :** la diffusion s = θ² L / E, en degrés carrés par stéradian, `GLARE_STRAYLIGHT`.
-- **Une pyramide suffit :** des demi-images du pixel à l'écran, sommées à poids égaux, décroissent exactement en 1/θ². Chaque octave d'angle porte la même part de lumière, quelle que soit la résolution.
-- **La lumière est déplacée, jamais ajoutée :** l'image garde 1 − W de sa lumière, la pyramide répartit W. Pas de seuil, pas de lumière créée.
+**A single halo, linear, which conserves energy, on the image before the tone curve.**
+- **The law:** far from a bright spot, the halo decreases as s E / θ². This is the distant halo of the eye, Stiles-Holladay law and dominant term of the equation CIE (Vos 2003). It is also the diffusion of polished optical surfaces.
+- **One single setting:** the diffusion s = θ² L/E, in square degrees per steradian, `GLARE_STRAYLIGHT`.
+- **A pyramid is enough:** half-images of the pixel on the screen, summed at equal weights, decrease exactly in 1/θ². Each octave of angle carries the same part of light, regardless of the resolution.
+- **Light is moved, never added:** the image keeps 1 − W of its light, the pyramid distributes W. No threshold, no light created.
 
-**Le réglage : un objectif récent, s = 0,3.**
-- **Mesuré :** 0,13 à 0,19 % de voile en ISO 18844 pour des objectifs actuels (Koren 2018), soit s ≈ 0,2 à 0,3.
-- **Plus fort ailleurs :** les appareils mesurés par McCann et Rizzi, 1 à 8 %, donnent s ≈ 1,4 à 11 ; un œil jeune, s ≈ 10.
-- **Pas l'œil :** le halo est linéaire. Devant l'écran, l'œil du spectateur ajoute déjà le sien à tout ce que l'écran montre. L'ajouter dans l'image le compterait deux fois.
-- **Essayé à s = 1,7,** un voile de 1 % : le soleil haut devient une boule presque blanche de 4,3° de diamètre, contre 1,9° à s = 0,3. Juste pour un appareil ordinaire, pas discret.
+**The setting: a recent objective, s = 0,3.**
+- **Measured:** 0,13 to 0,19 % of sail in ISO 18844 for current objectives (Koren 2018), or s ≈ 0,2 to 0,3.
+- **Stronger elsewhere:** the devices measured by McCann and Rizzi, 1 to 8 %, give s ≈ 1,4 to 11; a young eye, s ≈ 10.
+- **Not the eye:** the halo is linear. In front of the screen, the viewer's eye already adds its own to everything that the screen shows. Adding it to the image would count it twice.
+- **Tested at s = 1,7,** a veil of 1 %: the high sun becomes an almost white ball of 4,3° in diameter, against 1,9° at s = 0,3. Just for an ordinary device, not discreet.
 
-**La neige n'a pas de halo visible, et c'est juste.**
-- Une neige au soleil renvoie environ 0,7 fois la luminance d'un blanc parfait.
-- À s = 0,3, son voile sur ce qui l'entoure reste sous un niveau de la sortie 8 bits : mesuré, conforme à la loi.
-- Le halo des neiges sur les photos vient de la surexposition, ou d'objectifs de plusieurs pour cent de voile.
+**Snow has no visible halo, and that's right.**
+- A snow in the sun returns about 0,7 times the luminance of a perfect white.
+- At s = 0,3, its veil on what surrounds it remains below a level of the output 8 bits: measured, compliant with the law.
+- The halo of snow on the photos comes from overexposure, or from several percent sail lenses.
 
-**Mesuré, section 5 :**
-- autour du soleil vu de l'espace, le halo suit la loi à 0,91 à 1,06 près, de 2° à 20° ;
-- soleil haut : +33 % de luminance à 2,4°, +9 % à 5°, +3 % à 10° ;
-- tremblement inchangé ; pompage du soleil d'un pixel à l'autre, 0,4 % ;
-- coût, 0,17 ms en 1280 × 720 sur RTX 4070 Ti.
+**Measured, section 5:**
+- around the sun seen from space, the halo follows the law at 0,91 to 1,06 near, from 2° to 20°;
+- sun high: +33 % of luminance to 2,4°, +9 % to 5°, +3 % to 10°;
+- jitter unchanged; sun pumping from pixel to pixel, 0,4 %;
+- cost, 0,17 ms in 1280 × 720 on RTX 4070 Ti.
 
-## 2. Ce que disent les sources
+## 2. What the sources say
 
-### 2.1 Le halo de l'œil
+### 2.1 The halo of the eye
 
-**Spencer, Shirley, Zimmerman et Greenberg 1995.**
-- La diffusion dans la cornée, le cristallin et la rétine étale la lumière d'un point : voile, halo lenticulaire, couronne ciliaire.
-- Leur fonction d'étalement somme un cœur gaussien et des termes en 1/θ³ et 1/θ², pondérés selon l'adaptation.
-- **Leur raison :** un écran ne peut produire la luminance qui éblouit. On ajoute donc à l'image le halo que l'œil aurait eu.
-- Le site de Cornell était injoignable : leurs constantes ne sont pas recopiées ici.
+**Spencer, Shirley, Zimmerman and Greenberg 1995.**
+- The diffusion in the cornea, the lens and the retina spreads the light from a point: veil, lenticular halo, ciliary crown.
+- Their spread function sums a Gaussian core and terms in 1/θ³ and 1/θ², weighted according to adaptation.
+- **Their reason:** a screen can only produce the luminance that dazzles. We add to the image the halo that the eye would have had.
+- The Cornell site was unreachable: their constants are not reproduced here.
 
-**L'équation CIE de l'éblouissement d'incapacité (Vos 2003, CIE 146:2002).**
-- Ψ(θ) = L/E = 10/θ³ + (5/θ² + 0,1 p/θ)(1 + (A/62,5)⁴) + 0,0025 p, en sr⁻¹, θ en degrés, valable de 0,1° à 100°.
-- A est l'âge ; p la pigmentation, 0 pour des yeux sombres, 0,5 bruns, 1 bleus ou verts.
-- Pour un œil de 25 ans : 27 % de la lumière diffusée au-delà de 0,1°, 8 % au-delà de 1°.
-- Au-delà de 2°, le terme en 1/θ² domine : c'est la loi de Stiles-Holladay, 10/θ².
-- Van den Berg en tire le paramètre de diffusion, s = θ² Ψ : log s ≈ 1 pour un œil jeune.
+**The equation CIE of disability glare (Your 2003, CIE 146:2002).**
+- Ψ(θ) = L/E = 10/θ³ + (5/θ² + 0,1 p/θ)(1 + (A/62,5)⁴) + 0,0025 p, in sr⁻¹, θ in degrees, valid from 0,1° to 100°.
+- A is age; p pigmentation, 0 for dark eyes, 0,5 brown, 1 blue or green.
+- For an eye of 25 years: 27 % of scattered light beyond 0,1°, 8 % beyond 1°.
+- Beyond 2°, the term in 1/θ² dominates: it is the Stiles-Holladay law, 10/θ².
+- Van den Berg derives the diffusion parameter, s = θ² Ψ: log s ≈ 1 for a young eye.
 
-### 2.2 Le halo des objectifs
+### 2.2 The halo of objectives
 
-- **ISO 9358 :** l'indice de voile est la lumière reçue au centre d'une tache noire, dans un champ uniformément clair.
-- **McCann et Rizzi :** 1 à 8 % du maximum pour les appareils mesurés ; dans le pire cas, le voile limite l'image à environ 25:1.
-- **Koren 2018, ISO 18844 :** 0,187 % pour un Canon 90 mm sur Sony A7R II à f/5,6 ; 0,130 % pour un zoom Canon 75-300.
-- **Les classes de 1984 pour le 35 mm :** très bon sous 1,5 %, médiocre au-delà de 3 %.
-- **La diffusion des surfaces polies** décroît en puissance de l'angle, voisine de 1/θ² : la même loi que l'œil.
+- **ISO 9358:** the sail index is the light received at the center of a black spot, in a uniformly clear field.
+- **McCann and Rizzi:** 1 to 8 % of maximum for the devices measured; in the worst case, the veil limits the image to about 25:1.
+- **Koren 2018, ISO 18844:** 0,187 % for a Canon 90 mm on Sony A7R II to f/5,6; 0,130 % for a Canon zoom 75-300.
+- **1984 classes for the 35 mm:** very good under 1,5 %, poor beyond 3 %.
+- **The diffusion of polished surfaces** decreases in power of the angle, near 1/θ²: the same law as the eye.
 
-**De l'indice à s.** Sous la loi s/θ², une tache de rayon θ1 dans un champ de rayon θ2 reçoit 2π (π/180)² s ln(θ2/θ1), soit 0,0019 s ln(θ2/θ1).
-- ISO 9358, tache de 1° dans un champ de 30° : 0,0065 s. Un voile de 1 % donne s ≈ 1,5.
-- ISO 18844 au 90 mm, cavité de 0,25° dans un champ de 7° : 0,0064 s. 0,19 % donne s ≈ 0,3.
-- **C'est une estimation :** ces sources ne donnent pas la géométrie exacte des mires.
+**From index to s.** Under the s/θ² law, a θ1 radius spot in a θ2 radius field receives 2π (π/180)² s ln(θ2/θ1), or 0,0019 s ln(θ2/θ1).
+- ISO 9358, spot of 1° in a field of 30°: 0,0065 s. A veil of 1 % gives s ≈ 1,5.
+- ISO 18844 to 90 mm, cavity of 0,25° in a field of 7°: 0,0064 s. 0,19 % returns s ≈ 0,3.
+- **This is an estimate:** these sources do not give the exact geometry of the mires.
 
-### 2.3 Les techniques temps réel
+### 2.3 Real time techniques
 
 **Jimenez 2014, Call of Duty: Advanced Warfare.**
-- Une pyramide : descente par 13 échantillons, cinq boîtes 2 × 2 qui se chevauchent ; remontée par une tente 3 × 3.
-- Sans seuil : le flou se mêle à l'image pour une petite part, l'énergie se conserve.
-- Une moyenne de Karis au premier niveau, contre les lucioles. **Écartée ici :** elle éteindrait le soleil.
+- A pyramid: descending by 13 samples, five boxes 2 × 2 that overlap; rising by a tent 3 × 3.
+- No threshold: blur blends into the image for a small part, energy is conserved.
+- A Karis average at the first level, against fireflies. **Dismissed here:** it would extinguish the sun.
 
-**Bjørge 2015, le filtre double de Kawase.** La même pyramide, à 5 et 8 échantillons : moins chère, moins ronde.
+**Bjørge 2015, the Kawase double filter.** The same pyramid, at 5 and 8 samples: cheaper, less round.
 
-**Unreal, le halo par convolution.**
-- Une FFT de l'image par une image de noyau, qui conserve l'énergie.
-- Réservée aux cinématiques et aux machines haut de gamme, pour son coût.
-- Utile pour un noyau non radial : étoiles de diffraction, halo lenticulaire. Pas notre besoin.
+**Unreal, the halo by convolution.**
+- A FFT of the image by a core image, which conserves energy.
+- Reserved for kinematics and high-end machines, for its cost.
+- Useful for a non-radial core: diffraction stars, lenticular halo. Not our need.
 
-**Pourquoi la pyramide suffit.**
-- Une somme de flous de largeurs doublées, à poids égaux, décroît exactement en 1/r² entre le premier et le dernier niveau.
-- La loi est sans échelle : le poids d'un niveau ne dépend ni de la résolution, ni du champ de vision.
-- Simulée hors ligne, elle suit la loi à 5 % près de 4 à 128 pixels. Entre axes et diagonales, l'écart reste sous 4 %, 11 % au pire.
+**Why the pyramid is enough.**
+- A sum of double-width blurs with equal weights decreases exactly in 1/r² between the first and last level.
+- The law is scaleless: the weight of a level does not depend on resolution or field of view.
+- Simulated offline, it follows the law at 5 % near 4 to 128 pixels. Between axes and diagonals, the gap remains below 4 %, 11 % at worst.
 
-### 2.4 Conserver l'énergie, avant la courbe
+### 2.4 Save energy, ahead of the curve
 
-- **Le halo est un étalement :** la lumière totale de l'image ne change pas.
-- **Sur l'image linéaire, avant la courbe :** le soleil, 45 750 fois un blanc au soleil, garde toute son énergie, que la courbe aurait écrasée.
-- **Pas de seuil :** un seuil fait apparaître le halo par paliers, et scintiller les surfaces qui le franchissent.
+- **Halo is a spread:** the total light of the image does not change.
+- **On the linear image, before the curve:** the sun, 45 750 times a white to the sun, keeps all its energy, which the curve would have crushed.
+- **No threshold:** a threshold makes the halo appear in steps, and sparkle the surfaces that cross it.
 
-## 3. Combien de halo, et comment le mesurer
+## 3. How much halo, and how to measure it
 
-**Les ordres de grandeur,** soleil à 40° de hauteur, en fraction d'un blanc au soleil :
+**The orders of magnitude,** sun at 40° height, in fraction of a white to the sun:
 
-| Angle au soleil | Objectif récent, s = 0,3 | Appareil ordinaire, s = 1,5 | Œil jeune, CIE | Notre ciel sans halo |
+| Angle to the sun | Recent objective, s = 0,3 | Ordinary device, s = 1,5 | Young eye, CIE | Our sky without halo |
 |---|---|---|---|---|
 | 1° | 0,71 | 3,5 | 36 | 0,30 |
 | 2° | 0,18 | 0,88 | 6,0 | 0,30 |
@@ -96,78 +96,78 @@ Statut : recherche et première mise en œuvre, le 2026-10-24, piste `piste/halo
 | 10° | 0,007 | 0,035 | 0,16 | 0,25 |
 | 20° | 0,002 | 0,009 | 0,04 | 0,20 |
 
-**Mesurer contre des photos.**
-- **Où lire :** le profil radial de luminance autour du soleil, en lumière linéaire, à pente fixe en échelle log-log.
-- **Une photo mêle deux choses :** l'auréole de l'air, diffusion vers l'avant des aérosols, et le halo de l'objectif. Les séparer demande une photo RAW et l'auréole mesurée au photomètre solaire, comme ceux d'AERONET.
-- **La mesure propre :** le soleil devant le noir de l'espace. Sans air, l'image est le halo seul : c'est le cas 1 de `tools/banc_halo.py`.
-- **Autour de la neige :** le voile ajouté à côté du champ de neige, selon la distance à son bord, comparé à la loi convoluée avec l'image sans halo.
+**Measure against photos.**
+- **Where to read:** the radial profile of luminance around the sun, in linear light, with fixed slope on a log-log scale.
+- **A photo mixes two things:** the halo of air, diffusion forward of aerosols, and the halo of the lens. Separating them requires a photo RAW and the halo measured with solar photometer, like those of AERONET.
+- **The proper measure:** the sun before the darkness of space. Without air, the image is the halo alone: this is the case of 1 of `tools/banc_halo.py`.
+- **Around Snow:** the veil added next to the snow field, depending on the distance to its edge, compared to the convoluted law with the image without halo.
 
-**Notre auréole est plus faible que celle des photos.**
-- La phase de Cornette-Shanks à g = 0,7 n'a pas le pic avant étroit des vrais aérosols.
-- Notre ciel reste à 0,30 de 1° à 2° du soleil ; un vrai ciel y est bien plus clair.
-- **Ce n'est pas au halo de le compenser :** c'est la phase des aérosols, côté atmosphère.
+**Our halo is weaker than that of the photos.**
+- The Cornette-Shanks phase at g = 0,7 does not have the narrow front peak of real aerosols.
+- Our sky remains at 0,30 of 1° to 2° of the sun; a real sky is much clearer there.
+- **It is not the halo to compensate for it:** it is the phase of aerosols, atmosphere side.
 
-## 4. Ce qui est fait
+## 4. What is done
 
-- **`GlareDown.hlsl`, `GlareUp.hlsl` :** la pyramide, 9 niveaux en 1280 × 720, du demi-écran à 2 × 1 pixels. Descente par les 13 échantillons de Jimenez, remontée par la tente 3 × 3, à poids égaux.
-- **`PlanetSettings.hlsli` :** `GLARE_STRAYLIGHT` = 0,3, le seul réglage. Le poids de chaque niveau s'en déduit, 2π ln 2 (π/180)² s.
-- **`Glare.cpp` :** `Glare::Initialize` et `Glare::Draw`, entre l'atmosphère et le lissage temporel, avec leurs propres tas de descripteurs. `MYPLANETENGINE_GLARE` l'active ; sans elle, ni ses images ni sa passe.
-- **`ToneMap.hlsl` inchangé :** le halo est fondu dans l'image composite, alpha gardé. Le lissage temporel le lisse comme le reste.
-- **Le disque du soleil montre la part du pixel qu'il couvre** (`principes.md`) : une ligne de la composition, aujourd'hui `CloudComposite` dans `Clouds.hlsli`. À bord franc, son énergie variait de −10 à +5 % d'une position à l'autre : le halo aurait pulsé.
+- **`GlareDown.hlsl`, `GlareUp.hlsl`:** the pyramid, 9 levels in 1280 × 720, from half screen to 2 × 1 pixels. Descent by the 13 samples of Jimenez, climb by the tent 3 × 3, at equal weights.
+- **`PlanetSettings.hlsli`:** `GLARE_STRAYLIGHT` = 0,3, the only adjustment. The weight of each level is derived from this, 2π ln 2 (π/180)² s.
+- **`Glare.cpp`:** `Glare::Initialize` and `Glare::Draw`, between atmosphere and time smoothing, with their own descriptor stacks. `MYPLANETENGINE_GLARE` activates it; without it, neither its images nor its pass.
+- **`ToneMap.hlsl` unchanged:** halo is blended into composite image, alpha kept. Temporal smoothing smooths it like the rest.
+- **The sun disc shows the part of the pixel it covers** (`principes.md`): a line of the composition, today `CloudComposite` in `Clouds.hlsli`. At free-board, its energy varied from −10 to +5 % from one position to another: the halo would have pulsed.
 
-## 5. Mesures
+## 5. Measures
 
-**Le profil autour du soleil, vu de 2 000 km,** `tools/banc_halo.py`, en fraction d'un blanc au soleil :
+**The profile around the sun, seen from 2 000 km,** `tools/banc_halo.py`, in fraction of a white to the sun:
 
-| Anneau | 2,4° | 3,5° | 4,9° | 6,9° | 9,8° | 13,9° | 19,6° | 27,7° |
+| Ring | 2,4° | 3,5° | 4,9° | 6,9° | 9,8° | 13,9° | 19,6° | 27,7° |
 |---|---|---|---|---|---|---|---|---|
-| Mesuré | 0,144 | 0,078 | 0,036 | 0,019 | 0,0091 | 0,0052 | 0,0024 | 0,0015 |
-| Loi, s = 0,3 | 0,157 | 0,079 | 0,039 | 0,020 | 0,0098 | 0,0049 | 0,0025 | 0,0012 |
-| Rapport | 0,92 | 1,00 | 0,91 | 0,99 | 0,93 | 1,06 | 0,99 | 1,24 |
-| Œil jeune, CIE | 4,9 | 2,1 | 0,98 | 0,46 | 0,22 | 0,11 | 0,058 | 0,032 |
+| Measured | 0,144 | 0,078 | 0,036 | 0,019 | 0,0091 | 0,0052 | 0,0024 | 0,0015 |
+| Law, s = 0,3 | 0,157 | 0,079 | 0,039 | 0,020 | 0,0098 | 0,0049 | 0,0025 | 0,0012 |
+| Report | 0,92 | 1,00 | 0,91 | 0,99 | 0,93 | 1,06 | 0,99 | 1,24 |
+| Young eye, CIE | 4,9 | 2,1 | 0,98 | 0,46 | 0,22 | 0,11 | 0,058 | 0,032 |
 
-- **Au bord de l'écran, +24 % :** les derniers niveaux gardent sur l'écran la lumière qui irait au-delà.
-- **Même rapport à s = 1,7 :** 0,92 à 1,04 de 2,4° à 20°. La pyramide suit la loi quelle que soit sa force.
+- **On the edge of the screen, +24 %:** the last levels keep on the screen the light that would go beyond.
+- **Same as s = 1,7:** 0,92 to 1,04 from 2,4° to 20°. The pyramid follows the law regardless of its strength.
 
-**Le soleil dans l'air,** gain de luminance sur l'image sans halo :
-- **soleil à 36° sur les montagnes :** +33 % à 2,4°, +18 % à 3,5°, +9 % à 5°, +3 % à 10°, +1,7 % à 14° ;
-- **soleil bas, 5° :** halo faible, l'air n'en laisse passer qu'une petite part ; l'auréole de l'air domine.
+**Sun in the air,** gain of luminance on image without halo:
+- **Sun at 36° on the mountains:** +33 % at 2,4°, +18 % at 3,5°, +9 % at 5°, +3 % at 10°, +1,7 % at 14°;
+- **sun low, 5°:** halo weak, the air lets through only a small part; the halo of the air dominates.
 
-**La neige, soleil dans le dos :** le voile ajouté à côté du champ de neige vaut 0,0005 à 0,0007 d'un blanc, de 2° à 28° de son bord ; la loi prédit 0,0005 à 0,0007. Écart net à l'image sans halo : sous un niveau de la sortie 8 bits.
+**Snow, sun in the back:** the veil added next to the snow field is worth 0,0005 to 0,0007 of a white, from 2° to 28° of its edge; the law predicts 0,0005 to 0,0007. Net deviation to image without halo: below a level of output 8 bits.
 
-**Le tremblement,** `tools/banc_tremblement.py`, avec puis sans halo, lissage avec et sans :
-- montagnes au soleil : 0,05 et 0,39, contre 0,05 et 0,40 ;
-- désert au soleil bas : 0,00 et 0,01, inchangé ;
-- neige : 0,08 et 0,45, contre 0,08 et 0,46.
+**The jitter,** `tools/banc_tremblement.py`, with and without halo, smoothing with and without:
+- mountains in the sun: 0,05 and 0,39, against 0,05 and 0,40;
+- desert at low sun: 0,00 and 0,01, unchanged;
+- snow: 0,08 and 0,45, against 0,08 and 0,46.
 
-**Le pompage :** le soleil déplacé par huitièmes de pixel, le halo de 3° à 10° varie de 0,4 % au plus. À bord franc, le disque aurait varié de −10 à +5 %.
+**Pumping:** the sun moved by pixel eighths, the halo from 3° to 10° varies from 0,4 % at most. At free edge, the disc would have varied from −10 to +5 %.
 
-**Le coût :** 0,17 ms en 1280 × 720 sur RTX 4070 Ti, médiane de six mesures, vue d'orbite.
+**Cost:** 0,17 ms in 1280 × 720 on RTX 4070 Ti, median of six measurements, orbit view.
 
-## 6. Points ouverts
+## 6. Open items
 
-- **Le soleil hors de l'écran ne donne aucun halo.** Le halo apparaît d'un coup quand son disque entre. Remède possible : le halo du soleil calculé à part, par sa direction.
-- **L'éblouissement de l'œil,** s ≈ 10, pour la seule lumière que l'écran ne peut montrer : à décider avec la nouvelle exposition et la nouvelle courbe.
-- **Les paliers de la sortie 8 bits** se voient dans le dégradé du halo sur le noir de l'espace. Un tramage d'un demi-niveau à la sortie, dans `ToneMap.hlsl`, les effacerait.
-- **Le coût :** des niveaux en flottants 16 bits diviseraient la bande passante par deux. Le soleil, 45 750, frôle leur limite de 65 504 : à éviter tant qu'aucune marge n'est sûre.
-- **L'auréole de l'air** de 1° à 3° du soleil, plus faible que sur les photos : la phase des aérosols, côté atmosphère.
+- **Sun off screen does not give any halo.** The halo appears suddenly when his disc enters. Possible remedy: the halo of the sun calculated separately, by its direction.
+- **The eye dazzle,** s ≈ 10, for the only light that the screen can not show: to be decided with the new exposure and the new curve.
+- **The output 8 bits** are seen in the gradient of the halo on the black of space. A half-level dithering at the output, in `ToneMap.hlsl`, would erase them.
+- **The cost:** floating 16 bit levels would divide the bandwidth by two. The sun, 45 750, is near their limit of 65 504: to avoid as long as no margin is safe.
+- **The air halo** from 1° to 3° of the sun, weaker than on the photos: the phase of aerosols, atmosphere side.
 
 ## 7. Sources
 
-**Œil**
-- Spencer, Shirley, Zimmerman et Greenberg 1995, *Physically-Based Glare Effects for Digital Images*, SIGGRAPH 95 : [article](https://w1.graphics.cornell.edu/pubs/1995/SSZG95.pdf).
-- Vos 2003, *On the cause of disability glare and its dependence on glare angle, age and ocular pigmentation*, Clinical and Experimental Optometry 86(6), 363-370 ; CIE 146:2002, *CIE equations for disability glare*.
-- L'équation générale, recopiée et discutée par Bará et Bao-Varela 2023, *Skyglow inside your eyes* : [article](https://arxiv.org/abs/2212.09103).
-- Van den Berg, Franssen, Kruijt et Coppens 2013, *History of ocular straylight measurement: A review*, Z. Med. Phys. 23, 6-20 : [doi](https://doi.org/10.1016/j.zemedi.2012.10.009).
+**Eye**
+- Spencer, Shirley, Zimmerman and Greenberg, 1995, Physically-Based Glare Effects for Digital Images, SIGGRAPH 95: [article](https://w1.graphics.cornell.edu/pubs/1995/SSZG95.pdf).
+- Vos 2003, On the cause of disability glare and its dependence on glare angle, age and ocular pigmentation, Clinical and Experimental Optometry 86(6), 363-370 ; CIE 146:2002, *CIE equations for disability glare.
+- The general equation, copied and discussed by Bará and Bao-Varela 2023, *Skyglow inside your eyes*: [article](https://arxiv.org/abs/2212.09103).
+- Van den Berg, Franssen, Kruijt et Coppens 2013, *History of ocular straylight measurement: A review*, Z. - Honey. Phys. 23, 6-20 : [two](https://doi.org/10.1016/j.zemedi.2012.10.009).
 
-**Objectifs**
-- ISO 9358:1994, indice de voile et fonction d'étalement : [ISO](https://www.iso.org/standard/17042.html).
-- McCann et Rizzi, voile des appareils et limites des images HDR, ECVP 2006, JSID 2007 et 2009 : [archives de Milan](https://air.unimi.it/handle/2434/192417).
-- Koren 2018, mesures ISO 18844 et dynamique des appareils, Electronic Imaging : [article](https://www.imatest.com/wp-content/uploads/2018/01/EI2018_Norman_Koren_final_paper.pdf).
-- Classes du voile des objectifs 35 mm, SPIE 467, 1984 : [résumé](https://proceedings.spiedigitallibrary.org/conference-proceedings-of-spie/467/0000/Simplified-Method-For-Measuring-And-Assessing-The-Veiling-Glare-Of/10.1117/12.941584.full).
-- Talvala, Adams, Horowitz et Levoy 2007, *Veiling Glare in High Dynamic Range Imaging* : [projet](https://graphics.stanford.edu/papers/glare_removal/).
+**Objectives**
+- ISO 9358:1994, sail index and spread function: [ISO](https://www.iso.org/standard/17042.html).
+- McCann and Rizzi, veil of the devices and limits of the images HDR, ECVP 2006, JSID 2007 and 2009: [archives de Milan](https://air.unimi.it/handle/2434/192417).
+- Koren 2018, measurements ISO 18844 and dynamics of devices, Electronic Imaging: [article](https://www.imatest.com/wp-content/uploads/2018/01/EI2018_Norman_Koren_final_paper.pdf).
+- Lens veil classes 35 mm, SPIE 467, 1984: [Summary](https://proceedings.spiedigitallibrary.org/conference-proceedings-of-spie/467/0000/Simplified-Method-For-Measuring-And-Assessing-The-Veiling-Glare-Of/10.1117/12.941584.full).
+- Talvala, Adams, Horowitz and Levoy 2007, *Veiling Glare in High Dynamic Range Imaging*: [project](https://graphics.stanford.edu/papers/glare_removal/).
 
-**Temps réel**
-- Jimenez 2014, *Next Generation Post Processing in Call of Duty: Advanced Warfare*, SIGGRAPH : [diapositives](https://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare/).
-- Bjørge 2015, *Bandwidth-Efficient Rendering*, cours SIGGRAPH 2015 *Moving Mobile Graphics*.
-- Unreal Engine, le halo standard et par convolution : [documentation](https://dev.epicgames.com/documentation/en-us/unreal-engine/bloom-in-unreal-engine).
+**Real time**
+- Jimenez 2014, *Next Generation Post Processing in Call of Duty: Advanced Warfare*, SIGGRAPH : [slides](https://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare/).
+- Bjørge 2015, *Bandwidth-Efficient Rendering*, course SIGGRAPH 2015 *Moving Mobile Graphics*.
+- Unreal Engine, the standard halo and by convolution: [documentation](https://dev.epicgames.com/documentation/en-us/unreal-engine/bloom-in-unreal-engine).

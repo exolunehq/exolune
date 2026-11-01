@@ -1,9 +1,9 @@
-# Tests du 2026-10-24 : les cercles concentriques sur les océans, vus de loin (docs/spec-rendu-lointain.md).
-# libellé | altitude (m) latitude longitude inclinaison cap [| latitude longitude du soleil]
-Vue signalée, 24 600 km : océan uni, sans cercles | 24622915.3 46.51198 60.64808 79.2 78.2
-30 000 km : océan uni | 30000000 46.51198 60.64808 79.2 78.2
-15 000 km : océan uni | 15000000 46.51198 60.64808 79.2 78.2
-10 000 km : les cercles étaient les plus nets | 10000000 46.51198 60.64808 79.2 78.2
-5 000 km : plus de cercles pâles | 5000000 46.51198 60.64808 79.2 78.2
-2 000 km : plus de cercles pâles | 2000000 46.51198 60.64808 79.2 78.2
-Autre région, 24 600 km : océan et désert unis | 24622915.3 20.0 75.0 85.0 0.0
+# Tests of the 2026-10-24: the concentric circles on the oceans, seen from afar (docs/spec-rendu-lointain.md).
+# label | altitude (m) latitude longitude inclination cap [| latitude longitude of the sun]
+Signaled view, 24 600 km: ocean unified, without circles | 24622915.3 46.51198 60.64808 79.2 78.2
+30 000 km: ocean united | 30000000 46.51198 60.64808 79.2 78.2
+15 000 km: ocean united | 15000000 46.51198 60.64808 79.2 78.2
+10 000 km: the circles were the sharpest | 10000000 46.51198 60.64808 79.2 78.2
+5 000 km: no more pale circles | 5000000 46.51198 60.64808 79.2 78.2
+2 000 km: no more pale circles | 2000000 46.51198 60.64808 79.2 78.2
+Other region, 24 600 km: ocean and desert united | 24622915.3 20.0 75.0 85.0 0.0

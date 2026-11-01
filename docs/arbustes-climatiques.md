@@ -1,78 +1,78 @@
-# Arbustes climatiques
+# Climatic shrubs
 
-**Statut : validé en l'état par l'utilisateur le 2026-10-27 ; seuil du banc qualité non satisfait.**
-- Suite de `vegetation-planetaire.md` ; base `piste/arbustes-climatiques-base`, sur le commit de départ.
-- Intégration sur `main`, jalon `jalon/24-vegetation-detaillee-main`.
-- L'acceptation visuelle autorise cette intégration avec les écarts de banc consignés ; elle ne change ni la métrique ni sa référence.
-- La phase d'optimisation des performances est différée : `optimisation-vegetation.md`.
+**Status: validated in the state by the user the 2026-10-27; threshold of the benchmark quality not satisfied.**
+- Continuation of `vegetation-planetaire.md`; base `piste/arbustes-climatiques-base`, on the initial commit.
+- Integration on `main`, milestone `jalon/24-vegetation-detaillee-main`.
+- Visual acceptance allows this integration with the deviations of benchmark recorded; it does not change the metric or its reference.
+- The performance optimization phase is delayed: `optimisation-vegetation.md`.
 
-**La diversité :**
+**Diversity:**
 
-| Famille | Port et feuillage | Hauteur relative à l'instance |
+| Family | Port and foliage | Height relative to instance |
 |---|---|---:|
-| Boréale | Touffes basses irrégulières, petites feuilles | 0,65 |
-| Désertique | Fourches latérales, bouquets espacés gris-vert | 0,85 |
-| Steppe | Rameaux étalés, feuillage fin, quelques tiges dressées | 0,60 |
-| Montagne et toundra | Bras horizontaux, petites feuilles en couvert bas | 0,30 |
-| Tempérée | Touffes feuillues ramifiées, plusieurs lobes et percées | 1,00 |
-| Tropicale | Tiges décalées, grandes feuilles alternes courbées | 1,15 |
+| Boréale | tufts low irregular, small leaves | 0,65 |
+| Desert | Side forks, spaced grey-green bouquets | 0,85 |
+| Steppe | Spread branches, fine foliage, some erect stems | 0,60 |
+| Mountain and tundra | Horizontal arms, small leaves in low cover | 0,30 |
+| Moderate | tufts branched deciduous trees, multiple lobes and perforations | 1,00 |
+| Tropical | Stems offset, large alternate curved leaves | 1,15 |
 
-- Deux architectures par famille ; la variante et l'orientation viennent de la graine stable.
-- Les douze modèles ont 2 492 à 4 272 triangles chacun, contre 13 406 pour l'arbuste précédent.
-- Les rameaux sont reliés ; les feuilles sont des surfaces découpées, pas des enveloppes opaques.
-- Les textures viennent du Searsia Lucida de Poly Haven, sous CC0 ; le catalogue représente des archétypes de jeu, pas douze espèces botaniques identifiées.
-- Les deux arbres restent identiques à ceux de `volume_look_normals`.
+- Two architectures per family; variant and orientation come from the stable seed.
+- The twelve models have 2 492 to 4 272 triangles each, versus 13 406 for the previous bush.
+- The twigs are connected; the leaves are cut surfaces, not opaque envelopes.
+- The textures come from Poly Haven's Searsia Lucida, under CC0; the catalog represents game archetypes, not twelve identified botanical species.
+- The two shafts remain identical to those of `volume_look_normals`.
 
-**La cohérence climatique :**
-- Le moteur lit la saison de croissance, l'aridité, la part de conifères, la température et l'exposition déjà utilisées par la végétation.
-- Il réserve d'abord les formes froides et exposées, puis le boréal, l'aride, la steppe et le tropical humide ; le reste est tempéré.
-- Les poids sont continus, positifs et de somme 1 ; aucun poids minimal n'impose un arbuste tempéré au désert.
-- Les seuils sont un réglage artistique sur ces champs climatiques ; ils ne sont ni des frontières géographiques ni une loi de répartition par espèce.
-- La montagne se reconnaît par le froid et l'exposition ; aucune altitude absolue universelle ne la définit.
-- Les références de port bas sont les [arbustes du Denali](https://www.nps.gov/dena/learn/nature/plants-by-form.htm) et les [saules alpins](https://www.nps.gov/articles/000/little-willows-at-great-heights.htm). Le feuillage étroit des milieux secs est décrit par l'[US Forest Service](https://research.fs.usda.gov/feis/species-reviews/artcal).
+**Climate coherence:**
+- The engine reads the growing season, aridity, coniferous share, temperature and exposure already used by the vegetation.
+- It first reserves the cold and exposed forms, then the boreal, arid, steppe and humid tropical; the rest is temperate.
+- Weights are continuous, positive and sum 1; no minimum weight imposes a temperate bush in the desert.
+- The thresholds are an artistic adjustment on these climatic fields; they are neither geographical boundaries nor a law of distribution by species.
+- The mountain is recognized by the cold and exposure; no universal absolute altitude defines it.
+- The low port references are the [Denali shrubs](https://www.nps.gov/dena/learn/nature/plants-by-form.htm) and the [Alpine suns](https://www.nps.gov/articles/000/little-willows-at-great-heights.htm). The narrow foliage of dry environments is described by the [US Forest Service](https://research.fs.usda.gov/feis/species-reviews/artcal).
 
-**La conservation du peuplement :**
-- Ni la graine, ni la position, ni la taille source, ni l'acceptation, ni la portée ne changent.
-- La famille occupe `axisY.y = 1 + famille` pour les seuls arbustes climatiques ; le facteur d'étalement se décode séparément.
-- Les hauteurs de modèle changent le port dessiné ; les seuils de présence gardent la taille source.
-- Le relais maillage/imposteur tient compte de l'encombrement du modèle ; le diagnostic de hauteur du couvert reprend la moyenne des familles. Le couvert lointain des arbustes reste surfacique, sans parallaxe verticale précise.
-- `MYPLANETENGINE_OBJECT_LIST` peut exporter les graines et positions sources dans `<capture>.plantes` pour une comparaison exacte sur le même binaire.
+**Conservation of population:**
+- Neither the seed, nor the position, nor the source size, nor the acceptance, nor the scope change.
+- The family occupies `axisY.y = 1 + famille` for only climatic shrubs; the spread factor is decoded separately.
+- Model heights change the drawn port; presence thresholds keep the source size.
+- The maillage/imposteur relay takes into account the size of the model; the cover height diagnosis takes the average of the families. The distant cover of shrubs remains superficial, without precise vertical parallax.
+- `MYPLANETENGINE_OBJECT_LIST` can export seeds and source positions into `<capture>.plantes` for exact comparison on the same binary.
 
-**Le coût borné :**
-- Les quatorze modèles partagent les six régions d'instances de 524 288 éléments, soit 192 Mio au total.
-- Le GPU compte les modèles, calcule des préfixes et disperse les instances ; chaque famille reçoit une sous-plage des deux régions d'arbustes.
-- Il n'existe pas de grande file supplémentaire par famille.
-- Une commande indirecte contient l'adresse du SRV de la sous-plage et le dessin ; `SV_InstanceID` repart de zéro, indépendamment de `StartInstanceLocation`.
-- Les dessins sont regroupés par représentation ; le GPU ignore les commandes dont le nombre d'instances vaut zéro, sans décision fondée sur un compteur CPU ancien.
-- Le petit buffer de commandes et compteurs occupe 1 056 octets ; les modèles et textures supplémentaires ont leur propre coût.
-- Les compteurs historiques restent six agrégats ; `model_counts`, `family_counts` et `queue_bytes` détaillent le catalogue.
+**The limited cost:**
+- The fourteen models share the six regions of instances of 524 288 elements, 192 MiB in total.
+- The GPU counts patterns, calculates prefixes, and disperses instances; each family receives a subrange of the two bush regions.
+- There is no extra long queue per family.
+- An indirect command contains the address of the SRV of the sub-range and the drawing; `SV_InstanceID` starts from zero, independent of `StartInstanceLocation`.
+- Drawings are grouped by representation; the GPU ignores commands with zero instance count, without decision based on an old CPU counter.
+- The small command and counter buffer occupies 1 056 bytes; additional patterns and textures have their own cost.
+- The histories meters remain six aggregates; `model_counts`, `family_counts` and `queue_bytes` detail the catalog.
 
-**Les données :**
-- Source retenue : `assets/foliage/climate_shrubs_v2/`.
-- Reconstruction : `python tools/foliage/arbustes_climatiques_v2.py --preview`, puis `--final`.
-- `shrubs.txt` commence par `FOLSHR01 6 2`, puis les douze dossiers en ordre famille et variante.
-- Les formats de géométrie, matériaux, imposteurs et visibilité restent ceux de `assets/foliage/README.md`.
-- Le moteur la trouve seul : `MYPLANETENGINE_FOLIAGE_ASSETS`, sinon le premier dossier de ce nom au-dessus de son exécutable.
-- Sans catalogue, aucune plante : la canopée au sol partout, et le titre dit « végétation absente ». L'ancien repli sur les trois modèles précédents est retiré le 2026-10-30.
-- Les planches CPU donnent deux orientations et une vue à l'allométrie du moteur ; elles ne remplacent pas un jugement en contexte.
+**Data:**
+- Source: `assets/foliage/climate_shrubs_v2/`.
+- Reconstruction: `python tools/foliage/arbustes_climatiques_v2.py --preview`, then `--final`.
+- `shrubs.txt` starts with `FOLSHR01 6 2`, then the twelve files in order family and variant.
+- The geometry, materials, impostors and visibility formats remain those of `assets/foliage/README.md`.
+- The engine finds it alone: `MYPLANETENGINE_FOLIAGE_ASSETS`, otherwise the first folder of this name above its executable.
+- Without a catalogue, no plants: the canopy on the ground everywhere, and the title says “absent vegetation”. The old folding on the three previous models is removed the 2026-10-30.
+- The CPU boards give two orientations and a view to the engine allometry; they do not replace a contextual judgment.
 
-**Les comparatifs :**
-- `tools/banc_arbustes_climat.py`, manifeste `tools/foliage/arbustes_climat_vues.json`.
-- Captures cachées sur plusieurs lieux ; les noms de biome sont confirmés par les diagnostics, pas supposés d'après la latitude seule.
-- Les identités se comparent entre deux passes du même exécutable ; le 2026-10-27, avec et sans catalogue, ce que le moteur ne permet plus.
-- La mesure de temps est distincte de l'export d'identités, dont le readback ajoute du trafic.
-- Les captures, modèles figés et empreintes sont sous `x64/ArbustesClimat/`.
-- Les premières formes apparentées en vase sont conservées dans `log/arbustes-climatiques-historique.md`.
-- Sur les quatorze vues, les graines et positions sources fines/grossières sont identiques bit à bit après tri, avec et sans catalogue sur le même exécutable ; les totaux par espèce sont aussi identiques, sans dépassement.
-- Quatre vues voisines plus riches confirment les mélanges boréal/montagne et le désert ; les deux formes sont présentes dans les familles suffisamment échantillonnées.
-- Les buffers des représentations passent de 262 793 412 à 729 760 876 octets, hors files et mémoire temporaire ; la diversité ajoute environ 445 Mio.
-- La réorganisation des appels conserve intégralement les quatorze BMP et tous les comptes. Les mesures de temps sont sensibles aux charges GPU ; elles ne garantissent pas un nombre de FPS en vol.
-- Sur le même exécutable optimisé, les médianes par lieu restent proches entre ancien catalogue et V2 : boréal 4,14/4,76 ms, désert 0,75/0,60, maquis 3,10/3,07, montagne 3,67/3,51, lisière 6,98/7,44, tropical 8,97/9,08. Une seule séquence de 24 images par lieu et un ordre non randomisé : résultat indicatif, pas une preuve de budget.
-- Le banc complet termine les 24 mêmes sites sans perte GPU. Il échoue à deux nouveaux seuils face au candidat précédent : trou d'échelle du sable à 50 m (+10,15 %, 158 crops) et du sol à 12 m (+20,83 %, 127 crops).
-- Les trois écarts de la piste précédente restent hérités ; l'acceptation utilisateur ne constitue pas une réussite au seuil du projet. Le canonique à 30 sites garde quatorze dépassements, avec des lieux différents.
-- Rapports : `x64/ArbustesClimat/qualite_v2/comparaison_p95.json`, `optimisation_images.json` et le log.
+**Comparisons:**
+- `tools/banc_arbustes_climat.py`, manifest `tools/foliage/arbustes_climat_vues.json`.
+- Hidden captures in multiple locations; biome names are confirmed by diagnostics, not assumed from latitude alone.
+- Identities are compared between two passes of the same executable; the 2026-10-27, with and without catalog, which the engine no longer allows.
+- Time measurement is distinct from identity export, whose readback adds traffic.
+- The captures, frozen models and footprints are under `x64/ArbustesClimat/`.
+- The earliest related vase forms are preserved in `log/arbustes-climatiques-historique.md`.
+- On the fourteen views, the seeds and source positions fines/grossières are identical bit by bit after sorting, with and without catalog on the same executable; the totals by species are also identical, without overrun.
+- Four richer neighboring views confirm the boréal/montagne and desert mixtures; both forms are present in sufficiently sampled families.
+- The representation buffers go from 262 793 412 to 729 760 876 bytes, out of queue and temporary memory; diversity adds about 445 MiB.
+- The call reorganization retains all fourteen BMPs and all accounts in full. Time measurements are sensitive to GPU loads; they do not guarantee a number of FPS in flight.
+- On the same optimized executable, medians by location remain close between old catalog and V2: boreal 4,14/4,76 ms, desert 0,75/0,60, scrub 3,10/3,07, mountain 3,67/3,51, edge 6,98/7,44, tropical 8,97/9,08. A single sequence of 24 images per location and a non-randomized order: indicative result, not proof of budget.
+- The full benchmark ends the 24 same sites without loss GPU. It fails at two new thresholds compared to the previous candidate: sand scale hole at 50 m (+10,15 %, 158 crops) and soil scale hole at 12 m (+20,83 %, 127 crops).
+- The three deviations from the previous experiment remain inherited; user acceptance is not a project threshold success. The canonical at 30 sites keeps fourteen overruns, with different locations.
+- Reports: `x64/ArbustesClimat/qualite_v2/comparaison_p95.json`, `optimisation_images.json` and log.
 
-**Le vol de jugement :**
-- Le jeu se lance comme le dit `lancement.md` ; le catalogue V2 y est le défaut du moteur.
-- Palette `tools/tests/2026-10-27-arbustes-climatiques.txt`, douze boutons et F1 à F12 : tempéré, boréal, désert, steppe/savane, montagne, tropical, deux vues par groupe.
-- Le lanceur d'alors et le retour à l'arbuste unique sont retirés : `log/arbustes-climatiques-historique.md`.
+**The flight of judgment:**
+- The game starts as it says `lancement.md`; the catalog V2 is the default engine.
+- Palette `tools/tests/2026-10-27-arbustes-climatiques.txt`, twelve buttons and F1 to F12: temperate, boreal, desert, steppe/savane, mountain, tropical, two views per group.
+- The then launcher and return to the single bush are removed: `log/arbustes-climatiques-historique.md`.

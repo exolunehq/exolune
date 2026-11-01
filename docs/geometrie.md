@@ -1,68 +1,68 @@
-# La géométrie : le relief et ses surcouches
+# Geometry: relief and its overlays
 
-Statut : référence, depuis le 2026-10-23. Complète `principes.md`, qui y renvoie.
+Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it.
 
-## La règle
+## The rule
 
-**Le relief tectonique d'Exolune est la source de vérité de la géométrie,** depuis le 2026-10-31 (`spec-relief-tectonique.md`).
+**The Exolune tectonic relief is the source of geometry truth,** since the 2026-10-31 (`spec-relief-tectonique.md`).
 
-- **Les grandes formes, au-dessus de 50 km, viennent de la carte tectonique :** continents, marges, fosses, chaînes, plateaux, rifts et dorsales, mers étroites, calculés au démarrage (`Tectonics.cpp`), lus en B-spline et mis en profils (`Tectonics.hlsli`, `Relief.hlsli`).
-- **Les côtes, de 60 à 3 km, se découpent par type de marge,** un bruit qui déplace le rivage d'une distance donnée : caps, baies, îles et rias sur les côtes raides, cordons et lagunes sur les plates.
-- **Le détail, sous 50 km, vient du bruit de `Noise.hlsli`,** modulé par la géologie de la carte ; la plus large octave des chaînes en plis le long d'elles.
-- **Du code original,** écrit en salle blanche depuis `recherche-relief.md`.
-- **Avant :** du 2026-10-20 au 2026-10-30, le portage de l'exemple complexplanet de libnoise, commit `b7b8c76` et suivants ; le 2026-10-31, une réécriture originale de sa composition, commit `f00004d`. Il n'en reste rien.
+- **The large shapes, above 50 km, come from the tectonic map:** continents, margins, pits, chains, plateaus, rifts and ridges, narrow seas, calculated at startup (`Tectonics.cpp`), read in B-spline and put in profiles (`Tectonics.hlsli`, `Relief.hlsli`).
+- **The coasts, from 60 to 3 km, are divided by type of margin,** a noise that moves the shore by a given distance: capes, bays, islands and rias on the steep coasts, cordons and lagoons on the flats.
+- **The detail, under 50 km, comes from the noise of `Noise.hlsli`,** modulated by the geology of the map; the wider octave of the strings in folds along them.
+- **From the original code,** written in the clean room since `recherche-relief.md`.
+- **Before:** from 2026-10-20 to 2026-10-30, the port of the libnoise complexplanet example, commit `b7b8c76` and following; the 2026-10-31, an original rewrite of its composition, commit `f00004d`. There is nothing left of it.
 
-- **L'apparence des matériaux se travaille dans le rendu :** couleurs, textures, normales des pixels, parallaxe, ombres. Un désert qui ressemble à un désert, une roche qui ressemble à de la roche, c'est d'abord un travail de rendu.
-- **Toute modification de la géométrie est une surcouche,** inscrite dans le tableau ci-dessous avant d'être fusionnée.
-- **Chaque surcouche donne :** sa famille, ses longueurs d'onde, son amplitude, où elle agit, son réglage d'arrêt et sa spec.
+- **The appearance of materials is worked in the rendering:** colors, textures, pixel normals, parallax, shadows. A desert that looks like a desert, a rock that looks like rock, it is first of all a rendering work.
+- **Any geometry modification is an overlay,** listed in the table below before being merged.
+- **Each overlay gives:** its family, wavelengths, amplitude, where it acts, its stop setting and spec.
 
-**Les trois familles de surcouches :**
-1. **Filtrage :** la même composition, dont on retire ou arrondit ce que la maille ne peut pas porter. La forme reste celle du relief à l'échelle de la maille.
-2. **Ajout de détail :** des longueurs d'onde que le relief n'a pas, sous sa plus fine octave, 13,5 m. Au-dessus, la forme reste la sienne.
-3. **Remplacement :** la forme change à des échelles que le relief décide déjà. On s'éloigne de la composition d'origine.
+**The three families of topcoats:**
+1. **Filtering:** the same composition, from which we remove or round up what the grid cell cannot carry. The shape remains that of the relief on the scale of the grid cell.
+2. **Add detail:** wavelengths that the relief does not have, under its finest octave, 13,5 m. Above, the form remains its own.
+3. **Replacement:** the shape changes at scales that the relief already decides. We move away from the original composition.
 
-**Un remplacement est un sujet à part :**
-- une spec dédiée et une décision explicite ;
-- une branche et un tag `piste/…` tant qu'il n'est pas décidé ;
-- un réglage qui le ramène à 0.
+**A replacement is a separate subject:**
+- a dedicated spec and an explicit decision;
+- a branch and a tag `piste/…` until it is decided;
+- a setting that brings it back to 0.
 
-## Les surcouches
+## The superlayers
 
-| Surcouche | Famille | Échelle | Amplitude | Où | Arrêt | Statut |
+| Surcouche | Family | Scale | Amplitude | Where | Arrêt | Status |
 |---|---|---|---|---|---|---|
-| Octaves filtrées par maille | Filtrage | sous 2 mailles, `MESH_BAND_LIMIT` | octave remplacée par sa moyenne | partout | aucun, c'est l'échantillonnage | en place |
-| Fréquences maximales du type de terrain et des turbulences | Filtrage | sous ~100 km et ~6 km | 0,13/255 à l'écran ; côtes de quelques mètres | partout | `NO_LIMIT` | retirée le 2026-10-31 avec l'ancien relief |
-| Crêtes arrondies | Filtrage | 2 mailles, jamais sous des mailles de 2 m | creux et crêtes du billow et du ridged multifractal, et des chaînes du relief tectonique | partout | `CREASE_ROUNDING` = 0 | en place |
-| Profils élargis | Filtrage | 2 mailles | fosses, vallées axiales, grabens, creux des transformantes, cordons des côtes plates : plus larges, moins profonds ou moins hauts, leur moyenne gardée | partout | aucun, c'est l'échantillonnage | en place depuis le 2026-10-31 |
-| Profils franchissant la mer | Filtrage | partie émergée sur au moins 2 mailles, ou entièrement noyée | cordons, pointes et débordements compris : cœur aplati, amplitude abaissée, aire du profil conservée ; profil résolu inchangé | côtes plates ; aucun profil distinct de flèche, platier ou motu sur cette branche | maille nulle : profil original | 2026-10-31, `ReliefSeaProfile`, `spec-relief-tectonique.md` ; à juger en vol |
-| Relief des matériaux | Ajout de détail, qui déborde | du centimètre jusqu'à la tuile de 64 m | centimètres à quelques mètres ; corniches de la tuile de 64 m au-dessus de 13,5 m | mailles de 8 m et moins | `MATERIAL_RELIEF`, retiré | désactivée le 2026-10-23, retirée du code le 2026-10-30 ; tag `piste/parois-gradins`, où elle est active ; `log/spec-relief-reel.md` |
-| Parois en gradins | Remplacement | bancs de 10 à 60 m | jusqu'aux deux tiers de l'épaisseur d'un banc, soit 10 à 40 m | pentes raides, mailles de 16 m et moins | `WALL_RELIEF`, retiré | désactivée le 2026-10-23, retirée du code le 2026-10-30 ; tag `piste/parois-gradins` ; `log/spec-parois.md` |
-| Filtre d'érosion | Remplacement | ravines de 366 m à 11 m | dizaines de mètres | toutes les pentes, mailles de 91 m et moins | `EROSION` = 0 | mis de côté, tag `piste/erosion-filtre` |
-| Patchs de relief réel | Remplacement | 1 à 200 m | celle du lieu réel | non intégré | — | dalles IGN LiDAR HD dans `../donnees-terre/lidar-hd`, essai hors moteur inachevé |
-| Objets de proximité | Ajout de détail, le détail du sol posé, cailloux et touffes, jamais la roche en place | 3 cm à 2 m | enfouis de 8 % sur la roche à 40 % dans un sol meuble ; le sol ne bouge pas | dans les régions caillouteuses seulement, une recette par sol : sable et sol nu, herbe, éboulis, pied des vraies parois ; par taches et par amas, sous l'angle de repos ; sous 6 pixels ou dans des mailles de plus de 1,5 fois leur largeur, rien | `PEBBLES`, `GRASS_ROCKS`, `DEBRIS_ABUNDANCE`, `TUFT_COVER` à 0 | piste, tag `piste/objets-proximite`, `spec-objets-proximite.md` |
-| Plantes | Ajout de détail, des objets posés : arbres et arbustes, jamais une forme du relief | 0,5 à 64 m de haut | le sol ne bouge pas ; le tronc enfoui à 15 % de la hauteur ; au loin, le pied sur le sol du maillage, de près sur le sol exact ; entière ou absente, jamais grandissante | selon le climat, par régions et par taches, rares sur les crêtes ; ni sur la roche nue, ni sur les éboulis, ni sur la plage ; sous 5 à 8 pixels, la canopée dans la matière du sol, à la hauteur des arbres, sans déplacer un sommet | `MYPLANETENGINE_NO_PLANTS`, ou pas de catalogue | en place : la population de `piste/vegetation-v3`, dessinée par la végétation planétaire ; les plantes générées v1 à v3 retirées du code le 2026-10-30, tags `piste/vegetation`, `-v2` et `-v3` ; `recherche-vegetation.md` |
-| Prototype de végétation détaillée | Ajout de détail, des objets posés ; représentation par maillage, imposteurs ou volumes | arbres de 12 m dans une parcelle de comparaison bornée ; volumes de 32³ à 128³ | le sol ne bouge pas ; les pieds suivent le maillage dessiné | parcelle déterministe attachée à une ancre planétaire ; mêmes poses dans les trois modes | `MYPLANETENGINE_FOLIAGE`, retiré | prototype isolé, clos ; retiré du code le 2026-10-30, tag `jalon/24-vegetation-detaillee-main` ; `log/prototype-vegetation-volumique.md` |
-| Végétation détaillée planétaire | Ajout de détail, des objets posés ; maillage proche et imposteur lointain | hauteur et largeur des instances du peuplement existant ; imposteurs multivues, rectangles projetés sur leur support | le terrain ne change pas ; prolongement du bas du tronc proche sous le pied | même grille, climat et graines ; arbustes conservés | `MYPLANETENGINE_NO_PLANTS`, ou pas de catalogue | en place, `jalon/24-vegetation-detaillee-main` et `jalon/25-vegetation-performance-main` ; le volume 64³ lointain et les autres modes retirés du code le 2026-10-30, tag `piste/vegetation-relais-fondu` ; `vegetation-planetaire.md` |
-| Volcans | Remplacement, sur une piste : des formes que le relief n'avait pas, de 120 km aux cônes de 0,5 km | arcs, chaînes de points chauds, rifts ; stratovolcans de 2 à 5 km, boucliers de 4 à 9 km au-dessus du fond, guyots, atolls, calderas, coulées de 15 à 40 m, cônes de 60 à 190 m ; houle des panaches, traps et plateaux océaniques dans la carte | autour des volcans listés au démarrage, 0,5 à 0,6 % de la surface ; tout profil sur deux mailles au moins | aucun réglage : sans volcanisme, le commit `d304da0` de `bruit-propre` | 2026-10-31, branche `claude/volcanisme-7c3aea`, tag `piste/volcanisme`, à juger en vol ; `spec-volcanisme.md` |
-| Relief tectonique | Remplacement, décidé : c'est le relief | formes de plus de 40 km, deux texels de la carte tectonique ; les côtes de 60 à 3 km ; le bruit en dessous | continents, plateaux, chaînes de 6,9 à 7,6 km, fosses de −9,1 à −10,1 km, abysses vers −4,5 km ; côtes déplacées de 8 à 12 km | partout | aucun : l'ancien relief est au commit `f00004d` | étapes 1 à 3 du 2026-10-31, défauts corrigés le même jour : côtes par type de marge, rifts émergés et mers étroites, plis des chaînes en deux jeux qui se relaient ; leur soulèvement et leurs plis lus en double, sans murs au sol, le soulèvement en quintique ; le détail plus décalé le long des transformantes, les cordons le long du rivage lissé, en arcs entre des passes ; branche `bruit-propre`, à juger en vol ; `spec-relief-tectonique.md` |
+| Octaves filtered by grid cell | Filtering | under 2 grid cells, `MESH_BAND_LIMIT`  | octave replaced by its average | everywhere | none, it's sampling | in place |
+| Maximum frequencies of terrain type and turbulence | Filtering | between ~100 km and ~6 km | 0,13/255 on screen; ribs of a few meters | everywhere |  `NO_LIMIT`  | removed the 2026-10-31 with the old relief |
+| Rounded crests | Filtering | 2 grid cells, never under grid cells of 2 m | hollows and ridges of the billow and ridged multifractal, and chains of tectonic relief | everywhere |  `CREASE_ROUNDING` = 0 | in place |
+| Expanded profiles | Filtering | 2 grid cells | pits, axial valleys, grabens, hollows of the transformants, cordons of the flat coasts: wider, shallower or less high, their average kept | everywhere | none, it's sampling | in place since the 2026-10-31 |
+| Profiles crossing the sea | Filtering | part emerged on at least 2 grid cells, or completely drowned | including cords, spikes and overflows: core flattened, amplitude reduced, profile area retained; resolved profile unchanged | flat ribs; no distinct profile of arrow, plate or motu on this branch | grid cell null: original profile | 2026-10-31, `ReliefSeaProfile`, `spec-relief-tectonique.md` ; to be judged in flight |
+| Relief of materials | Adding detail, which overflows | from the centimeter to the tile of 64 m | centimeters to a few meters; tile cornices from 64 m above 13,5 m | grid cells from 8 m and less |  `MATERIAL_RELIEF`, withdrawn | disabled the 2026-10-23, removed from code the 2026-10-30; tag `piste/parois-gradins`, where it is active; `log/spec-relief-reel.md`  |
+| Walls and steps | Replacement | beds from 10 to 60 | up to two thirds of the thickness of a bed, i.e. 10 to 40 m | Steep slopes, grid cells of 16 m and less |  `WALL_RELIEF`, withdrawn | disabled the 2026-10-23, removed from code the 2026-10-30; tag `piste/parois-gradins` ; `log/spec-parois.md`  |
+| Erosion filter | Replacement | ravines from 366 m to 11 m | tens of meters | all slopes, grid cells of 91 m and less |  `EROSION` = 0 | set aside, tag `piste/erosion-filtre`  |
+| Real relief patches | Replacement | 1 to 200 m | of the actual place | Non-integrated | — | dalles IGN LiDAR HD dans `../donnees-terre/lidar-hd`, off-engine test not completed |
+| Objects of proximity | Added detail, detail of laid floor, pebbles and tufts, never the bedrock | 3 cm to 2 m | buried from 8 % on rock to 40 % in loose soil; soil does not move | in rocky regions only, a recipe per soil: sand and bare soil, grass, scree, foot of real walls; by spots and by clusters, at the angle of repose; under 6 pixels or in grid cells more 1,5 times their width, nothing |  `PEBBLES`, `GRASS_ROCKS`, `DEBRIS_ABUNDANCE`, `TUFT_COVER` to 0 | experiment, tag `piste/objets-proximite`, `spec-objets-proximite.md`  |
+| Plants | Adding detail, objects placed: trees and shrubs, never a form of relief | 0,5 to 64 m high | the ground does not move; the trunk buried at 15 % of the height; in the distance, the foot on the ground of the mesh, close on the exact ground; whole or absent, never growing | according to the climate, by regions and by spots, rare on the ridges; neither on the bare rock, nor on the scree, nor on the beach; under 5 to 8 pixels, the canopy in the soil material, at the height of trees, without moving a summit |  `MYPLANETENGINE_NO_PLANTS`, or no catalog | in place: the population of `piste/vegetation-v3`, drawn by planetary vegetation; plants generated v1 to v3 removed from code the 2026-10-30, tags `piste/vegetation`, `-v2` and `-v3` ; `recherche-vegetation.md`  |
+| Prototype of detailed vegetation | Add detail, objects placed; representation by mesh, impostors or volumes | trees of 12 m in a bounded comparison plot; volumes of 32³ to 128³ | the ground does not move ; the feet follow the drawn mesh | deterministic plot attached to a planetary anchor; same poses in the three modes |  `MYPLANETENGINE_FOLIAGE`, withdrawn | prototype isolated, closed; removed from code the 2026-10-30, tag `jalon/24-vegetation-detaillee-main` ; `log/prototype-vegetation-volumique.md`  |
+| Detailed planetary vegetation | Added detail, pose objects; mesh near and impostor far | height and width of the instances of the existing population; impostors multiviews, rectangles projected on their support | terrain does not change; extension of the lower trunk near under the foot | Same grid, climate and seeds; shrubs preserved |  `MYPLANETENGINE_NO_PLANTS`, or no catalog | in place, `jalon/24-vegetation-detaillee-main` and `jalon/25-vegetation-performance-main` ; the volume 64³ distant and other modes removed from the code the 2026-10-30, tag `piste/vegetation-relais-fondu` ; `vegetation-planetaire.md`  |
+| Volcanoes | Replacement, on a experiment: shapes that the relief did not have, from 120 km to the cones of 0,5 km | arcs, hotspot chains, rifts; stratovolcanoes of 2 to 5 km, shields of 4 to 9 km above the bottom, guyots, atolls, calderas, flows of 15 to 40 m, cones of 60 to 190 m; swell of plumes, traps and oceanic plateaus in the map | around volcanoes listed at start, 0,5 to 0,6 % of surface; any profile on at least two grid cells | no adjustment: no volcanism, commit `d304da0` of `bruit-propre`  | 2026-10-31, branch `claude/volcanisme-7c3aea`, tag `piste/volcanisme`, to be judged in flight; `spec-volcanisme.md`  |
+| Tectonic relief | Replacement, decided: it's the relief | forms of more than 40 km, two texels of the tectonic map; the coasts of 60 to 3 km; the noise below | continents, plateaus, chains from 6,9 to 7,6 km, pits from −9,1 to −10,1 km, abysses to −4,5 km; coasts displaced from 8 to 12 km | everywhere | none: the old relief is at commit `f00004d`  | stages 1 to 3 of the 2026-10-31, defects corrected on the same day: coasts by margin type, emerging rifts and narrow seas, chain folds in two sets that alternate; their rise and their folds read in double precision, without walls on the ground, the rise in quintic; the more offset detail along the transformants, the cords along the smoothed shore, in arcs between passes; branch `bruit-propre`, to be judged in flight; `spec-relief-tectonique.md`  |
 
-**Modèles planétaires validés du 2026-10-27 :** ajout de détail aux objets posés, jalon `jalon/24-vegetation-detaillee-main`. Feuillu Rakshi Games enrichi à 7 010 triangles, pin evolveduk à 5 627 triangles, douze arbustes climatiques à 2 492–4 272 triangles. Feuilles découpées autour de rameaux maillés ; normales par bouquets et visibilités précalculées sans déplacement des sommets. Instances et portée conservées ; `vegetation-planetaire.md`.
+**Validated planetary models of the 2026-10-27:** added detail to the placed objects, milestone `jalon/24-vegetation-detaillee-main`. Hardwood Rakshi Games enriched to 7 010 triangles, pine evolveduk to 5 627 triangles, twelve climatic shrubs to 2 492–4 272 triangles. Leaves cut around mesh branches; normal by bouquets and visibilities pre-calculated without displacement of the tops. Instances and scope retained; `vegetation-planetaire.md`.
 
-**Arbustes climatiques :** six familles de deux formes ramifiées ; mêmes graines et positions, couronne de référence conservée, hauteur de silhouette adaptée au climat. Le terrain ne change pas. Le diagnostic de hauteur reprend la moyenne des familles ; le couvert lointain reste surfacique, sans parallaxe verticale précise. `arbustes-climatiques.md`. Les modèles antérieurs et leurs essais restent décrits dans `log/vegetation-planetaire-historique.md`.
+**Climate shrubs:** six families of two branched forms; same seeds and positions, reference crown preserved, height of silhouette adapted to the climate. The terrain does not change. The height diagnosis takes the average of the families; the distant cover remains superficial, without precise vertical parallax. `arbustes-climatiques.md`. Previous models and their tests remain described in `log/vegetation-planetaire-historique.md`.
 
-**Surface d'eau du spike FFT :** surcouche spécifique, quatre cascades, amplitude du spectre JONSWAP et de la houle ; sommets sous la mer, amortis par la profondeur et filtrés par la maille. Le fond du relief est conservé. Déplacement et normale partagent leurs dérivées ; voir [spec-mer-fft-spike.md](spec-mer-fft-spike.md). Le premier noyau reste dans mer-animee.
+**Water surface of spike FFT:** specific overlay, four cascades, amplitude of spectrum JONSWAP and swell; peaks under the sea, dampened by depth and filtered by the grid cell. The relief background is preserved. Displacement and normal share their derivatives; see [spec-mer-fft-spike.md](spec-mer-fft-spike.md). The first kernel remains in mer-animee.
 
-**Ne sont pas des surcouches :**
-- **La grille fine :** la même fonction, échantillonnée quatre fois plus fin, pour les normales des pixels.
-- **La grille du bruit en paires de floats, en vol :** la même fonction ; le découpage de chaque octave sur la grille en deux floats, 48 bits, au lieu d'un double, sur les sommets qui glissent (`Noise.hlsli`, `optimisation.md`, round 8). Le point est le même à 2·10⁻⁸ m près ; seul le dernier bit d'une hauteur peut changer. Le sommet sous la caméra reste en doubles ; à l'arrêt, tout le maillage aussi.
-- **La carte de la planète :** la même fonction sur un cube fixé sur la planète, 6 × 1 024², calculée au démarrage après la carte tectonique (`PlanetMap.hlsli`). De la donnée pour la brume et l'eau : elle ne déplace aucun sommet.
-- **La carte tectonique :** elle fait partie du relief, elle n'en est pas une surcouche.
-- **La parallaxe :** une illusion dans les pixels, sans changement de géométrie.
-- **Le grain fin des pixels :** les octaves du relief que la maille ne porte pas, dessinées dans la lumière.
+**Are not top layers:**
+- **The fine grid:** the same function, sampled four times finer, for normal pixels.
+- **The grid of the noise in pairs of floats, in flight:** the same function; the splitting of each octave on the grid into two floats, 48 bits, instead of a double, on the vertices that slide (`Noise.hlsli`, `optimisation.md`, round 8). The point is the same at 2·10⁻⁸ m; only the last bit of a height can change. The vertex under the camera remains in double precision; at a standstill, all the mesh also.
+- **The planet map:** the same function on a cube fixed on the planet, 6 × 1 024², calculated at startup after the tectonic map (`PlanetMap.hlsli`). Data for mist and water: it does not move any vertices.
+- **The tectonic map:** it is part of the relief, it is not a superlayer.
+- **Parallax:** an illusion in pixels, without changing geometry.
+- **The fine grain of pixels:** the octaves of relief that the grid cell does not bear, drawn in the light.
 
-## La voie géométrie, à part
+## The geometry track, apart
 
-Ouverte le 2026-10-23, à reprendre après le rendu. **La géométrie de proximité y attend :** le relief des matériaux et les gradins, désactivés le 2026-10-23, sont retirés du code le 2026-10-30 ; tag `piste/parois-gradins`. Le rendu du relief passe d'abord au plus près du photoréalisme. Elle surgissait dans les derniers mètres, signe qu'elle n'est pas encore bien intégrée à la génération par bruits. La question : comment affiner le relief sous ses échelles, et par quoi ? Elle se posait alors sur complexplanet ; elle se pose désormais sur le relief tectonique.
-- **Des bruits ou des algorithmes :** le filtre d'érosion, `spec-parois-minerales.md`.
-- **Du relief réel :** des patchs lidar fondus par nos bruits.
-- **Des objets :** des rochers semés en vrais volumes, `log/spec-parois.md`, option 3. Ouverte le 2026-10-24 pour les pierres et les blocs : `spec-objets-proximite.md`.
+Opened the 2026-10-23, to resume after rendering. **The proximity geometry is waiting there:** the relief of materials and grades, disabled the 2026-10-23, are removed from the code the 2026-10-30; tag `piste/parois-gradins`. The rendering of the relief first goes as close as possible to photorealism. It appeared in the last meters, a sign that it is not yet well integrated into the generation by noise functions. The question: how to refine the relief under its scales, and by what? It landed then on complexplanet; it now lands on the tectonic relief.
+- **noise functions or algorithms:** the erosion filter, `spec-parois-minerales.md`.
+- **Real relief:** lidar patches melted by our noise functions.
+- **Objects:** rocks sown in real volumes, `log/spec-parois.md`, option 3. Open the 2026-10-24 for stones and blocks: `spec-objets-proximite.md`.

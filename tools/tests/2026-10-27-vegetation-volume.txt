@@ -1,14 +1,14 @@
-# Comparaison des bouquets et du modelé : mêmes peuplements et portée.
-# libellé | altitude absolue (m) latitude longitude inclinaison cap | latitude longitude du soleil
-Feuillus et arbustes : vue signalée, cap supposé | 567.2 30.38761 120.52330 -14.4 -115 | 20 120
-Même clairière, autre angle | 567.2 30.38761 120.52330 -14.4 -85 | 20 120
-Même clairière, autre lumière | 567.2 30.38761 120.52330 -14.4 -145 | 35 -150
-Lisière tempérée, 2 m | 583.5 30.37000 120.53027 3 0 | 20 120
-Sous-bois tempéré, 2 m | 583.7 30.36948 120.52781 5 0 | 20 120
-Forêt tempérée, approche à 150 m | 730.8 30.37000 120.53000 20 0 | 20 140
-Forêt tempérée, portée à 400 m | 980.8 30.37000 120.53000 6 0 | 20 140
-Forêt boréale, témoin au sol | 539.8 -49.62900 90.52900 3 -60 | -30 100
-Forêt boréale, approche à 150 m | 685.4 -49.63000 90.53000 20 0 | -30 100
-Clairière tropicale, 2 m | 324.7 0.37288 60.53092 3 0 | 10 80
-Savane, feuillus et arbustes au sol | 364.6 10.37168 -119.46971 1.1 89.2 | 35 -150
-Savane, approche à 100 m | 462.6 10.37000 -119.47000 15 0 | 15 -100
+# Comparison of the bouquets and the model: same populations and range.
+# label | absolute altitude (m) latitude longitude inclination cap | latitude longitude of the sun
+Leafy trees and shrubs: sight reported, course assumed | 567.2 30.38761 120.52330 -14.4 -115 | 20 120
+Same clearing, different angle | 567.2 30.38761 120.52330 -14.4 -85 | 20 120
+Same clearing, other light | 567.2 30.38761 120.52330 -14.4 -145 | 35 -150
+Tempered edge, 2 m | 583.5 30.37000 120.53027 3 0 | 20 120
+Temperature Temperature Temperature, 2 m | 583.7 30.36948 120.52781 5 0 | 20 120
+Temperature forest, approach to 150 m | 730.8 30.37000 120.53000 20 0 | 20 140
+Temperate forest, reaches to 400 m | 980.8 30.37000 120.53000 6 0 | 20 140
+Boreal Forest, Ground Witness | 539.8 -49.62900 90.52900 3 -60 | -30 100
+Boreal forest, approach at 150 m | 685.4 -49.63000 90.53000 20 0 | -30 100
+Tropical clearing, 2 m | 324.7 0.37288 60.53092 3 0 | 10 80
+Savannah, hardwoods and shrubs on the ground | 364.6 10.37168 -119.46971 1.1 89.2 | 35 -150
+Savannah, approach to 100 m | 462.6 10.37000 -119.47000 15 0 | 15 -100

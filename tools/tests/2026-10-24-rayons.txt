@@ -1,13 +1,13 @@
-# Rayons de soleil, essai 1 du 2026-10-24 : l'air à l'ombre du relief (docs/recherche-rayons.md). Soleil de 3 à 14° au-dessus de l'horizon.
-# libellé | altitude (m) latitude longitude inclinaison cap [| latitude longitude du soleil]
-Pic à contre-jour, soleil caché derrière (8°) | 1941.7 0.00280 118.14145 -0.2 156.6 | -65.34 -171.35
-Pic à contre-jour, soleil au-dessus (14°) | 1941.7 0.00280 118.14145 -0.2 156.6 | -62.93 176.02
-Vallées à 3,5 km, contre-jour (9°) : ombres des crêtes dans la brume | 3500 0.0028 118.14145 6 156.6 | -58.80 -169.44
-Vallées à 3,5 km, soleil de trois quarts (7°) | 3500 0.0028 118.14145 6 100 | -49.49 -162.68
-Aiguille sur la brume, soleil au-dessus (11°) | 2200 0.05 118.0 4 156.6 | -75.14 159.65
-Pic, soleil de côté (6°) | 1941.7 0.00280 118.14145 -0.2 156.6 | -23.26 34.68
-Pic, soleil dans le dos (6°) | 1941.7 0.00280 118.14145 -0.2 156.6 | 65.89 42.96
-Falaise orange à contre-jour (8°) | 1022.9 -0.23076 118.41645 7.3 61.0 | 28.65 -160.84
-Plaines au loin depuis 4,4 km, contre-jour (7°) | 4432.9 16.26533 123.17704 8.9 122.0 | -28.09 -164.26
-Désert à 800 m, contre-jour (6°) : rien ne doit changer | 800 26.0 45.0 5 110 | -15.06 120.42
-Orbite basse, soleil rasant (3°) | 160551.2 1.12602 114.67687 31.2 -88.7 | 1.36 27.65
+# Sun rays, 1 test of the 2026-10-24: the air in the shadow of the relief (docs/recherche-rayons.md). Sun from 3 to 14° above the horizon.
+# label | altitude (m) latitude longitude inclination cap [| latitude longitude of the sun]
+Backlit peak, sun hidden behind (8°) | 1941.7 0.00280 118.14145 -0.2 156.6 | -65.34 -171.35
+Backlit peak, sun above (14°) | 1941.7 0.00280 118.14145 -0.2 156.6 | -62.93 176.02
+Valleys at 3,5 km, backlight (9°): shadows of the ridges in the fog | 3500 0.0028 118.14145 6 156.6 | -58.80 -169.44
+Valleys at 3,5 km, sun of three quarters (7°) | 3500 0.0028 118.14145 6 100 | -49.49 -162.68
+Needle on fog, sun above (11°) | 2200 0.05 118.0 4 156.6 | -75.14 159.65
+Peak, sun from the side (6°) | 1941.7 0.00280 118.14145 -0.2 156.6 | -23.26 34.68
+Peak, sun in the back (6°) | 1941.7 0.00280 118.14145 -0.2 156.6 | 65.89 42.96
+Orange backlit cliff (8°) | 1022.9 -0.23076 118.41645 7.3 61.0 | 28.65 -160.84
+Plains in the distance from 4,4 km, backlight (7°) | 4432.9 16.26533 123.17704 8.9 122.0 | -28.09 -164.26
+Desert at 800 m, backlight (6°): nothing should change | 800 26.0 45.0 5 110 | -15.06 120.42
+Low orbit, sun racing (3°) | 160551.2 1.12602 114.67687 31.2 -88.7 | 1.36 27.65

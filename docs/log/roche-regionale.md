@@ -1,23 +1,23 @@
-# Roche régionale par pixel : essai mis de côté
+# Regional rock per pixel: test set aside
 
-**Statut :** travail en cours mis de côté le 2026-10-24, sans doc, sans banc de qualité. Tag `piste/roche-regionale`, commit `50b37a5`, sur `8b4e9b9`. Il précède « une seule roche », `jalon/16-une-roche`, et n'a pas été repris.
+**Status:** work in progress set aside the 2026-10-24, without doc, without quality benchmark. Tag `piste/roche-regionale`, commit `50b37a5`, on `8b4e9b9`. It precedes "one rock", `jalon/16-une-roche`, and has not been recalled.
 
-**Pourquoi ce fichier :** ses mesures n'existaient que dans le message du commit ; elles sont reprises ici.
+**Why this file:** its measures only existed in the commit message; they are included here.
 
-## Ce qu'il faisait
+## What he was doing
 
-- **La géologie par pixel :** un bruit de province de 3 000 à 200 km, plus des unités de 40 km à 500 m, `ROCK_UNITS` = 0,5. Le pixel prend la couleur moyenne de sa géologie, sur trois lectures.
-- **Une croûte de roche mouillée,** `ROCK_CRUST`, et la forêt tenue sur les pentes, `VEGETATION_HOLD`.
-- **Des teintes de strates plus douces :** `STRATA_TINT` = 0,5 ; les badlands à `STRATA_FORMATION_CONTRAST`.
-- **Une vue de l'albédo,** `ALBEDO_VIEW`, et `BANC_MATERIAU=albedo` dans `tools/banc_descente.py`, pour suivre la couleur en descente.
+- **Geology per pixel:** a province noise from 3 000 to 200 km, plus units from 40 km to 500 m, `ROCK_UNITS` = 0,5. The pixel takes the average color of its geology, over three readings.
+- **A wet rock crust,** `ROCK_CRUST`, and the forest held on the slopes, `VEGETATION_HOLD`.
+- **Smoother shades of strata:** `STRATA_TINT` = 0,5; badlands to `STRATA_FORMATION_CONTRAST`.
+- **A view of the albedo,** `ALBEDO_VIEW`, and `BANC_MATERIAU=albedo` in `tools/banc_descente.py`, to follow the color in descent.
 
-## Ce qu'il mesurait
+## What he measured
 
-- **Albédo en descente,** de 800 à 25 km, à 14,85° N 123,2° E : le bleu perdait 20 % avant, il gagne 4 %.
-- **Contraste vu d'orbite d'une terre aride et rocheuse,** CIELAB sur 15 à 60 km : Blue Marble 2,85 ; avant 0,98, délavé ; la géologie par pixel seule 6,48 ; l'essai 3,59.
-- **Les groupes de la palette :** écarts ΔE de 15 à 19 ramenés à 7 à 10.
-- **Non mesurés :** `ROCK_CRUST` et `VEGETATION_HOLD`, de simples estimations.
+- **Albedo in descent,** from 800 to 25 km, at 14,85° N 123,2° E: blue lost 20 % before, it gains 4 %.
+- **Contrast view of orbit of an arid and rocky earth,** CIELAB on 15 to 60 km: Blue Marble 2,85; before 0,98, faded; geology by pixel only 6,48; the test 3,59.
+- **The palette groups:** deviations ΔE from 15 to 19 reduced to 7 to 10.
+- **Unmeasured:** `ROCK_CRUST` and `VEGETATION_HOLD`, are mere estimates.
 
-## Ce qu'il en reste
+## What is left of it
 
-- **Rien dans `main` :** la roche est une seule photo depuis le 2026-10-24, ses strates en couleur (`../spec-roche-organique.md`).
+- **Nothing in `main`:** the rock is a single photo since the 2026-10-24, its strata in color (`../spec-roche-organique.md`).

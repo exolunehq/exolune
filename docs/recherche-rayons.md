@@ -1,139 +1,139 @@
-# Recherche : les rayons de soleil, l'air à l'ombre du relief
+# Search: sun rays, air in the shadow of the relief
 
-Statut : recherche et étape 1 faites le 2026-10-24, tag `piste/rayons-soleil`. Étape 2, le 2026-10-25 : une seule marche avec les ombres portées, tag `piste/ombre-unique` ; la grille polaire de l'étape 1 est dans `log/recherche-rayons-historique.md`. Suite de `recherche-profondeur-atmospherique.md`, indice 3.7. Sources en fin de fichier.
+Status: search and step 1 make the 2026-10-24, tag `piste/rayons-soleil`. Step 2, the 2026-10-25: a single step with cast shadows, tag `piste/ombre-unique`; the polar grid of the step 1 is in `log/recherche-rayons-historique.md`. Suite of `recherche-profondeur-atmospherique.md`, index 3.7. Sources at the end of the file.
 
-**Dans le jeu :** l'air passe par la composition des nuages (`spec-nuages.md`, `CloudAirPiece`), qui lit la même hauteur d'ombre. Les rayons y sont rendus le 2026-10-30, à juger en vol (`tools/tests/2026-10-30-lumiere.txt`) ; jusque-là, cette composition les omettait.
+**In the game:** air passes through the cloud composition (`spec-nuages.md`, `CloudAirPiece`), which reads the same shadow height. The rays are rendered the 2026-10-30, to judge in flight (`tools/tests/2026-10-30-lumiere.txt`); until then, this composition omitted them.
 
 ## 1. Conclusion
 
-**Un rayon de soleil, c'est de l'air que le relief prive de soleil.**
-- L'air à l'ombre ne renvoie plus que la lumière du ciel. L'air voisin, au soleil, renvoie aussi celle du soleil.
-- Le contraste entre les deux dessine les rayons. Ils divergent depuis le soleil par la seule perspective.
-- Il suffit donc que le calcul de l'atmosphère sache quels points de l'air voient le soleil. Aucun effet ajouté par-dessus.
+**A ray of sun is air that the relief deprives of sun.**
+- The air in the shade reflects only the light of the sky. The air near the sun also returns that of the sun.
+- The contrast between the two draws the rays. They differ from the sun by the perspective alone.
+- It is sufficient that the atmosphere calculation knows which points of the air see the sun. No effect added on top.
 
-**Retenu : la hauteur d'ombre, un seul champ, lu par les pas existants du rayon de vue.**
-- Une colonne d'air voit le soleil au-dessus d'une altitude, la hauteur d'ombre. En dessous, le relief cache le soleil.
-- Ce champ en deux dimensions décrit tout le volume d'ombre d'un relief en hauteur. Il donne aussi l'ombre du sol : un point du sol sous la hauteur d'ombre est à l'ombre.
-- Comme la carte d'ombre du terrain de Red Dead Redemption 2, elle se marche vers le soleil sur les hauteurs. Ici, c'est la marche des ombres portées, à chaque sommet du maillage : une seule marche, une seule ombre, pour le sol et pour l'air (`recherche-ombres-relief.md`).
-- Chaque pas du rayon de vue garde la part de sa longueur au-dessus de la hauteur d'ombre : il montre la moyenne de sa lumière.
-- Rien ne vient de l'écran : le maillage garde toute colonne d'air visible et tout relief dont l'ombre l'atteint. Le soleil hors champ, dans le dos ou de côté ne change rien.
+**Retained: the shadow height, a single field, read by the existing steps of the viewing radius.**
+- A column of air sees the sun above an altitude, the shadow height. Below, the relief hides the sun.
+- This two-dimensional field describes the entire shadow volume of a relief in height. It also gives the shadow of the ground: a point of the ground below the shadow height is in the shade.
+- Like the Red Dead Redemption 2 terrain shadow map, it walks to the sun on the heights. Here, it is the march of the cast shadows, at each vertex of the mesh: a single step, a single shadow, for the ground and for the air (`recherche-ombres-relief.md`).
+- Each step of the viewing beam keeps the part of its length above the shadow height: it shows the average of its light.
+- Nothing comes from the screen: the mesh keeps any visible column of air and any relief whose shadow reaches it. The sun out of the frame, in the back or on the side does not change anything.
 
-**Écartés :**
-- **les rayons d'écran de Mitchell :** un flou radial vers le soleil, sur l'image. Rien hors champ ni dos au soleil, des sauts quand un relief sort de l'image. Une couche par-dessus l'image, pas de la physique.
-- **les froxels de Frostbite et d'Unreal :** quelques dizaines à 160 m de profondeur, pour les lumières proches. Ils ne voient pas l'ombre d'une montagne à 20 km, et ne tiennent que par la gigue et le lissage temporel, avec des traînées.
-- **la longueur d'ombre de Bruneton :** une seule longueur par pixel, placée au début ou à la fin du rayon. Faux dès que le rayon traverse plusieurs ombres, ce qui fait justement les rayons.
-- **l'échantillonnage épipolaire :** une accélération du marchage le long des rayons de vue, pas une source d'ombre. À reprendre si le coût de l'atmosphère l'exige.
+**Dismissed:**
+- **Mitchell's screen rays:** a radial blur towards the sun, on the image. Nothing out of the field or back to the sun, jumps when a relief comes out of the image. A layer over the image, not the physics.
+- **the Frostbite and Unreal froxels:** a few dozen at 160 m depth, for near lights. They do not see the shadow of a mountain at 20 km, and hold only by jitter and temporal smoothing, with trails.
+- **the length of the Bruneton shadow:** a single length per pixel, placed at the beginning or end of the ray. False as soon as the ray crosses several shadows, which is precisely what makes the rays.
+- **epipolar sampling:** an acceleration of the walk along the rays of view, not a source of shadow. To be resumed if the cost of the atmosphere requires it.
 
-**Coût :** presque rien de plus que les ombres portées. La grille de l'étape 1 coûtait 0,8 à 1,1 ms par image en 1280 × 720 sur RTX 4070 Ti ; la marche commune en rend 0,7 à 1,3 ms. Stabilité : le tremblement ne monte pas. Détail en partie 4.
+**Cost:** almost nothing more than the cast shadows. The grid of the 1 step cost 0,8 to 1,1 ms per frame in 1280 × 720 on RTX 4070 Ti; the common walk makes it 0,7 to 1,3 ms. Stability: the jitter does not rise. Detail in part 4.
 
-## 2. Quand voit-on des rayons
+## 2. When we see rays
 
-**Les conditions (Lynch 1987, glossaire de l'AMS) :**
-- **un soleil bas :** les ombres sont longues, les rayons traversent beaucoup d'air ;
-- **un soleil caché ou à demi caché :** derrière une crête ou un nuage, l'observateur dans l'ombre ou près de son bord ;
-- **le regard vers le soleil :** le contraste est maximal à moins de 15° du soleil, et à moins de 15° du point antisolaire, les rayons anticrépusculaires ;
-- **de la brume, sans excès :** les aérosols diffusent vers l'avant et rendent l'air au soleil brillant. Une brume trop dense éclaire aussi l'ombre, par la lumière du ciel, et le contraste baisse.
+**The conditions (Lynch 1987, glossary of the AMS):**
+- **a low sun:** shadows are long, rays pass through a lot of air;
+- **a sun hidden or half hidden:** behind a ridge or cloud, the observer in the shadow or near its edge;
+- **looking at the sun:** contrast is maximum at less than 15° of the sun, and less than 15° of the antisolaire point, the anti-twilight rays;
+- **mist, without excess:** aerosols diffuse forward and make the air in the sun shiny. A fog too dense also illuminates the shadow, by the light of the sky, and the contrast decreases.
 
-**Ce qui fait leur force :**
-- la longueur du trajet du regard dans l'ombre compte d'abord, avant la phase des aérosols ;
-- puis le rapport entre la lumière du soleil diffusée et celle du ciel. L'ombre n'est éclairée que par le ciel.
+**What makes their strength:**
+- the length of the path of the eye in the shadow counts first, before the phase of aerosols;
+- and the ratio between the diffused sunlight and that of the sky. The shadow is illuminated only by the sky.
 
-**Les montagnes :** au soleil bas, depuis un sommet, chaque pic jette dans la brume une ombre triangulaire (Livingston et Lynch 1979). Dans une vallée à contre-jour, l'air devant une crête à l'ombre est sombre, et des faisceaux passent par les cols.
+**Mountains:** in low sunlight, from a summit, each peak casts a triangular shadow in the fog (Livingston and Lynch 1979). In a backlit valley, the air in front of a shaded ridge is dark, and beams pass through the passes.
 
-**Chez nous :** la brume de la couche limite, 40 km de visibilité jusqu'à 2 km d'altitude, est le bon milieu. Une montagne qui dépasse la couche n'a plus d'air à assombrir au-dessus : ses rayons naissent dans les vallées.
+**In our area:** the fog of the boundary layer, 40 km of visibility up to 2 km of altitude, is the right medium. A mountain that exceeds the layer has no longer the appearance of darkening above: its rays are born in the valleys.
 
-## 3. Les techniques
+## 3. The techniques
 
-| Technique | Entrée | Coût publié | Stabilité | Chez nous |
+| Technical | Entrée | Published cost | Stability | At our house |
 |---|---|---|---|---|
-| Rayons d'écran, Mitchell 2007 | image d'occlusion | faible, non chiffré | sauts aux bords de l'écran, rien hors champ | écarté |
-| Épipolaire, Engelhardt et Dachsbacher 2010 | carte d'ombre, profondeur | 28 ms en 1080p sur HD 4850, contre 71 ms en force brute | « stable et sans scintillement » selon les auteurs | une accélération, pour plus tard |
-| Épipolaire et arbres min/max, Yusov 2013 | cartes d'ombre en cascade | non vérifié | raffinement sur la diffusion plutôt que la profondeur | idem |
-| Froxels, Wronski 2014, Hillaire 2015, Unreal | cartes d'ombre en cascade | 1,1 à 3 ms sur PS4 | crénelage en mouvement, gigue et lissage temporel, traînées | portée trop courte |
-| Longueur d'ombre, Bruneton 2008 et 2017 | volumes d'ombre | faible | stable | une seule ombre par rayon |
-| Carte d'ombre du terrain, Bauer 2019 | carte des hauteurs | 1,31 ms sur PS4 pour le marchage | lissage temporel, découpage dans le temps | **retenu** |
+| Screen rays, Mitchell 2007 | image of occlusion | Low, not quantified | jumps at the edges of the screen, nothing out of the field | dismissed |
+| Epipolar, Engelhardt and Dachsbacher 2010 | shadow map, depth | 28 ms in 1080p on HD 4850, versus 71 ms in brute force | “stable and without flicker” according to the authors | an acceleration, for later |
+| Epipolar and trees min/max, Yusov 2013 | shadow maps in cascade | not verified | refinement on diffusion rather than depth | Same |
+| Froxels, Wronski 2014, Hillaire 2015, Unreal | shadow maps in cascade | 1,1 to 3 ms on PS4 | moving, jitter and temporal smoothing, dragged | too short range |
+| Shadow length, Bruneton 2008 and 2017 | volumes of shadow | low | stable | one shadow per ray |
+| Field shadow map, Bauer 2019 | map of heights | 1,31 ms on PS4 for the trade | temporal smoothing, time-cut | **hold** |
 
-### 3.1 Les rayons d'écran, Mitchell, GPU Gems 3
+### 3.1 Screen Rays, Mitchell, GPU Gems 3
 
-- **Principe :** chaque pixel prend des échantillons sur la droite qui le joint au soleil à l'écran, avec une décroissance. La somme s'ajoute à l'image.
-- **Entrée :** une image d'occlusion, le relief en noir, le ciel clair. Seuls les obstacles visibles comptent.
-- **Limites, selon l'auteur :** des rayons du fond passent devant les objets proches ; ils scintillent quand un obstacle passe le bord de l'écran ; face au soleil de côté, sa position à l'écran part à l'infini, il faut estomper l'effet. Le soleil dans le dos n'est pas traité.
+- **Principle:** Each pixel samples on the line that joins it to the sun on the screen, with a decay. The sum is added to the image.
+- **Entry:** an occlusion image, black relief, clear sky. Only visible obstacles count.
+- **Limits, according to the author:** rays from the background pass before nearby objects; they twinkle when an obstacle passes the edge of the screen; facing the sun from the side, its position on the screen goes infinitely, you have to fade the effect. Sun in the back is not treated.
 
-### 3.2 L'échantillonnage épipolaire, Engelhardt et Dachsbacher 2010
+### 3.2 Epipolar sampling, Engelhardt and Dachsbacher 2010
 
-- **Principe :** les rayons de lumière se projettent à l'écran sur des droites issues du soleil. On n'échantillonne que le long de 256 à 1 024 de ces droites, 8 à 32 points chacune, plus deux points à chaque saut de profondeur.
-- **Le marchage :** chaque point marche dans la carte d'ombre le long du rayon de vue. Une interpolation bilatérale remplit l'écran.
-- **Coût :** 1,2 ms pour les droites, 6,0 ms pour les sauts, 16,7 ms pour le marchage, 4,4 ms pour l'interpolation, sur HD 4850 en 1080p : 36 images par seconde contre 14 en force brute.
-- **Yusov, Intel 2013 :** l'atmosphère d'une planète, des cartes d'ombre en cascade, et des arbres min/max à une dimension. Dans la carte d'ombre redressée, chaque droite épipolaire devient un relief à une dimension.
+- **Principle:** rays of light project on the screen on straight lines from the sun. Only along 256 to 1 024 of these lines, 8 to 32 points each, plus two points at each depth jump, are sampled.
+- **Marching:** Each point walks in the shadow map along the radius of view. A bilateral interpolation fills the screen.
+- **Cost:** 1,2 ms for straights, 6,0 ms for jumps, 16,7 ms for march, 4,4 ms for interpolation, on HD 4850 in 1080p: 36 frames per second against 14 in brute force.
+- **Yusov, Intel 2013:** the atmosphere of a planet, shadow maps in cascade, and trees min/max at one dimension. In the straightened shadow map, each epipolar line becomes a one-dimensional relief.
 
-### 3.3 Les froxels, Frostbite et Unreal
+### 3.3 Froxels, Frostbite and Unreal
 
-- **Principe :** une grille alignée sur l'écran, 8 × 8 pixels et 64 tranches en profondeur chez Frostbite, 160 × 90 × 64 chez Wronski. Chaque cellule prend la carte d'ombre du soleil.
-- **Stabilité :** un échantillon par cellule crénèle en mouvement, « les ombres l'aggravent » (Hillaire). Corrigé par une gigue de Halton, une reprojection et 5 % de l'image nouvelle. Unreal annonce un lissage temporel fort, avec des traînées derrière les lumières rapides.
-- **Coût :** 2,95 ms sur PS4 en 900p chez Frostbite, dont 0,5 ms pour le soleil ; environ 1,1 ms chez Wronski ; environ 1 ms sur PS4 chez Unreal.
-- **Portée :** 50 à 128 m chez Wronski, 160 m dans Red Dead Redemption 2. Au-delà, autre chose.
+- **Principle:** a grid aligned on the screen, 8 × 8 pixels and 64 slices in depth at Frostbite, 160 × 90 × 64 at Wronski. Each cell takes the sun shadow card.
+- **Stability:** one sample per cell crenellate in motion, "shadows aggravate it" (Hillaire). Fixed by Halton jitter, reprojection and 5 % of new image. Unreal announces a strong temporal smoothing, with trails behind the fast lights.
+- **Cost:** 2,95 ms on PS4 in 900p at Frostbite, including 0,5 ms for the sun; about 1,1 ms at Wronski; about 1 ms on PS4 at Unreal.
+- **Scope:** 50 to 128 m in Wronski, 160 m in Red Dead Redemption 2. Beyond that, something else.
 
-### 3.4 La longueur d'ombre, Bruneton
+### 3.4 The length of shadow, Brunetto
 
-- **2008 :** des volumes d'ombre donnent, par pixel, la longueur totale du regard dans l'ombre. La diffusion de cette longueur est retirée.
-- **2017 :** la démo calcule cette longueur pour l'ombre d'une sphère, analytiquement. Le ciel la retire au début du rayon, la diffusion vers un point la retire à la fin. Une ombre en un seul morceau, à un bout.
-- **Un artifice :** les rayons s'estompent quand le soleil approche de l'horizon, `lightshaft_fadein_hack`.
+- **2008:** shadow volumes give, per pixel, the total length of the look in the shadow. The spread of this length is removed.
+- **2017:** the demo calculates this length for the shadow of a sphere, analytically. The sky removes it at the beginning of the ray, the diffusion to a point removes it at the end. A shadow in one piece, at one end.
+- **A trick:** the rays fade when the sun approaches the horizon, `lightshaft_fadein_hack`.
 
-### 3.5 La carte d'ombre du terrain, Red Dead Redemption 2
+### 3.5 The Shadow Map of the Field, Red Dead Redemption 2
 
-- **Principe :** un marchage sur la carte des hauteurs, vers le soleil, dans une texture de 128 × 128. Elle garde la hauteur de l'intersection et la longueur du rayon, qui adoucit l'ombre.
-- **L'air :** près de la caméra, les froxels lisent cette carte avec les cascades et l'ombre des nuages. Au loin, un marchage en demi-résolution, refait sur 4 images. Le ciel est modulé par la visibilité moyenne, « pas physiquement correct, mais plausible ».
-- **Coût :** 1,31 ms pour le marchage de l'air sur PS4.
+- **Principle:** a march on the map of heights, towards the sun, in a texture of 128 × 128. It keeps the height of the intersection and the length of the radius, which softens the shadow.
+- **Air:** near the camera, the froxels read this card with the cascades and the shadow of clouds. In the distance, a march in half resolution, redone on 4 images. The sky is modulated by the average visibility, “not physically correct, but plausible”.
+- **Cost:** 1,31 ms for air marking on PS4.
 
-## 4. Ce qui est fait : la hauteur d'ombre, par sommet
+## 4. What is done: shadow height, per vertex
 
-**Une seule marche (`SunHorizon`, `Shadows.hlsli`, passe `Horizon.hlsl`).** Celle des ombres portées (`recherche-ombres-relief.md`, partie 4).
-- À chaque sommet visible, le long du grand cercle vers le soleil, sur les hauteurs du maillage, à pas de 2 % de la distance parcourue, jamais sous la maille.
-- Chaque point marché donne l'horizon, pour le sol, et sa hauteur au-dessus du rayon du soleil tiré du sommet, pour l'air : q · (u − sin θ s) / cos² θ, pour un point q vu du sommet, u la verticale, s le soleil à la hauteur θ. Exacte : les points marchés sont à leur vraie place, courbure comprise.
-- La plus grande, ajoutée au sol du sommet, est la hauteur d'ombre de la colonne. Sol et air voient le même relief : un sommet est à l'ombre si et seulement si sa hauteur d'ombre dépasse son sol.
-- La marche s'arrête quand rien au-delà, même un sommet de 10 km, ne peut dépasser l'horizon trouvé et le bas du disque, ni passer au-dessus du rayon du soleil tiré de la hauteur d'ombre. Un sommet au soleil marche comme avant ; un sommet à l'ombre, au plus aussi loin.
+**One step (`SunHorizon`, `Shadows.hlsli`, pass `Horizon.hlsl`).** That of the cast shadows (`recherche-ombres-relief.md`, part 4).
+- At each visible vertex, along the great circle towards the sun, on the heights of the mesh, steps of 2 % of the distance travelled, never below the grid cell.
+- Each market point gives the horizon, for the ground, and its height above the sun's radius drawn from the summit, for the air: q · (u − sin θ s) / cos² θ, for a point q seen from the summit, u the vertical, s the sun at the height θ. Exact: the marked points are in their true place, including curvature.
+- The largest, added to the ground of the summit, is the shadow height of the column. Ground and air see the same relief: a summit is in shade if and only if its shadow height exceeds its ground.
+- The march stops when nothing beyond, even a summit of 10 km, can exceed the horizon found and the bottom of the disc, nor pass above the ray of the sun drawn from the shadow height. A summit in the sun walks as before; a summit in the shade, at most as far.
 
-**Ce que le maillage couvre.**
-- **Toute colonne d'air visible :** le maillage garde un sommet si sa colonne, de la mer à `MAX_TERRAIN_HEIGHT`, peut être vue (`MaybeVisible`). L'air que la caméra voit sous le plus haut sommet est donc au-dessus de sommets calculés, même quand leur sol est hors de l'image.
-- **Tout relief qui lui fait de l'ombre :** le maillage garde aussi un sommet si sa colonne, balayée à l'opposé du soleil, peut tomber dans l'image (`ShadowSweep`). Le balayage couvre la colonne entière, pas seulement le sol : l'ombre d'un relief hors champ sur l'air du champ est marchée.
-- **Au-delà des anneaux,** l'horizon passé, pas de relief : la grille s'arrêtait à la même portée.
+**What the mesh covers.**
+- **Any visible air column:** the mesh keeps a peak if its column, from the sea to `MAX_TERRAIN_HEIGHT`, can be seen (`MaybeVisible`). The air that the camera sees below the highest peak is therefore above calculated peaks, even when their ground is out of the picture.
+- **Any relief that makes it shadow:** the mesh also keeps a summit if its column, swept opposite the sun, can fall into the image (`ShadowSweep`). The sweep covers the entire column, not only the ground: the shadow of an out-of-field relief on the air of the field is walked.
+- **Beyond the rings,** the horizon passed, no relief: the grid stopped at the same reach.
 
-**La lecture (`Atmosphere.hlsli`, `IntegrateScattering`).**
-- La hauteur d'ombre, bilinéaire entre les quatre sommets autour du point, comme la hauteur du maillage (`MeshCell`, `Mesh.hlsli`).
-- Le rayon de vue garde ses 12 pas vers le terrain ; vers le ciel, 24 dans le jeu, où le nuage coupe en deux le pas où il tombe (`spec-nuages.md`). Chaque pas lit la hauteur d'ombre à ses deux bouts et en son milieu.
-- La part éclairée de chaque moitié est exacte pour une marge linéaire entre ses bouts : le bord d'un rayon glisse dans le pas, il ne saute pas d'un pas à l'autre.
-- Seule la lumière du soleil diffusée une fois est coupée. La diffusion multiple, la lumière du ciel, reste : l'ombre n'est éclairée que par le ciel.
-- Les tables du démarrage n'ont pas de relief : `(ShadowRay)0`.
+**Reading (`Atmosphere.hlsli`, `IntegrateScattering`).**
+- The shadow height, bilinear between the four vertices around the point, like the height of the mesh (`MeshCell`, `Mesh.hlsli`).
+- The beam of view keeps its 12 steps towards the ground; towards the sky, 24 in the game, where the cloud cuts in half the step where it falls (`spec-nuages.md`). Each step reads the shadow height at its two ends and in its middle.
+- The illuminated part of each half is exact for a linear margin between its ends: the edge of a ray slides into the pitch, it does not jump from one pitch to another.
+- Only the sunlight that has been diffused once is cut off. The multiple scattering, the light of the sky, remains: the shadow is illuminated only by the sky.
+- The boot tables do not have relief: `(ShadowRay)0`.
 
-**Ce que l'on voit,** planche de `tools/banc_tests.py` sur `tools/tests/2026-10-24-rayons.txt`, `images/rayons-avant-apres.jpg` :
-- **contre-jour, soleil derrière le pic :** la lueur qui baignait l'air devant le pic disparaît, la caméra est dans son ombre ;
-- **soleil juste au-dessus des crêtes :** des faisceaux clairs entre les ombres des crêtes, et le coin d'ombre de chaque aiguille sur la brume ;
-- **soleil de côté ou dans le dos, désert, orbite :** peu ou pas de changement.
+**What we see,** board of `tools/banc_tests.py` on `tools/tests/2026-10-24-rayons.txt`, `images/rayons-avant-apres.jpg`:
+- **backlight, sun behind the peak:** the glow that bathed the air in front of the peak disappears, the camera is in its shadow;
+- **sun just above the ridges:** clear beams between the shadows of the ridges, and the corner of shadow of each needle on the fog;
+- **sun from the side or back, desert, orbit:** little or no change.
 
-**Mesures de l'étape 2, contre la grille polaire** (`journal-planete.md`, 2026-10-25 ; `images/ombre-unique-avant-apres.jpg`) :
-- **Images presque identiques :** écart moyen de 0,00 à 0,88 niveau sur 255 sur les onze vues des rayons, de 0,03 à 0,74 sur les huit des ombres portées.
-- **L'air un peu plus sombre au ras des crêtes,** quelques niveaux sur quelques pixels. Une grille polaire de 1 024 × 1 024 s'écarte deux fois moins de la nouvelle ombre que de l'ancienne : la grille de 512 abaissait les crêtes.
-- **Tremblement jamais au-dessus d'avant,** sur trois vues de rayons et deux d'ombres portées.
-- **Coût,** RTX 4070 Ti partagée, paires de captures successives : le calcul perd 0,7 à 1,3 ms sur les quatre vues mesurées au calme, le rendu ne bouge pas à 0,1 ms près. Le soleil dans le dos, pire cas de la marche, n'a été mesuré qu'avec quatre autres instances du moteur sur le GPU : −0,4 à −1,2 ms en médiane, à confirmer au calme.
-- **Le pas compte :** à 5 %, le sol gardait ses ombres, mais l'air tremblait plus qu'avant au pic à 14°, 0,10 / 0,66 → 0,12 / 0,69. À 2 %, 0,10 / 0,66.
+**Measurements of step 2, against the polar grid** (`journal-planete.md`, 2026-10-25; `images/ombre-unique-avant-apres.jpg`):
+- **Nearly identical images:** average deviation of 0,00 to 0,88 level on 255 on the eleven ray views, from 0,03 to 0,74 on the eight cast shadows.
+- **Darker air on the ridges,** a few levels on a few pixels. A polar grid of 1 024 × 1 024 deviates twice less from the new shadow than from the old one: the grid of 512 lowered the ridges.
+- **jitter never above before,** on three rays views and two cast shadows.
+- **Cost,** RTX 4070 Ti shared, successive capture pairs: calculation loses 0,7 to 1,3 ms on the four views measured at calm, rendering does not move at 0,1 ms near. The sun in the back, worst case of walking, was measured only with four other instances of the engine on the GPU: −0,4 to −1,2 ms in median, to be confirmed in calm.
+- **The step counts:** at 5 %, the ground kept its shadows, but the air shook more than before at the peak at 14°, 0,10 / 0,66 → 0,12 / 0,69. At 2 %, 0,10 / 0,66.
 
-## 5. La suite
+## 5. Next steps
 
-- **La pénombre :** le soleil fait 0,53°. Une ombre à 10 km de son relief a 93 m de pénombre. Ici, le bord ne s'adoucit que par la maille et la marge linéaire.
-- **Les pas du ciel :** 24 pas sur tout le rayon, plus de 30 km chacun à l'horizon. L'ombre près de la caméra y est grossière. Des pas plus serrés près de la caméra si une vue le montre.
-- **L'ombre des nuages dans l'air,** absente : seule leur ombre au sol est faite (`spec-nuages.md`). C'est aussi une hauteur d'ombre, par-dessous.
+- **The darkness:** the sun is 0,53°. A shadow at 10 km from its relief has 93 m of penumbra. Here, the edge is softened only by the grid cell and the linear margin.
+- **The steps of the sky:** 24 steps on the whole radius, more than 30 km each on the horizon. The shadow near the camera is rough. Closer steps close to the camera if a view shows it.
+- **The shadow of clouds in the air,** absent: only their shadow on the ground is made (`spec-nuages.md`). It is also a shadow height, below.
 
 ## Sources
 
 - K. Mitchell, « Volumetric Light Scattering as a Post-Process », GPU Gems 3, ch. 13, 2007. https://developer.nvidia.com/gpugems/gpugems3/part-ii-light-and-shadows/chapter-13-volumetric-light-scattering-post-process
 - T. Engelhardt, C. Dachsbacher, « Epipolar Sampling for Shadows and Crepuscular Rays in Participating Media with Single Scattering », I3D 2010. https://faculty.digipen.edu/~gherron/references/References/LightEffects/VolumetricLighting/espmss10.pdf
-- E. Yusov, « Practical Implementation of Light Scattering Effects Using Epipolar Sampling and 1D Min/Max Binary Trees », GDC 2013 ; GPU Pro 5. https://github.com/GameTechDev/OutdoorLightScattering
+- E. Yusov, "Practical Implementation of Light Scattering Effects Using Epipolar Sampling and 1D Min/Max Binary Trees", GDC 2013 ; GPU Pro 5. https://github.com/GameTechDev/OutdoorLightScattering
 - S. Hillaire, « Physically Based and Unified Volumetric Rendering in Frostbite », SIGGRAPH 2015. https://advances.realtimerendering.com/s2015/Frostbite%20PB%20and%20unified%20volumetrics.pptx
-- B. Wronski, « Volumetric Fog », SIGGRAPH 2014. https://bartwronski.com/wp-content/uploads/2014/08/bwronski_volumetric_fog_siggraph2014.pdf
-- Epic Games, « Volumetric Fog in Unreal Engine ». https://dev.epicgames.com/documentation/en-us/unreal-engine/volumetric-fog-in-unreal-engine
-- E. Bruneton, F. Neyret, « Precomputed Atmospheric Scattering », EGSR 2008. https://inria.hal.science/inria-00288758
+- B. Wronski, Volumetric Fog, SIGGRAPH 2014. https://bartwronski.com/wp-content/uploads/2014/08/bwronski_volumetric_fog_siggraph2014.pdf
+- Epic Games, Volumetric Fog in Unreal Engine. https://dev.epicgames.com/documentation/en-us/unreal-engine/volumetric-fog-in-unreal-engine
+- E. Bruneton, F. Neyret, "Precomputed Atmospheric Scattering", EGSR 2008. https://inria.hal.science/inria-00288758
 - E. Bruneton, « Precomputed Atmospheric Scattering: a New Implementation », 2017. https://ebruneton.github.io/precomputed_atmospheric_scattering/
 - F. Bauer, « Creating the Atmospheric World of Red Dead Redemption 2 », SIGGRAPH 2019. https://advances.realtimerendering.com/s2019/slides_public_release.pptx
-- D. K. Lynch, « Optics of sunbeams », JOSA A 4, 609, 1987. https://thulescientific.com/Lynch_Sunbeams.PDF
+- D. K. Lynch, &quot; Optics of sunbeams &quot;, JOSA A 4, 609, 1987. https://thulescientific.com/Lynch_Sunbeams.PDF
 - W. Livingston, D. Lynch, « Mountain shadow phenomena », Applied Optics 18, 265, 1979. https://authors.library.caltech.edu/records/nk414-7an79
-- American Meteorological Society, glossaire : « Crepuscular rays », « Anticrepuscular rays ». https://glossary.ametsoc.org/wiki/Crepuscular_rays
+- American Meteorological Society, glossary: “Crepuscular rays”, “Anticrepuscular rays”. https://glossary.ametsoc.org/wiki/Crepuscular_rays

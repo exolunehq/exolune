@@ -1,156 +1,156 @@
-# Le vaisseau du joueur
+# The player's ship
 
-**Le joueur pilote un vaisseau, vu de son cockpit ou de derrière.** La caméra libre reste disponible pour les bancs et la mise au point.
+**The player pilots a ship, seen from the cockpit or from behind.** The free camera remains available for the benchmarks and focus.
 
-**Essayer, dans le jeu (`AGENTS.md`, `lancement.md`) :** depuis la racine du worktree,
+**Try, in the game (`AGENTS.md`, `lancement.md`):** from the root of the worktree,
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours tools\tests\2026-10-29-vaisseau.txt
 ```
-après `tools\lance.ps1 -Build -NoLaunch` si le code a changé.
+after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 
-## Le modèle dans le moteur
+## The model in the engine
 
-- **La source est `assets/vaisseau/vaisseau.glb`** (`assets/vaisseau/README.md`).
-- **Le moteur lit un paquet cuit, `vaisseau.vsx`,** écrit par `assets/vaisseau/paquet_moteur.py` :
-  - nœuds aplatis et sommets entrelacés ;
-  - plages de dessin, opaques d'abord ;
-  - matériaux PBR ;
-  - images PNG décodées par WIC.
-- **Il n'y a ni lecteur JSON ni glTF dans le moteur.** Il faut relancer le script après chaque export du GLB.
-- **`Ship::Load` cherche le paquet** dans le premier dossier au-dessus de l'exécutable. Sans paquet, le vaisseau reste absent et la caméra libre seule reste.
-- **Repère du vaisseau, celui de Blender :** nez vers −Y, haut +Z, gauche du pilote +X, en mètres.
-- **Le repère de la planète est gaucher** (est × nord = bas). `Cross(haut, avant)` y est la droite, comme pour la caméra. Le passage de l'un à l'autre est une symétrie : l'axe X du vaisseau va vers sa gauche, et la bitangente de glTF change de signe.
-- **Le manche et la manette des gaz restent mobiles :**
-  - chaque sommet du paquet porte sa pose, l'attribut `_POSE` de `assets/vaisseau/pieces_mobiles.py` ;
-  - le paquet garde aussi leurs deux pivots, point et axe ;
-  - `ShipPose` (`Ship.hlsli`) applique à leurs sommets une matrice de `Ship::Constants::pose`, dans la passe de scène comme dans les ombres ;
-  - `D3DApp::UpdateShipFrame` remplit ces matrices, en un seul endroit.
+- **The source is `assets/vaisseau/vaisseau.glb`** (`assets/vaisseau/README.md`).
+- **The engine reads a cooked packet, `vaisseau.vsx`,** written by `assets/vaisseau/paquet_moteur.py`:
+  - flattened knots and intertwined vertices;
+  - drawing ranges, opaque first;
+  - materials PBR;
+  - images PNG decoded by WIC.
+- **There is no JSON or glTF drive in the engine.** You have to rerun the script after each export of the GLB.
+- **`Ship::Load` looks for the package** in the first folder above the executable. Without a package, the ship remains absent and the free camera alone remains.
+- **reference frame of the ship, Blender's:** nose to −Y, top +Z, left of the pilot +X, in meters.
+- **The planet's reference frame is left-handed** (is × north = down). `Cross(haut, avant)` is right there, as for the camera. The transition from one to the other is a symmetry: the X-axis of the vessel moves to its left, and the bitangent of glTF changes sign.
+- **The handle and throttle remain mobile:**
+  - each vertex of the packet bears its pose, the attribute `_POSE` of `assets/vaisseau/pieces_mobiles.py`;
+  - the package also keeps their two pivots, point and axis;
+  - `ShipPose` (`Ship.hlsli`) applies to their vertex a matrix of `Ship::Constants::pose`, in the stage pass as in the shadows;
+  - `D3DApp::UpdateShipFrame` fills these matrices, in one place.
 
-## Le rendu (`Ship.h`, `Ship*.hlsl`)
+## The rendering (`Ship.h`, `Ship*.hlsl`)
 
-- **Ses propres cartes d'ombre, 2048², sur une sphère de 6,7 m :**
-  - une vers le soleil, pour les ombres portées dans le cockpit ;
-  - une d'en haut, pour le ciel que la coque cache.
-- **Les surfaces opaques sont dessinées en premier dans la passe de scène :**
-  - Lambert et GGX ;
-  - soleil à travers l'air et ciel entier, comme les objets proches ;
-  - l'occlusion cuite sur la deuxième UV des tôles.
-- **La part directe du soleil va dans la seconde cible :** les nuages ombrent le vaisseau comme le sol.
-- **La verrière est dessinée dans une couche à part, après l'atmosphère.** Le tone map l'applique après le lissage temporel : écran = lissé × alpha + rgb.
-  - Ce qui colle au verre bouge avec le vaisseau, le monde derrière non.
-  - Gardé hors de l'historique, rien ne traîne.
-  - Sans vaisseau, la couche vaut (0, 0, 0, 1) : rendu identique au bit près.
-- **Le lissage temporel reprojette les pixels du vaisseau avec lui.** Dans sa sphère, un point fixe dans son repère est porté du vaisseau courant au précédent (`reprojectShip`, `shipSphere`).
-- **Le plan proche passe à 5 cm** dès que le vaisseau est dessiné. Le Z inversé garde la profondeur du terrain lointain.
+- **Its own shadow cards, 2048², on a sphere of 6,7 m:**
+  - one towards the sun, for shadows carried in the cockpit;
+  - one from above, for the sky that the shell hides.
+- **The opaque surfaces are drawn first in the stage pass:**
+  - Lambert and GGX;
+  - sun through the air and whole sky, as near objects;
+  - the occlusion cooked on the second UV of the sheets.
+- **The direct part of the sun goes into the second target:** clouds shade the ship as the ground.
+- **The canopy glass is drawn in a separate layer, after the atmosphere.** The tone map applies it after the temporal smoothing: screen = smoothed × alpha + rgb.
+  - What sticks to the glass moves with the ship, the world behind it doesn't.
+  - Kept out of history, nothing drags.
+  - Without ship, the layer is (0, 0, 0, 1): render identical to the bit.
+- **Time smoothing reprojects the pixels of the ship with it.** In its sphere, a fixed point in its reference frame is carried from the current ship to the previous (`reprojectShip`, `shipSphere`).
+- **The close-up moves to 5 cm** as soon as the ship is drawn. The reversed Z keeps the depth of the distant field.
 
-## La verrière et le temps
+## The canopy glass and the time
 
-- **`ShipWeather.hlsl`, un fil par image, tient l'état du verre.** Il lit les nuages du jeu, les mêmes au même temps, par `Clouds.hlsli` (`spec-nuages.md`). La température vient de la carte du climat (`Climate.hlsli`), au niveau de la mer moins 6,5 °C/km.
-- **La météo est lue à la position du vaisseau,** dans son propre jeu de constantes nuages ; éloigner la caméra extérieure ne change ni pluie, ni température, ni givre.
-- **L'état du verre :**
-  - **Mouillé :** sous la pluie, et dans un nuage, d'autant plus vite que le vaisseau le traverse vite ; hors de l'eau, l'air le sèche, plus vite à grande vitesse.
-  - **Pluie :** sous un cumulus épais, la part de cumulus de la météo et la profondeur optique au-dessus du vaisseau.
-  - **Givre :** sous 0 °C, sur un verre humide ; la température est celle de la mer moins 6,5 °C/km.
-- **`ShipGlass.hlsl` dessine :**
-  - le reflet de Fresnel, du ciel dehors ou du cockpit dedans, et l'éclat du soleil ;
-  - **l'eau** (`docs/recherche-eau-verriere.md`) : des gouttes simulées (`ShipWater.hlsli`), 8 192 au plus :
-    - elles naissent de la pluie ou de l'eau captée en nuage, grossissent, fusionnent, et coulent sous la gravité et l'air ;
-    - **leur trajet :** droit, jusqu'à un défaut du verre, une cellule de 5 mm sur douze environ, où elles marquent un temps et repartent avec un cap jusqu'à 45° de côté, qui revient sur 5 cm ; elles penchent un peu vers une trace mouillée ;
-    - **leur forme :** un bord jamais tout à fait rond, des flancs bombés ; en coulant, plus plates, pas plus larges que leur traînée ;
-    - **leur traînée :** une pellicule de leur largeur, que les suivantes reprennent ; elle sèche en cinq secondes environ, plus lentement sous la pluie, en se morcelant ;
-    - **la poussée de l'air croît de 0 à 100 km/h, puis reste celle de 100 km/h :** au-delà, l'eau défile toujours à 30 à 50 cm/s ;
-  - **leur rendu :** chaque goutte est une lentille grand-angle. Elle a un bord sombre et, hors des nuages, un point de ciel ;
-  - le givre en frondes depuis les seuils, sur un verre humide seulement.
-- **Pas de buée :** un voile sur tout le verre brouillait la vue sans rien montrer du temps.
-- **La verrière sert aussi de collimateur :**
-  - horizon, échelle de tangage tous les 10° et marqueur de vecteur vitesse, à l'infini, dans un cône de 24° autour du nez ;
-  - le petit combineur est sous la ligne des yeux, sans place sous le toit ;
-  - éteint au démarrage, U l'allume ou l'éteint.
-- **L'arête des deux vitres avant ne se voit pas :** à 35 cm d'elle, la normale du verre se tourne vers celle de l'arête, comme sur une seule feuille pliée. Sinon leurs reflets se coupent net sur une ligne droite.
-- **Vue de dehors, la verrière est un miroir bronze sombre,** comme les verrières traitées des chasseurs :
-  - elle reflète 30 % environ de face, tout aux incidences rasantes, et laisse passer 8 % ;
-  - le ciel s'y reflète plus clair vers l'horizon, le sol sous l'horizon ;
-  - **vue de dedans, rien ne change :** un verre légèrement fumé.
-- **`MYPLANETENGINE_VERRIERE=pluie`, `nuage` ou `givre` force un état,** pour les captures.
+- **`ShipWeather.hlsl`, one wire per frame, keeps the glass state.** It reads the game clouds, the same at the same time, by `Clouds.hlsli` (`spec-nuages.md`). The temperature comes from the climate map (`Climate.hlsli`), at sea level minus 6,5 °C/km.
+- **Weather is read at the ship's position,** in its own constant cloud game; moving the outside camera away does not change rain, temperature, or frost.
+- **The state of the glass:**
+  - **Wet:** in the rain, and in a cloud, the faster the ship passes through it quickly; out of the water, the air dries it, faster at high speed.
+  - **Rain:** under a thick cumulus, the cumulus part of the weather and the optical depth above the ship.
+  - **Freeze:** under 0 °C, on a wet glass; the temperature is that of the sea minus 6,5 °C/km.
+- **`ShipGlass.hlsl` draws:**
+  - Fresnel reflection, from the sky outside or from the cockpit inside, and the sunshine;
+  - **water** (`docs/recherche-eau-verriere.md`): simulated drops (`ShipWater.hlsli`), 8 192 at most:
+    - they are born from rain or water captured in clouds, grow larger, merge, and flow under gravity and air;
+    - **their path:** straight, until a defect of the glass, a cell of 5 mm on twelve about, where they mark a time and leave with a heading until 45° of side, which returns on 5 cm; they lean a little towards a wet trace;
+    - **their shape:** a never completely round edge, domed sides; flowing, flatter, not wider than their trail;
+    - **their trail:** a film of their width, which the following take over; it dries in about five seconds, slower under the rain, by crumble;
+    - **the air thrust increases from 0 to 100 km/h, then remains that of 100 km/h:** beyond, the water always flows to 30 to 50 cm/s;
+  - **their rendering:** each drop is a wide angle lens. It has a dark edge and, out of the clouds, a point of sky;
+  - frost in slings from the thresholds, on a wet glass only.
+- **No fog:** a veil on all the glass blurred the view without showing anything of the time.
+- **The canopy glass also serves as a focuser:**
+  - horizon, pitch scale all 10° and speed vector marker, infinite, in a cone of 24° around the nose;
+  - the small combiner is under the line of sight, with no space under the roof;
+  - off on start, U turns it on or off.
+- **The edge of the two front windows is not seen:** at 35 cm from it, the normal glass turns to that of the edge, as on a single folded sheet. Otherwise their reflections cut off sharply on a straight line.
+- **Viewed from the outside, the canopy glass is a dark bronze mirror,** like the treated hunters' skylights:
+  - it reflects 30 % about from the front, all to the racing impacts, and lets through 8 %;
+  - the sky is reflected clearer towards the horizon, the ground below the horizon;
+  - **viewed from inside, nothing changes:** a lightly smoky glass.
+- **`MYPLANETENGINE_VERRIERE=pluie`, `nuage` or `givre` forces a state,** for captures.
 
-## Les écrans du tableau de bord
+## The dashboard screens
 
-- **Les trois écrans et les trois cadrans montrent le vol,** pour l'œil seulement : `ShipScreens.hlsli`, appelé par `ShipPixel.hlsl` pour les matériaux 13 à 18 du paquet.
-- **Leurs images restent le fond :** cadres, titres et libellés de `textures_cockpit.py`. Ce que le vol change y est effacé puis redessiné, dans les mêmes couleurs, en chiffres à segments.
+- **The three screens and three dials show the flight,** for the eye only: `ShipScreens.hlsli`, called by `ShipPixel.hlsl` for the pack materials 13 to 18.
+- **Their images remain the background:** frames, titles and labels of `textures_cockpit.py`. What the flight changes is erased and then redesigned, in the same colors, in segmented numbers.
 - **FLIGHT / ATTITUDE :**
-  - horizon artificiel en roulis et en tangage, échelle tous les 5°, chiffrée tous les 10° ;
-  - rose des caps qui tourne sous un index fixe, nord en ambre ;
-  - vitesse en km/h, altitude au-dessus de la mer en km, cap, minutes et secondes de l'horloge.
-- **NAV / TERRAIN :** une carte en courbes de niveau, cap en haut, 40 m par texel, qui défile avec le vaisseau ; latitude et longitude réelles. Le relief de la carte est inventé.
-- **SHIP / SYSTEMS :** les barres suivent les gaz, la vitesse et l'horloge ; la température de coque est celle de l'air standard, réchauffé par la vitesse.
-- **Les cadrans :** THRUST suit les gaz, ATT le tangage (4 à plat, ±90° aux butées), ALT la hauteur au-dessus du sol en km.
-- **Les données, en fin de `Ship::Constants` :** `course` (cap, latitude, longitude, hauteur du sol) et `gauges` (gaz), remplies avec `ship.air` dans `D3DApp::UpdateShipFrame`.
+  - artificial horizon in roll and pitch, scale all 5°, digitized all 10°;
+  - rose of the caps that turns under a fixed index, north in amber;
+  - speed in km/h, altitude above sea level in km, heading, minutes and seconds of the clock.
+- **NAV / TERRAIN:** a map in level lines, heading up, 40 m by texel, which scrolls with the ship; actual latitude and longitude. The relief of the map is invented.
+- **SHIP / SYSTEMS:** bars follow throttle, speed and clock; hull temperature is that of standard air, heated by speed.
+- **The dials:** THRUST tracks the throttle, ATT the pitch (4 flat, ±90° at the stops), ALT the height above the ground in km.
+- **The data, at the end of `Ship::Constants`:** `course` (head, latitude, longitude, ground height) and `gauges` (gas), filled with `ship.air` in `D3DApp::UpdateShipFrame`.
 
-## Le pilotage
+## The piloting
 
-- **Le standard des jeux spatiaux au clavier et à la souris,** Star Citizen et Everspace :
-  - **Souris :** tangage et lacet, par un manche virtuel qui se recentre au repos.
-  - **Roulis :** Q et E, soit A et E en AZERTY.
-  - **Les gaz :** la molette. Vers le haut, le vaisseau va plus vite, et la vitesse tient sans rien toucher ; vers le bas, il ralentit jusqu'à l'arrêt. Trente crans, de 35 % chacun.
-  - **Glissement :** A et D (Q et D) sur le côté ; W et S (Z et S), ou Espace et Ctrl, vers le haut et le bas, dans l'axe du vaisseau.
-  - **Accélérer, freiner :** Maj accélère cinq fois, X freine.
-  - **Tête libre :** clic droit maintenu ; au relâcher, la vue reste où elle est et la souris pilote de nouveau.
-  - **Tête en bascule :** H donne la souris à la tête ; H à nouveau la rend au vaisseau, et la tête reste où elle est.
-  - **R ramène la tête au repos,** un peu sous l'horizon, de 4,5°. En caméra libre, R garde l'ombrage facetté.
-- **Une assistance de vol tient la vitesse des gaz.** Comme pour la caméra libre, elle est proportionnelle à la hauteur au-dessus du sol, au moins 60 m. Le cran du milieu vaut la vitesse par défaut de la caméra libre. Les glissements vont au moins à cette vitesse, même gaz coupés.
-- **Le manche suit les commandes :**
-  - il recule de 12° quand le nez monte, penche de 12° du côté du roulis, et tourne de 15° avec le lacet, comme un manche à torsion ;
-  - le tangage et le lacet viennent du manche virtuel de la souris, le roulis des touches, adouci en un dixième de seconde ;
-  - **la manette des gaz** bascule de 40° sur ses trente crans, vers l'avant avec les gaz.
-- **Le vaisseau est porté le long de la sphère :** voler autour de la planète garde l'assiette.
-- **La tête suit les accélérations,** comme dans les simulateurs de vol : un ressort amorti, d'après [MSFS Physics Camera](https://flightsim.to/addon/114953/msfs-physics-camera).
-  - **Le sens :** l'œil recule à l'accélération, avance au freinage, penche à l'opposé des virages. La parallaxe avec le cockpit donne la profondeur.
-  - **La mesure :** l'accélération est comprimée par son logarithme, car le vaisseau va du pas à la vitesse de la lumière. Environ 1,5 cm à 0,2 g, 4 cm à 2 g, au plus 6 cm vers l'avant et 3 cm de côté.
-  - **Le ressort :** 1,4 Hz, amorti à 0,6. La tête traîne un peu, puis revient avec un léger rebond.
-  - **L'accélération est celle de l'œil,** à 1 m au-dessus de l'axe de roulis : un roulis le jette de côté.
-  - **Au roulis, la tête traîne aussi en rotation,** de 3° au plus, autour de l'axe du regard : la direction du regard ne change pas. Elle ne tourne ni en tangage ni en lacet.
-- **La souris est lue en brut,** cachée et gardée dans la fenêtre. Alt maintenu la libère, pour atteindre la palette de tests. M la laisse à Windows, la fenêtre devant, pour une capture d'écran, puis la reprend. Elle est aussi relâchée quand la fenêtre perd le focus.
-- **Espace monte dans les vues du vaisseau :** la pause de la météo n'y répond qu'en caméra libre.
-- **Tab :** cockpit, poursuite, vaisseau caché.
-  - **En poursuite,** le clic droit tourne la caméra tout autour du vaisseau, de dessous à dessus, et jusque devant lui.
-  - **Le vaisseau caché** garde l'œil du pilote et les mêmes commandes, sans coque ni verrière : la vue la plus large.
-- **Retour arrière :** la caméra libre, avec ses propres commandes, puis retour au cockpit. Passer de la caméra libre au vaisseau amène le vaisseau à la caméra.
-- **`MYPLANETENGINE_VAISSEAU=cockpit`, `poursuite`, `sans` ou `libre` choisit la première vue.** Les bancs partent en caméra libre.
+- **The standard for keyboard and mouse space games,** Star Citizen and Everspace:
+  - **Mouse:** pitch and lacing, by a virtual handle that refocuses at rest.
+  - **Rolls:** Q and E, or A and E in AZERTY.
+  - **Throttle:** the throttle wheel. Upwards, the ship goes faster, and the speed holds without touching anything; downwards, it slows down until it stops. Thirty marks, of 35 % each.
+  - **Sliding:** A and D (Q and D) on the side; W and S (Z and S), or Space and Ctrl, up and down, in the ship's axis.
+  - **Accelerate, brake:** Maj accelerates five times, X brakes.
+  - **Free head:** Right click held; on releasing, the view stays where it is and the mouse pilots again.
+  - **Swing head:** H gives the mouse to the head; H returns it to the ship again, and the head stays where it is.
+  - **R brings the head back to rest,** a little below the horizon, of 4,5°. In free camera, R keeps the shading faceted.
+- **A flight assistance keeps the speed of the throttle.** As for the free camera, it is proportional to the height above the ground, at least 60 m. The middle step is worth the default speed of the free camera. The slips go at least at this speed, even gas cut off.
+- **The handle follows the commands:**
+  - it retracts by 12° when the nose rises, leans by 12° on the side of the roll, and turns by 15° with the lacing, like a twist handle;
+  - the pitch and the lacing come from the virtual mouse handle, the rolling of the keys, softened in a tenth of a second;
+  - **the throttle handle** swings 40° on its thirty steps, forward with the throttle.
+- **The ship is carried along the sphere:** flying around the planet keeps the plate.
+- **The head follows the acceleration,** as in flight simulators: a dampened spring, according to [MSFS Physics Camera](https://flightsim.to/addon/114953/msfs-physics-camera).
+  - **The sense:** the eye retreats when accelerating, moves forward when braking, leans at the opposite corners. The parallax with the cockpit gives the depth.
+  - **The measure:** the acceleration is compressed by its logarithm, because the ship is going at the speed of light. About 1,5 cm to 0,2 g, 4 cm to 2 g, at most 6 cm forward and 3 cm side.
+  - **The spring:** 1,4 Hz, dampened to 0,6. The head drags a little, then comes back with a slight bounce.
+  - **Acceleration is that of the eye,** at 1 m above the rolling axis: a rolling throws it to the side.
+  - **When rolling, the head also drags in rotation,** of 3° at most, around the axis of the gaze: the direction of the gaze does not change. It does not turn either in tangle or lace.
+- **The mouse is read raw,** hidden and kept in the window. Alt held releases, to reach the test palette. M leaves it to Windows, the window in front, for a screenshot, then takes it back. It is also released when the window loses focus.
+- **Space rises in the ship views:** the weather pause only responds to it in free camera.
+- **Tab:** cockpit, chase, hidden ship.
+  - **Then,** the right click rotates the camera all around the ship, from below to above, and all the way up to the front of it.
+  - **The hidden ship** keeps the pilot's eye and the same controls, without hull or canopy glass: the widest view.
+- **Backward:** the camera free, with its own controls, then back to the cockpit. Switching from free camera to ship brings the ship to the camera.
+- **`MYPLANETENGINE_VAISSEAU=cockpit`, `poursuite`, `sans` or `libre` selects the first view.** The benchmarks are going free camera.
 
-## Les jets et les ombres
+## Jets and shadows
 
-- **Le panache des trois tuyères** (`ShipPlume.hlsli`, `ShipPlumeVertex.hlsl`, `ShipPlumePixel.hlsl`) :
-  - une flamme de lumière à la sortie de chaque tuyère, d'un cœur blanc bleuté vers le violet, avec de faibles losanges de choc ;
-  - **elle finit en pointe :** elle s'élargit un peu au sortir de la tuyère, puis s'affine et s'éteint jusqu'à sa pointe ;
-  - **il suit les gaz, cran par cran,** de rien gaz coupés jusqu'à plein au trentième cran, avec le même temps de réponse que la vitesse. Lié à la vitesse, il était plein dès le premier cran en altitude, où la vitesse suit la hauteur ;
-  - **sa longueur :** de 1,7 m au premier cran à 8 m.
-- **Les jets d'attitude :** dix petits jets de vapeur, aux deux pointes de la poupe et au nez, vers le haut, le bas et le côté.
-  - **Chacun tire quand sa poussée sert la commande :** le glissement, ou le couple du roulis, du tangage et du lacet autour du centre du vaisseau.
-  - **Les glissements tirent tant que la touche est tenue ;** les rotations, au début et à la fin du mouvement, sur l'accélération angulaire, comme de vrais propulseurs d'attitude.
-  - **En bouffées douces,** deux ou trois par seconde, chaque jet décalé des autres.
-  - **Seulement quand le vaisseau n'avance pas :** ils s'éteignent entre 2 et 10 m/s vers l'avant ; en route, les tuyères et l'air dirigent le vaisseau. Monter, descendre ou glisser les garde.
-  - **Jamais vus du cockpit,** pour garder la vue dégagée.
-  - **La vapeur est blanche et légère,** éclairée par le soleil et le ciel.
-- **Le rendu des jets se fait dans la couche de la verrière :**
-  - chaque jet est marché dans sa boîte, 24 pas ;
-  - la marche s'arrête à la distance de la scène, si bien que la coque et le sol cachent ce qui est derrière eux ;
-  - hors du lissage temporel, rien ne traîne.
-- **L'ombre du relief sur le vaisseau :**
-  - la marche vers le soleil du terrain (`Shadows.hlsli`), une fois par image, depuis l'origine du vaisseau, dans la passe météo (`ShipWeather.hlsl`) ;
-  - sa part de soleil multiplie le soleil des surfaces et l'éclat de la verrière, avec une image de retard.
-- **L'ombre du vaisseau sur le sol et la mer** (`PixelShader.hlsl`, `ShipShadowOn`) :
-  - la carte du vaisseau vers le soleil, lue au-delà de sa sphère le long du soleil ;
-  - **le disque solaire la floute avec la distance,** sur sa pénombre de 0,0093 rad, en 16 lectures ;
-  - au bout d'un kilomètre environ, la pénombre est aussi large que le vaisseau, et l'ombre s'efface.
+- **The plume of the three nozzles** (`ShipPlume.hlsli`, `ShipPlumeVertex.hlsl`, `ShipPlumePixel.hlsl`):
+  - a flame of light at the exit of each nozzle, of a blue-white heart to the purple, with weak shock diamonds;
+  - **it ends in pointe:** it widens a little at the exit of the nozzle, then becomes thinner and extinguishes up to its tip;
+  - **it follows the throttle, step by step,** from nothing throttle cut off until full at the thirtieth step, with the same response time as speed. Linked to speed, it was full from the first step in altitude, where speed follows height;
+  - **its length:** from 1,7 m at the first intersection to 8 m.
+- **Attitude jets:** ten small water vapor jets, at both ends of the stern and nose, up, down and side.
+  - **Each pulls when its push serves the command:** the slip, or the torque of the roll, the pitch and the lacing around the center of the ship.
+  - **Slides pull as long as the key is held;** rotations, at the beginning and end of the movement, on angular acceleration, like real attitude propellers.
+  - **In gentle puffs,** two or three per second, each blast offset from the others.
+  - **Only when the ship is not moving forward:** they turn off between 2 and 10 m/s forward; on the way, the nozzles and air direct the ship. Up, down or slide the guard.
+  - **Never seen from the cockpit,** to keep the view clear.
+  - **The water vapor is white and light,** lit by the sun and the sky.
+- **The rendering of the jets is done in the layer of the canopy glass:**
+  - each jet is run in its box, 24 not;
+  - the walk stops at the distance of the stage, so that the hull and the floor hide what is behind them;
+  - out of the temporal smoothing, nothing drags.
+- **The shadow of the relief on the ship:**
+  - walking to the sun from the ground (`Shadows.hlsli`), once per frame, from the origin of the ship, in the weather pass (`ShipWeather.hlsl`);
+  - its share of sun multiplies the sun of the surfaces and the brightness of the canopy glass, with a delay image.
+- **The shadow of the ship on the land and the sea** (`PixelShader.hlsl`, `ShipShadowOn`):
+  - the map of the ship towards the sun, read beyond its sphere along the sun;
+  - **the solar disc blurs it with distance,** on its penumbra of 0,0093 rad, in 16 readings;
+  - after about a mile, the penumbra is as wide as the ship, and the shadow fades.
 
-## Limites
+## Limits
 
-- **Ombres :**
-  - **le relief ombre le vaisseau d'un bloc,** depuis son origine : une crête ne coupe pas la coque en deux ;
-  - **le vaisseau n'ombre pas les objets proches,** pierres et plantes ; seulement le terrain et la mer.
-- **Images :** mips calculés sur le CPU, en moyenne des codes sRGB, et sans compression. Les cartes du vaisseau prennent environ 120 Mo de mémoire vidéo.
-- **Écrans :** aucune interaction ; hors du manche et de la manette, les commandes et voyants restent statiques.
-- **Le lissage temporel ne suit pas le manche :** il reprojette ses pixels avec le vaisseau. Le jeu le coupe au démarrage ; la touche T le rétablit.
-- **Le reflet de la verrière** est celui d'un ciel et d'un sol moyens, sans les nuages ni le relief.
-- **Jets :** ni lumière portée du panache sur le sol ou la coque, ni distorsion de chaleur.
-- **Givre :** sa température vient du climat moyen, pas de la météo du jour.
+- **Shadows:**
+  - **the relief shades the ship by a block,** since its origin: a ridge does not cut the hull in two;
+  - **the ship does not shade nearby objects,** stones and plants; only the ground and the sea.
+- **Images:** mips calculated on the CPU, average of sRGB codes, and without compression. The ship maps take up about 120 MB of video memory.
+- **Screens:** No interaction; outside the handle and controller, controls and lights remain static.
+- **Time smoothing does not follow the handle:** it reprojects its pixels with the ship. The game cuts it off at startup; the T key restores it.
+- **The reflection of the canopy glass** is that of an average sky and ground, without clouds or relief.
+- **Jets:** no light from the plume on the ground or hull, no heat distortion.
+- **Frost:** its temperature comes from the average climate, not from the weather of the day.

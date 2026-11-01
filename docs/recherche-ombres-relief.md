@@ -1,196 +1,196 @@
-# Recherche : les ombres portées du relief
+# Research: the cast shadows of the relief
 
-Statut : recherche et première étape faite, le 2026-10-24, piste `piste/ombres-relief`. Le soleil caché par le relief, de la vallée à la chaîne ; le ciel caché par les versants reste à faire. Depuis `piste/ombre-unique`, la même marche donne aussi la hauteur d'ombre de l'air (`recherche-rayons.md`).
+Status: research and first step made, the 2026-10-24, experiment `piste/ombres-relief`. The sun hidden by the relief, from the valley to the chain; the sky hidden by the slopes remains to be done. Since `piste/ombre-unique`, the same step also gives the shadow height of the air (`recherche-rayons.md`).
 
 ## 1. Conclusion
 
-**L'horizon du terrain vers le soleil, calculé à chaque sommet du maillage, interpolé comme un angle, filtré au pixel.**
-- **Notre terrain est un champ de hauteurs,** déjà recalculé à chaque image sur la face et ses anneaux. L'horizon s'y lit sans rien dessiner une seconde fois : une marche le long du grand cercle vers le soleil, à pas croissants avec la distance.
-- **Une seule règle à toute distance.** Le maillage a déjà des mailles proportionnelles à la distance : la marche hérite de sa précision, du mètre près de la caméra à des kilomètres au loin.
-- **Interpolé comme un angle, pas comme une ombre.** Entre deux sommets, l'horizon varie doucement ; le bord de l'ombre tombe là où il croise le soleil, entre les sommets, aussi net que le disque solaire et le pixel le permettent.
-- **Le pixel montre la moyenne de la lumière.** La part du disque solaire au-dessus de l'horizon, élargie de l'étalement de l'horizon dans le pixel : `SpreadStep`, la règle des limites entre matériaux. Au loin, les ombres deviennent des parts douces, jamais des bords crénelés.
-- **Le relief plus fin que le maillage :** son ombre est une part, l'ombrage de Smith pour la dispersion des pentes que la maille cache, `SlopeSpread`. Sans réglage nouveau.
+**The horizon of the field towards the sun, calculated at each vertex of the mesh, interpolated as an angle, filtered to pixel.**
+- **Our terrain is a field of heights,** already recalculated at each frame on the face and its rings. The horizon is read without drawing anything a second time: a walk along the great circle towards the sun, with steps increasing with the distance.
+- **One rule at any distance.** The mesh already has grid cells proportional to distance: walking inherits its accuracy, from the meter near the camera to kilometers away.
+- **Interpolated as an angle, not as a shadow.** Between two peaks, the horizon varies gently; the edge of the shadow falls where it crosses the sun, between the peaks, as sharp as the solar disc and the pixel allow.
+- **Pixel shows average light.** The part of the solar disk above the horizon, enlarged from the spread of the horizon in the pixel: `SpreadStep`, the rule of the boundaries between materials. In the distance, shadows become soft parts, never crenellated edges.
+- **The relief is finer than the mesh:** its shadow is a part, Smith shading for the dispersion of slopes that the grid cell hides, `SlopeSpread`. Without adjustment new.
 
-**Écartés :**
-- **Les cartes d'ombre en cascade ou virtuelles :** il faudrait redessiner le maillage depuis le soleil, et un maillage qui glisse fait trembler leurs bords. Pour 300 km d'ombre au couchant, des niveaux par dizaines.
-- **La marche par pixel :** quatre à cinq fois plus de points que de sommets, pour des bords que la pénombre réelle rend déjà flous à l'échelle de la maille.
-- **Les cartes d'horizon précalculées :** notre terrain n'est jamais stocké ; il change avec la caméra.
+**Dismissed:**
+- **The shadow cards in cascade or virtual:** it would be necessary to redrawing the mesh from the sun, and a mesh that slides makes shake their edges. For 300 km of shadow at sunset, levels by dozens.
+- **The walk per pixel:** four to five times more points than vertices, for edges that the real penumbra already blurs at the scale of the grid cell.
+- **Pre-calculated horizon maps:** our terrain is never stored; it changes with the camera.
 
-## 2. Ce que nous avions
+## 2. What we had
 
-- **Le soleil filtré par l'air,** caché seulement par la sphère, au bord de son disque (`SunTransmittance`).
-- **Le ciel d'un sol horizontal,** pondéré par la normale et la cavité des textures.
-- **Des micro-ombres de cavité,** sous le mètre.
-- **Ni ombre portée, ni ciel caché par les versants** (`recherche-profondeur-atmospherique.md`, 3.6).
+- **The sun filtered by the air,** hidden only by the sphere, at the edge of its disc (`SunTransmittance`).
+- **The sky of a horizontal floor,** weighted by the normal and cavity of textures.
+- **Micro-shades of cavity,** under the meter.
+- **No shadows, no sky hidden by the slopes** (`recherche-profondeur-atmospherique.md`, 3.6).
 
-## 3. L'état de l'art
+## 3. State of the art
 
-### Cartes d'ombre en cascade et virtuelles
+### Shadow cards in cascade and virtual
 
-- **Le principe :** une image de profondeur vue du soleil, découpée en tranches de distance. Quatre tranches de 1 024² dans la démo de NVIDIA (Dimitrov 2007).
-- **La stabilité :** chaque tranche se cale sur la grille de ses texels, à taille fixe, sinon les bords scintillent (Microsoft, d'après Engel 2006). Les tranches qui suivent la profondeur de l'image, SDSM, ne peuvent plus se caler ; leur parade : plus de résolution et un bon filtre (Lauritzen 2010).
-- **Unreal Engine 5, ombres virtuelles :** 16 384² virtuels en pages de 128², des niveaux de 64 cm à environ 40 km, chacun deux fois plus large. Les pages se gardent d'une image à l'autre, mais un soleil qui bouge les invalide toutes. Pénombre par 8 rayons dans la carte, selon la taille du soleil.
-- **Le lointain chez Unreal :** une cascade « lointaine » pour le seul paysage, puis des ombres par champs de distance : 2,8 ms contre 4,9 ms pour six cascades, à 1080p sur une R7870.
-- **Frostbite :** rien de propre au terrain dans l'exposé d'Andersson 2007 ; des cascades stables, génériques.
-- **Pour nous :** redessiner le maillage depuis le soleil, à chaque image, par tranches. Un maillage qui glisse change la forme qui projette l'ombre : les bords trembleraient malgré le calage des texels. Et un soleil couchant demande des centaines de kilomètres.
+- **The principle:** a depth image seen from the sun, cut into slices of distance. Four slices of 1 024² in the demo of NVIDIA (Dimitrov 2007).
+- **Stability:** each slice is stuck on the grid of its texels, fixed size, otherwise the edges sparkle (Microsoft, according to Engel 2006). The slices that follow the depth of the image, SDSM, can no longer be stuck; their parade: more resolution and a good filter (Lauritzen 2010).
+- **Unreal Engine 5, virtual shadows:** 16 384² virtual shadows in pages of 128², levels of 64 cm to about 40 km, each twice as wide. The pages keep from one frame to another, but a moving sun invalidates them all. Penumbra by 8 rays in the map, according to the size of the sun.
+- **The distant in Unreal:** a cascade “distant” for the landscape alone, then shadows by distance fields: 2,8 ms against 4,9 ms for six cascades, to 1080p on a R7870.
+- **Frostbite:** nothing field specific in Andersson's 2007 presentation; stable, generic cascades.
+- **For us:** redrawing the mesh from the sun, at each frame, by slices. A mesh that slides changes the shape that projects the shadow: the edges would shake despite the timing of the texels. And a setting sun requires hundreds of kilometers.
 
-### Cartes d'horizon
+### Maps of the Horizon
 
-- **Max 1988 :** l'horizon de chaque texel dans quelques azimuts, interpolé entre eux ; l'ombre là où le soleil passe sous l'horizon. Pour le relief des textures.
-- **Sloan et Cohen 2000 :** huit directions dans deux textures, interpolées.
-- **Stewart 1998 :** l'horizon de chaque point d'un modèle numérique de terrain, plus vite que les méthodes précédentes au-delà de 100 000 points.
-- **Timonen et Westerholm 2010 :** l'horizon exact dans chaque azimut, en temps linéaire, par balayage ; ombres nettes et ciel entier. 23 images/s sur 1 024², 64 directions, sur une GTX 280.
-- **CosmoScout VR, DLR, HPG 2025 :** horizons sur 360 azimuts, compressés en 16 coefficients de Fourier, pour des planètes. 0,1 à 0,55 ms à 1080p sur une RTX 4090. Le disque solaire pris comme une hauteur constante suffit.
-- **Le ciel caché :** pour un ciel uniforme vu d'un sol horizontal, la part visible au-dessus d'un horizon d'élévation h vaut cos² h par azimut (GTAO, Jimenez 2016, éq. 17). HBAO, Bavoil 2008, prend un angle solide uniforme.
-- **Pour nous :** le bon outil, à une différence près. Notre terrain n'est jamais stocké : l'horizon se recalcule à chaque image, là où on regarde.
+- **Max 1988:** the horizon of each texel in a few azimuths, interpolated between them; the shadow where the sun passes under the horizon. For the relief of textures.
+- **Sloan and Cohen 2000:** eight directions in two textures, interpolated.
+- **Stewart 1998:** the horizon of each point of a digital terrain model, faster than previous methods beyond 100 000 points.
+- **Timonen and Westerholm 2010:** the exact horizon in each azimuth, in linear time, by scanning; sharp shadows and full sky. 23 images/s on 1 024², 64 directions, on a GTX 280.
+- **CosmoScout VR, DLR, HPG 2025:** horizons on 360 azimuths, compressed in 16 Fourier coefficients, for planets. 0,1 to 0,55 ms to 1080p on a RTX 4090. The solar disc taken as a constant height is sufficient.
+- **The hidden sky:** for a uniform sky seen from a horizontal ground, the visible part above a horizon of elevation h is cos² h per azimuth (GTAO, Jimenez 2016, eq. 17). HBAO, Bavoil 2008, take a uniform solid angle.
+- **For us:** the right tool, with one difference. Our terrain is never stored: the horizon is recalculated with each frame, where we look.
 
-### Marche dans le champ de hauteurs
+### Walk in the field of heights
 
-- **Jung et al. 2020, terrain lunaire courbe :** un rayon vers le centre du soleil par pixel, accéléré par des mipmaps de maximum ; disque solaire en segment de cercle. 5,4 ms contre 18,2 ms en pas réguliers, à 1080p sur une GTX 970M. Des pas plus longs en oblique faisaient scintiller.
-- **Chajdas et al. 2015 :** les ombres proches tracées dans le cache de terrain, les lointaines précalculées pour un cycle jour-nuit, 3 bits par point.
-- **Red Dead Redemption 2 :** une carte d'ombre du terrain tracée dans les hauteurs, selon notre recherche précédente ; non revérifié dans les diapositives publiques.
-- **Pour nous :** c'est ce que nous faisons, mais par sommet, sur le maillage, plutôt que par pixel.
+- **Jung et al. 2020, curved lunar terrain:** one radius to the center of the sun per pixel, accelerated by maximum mipmaps; solar disc in circle segment. 5,4 ms against 18,2 ms in regular steps, to 1080p on a GTX 970M. Longer steps in oblique made sparkle.
+- **Chajdas et al. 2015:** near shadows drawn in the field cache, far shadows pre-calculated for a day-night cycle, 3 bits per point.
+- **Red Dead Redemption 2:** a shadow map of the terrain plotted in the heights, according to our previous research; not reverified in public slides.
+- **For us:** this is what we do, but by vertex, on the mesh, rather than by pixel.
 
-### Les moteurs de planètes
+### Engines of planets
 
-- **Star Citizen :** des « cascades de hauteurs du terrain planétaire » pour des ombres douces à grande échelle, à la place des cartes d'ombre (rapport d'août 2018), puis plusieurs cascades fondues (fin 2019). L'algorithme n'est pas publié.
-- **Outerra :** des cartes d'ombre en 2014, l'auto-ombrage du terrain pas encore au point ; la suite n'est pas publiée.
-- **Flight Simulator, Proland, Elite Dangerous :** rien de publié trouvé sur les ombres du terrain.
-- **CosmoScout VR :** les cartes d'horizon ci-dessus, la seule méthode planétaire publiée et chiffrée.
+- **Star Citizen:** "cascades of Planetary Terrain Heights" for soft shadows on a large scale, instead of shadow maps (August report 2018), then several cascades blended (end 2019). The algorithm is not published.
+- **Outerra:** shadow maps in 2014, the self-shading of the terrain not yet in point; the following is not published.
+- **Flight Simulator, Proland, Elite Dangerous:** nothing published found on the shadows of the field.
+- **CosmoScout VR:** the above horizon maps, the only published and ciphered planetary method.
 
-### La pénombre du disque solaire
+### The penumbra of the solar disc
 
-- **Le soleil fait 0,53° :** un rayon de 0,00465 rad (NASA).
-- **La part visible du disque** au-dessus d'un horizon décalé de d de son centre : 1 − A(d)/πr², A l'aire du segment de cercle. Un seuil doux de −r à +r l'approche ; CosmoScout VR trouve même une hauteur constante suffisante.
-- **Sur le sol,** derrière un obstacle de hauteur H, soleil à e : une pénombre de H [cot(e − r) − cot(e + r)] ≈ 2rH / sin² e, soit 4r / sin 2e de la longueur de l'ombre. Au couchant, à 5°, 5 % de l'ombre : 1,1 km de pénombre derrière un sommet de 1 km. Livingston et Lynch 1979 mesurent ce profil sur les ombres de montagnes.
+- **The sun is 0,53°:** a radius of 0,00465 rad (NASA).
+- **The visible part of the disc** above a horizon offset by d from its centre: 1 − A(d)/πr², A the area of the circle segment. A soft threshold of −r at +r approach; CosmoScout VR even finds a sufficient constant height.
+- **On the ground,** behind an obstacle of height H, sun at e: a penumbra of H [cot(e − r) − cot(e + r)] ≈ 2rH / sin² e, or 4r / sin 2e of the length of the shadow. At sunset, at 5°, 5 % of shade: 1,1 km of penumbra behind a summit of 1 km. Livingston and Lynch 1979 measure this profile on mountain shadows.
 
-### Les coûts publiés
+### Published costs
 
-| Méthode | Coût | Matériel |
+| Method | Cost | Equipment |
 |---|---|---|
-| Ombres virtuelles, Unreal 5 | non publié ; soleil sans cache dans Fortnite pour tenir 60 i/s | consoles |
-| 6 cascades contre champs de distance, Unreal | 4,9 ms contre 2,8 ms, 1080p | R7870 |
-| Marche par pixel avec mipmaps de maximum, Jung 2020 | 5,4 ms, 1080p | GTX 970M |
-| Horizons de Fourier, CosmoScout VR | 0,1 à 0,55 ms, 1080p | RTX 4090 |
-| Horizon par sommet, ici | voir les mesures | RTX 4070 Ti |
+| Virtual shadows, Unreal 5 | not published; sun without a cache in Fortnite to hold 60 i/s | consoles |
+| 6 cascades against distance fields, Unreal | 4,9 ms vs 2,8 ms, 1080p | R7870 |
+| Walk per pixel with maximum mipmaps, Jung 2020 | 5,4 ms, 1080p | GTX 970M |
+| Fourier Horizons, CosmoScout VR | 0,1 to 0,55 ms, 1080p | RTX 4090 |
+| Horizon by vertex, here | see the measures | RTX 4070 Ti |
 
-## 4. Ce qui est fait
+## 4. What is done
 
-**La marche, `SunHorizon` dans `Shadows.hlsli`,** dans une passe à part, `Horizon.hlsl`, juste après le calcul du terrain, dans ses sommets.
-- **Pour chaque sommet visible,** du maillage tel que le terrain vient de le calculer.
-- **Le long du grand cercle vers le soleil :** une droite sur le plan de la face, celle qui joint le sommet au point du soleil.
-- **Des pas de 2 % de la distance parcourue,** jamais plus fins que la maille sous eux, `HORIZON_STEP`. L'horizon compte comme un angle : une hauteur manquée entre deux pas pèse sa hauteur sur sa distance. La hauteur d'ombre de l'air la compte entière : à 5 %, les ombres du sol étaient les mêmes, mais les rayons tremblaient davantage (`journal-planete.md`, 2026-10-25).
-- **La hauteur entre les sommets,** bilinéaire, sur la face ou sur la carte des anneaux.
-- **Les vraies positions,** courbure comprise : la sphère cache le soleil d'elle-même.
-- **Elle s'arrête** quand rien au-delà, même un sommet de 10 km, ne peut dépasser l'horizon trouvé et le bas du disque solaire, ni passer au-dessus du rayon du soleil tiré de la hauteur d'ombre. Au soleil haut, quelques pas ; au couchant, des centaines de kilomètres.
+**The walk, `SunHorizon` in `Shadows.hlsli`,** in a separate pass, `Horizon.hlsl`, just after the calculation of the terrain, in its vertexes.
+- **For each visible vertex,** of mesh as the field just calculated it.
+- **Along the great circle towards the sun:** a line on the plane of the face, the one that joins the summit to the point of the sun.
+- **Steps of 2 % of distance traveled,** never thinner than the grid cell below them, `HORIZON_STEP`. The horizon counts as an angle: a height missed between two steps weighs its height on its distance. The shadow height of the air counts it whole: at 5 %, the shadows of the ground were the same, but the rays shook more (`journal-planete.md`, 2026-10-25).
+- **The height between the vertices,** bilinear, on the face or on the map of the rings.
+- **The true positions,** including curvature: the sphere hides the sun from itself.
+- **It stops** when nothing beyond, even a summit of 10 km, can go beyond the found horizon and the bottom of the solar disc, nor pass above the sun ray drawn from the shadow height. At high sun, a few steps; at sunset, hundreds of kilometers.
 
-**Ceux qui projettent l'ombre sont calculés, même hors de l'écran.** Le maillage ne calcule que les sommets qui peuvent être vus. Un sommet est désormais gardé aussi si son ombre peut tomber sur l'écran : sa colonne, du niveau de la mer à 10 km, balayée à l'opposé du soleil jusqu'où son ombre peut porter (`ShadowSweep`, `MaybeVisible`).
+**Those who cast shadow are calculated, even off the screen.** The mesh calculates only the vertices that can be seen. A summit is now kept also if its shadow can fall on the screen: its column, from sea level at 10 km, swept opposite the sun as far as its shadow can carry (`ShadowSweep`, `MaybeVisible`).
 
-**Dans le pixel, `PixelShader.hlsl` :**
-- **la part du disque au-dessus de l'horizon interpolé,** élargie de l'étalement de l'horizon dans le pixel, tiré des dérivées à l'écran (`SunAboveHorizon`) ;
-- **fois la part du relief plus fin que la maille que son propre relief laisse au soleil :** l'ombrage de Smith, pour la dispersion des pentes que la maille cache (`FinerReliefLit`) ;
-- **seule la lumière directe change.** Le ciel reste celui d'un sol dégagé.
+**In the pixel, `PixelShader.hlsl`:**
+- **the portion of the disk above the interpolated horizon,** enlarged from the horizon spread in pixel, drawn from the derivatives on the screen (`SunAboveHorizon`);
+- **times the part of the relief thinner than the grid cell that its own relief leaves to the sun:** the Smith shading, for the dispersion of slopes that the grid cell hides (`FinerReliefLit`);
+- **only direct light changes.** The sky remains that of a clear ground.
 
-**La vue de diagnostic `sun`** (`MYPLANETENGINE_VIEW`) : chaque pixel blanc avec la probabilité de la lumière directe qu'il reçoit, N.L fois la part du soleil que le relief laisse. La part de blanc en donne la moyenne.
+**The `sun`** (`MYPLANETENGINE_VIEW`) diagnostic view: each white pixel with the probability of direct light it receives, N.L times the part of the sun that the relief leaves. The white part gives the average.
 
-**Pour les rayons de soleil, la même marche :** chaque point marché garde aussi sa hauteur au-dessus du rayon du soleil tiré du sommet. La plus grande donne la hauteur d'ombre de la colonne, que l'atmosphère lit entre les sommets (`recherche-rayons.md`, partie 4).
+**For the sun rays, the same step:** each market point also keeps its height above the sun ray drawn from the top. The larger one gives the shadow height of the column, which the atmosphere reads between the tops (`recherche-rayons.md`, part 4).
 
-## 5. Les mesures
+## 5. Measures
 
-Le 2026-10-24, sur une RTX 4070 Ti partagée avec trois à six autres instances du moteur : les temps sont des minimums sur huit lancements alternés. Image : `images/ombres-avant-apres.jpg`.
+The 2026-10-24, on a RTX 4070 Ti shared with three to six other engine instances: times are minimums on eight alternate launches. Image: `images/ombres-avant-apres.jpg`.
 
-**Le scintillement ne monte pas** (`banc_tremblement.py`, avec / sans lissage) :
+**The flicker does not mount** (`banc_tremblement.py`, with / without smoothing):
 
-| Vue | Avant | Après |
+| View | Before | After |
 |---|---|---|
-| Crête enneigée, soleil à 10° de côté | 0,08 / 0,47 | 0,08 / 0,42 |
-| Massif à 8 km, soleil à 15° | 0,18 / 0,98 | 0,16 / 0,92 |
-| Sommet à 600 m, soleil à 10° dans le dos | 0,11 / 0,54 | 0,10 / 0,48 |
-| Fond de vallée, soleil à 10° | 0,07 / 0,42 | 0,06 / 0,36 |
+| Snowy ridge, sun at 10° from side | 0,08 / 0,47 | 0,08 / 0,42 |
+| Massif at 8 km, sun at 15° | 0,18 / 0,98 | 0,16 / 0,92 |
+| Summit at 600 m, sun at 10° in the back | 0,11 / 0,54 | 0,10 / 0,48 |
+| Valley background, sun at 10° | 0,07 / 0,42 | 0,06 / 0,36 |
 
-- L'ombre assombrit l'image, ce qui baisse aussi les écarts absolus.
-- La carte du scintillement montre le bord de l'ombre en pyramide, en trait fin : il bouge à peine quand le maillage glisse.
+- The shadow darkens the image, which also lowers absolute deviations.
+- The map of the flicker shows the edge of the shadow in a pyramid, in a thin line: it barely moves when the mesh slides.
 
-**Pas de saut à la descente** (`banc_ombres.py`, soleil à 10°) : la lumière directe moyenne sur le sol de la vue suivante, son écart d'une hauteur à l'autre.
+**No jump at descent** (`banc_ombres.py`, sun at 10°): the average direct light on the ground of the next view, its deviation from one height to another.
 
 | Massif, 15° S 120° E | 50 → 20 km | 20 → 8 km | 8 → 3 km | 3 → 1,2 km |
 |---|---|---|---|---|
-| Sans ombres, l'éclairage d'avant | +7 % | +7 % | +13 % | −10 % |
-| Ombres, sans Smith | −7 % | −3 % | −8 % | non mesuré |
-| Ombres avec Smith, retenu | +5 % | +4 % | +2 % | −6 % |
-| Corrélation des cartes de lumière | 0,68 | 0,80 | 0,69 | 0,83 |
+| Without shadows, the lighting of the past | +7 % | +7 % | +13 % | −10 % |
+| Shadows, without Smith | −7 % | −3 % | −8 % | not measured |
+| Shadows with Smith, restrained | +5 % | +4 % | +2 % | −6 % |
+| Correlation of light maps | 0,68 | 0,80 | 0,69 | 0,83 |
 
-| Fond de vallée plat, bord d'une ombre | 8 → 3 km | 3 → 1,2 km | 1,2 km → 500 m | 500 → 200 m |
+| Flat valley background, edge of a shadow | 8 → 3 km | 3 → 1,2 km | 1,2 km → 500 m | 500 → 200 m |
 |---|---|---|---|---|
-| Sans ombres | +8 % | +5 % | −2 % | +1 % |
-| Ombres | +9 % | +9 % | −2 % | 0 % |
-| Corrélation | 0,70 | 0,80 | 0,82 | 0,60 |
+| Without shadows | +8 % | +5 % | −2 % | +1 % |
+| Shadows | +9 % | +9 % | −2 % | 0 % |
+| Correlation | 0,70 | 0,80 | 0,82 | 0,60 |
 
-- **Les ombres ne sautent pas plus que l'éclairage d'avant,** et le bord de l'ombre reste au même endroit de 8 km à 200 m.
-- **Smith retenu sur la mesure :** sans lui, le loin est 3 à 8 % trop clair ; avec lui, 2 à 5 % trop sombre. Il n'a aucun réglage.
-- **La part d'ombre seule n'est pas la bonne mesure.** À vue fixe, depuis 50 km, elle passe de 42 à 61 % quand les mailles passent de 1 km à 130 m : le relief dessiné projette davantage d'ombre. La lumière moyenne, elle, se conserve, celle de la surface moyenne (Smith) : c'est elle que le banc compare.
-- **Au-dessus d'un relief abrupt, sous 1 km,** la comparaison ne vaut plus : le relief est aussi haut que la caméra, et la même zone ne se retrouve pas d'une vue à l'autre.
+- **The shadows do not jump more than the lighting before,** and the edge of the shadow stays in the same place from 8 km to 200 m.
+- **Smith retained on measurement:** Without it, the far is 3 to 8 % too light; with it, 2 to 5 % too dark. It has no adjustment.
+- **Shadow share alone is not the right measure.** At fixed view, from 50 km, it goes from 42 to 61 % when the grid cells go from 1 km to 130 m: the relief drawn casts more shadow. The average light, it, is preserved, that of the average surface (Smith): it is it that the benchmark compares.
+- **Above a steep relief, below 1 km,** the comparison is no longer valid: the relief is as high as the camera, and the same area is not found from one view to another.
 
-**Le banc de qualité ne bouge pas** (`banc_qualite.py`, 10 lieux, soleil vers 50°) : toutes les mesures à 0,0 dB près, mutation comprise, sauf l'unique crop de roche à 800 m, −2,3 dB de détail fin : une ombre le traverse.
+**The quality benchmark does not move** (`banc_qualite.py`, 10 places, sun towards 50°): all measurements at 0,0 dB close, including mutation, except the single rock crop at 800 m, −2,3 dB fine detail: a shadow crosses it.
 
-**Les réglages de la marche, mesurés :**
-- **Des pas de 2 % au lieu de 5 %** donnent les mêmes parts d'ombre, à 0,1 point près, sur les six paires de la descente. Retenus le 2026-10-25, pour l'air.
-- **Marcher jusqu'à 3° sous le soleil** au lieu de son bord : aucun changement.
+**The adjustments of the walk, measured:**
+- **Steps of 2 % instead of 5 %** give the same shadow shares, to 0,1 point close, on the six pairs of the descent. Retained the 2026-10-25, for the air.
+- **Walk to 3° under the sun** instead of its edge: no change.
 
-**Le coût** (« GPU calcul » de la barre de titre ; le rendu ne change pas, au bruit de mesure près) :
+**The cost** (GPU calculation "title bar; the rendering does not change, to noise measure close):
 
-| Vue | Avant | Après |
+| View | Before | After |
 |---|---|---|
-| Massif à 8 km, soleil à gauche | 1,3 ms | 1,5 ms |
-| Sommet à 600 m, soleil dans le dos | 0,6 ms | 2,0 ms |
-| Crête enneigée, soleil à 20° | 3,1 ms | 4,3 ms |
+| Massif at 8 km, sun on left | 1,3 ms | 1,5 ms |
+| Summit at 600 m, sun in the back | 0,6 ms | 2,0 ms |
+| Snowy ridge, sun at 20° | 3,1 ms | 4,3 ms |
 
-- **Le pire cas :** le soleil dans le dos, quand le maillage calcule le relief derrière la caméra pour son ombre.
-- **Le ciel caché, essayé :** quatre marches de plus par sommet, jusqu'à 5° au-dessus de la surface, coûtent 6 ms de plus sur la crête. Pas bon marché : non retenu.
+- **Worst case:** the sun in the back, when the mesh calculates the relief behind the camera for its shadow.
+- **Hidden Sky, tried:** four more steps per vertex, up to 5° above the surface, cost 6 ms more on the ridge. Not cheap: not retained.
 
-**Le réalisme :**
-- **Une ombre est aussi longue que la géométrie le dit,** puisque la marche suit la vraie surface, courbure comprise : L = ΔH / tan e, plus L² / 2R. Mesuré sur 212 ombres d'une chaîne, vue d'en haut à 20 km, soleil à 10° : rapport médian 1,15 entre la hauteur perdue et L tan e. La dispersion est large, la crête qui projette étant mal repérée sur la vue d'altitude tramée.
-- **Les ombres réelles :** le Teide, 3 718 m, projette plus de 40 km au couchant, soit un soleil vers 5° ; un pic central lunaire de 1,4 km, 22 km à 3,7°. La même règle ici.
-- **La pénombre :** derrière un sommet de 1 km, soleil à 10°, environ 310 m. Interpolé comme un angle, l'horizon garde cette largeur tant qu'il varie doucement d'un sommet à l'autre.
-- **Pas encore de comparaison à des photos :** aucune photo de montagne au soleil bas dans `images/`.
+**Realism:**
+- **A shadow is as long as the geometry says,** since the walk follows the real surface, including curvature: L = ΔH / tan e, plus L² / 2R. Measured on 212 shadows of a chain, view from above at 20 km, sun at 10°: median ratio 1,15 between the height lost and L tan e. The dispersion is wide, the projecting ridge being poorly identified on the grid altitude view.
+- **The actual shadows:** the Teide, 3 718 m, casts more than 40 km at sunset, i.e. a sun towards 5°; a central lunar peak of 1,4 km, 22 km to 3,7°. Same rule here.
+- **The penumbra:** behind a summit of 1 km, sun at 10°, about 310 m. Interpolated as an angle, the horizon keeps this width as long as it varies gently from one summit to another.
+- **No comparison to photos yet:** no photo of mountain in low sun in `images/`.
 
-## 6. Points ouverts
+## 6. Open items
 
-- **Le ciel caché par les versants.** Il faut des marches plus courtes : borner le relief par le plus haut sommet du maillage de l'image, au lieu de 10 km ; ou un sommet sur quatre ; ou le répartir sur plusieurs images.
-- **Le même plus haut sommet raccourcirait la marche du soleil et le balayage des ombres** derrière la caméra, le pire cas du coût.
-- **De loin, le contour des ombres suit les triangles :** il est droit sur une maille, 13 pixels. Interpoler l'horizon en B-spline, comme les normales, l'arrondirait.
-- **Le banc de descente sous 1 km** demande un fond de vallée plat.
-- **Des photos de montagne au soleil bas,** à hauteur de soleil connue, pour juger la part d'ombre et la lumière des faces à l'ombre.
+- **The sky hidden by the slopes.** Shorter steps are needed: limit the relief by the highest summit of the mesh of the image, instead of 10 km; or one summit in four; or spread it over several images.
+- **The same higher peak would shorten the sun’s walk and the shadows’ sweep** behind the camera, the worst case of cost.
+- **From afar, the outline of the shadows follows the triangles:** it is straight on a grid cell, 13 pixels. Interpolating the horizon in B-spline, like normals, would round it.
+- **The benchmark descent under 1 km** requires a flat valley bottom.
+- **Mountain photos at low sunlight,** at known sun height, to judge the shadow and light of the shadow faces.
 
 ## Sources
 
-**Ombres en cascade et virtuelles**
+**Shadows in cascade and virtual**
 - Dimitrov 2007, *Cascaded Shadow Maps*, NVIDIA : [document](https://developer.download.nvidia.com/SDK/10/opengl/src/cascaded_shadow_maps/doc/cascaded_shadow_maps.pdf).
-- Microsoft, *Common Techniques to Improve Shadow Depth Maps*, calage sur les texels, d'après Engel, ShaderX5 : [article](https://learn.microsoft.com/en-us/windows/win32/dxtecharts/common-techniques-to-improve-shadow-depth-maps).
-- Lauritzen 2010, *Sample Distribution Shadow Maps* : [notes SIGGRAPH](https://www.intel.com/content/dam/develop/external/us/en/documents/sampledistributionshadowmaps-siggraph2010-notes-181237.pdf).
-- Epic, *Virtual Shadow Maps* : [documentation](https://dev.epicgames.com/documentation/unreal-engine/virtual-shadow-maps-in-unreal-engine) ; Fortnite chapitre 4 : [blog](https://www.unrealengine.com/en-US/tech-blog/virtual-shadow-maps-in-fortnite-battle-royale-chapter-4) ; cascade lointaine : [API](https://dev.epicgames.com/documentation/unreal-engine/API/Runtime/Engine/FShadowCascadeSettings) ; champs de distance : [documentation](https://dev.epicgames.com/documentation/en-us/unreal-engine/distance-field-soft-shadows-in-unreal-engine).
+- Microsoft, *Common Techniques to Improve Shadow Depth Maps*, caling on the texels, after Engel, ShaderX5: [article](https://learn.microsoft.com/en-us/windows/win32/dxtecharts/common-techniques-to-improve-shadow-depth-maps).
+- Lauritzen 2010, *Sample Distribution Shadow Maps*: [notes SIGGRAPH](https://www.intel.com/content/dam/develop/external/us/en/documents/sampledistributionshadowmaps-siggraph2010-notes-181237.pdf).
+- Epic, *Virtual Shadow Maps*: [documentation](https://dev.epicgames.com/documentation/unreal-engine/virtual-shadow-maps-in-unreal-engine); Fortnite chapter 4: [blog](https://www.unrealengine.com/en-US/tech-blog/virtual-shadow-maps-in-fortnite-battle-royale-chapter-4); cascade distant: [API](https://dev.epicgames.com/documentation/unreal-engine/API/Runtime/Engine/FShadowCascadeSettings); distance fields: [documentation](https://dev.epicgames.com/documentation/en-us/unreal-engine/distance-field-soft-shadows-in-unreal-engine).
 - Andersson 2007, *Terrain Rendering in Frostbite Using Procedural Shader Splatting* : [notes](https://www.advances.realtimerendering.com/s2007/Andersson-TerrainRendering(Siggraph07)-CourseNotes.pdf).
 
 **Horizons**
-- Max 1988, *Horizon mapping: shadows for bump-mapped surfaces*, The Visual Computer 4(2) ; non lu, décrit par l'exposé de CosmoScout VR.
-- Sloan et Cohen 2000, *Interactive Horizon Mapping* ; brevet lu à la place : [US7102647B2](https://patents.google.com/patent/US7102647B2/en).
-- Stewart 1998, *Fast Horizon Computation at All Points of a Terrain* : [page](https://www.dgp.toronto.edu/public_user/jstewart/papers/tvcg97.html).
-- Timonen et Westerholm 2010, *Scalable Height Field Self-Shadowing*, CGF 29(2) : [résumé](https://diglib.eg.org/handle/10.2312/CGF.v29i2pp723-731).
-- Bavoil, Sainz et Dimitrov 2008, *Image-Space Horizon-Based Ambient Occlusion* : [article](https://www.cse.chalmers.se/edu/year/2018/course/TDA361/Advanced%20Computer%20Graphics/Image-Space%20Horizon-Based%20Ambient%20Occlusion.pdf).
+- Max 1988, *Horizon mapping: shadows for bump-mapped surfaces*, The Visual Computer 4(2); unread, described by CosmoScout VR.
+- Sloan and Cohen 2000, *Interactive Horizon Mapping*; patent read instead: [US7102647B2](https://patents.google.com/patent/US7102647B2/en).
+- Stewart 1998, Fast Horizon Computation at All Points of a Terrain: [page](https://www.dgp.toronto.edu/public_user/jstewart/papers/tvcg97.html).
+- Timonen and Westerholm 2010, Scalable Height Field Self-Shadowing, CGF 29(2): [Summary](https://diglib.eg.org/handle/10.2312/CGF.v29i2pp723-731).
+- Bavoil, Sainz and Dimitrov 2008, Image-Space Horizon-Based Ambient Occlusion: [article](https://www.cse.chalmers.se/edu/year/2018/course/TDA361/Advanced%20Computer%20Graphics/Image-Space%20Horizon-Based%20Ambient%20Occlusion.pdf).
 - Jimenez et al. 2016, *Practical Real-Time Strategies for Accurate Indirect Occlusion* : [article](https://www.activision.com/cdn/research/Practical_Real_Time_Strategies_for_Accurate_Indirect_Occlusion_NEW%20VERSION_COLOR.pdf).
-- CosmoScout VR, *Fast Planetary Shadows using Fourier-Compressed Horizon Maps*, HPG 2025 : [diapositives](https://highperformancegraphics.org/untracked/2025/presentations/Pa5_2_Fast%20Planetary%20Shadows%20using%20Fourier-Compressed%20Horizon%20Maps.pdf).
+- CosmoScout VR, *Fast Planetary Shadows using Fourier-Compressed Horizon Maps*, HPG 2025 : [slides](https://highperformancegraphics.org/untracked/2025/presentations/Pa5_2_Fast%20Planetary%20Shadows%20using%20Fourier-Compressed%20Horizon%20Maps.pdf).
 
-**Marche dans les hauteurs, moteurs de planètes**
-- Jung et al. 2020, ombres sur un terrain lunaire courbe : [arXiv](https://arxiv.org/abs/2005.06671).
+**Walk in the heights, planets engines**
+- Jung et al. 2020, shadows on a curved lunar terrain: [arXiv](https://arxiv.org/abs/2005.06671).
 - Chajdas et al. 2015, *High-Quality Shadows for Streaming Terrain Rendering* : [page](https://www.cs.cit.tum.de/cg/research/publications/2015/high-quality-shadows-for-streaming-terrain-rendering).
-- Bauer 2019, *Creating the Atmospheric World of Red Dead Redemption 2* : [cours SIGGRAPH](https://advances.realtimerendering.com/s2019/index.htm).
-- Star Citizen : [rapport d'août 2018](https://robertsspaceindustries.com/en/comm-link/transmission/16743-Monthly-Studio-Report-August-2018), [rapport de fin 2019](https://robertsspaceindustries.com/en/comm-link/transmission/17416-Star-Citizen-Monthly-Report-November-December-2019).
-- Outerra, février 2014 : [blog](https://outerra.blogspot.com/2014/02/).
+- Bauer 2019, *Creating the Atmospheric World of Red Dead Redemption 2* : [course SIGGRAPH](https://advances.realtimerendering.com/s2019/index.htm).
+- Star Citizen: [August report 2018](https://robertsspaceindustries.com/en/comm-link/transmission/16743-Monthly-Studio-Report-August-2018), [Final report 2019](https://robertsspaceindustries.com/en/comm-link/transmission/17416-Star-Citizen-Monthly-Report-November-December-2019).
+- Outerra, February 2014: [blog](https://outerra.blogspot.com/2014/02/).
 
-**Le soleil, les ombres réelles**
-- NASA, fiche du Soleil, diamètre apparent : [fiche](https://nssdc.gsfc.nasa.gov/planetary/factsheet/sunfact.html).
-- Segment de cercle : [MathWorld](https://mathworld.wolfram.com/CircularSegment.html).
-- Livingston et Lynch 1979, ombres de montagnes, longueur et pénombre : [article](https://thulescientific.com/MountainShadow_Livingston&Lynch_AO_1979.pdf).
-- Cratère Théophile, hauteurs tirées des ombres : [Sky at Night](https://www.skyatnightmagazine.com/advice/skills/how-to-measure-lunar-craters-moon).
-- Ombre du Teide, plus de 40 km : [snowy.es](https://snowy.es/wikimeteo/sombra-volcanica), source secondaire.
-- Walter et al. 2007, *Microfacet Models for Refraction through Rough Surfaces*, l'approximation de l'ombrage de Smith pour Beckmann : [article](https://www.cs.cornell.edu/~srm/publications/EGSR07-btdf.pdf).
+**The sun, the real shadows**
+- NASA, Sun profile, apparent diameter: [footnote](https://nssdc.gsfc.nasa.gov/planetary/factsheet/sunfact.html).
+- Circle segment: [MathWorld](https://mathworld.wolfram.com/CircularSegment.html).
+- Livingston and Lynch 1979, mountain shadows, length and penumbra: [article](https://thulescientific.com/MountainShadow_Livingston&Lynch_AO_1979.pdf).
+- Crater Théophile, heights drawn from the shadows: [Sky at Night](https://www.skyatnightmagazine.com/advice/skills/how-to-measure-lunar-craters-moon).
+- Shade of Teide, more than 40 km: [snowy.es](https://snowy.es/wikimeteo/sombra-volcanica), secondary source.
+- Walter et al. 2007, *Microfacet Models for Refraction through Rough Surfaces*, the Smith shading approximation for Beckmann: [article](https://www.cs.cornell.edu/~srm/publications/EGSR07-btdf.pdf).

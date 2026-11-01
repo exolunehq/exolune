@@ -1,10 +1,10 @@
-# Arbustes climatiques, piste V2 — 27 octobre 2026
+# Climate shrubs, V2 experiment — October 27, 2026
 
-- **Modèles :** six archétypes stylisés, deux géométries chacun. Les ramifications varient selon le climat : touffe boréale, fourches désertiques, touffe de steppe, couverture montagnarde, lobes tempérés, et grandes feuilles tropicales alternes. Il ne s'agit pas d'espèces botaniques exactes.
-- **Source :** [Searsia Lucida](https://polyhaven.com/a/searsia_lucida), James Ray Cock et Jenelle van Heerden, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). Les douze modèles partagent sa photographie de feuilles et son écorce ; leurs cartes sont adaptées et recolorées.
-- **Bois :** couleur, normales et masque copiés depuis la tuile 0 de la source ; alpha opaque et transmission nulle. La planche `contact_bois_cpu.png` montre un zoom des pieds et de la bande d’écorce utilisée par les UV.
-- **Budget :** 2 492 à 4 272 triangles ; deux tuiles de 512² ; branches matériau 0, feuilles matériau 1. Les grandes feuilles tropicales utilisent des cartes courbes subdivisées.
-- **Allométrie en moteur :** largeur maximale 1,1 fois la taille de l'instance ; hauteur multipliée respectivement par 0,65, 0,85, 0,60, 0,30, 1 et 1,15. `contact_runtime_cpu.png` applique ces facteurs à taille d'instance égale, sous un éclairage CPU simplifié, de face et à 90°. Les planches `contact_cpu.png` et `contact_cpu_cote.png` montrent les modèles normalisés avant allométrie.
-- **Fichiers :** manifeste `shrubs.txt`, maillages, matériaux, volumes 64³, imposteurs et deux sidecars de visibilité. Le pin et le feuillu sont copiés à l'identique depuis `volume_look_normals`.
-- **Reconstruction :** après préparation de `game_shrub` et `volume_look_normals`, exécuter `python tools/foliage/arbustes_climatiques_v2.py --preview`, `python tools/foliage/arbustes_climatiques_v2.py --final`, puis `python tools/foliage/arbustes_climatiques_v2.py --runtime-preview`. Dépendances : numpy, Pillow, numba.
-- **Limite :** la planche est un aperçu simplifié ; l'aspect et les performances doivent être jugés dans l'application.
+- **Models:** six stylized archetypes, two geometries each. Branching varies with climate: boreal tuft, desert forks, steppe tuft, montane cover, temperate lobes and large alternate tropical leaves. These are not exact botanical species.
+- **Source:** [Searsia Lucida](https://polyhaven.com/a/searsia_lucida), James Ray Cock and Jenelle van Heerden, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). The twelve models share its leaf photography and bark; their maps are adapted and recolored.
+- **Wood:** color, normals and mask copied from source tile 0; opaque alpha and zero transmission. `contact_bois_cpu.png` shows a close-up of the bases and the bark strip used by the UVs.
+- **Budget:** 2,492 to 4,272 triangles; two 512² tiles; branches use material 0, leaves material 1. The large tropical leaves use subdivided curved cards.
+- **In-engine allometry:** maximum width 1.1 times instance size; height multiplied by 0.65, 0.85, 0.60, 0.30, 1 and 1.15 respectively. `contact_runtime_cpu.png` applies these factors at equal instance size, with simplified CPU lighting, from the front and at 90°. `contact_cpu.png` and `contact_cpu_cote.png` show normalized models before allometry.
+- **Files:** `shrubs.txt` manifest, meshes, materials, 64³ volumes, impostors and two visibility sidecars. The pine and broadleaf are copied identically from `volume_look_normals`.
+- **Rebuild:** after preparing `game_shrub` and `volume_look_normals`, run `python tools/foliage/arbustes_climatiques_v2.py --preview`, `python tools/foliage/arbustes_climatiques_v2.py --final`, then `python tools/foliage/arbustes_climatiques_v2.py --runtime-preview`. Dependencies: numpy, Pillow, numba.
+- **Limit:** the contact sheet is a simplified preview; appearance and performance must be reviewed in the application.

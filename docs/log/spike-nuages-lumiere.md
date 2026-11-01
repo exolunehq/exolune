@@ -1,61 +1,61 @@
-# Nuages : lumière économique
+# Clouds: economic light
 
-**État, 27 octobre 2026 :** essai écarté après comparaison en vol. L'utilisateur préfère le rendu précédent ; les coefficients et le define de cet essai sont retirés des sources actives. Le temps GPU comparable ne valide pas son aspect.
+**State, 27 October 2026:** test discarded after flight comparison. The user prefers the previous rendering; the coefficients and define of this test are removed from the active sources. The comparable GPU time does not validate its appearance.
 
-**Retour :** « C'était mieux avant. » L'éclairage du commit `5b53b81` est rétabli avant l'intégration de `main`.
+**Return:** "It was better before." The lighting of the `5b53b81` commit is restored before the integration of `main`.
 
-**Archives locales :** source modifiée, lanceur et palette de cet essai dans `x64/RejectedLighting20261027/` ; captures et binaires ignorés par Git. Les commandes ci-dessous décrivent l'essai retiré, pas le lancement courant.
+**Local archives:** modified source, launcher and palette of this test in `x64/RejectedLighting20261027/`; captures and binaries ignored by Git. The commands below describe the removed test, not the current launch.
 
-**Ancien lancement,** par un lanceur jamais versionné ; la base de l'essai est au tag `piste/nuages-planete-spike` :
+**Old launch,** by a launcher never versioned; the test base is at the tag `piste/nuages-planete-spike`:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/nuages-lumiere.ps1
 ```
 
-- Départ en survol des cumulus, météo figée, qualité Éco.
-- F1 : sommets éclairés ; F2 : montagne enneigée, contrôle de l'exposition ; F3 : nappe.
-- F4–F5 : dessous des couches ; F6–F7 : soleil bas et crépuscule ; F8 : cirrus.
-- F9 : région dense depuis800 km ; F10–F11 : deux globes ; F12 : ombres sur terre.
-- B : opacité ; C : qualité ; Espace : pause météo ; V : vitesse×1/×5 ; O/P : déplacer le soleil.
-- `-Temoin` : Planète avant ce changement, avec la même palette de comparaison, les mêmes poses et soleils.
-- `-Build -NoLaunch` : compiler la nouvelle variante isolée ; le binaire natif V4 reste requis.
-- Variantes héritées : `-Regional`, `-SansOmbres`, `-SansFiltrage`, `-Vue Meteo|Opacite|Ombres` ; leur première préparation demande `-Build`.
+- Departure over the cumulus, weather frozen, Eco quality.
+- F1: illuminated peaks; F2: snowy mountain, exposure control; F3: layer.
+- F4–F5: below layers; F6–F7: low sun and twilight; F8: cirrus.
+- F9: dense region from 800 km; F10–F11: two globes; F12: shadows on the earth.
+- B: opacity; C: quality; Space: weather break; V: speed×1/×5; O/P: move the sun.
+- `-Temoin`: Planet before this change, with the same comparison palette, the same poses and suns.
+- `-Build -NoLaunch`: compile the new isolated variant; the native V4 binary is still required.
+- Legacy variants: `-Regional`, `-SansOmbres`, `-SansFiltrage`, `-Vue Meteo|Opacite|Ombres`; their first preparation requires `-Build`.
 
-**Approximation retenue :**
+**Approximation:**
 
-- Même densité et même temps météo ; même intégration de transmittance de vue et mêmes ombres au sol.
-- Réutiliser les quatre échantillons solaires par point éclairé ; aucune direction, aucun pas ni sous-pixel ajouté.
-- Conserver la phase directe existante et regrouper les rebonds suivants dans une source diffuse peu directionnelle.
-- Source solaire : `soleil × [phase × exp(−τ) + (0,65/π) × exp(−0,35τ)]`, où `τ = 80 × profondeurSolaire` est déjà calculé.
-- Source du ciel : `(0,25/π) × irradianceCiel`, depuis la LUT existante, qui comprend déjà la diffusion atmosphérique multiple.
-- Intégrer cette source avec le même facteur Beer de vue `1 − exp(−extinction × pas)` ; la transmittance et les poids de profondeur ne dépendent pas de cette source.
-- Soleil déjà filtré par l'atmosphère : les teintes du coucher et la disparition du direct la nuit sont conservées.
-- Coefficients ajustés pour l'image ; aucun transport physique complet ni conservation globale de l'énergie revendiqués.
-- Le rebond local de la neige, du sol ou de la mer vers les nuages reste absent de cet essai.
+- Same density and same weather; same view transmittance integration and same shadows on the ground.
+- Reuse four solar samples per illuminated point; no direction, no step, no subpixel added.
+- Preserve the existing direct phase and group the following bounce in a diffuse source with little directionality.
+- Solar source: `soleil × [phase × exp(−τ) + (0,65/π) × exp(−0,35τ)]`, where `τ = 80 × profondeurSolaire` is already calculated.
+- Sky source: `(0,25/π) × irradianceCiel`, from the existing LUT, which already includes multiple atmospheric diffusion.
+- Integrate this source with the same Beer factor of view `1 − exp(−extinction × pas)`; transmittance and depth weights are not dependent on this source.
+- Sun already filtered by the atmosphere: the shades of the sunset and the disappearance of direct night are preserved.
+- Image adjusted coefficients; no complete physical transport or overall energy conservation claimed.
+- Local rebound of snow, ground or sea to clouds is absent from this test.
 
-**Coût :**
+**Cost:**
 
-- Une lecture de LUT et une exponentielle de moins par point éclairé que l'ancien terme de second ordre.
-- Même nombre de rayons de vue, de densités solaires et de traces d'ombres ; mêmes pas et filtrage orbital.
-- Le coût déjà élevé du rendu planétaire à quatre sous-rayons reste présent ; cette correction d'éclairage ne le résout pas.
-- Comparaisons GPU ponctuelles sur des cadrages identiques ; elles ne constituent pas un budget global ni un banc statistique.
+- A reading of LUT and an exponential less per illuminated point than the old second order term.
+- Same number of rays of view, solar densities and shadow trails; same steps and orbital filtering.
+- The already high cost of four sub-radius planetary rendering remains; this fix of lighting does not resolve it.
+- Point comparisons GPU on identical frames; they do not constitute a global budget or a benchmark statistic.
 
-**Témoin et sources :**
+**Witness and sources:**
 
-- `x64/NuageFrostbitePlaneteTemoin/` :44 fichiers, ressources et sources vérifiés par empreintes ; base `5b53b81`, tag `piste/nuages-planete-spike`.
-- Variante activée par `FROSTBITE_EFFICIENT_LIGHTING` dans `CloudFrostbiteOrbit.hlsli` ; la branche sans ce define garde l'ancien calcul.
-- Assets Planète, profils et bruits conservés ; exécutables, captures et manifestes du témoin locaux sous `x64/`.
-- Nouvelle itération non commitée ; publication et nouveau tag à la prochaine demande.
-- [Epic, Volumetric Clouds](https://dev.epicgames.com/documentation/unreal-engine/volumetric-clouds?application_version=4.27) explique le rôle des rebonds et les compensations d'énergie des approximations temps réel ; les coefficients de cet essai ne proviennent pas de cette documentation.
-- [NASA, Shades of White](https://science.nasa.gov/earth/earth-observatory/shades-of-white-87125/) fournit une comparaison réelle neige/nuages ; [Met Office](https://weather.metoffice.gov.uk/learn-about/weather/types-of-weather/clouds/why-are-clouds-white) explique leurs variations de blanc et de gris.
+- `x64/NuageFrostbitePlaneteTemoin/`:44 files, resources and sources verified by fingerprints; base `5b53b81`, tag `piste/nuages-planete-spike`.
+- Variant enabled by `FROSTBITE_EFFICIENT_LIGHTING` in `CloudFrostbiteOrbit.hlsli`; branch without this define keeps old calculation.
+- Planet assets, profiles and noise functions retained; executables, captures and local witness manifests under `x64/`.
+- New iteration not committed; publish and new tag on next request.
+- [Epic, Volumetric Clouds](https://dev.epicgames.com/documentation/unreal-engine/volumetric-clouds?application_version=4.27) explains the role of rebounds and energy compensations in real-time approximations; the coefficients in this test are not from this documentation.
+- [NASA, Shades of White](https://science.nasa.gov/earth/earth-observatory/shades-of-white-87125/) provides a real comparison neige/nuages; [With Office](https://weather.metoffice.gov.uk/learn-about/weather/types-of-weather/clouds/why-are-clouds-white) explains their variations of white and gray.
 
-**Vérifications :**
+**Audits:**
 
-- Rendu et variantes opacité compilés par DXC ; avertissement préexistant de `Materials.hlsli`.
-- Captures courtes de sommets, bases et orbite ; même soleil et même météo pour les paires ancien/nouveau.
-- Opacité à800 km : un pixel diffère de1/255 sur1280×720 ; les autres sont identiques, sous réordonnancement flottant de l'optimiseur.
-- Contrôle du terrain enneigé : différence maximale1/255 ; cette vue contient peu de nuages et sert au contrôle de l'exposition.
-- Nuages+air ponctuels, ancien puis nouveau :10,90/10,74 ms en survol ;27,68/27,02 ms à800 km. Nouveau dessous des cumulus :8,45 ms. Aucun surcoût observé sur ces points ; gain global non établi.
-- Shader compilé complet :275→261 sites d'appels de lecture filtrée,207→193 sites d'exponentielle ; ces comptes statiques incluent les duplications du compilateur et ne donnent pas directement un temps GPU.
-- Captures et rapports locaux : `x64/LightPreview/`, `x64/LightPreviewTemoin/`, `x64/LightOpacityNouveau/`, `x64/LightOpacityTemoin/`, `x64/lighting-checks.json`.
-- Soleil bas, cirrus et mouvement à juger en vol par l'utilisateur ; pas de banc prolongé.
+- Rendering and opacity variants compiled by DXC; pre-existing warning from `Materials.hlsli`.
+- Short snapshots of summits, bases and orbit; same sun and same weather for pairs ancien/nouveau.
+- Opacity at 800 km: one pixel differs than 1/255 on 1280×720; the others are identical, under floating rearrangement of the optimizer.
+- Snowy terrain control: difference maximale1/255; this view contains few clouds and is used for exposure control.
+- Clouds+air pointed, old and new:10,90/10,74 ms in flight;27,68/27,02 ms at 800 km. New below the cumulus:8,45 ms. No additional costs observed on these points; overall gain not established.
+- Full shader compiled:275→261 filtered play call sites,207→193 exponential sites; these static counts include compiler duplications and do not directly give a GPU time.
+- Local captures and reports: `x64/LightPreview/`, `x64/LightPreviewTemoin/`, `x64/LightOpacityNouveau/`, `x64/LightOpacityTemoin/`, `x64/lighting-checks.json`.
+- Low sun, cirrus and movement to be judged in flight by the user; no prolonged benchmark.

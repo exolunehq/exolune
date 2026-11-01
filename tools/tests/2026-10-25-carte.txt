@@ -1,12 +1,12 @@
-# La carte de la planète, le 2026-10-25 : la brume suit le sol régional (docs/recherche-profondeur-atmospherique.md, 3.5).
-# Hauts plateaux, montagnes ; avant, l'air y était pur. Les vues de la carte : MYPLANETENGINE_VIEW=ground, haze, lakes, rivers.
-# libellé | altitude (m) latitude longitude inclinaison cap [| latitude longitude du soleil]
-Plateau à 5 km, vers l'est et la plaine | 5233 31.6 -45.2 3 90 | 15 -10
-Plateau à 5 km, vers l'ouest sur le plateau | 5000 31.6 -46.2 2 270 | 15 -10
-Plateau vu d'avion, 9 km | 9000 31.6 -45.2 15 0 | 15 -10
-Bord du plateau vu de la plaine | 500 29.6 -43.2 1 300 | 15 -10
-Plateau austral, au sol | 5105 -20.08 129.89 1 270 | -5 150
-Plateau austral, soleil bas | 5105 -20.08 129.89 1 270 | -15 175
-Montagnes, plans successifs | 1941.7 0.00280 118.14145 -0.2 156.6 | 10 70
-Cuvette de montagne, 3 600 m | 6000 38.52929 169.97278 50 0 | 30 170
-Orbite, les grands lacs de la carte | 3000000 25.0 -45.0 89.9 0 | 25 -45
+# The map of the planet, the 2026-10-25: the fog follows the regional soil (docs/recherche-profondeur-atmospherique.md, 3.5).
+# High plateaus, mountains; before, the air was pure. The views of the map: MYPLANETENGINE_VIEW=ground, haze, lakes, rivers.
+# label | altitude (m) latitude longitude inclination cap [| latitude longitude of the sun]
+Plateau at 5 km, eastward and plain | 5233 31.6 -45.2 3 90 | 15 -10
+Plateau at 5 km, west on the plateau | 5000 31.6 -46.2 2 270 | 15 -10
+Plateau as seen from aircraft, 9 km | 9000 31.6 -45.2 15 0 | 15 -10
+Edge of the plateau seen from the plain | 500 29.6 -43.2 1 300 | 15 -10
+Southern shelf, ground | 5105 -20.08 129.89 1 270 | -5 150
+Southern plateau, low sun | 5105 -20.08 129.89 1 270 | -15 175
+Mountains, successive plans | 1941.7 0.00280 118.14145 -0.2 156.6 | 10 70
+Mountain bowl, 3 600 m | 6000 38.52929 169.97278 50 0 | 30 170
+Orbite, Great Lakes map | 3000000 25.0 -45.0 89.9 0 | 25 -45

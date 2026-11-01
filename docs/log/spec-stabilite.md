@@ -1,194 +1,194 @@
-# Spécification : stabilité de la géométrie
+# Specification: geometry stability
 
-Statut : l'aimantation par crans a été testée puis abandonnée. Le tremblement est mesuré : il vient de l'éclairage. Essai en cours : la pente sur les voisins et le grain fin dans les pixels. Fait suite à `spec-champ-de-vision.md`.
+Status: the magnetization by teeth was tested and then abandoned. The jitter is measured: it comes from the lighting. Testing in progress: the slope on neighbors and fine grain in pixels. Follow-up to `spec-champ-de-vision.md`.
 
-## Le problème
+## The problem
 
-**En vol, le relief tremble. Ce n'est pas un problème de précision : c'est le maillage qui glisse sur le relief.**
+**In flight, the relief shakes. This is not a problem of precision: it is the mesh that slides on the relief.**
 
-- **Diagnostic :** la touche G fige le maillage pendant que la caméra continue d'avancer. Le tremblement disparaît.
-- **Mécanisme :** la face et les anneaux suivent la caméra en continu. D'une image à l'autre, chaque sommet atterrit à un endroit où il n'y avait pas de sommet. Il échantillonne le relief en un autre point, et la surface entre les sommets change.
+- **Diagnosis:** The G key freezes the mesh while the camera keeps moving forward. The jitter disappears.
+- **Mechanism:** the face and rings follow the camera continuously. From one frame to the next, each vertex lands in a place where there was no vertex. It samples the relief at another point, and the area between the vertices changes.
 
-Trois causes s'additionnent :
+Three causes add up:
 
-1. **Le plan tourne en continu** pour rester face à la caméra : toute la grille glisse quand on se déplace.
-2. **La taille de la grille suit la hauteur au-dessus du sol.** En rase-mottes, chaque bosse la change, et toute la grille se redimensionne.
-3. **Le filtrage des octaves garde des reliefs de 2 à 4 mailles**, qui ondulent dès que la grille bouge.
+1. **The shot rotates continuously** to stay in front of the camera: the entire grid slides when you move.
+2. **The size of the grid follows the height above the ground.** In razor, each bump changes it, and the entire grid is resized.
+3. **Octave filtering keeps reliefs from 2 to 4 grid cells**, which waver as soon as the grid moves.
 
-## La solution : aimanter la grille
+## The solution: magnetizing the grid
 
-**Principe : la grille ne bouge que par crans, choisis pour que les sommets retombent sur d'anciens sommets.** Entre deux crans, rien ne bouge. Le concept reste intact : le plan regarde toujours la caméra et il est toujours normalisé en sphère.
+**Principle: the grid moves only by increments, chosen so that the vertex fall back on old vertex.** Between two rows, nothing moves. The concept remains intact: the shot is always looking at the camera and is always normalised into a sphere.
 
-### 1. Le plan tourne par crans d'une maille
+### 1. The plan turns by increments of a grid cell
 
-- **Le plan garde son orientation tant que la caméra reste à moins d'une demi-maille du centre de la face**, mesuré sur le plan.
-- **Au-delà, il tourne pour se recentrer sur le sommet de la grille le plus proche de la caméra.** Les sommets du carré central retombent alors exactement sur les positions de leurs voisins, à une erreur négligeable près.
-- **Le plan suit donc la caméra avec au plus une demi-maille de retard.** À 50 m de hauteur, c'est 75 cm.
-- **La rotation transporte le repère du plan sans le faire tourner sur lui-même.** Le repère n'est plus calé sur le nord : ça évite que la grille pivote d'un cran à l'autre.
+- **The plane retains its orientation as long as the camera remains within half-grid cell of the center of the face**, measured on the plane.
+- **Beyond this, it rotates to refocus on the top of the grid closest to the camera.** The vertices of the central square fall back exactly on the positions of their neighbors, with a negligible error.
+- **The shot follows the camera with a maximum of half-grid cell delay.** At 50 m in height, it is 75 cm.
+- **Rotation transports the reference frame from the plane without turning it around itself.** The reference frame is no longer set to the north: this prevents the grille from pivoting from one angle to the other.
 
-### 2. La taille change par crans de croissance des anneaux
+### 2. Size changes by the growth of the rings
 
-- **La demi-largeur de la face ne prend que des valeurs (1 + 2/n)^m mètres**, avec m entier. Quand m change d'un cran, chaque anneau retombe exactement à la place de son voisin.
-- **Une hystérésis d'un quart de cran** évite d'osciller entre deux valeurs.
-- **La hauteur au-dessus du sol utilisée pour la taille est lissée** sur une demi-seconde. La caméra, elle, reste toujours protégée par la hauteur réelle du sol.
+- **The half-face width only takes values (1 + 2/n)^m meters**, with integer m. When m changes by one, each ring falls back exactly in the place of its neighbor.
+- **A quarter-step hysteresis** prevents oscillation between two values.
+- **The height above ground used for pruning is smoothed** for half a second. The camera, on the other hand, is always protected by the actual height of the ground.
 
-### 3. Les anneaux sont filtrés plus sévèrement
+### 3. Rings are filtered more severely
 
-- **Les anneaux ne peuvent pas être aimantés en déplacement :** centrés sur un point qui bouge, leurs sommets ne retombent jamais sur d'anciens sommets.
-- **Ils ne gardent donc que les reliefs d'au moins 4 mailles**, au lieu de 2, avec une pleine intensité au-delà de 8. Un relief large change très peu quand la grille glisse d'une fraction de maille.
-- **La transition se fait sur les 16 premiers anneaux**, pour éviter une rupture de détail au bord du carré central.
-- **Le carré central garde le filtrage actuel :** il est aimanté, il peut garder son détail.
+- **Rings cannot be magnetized while moving:** centered on a moving point, their vertices never fall back on old vertices.
+- **They therefore only keep the reliefs of at least 4 grid cells**, instead of 2, with full intensity beyond 8. A wide relief changes very little when the grid slides by a fraction of grid cell.
+- **The transition is made on the first rings 16**, to avoid a break of detail at the edge of the central square.
+- **The central square keeps the current filtering:** it is magnetic, it can keep its detail.
 
-### Pour comparer en vol
+### To compare in flight
 
-**La touche H active ou désactive toute la stabilisation**, sans recompiler. Le titre de la fenêtre l'indique.
+**H key turns all stabilization on or off**, without recompilation. The title of the window indicates this.
 
-## Limites connues
+## Known limits
 
-- **En montée ou en descente, le carré central saute légèrement à chaque cran de taille.** Son bord retombe sur l'ancien premier anneau, mais ses sommets intérieurs se déplacent, jusqu'à une maille près du bord.
-- **Les anneaux glissent encore un peu** à chaque cran de déplacement, d'une fraction de maille d'autant plus petite qu'ils sont loin.
-- **Le repère du plan n'est plus calé sur le nord.** Sur un long trajet, il tourne lentement sur lui-même, sans effet visible.
+- **When climbing or descending, the central square jumps slightly at each height step.** Its edge falls back on the old first ring, but its inner vertices move, up to a grid cell near the edge.
+- **The rings slide a little bit** at each move, by a fraction of grid cell smaller as they are far away.
+- **The reference frame of the plan is no longer set to the north.** On a long journey, it slowly turns on itself, without visible effect.
 
-## Critères de validation
+## Validation criteria
 
-1. En vol horizontal à basse altitude, plus de tremblement visible dans le carré central.
-2. Dans les anneaux, tremblement résiduel faible, à juger à l'œil avec H.
-3. En survolant des bosses, la grille ne se redimensionne plus en permanence.
-4. Pas de coût mesurable sur le calcul GPU.
+1. In horizontal flight at low altitude, more jitter visible in the central square.
+2. In the rings, jitter residual weak, to be judged by eye with H.
+3. Flying over bumps no longer causes the grid to resize constantly.
+4. No measurable cost on the calculation GPU.
 
-## Résultat du test : abandonné
+## Test result: abandoned
 
-- **Constat en vol :** plus de tremblement dans le carré central, mais des changements de géométrie par paliers. Hors du carré, le tremblement restait.
-- **Le filtrage plus sévère** lissait trop le relief sans supprimer le tremblement.
-- **Le fond du problème :** le glissement continu du plan est ce qui densifie le maillage progressivement, sans couture. L'aimanter le transforme en niveaux de détail à paliers. On garde donc le glissement continu.
+- **Flight observation:** no more jitter in the central square, but geometry changes in increments. Out of the square, the jitter remained.
+- **The more severe filtering** smoothed out too much relief without removing the jitter.
+- **The bottom of the problem:** the continuous slipping of the plane is what densifies the mesh gradually, seamlessly. Magnetizing it turns it into tiered levels of detail. We keep the continuous slip.
 
-## Mesure du tremblement
+## Measurement of the jitter
 
-**Le banc de mesure : la caméra reste immobile, et le maillage est placé comme si elle volait.** Le relief est fixe sur la planète : toute différence entre deux images successives est du tremblement, et rien d'autre.
+**The benchmark measurement: the camera remains still, and the mesh is positioned as if it were flying.** The relief is fixed on the planet: any difference between two successive images is jitter, and nothing else.
 
-- **Lancement :** `MYPLANETENGINE_TREMBLE=préfixe`, avec `MYPLANETENGINE_TREMBLE_SPEED` pour la vitesse (1 par défaut). Après 60 images de mise en route, l'application enregistre 24 images puis quitte.
-- **Mesure :** l'écart moyen entre images successives sur les pixels de terrain, sur 255. Témoin : maillage figé, écart nul.
-- **Vues :** 50 m vers l'horizon, 50 m vers le bas, 10 km vers l'horizon.
+- **Launch:** `MYPLANETENGINE_TREMBLE=préfixe`, with `MYPLANETENGINE_TREMBLE_SPEED` for speed (1 by default). After 60 images startup, the application saves 24 images then exits.
+- **Measures:** the average difference between successive images on the field pixels, on 255. Witness: mesh frozen, zero deviation.
+- **Views:** 50 m to the horizon, 50 m down, 10 km to the horizon.
 
-| Variante | 50 m horizon | 50 m bas | 10 km horizon |
+| Variant | 50 m horizon | 50 m low | 10 km horizon |
 |---|---|---|---|
-| Facettes | 0,63 | 0,68 | |
-| Normale du relief, pas d'un quart de maille | 0,43 | 0,43 | 0,79 |
-| Pas d'une maille | 0,25 | 0,28 | 0,50 |
-| Pas de deux mailles | 0,15 | 0,17 | 0,34 |
-| Sans éclairage | 0,00 | 0,00 | 0,12 |
+| Facettes | 0,63 | 0,68 |  |
+| Normal relief, not a quarter of grid cell | 0,43 | 0,43 | 0,79 |
+| Not a grid cell | 0,25 | 0,28 | 0,50 |
+| Not two grid cells | 0,15 | 0,17 | 0,34 |
+| Without lighting | 0,00 | 0,00 | 0,12 |
 
-**Conclusion : le tremblement vient presque entièrement de l'éclairage.** Le glissement de la géométrie elle-même ne se voit presque pas.
+**Conclusion: the jitter comes almost entirely from the lighting.** The sliding of the geometry itself is almost not visible.
 
-- **Pourquoi :** la pente varie bien plus vite que la hauteur. Échantillonnée en des sommets qui glissent, sa part fine, de 2 à 4 mailles, change d'une image à l'autre.
-- **Une pente mesurée sur deux mailles ne tremble presque plus**, mais elle perd le grain fin de l'éclairage.
+- **Why:** The slope changes much faster than the height. Sampled in slider vertices, its thin part, from 2 to 4 grid cells, changes from one frame to another.
+- **A slope measured on two grid cellss almost no longer shakes**, but it loses the fine grain of the lighting.
 
-## Mesure de la mutation
+## Measurement of mutation
 
-**Le banc de tremblement ne voit que le scintillement rapide, d'une image à l'autre.** La mutation est lente : à l'approche, la maille rétrécit, et chaque octave apparaît dans le relief quand elle couvre la coupure `MESH_BAND_LIMIT`. Plus la coupure est haute, plus le détail naît près de la caméra, donc grand à l'écran.
+**The benchmark of jitter only sees the flicker fast, from one frame to another.** The mutation is slow: as the grid cell approaches, it shrinks, and each octave appears in the relief when it covers the cut-off `MESH_BAND_LIMIT`. The higher the cut-off, the more detail comes close to the camera, so large on the screen.
 
-- **Même banc que le tremblement :** caméra immobile, maillage placé comme si elle volait. En avançant, il rétrécit les mailles devant la caméra, comme à l'approche.
-- **Lancement :** `MYPLANETENGINE_TREMBLE_FRAMES=64`, vitesse 1. Le maillage avance d'environ 1,07 fois la hauteur au-dessus du sol. Lissage temporel actif.
-- **Mesure :** après un flou de 8 pixels, pour ne garder que les formes, l'écart moyen sur les pixels de terrain entre la moyenne des 8 dernières images et celle des 8 premières, sur 255. La moyenne sur 8 images atténue le scintillement.
-- **Bruit de mesure :** le même écart entre les images 9 à 16 et 1 à 8.
-- **L'ancienne mesure ne convient pas :** comparer l'image à celle d'une face 8 fois plus petite ne raffine que la face. Dans les anneaux, la maille ne dépend que de la distance au nadir.
+- **Same benchmark as the jitter:** still camera, mesh placed as if it were flying. As he moves forward, he shrinks the grid cells in front of the camera, as he approaches.
+- **Launch:** `MYPLANETENGINE_TREMBLE_FRAMES=64`, speed 1. The mesh advances about 1,07 times the height above ground. Temporal smoothing active.
+- **Measurement:** after a blur of 8 pixels, to keep only the shapes, the average difference on the pixels of the field between the average of the 8 last images and that of the 8 first, on 255. The average on 8 images attenuates the flicker.
+- **noise measurement:** the same deviation between images 9 to 16 and 1 to 8.
+- **The old measurement is not suitable:** comparing the image to that of a face 8 times smaller only refines the face. In rings, the grid cell depends only on the distance to the nadir.
 
-### Résultats : la coupure du relief
+### Results: relief cut
 
-**La mesure confirme le vol : plus la coupure est haute, plus le premier plan mute.** Banc du 2026-10-21, spline lissante active.
+**The measurement confirms the theft: the higher the cut, the more muted the foreground.** benchmark of the 2026-10-21, active smoothing spline.
 
-| Coupure | Scintillement sans lissage, montagne 10 km | Mutation, montagne 50 m | Mutation, montagne 10 km | Mutation, plaine 10 km |
+| Cut | flicker without smoothing, mountain 10 km | Mutation, mountain 50 m | Mutation, mountain 10 km | Mutation, plain 10 km |
 |---|---|---|---|---|
-| 2 mailles | 1,01 | 0,19 | 0,79 | 0,05 |
-| 3 mailles | 0,69 | 0,21 | 0,76 | 0,05 |
-| 4 mailles | 0,51 | 0,25 | 0,77 | 0,05 |
+| 2 grid cells | 1,01 | 0,19 | 0,79 | 0,05 |
+| 3 grid cells | 0,69 | 0,21 | 0,76 | 0,05 |
+| 4 grid cells | 0,51 | 0,25 | 0,77 | 0,05 |
 
-- **Bruit de mesure :** 0,07 à 0,08 en montagne à 50 m, 0,17 à 0,20 à 10 km, 0,02 en plaine.
-- **Au premier plan, la mutation double :** sur le tiers bas de l'image, à 50 m, de 0,17 à 0,36 entre 2 et 4 mailles. Scintillement et mutation s'échangent : la coupure à 4 mailles divise l'un par deux et double l'autre.
-- **À 10 km, la mutation ne dépend pas de la coupure.** Elle vient du terrain entre 20 et 120 km, forte avec les trois coupures. Cause à chercher : les turbulences des continents et l'arrondi des arêtes suivent aussi la maille.
-- **Le masque de terrain du banc compte le ciel depuis l'atmosphère :** les moyennes sont diluées, mais restent comparables entre variantes.
+- **noise measurement:** 0,07 to 0,08 in mountains to 50 m, 0,17 to 0,20 to 10 km, 0,02 in plains.
+- **In the foreground, the double mutation:** on the lower third of the image, at 50 m, from 0,17 to 0,36 between 2 and 4 grid cells. flicker and mutation exchange: the cut to 4 grid cells divides one by two and doubles the other.
+- **At 10 km, the mutation is not dependent on the cut-off.** It comes from the terrain between 20 and 120 km, strong with the three cutoffs. Cause to look for: the turbulence of the continents and the rounding of the edges also follow the grid cell.
+- **The benchmark field mask counts the sky from the atmosphere:** the averages are diluted, but remain comparable between variants.
 
-## Essai en cours : la pente sur les voisins, le grain fin dans les pixels
+## Testing in progress: slope on neighbors, fine grain in pixels
 
-### 1. La pente vient des sommets voisins
+### 1. The slope comes from the neighboring peaks
 
-- **Le vertex shader calcule la normale par différences centrées** entre les positions des quatre sommets voisins : le long de la ligne et en travers, ou le long de l'anneau et entre anneaux voisins.
-- **Écart de deux mailles :** la stabilité du pas de deux mailles, sans aucune évaluation du relief en plus. Le calcul retrouve son coût d'avant les normales.
-- **L'éclairage colle à la géométrie dessinée**, puisqu'il vient des mêmes sommets.
-- **Un voisin éliminé par le cadrage est remplacé par le sommet lui-même.** La marge du cadrage passe de 2 à 3 mailles, pour que les sommets visibles gardent leurs voisins.
+- **The vertex shader calculates the normal by centered differences** between the positions of the four neighboring vertices: along the line and across, or along the ring and between neighboring rings.
+- **Difference of two grid cells:** the pitch stability of two grid cells, without any additional relief evaluation. The calculation returns to its cost before the normals.
+- **The lighting sticks to the drawn geometry**, since it comes from the same vertices.
+- **A neighbor eliminated by framing is replaced by the vertex itself.** The margin of the framing changes from 2 to 3 grid cells, so that the visible vertices keep their neighbors.
 
-### 2. Le grain fin est dessiné dans les pixels
+### 2. Fine grain is drawn in pixels
 
-- **Un bruit léger, calculé pixel par pixel en coordonnées fixes de la planète**, perturbe la normale. Il ne bouge pas avec le maillage, donc il ne tremble pas.
-- **Il ne couvre que ce que la normale des sommets ne voit pas :** les longueurs d'onde de moins de 8 mailles. Il s'efface en dessous de deux pixels, pour ne pas scintiller.
-- **Les deux bornes glissent en continu** avec la taille des mailles et la distance : pas de palier.
-- **Précision :** le pixel calcule sa position par rapport à une ancre proche de la caméra, entière en unités de 64 m. Les indices du réseau du bruit restent exacts à l'échelle de la planète.
-- **Pas de grain sur la mer**, qui reste plate.
-- **Seulement là où complexplanet a du relief fin :** entre 13,5 m, son octave la plus fine sur terre, et 6 km. Un premier essai sans ces bornes inventait un relief rugueux sur les plaines.
-- **Réglage :** `DETAIL_SLOPE` dans `PlanetSettings.hlsli`, la pente ajoutée par octave. 0 désactive le grain.
+- **A light noise, calculated pixel by pixel in fixed coordinates of the planet**, disturbs the normal. It does not move with the mesh, so it does not shake.
+- **It covers only what the normal of the peaks does not see:** wavelengths less than 8 grid cells. It fades below two pixels, so it doesn't flicker.
+- **The two bounds slide continuously** with the size of the grid cells and the distance: no bearing.
+- **Precision:** the pixel calculates its position relative to an anchor near the camera, whole in units of 64 m. The indices of the noise network remain accurate on a global scale.
+- **No grain on the sea**, which remains flat.
+- **Only where complexplanet has fine relief:** between 13,5 m, its finest octave on earth, and 6 km. A first attempt without these markers invented a rough relief on the plains.
+- **Tuning:** `DETAIL_SLOPE` in `PlanetSettings.hlsli`, the slope added per octave. 0 disables grain.
 
-### Critères de validation
+### Validation criteria
 
-1. Tremblement mesuré au banc au niveau du pas de deux mailles ou en dessous.
-2. Grain fin de l'éclairage comparable au pas d'un quart de maille, sur images côte à côte.
-3. Calcul GPU revenu vers 1,6 ms ; rendu en hausse de moins de 0,5 ms.
+1. jitter measured at benchmark at the two-step level of grid cells or below.
+2. Fine grain of the lighting comparable to the quarter pitch of grid cell, on side-by-side images.
+3. GPU calculation returned to 1,6 ms; rendered upward by less than 0,5 ms.
 
-### Résultats
+### Results
 
-**Le tremblement baisse de 43 à 67 % selon la vue, et le calcul de 4,9 à 1,9 ms au pire.** Détail et images : `journal-planete.md`.
+**The jitter decreases from 43 to 67 % depending on the view, and the calculation from 4,9 to 1,9 ms at worst.** Detail and images: `journal-planete.md`.
 
-- **Critère 1 :** proche au-dessus du continent de départ, 0,22 contre 0,15 pour le pas de deux mailles. Montagne à 10 km : de 17,6 à 6,6, le reste vient surtout de la couleur roche ou neige.
-- **Critère 2 :** atteint au-dessus du continent de départ, grain mesuré à 3 % près. En montagne, arêtes plus douces : 9 % de grain en moins à 50 m, 38 % à 10 km.
-- **Critère 3 :** 1,9 ms, à cause de la marge de cadrage élargie. Rendu : 0,11 ms au plus.
-- **Grain mesuré :** écart type de la luminance après un flou de 2 pixels, sur le terrain, loin des silhouettes.
+- **Criterion 1:** close above the continent of departure, 0,22 against 0,15 for the step of two grid cells. Mountain to 10 km: from 17,6 to 6,6, the rest comes mostly from the color rock or snow.
+- **2 criterion:** achieved above the continent of departure, grain measured to 3 % close. In mountains, softer edges: 9 % grain less at 50 m, 38 % at 10 km.
+- **3 criterion:** 1,9 ms, due to the wider frame margin. Rendering: 0,11 ms at most.
+- **Grain measured:** standard deviation of the luminance after a blur of 2 pixels, on the field, away from the silhouettes.
 
-## Écarté
+## Dismissed
 
-**Les grilles fixées sur la planète** : clipmaps, CDLOD, Proland, CBT. Elles suppriment le glissement, mais abandonnent le plan qui regarde la caméra, cœur du concept.
+**The grids fixed on the planet**: clipmaps, CDLOD, Proland, CBT. They eliminate the slipping, but abandon the camera-facing plane, the heart of the concept.
 
-**Les grilles imbriquées** : la transition entre niveaux serait trop abrupte et difficile à masquer.
+**Nested grids**: the transition between levels would be too abrupt and difficult to hide.
 
-## Bilan : y a-t-il une limite infranchissable ?
+## Summary: is there a limit that cannot be crossed?
 
-**Oui, mais elle tient au glissement du maillage, pas au recalcul à chaque image.**
+**Yes, but it is due to the mesh slide, not the recalculation at each frame.**
 
-- **Le mécanisme :** un maillage qui glisse échantillonne le relief en d'autres points à chaque image. Entre les sommets, la surface reconstruite change, donc l'image aussi. C'est une propriété de l'échantillonnage, pas un défaut de précision.
-- **Ce qui le rend visible :** les arêtes vives du bruit, ridged et billow, sont infiniment fines. Aucune grille ne les échantillonne sans erreur. Une grille fixe garde une erreur fixe, invisible ; une grille qui glisse la déplace à chaque image.
-- **Ce qu'on peut faire sans changer de méthode :** abaisser ce plancher, sans l'annuler.
+- **The mechanism:** a mesh slider samples the relief in other points at each frame. Between the vertices, the reconstructed surface changes, so the image too. This is a property of sampling, not a defect in accuracy.
+- **What makes it visible:** The sharp edges of the noise, ridged and billow, are infinitely thin. No grid samples them without error. A fixed grid keeps a fixed, invisible error; a sliding grid moves it at each frame.
+- **What can be done without changing the method:** lower this floor, without canceling it.
 
-| Levier | Effet mesuré, montagne à 10 km | Coût |
+| Lever | Measured effect, mountain at 10 km | Cost |
 |---|---|---|
-| Normale sur les sommets voisins | de 17,6 à 6,6 | gain de calcul |
-| Lissage temporel | de 3,4 à 0,62 | négligeable |
-| 192 mailles par côté | de 0,62 à 0,46 | calcul × 2,2 |
+| Normal on neighboring peaks | from 17,6 to 6,6 | gain of calculation |
+| Temporal smoothing | from 3,4 to 0,62 | Negligible |
+| 192 grid cells per side | from 0,62 to 0,46 | calculation × 2,2 |
 
-- **Un contournement non essayé :** arrondir les arêtes vives à l'échelle de la maille, avec une valeur absolue adoucie, d'autant plus douce que la maille est grande. Le relief échantillonné n'a plus de détail plus fin que la grille, donc presque plus rien à faire trembler. Les arêtes se raffermissent en continu à l'approche, sans palier. Coût négligeable.
-- **La solution de fond, si le plancher reste gênant :** des sommets fixés sur la planète, par exemple sur les six faces d'un cube, avec un fondu des hauteurs entre niveaux de détail, à la manière de CDLOD.
-  - On garde le recalcul de tout à chaque image, sans mémoire, donc pas de rattrapage ni de limite de vitesse.
-  - On perd le plan qui regarde la caméra.
-- **Une géométrie statique recalculée en arrière-plan n'est pas nécessaire :** elle ajouterait mémoire et rattrapage, pour une stabilité que les sommets fixes obtiennent sans eux.
+- **An untried workaround:** round the sharp edges to the scale of the grid cell, with a softened absolute value, softer as the grid cell is large. The sampled relief has no more fine detail than the grid, so almost nothing to shake. The edges are continuously strengthened on approach, without bearing. Cost is negligible.
+- **The basic solution, if the floor remains annoying:** vertices fixed on the planet, for example on the six faces of a cube, with a fading of the heights between levels of detail, in the manner of CDLOD.
+  - We keep the recalculation of everything at each frame, without memory, so no catch-up or speed limit.
+  - We lose the shot that looks at the camera.
+- **A static geometry recalculated in the background is not necessary:** it would add memory and catch-up, for stability that fixed vertexes get without them.
 
-## Essai : arrondir les arêtes à l'échelle de la maille
+## Test: round the edges to the scale of the grid cell
 
-- **Où :** la valeur absolue des bruits Billow et RidgedMulti, qui crée les creux et les crêtes vives.
-- **Comment :** sous un seuil ε, la valeur absolue devient une parabole qui la rejoint sans cassure. Au-dessus, rien ne change : pas de biais sur le reste du relief.
-- **ε suit la maille du sommet,** pour chaque octave : ε = `CREASE_ROUNDING` × fréquence de l'octave / fréquence maximale du sommet. L'arête est arrondie sur environ une maille de large, quelle que soit sa longueur d'onde.
-- **Sans palier :** la maille rétrécit en continu à l'approche, ε aussi, et l'arête se raffermit.
-- **Réglage :** `CREASE_ROUNDING` dans `PlanetSettings.hlsli`, 0 le désactive.
-- **Mesure :** banc de tremblement en montagne et en plaine, images, coût. Plusieurs valeurs comparées.
+- **Where:** the absolute value of noise functions Billow and RidgedMulti, which creates the sharp crests and dips.
+- **How:** Below a threshold ε, the absolute value becomes a parabola that joins it without break. Above, nothing changes: no bias on the rest of the relief.
+- **ε follows the grid cell of the summit,** for each octave: ε = `CREASE_ROUNDING` × frequency of the octave / maximum frequency of the summit. The edge is rounded about one grid cell wide, regardless of its wavelength.
+- **No bearing:** the grid cell shrinks continuously on approach, ε also, and the ridge firms.
+- **Setting:** `CREASE_ROUNDING` in `PlanetSettings.hlsli`, 0 disables it.
+- **Measure:** benchmark of jitter in mountain and plain, pictures, cost. Several values compared.
 
-### Résultats
+### Results
 
-**L'arrondi divise le tremblement par 2,5 en montagne, sans coût.** Tremblement sur l'image entière, avec et sans le lissage temporel :
+**Rounding divides the jitter by 2,5 in mountain, at no cost.** jitter on the whole image, with and without time smoothing:
 
-| Arrondi | Montagne, 50 m | Montagne, 10 km | Plaine, 10 km |
+| Round | Mountain, 50 m | Mountain, 10 km | Plaine, 10 km |
 |---|---|---|---|
-| 0, arêtes vives | 0,06 / 0,21 | 0,46 / 3,02 | 0,02 / 0,14 |
+| 0, sharp edges | 0,06 / 0,21 | 0,46 / 3,02 | 0,02 / 0,14 |
 | 0,5 | 0,05 / 0,20 | 0,34 / 2,37 | 0,01 / 0,13 |
 | 1 | 0,05 / 0,19 | 0,26 / 1,88 | 0,01 / 0,11 |
 | 2 | 0,04 / 0,17 | 0,17 / 1,20 | 0,01 / 0,08 |
 
-- **En images :** à 10 km, l'arrondi 2 adoucit un peu les crêtes ; de près, presque rien ne change, les mailles y étant petites.
-- **Coût :** aucun, dans le bruit de mesure.
-- **Retenu : 2,** jugé un peu mieux en vol, gain léger.
+- **In pictures:** at 10 km, the rounded 2 softens a little the ridges; close, almost nothing changes, the grid cells being small there.
+- **Cost:** none, in the measurement noise.
+- **Retained: 2,** judged a little better in flight, slight gain.
 

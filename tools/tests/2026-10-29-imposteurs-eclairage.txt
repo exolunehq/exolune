@@ -1,12 +1,12 @@
-# Imposteurs éclairés comme la moyenne de leurs feuilles, couleur cuite en linéaire (docs/vegetation-planetaire.md, l'éclairage des imposteurs).
-# Chaque test part à 300 m des arbres, 30 m au-dessus du sol : avancer droit devant, lentement, jusque sous les arbres.
-# Chercher : un arbre qui change de lumière au moment où il devient net, au relais vers 100 pixels de haut ; avant, il passait du sombre au clair en contre-jour et sous un soleil haut, du clair au sombre soleil dans le dos.
-# Ce qu'on doit voir : la couronne garde sa clarté et sa teinte au relais, seul le détail des feuilles apparaît ; au loin, les forêts ni plus plates ni plus pâles qu'avant.
-Forêt, contre-jour, soleil bas devant : les couronnes lointaines restent sombres, sans s'éclaircir au relais | 595.6 30.38875 120.52613 3 -115 | -9.76 60.74
-Forêt, soleil haut devant : le dessus des couronnes déjà clair au loin, sans s'allumer au relais | 595.6 30.38875 120.52613 3 -115 | 20.53 101.19
-Forêt, soleil dans le dos : les couronnes ne s'assombrissent pas au relais | 595.6 30.38875 120.52613 3 -115 | 32.97 -161.22
-Forêt, soleil rasant de côté : une moitié claire, l'autre sombre, la même avant et après le relais | 595.6 30.38875 120.52613 3 -115 | 59.07 -5.41
-Lisière, contre-jour : la lisière reste en ombre, sans arbres qui s'éclairent un à un | 611.5 30.36730 120.53027 3 0 | 79.63 -59.47
-Lisière, soleil haut devant : les rangs du fond et du devant de même clarté | 611.5 30.36730 120.53027 3 0 | 50.37 120.53
-Lisière, soleil dans le dos : la lisière éclairée de face, sans arbres qui s'assombrissent en approchant | 611.5 30.36730 120.53027 3 0 | -34.63 120.53
-Sous les cumulus, 150 m : faire tourner la météo, approcher des arbres dans l'ombre d'un nuage puis au soleil ; à l'ombre comme au soleil, pas de saut au relais | 627.4 -41.00135 88.49691 3 60 | -41.66 112.71
+# impostors lit as the average of their leaves, color baked linear (docs/vegetation-planetaire.md, the lighting of the impostors).
+# Each test starts at 300 m from trees, 30 m above ground: move straight ahead, slowly, until under the trees.
+# Look for: a tree that changes light when it becomes clear, relay to 100 pixels high; before, it went from dark to light in backlight and under a high sun, from clear to dark sun in the back.
+# What we must see: the crown keeps its clarity and its hue at the relay, only the detail of the leaves appears; in the distance, the forests neither flatter nor paler than before.
+Forest, backlight, sun low in front: distant crowns remain dark, without lightening at the relay | 595.6 30.38875 120.52613 3 -115 | -9.76 60.74
+Forest, sun high in front: the top of the crowns already clear in the distance, without lighting at the relay | 595.6 30.38875 120.52613 3 -115 | 20.53 101.19
+Forest, sun in the back: crowns do not darken at the relay | 595.6 30.38875 120.52613 3 -115 | 32.97 -161.22
+Forest, sun racing from side: half light, the other dark, the same before and after the relay | 595.6 30.38875 120.52613 3 -115 | 59.07 -5.41
+Edge, backlight: the edge remains in shade, without trees that light up one by one | 611.5 30.36730 120.53027 3 0 | 79.63 -59.47
+Edge, sun high in front: the rows of the back and front of the same clarity | 611.5 30.36730 120.53027 3 0 | 50.37 120.53
+Edge, sun in the back: the edge lit from the front, without trees that darken as you approach | 611.5 30.36730 120.53027 3 0 | -34.63 120.53
+Under cumulus, 150 m: turn the weather, approach trees in the shade of a cloud and then in the sun; in the shade as in the sun, no jump to the relay | 627.4 -41.00135 88.49691 3 60 | -41.66 112.71

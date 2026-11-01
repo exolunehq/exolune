@@ -1,430 +1,430 @@
-# Spécification : rendu, matériaux et atmosphère
+# Specification: rendering, materials and atmosphere
 
-Statut : validé, procédural, dans l'ordre proposé. Étapes A, B et C faites, étape C bis arrêtée, lissage temporel gardé. Étape D spécifiée le 2026-10-21. Fait suite à `spec-stabilite.md`.
+Status: validated, procedural, in proposed order. Steps A, B and C done, step C bis stopped, temporal smoothing kept. Step D specified the 2026-10-21. Following on from `spec-stabilite.md`.
 
-## Les objectifs
+## The objectives
 
-1. **Des matériaux plus détaillés que le maillage.** De loin, les détails sont visibles avant que la géométrie s'affine : pas d'effet de mutation.
-2. **Des textures de détail de surface.**
-3. **Des détails à la surface,** en shaders ou en objets procéduraux pilotés par les bruits.
+1. **More detailed materials than the mesh.** From a distance, details are visible before the geometry is refined: no mutation effect.
+2. **Surface detail textures.**
+3. **Details on the surface,** in shaders or procedural objects driven by the noise functions.
 
-**Partout, une texture va de pair avec ses normales.** La couleur seule reste plate : c'est la normale qui fait lire le relief dans la lumière.
-4. **Une atmosphère, le ciel et le soleil.**
-5. **La perspective aérienne**, pour améliorer le rendu lointain.
+**Everywhere, a texture goes hand in hand with its normals.** The colour alone remains flat: it is the normal which makes the relief read in the light.
+4. **An atmosphere, the sky and the sun.**
+5. **The aerial perspective**, to improve the distant rendering.
 
-## Le principe commun
+## The common principle
 
-**Tout ce qui est nouveau est calculé pixel par pixel, en coordonnées fixes de la planète.** C'est la méthode du grain fin, qui a fait ses preuves au banc de tremblement.
+**Everything new is calculated pixel by pixel, in fixed coordinates of the planet.** This is the fine grain method, which has proven itself in the benchmark of jitter.
 
-- **Rien ne dépend de la position des sommets :** pas de tremblement, et pas de changement quand le maillage s'affine.
-- **Ancrage :** le réseau de 64 m proche de la caméra, déjà en place. Les indices des bruits restent exacts à l'échelle de la planète.
-- **Filtrage :** chaque octave s'efface sous 2 pixels, et ne scintille donc pas.
-- **Procédural, aucune image chargée,** dans l'esprit du concept. C'est un choix à valider, voir la fin.
-- **Mesures à chaque étape :** coût GPU sur les dix vues de référence, banc de tremblement, images avant et après.
-- **Budget :** environ 3 ms pour tout le rendu, en 1280 × 720. Le calcul du terrain reste sous 2 ms.
+- **Nothing depends on the position of the vertex:** no jitter, and no change when the mesh is refined.
+- **Anchoring:** the network of 64 m close to the camera, already in place. The indices of the noise functions remain accurate on a global scale.
+- **Filtering:** each octave is deleted under 2 pixels, and therefore does not flicker.
+- **Procedural, no image loaded,** in the spirit of the concept. It is a choice to validate, see the end.
+- **Measurements at each step:** cost GPU on the ten reference views, benchmark from jitter, before and after images.
+- **Budget:** about 3 ms for all rendering, in 1280 × 720. The calculation of the terrain remains under 2 ms.
 
-## Étape A : l'image en haute dynamique
+## Step A: High Dynamic Range Image
 
-**Prérequis du ciel et du soleil :** leur dynamique ne tient pas dans une image 8 bits.
+**Prerequisites of the sky and the sun:** their dynamics does not fit in a 8 bits image.
 
-- **Rendu dans une image en virgule flottante,** 16 bits par canal, en lumière linéaire.
-- **Puis passage à l'écran :** compression des hautes lumières, puis sortie sRGB par le matériel.
-- **Compression neutre de Khronos :** identité sous 0,76, puis un fondu vers le blanc qui garde les teintes.
-- **Les couleurs actuelles sont reprises telles quelles,** pour que l'étape ne change que la chaîne d'image.
+- **Rendered in floating-point image,** 16 bits per channel, in linear light.
+- **Then switch to the screen:** compression of the high lights, then sRGB output by the hardware.
+- **Khronos neutral compression:** identity under 0,76, then a fade to white that keeps the shades.
+- **The current colors are taken as they are,** so that the step only changes the image string.
 
-**Résultat :** image identique à ±1 niveau près sur quatre vues. Rendu +0,01 ms.
+**Result:** image identical to ±1 level close on four views. Rendu +0,01 ms.
 
-## Étape B : atmosphère, ciel et soleil
+## Stage B: atmosphere, sky and sun
 
-**Méthode : Hillaire 2020** (Eurographics, celle d'Unreal). Diffusion de Rayleigh et de Mie, absorption par l'ozone, diffusion multiple approchée. Elle vaut du sol jusqu'à l'espace.
+**Method: Hillaire 2020** (Eurographics, Unreal's one). Rayleigh and Mie diffusion, ozone absorption, multiple scattering approximated. It is worth from the ground to space.
 
-### Trois petites tables, calculées au démarrage
+### Three small tables, calculated at startup
 
-Elles ne dépendent que des réglages de l'atmosphère, ni de la caméra ni du soleil : les recalculer à chaque image ne servirait à rien.
+They depend only on the settings of the atmosphere, not the camera or the sun: recalculating them at each frame would be useless.
 
-- **Transmittance,** 256 × 64 : ce que l'atmosphère laisse passer, selon l'altitude et la direction.
-- **Diffusion multiple,** 32 × 32 : la lumière qui a rebondi plusieurs fois, selon l'altitude et la hauteur du soleil.
-- **Éclairement du ciel,** 64 × 16 : la lumière que tout le ciel envoie sur un sol horizontal. Elle éclaire les ombres.
+- **Transmittance,** 256 × 64: what the atmosphere lets through, depending on altitude and direction.
+- **multiple scattering,** 32 × 32: the light that bounced back several times, depending on the altitude and height of the sun.
+- **illuminance of the sky,** 64 × 16: the light that the whole sky sends on a horizontal ground. It illuminates the shadows.
 
-### Le reste est calculé pixel par pixel
+### The rest is calculated pixel by pixel
 
-**Plus simple que les deux tables liées à la caméra de la méthode d'origine,** et plus juste. À mesurer : si c'est trop cher, ces tables reviennent.
+**Simpler than the two camera-related tables of the original method,** and more fair. To measure: if it is too expensive, these tables come back.
 
-- **Le ciel :** un rayon par pixel traverse l'atmosphère, en 32 pas. Le disque du soleil s'y ajoute.
-- **Le terrain :**
-  - il reçoit le soleil filtré par l'atmosphère, d'où les couchers rouges, plus l'éclairement du ciel ;
-  - la perspective aérienne voile ensuite sa couleur selon la distance, par le même rayon, de la caméra au sol.
-- **Vue d'orbite :** le rayon entre dans l'atmosphère par le haut. Le limbe bleu apparaît de lui-même.
-- **Éclairage linéaire :** les couleurs du terrain deviennent des réflectances, éclairées en lumière linéaire.
+- **Sky:** one ray per pixel crosses the atmosphere, in 32 not. The sun's disc is added to it.
+- **Field:**
+  - it receives the sun filtered by the atmosphere, hence the red sunsets, plus the illuminance of the sky;
+  - the aerial perspective then veils its color according to the distance, by the same radius, from the camera to the ground.
+- **Orbit view:** The ray enters the atmosphere from above. The blue limb appears by itself.
+- **lighting linear:** the colors of the field become reflections, illuminated in linear light.
 
-### Réglages et essais
+### Adjustments and tests
 
-- **Réglages de la Terre** dans `PlanetSettings.hlsli`, atmosphère de 100 km d'épaisseur.
-- **Touches O et P :** le soleil tourne autour de l'axe de la planète, pour voir les couchers.
-- **`MYPLANETENGINE_SUN=latitude longitude`** place le soleil au démarrage, pour les captures.
-- **Coût visé :** moins de 0,5 ms.
+- **Earth settings** in `PlanetSettings.hlsli`, atmosphere of 100 km thick.
+- **Keys O and P:** the sun rotates around the axis of the planet, to see the sunsets.
+- **`MYPLANETENGINE_SUN=latitude longitude`** sets the sun at start, for captures.
+- **Target cost:** less than 0,5 ms.
 
-### Résultats
+### Results
 
-**L'atmosphère coûte 0,15 ms au pire des dix vues de référence :** rendu de 0,11 à 0,26 ms.
+**Atmosphere costs 0,15 ms at worst of ten reference views:** rendering from 0,11 to 0,26 ms.
 
-- **La perspective aérienne est appliquée dans la passe finale, une fois par pixel.** Le terrain lui transmet sa distance par le canal alpha.
-  - Calculée dans le shader du terrain, elle coûtait 0,65 ms en montagne : chaque fragment caché par un relief plus proche la payait aussi.
-  - L'image est la même à ±2 niveaux près.
-- **Ciel, soleil, couchers et limbe** visibles sur les captures du journal.
-- **Tremblement :** légèrement plus bas, de 0,22 à 0,14 sur la plaine à 50 m. Le voile de l'air adoucit les contrastes.
-- **Défaut corrigé :** soleil au zénith, la table d'éclairement du ciel contenait des NaN, d'où un océan noir vu d'orbite.
-- **Limites :**
-  - exposition fixe, la scène est sombre au coucher ;
-  - pas encore de reflet du soleil sur l'océan ;
-  - de très haut, le voile bleu domine sur les terres sombres. C'est physique, mais les matériaux de l'étape C, plus clairs et plus variés, le rééquilibreront.
+- **Aerial perspective is applied in the final pass, once per pixel.** The ground transmits its distance to it through the alpha channel.
+  - Calculated in the terrain shader, it cost 0,65 ms in mountains: every fragment hidden by a nearer relief paid it too.
+  - The picture is the same at ±2 levels close.
+- **Sky, sun, sunsets and limbe** visible on the diary screenshots.
+- **jitter:** slightly lower, from 0,22 to 0,14 on the plain at 50 m. The veil of air softens the contrasts.
+- **Fault fixed:** sun at zenith, the illuminance table of the sky contained NaN, hence a black ocean seen from orbit.
+- **Limits:**
+  - fixed exposure, the scene is dark at nightfall;
+  - no reflection of the sun on the ocean;
+  - from very high, the blue veil dominates on the dark lands. It is physical, but the materials of Stage C, clearer and more varied, will rebalance it.
 
-## Étape C : les matériaux par pixel
+## Step C: Materials per pixel
 
-**Le problème : la couleur vient de l'altitude et de la pente interpolées entre les sommets.**
+**The problem: the color comes from the altitude and slope interpolated between the summits.**
 
-- **De loin,** les frontières de couleur suivent le maillage grossier. Quand il s'affine, elles changent de forme : c'est la mutation.
-- **En montagne,** la couleur roche ou neige tremble, mesuré au banc.
+- **From afar,** the color borders follow the coarse mesh. When it becomes thinner, they change shape: this is mutation.
+- **In mountains,** the color rock or snow shakes, measured at benchmark.
 
-**Le principe : chaque pixel pondère ses matériaux,** mer, sable, herbe, roche, neige et sol aride. Chaque matériau apporte sa couleur et sa normale.
+**The principle: each pixel weights its materials,** sea, sand, grass, rock, snow and arid soil. Each material brings its color and normal.
 
-- **L'altitude et la pente des sommets ne donnent que de larges transitions.**
-- **Le tracé fin des frontières vient d'un bruit par pixel,** fixe sur la planète, à toutes les échelles visibles.
-- **Une entrée stable en plus :** le type de terrain de complexplanet, plaines, collines, montagnes ou badlands, exporté par le compute shader. Ses octaves sont déjà limitées à ~100 km, il ne tremble pas.
-- **Un climat simple, fait de quelques bruits :** aujourd'hui la couleur suit l'altitude, de façon uniforme, avec des frontières nettes. Ce n'est pas réaliste.
-  - **Température :** latitude et altitude, plus un bruit régional de quelques centaines de kilomètres.
-  - **Humidité :** un bruit régional, plus un bruit plus large de l'ordre de 1 000 km.
-  - **Ensemble, ils choisissent le biome :** désert, steppe, prairie, forêt, toundra, neige. Toujours par fondus larges, jamais par seuils nets.
-  - **Variations macro et micro :** des bruits de teinte à toutes les échelles, du continent au mètre, pour que deux prairies voisines ne soient jamais identiques.
-- **Aucune frontière n'est une ligne, à aucune échelle.** Aujourd'hui, la neige s'arrête net sur une chaîne de montagnes.
-  - **La limite des neiges se défait :** névés isolés en dessous, roche qui perce au-dessus, langues de neige dans les couloirs. Son altitude varie avec un bruit à plusieurs échelles, de la vallée au mètre.
-  - **Le relief la module :** la neige tient dans les creux et sur les versants à l'ombre, glisse des pentes raides où la roche affleure.
-  - **Même principe pour les autres frontières :** plage, prairie et roche, forêt et alpage.
-  - **Le tracé fin est calculé dans les pixels :** il reste net et stable de près comme de loin, sans dépendre du maillage.
-- **La pente utilisée est celle du pixel,** normale des sommets plus grain fin.
+- **The altitude and slope of the summits give only wide transitions.**
+- **The fine borders are drawn from a noise per pixel,** fixed on the planet, at all visible scales.
+- **An additional stable input:** the complexplanet terrain type, plains, hills, mountains or badlands, exported by the compute shader. His octaves are already limited to ~100 km, he does not shake.
+- **A simple climate, made of a few noise functions:** today the color follows the altitude, uniformly, with clear borders. That is not realistic.
+  - **Temperature:** latitude and altitude, plus a regional noise of a few hundred kilometers.
+  - **Humidity:** a regional noise, plus a wider noise of the order of 1 000 km.
+  - **Together, they choose the biome:** desert, steppe, prairie, forest, tundra, snow. Always by wide fades, never by net thresholds.
+  - **Macro and micro variations:** noise functions of shade at all scales, from continent to meter, so that two neighboring meadows are never identical.
+- **No border is a line, at no scale.** Today, snow stops clearly on a mountain range.
+  - **The snow line is fading away:** isolated snowfalls below, rock piercing above, snow tongues in the corridors. Its altitude varies with a noise on several scales, from the valley to the meter.
+  - **The relief modulates it:** snow holds in the hollows and on the slopes in the shade, slides steep slopes where the rock surfaces.
+  - **Same principle for other borders:** beach, meadow and rock, forest and alpine pasture.
+  - **The fine line is calculated in pixels:** it remains sharp and stable from close as far, independent of the mesh.
+- **The slope used is that of the pixel,** normal of the vertices plus fine grain.
 
-- **Les normales des matériaux prolongent le relief au-delà du maillage :** strates et éboulis pour la roche, surface lisse pour la neige, rides pour le sable. Elles remplacent le grain fin générique, qui ne savait pas faire les arêtes de montagne.
+- **The material normals extend the relief beyond the mesh:** strata and scree for rock, smooth surface for snow, wrinkles for sand. They replace the generic fine grain, which did not know how to make mountain ridges.
 
-**Résultat attendu :** une montagne lointaine montre déjà ses névés, ses arêtes et ses éboulis, dans la couleur comme dans la lumière, avant que sa géométrie s'affine.
+**Expected result:** a distant mountain already shows its snow, its ridges and its scree, in color as in light, before its geometry refines.
 
-**Limite :** le relief réel apparaît quand le maillage s'affine. Les frontières bougent alors un peu, mais seulement dans leurs larges transitions.
+**Limit:** The actual relief appears when the mesh is sharpened. The borders move then a little, but only in their broad transitions.
 
-### Conception
+### Design
 
-**Tout tient dans le pixel shader du terrain.** Les bruits utilisent l'ancre de 64 m du grain fin : indices exacts sur toute la planète, stables, filtrés sous 2 pixels.
+**Everything fits in the pixel shader of the terrain.** The noise functions use the 64 m anchor of fine grain: exact indices on the whole planet, stable, filtered under 2 pixels.
 
-- **Deux familles de bruits, trois canaux chacune pour le prix d'une :**
-  - **régionale,** de 3 000 à 200 km : écart de température, humidité, humidité large ;
-  - **locale,** de 8 km jusqu'au pixel : taches de neige, affleurements de roche, variation de teinte.
-- **Température en °C :**
-  - 27 °C à l'équateur, −25 °C aux pôles ;
-  - −6,5 °C par km d'altitude ;
-  - ±6 °C de bruit régional ;
-  - ±5 °C de bruit local, qui découpe la limite des neiges en névés et en langues ;
-  - −3 °C sur les versants tournés vers le pôle.
-- **Humidité de 0 à 1 :** bruits régionaux, plus une bande sèche vers 25° de latitude, celle des grands déserts.
-- **Végétation :** désert, steppe, prairie, forêt selon l'humidité ; toundra quand il fait froid. Fondus larges.
-- **Roche :** sur les pentes raides, avec un seuil de pente perturbé par le bruit local.
-- **Neige :** sous 0 °C, chassée des pentes trop raides.
-- **Plage :** près du niveau de la mer, avec une largeur variable.
-- **Teinte :** ±15 % de luminosité et une légère dérive de couleur, à toutes les échelles.
-- **Normales par matériau :** le grain fin est renforcé sur la roche et adouci sur la neige et le sable.
-- **Pas encore :** le type de terrain exporté par le compute shader. Le climat et la pente suffisent à un premier essai ; il viendra si les montagnes manquent de caractère.
+- **Two families of noise functions, three channels each for the price of one:**
+  - **regional,** from 3 000 to 200 km: temperature difference, humidity, humidity wide;
+  - **local,** from 8 km to pixel: snow spots, rock outcrops, variation of hue.
+- **Temperature in °C:**
+  - 27 °C at the equator, −25 °C at the poles;
+  - −6,5 °C per km of altitude;
+  - ±6 °C of noise regional;
+  - ±5 °C of noise local, which cuts the snow line into nevets and tongues;
+  - −3 °C on the slopes facing the pole.
+- **Humidity from 0 to 1:** noise functions regional, plus a dry band to 25° latitude, that of the great deserts.
+- **Vegetation:** desert, steppe, meadow, forest depending on humidity; tundra when cold. Wide bottoms.
+- **Rock:** on steep slopes, with a slope threshold disturbed by the local noise.
+- **Snow:** under 0 °C, driven from too steep slopes.
+- **Beach:** near the sea level, with a variable width.
+- **Hue:** ±15 % of brightness and a slight color drift, at all scales.
+- **Normal by material:** Fine grain is reinforced on rock and softened on snow and sand.
+- **Not yet:** the type of terrain exported by the compute shader. The climate and the slope are enough for a first try; it will come if the mountains lack character.
 
-**Validation :** images avant et après sur les vues de référence, banc de tremblement, coût du rendu. Les couleurs sont un choix de goût : c'est toi qui tranches sur les images.
+**Validation:** before and after images on reference views, benchmark from jitter, rendering cost. Colors are a choice of taste: it is you who decides on the images.
 
-### Résultats, premier essai
+### Results, first trial
 
-- **En montagne :** neige sur les sommets, limite découpée en névés et en langues, roche qui affleure sur les pentes, vallées vertes.
-- **Régions :** steppes et déserts autour de 25° de latitude, prairies et forêts ailleurs, teinte qui varie à toutes les échelles.
-- **Tremblement :** pas de hausse, et divisé par deux en montagne à 50 m, de 0,44 à 0,21 sur toute l'image.
-- **Coût :** rendu de 0,26 à 0,78 ms au pire. Les matériaux sont calculés pour chaque fragment, y compris ceux qu'un relief plus proche cache ensuite. Une passe de profondeur préalable supprimerait ce gaspillage, si le budget l'exige.
-- **Réglages :** palette et climat dans `GroundAt`, `PixelShader.hlsl`. Les couleurs sont des réflectances linéaires : forêt 8 %, prairie 15 %, désert 35 %, neige 85 %.
-- **Corrigé en route :**
-  - couleurs d'abord écrites comme des valeurs d'écran, deux fois trop sombres ;
-  - bruit de température trop fort, qui mettait de la neige sous les tropiques.
-- **Ce n'était pas un bug :** une vue toute noire était simplement de nuit. Les captures placent maintenant le soleil dans l'après-midi de chaque vue.
+- **In mountains:** snow on the summits, cut out border in neves and tongues, rock that surfaces on the slopes, green valleys.
+- **Region:** steppes and deserts around 25° latitude, meadows and forests elsewhere, hue that varies at all scales.
+- **jitter:** no rise, and divided by two in mountain at 50 m, from 0,44 to 0,21 over the whole image.
+- **Cost:** rendering from 0,26 to 0,78 ms at worst. Materials are calculated for each fragment, including those that are hidden by a nearer relief. A pre-depth pass would eliminate this waste, if the budget requires it.
+- **Settings:** palette and climate in `GroundAt`, `PixelShader.hlsl`. The colors are linear reflectances: forest 8 %, meadow 15 %, desert 35 %, snow 85 %.
+- **Corrected on the way:**
+  - colors first written as screen values, twice too dark;
+  - noise temperature too strong, which put snow in the tropics.
+- **This was not a bug:** a black view was just night. Captures now place the sun in the afternoon of each view.
 
-## Étape C bis : le vrai relief dans les pixels
+## Step C bis: the real relief in the pixels
 
-**Le but : que le rendu montre le vrai relief de complexplanet avant que la géométrie s'affine.** Couleur et normales viennent de la même source de vérité que les élévations, à la résolution de l'écran. Le grain générique et le climat seul n'en sont qu'un habillage.
+**The goal: that the rendering shows the real relief of complexplanet before the geometry is refined.** Color and normals come from the same source of truth as elevations, at screen resolution. The generic grain and climate alone are only a dressing.
 
-**Le concept reste intact :** tout est recalculé à chaque image, sans mémoire ni rattrapage, pour un coût fixe.
+**The concept remains intact:** everything is recalculated at each frame, no memory or catch-up, for a fixed cost.
 
-### Le principe : partager le graphe entre sommets et pixels
+### The principle: share the graph between vertices and pixels
 
-- **Les sommets évaluent les parties lentes du graphe :** continents, type de terrain, turbulences, facteurs d'échelle. Elles varient peu d'un sommet à l'autre, leur valeur interpolée est juste.
-- **Les pixels réévaluent les fractales qui portent le relief fin,** avec les mêmes fonctions, les mêmes graines et les mêmes fréquences. Leurs octaves sont filtrées à 2 pixels au lieu de 2 mailles.
-- **Le pixel en déduit un écart d'élévation :** sa propre valeur moins la valeur interpolée des sommets. C'est exactement ce que la géométrie ne montre pas encore.
-- **La normale vient de la surface corrigée,** la position du pixel élevée de cet écart. Les arêtes de la géométrie disparaissent sous le vrai relief.
-- **La couleur utilise l'élévation et la pente corrigées.**
+- **Vertices evaluate the slow parts of the graph:** continents, terrain type, turbulence, scale factors. They vary little from one vertex to another, their interpolated value is just.
+- **Pixels re-evaluate the fractals that carry the fine relief,** with the same functions, the same seeds and the same frequencies. Their octaves are filtered to 2 pixels instead of 2 grid cells.
+- **The pixel deduces an elevation difference:** its own value less the interpolated value of the vertices. This is exactly what geometry does not show yet.
+- **The normal comes from the corrected surface,** the pixel position raised from this deviation. The edges of the geometry disappear under the real relief.
+- **The color uses the corrected elevation and slope.**
 
-### Le prototype : les montagnes
+### The prototype: mountains
 
-**C'est là que l'écart se voit le plus :** les arêtes des montagnes ont des longueurs d'onde de 0,6 à 4 km, plus fines que les mailles vues de 10 km d'altitude.
+**This is where the difference is most visible:** mountain ridges have wavelengths of 0,6 to 4 km, thinner than the grid cells seen from 10 km altitude.
 
-- **Réévalués par pixel :** les cinq fractales ridged des montagnes, la base, les hautes crêtes et les basses montagnes, soit environ 27 évaluations de bruit au plus.
-- **Interpolés depuis les sommets :** les deux déformations des montagnes, le facteur d'échelle, la part des montagnes dans le terrain.
-- **Seulement là où il y a des montagnes,** et seulement là où les mailles dépassent 8 m. Plus près, les sommets montrent déjà tout le relief, jusqu'à son octave la plus fine de 22 m.
-- **Le grain générique s'efface en montagne.**
-- **Compilation :** les shaders du terrain passent au shader model 6, comme le compute shader, pour partager le code du bruit.
+- **Revalued per pixel:** the five ridged fractals of the mountains, base, high ridges and low mountains, about 27 evaluations of noise at most.
+- **Interpolated from the summits:** the two deformations of the mountains, the scale factor, the part of the mountains in the terrain.
+- **Only where there are mountains,** and only where the grid cells exceed 8 m. Closer, the summits already show all the relief, up to its finest octave of 22 m.
+- **The generic grain fades in the mountains.**
+- **Compilation:** the shaders of the field switch to the shader model 6, like the compute shader, to share the code of the noise.
 
-### Limites attendues
+### Expected limits
 
-- **Les déformations restent interpolées :** leurs octaves plus fines que la maille manquent aux pixels. Il en reste une mutation résiduelle, faible.
-- **La normale vient des dérivées entre pixels voisins,** calculées par blocs de 2 × 2 pixels.
+- **The distortions remain interpolated:** their octaves thinner than the grid cell are missing in the pixels. There is a residual mutation, weak.
+- **Normal comes from derivatives between neighboring pixels,** calculated by blocks of 2 × 2 pixels.
 
 ### Validation
 
-- Images avant et après en montagne à 10 km et à 50 m.
-- Mutation : comparaison des pixels avec la géométrie fine, en rapprochant la caméra.
-- Banc de tremblement, et coût du rendu.
+- Before and after pictures in the mountains at 10 km and 50 m.
+- Mutation: comparison of pixels with fine geometry, by bringing the camera closer.
+- benchmark of jitter, and cost of rendering.
 
-### Résultats du prototype
+### Results of the prototype
 
-**Le vrai relief apparaît bien :** vues de 10 km, les montagnes montrent leurs arêtes, la neige se pose sur les replats, la roche reste nue sur les crêtes.
+**The real relief appears well:** views of 10 km, the mountains show their ridges, snow settles on the replats, the rock remains bare on the ridges.
 
-- **Normale :** la différence entre deux évaluations du pixel, l'une filtrée à 2 pixels, l'autre à 8 mailles, plie la normale lisse des sommets. Une première version, qui dérivait la surface corrigée entre pixels voisins, laissait voir les arêtes des triangles.
-- **Mutation,** mesurée en comparant l'image à celle d'un maillage 8 fois plus fin, après un flou de 8 pixels : de 1,91 à 1,36 à 10 km, de 2,76 à 1,95 à 3 km. Au pixel près, elle augmente : le détail fin ne tombe jamais exactement sur les mêmes pixels.
-- **Coût :** rendu de 0,73 à 0,96 ms en montagne à 10 km, 1,49 ms au pire à 50 m.
+- **Normal:** the difference between two pixel ratings, one filtered to 2 pixels, the other to 8 grid cells, bends the smooth normal of the vertexes. A first version, which drifted the corrected surface between neighboring pixels, showed the edges of triangles.
+- **Mutation,** measured by comparing the image to that of a mesh 8 times thinner, after a blur of 8 pixels: from 1,91 to 1,36 to 10 km, from 2,76 to 1,95 to 3 km. At pixel level, it increases: fine detail never falls on exactly the same pixels.
+- **Cost:** rendering from 0,73 to 0,96 ms in mountain at 10 km, 1,49 ms at worst at 50 m.
 
-**Mais le tremblement augmente fortement en montagne vue de haut :**
+**But the jitter increases strongly in mountain view from above:**
 
-| Tremblement, image entière | Étape C | Prototype |
+| jitter, full image | Stage C | Prototype |
 |---|---|---|
-| Montagne, 50 m | 0,21 | 0,25 |
-| Montagne, 10 km, horizon | 3,39 | 7,99 |
-| Montagne, 10 km, vers le bas | 4,30 | 7,71 |
+| Mountain, 50 m | 0,21 | 0,25 |
+| Mountain, 10 km, horizon | 3,39 | 7,99 |
+| Mountain, 10 km, down | 4,30 | 7,71 |
 
-**La cause, établie par élimination, couleurs remplacées par un gris :**
+**The cause, established by elimination, colors replaced by a gray:**
 
-- de 1,5 sans le relief à 4,7 avec ;
-- inchangé avec les déformations calculées dans le pixel, une coupure fixe, une taille de pixel stable, des dérivées projetées sur la surface lisse ;
-- 3,3 en limitant le relief aux octaves de plus de 2 mailles.
+- from 1,5 without relief to 4,7 with;
+- unchanged with deformations calculated in the pixel, a fixed cut, a stable pixel size, derivatives projected on the smooth surface;
+- 3,3 limiting the relief to octaves more than 2 grid cells.
 
-**C'est la parallaxe.** Le pixel évalue le relief au point où son rayon touche le maillage grossier, pas le vrai relief. Ce maillage glisse : le point évalué glisse avec lui le long du rayon. En vue rasante, quelques dizaines de mètres d'écart de hauteur deviennent des centaines de mètres le long du sol. Plus le relief est contrasté, plus ce glissement se voit. Le grain générique de l'étape C, dix fois moins contrasté, le cachait.
+**This is parallax.** The pixel evaluates the relief at the point where its radius touches the coarse mesh, not the real relief. This mesh slides: the rated point slides with it along the radius. In the raised view, a few tens of meters of height difference become hundreds of meters along the ground. The more contrasted the relief, the more this slip is visible. The generic grain of stage C, ten times less contrasted, hid it.
 
-### Pistes
+### experiments
 
-1. **Corriger la parallaxe :** avancer le point évalué le long du rayon de l'écart de hauteur, puis réévaluer, une ou deux fois. Coût du relief multiplié par 2 à 3. Réduit l'erreur, sans l'annuler aux angles les plus rasants.
-2. **Lisser dans le temps (TAA) :** la méthode standard des moteurs contre ce scintillement. Le terrain est fixe sur la planète : la reprojection d'une image à l'autre est exacte. Léger flou, coût faible.
-3. **Garder le prototype pour la couleur seule,** sans plier la normale : moins de gain visuel.
+1. **Correct parallax:** move the evaluated point along the radius of the height difference, then re-evaluate, once or twice. Relief cost multiplied by 2 to 3. Reduces error, without canceling it at the sharpest angles.
+2. **Smooth in time (TAA):** the standard method of engines against this flicker. The terrain is fixed on the planet: the reprojection from one frame to another is accurate. Slight blur, low cost.
+3. **Keep the prototype for color only,** without bending the normal: less visual gain.
 
-### Piste 1 : la correction de parallaxe
+### experiment 1: parallax correction
 
-- **Le pixel estime l'écart de hauteur** entre le vrai relief et le maillage, là où son rayon touche le maillage : sa propre valeur des montagnes moins celle des sommets.
-- **Il avance le long de son rayon** jusqu'à la hauteur du vrai relief, en supposant le relief localement plat. L'avancée est bornée aux angles rasants.
-- **Il évalue le relief, le climat et le grain à ce nouveau point,** au lieu du point du maillage.
-- **Une seule itération d'abord,** puis deux si la mesure le justifie. Chaque itération coûte une évaluation des montagnes de plus.
+- **The pixel estimates the height difference** between the real relief and the mesh, where its radius touches the mesh: its own value of mountains minus that of peaks.
+- **It advances along its radius** to the height of the real relief, assuming the relief locally flat. The advance is limited to the racing angles.
+- **It evaluates the relief, climate and grain at this new point,** instead of the point of the mesh.
+- **One iteration first,** then two if the measure warrants it. Each iteration costs one more mountain evaluation.
 
-**Résultat : écartée.** Le tremblement empire, de 8,0 à 9,7 en montagne à 10 km, et le rendu passe à 2,3 ms. L'écart de hauteur qui sert à avancer le long du rayon dépend lui-même des sommets interpolés, qui glissent : la correction glisse avec eux.
+**Result: rejected.** The jitter worsens, from 8,0 to 9,7 in mountains at 10 km, and the rendering goes to 2,3 ms. The height difference used to move along the radius itself depends on the interpolated vertices, which slide: the correction slides with them.
 
-### Piste 2 : le lissage temporel (TAA)
+### experiment 2: the temporal smoothing (TAA)
 
-- **Chaque pixel mélange sa couleur avec celle qu'il avait à l'image précédente,** à 10 % pour la nouvelle.
-- **Reprojection exacte :** le terrain est fixe sur la planète. La position du pixel, sa distance et sa direction, est ramenée dans la caméra de l'image précédente, en double précision sur le processeur. Le ciel, à l'infini, suit seulement la rotation.
-- **Contre les traînées :** la couleur passée est bornée par les couleurs de l'image courante autour du pixel, sur 3 × 3 pixels.
-- **Deux passes :** l'atmosphère écrit l'image composée, puis la passe finale la lisse et compresse les hautes lumières.
-- **Pas de décalage du sous-pixel** pour l'instant : le but est la stabilité, pas l'anticrénelage.
-- **Touche T** pour le désactiver, et comparer.
+- **Each pixel mixes its color with the one it had in the previous image,** at 10 % for the new one.
+- **Exact projection:** the terrain is fixed on the planet. The position of the pixel, its distance and direction, is brought back to the camera from the previous image, in double precision precision on the processor. The sky, in infinity, follows only the rotation.
+- **Anti-Trace:** the passed color is bounded by the colors of the current image around the pixel, on 3 × 3 pixels.
+- **Two passes:** atmosphere writes the composed image, then the final pass smooths it and compresses the high lights.
+- **No subpixel offset** for now: the goal is stability, not anti-crennel.
+- **T key** to disable it, and compare.
 
-**Résultat : le tremblement tombe sous celui de l'étape C.**
+**Result: the jitter falls below that of step C.**
 
-| Tremblement, image entière | Étape C | Prototype seul | Prototype et lissage |
+| jitter, full image | Stage C | Prototype only | Prototype and smoothing |
 |---|---|---|---|
-| Montagne, 50 m | 0,21 | 0,25 | 0,07 |
-| Montagne, 10 km, horizon | 3,39 | 7,99 | 0,95 |
-| Montagne, 10 km, vers le bas | 4,30 | 7,71 | 1,18 |
+| Mountain, 50 m | 0,21 | 0,25 | 0,07 |
+| Mountain, 10 km, horizon | 3,39 | 7,99 | 0,95 |
+| Mountain, 10 km, down | 4,30 | 7,71 | 1,18 |
 
-- **Image immobile identique** à ±1 niveau près : sans mouvement, le lissage converge vers la même image.
-- **Coût du lissage :** dans le bruit de mesure. Le rendu culmine à 1,6 ms en montagne à 50 m, à cause du relief par pixel.
-- **À vérifier en vol :** les traînées derrière les reliefs en mouvement rapide. Le banc ne bouge pas la caméra.
+- **Identical still image** to ±1 near level: without movement, smoothing converges to the same image.
+- **Cost of smoothing:** in the measurement noise. Rendering peaks at 1,6 ms in mountains at 50 m, because of the relief per pixel.
+- **To check in flight:** the trails behind the fast moving reliefs. The benchmark does not move the camera.
 
-### Correction après essai en vol : fausses crêtes
+### Flight test correction: false peaks
 
-**Constat :** en s'approchant d'une montagne, des crêtes dessinées par la normale disparaissaient : elles n'existaient pas dans le vrai relief.
+**Constat:** when approaching a mountain, ridges drawn by the normal disappeared: they did not exist in the real relief.
 
-- **Cause :** les octaves entre 2 et 8 mailles étaient comptées deux fois, dans la normale lisse des sommets et dans le relief des pixels. La pente était exagérée de loin.
-- **Correction :** les sommets calculent aussi une normale sans la part des montagnes. Le pixel y ajoute toute la pente des montagnes, qu'il évalue lui-même jusqu'à 2 pixels. Plus de double comptage, et une seule évaluation par pixel au lieu de deux.
-- **Mutation,** après un flou de 8 pixels : de 2,11 à 1,36 à 10 km, de 2,70 à 1,95 à 3 km, de 1,80 à 1,47 à 2 km.
-- **Tremblement avec lissage :** 0,18 à 50 m, 0,99 à 10 km. Rendu de 0,8 à 1,5 ms.
+- **Cause:** the octaves between 2 and 8 grid cells were counted twice, in the smooth normal of the vertexes and in the pixel relief. The slope was exaggerated from far.
+- **Correction:** summits also calculate a normal without the mountains part. The pixel adds all the slope of the mountains, which it evaluates itself up to 2 pixels. No more double counting, and only one evaluation per pixel instead of two.
+- **Mutation,** after a blur of 8 pixels: from 2,11 to 1,36 to 10 km, from 2,70 to 1,95 to 3 km, from 1,80 to 1,47 to 2 km.
+- **jitter with smoothing:** 0,18 to 50 m, 0,99 to 10 km. Rendering from 0,8 to 1,5 ms.
 
-### Corrections suivantes, de près
+### Following corrections, close
 
-- **Bruit poivre et sel à quelques centaines de mètres :** la direction du pixel n'était précise qu'à 0,6 m, et la pente divisait cette erreur par des pixels d'un mètre. Le point est maintenant un décalage depuis le nadir, en double, comme dans le compute shader.
-- **Essai écarté : la double précision réservée aux octaves fines.** Elle cassait la géométrie au ras du sol : un point en float n'est précis qu'à 20 cm sur la planète, et les mailles y font 1,6 cm. La précision se juge à la maille, pas à la longueur d'onde. Double précision dans le pixel sous 4 m de pixel, comme les sommets sous 4 m de maille.
-- **Facettes sur les montagnes lointaines :** les turbulences, interpolées entre sommets, changeaient de pente à chaque triangle. Elles sont recalculées dans le pixel, filtrées comme aux sommets. Rendu jusqu'à 2,8 ms en montagne à 50 m.
-- **Taille du pixel au sol** tirée de la distance et de l'angle de vue, et dérivées fines : plus de sauts d'un triangle à l'autre, plus de blocs de 2 × 2.
+- **noise salt and pepper at a few hundred meters:** the pixel direction was accurate only to 0,6 m, and the slope divided this error by pixels of one meter. The point is now a shift from the nadir, in double precision precision, as in the compute shader.
+- **Test excluded: the double precision reserved for fine octaves.** It broke the geometry at ground level: a floating point is accurate only to 20 cm on the planet, and the grid cells there make 1,6 cm. Accuracy is judged by the grid cell, not by the wavelength. Double precision in pixel under 4 m of pixel, as the vertices under 4 m of grid cell.
+- **Faces on the distant mountains:** turbulence, interpolated between summits, changed slope at each triangle. They are recalculated in the pixel, filtered as at the vertex. Render up to 2,8 ms in mountains to 50 m.
+- **Pixel size to ground** derived from distance and angle of view, and fine derivatives: no more jumping from triangle to triangle, no more blocks of 2 × 2.
 
-### Conclusion : étape C bis arrêtée
+### Conclusion: step C bis concluded
 
-**Le constat en vol qui tranche :** de près, la géométrie montre un relief riche, en volume ; de loin, il ne reste que les crêtes ridged, isolées et étranges.
+**The flying observation that decides:** from close, the geometry shows a rich relief, in volume; from far, there are only the ridged ridges, isolated and strange.
 
-- **Cause de fond :** le pixel ne réévaluait que la branche des montagnes. Les collines, les basses montagnes, les octaves fines des turbulences n'existaient qu'en géométrie.
-- **Pour être fidèle, il faudrait tout le graphe par pixel :** 8 à 33 ms. Et la précision exige la double précision dans le pixel, mesurée à 11 ms de rendu quand on l'étend jusqu'aux pixels de 16 m.
-- **La leçon :** le coût est dans l'évaluation du bruit, pas dans le nombre de sommets. Un échantillon de texture coûte autant qu'un sommet. Afficher une texture plus fine que le maillage n'a donc d'intérêt que si le nombre de sommets bloque, ce qui n'est pas le cas ici. Densifier le maillage donne le même détail, et en plus de vraies silhouettes.
-- **Ce qu'on garde :** le lissage temporel, indépendant du relief par pixel.
-- **Retour au rendu de l'étape C,** climat et grain générique. Le code du prototype n'est pas versionné ; la démarche et les mesures sont ici.
+- **Cause:** The pixel was re-evaluating only the mountain branch. The hills, the low mountains, the fine octaves of turbulence existed only in geometry.
+- **To be faithful, it would take the whole graph per pixel:** 8 to 33 ms. And precision requires double precision in the pixel, measured at 11 ms of rendering when extended to 16 m pixels.
+- **Lesson:** the cost is in the evaluation of the noise, not in the number of vertexes. A texture sample costs as much as a top. Displaying a texture thinner than the mesh is therefore only useful if the number of vertices blocks, which is not the case here. Densifying the mesh gives the same detail, and in addition real silhouettes.
+- **What we keep:** the temporal smoothing, independent of the relief per pixel.
+- **Return to rendering of step C,** climate and generic grain. The prototype code is not versioned; the approach and measures are here.
 
-### Limite constatée en vol : les silhouettes
+### Limitation observed in flight: silhouettes
 
-**Vu de loin, le relief des pixels est plus détaillé que les contours du maillage.** Les crêtes très marquées à l'intérieur font ressortir des silhouettes restées polygonales. C'est la limite connue de tout relief dessiné par la normale.
-- **Le banc mesure un écart d'une image à l'autre :** le lissage le réduit par construction. Le jugement en vol reste nécessaire.
+**Viewed from a distance, the pixel relief is more detailed than the contours of the mesh.** The very marked crests inside make out silhouettes remained polygonal. This is the known limit of any relief drawn by the normal.
+- **The benchmark measures a deviation from one frame to another:** smoothing reduces it by construction. The flight judgment remains necessary.
 
-## Essai : la densité du maillage
+## Test: the density of the mesh
 
-**La finesse a une seule source de vérité :** `FaceCells`, le nombre de mailles par côté du plan central. La croissance des anneaux en découle, 1 + 2/FaceCells : une maille couvre toujours environ 2/FaceCells de sa distance au nadir, donc la même taille à l'écran, quelle que soit la taille du plan. Le facteur de taille du plan, touches K et L, ne règle que l'étendue du plan central.
+**Finesse has only one source of truth:** `FaceCells`, the number of grid cells per side of the central plane. The growth of the rings follows, 1 + 2/FaceCells: a grid cell always covers about 2/FaceCells of its distance at the nadir, so the same size on the screen, regardless of the size of the plan. The plane size factor, K and L keys, only regulates the extent of the central plane.
 
-| Mailles par côté | Maille à l'écran | Calcul, pire cas | Calcul, montagne 50 m | Tremblement, montagne 10 km, avec lissage |
+| grid cells per side | grid cell on the screen | Calculation, worst case | Calculation, mountain 50 m | jitter, mountain 10 km, with smoothing |
 |---|---|---|---|---|
 | 128 | ~11 px | 1,8 ms | 1,0 ms | 0,62 |
 | 160 | ~9 px | 2,8 ms | 1,2 ms | 0,53 |
 | 192 | ~7 px | 3,9 ms | 1,8 ms | 0,46 |
 
-- **Le coût suit le nombre de sommets,** comme prévu : ×1,6 et ×2,2.
-- **Le gain visuel est réel mais modeste** sur les captures : la normale des sommets lisse sur 2 mailles, le relief reste doux.
-- **Le lissage temporel seul** fait passer le tremblement de l'étape C de 3,39 à 0,62 en montagne à 10 km, à 128 mailles.
-- **Retenu : 192 mailles,** jugé nettement mieux en vol.
+- **Cost follows the number of vertices,** as expected: ×1,6 and ×2,2.
+- **The visual gain is real but modest** on the captures: the normal of the smooth summits on 2 grid cells, the relief remains soft.
+- **Time smoothing alone** changes the jitter of Stage C from 3,39 to 0,62 in mountain at 10 km, to 128 grid cells.
+- **Retained: 192 grid cells,** judged significantly better in flight.
 
-## Étape D : textures de détail, couleur et normales
+## Step D: Detail, Color, and Normal Textures
 
-### Le constat
+### The finding
 
-**De près, le sol est lisse : on perd l'échelle.**
+**Close up, the floor is smooth: we lose the scale.**
 
-- **Le relief s'arrête à 13,5 m :** c'est l'octave la plus fine de complexplanet sur terre. Le maillage n'a rien de plus fin à montrer.
-- **Le grain fin de l'éclairage s'éteint vers 7 m,** à la moitié de cette octave.
-- **La couleur varie jusqu'au mètre,** par le bruit local de l'étape C, mais sans normale : elle reste plate.
-- **En dessous, rien :** ni touffe, ni caillou, ni ride. À 2 m du sol, rien ne dit si l'on voit 1 m ou 100 m.
+- **The relief stops at 13,5 m:** this is the thinnest octave of complexplanet on earth. The mesh has nothing more fine to show.
+- **The fine grain of the lighting fades towards 7 m,** at half of this octave.
+- **The color varies up to the meter,** by the local noise of the stage C, but without normal: it remains flat.
+- **Below, nothing:** neither tuft, nor pebble, nor wrinkle. At 2 m from the ground, nothing says whether we see 1 m or 100 m.
 
-### Le but
+### The purpose
 
-**Chaque matériau a sa texture de près, couleur et normale ensemble,** de 8 m jusqu'au pixel, soit le millimètre au ras du sol.
+**Each material has its close texture, color and normal together,** from 8 m to the pixel, or the millimeter at ground level.
 
-- **Elle prend le relais du grain fin sans rupture :** le grain générique garde les longueurs d'onde au-dessus de 8 m, les textures de matériaux celles d'en dessous.
-- **Elle ne double rien :** complexplanet n'a aucune longueur d'onde sous 13,5 m, le maillage non plus.
-- **Elle est calculée pixel par pixel,** ancrée sur la planète et filtrée sous 2 pixels, comme le grain fin : stable par construction, recalculée à chaque image, sans mémoire.
+- **It takes over the fine grain without break:** the generic grain keeps the wavelengths above 8 m, the material textures those below.
+- **It does not duplicate anything:** complexplanet has no wavelength under 13,5 m, the mesh neither.
+- **It is calculated pixel by pixel,** anchored on the planet and filtered under 2 pixels, like fine grain: stable by construction, recalculated at each frame, without memory.
 
-### Les matériaux
+### The materials used
 
-| Matériau | Couleur | Normale et relief |
+| Material | Colour | Normal and relief |
 |---|---|---|
-| Herbe, steppe, prairie | Plaques de teintes vertes et sèches de 1 à 3 m ; touffes plus sombres à leur pied | Touffes de 20 à 40 cm, bosselage fin de quelques centimètres |
-| Roche | Veines et taches de lichen ; fissures sombres | Strates suivant une direction qui varie lentement ; fissures en réseau de 20 cm à 2 m ; rugosité jusqu'au pixel |
-| Sable de plage et de désert | Variations claires et sombres des rides ; grains | Rides de 10 à 20 cm dans une direction de vent qui varie lentement |
-| Neige | Presque uniforme, légèrement bleutée dans les creux | Ondulations de vent, les sastrugi, de 0,5 à 2 m, faibles ; surface lisse au-dessous |
-| Sol aride, toundra | Graviers clairs et sombres ; mousses en toundra | Craquelures en réseau de 10 à 30 cm ; cailloux de 2 à 10 cm |
+| Grass, steppe, meadow | Plates of green and dry hues from 1 to 3 m; tufts darker at their base | tufts from 20 to 40 cm, fine dent of a few centimeters |
+| Rock | Veins and spots of lichen; dark cracks | strata following a slowly varying direction; network cracks from 20 cm to 2 m; roughness to pixel |
+| Beach and desert sand | Light and dark variations of wrinkles; grains | Ridges from 10 to 20 cm in a wind direction that changes slowly |
+| Snow | Almost uniform, slightly bluish in the hollows | Wind ripples, the sastrugi, from 0,5 to 2 m, weak; smooth surface below |
+| Arid soil, tundra | Light and dark gravel; tundra mosses | Network cracks of 10 to 30 cm; pebbles of 2 to 10 cm |
 
-- **La mer reste lisse.** Les vagues relèvent d'un autre chantier.
-- **Les forêts restent une couleur** à cette étape : leurs arbres viendront avec les objets de l'étape E.
+- **The sea remains smooth.** The waves are from another site.
+- **Forests remain a color** at this stage: their trees will come with the objects from stage E.
 
-### Le principe
+### The principle
 
-#### Une fonction par matériau
+#### One function per material
 
-**Chaque matériau donne, au point de la planète du pixel, trois valeurs :**
+**Each material gives, at the point of the pixel planet, three values:**
 
-- **un facteur de couleur,** de moyenne 1 ;
-- **une pente,** dans le plan du sol, qui incline la normale ;
-- **une hauteur,** sans unité, qui sert au mélange.
+- **a color factor,** of average 1;
+- **a slope,** in the ground plane, which inclines the normal;
+- **a height,** without unit, which is used for mixing.
 
-#### La moyenne est préservée
+#### The average is preserved
 
-**De loin, chaque texture s'efface vers sa moyenne :** le facteur de couleur tend vers 1, la pente vers 0.
+**From a distance, each texture fades to its average:** the color factor tends to 1, the slope to 0.
 
-- **La couleur de loin ne change donc pas :** celle de l'étape C reste valable à toute distance.
-- **Pas de mutation à l'approche :** la texture apparaît par octaves fines, sans décaler la teinte d'ensemble.
-- **Les creux assombris** par la hauteur, pour lire le relief à l'échelle du centimètre, sont compensés pour garder la même moyenne.
+- **The colour of the distance does not change:** that of the stage C remains valid at any distance.
+- **No mutation at approach:** texture appears by fine octaves, without shifting the overall tone.
+- **The darkened hollows** by height, to read the relief on the centimeter scale, are compensated to keep the same average.
 
-#### Le mélange par la hauteur
+#### Mixing by height
 
-**Aux frontières, le matériau le plus haut l'emporte,** sur une bande de transition étroite.
+**At the borders, the highest material prevails,** on a narrow transition band.
 
-- **La neige s'accumule dans les creux,** la roche affleure sur les bosses, l'herbe pousse entre les cailloux.
-- **Les poids de l'étape C restent la base :** la hauteur de chaque texture ne fait que déplacer la frontière à petite échelle.
+- **Snow accumulates in the hollows,** rock surfaces on the bumps, grass grows between the pebbles.
+- **The weights from step C remain the basis:** the height of each texture only moves the border at a small scale.
 
-#### Des bruits partagés
+#### Shared noise functions
 
-**Le coût vient du nombre d'octaves,** jusqu'à onze entre 8 m et le millimètre au ras du sol.
+**The cost comes from the number of octaves,** up to eleven between 8 m and the millimeter at ground level.
 
-- **Un seul jeu d'octaves par pixel,** mis en forme différemment par chaque matériau : en crête pour la roche, en valeur absolue pour les fissures, déformé en sinus pour les rides.
-- **Un bruit cellulaire,** distance au point le plus proche d'un réseau aléatoire, pour les cailloux, les craquelures et les touffes. Il est nouveau, et c'est le plus coûteux : réservé aux octaves proches.
-- **Seuls les matériaux présents sont évalués :** un poids sous 1 % les saute.
-- **Seules les octaves au-dessus de 2 pixels sont évaluées :** de loin, la texture ne coûte presque rien.
+- **One set of octaves per pixel,** shaped differently by each material: crest for rock, absolute value for cracks, sinus deformed for wrinkles.
+- **A noise cellular,** distance to the nearest point of a random network, for pebbles, cracks and tufts. It is new, and it is the most expensive: reserved for close octaves.
+- **Only the materials present are evaluated:** a weight below 1 % skips them.
+- **Only octaves above 2 pixels are evaluated:** from far, the texture costs almost nothing.
 
-#### L'éclairage
+#### The lighting
 
-- **La pente de la texture incline la normale,** comme le grain fin, après la normale spline.
-- **La matière intervient aussi :** le choix entre neige, roche et herbe se fait avec la normale finale, texture comprise. Une pierre isolée peut donc percer la neige.
+- **The texture slope inclines the normal,** as the fine grain, after the normal spline.
+- **The material also plays a role:** the choice between snow, rock and grass is made with the final normal, texture included. An isolated stone can therefore pierce the snow.
 
-### Ce qui change dans le code
+### What changes in the code
 
-- **`PixelShader.hlsl` :** une fonction de détail par matériau, le bruit cellulaire, le mélange par la hauteur, dans `GroundAt`.
-- **`PlanetSettings.hlsli` :** `TEXTURE_DETAIL`, l'intensité des textures, 0 les désactive ; les longueurs d'onde de passage avec le grain fin.
-- **Rien côté processeur ni maillage.**
+- **`PixelShader.hlsl`:** a detail function by material, the cellular noise, the mix by height, in `GroundAt`.
+- **`PlanetSettings.hlsli`:** `TEXTURE_DETAIL`, the intensity of textures, 0 disables them; the wavelengths of passage with fine grain.
+- **Nothing on the processor side nor mesh.**
 
-### Les étapes
+### The steps
 
-1. **Le cadre :** la fonction de détail, la préservation de la moyenne, le mélange par la hauteur, le filtrage. Validé avec l'herbe, le matériau le plus courant près du départ.
-2. **La roche,** puis **le sable,** puis **la neige,** puis **le sol aride et la toundra.** Chacun jugé sur images et en vol avant le suivant.
-3. **Les mesures,** à chaque matériau.
+1. **The frame:** the function of detail, the preservation of the average, the mixture by height, the filtering. Validated with grass, the most common material near the start.
+2. **Rock,** then **sand,** then **snow,** then **arid soil and tundra.** Each judged on images and in flight before the next.
+3. **Measurements,** to each material.
 
-### La mesure
+### The measure
 
-- **Des vues au ras du sol,** à 2 m, 10 m et 50 m, sur herbe, roche, sable et neige. Les vues de plage et de neige basse sont à trouver.
-- **Le banc de tremblement et le banc de mutation,** sur les vues de référence et les nouvelles.
-- **La couleur de loin :** captures à 10 km avant et après, écart moyen de moins de 1 sur 255.
-- **Le coût GPU,** au pire au ras du sol, l'écran entier couvert de sol proche.
+- **Ground-level views,** at 2 m, 10 m and 50 m, on grass, rock, sand and snow. The views of beach and low snow are to be found.
+- **The benchmark of jitter and the benchmark of mutation,** on reference views and news.
+- **The color from far:** captures at 10 km before and after, average difference less than 1 on 255.
+- **The cost GPU,** at worst at ground level, the entire screen covered with near ground.
 
-### Critères de validation
+### Validation criteria
 
-- **L'échelle se lit à 2 m du sol :** touffes, cailloux, rides, fissures.
-- **Pas de scintillement ni de mutation en plus,** au banc et en vol.
-- **La couleur de loin ne change pas.**
-- **Coût :** moins de 0,5 ms de plus au pire.
+- **The scale is read at 2 m from the ground:** tufts, stones, wrinkles, cracks.
+- **No flicker or mutation in addition,** to benchmark and in flight.
+- **The color from far does not change.**
+- **Cost:** less than 0,5 ms more at worst.
 
-### Résultats de l'étape 1 : le cadre et l'herbe
+### Results of the 1 stage: the frame and the grass
 
-- **L'échelle se lit au ras du sol :** gazon dense, touffes irrégulières de 15 à 35 cm aux pieds plus sombres, grain des brins, plaques de teintes de 2 m.
-- **Premier essai écarté :** des touffes en bruit cellulaire ressemblaient à des pavés, à cause de l'arête vive où le point le plus proche change. Remplacées par des bosses douces qui se chevauchent, de taille et de hauteur aléatoires.
-- **Couleur de loin préservée :** écart moyen nul à 2 km, −0,08 sur 255 à 50 m. Au ras du sol, −1,6 : le relief des touffes assombrit un peu l'ensemble.
-- **Tremblement :** inchangé avec le lissage temporel. Sans lui, de 0,04 à 0,07 à 3 m, de 0,02 à 0,03 à 10 m.
-- **Coût du rendu :** +0,4 ms à 3 m, +0,25 ms à 10 m, +0,1 ms à 50 m, rien à 2 km.
-- **Pas encore fait :** le banc de mutation sur les nouvelles vues, et le jugement en vol.
+- **The scale reads at ground level:** dense grass, irregular tufts from 15 to 35 cm to darker feet, grain of strands, tint plates from 2 m.
+- **First test rejected:** tufts in cellular noise looked like paving stones, because of the sharp edge where the nearest point changes. Replaced by soft overlapping bumps of random size and height.
+- **Far color preserved:** mean deviation zero at 2 km, −0,08 on 255 at 50 m. At the ground level, −1,6: the relief of the tufts darkens the whole a little.
+- **jitter:** unchanged with time smoothing. Without it, from 0,04 to 0,07 to 3 m, from 0,02 to 0,03 to 10 m.
+- **Rendering cost:** +0,4 ms to 3 m, +0,25 ms to 10 m, +0,1 ms to 50 m, nothing to 2 km.
+- **Not yet done:** the benchmark mutation on new views, and flight judgment.
 
-### Résultats de l'étape 2 : la roche
+### Results of the stage 2: la roche
 
-- **La roche se lit de près :** strates ondulées d'environ 0,8 m, chacune de sa teinte, fissures fines de 2 m et 50 cm, lichens gris-vert d'environ 25 cm, rugosité jusqu'au pixel. Ses bosses de 1 m percent la neige mince en petites taches.
-- **Premier essai écarté :** des strates tirées d'un bruit de 16 m dessinaient des cercles concentriques, comme des empreintes digitales, autour des sommets du bruit. Tirées d'un bruit de 256 m, elles sont presque parallèles à l'échelle d'une paroi, ondulées par un bruit de 4 m.
-- **Corrigés au premier regard :** des lichens trop jaunes et trop grands, des fissures trop sombres qui serpentaient.
-- **Jugé en vol : ne rend pas bien.** De près, les fissures, lignes où un bruit passe par zéro, faisaient des boucles molles comme des tuyaux. Refaites en réseau de fractures, sur les bords de cellules de Voronoï, interrompues par endroits. La roche reste peu convaincante, comme un enduit lisse : recherche de l'état de l'art lancée, voir `etat-de-l-art-details.md`.
-- **Couleur de loin préservée :** −0,1 sur 255 à 50 m, −1,4 au ras du sol.
-- **Tremblement :** inchangé avec le lissage temporel ; sans lui, de 0,18 à 0,21.
-- **Coût :** presque nul en plus, +0,07 ms à 4 m, car l'herbe n'est plus calculée là où la roche couvre tout.
+- **The rock is read closely:** strata wavy of about 0,8 m, each of its shade, fine cracks of 2 m and 50 cm, gray-green lichens of about 25 cm, roughness to the pixel. Its bumps of 1 m percent thin snow in small spots.
+- **First attempt rejected:** strata drawn from a noise of 16 m drew concentric circles, like fingerprints, around the vertices of the noise. Drawn from a noise of 256 m, they are almost parallel to the scale of a wall, wavy by a noise of 4 m.
+- **Corrected at first glance:** too yellow and too large lichens, too dark cracks that serpent.
+- **Judged in flight: does not perform well.** Close up, the cracks, lines where a noise passes through zero, made soft loops like pipes. Re-established in a network of fractures, on the edges of Voronoi cells, interrupted in places. The rock remains unconvincing, like a smooth plaster: state-of-the-art research launched, see `etat-de-l-art-details.md`.
+- **Colour from far preserved:** −0,1 on 255 to 50 m, −1,4 at ground level.
+- **jitter:** unchanged with time smoothing; without it, from 0,18 to 0,21.
+- **Cost:** almost zero more, +0,07 ms to 4 m, because grass is no longer calculated where rock covers everything.
 
-### Ce qui reste pour l'étape E
+### What remains for step E
 
-- **La profondeur :** cailloux et fissures en parallaxe, à partir des mêmes hauteurs.
-- **Les objets :** brins d'herbe, cailloux, rochers et arbres, générés à chaque image sur une grille fixe sur la planète. Brins d'herbe : `spec-herbe.md`.
+- **The depth:** pebbles and cracks in parallax, from the same heights.
+- **Objects:** grass, pebbles, rocks and trees, generated at each frame on a grid fixed on the planet. Grass blade: `spec-herbe.md`.
 
-## Étape E : les détails à la surface
+## Step E: Surface details
 
-**Deux voies, je recommande les shaders d'abord.**
+**Two way, I recommend shaders first.**
 
-- **En shaders :** un relief de parallaxe donne de la profondeur au sol vu de près, cailloux et fissures, à partir des mêmes textures et normales. Peu coûteux, sans limite de nombre.
-- **En objets procéduraux :** rochers, arbres et herbe placés par les bruits sur une grille fixe sur la planète, générés à chaque image en compute, puis dessinés par instances. Plus réaliste de près, mais c'est un gros chantier : niveaux de détail des objets, apparition sans saut.
+- **In shaders:** a parallax relief gives depth to the ground seen close, pebbles and cracks, from the same textures and normal. Inexpensive, no limit on number.
+- **In procedural objects:** rocks, trees and grass placed by the noise functions on a fixed grid on the planet, generated at each frame in compute, then drawn by instances. More realistic close up, but it is a big project: levels of detail of objects, appearance without jump.
 
-## Ordre proposé
+## Proposed order
 
-1. **A puis B, l'atmosphère d'abord.** Elle change toute la lumière : régler les matériaux avant serait à refaire.
-2. **C,** les matériaux par pixel.
-3. **D,** les textures de détail.
-4. **E,** les détails à la surface : shaders d'abord, objets ensuite.
+1. **A then B, atmosphere first.** It changes all the light: adjusting the materials before would be redo.
+2. **C,** materials per pixel.
+3. **D,** detail textures.
+4. **E,** the details on the surface: shaders first, objects then.
 
-## Choix à valider
+## Choice to validate
 
-- **L'ordre ci-dessus.**
-- **Détails à la surface : shaders d'abord, objets ensuite.**
-- **Textures procédurales ou images :**
-  - le procédural garde l'esprit du concept et n'a pas de limite d'échelle ;
-  - des images libres, de type CC0, plaquées sans coutures, donneraient un réalisme rapide, mais de près elles se répètent.
+- **The order above.**
+- **Surface details: shaders first, objects then.**
+- **Procedural textures or images:**
+  - the procedural keeps the spirit of the concept and has no limit of scale;
+  - free images, of type CC0, placed without seams, would give a quick realism, but close they repeat themselves.

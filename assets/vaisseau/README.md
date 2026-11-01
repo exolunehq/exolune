@@ -1,83 +1,83 @@
-# Vaisseau triangulaire
+# Triangular ship
 
-**Fichiers**
+**Files**
 
-- `vaisseau_travail.blend` : scène modifiable, pièces du cockpit séparées et textures incluses.
-- `vaisseau.glb` : modèle statique glTF 2.0, textures incluses, sans décor ni panaches.
-- `vaisseau.vsx` : le paquet lu par le moteur, cuit depuis le GLB par `paquet_moteur.py` (`python paquet_moteur.py`, sans Blender) ; à relancer après chaque export (`docs/spec-vaisseau.md`).
-- `pieces_mobiles.py` : marque le manche et la manette des gaz, que le moteur fait tourner, et pose leurs pivots.
-- `exporter.py` : l'export du GLB, commun à `preparer.py` et `pieces_mobiles.py`.
-- `modules_cockpit.py` : dimensions, commandes et place dans l'atlas de chaque module d'équipement. Source unique de la sérigraphie et de la géométrie.
-- `plaques.png` : atlas de sérigraphie des modules, 2048 × 2048.
-- `cockpit.png`, `commandes.png`, `pilote.png`, `pupitre.png`, `exterieur.png`, `arriere.png` : rendus de contrôle de la scène Blender. La verrière est masquée sur les vues du cockpit et des commandes.
-- `export_controle.png` et `export_pilote.png` : rendus du GLB réimporté dans une scène vide.
+- `vaisseau_travail.blend`: editable scene, separate cockpit parts and packed textures.
+- `vaisseau.glb`: static glTF 2.0 model, packed textures, without scenery or exhaust plumes.
+- `vaisseau.vsx`: the package read by the engine, baked from the GLB by `paquet_moteur.py` (`python paquet_moteur.py`, without Blender); rerun after every export (`docs/spec-vaisseau.md`).
+- `pieces_mobiles.py`: marks the stick and throttle, which the engine rotates, and places their pivots.
+- `exporter.py`: GLB export, shared by `preparer.py` and `pieces_mobiles.py`.
+- `modules_cockpit.py`: dimensions, controls and atlas position of each equipment module. Single source for panel markings and geometry.
+- `plaques.png`: module panel-marking atlas, 2048 × 2048.
+- `cockpit.png`, `commandes.png`, `pilote.png`, `pupitre.png`, `exterieur.png`, `arriere.png`: verification renders of the Blender scene. The canopy glass is hidden in cockpit and control views.
+- `export_controle.png` and `export_pilote.png`: renders of the GLB reimported into an empty scene.
 
-**Modèle**
+**Model**
 
-- Reprise du fichier `spaceship.blend` d'Antigravity, conversation « Blender Spaceship 3D Modeling » du 25 octobre 2026. L'original reste intact.
-- Silhouette triangulaire d'origine conservée. Coque, poupe et cockpit sont reconstruits par `design_v2.py` ; aucune pièce d'origine ne reste dans le modèle.
-- Verrière revenue aux proportions d'origine, composée de deux faces jointives sans arceau central ni traverse. Un joint sombre suit son pourtour.
+- Based on Antigravity's `spaceship.blend`, from the “Blender Spaceship 3D Modeling” conversation of October 25, 2026. The original remains intact.
+- Original triangular silhouette preserved. Hull, stern and cockpit rebuilt by `design_v2.py`; no original parts remain in the model.
+- Canopy glass restored to the original proportions, made of two adjoining faces without a central arch or crossbar. A dark seal follows its perimeter.
 
-**Coque**
+**Hull**
 
-- Une peau continue ferme le volume, de la pointe au cadre de poupe. Les tôles affleurent toutes à 12 mm au-dessus, séparées par des joints gravés de 4 mm.
-- La tôlerie suit la structure. Des sections entre cadres principaux, aux pointes avant et arrière du vitrage, croisent des bandes entre lisses qui convergent vers le nez. Les joints sont décalés d'une bande à l'autre et ne forment jamais de grille.
-- Les tôles ont des tailles variées et un quart de leurs angles sont chanfreinés. Des rivets suivent les cadres et la lisse basse de chaque tôle.
-- Les rivets ne sont pas modélisés dans le modèle de jeu. Des dômes de 2 mm servent seulement à cuire une carte de normales et une carte d'occlusion, puis sont supprimés.
-- Ces cartes utilisent une deuxième UV des tôles, `UVDetail` : une île par tôle, sans recouvrement, à 371 px/m. Les îles sont projetées dans le même repère que l'UV de peinture, et les deux UV partagent donc les tangentes.
-- Les équipements de peau sont posés chacun dans une seule tôle, ce que le script vérifie :
-  - trappes rivetées à angles chanfreinés et trappes de train à joint large ;
-  - bouchons, grilles d'aération et marquages rouges et blancs ;
-  - une antenne sur le dos, deux sous la quille.
-- La peinture est mate, gris clair et légèrement usée : passé du soleil, coulures discrètes vers l'arrière, rares éclats groupés et rayures.
-- Livrée :
-  - la plupart des tôles gardent la peinture d'origine ;
-  - certaines sont des reprises à peine plus sombres, tirées au hasard ;
-  - une bande bleue passée couvre les capots arrière et suit les joints, d'où son bord en escalier ;
-  - le nez est bleu-gris, le ventre plus sombre.
-- Toutes ces teintes multiplient une même texture, et glTF les exporte en facteur de couleur. La texture fait 1024 × 1024 et couvre 2 m, plaquée à l'échelle du monde sans rupture d'une tôle à l'autre.
+- A continuous skin closes the volume from nose to stern frame. All panels sit flush at 12 mm above it, separated by 4 mm engraved joints.
+- Paneling follows the structure. Sections between main frames, at the front and rear tips of the glass, intersect strips between stringers converging toward the nose. Joints are staggered between strips and never form a grid.
+- Panels vary in size, and a quarter of their corners are chamfered. Rivets follow the frames and the lower stringer of each panel.
+- Rivets are not modeled in the game model. The 2 mm domes are used only to bake a normal map and an occlusion map, then removed.
+- These maps use the panels' second UV set, `UVDetail`: one non-overlapping island per panel, at 371 px/m. Islands are projected in the same frame as the paint UVs, so the two UV sets share tangents.
+- Surface equipment is placed within a single panel for each item, checked by the script:
+  - riveted hatches with chamfered corners and landing-gear hatches with wide seals;
+  - caps, ventilation grilles and red and white markings;
+  - one antenna on top, two below the keel.
+- Paint is matte, light gray and slightly worn: sun fading, subtle rearward streaks, sparse clustered chips and scratches.
+- Livery:
+  - most panels retain the original paint;
+  - some are slightly darker repairs, selected randomly;
+  - a faded blue stripe covers the rear fairings and follows the joints, giving it a stepped edge;
+  - the nose is blue-gray, the underside darker.
+- All these tints multiply the same texture, exported by glTF as a color factor. The 1024 × 1024 texture covers 2 m, applied at world scale without discontinuities between panels.
 
-**Poupe**
+**Stern**
 
-- Un cadre ferme tout le losange arrière, pointes comprises, et dépasse de 4 cm de la peau. Le fond est en retrait de 40 cm et peint, pour rester lisible à l'ombre.
-- Trois tuyères compactes de 35 cm, perpendiculaires au fond, sur brides boulonnées : col usiné, divergent court, lèvre et raidisseur. Deux vérins d'orientation par tuyère.
-- Rien ne dépasse du vaisseau : la lèvre des tuyères s'arrête 5 cm en retrait du plan de poupe, et `controle_geometrie.py` le vérifie.
-- Longerons au-dessus et au-dessous des tuyères, raidisseurs entre elles, deux caissons de ventilation.
-- Feux de position aux pointes : rouge à gauche du pilote, vert à droite.
+- A frame closes the entire rear diamond, including its tips, and projects 4 cm beyond the skin. The backplate is recessed 40 cm and painted to remain legible in shadow.
+- Three compact 35 cm nozzles, perpendicular to the backplate, on bolted flanges: machined throat, short divergent section, lip and stiffener. Two steering actuators per nozzle.
+- Nothing projects beyond the ship: nozzle lips stop 5 cm short of the stern plane, checked by `controle_geometrie.py`.
+- Longitudinal beams above and below the nozzles, stiffeners between them, two ventilation housings.
+- Navigation lights at the tips: red on the pilot's left, green on the right.
 
 **Cockpit**
 
-- Tout part de la verrière. Les parois de la cuve sont des plans qui passent par ses arêtes, évasés de 8 % vers le plancher. Un rail de seuil boulonné suit chaque arête, les deux rails se rejoignent en onglet aux pointes.
-- L'auvent est posé dans le plan du seuil, de la pointe avant du vitrage au pupitre. Le collimateur tête haute est dans l'axe de visée.
-- Le pupitre principal va d'une paroi à l'autre, incliné de 27° vers l'oeil. Les ailes et les consoles suivent chaque paroi avec un même profil : panneau incliné sous le rail, puis tablette à hauteur de coude.
-- L'équipement est fait de modules standards : plaque sérigraphiée, chant chanfreiné, quatre fixations quart de tour. Interrupteurs, gardes, rotacteurs, disjoncteurs, voyants, clavier et cadrans sont posés aux coordonnées de leurs légendes.
-- Le même boîtier d'affichage est monté trois fois : cadre usiné, touches de bord, vis.
-- Siège sur glissières, flasques et baquet en tôle, rails de guidage, coffre d'appui-tête et harnais. Baie d'équipements et trappes d'accès vissées derrière le siège et sur les consoles.
-- Palette des panneaux de la navette : gris peint, boîtiers noirs, métal brossé, légendes blanches.
-- Toutes les faces sont planes. Les pièces rondes sont lissées, les arêtes de plus de 35° restent vives. Gauche et droite sont celles du pilote, qui regarde vers −Y : sa gauche est en +X, côté manette des gaz.
+- Everything starts from the canopy glass. Cockpit tub walls are planes passing through its edges, flared 8% toward the floor. A bolted sill rail follows each edge; the two rails meet in miters at the tips.
+- The coaming lies in the sill plane, from the front tip of the glass to the instrument panel. The head-up display is on the sight line.
+- The main instrument panel spans the walls, tilted 27° toward the eye. Wings and consoles follow each wall with the same profile: an inclined panel below the rail, then an elbow-height shelf.
+- Equipment uses standard modules: printed panel, chamfered edge, four quarter-turn fasteners. Switches, guards, rotary selectors, circuit breakers, indicator lights, keyboard and dials are placed at their label coordinates.
+- The same display housing is mounted three times: machined frame, edge buttons, screws.
+- Seat on sliders, sheet-metal side plates and bucket, guide rails, headrest housing and harness. Equipment bay and screwed access hatches behind the seat and on the consoles.
+- Shuttle panel palette: painted gray, black housings, brushed metal, white labels.
+- All faces are planar. Round parts are smoothed; edges above 35° remain sharp. Left and right are the pilot's, looking toward −Y: left is +X, on the throttle side.
 
-**Maillage**
+**Mesh**
 
-- 21 237 triangles, 11 maillages et 60 primitives dans le GLB, 4,8 Mo. Le cockpit est fusionné en un seul maillage à l'export, une primitive par matériau ; le combineur et la verrière restent à part.
-- Unité Blender : mètre. Environ 9,8 m de long et 6,2 m de large. Dans Blender : avant vers −Y, haut vers +Z. À l'export glTF : avant vers −Z, haut vers +Y.
-- Matériaux PBR, verrière transparente et affichages émissifs. La coque utilise une couleur et une rugosité répétables en 1024 × 1024 sur `UVMap`. Les tôles ajoutent une normale de 4096 × 4096 et une occlusion de 2048 × 2048, cuites sur `UVDetail` : `coque_details_normale.png` et `coque_occlusion.png`. Ces textures sont une nouvelle approximation de jeu, pas une cuisson des matériaux procéduraux d'origine.
-- Normales et tangentes sont présentes dans chaque primitive. La carte normale est en espace tangent. Rugosité, normale et occlusion sont des données linéaires.
-- Le moteur devra lire la deuxième UV : `normalTexture` et `occlusionTexture` des matériaux « Jeu | Tole » portent `texCoord: 1`.
+- 21,237 triangles, 11 meshes and 60 primitives in the GLB, 4.8 MB. The cockpit is merged into a single mesh at export, one primitive per material; the HUD combiner and canopy glass remain separate.
+- Blender unit: meter. About 9.8 m long and 6.2 m wide. In Blender: forward −Y, up +Z. At glTF export: forward −Z, up +Y.
+- PBR materials, transparent canopy glass and emissive displays. The hull uses tileable 1024 × 1024 color and roughness on `UVMap`. Panels add a 4096 × 4096 normal map and 2048 × 2048 occlusion map, baked on `UVDetail`: `coque_details_normale.png` and `coque_occlusion.png`. These textures are a new game approximation, not a bake of the original procedural materials.
+- Normals and tangents are present in each primitive. The normal map is in tangent space. Roughness, normals and occlusion are linear data.
+- The engine must read the second UV set: `normalTexture` and `occlusionTexture` in the “Jeu | Tole” materials use `texCoord: 1`.
 
-**Intégration**
+**Integration**
 
-- L'export a été réimporté et rendu dans Blender. Le moteur le charge par son paquet `vaisseau.vsx` (`docs/spec-vaisseau.md`).
-- `controle_geometrie.py` compare les coins de la verrière au modèle original, puis vérifie neuf points de chaque dalle d'écran vus de l'oeil du pilote, le raccord des plaques, le fond de cuve, la position des éléments sous le vitrage et celle des tuyères dans la poupe. La suppression des traverses et du retrait du vitrage crée un écart maximal de 1,7 cm aux coins de référence. Ce contrôle ne remplace pas une inspection depuis toutes les positions du joueur.
-- Le moteur devra importer glTF, gérer les matériaux PBR, la transparence de la verrière et les émissions, puis valider les axes, l'échelle et l'éclairage en vol. Les panaches sont à réaliser séparément.
-- **Le manche et la manette des gaz bougent dans le moteur** (`pieces_mobiles.py`) :
-  - chaque sommet porte un attribut `_POSE`, exporté dans le GLB : 0 fixe, de 0 à 1 le manche, de 1 à 2 la manette ;
-  - le soufflet du manche passe de 0 sur sa bride à 1 en haut, le carter reste fixe ;
-  - deux vides, `Pivot | manche` et `Pivot | gaz`, donnent le pivot et l'axe Z de chaque pièce ; ils sont retrouvés sur la géométrie, sans cote recopiée.
-- Les écrans sont des éléments statiques. Les cartes ne comprennent ni occlusion ambiante cuite ni niveaux de détail. L'éclairage de scène du cockpit n'est pas exporté : son éclairage en jeu reste à régler dans le moteur.
+- The export was reimported and rendered in Blender. The engine loads it through the `vaisseau.vsx` package (`docs/spec-vaisseau.md`).
+- `controle_geometrie.py` compares canopy corners with the original model, then checks nine points of each display surface from the pilot's eye, panel joins, tub floor, positions of items under the glass and nozzle positions within the stern. Removing the crossbars and glass inset creates a maximum deviation of 1.7 cm at the reference corners. This check does not replace inspection from every player position.
+- The engine must import glTF, handle PBR materials, canopy transparency and emissions, then validate axes, scale and lighting in flight. Exhaust plumes must be made separately.
+- **The stick and throttle move in the engine** (`pieces_mobiles.py`):
+  - each vertex carries a `_POSE` attribute, exported in the GLB: 0 fixed, 0 to 1 for the stick, 1 to 2 for the throttle;
+  - the stick boot goes from 0 at its flange to 1 at the top; the housing stays fixed;
+  - two empties, `Pivot | manche` and `Pivot | gaz`, give each part's pivot and Z axis; these are found from geometry, without copying dimensions.
+- Displays are static elements. Maps include neither baked ambient occlusion nor levels of detail. Cockpit scene lighting is not exported: its in-game lighting remains to be adjusted in the engine.
 
 **Reproduction**
 
-- Exécuter `textures_cockpit.py` avec Python et Pillow, puis ouvrir l'original en arrière-plan avec Blender 5.2 et exécuter `preparer.py`. Le script `design_v2.py` reconstruit la coque et le cockpit ; les textures et le GLB sont enregistrés dans ce dossier.
-- Pour modifier un panneau, éditer son module dans `modules_cockpit.py`, puis relancer les deux étapes : la légende et la commande bougent ensemble.
-- Après une retouche du manche ou de la manette dans la scène de travail : `blender -b vaisseau_travail.blend --python pieces_mobiles.py`, qui marque, sauve et exporte, puis `python paquet_moteur.py`.
-- `verifier.py` rend les vues de la scène ; `verifier_glb.py` réimporte et rend le GLB ; `controle_geometrie.py` contrôle ses raccords dans la scène de travail. Ces scripts ne nécessitent pas de fenêtre Blender.
+- Run `textures_cockpit.py` with Python and Pillow, then open the original in background mode with Blender 5.2 and run `preparer.py`. `design_v2.py` rebuilds the hull and cockpit; textures and GLB are saved in this directory.
+- To modify a panel, edit its module in `modules_cockpit.py`, then rerun both steps: the label and control move together.
+- After editing the stick or throttle in the working scene: `blender -b vaisseau_travail.blend --python pieces_mobiles.py`, which marks, saves and exports, then `python paquet_moteur.py`.
+- `verifier.py` renders scene views; `verifier_glb.py` reimports and renders the GLB; `controle_geometrie.py` checks its joins in the working scene. These scripts do not require a Blender window.

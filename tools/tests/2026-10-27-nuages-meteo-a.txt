@@ -1,15 +1,15 @@
-# Mode retiré le 2026-10-30, au tag `jalon/29-avant-ouverture` et `piste/nuages-orbite-spike` : le spike Météo A et son témoin V4. Par tools\lance.ps1 -Parcours, ces lieux montrent les nuages du jeu ; touches et options ci-dessous, celles d'alors.
-# Répartition seule : mêmes positions et lumière pour météo A et -Temoin V4.
-# Espace pause météo ; N nuages ; C qualité ; B opacité. Aucun LOD V5.
-Planète entière, répartition globale | 2601300 21.621 131.66 90 0 | 5 135
-Ancienne vue des motifs à 271 km | 271100 17.14299 116.89183 55.1 133.3 | 5 135
-Même secteur à 454 km | 454400 17.14299 116.89183 55.1 133.3 | 5 135
-Amas proches, profil et plafonds inchangés | 4500 21.621 131.66 0 90 | 5 135
-Amas vus de dessus à 10 km | 10000 21.621 131.66 20 90 | 5 135
-Nappe connue à 8 km | 8000 8.613 -165.762 25 90 | 8 -160
-Même nappe à 271 km | 271100 8.613 -165.762 60 90 | 8 -160
-Région dense, vue à 400 km | 400000 -65.918 66.6211 90 0 | -50 65
-Même région dense à 10 km | 10000 -65.918 66.6211 50 90 | -50 65
-Région de trouées, vue à 271 km | 271100 -63.1055 -85.957 90 0 | -45 -85
-Même région, approche à 30 km | 30000 -63.1055 -85.957 45 90 | -45 -85
-Région polaire à 400 km | 400000 85 30 90 0 | 60 30
+# Mode removed the 2026-10-30, tag `jalon/29-avant-ouverture` and `piste/nuages-orbite-spike`: the spike Weather A and its witness V4. By tools\lance.ps1 -Route, these places show the clouds of the game; keys and options below, those of then.
+# Distribution only: same positions and light for weather A and -Test V4.
+# Weather break space; N clouds; C quality; B opacity. No LOD V5.
+Whole planet, global distribution | 2601300 21.621 131.66 90 0 | 5 135
+Old view of the patterns at 271 km | 271100 17.14299 116.89183 55.1 133.3 | 5 135
+Same area at 454 km | 454400 17.14299 116.89183 55.1 133.3 | 5 135
+Near clusters, profile and ceilings unchanged | 4500 21.621 131.66 0 90 | 5 135
+Cluster views from above at 10 km | 10000 21.621 131.66 20 90 | 5 135
+layer known at 8 km | 8000 8.613 -165.762 25 90 | 8 -160
+Same layer at 271 km | 271100 8.613 -165.762 60 90 | 8 -160
+Dense region, viewed at 400 km | 400000 -65.918 66.6211 90 0 | -50 65
+Same dense area at 10 km | 10000 -65.918 66.6211 50 90 | -50 65
+Hole region, viewed at 271 km | 271100 -63.1055 -85.957 90 0 | -45 -85
+Same region, approaching at 30 km | 30000 -63.1055 -85.957 45 90 | -45 -85
+Polar region at 400 km | 400000 85 30 90 0 | 60 30

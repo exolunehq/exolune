@@ -1,14 +1,14 @@
-# Mode retiré le 2026-10-30, au tag `jalon/29-avant-ouverture` et `piste/nuages-orbite-spike` : le spike Régional, sa carte régionale. Par tools\lance.ps1 -Parcours, ces lieux montrent les nuages du jeu ; touches et options ci-dessous, celles d'alors.
-# Regional : B opacité, C qualité, Espace pause. R couverture, G type, B cirrus.
-Région entière depuis 800 km | 800000 0.5 161.775 80 0 | -15 175
-Région depuis 200 km | 200000 0.5 161.775 80 0 | -15 175
-Région depuis 80 km | 80000 0.5 161.775 80 0 | -15 175
-Région depuis 30 km | 30000 0.5 161.775 80 0 | -15 175
-Approche cumulus nord-ouest | 4000 1.87006 159.59055 0 90 | -15 175
-Approche cumulus sud-est | 4000 -0.96842 164.20159 0 90 | -15 175
-Nappe, front principal | 3400 0.24004 161.82237 0 90 | -15 175
-Cirrus, approche à 10.8 km | 10800 0.15573 161.03281 0 90 | -15 175
-Cirrus, dessous de couche | 2000 0.15573 161.03281 -40 90 | -15 175
-Éclaircie régionale | 20000 -0.65928 162.3698 0 90 | -15 175
-Région, formations à 500 km | 500000 0.5 161.775 80 0 | -15 175
-Cirrus au soleil bas | 10800 0.15573 161.03281 0 90 | -5 245
+# Mode removed the 2026-10-30, tag `jalon/29-avant-ouverture` and `piste/nuages-orbite-spike`: the Regional spike, its regional map. By tools\lance.ps1 -Route, these places show the clouds of the game; keys and options below, those of then.
+# Regional: B opacity, C quality, Break space. R cover, G type, B cirrus.
+Entire region from 800 km | 800000 0.5 161.775 80 0 | -15 175
+Region from 200 km | 200000 0.5 161.775 80 0 | -15 175
+Region from 80 km | 80000 0.5 161.775 80 0 | -15 175
+Region from 30 km | 30000 0.5 161.775 80 0 | -15 175
+Approach cumulus northwest | 4000 1.87006 159.59055 0 90 | -15 175
+Approach cumulus south-east | 4000 -0.96842 164.20159 0 90 | -15 175
+layer, main front | 3400 0.24004 161.82237 0 90 | -15 175
+Cirrus, approaching at 10.8 km | 10800 0.15573 161.03281 0 90 | -15 175
+Cirrus, underwear | 2000 0.15573 161.03281 -40 90 | -15 175
+Regional clearing | 20000 -0.65928 162.3698 0 90 | -15 175
+Region, trainings at 500 km | 500000 0.5 161.775 80 0 | -15 175
+Cirrus in the sun low | 10800 0.15573 161.03281 0 90 | -5 245

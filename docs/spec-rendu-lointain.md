@@ -1,282 +1,282 @@
-# Spécification : le rendu de loin, de 5 km à l'orbite
+# Specification: the rendering from far, from 5 km to orbit
 
-Statut : validée le 2026-10-21. Faits : étape 1, étape 2 sur la face, mutation en descente, règle universelle des limites. Jalon `jalon/13-coherence-distance`, le 2026-10-22.
+Status: validated on 2026-10-21. Facts: step 1, step 2 on the face, downward mutation, universal limit rule. milestone `jalon/13-coherence-distance`, the 2026-10-22.
 
-**En bref, ce qui garde la planète cohérente de l'orbite au sol :**
-- **la grille fine :** le vrai relief sous la maille, en normale et en altitude ;
-- **un relief qui garde sa hauteur moyenne,** à toute distance ;
-- **la règle universelle :** chaque limite entre matériaux montre sa moyenne sur le pixel ;
-- **le banc de descente et les vues de diagnostic,** pour le mesurer.
+**In short, what keeps the planet consistent from orbit to ground:**
+- **the fine grid:** the real relief under the grid cell, in normal and altitude;
+- **a relief that keeps its average height,** at any distance;
+- **the universal rule:** each boundary between materials shows its average on the pixel;
+- **the descent benchmark and diagnostic views,** to measure it.
 
-## Le constat
+## The finding
 
-Trois défauts, vus en vol à 56 km, 300 km, 450 km et 1 160 km.
+Three defects, seen in flight at 56 km, 300 km, 450 km and 1 160 km.
 
-1. **Des confettis de roche.** De 50 à 450 km, des taches de roche blanches, roses et orange semées sur le vert, sans lien avec le relief.
-2. **Le flou.** À 1 000 km, la planète n'est plus que de grandes taches floues : aucun relief ne se lit entre les grandes formes.
-3. **Le niveau intermédiaire.** En descendant, les formes de complexplanet apparaissent d'un coup, et leur rendu paraît étrange.
+1. **Rock confetti.** From 50 to 450 km, white, pink and orange rock spots sown on the green, without any connection with the relief.
+2. **The blur.** At 1 000 km, the planet is no longer but large blurred spots: no relief can be read between the large shapes.
+3. **Intermediate level.** As you descend, the complexplanet shapes appear suddenly, and their rendering seems strange.
 
-## Les causes
+## Causes
 
-**Les confettis.** La roche est décidée par la pente de la maille, plus un bruit local de 8 km à 1 m.
+**The confetti.** The rock is decided by the slope of the grid cell, plus a local noise of 8 km to 1 m.
 
-- De loin, une maille fait plusieurs kilomètres : sa pente est presque toujours douce.
-- La roche n'apparaît donc que là où le bruit local la force, en taches de 1 à 5 km sans rapport avec les montagnes.
-- Les nouvelles couleurs de roche, rouge et calcaire clair, les rendent très visibles.
+- From afar, a grid cell is several kilometers long: its slope is almost always gentle.
+- The rock appears therefore only where the local noise force it, in spots of 1 to 5 km without relation to the mountains.
+- The new rock colors, red and light limestone, make them very visible.
 
-**Le flou.** Le maillage a toujours 192 mailles sur la largeur de la face, donc une maille couvre environ 13 pixels à toute hauteur.
+**The blur.** The mesh always has 192 grid cells on the width of the face, so a grid cell covers about 13 pixels at any height.
 
-- **Près du sol,** les textures des matériaux remplissent l'intérieur des mailles.
-- **Au-dessus de quelques kilomètres,** les textures se sont fondues dans leur moyenne. Le grain de l'éclairage s'arrête à la maille et ne dépasse pas 6 km. Entre le pixel et la maille, il n'y a donc rien : à 300 km, rien entre 0,4 et 6 km.
+- **Near the ground,** the textures of materials fill the interior of the grid cells.
+- **Above a few kilometers,** textures have merge into their average. The grain of the lighting stops at the grid cell and does not exceed 6 km. Between the pixel and the grid cell, there is nothing: at 300 km, nothing between 0,4 and 6 km.
 
-**Le niveau intermédiaire.** C'est la même lacune vue en descendant : les octaves de complexplanet n'apparaissent qu'une fois portées par le maillage, sans annonce dans les pixels.
+**Intermediate level.** It is the same lack seen down: the octaves of complexplanet appear only once carried by the mesh, without announcement in the pixels.
 
-## Les pistes
+## The experiments
 
-### 1. La roche en fraction, pas en taches
+### 1. Rock in fractions, not in spots
 
-- **De loin, une maille contient des pentes plus raides que sa pente moyenne :** celles des octaves que le maillage ne porte pas.
-- **La roche devient la fraction attendue de pentes raides** dans la maille, d'après la variance de ces pentes. C'est l'esprit de Toksvig et de LEAN pour les normales.
-- **Le bruit local s'efface avec la taille du pixel.** Les montagnes deviennent des régions rocheuses continues, avec neige et éboulis, et les plaines restent vertes.
-- **Coût :** quelques opérations par pixel. **Risque :** faible.
+- **From far away, a grid cell contains slopes steeper than its average slope:** those of the octaves that the mesh does not carry.
+- **Rock becomes the expected fraction of steep slopes** in the grid cell, based on the variance of those slopes. This is the spirit of Toksvig and LEAN for normals.
+- **The local noise fades with pixel size.** The mountains become continuous rocky regions, with snow and scree, and the plains remain green.
+- **Cost:** few operations per pixel. **Risk:** low.
 
-### 2. Le relief sous la maille, dans les pixels
+### 2. The relief under the grid cell, in pixels
 
-Il faut remplir l'écart entre le pixel et la maille. Deux façons, très différentes.
+You have to fill the gap between the pixel and the grid cell. Two very different ways.
 
-- **A. Un grain plus fin que la maille,** la `DetailSlope` actuelle prolongée jusqu'au pixel, son amplitude réglée sur la rugosité du terrain, plus forte en montagne qu'en plaine.
-  - **Pour :** coût faible, environ 0,1 ms.
-  - **Contre :** c'est un relief inventé. À l'approche, le maillage apporte le vrai relief de complexplanet à la place du grain : la forme mute.
-- **B. Les normales du vrai relief, plus fin que la maille,** calculées chaque image par une passe de calcul sur une grille 4 à 8 fois plus fine que le maillage, sans géométrie.
-  - **Pour :** le vrai relief, sans mutation à l'approche : c'est ce qui manque au niveau intermédiaire.
-  - **Contre :** 16 à 64 fois plus d'évaluations de complexplanet que le maillage, soit 1,5 à 6 ms à ajouter aux 0,1 à 2 ms d'aujourd'hui. Sauf à n'évaluer que les octaves fines, ce qui suppose de découper complexplanet.
+- **A. A grain finer than the grid cell,** the current `DetailSlope` extended to the pixel, its amplitude adjusted on the roughness of the field, stronger in mountain than in plain.
+  - **For:** low cost, about 0,1 ms.
+  - **Cons:** it is an invented relief. As you approach, the mesh brings the real complexplanet relief to the grain: the mute shape.
+- **B. The normals of the real relief, thinner than the grid cell,** calculated each frame by a pass of calculation on a grid 4 to 8 times thinner than the mesh, without geometry.
+  - **For:** the real relief, without mutation at the approach: this is what is missing at the intermediate level.
+  - **Cons:** 16 to 64 times more complexplanet ratings than the mesh, i.e. 1,5 to 6 ms to add to the 0,1 to 2 ms of today. Except to evaluate only the thin octaves, which assumes to cut complexplanet.
 
-### 3. Les couleurs vues d'orbite
+### 3. The colors seen from orbit
 
-- **Le contraste des biomes :** forêts plus sombres, déserts plus clairs, montagnes brunes et neige, comme sur les images de la Terre vue d'orbite.
-- **La brume rose** de l'atmosphère vers l'horizon, à vérifier contre des photos d'orbite.
+- **Biome contrast:** darker forests, lighter deserts, brown mountains and snow, as in images of Earth seen from orbit.
+- **The pink mist** of the atmosphere towards the horizon, to be checked against orbit photos.
 
-## La mesure
+## The measure
 
-- **Un banc d'orbite :** vues à 5 km, 56 km, 300 km et 1 000 km sur trois régions, à côté de photos de la Terre vue d'orbite.
-- **Le banc de mutation en descente,** pour la piste 2.
+- **An orbit benchmark:** views at 5 km, 56 km, 300 km and 1 000 km over three regions, alongside photos of Earth orbit view.
+- **The benchmark downward mutation,** for the experiment 2.
 
-## Les étapes proposées
+## The proposed steps
 
-1. **La roche en fraction :** piste 1, avec le banc d'orbite.
-2. **Le relief sous la maille :** piste 2, A ou B, à choisir.
-3. **Les couleurs vues d'orbite :** piste 3.
+1. **Rock in fraction:** experiment 1, with orbit benchmark.
+2. **The relief under the grid cell:** experiment 2, A or B, to be chosen.
+3. **The colors seen from orbit:** experiment 3.
 
-## Résultats de l'étape 1
+## Results of the stage 1
 
-- **La dispersion des pentes dans la maille,** `SlopeSpread`, calculée par sommet : la courbure du maillage d'une maille à l'autre donne la pente de la plus fine octave portée, et log2(maille / 13,5 m) octaves restent dessous, chacune de pente comparable.
-- **Les limites de roche, d'éboulis et de neige s'élargissent** de 1,5 fois cette dispersion. La limite des neiges en température s'élargit aussi, selon l'étalement des altitudes dans la maille.
-- **Les bruits locaux de roche et de température s'effacent** pour des pixels de 32 à 512 m.
-- **Au banc d'orbite :**
-  - les confettis de roche ont disparu du plateau herbeux, à 56 et 300 km ;
-  - à 300 km, la neige forme un massif d'un seul tenant au lieu d'un semis de taches ;
-  - à 56 km, la neige reste par plaques, mais adoucies ;
-  - le désert reste flou : c'est l'étape 2.
+- **The dispersion of slopes in the grid cell,** `SlopeSpread`, calculated by vertex: the curvature of the mesh from one grid cell to another gives the slope of the thinnest octave carried, and log2(grid cell / 13,5 m) octaves remain below, each of comparable slope.
+- **Rock, scree and snow boundaries expand** by 1,5 times this scatter. The snow temperature limit also widens, according to the spread of altitudes in the grid cell.
+- **Local rock and temperature noise functions fades** for pixels from 32 to 512 m.
+- **At orbit benchmark:**
+  - rock confetti disappeared from the grassy plateau, at 56 and 300 km;
+  - at 300 km, snow forms a single mass instead of a patchy seeding;
+  - at 56 km, snow remains in plates, but softened;
+  - the desert remains blurred: this is the stage 2.
 
-## Corrections faites en chemin
+## Corrections made on the way
 
-- **Rayures de neige et de roche de 450 m à 1,3 km :** la tuile de 64 m porte ±1 m de relief ; le mélange par la hauteur intercalait neige et roche banc par banc, plus fin que le pixel. Ce mélange s'estompe maintenant pour des pixels de 25 cm à 2 m.
-- **Les deux correctifs de la passe de relief des matériaux,** retirée le 2026-10-30 : `log/spec-rendu-lointain-historique.md`.
+- **Snow and rock stripes from 450 m to 1,3 km:** the tile of 64 m bears ±1 m of relief; the mixture by the height intercalated snow and rock benchmark by benchmark, thinner than the pixel. This blending now fades for pixels from 25 cm to 2 m.
+- **The two patches of the relief pass of materials,** removed the 2026-10-30: `log/spec-rendu-lointain-historique.md`.
 
-## L'étape 2 en B : la grille fine
+## The 2 step in B: the fine grid
 
-Statut : choisie le 2026-10-21 ; première version faite, la face seule.
+Status: chosen the 2026-10-21; first version made, the face only.
 
-- **Une grille 4 fois plus fine que la face du maillage,** 768 × 768 mailles, recalculée à chaque image par complexplanet, filtrée à sa propre maille comme le maillage l'est à la sienne.
-- **Deux passes de calcul :** les hauteurs de la grille fine, puis ses normales.
-- **Le pixel prend la normale fine,** interpolée entre quatre points, à la place de celle du maillage. Elle s'efface sur les huit dernières mailles du bord de la face.
-- **Le grain de l'éclairage et la dispersion des pentes** se règlent sur la maille fine : le grain inventé ne commence qu'en dessous d'elle.
-- **Jusqu'à 160 m du sol pour les décisions des matériaux :** active à partir de mailles de face de 3,4 m, `FineMinCell`, pleinement à 6,8 m, soit 320 m de haut. Plus bas, le maillage porte l'octave la plus fine du relief, 13,5 m, sur ses 4 mailles. Elle s'arrêtait d'abord à 20 m de maille, vers 1 km : voir le correctif du 2026-10-24 ci-dessous.
-- **Jusqu'à 1 km pour la lumière :** elle n'éclaire le sol qu'à partir de mailles de face de 20 m, `FINE_LIGHT_MIN_CELL`. Plus bas, les normales spline et le grain, plus stables, et les textures remplissent les mailles.
-- **La face seule, d'abord :** d'orbite, elle couvre l'essentiel de la vue. Les anneaux suivront si la mesure le justifie.
-- **Les points hors du champ** ne sont pas calculés, comme pour le maillage.
+- **A grid 4 times thinner than the face of the mesh,** 768 × 768 grid cells, recalculated at each frame by complexplanet, filtered to its own grid cell as the mesh is to its own.
+- **Two pass calculation:** the heights of the fine grid, then its normals.
+- **The pixel takes the fine normal,** interpolated between four points, instead of the mesh. It fades on the last eight grid cells of the edge of the face.
+- **The grain of the lighting and the dispersion of slopes** are adjusted on the grid cell fine: the invented grain starts only below it.
+- **Up to 160 m from the ground for material decisions:** active from grid cells face of 3,4 m, `FineMinCell`, fully to 6,8 m, or 320 m high. Lower, the mesh carries the thinnest octave of the relief, 13,5 m, on its 4 grid cells. It stopped first at 20 m from grid cell, towards 1 km: see the correction of the 2026-10-24 below.
+- **Up to 1 km for light:** it illuminates the ground only from grid cells of 20 m, `FINE_LIGHT_MIN_CELL` front. Lower, normal spline and grain, more stable, and textures fill the grid cells.
+- **The face alone, first:** orbit, it covers the essential of the view. Rings will follow if the measure justifies it.
+- **Out of field points** are not calculated, as for the mesh.
 
-**Le risque connu :** la piste `piste/relief-par-pixel`, abandonnée, évaluait le relief à chaque pixel. Son coût, 8 à 33 ms, n'est pas celui de B. Mais son défaut visuel vaut aussi pour B : de loin, des crêtes sans volume, puisque la normale seule ne fait pas de géométrie.
+**The known risk:** the experiment `piste/relief-par-pixel`, abandoned, evaluated the relief at each pixel. Its cost, 8 to 33 ms, is not that of B. But its visual defect also applies to B: from afar, ridges without volume, since the normal alone does not make geometry.
 
-**La mesure :** le banc d'orbite avant et après ; le coût du calcul à 1, 5, 56 et 300 km ; une descente, pour la mutation.
+**Measurement:** the orbit benchmark before and after; the cost of calculation at 1, 5, 56 and 300 km; a descent, for the mutation.
 
-### Résultats de la première version
+### Results of the first version
 
-- **D'orbite, le relief se lit :** à 300 km, le massif enneigé montre ses crêtes et ses vallées au lieu d'une tache blanche ; à 5 km, le désert est plus net.
-- **Coût du calcul :** 0,2 → 1,8 ms à 56 km, 0,1 → 0,7 ms à 300 km. À 5 km, il reste dans le bruit de mesure.
-- **Reste à faire :** les anneaux, qui gardent le relief du maillage seul ; la mesure en descente, pour la mutation.
+- **From orbit, the relief reads:** at 300 km, the snowy massif shows its ridges and valleys instead of a white spot; at 5 km, the desert is clearer.
+- **Cost of calculation:** 0,2 → 1,8 ms to 56 km, 0,1 → 0,7 ms to 300 km. At 5 km, it remains in the noise measurement.
+- **Remains to be done:** the rings, which keep the relief of the mesh alone; the downward measurement, for the mutation.
 
-## Corrections faites en chemin, suite
+## Corrections made on the way, continue
 
-- **Lames de plusieurs mètres sur les crêtes, en vol :** le pavage aléatoire mêlait trois copies de la tuile en gardant leur contraste. Il amplifiait les écarts jusqu'à 1,7 fois, soit ±3,5 m sur la tuile de 64 m, et des corniches croisées formaient des lames. Les hauteurs et les pentes se mêlent maintenant simplement ; seules les couleurs gardent leur contraste. Pas reproduit sur nos points : à vérifier en vol.
-- **Marches sous la neige :** il ne reste que 10 % du relief sous la neige, au lieu de 30 %, et les parois des couloirs de la tuile de 64 m sont adoucies.
-- **Pour reproduire une vue :** la barre de titre donne la position de la caméra, et l'exécutable accepte un cinquième argument, le cap.
-- **Banc des crêtes :** `tools/banc_cretes.py`, les crêtes à hauteur d'homme, plusieurs builds côte à côte.
-- **Plantage loin de la planète, de 5 000 à 6 500 km, une fois sur deux :** au bord de la face, la coordonnée interpolée du pixel passait un cheveu sous 0. L'indice de la normale fine devenait alors énorme, et la lecture, sans contrôle de bornes sur un descripteur racine, faisait tomber le GPU. L'indice est maintenant borné des deux côtés : six lancements sur six réussis, contre trois avant. Une perte du GPU affiche désormais sa raison au lieu de fermer l'appli sans un mot.
+- **Blades of several meters on the ridges, in flight:** the random paving mixed three copies of the tile while keeping their contrast. It amplifies the gaps up to 1,7 times, or ±3,5 m on the tile of 64 m, and crossed cornices formed blades. The heights and slopes now simply blend together; only the colors retain their contrast. Not reproduced on our points: to be checked in flight.
+- **Snow Walks:** only 10 % of the snow relief remains instead of 30 %, and the walls of the 64 m tile corridors are softened.
+- **To reproduce a view:** the title bar gives the camera position, and the executable accepts a fifth argument, the heading.
+- **benchmark of the ridges:** `tools/banc_cretes.py`, the ridges at man's height, several builds side by side.
+- **Landing far from the planet, from 5 000 to 6 500 km, once in two:** at the edge of the face, the interpolated coordinate of the pixel passed a hair under 0. The index of the fine normal then became enormous, and reading, without control of bounds on a root descriptor, dropped the GPU. The index is now bounded on both sides: six of six launches successful, compared to three before. A loss of the GPU now displays its reason instead of closing the app without a word.
 
-## La mutation en descente : mesures
+## Downward mutation: measures
 
-**Le banc :** `tools/banc_descente.py`. Il filme la même zone à la verticale, de 1 500 km à 60 km, et mesure ce qu'elle contient sur 60 km de côté. Le moteur tourne alors dans sa vue de diagnostic, `MYPLANETENGINE_VIEW` = `snow`, `rock` ou `elevation`. Chaque pixel y est blanc avec la probabilité du poids du matériau, ou de l'altitude sur 6 km, sans lumière ni lissage. La part de blanc donne la moyenne exacte.
+**The benchmark:** `tools/banc_descente.py`. It films the same area vertically, from 1 500 km to 60 km, and measures what it contains on 60 km of side. The engine then runs in its diagnostic view, `MYPLANETENGINE_VIEW` = `snow`, `rock` or `elevation`. Each pixel is white with the probability of material weight, or altitude on 6 km, without light or smoothing. The white share gives the exact average.
 
-**La neige, chaîne au nord de l'Afrique, 32,3° N, 17,9° E :**
+**Snow, mountain range in northern Africa, 32,3° N, 17,9° E:**
 
-| Hauteur | 1 500 km | 800 km | 400 km | 200 km | 130 km | 90 km | 60 km |
+| Height | 1 500 km | 800 km | 400 km | 200 km | 130 km | 90 km | 60 km |
 |---|---|---|---|---|---|---|---|
-| Neige | 6,6 % | 6,0 % | 8,9 % | 45,3 % | 29,2 % | 26,8 % | 26,3 % |
+| Snow | 6,6 % | 6,0 % | 8,9 % | 45,3 % | 29,2 % | 26,8 % | 26,3 % |
 
-- **Sans l'élargissement en température :** seul le loin change, 6,6 → 0 %.
-- **Sans l'élargissement en pente, ou sans la grille fine :** rien ne change.
-- **Sans l'effacement du bruit local de température :** le loin monte à 23–32 %, mais le pic à 200 km reste.
+- **Without temperature expansion:** only the distance changes, 6,6 → 0 %.
+- **Without the slope widening, or without the fine grid:** nothing changes.
+- **Without erasing the noise local temperature:** the far rises to 23–32 %, but the peak at 200 km remains.
 
-**Le pic à 200 km vient du relief lui-même.** L'altitude moyenne de la zone change avec la hauteur de vue :
+**The peak at 200 km comes from the relief itself.** The average altitude of the area changes with the height of view:
 
-| Hauteur | 1 500 km | 800 km | 400 km | 200 km | 130 km | 90 km | 60 km |
+| Height | 1 500 km | 800 km | 400 km | 200 km | 130 km | 90 km | 60 km |
 |---|---|---|---|---|---|---|---|
-| Afrique du Nord | 1 690 m | 1 820 m | 1 840 m | 2 140 m | 1 990 m | 1 900 m | 1 810 m |
-| Site de la roche, 15° S, 120° E | 4 450 m | 4 480 m | 4 630 m | 5 090 m | 4 870 m | 4 660 m | 4 270 m |
+| North Africa | 1 690 m | 1 820 m | 1 840 m | 2 140 m | 1 990 m | 1 900 m | 1 810 m |
+| Rock site, 15° S, 120° E | 4 450 m | 4 480 m | 4 630 m | 5 090 m | 4 870 m | 4 660 m | 4 270 m |
 
-- **Les montagnes gonflent puis dégonflent** de 300 à 800 m selon la distance, avec un maximum pour des mailles d'environ 4 km.
-- **La cause :** le filtrage des octaves remplace chaque octave écartée par sa moyenne, mais complexplanet combine ses octaves de façon non linéaire. La moyenne d'une octave ne garde donc pas la moyenne du relief.
-- **Les conséquences :** une mutation de forme, les montagnes qui changent de taille, et une mutation de neige, puisque la neige suit l'altitude.
+- **Mountains inflate and deflate** from 300 to 800 m depending on distance, with a maximum for grid cells of about 4 km.
+- **Cause:** Octave filtering replaces each octave that is discarded with its average, but complexplanet combines its octaves non-linearly. The average of an octave does not keep the average of the relief.
+- **The consequences:** a change in shape, mountains changing size, and a change in snow, since snow follows altitude.
 
-## La mutation en descente : corrections
+## Downward shift: corrections
 
-**1. Le relief garde sa hauteur moyenne.** La cause du gonflement était l'arrondi des crêtes, `CreaseAbs` :
-- près de la coupure, il arrondit sur jusqu'à deux fois l'amplitude du bruit, et la valeur absolue arrondie y valait presque 1 au lieu de sa moyenne de 0,32 ;
-- son excès moyen est maintenant retiré, calculé exactement pour un bruit de loi normale d'écart-type 0,4. Cet écart-type se déduit des moyennes déjà mesurées, celles de Billow et de RidgedMulti. Un tirage aléatoire confirme le calcul à 0,1 % près ;
-- les crêtes restent arrondies, donc toujours stables.
+**1. The relief keeps its average height.** The cause of the swelling was the rounding of the ridges, `CreaseAbs`:
+- near the cutoff, it rounded up to twice the amplitude of noise, and the absolute value rounded up there was almost 1 instead of its average of 0,32;
+- its average excess is now removed, calculated exactly for a noise of normal law standard deviation 0,4. This standard deviation is derived from the mean values already measured, those of Billow and RidgedMulti. A random draw confirms the calculation to 0,1 % close;
+- the crests remain rounded, therefore always stable.
 
-| Altitude moyenne | 400 km | 200 km | 130 km | 90 km | 60 km | 30 km | 15 km |
+| Average altitude | 400 km | 200 km | 130 km | 90 km | 60 km | 30 km | 15 km |
 |---|---|---|---|---|---|---|---|
-| Site de la roche, avant | 4 700 m | 5 160 m | 4 810 m | 4 550 m | 4 120 m | 4 090 m | 4 150 m |
-| Site de la roche, après | 4 610 m | 4 540 m | 4 460 m | 4 360 m | 4 280 m | 4 250 m | 4 220 m |
-| Afrique du Nord, après | 2 000 m | 2 000 m | 1 900 m | 1 890 m | 1 900 m | 1 890 m | 1 880 m |
+| Rock site, before | 4 700 m | 5 160 m | 4 810 m | 4 550 m | 4 120 m | 4 090 m | 4 150 m |
+| Rock site, after | 4 610 m | 4 540 m | 4 460 m | 4 360 m | 4 280 m | 4 250 m | 4 220 m |
+| North Africa, after | 2 000 m | 2 000 m | 1 900 m | 1 890 m | 1 900 m | 1 890 m | 1 880 m |
 
-- **Il reste un écart régulier** de 400 m sur le site de la roche, de 400 à 15 km, sans bosse. C'est probablement la cascade de RidgedMulti, dont les poids d'octave dépendent des octaves précédentes.
+- **There remains a regular deviation** of 400 m on the rock site, from 400 to 15 km, without bump. It is probably the cascade from RidgedMulti, whose octave weights depend on the previous octaves.
 
-**2. La neige suit le relief réel.**
-- **Son altitude est celle de la grille fine,** quatre fois plus précise que le maillage : la neige se pose sur les vrais sommets sous la maille.
-- **Le bruit de température** ne porte plus que des longueurs d'onde de 2 km et moins, pour environ 0,6 °C. Il est le même à toute distance.
-- **Ce que le pixel ne peut pas montrer de ce bruit** élargit la limite des neiges autour de −2 °C, au lieu de l'effacer : la part moyenne ne bouge plus.
-- **L'ancien effacement du bruit local de 8 km** pour les pixels de 32 à 512 m est retiré de la température. C'est lui qui faisait des taches de neige sans lien avec le relief.
+**2. Snow follows the actual terrain.**
+- **Its altitude is that of the fine grid,** four times more accurate than the mesh: snow falls on the real peaks under the grid cell.
+- **The temperature noise** now only bears wavelengths of 2 km and less, for about 0,6 °C. It is the same at any distance.
+- **What the pixel cannot show of this noise** expands the snow line around −2 °C, instead of erasing it: the average part does not move anymore.
+- **The old erasure of the noise local of 8 km** for pixels from 32 to 512 m is removed from the temperature. It was he who made snow spots without any connection with the relief.
 
-| Neige, Afrique du Nord | 800 km | 400 km | 200 km | 130 km | 90 km | 60 km |
+| Snow, North Africa | 800 km | 400 km | 200 km | 130 km | 90 km | 60 km |
 |---|---|---|---|---|---|---|
-| Avant | 6,0 % | 8,9 % | 45,3 % | 29,2 % | 26,8 % | 26,3 % |
-| Après | 11,0 % | 8,2 % | 9,9 % | 10,9 % | 11,8 % | 12,2 % |
+| Before | 6,0 % | 8,9 % | 45,3 % | 29,2 % | 26,8 % | 26,3 % |
+| After | 11,0 % | 8,2 % | 9,9 % | 10,9 % | 11,8 % | 12,2 % |
 
-- **De 400 à 60 km,** les mêmes plaques de neige sur les mêmes sommets.
-- **À 800 km,** la grille fine ne distingue plus les sommets, et la neige devient une bande au même endroit.
-- **Le bruit seul,** à 1,5 °C sur 1 km, faisait un semis de points de 90 à 60 km : essai écarté.
+- **From 400 to 60 km,** the same snow sheets on the same peaks.
+- **At 800 km,** the fine grid no longer distinguishes the summits, and the snow becomes a strip in the same place.
+- **noise alone,** at 1,5 °C over 1 km, was seeding points from 90 to 60 km: test dismissed.
 
-## La règle universelle : une limite montre sa moyenne sur le pixel
+## The universal rule: a limit shows its average on the pixel
 
-Statut : en place le 2026-10-22, pour tous les matériaux.
+Status: in place the 2026-10-22, for all materials.
 
-**La règle.** Toute limite entre matériaux est une transition douce sur un champ : température, altitude, pente. Un pixel montre la moyenne de cette transition sur tout ce qu'il couvre, à toute distance.
-- **Le bruit qui rend une limite irrégulière est le même à toute distance.** On ne l'efface jamais selon la taille du pixel.
-- **Ce que le pixel ne peut pas montrer d'un champ élargit la limite :** sa variance perdue s'ajoute à la transition. Le centre ne bouge pas, donc la part moyenne non plus.
-- **Toute entrée d'une limite apporte sa variance perdue.** Pour la température : le bruit de la limite des neiges, les altitudes cachées dans la maille, et l'orientation des versants cachés.
+**The rule.** Any boundary between materials is a smooth transition on a field: temperature, altitude, slope. A pixel shows the average of this transition over everything it covers, at any distance.
+- **The noise that makes an irregular boundary is the same at any distance.** It is never erased according to the pixel size.
+- **What the pixel cannot show of a field widens the boundary:** its lost variance is added to the transition. The center does not move, so the middle part does not move either.
+- **Every entry of a limit brings its lost variance.** For temperature: the noise of the snow line, the hidden altitudes in the grid cell, and the orientation of the hidden slopes.
 
-**Les outils, dans `Materials.hlsli` :**
-- `SpreadStep(lo, hi, x, sigma)` pour un champ à une dimension : la transition élargie à variance égale. Écart de moins de 3 % avec un tirage aléatoire.
-- `SlopeShares(slope, sigma, limits)` pour la pente, champ à deux dimensions : une quadrature polaire stratifiée, six rayons et cinq angles. Écart de moins de 2 % avec un tirage aléatoire, contre 15 % pour un Gauss-Hermite 3 × 3.
-- `FbmLostShare` : la part de variance d'un bruit que le pixel ne montre pas.
-- `SlopeSpread` et `ElevationSpread` : les pentes et les altitudes que la maille cache, d'après la rugosité du type de terrain.
+**Tools, in `Materials.hlsli`:**
+- `SpreadStep(lo, hi, x, sigma)` for a one-dimensional field: the expanded transition at equal variance. Variance less than 3 % with random draw.
+- `SlopeShares(slope, sigma, limits)` for slope, two-dimensional field: a polar laminated quadrature, six radii and five angles. Variance of less than 2 % with a random draw, compared to 15 % for a Gauss-Hermite 3 × 3.
+- `FbmLostShare`: the portion of variance of a noise that the pixel does not show.
+- `SlopeSpread` and `ElevationSpread`: the slopes and altitudes that the grid cell hides, according to the roughness of the terrain type.
 
-**La rugosité, seule donnée propre au terrain.** Les octaves de montagne de complexplanet, en RidgedMulti, portent chacune à peu près la même pente. Les pentes cachées valent donc cette pente par octave, multipliée par la racine du nombre d'octaves perdues.
-- **Elle vient du type de terrain,** calculé avec le relief et transmis par sommet (`FaceVertex.roughness`) : 1 pour les montagnes, 0,6 pour les badlands, 0,4 pour les collines, 0,1 pour les plaines.
-- **La pente par octave,** `OCTAVE_SLOPE` = 0,16, est calibrée sur la roche au banc de descente.
-- **Pourquoi pas une mesure sur le maillage :** une maille de plusieurs kilomètres ne voit que la courbure des continents. La dispersion mesurée tombait à 0,014 à 400 km.
+**The roughness, only data specific to the field.** The complexplanet mountain octaves, in RidgedMulti, each carry about the same slope. The hidden slopes are therefore worth this slope per octave, multiplied by the root of the number of octaves lost.
+- **It comes from the terrain type,** calculated with relief and transmitted by vertex (`FaceVertex.roughness`): 1 for mountains, 0,6 for badlands, 0,4 for hills, 0,1 for plains.
+- **The slope per octave,** `OCTAVE_SLOPE` = 0,16, is calibrated on the rock at the benchmark of descent.
+- **Why not a measurement on the mesh:** a grid cell of several kilometers sees only the curvature of the continents. The measured dispersion fell from 0,014 to 400 km.
 
-**Bilan matériau par matériau,** au banc de descente :
+**Balance material by material,** at the benchmark of descent:
 
-| Matériau | Décidé sur | Traitement | Part mesurée, de loin à près |
+| Material | Decided on | Treatment | Measured share, from far to close |
 |---|---|---|---|
-| Relief | complexplanet | universel : l'arrondi des crêtes garde la moyenne | altitude moyenne sans bosse ; reste un écart de 400 m sur une chaîne |
-| Neige | température, pente | règle universelle ; orientation des versants calibrée, voir plus bas | 12 → 16 % et 6 → 14 %, contre 6 → 45 → 26 % avant |
-| Roche | pente | règle universelle, `SlopeShares` | 18 → 22 %, contre 0 → 17 % avant |
-| Éboulis | pente | règle universelle, `SlopeShares` | 33 → 45 %, stable |
-| Herbe, sable | humidité, température | stables par construction : humidité régionale de plus de 200 km, jamais filtrée ; limites de température en `SpreadStep` | 100 % sur les sites testés ; herbe 6,0 → 8,1 % à la frontière froide et sèche de la chaîne d'Afrique du Nord |
-| Vert des terres humides, forêt | humidité | stable par construction | 100 % sur le site testé |
-| Plage | altitude, bruit local, température | règle universelle, `SpreadStep` | 5,1 → 6,0 %, contre 4,0 → 6,1 % |
-| Mer | altitude | règle universelle : part de mer dans le pixel, au lieu d'un oui ou non | 83 → 87 %, stable |
-| Toundra, couleur | température | `SpreadStep` | non mesurée, même règle |
-| Clarté, teinte | bruits locaux et régionaux | linéaires : leurs moyennes sont exactes par construction | sans objet |
-| Textures | tuiles générées | les mipmaps gardent la moyenne | sans objet |
+| Terrain | complex planet | universal: the rounding of the peaks keeps the average | average altitude without bump; remains a gap of 400 m on a chain |
+| Snow | temperature, slope | universal rule; calibrated slope orientation, see below | 12 → 16 % and 6 → 14 %, compared to 6 → 45 → 26 % previously |
+| Rock | Slope | universal rule, `SlopeShares`  | 18 → 22 %, compared to 0 → 17 % before |
+| scree | Slope | universal rule, `SlopeShares`  | 33 → 45 %, stable |
+| Grass, sand | humidity, temperature | stable by construction: regional humidity of more than 200 km, never filtered; temperature limits in `SpreadStep`  | 100 % at tested sites; grass 6,0 → 8,1 % at the cold dry boundary of the North African Range |
+| Green wetlands, forest | humidity | stable by construction | 100 % on the tested site |
+| Beach | altitude, noise local, temperature | universal rule, `SpreadStep`  | 5,1 → 6,0 %, against 4,0 → 6,1 % |
+| More | altitude | universal rule: sea share in pixel, instead of a yes or no | 83 → 87 %, stable |
+| Tundra, color | temperature |  `SpreadStep`  | not measured, same rule |
+| Clarity, hue | noise functions local and regional | linear: their averages are accurate by construction | not applicable |
+| Textures | tiles generated | mipmaps keep the average | not applicable |
 
-**Le spécifique, et pourquoi.**
-- **Les rugosités par type de terrain et `OCTAVE_SLOPE`** sont des données propres à complexplanet, pas une règle. Elles sont calibrées sur la roche du site de la roche.
-- **L'orientation des versants cachés compte pour 4 °C par unité de pente,** au lieu des 8 °C du terme d'orientation de la température :
-  - à 8 °C, la neige était deux fois trop abondante de loin sur la chaîne d'Afrique du Nord, 28 % contre 14 % ;
-  - à 0 °C, elle était deux fois trop rare de loin sur les deux chaînes ;
-  - à 4 °C, elle tient sur les deux à quelques points près.
-  - Raison probable : la rugosité par type de terrain surestime les pentes de certaines montagnes, plus douces que la moyenne.
-- **La limite de toute méthode statistique :** sur une petite zone de 3 km, la part de roche monte encore à l'approche, de 20 à 33 % ou de 18 à 45 %. De loin, on montre la part moyenne de la région, pas celle d'un endroit plus raide que la moyenne.
+**The specific, and why.**
+- **Roughness by terrain type and `OCTAVE_SLOPE`** are complexplanet-specific data, not a rule. They are calibrated on the rock of the rock site.
+- **The orientation of hidden slopes counts for 4 °C per unit of slope,** instead of the 8 °C of the temperature orientation term:
+  - at 8 °C, snow was twice as abundant from far on the North African chain, 28 % against 14 %;
+  - at 0 °C, it was twice too rare by far on both channels;
+  - at 4 °C, it holds on both to a few points.
+  - Probable reason: the roughness by terrain type overestimates the slopes of some mountains, softer than average.
+- **The limit of any statistical method:** on a small area of 3 km, the rock share still rises as you approach, from 20 to 33 % or from 18 to 45 %. From a distance, we show the average part of the region, not a steeper part than the average.
 
-**Ce qui reste à mesurer ou à faire :**
-- une frontière entre herbe et désert chaud, où le sable compte ;
-- l'écart de 400 m du relief, probablement la cascade de RidgedMulti ;
-- une rugosité mesurée plutôt que tirée du seul type de terrain, par exemple par la grille fine, pour ne plus calibrer à la main.
+**What remains to be measured or done:**
+- a border between grass and hot desert, where sand counts;
+- the 400 m deviation from the relief, probably the cascade of RidgedMulti;
+- a roughness measured rather than drawn from the only type of terrain, for example by the fine grid, to no longer calibrate to the main.
 
-**Coût :** +0,10 à +0,28 ms de rendu, au minimum de trois passages.
+**Cost:** +0,10 to +0,28 ms of rendering, at a minimum of three passes.
 
-## Correctif du 2026-10-22 : le scintillement de près
+## Fix of the 2026-10-22: the flicker close up
 
-**Symptôme,** vu en vol après le jalon 13 : de gros scintillements et des formes aberrantes près du sol, des boules et des arches de roche. Positions `6561.8 -18.67002 131.64981 9.8 -117.1` et `563.6 5.98065 127.83668 11.2 -58.7`.
+**Symptom,** seen in flight after the milestone 13: large sparkles and aberrant shapes near the ground, balls and rock arches. Positions `6561.8 -18.67002 131.64981 9.8 -117.1` and `563.6 5.98065 127.83668 11.2 -58.7`.
 
-**Le banc :** `tools/banc_tremblement.py <dossier> <exe> "<position>" [exe ...]`. Il reprend une position exacte de la barre de titre et mesure l'écart moyen entre images successives, avec et sans lissage temporel, quand le maillage glisse sous une caméra fixe.
+**The benchmark:** `tools/banc_tremblement.py <dossier> <exe> "<position>" [exe ...]`. It captures an exact position of the title bar and measures the average difference between successive frames, with and without time smoothing, when the mesh slides under a fixed camera.
 
-**La cause, trouvée en remontant les builds du jour :** le correctif de l'arrondi des crêtes, `CreaseExcess`.
-- **Pour un petit arrondi,** sa forme exacte soustrait des termes presque égaux puis divise par l'arrondi.
-- **En simple précision,** l'erreur grandissait à mesure que l'arrondi rétrécissait, c'est-à-dire près de la caméra, et différait d'un sommet à l'autre : le sol vibrait et se plissait.
-- **Le correctif :** sous un arrondi de 0,4, on prend sa série, `p0 e²/3 − p0 e⁴/(60 σ²)`, exacte à 0,0002 près. La forme exacte ne sert qu'au-dessus.
+**The cause, found by going back the builds of the day:** the fix of the rounding of the peaks, `CreaseExcess`.
+- **For a small rounded,** its exact form subtracts almost equal terms then divides by the rounded.
+- **In simple precision,** the error grew as the rounding narrowed, that is, near the camera, and differed from one summit to another: the ground vibrated and creased.
+- **The correction:** under a rounded of 0,4, we take its series, `p0 e²/3 − p0 e⁴/(60 σ²)`, exact to 0,0002 close. The exact form serves only above.
 
-| Tremblement, avec / sans lissage | Vue de crête enneigée | Vue de dune |
+| jitter, with / without smoothing | View of snowy ridge | View of dune |
 |---|---|---|
-| Avant le correctif des crêtes, `5f53ef9` | 0,43 / 1,68 | 0,21 / 1,46 |
-| Jalon 13 | 1,26 / 3,07 | 2,37 / 5,11 |
-| Avec la série | 0,37 / 1,37 | 0,16 / 1,01 |
+| Before the peak correction, `5f53ef9`  | 0,43 / 1,68 | 0,21 / 1,46 |
+| milestone 13 | 1,26 / 3,07 | 2,37 / 5,11 |
+| With the series | 0,37 / 1,37 | 0,16 / 1,01 |
 
-- **Mieux qu'avant le jalon 13,** sur les deux vues.
-- **L'altitude moyenne en descente reste plate,** 71 à 72 % de 200 à 15 km sur le site de la roche, et la part de roche ne change pas.
-- **Essai écarté :** déplacer le relief des matériaux à la verticale au lieu de la normale. Cela gagnait peu, et les crêtes se couvraient de dents de scie.
+- **Better than before the milestone 13,** on both views.
+- **The average descent altitude remains flat,** 71 to 72 % of 200 to 15 km on the rock site, and the rock share does not change.
+- **Test dismissed:** move the relief of materials vertically instead of normal. It gained little, and the crests were covered with saw teeth.
 
-## Correctif du 2026-10-24 : les cercles sur les océans, vus de loin
+## Fix of 2026-10-24: the circles on the oceans, seen from far
 
-**Symptôme,** vu en vol à 24 600 km, `24622915.3 46.51198 60.64808 79.2 78.2` : les océans couverts d'anneaux concentriques autour de nombreux centres, comme un moiré. Nets de 10 000 à 30 000 km ; pâles dès 2 000 km, sur les terres aussi. Image : `images/cercles-avant-apres.jpg`.
+**Symptom,** seen in flight at 24 600 km, `24622915.3 46.51198 60.64808 79.2 78.2`: oceans covered with concentric rings around many centers, like a moiré. Net from 10 000 to 30 000 km; pale from 2 000 km, on land also. Image: `images/cercles-avant-apres.jpg`.
 
-**Le diagnostic, par élimination, sur la vue signalée :**
-- couleur de la mer fixe, au lieu de sa profondeur : les cercles restent ;
-- normale verticale partout : ils restent ;
-- terrain noir, l'atmosphère seule : ils restent. C'est l'atmosphère.
+**Diagnosis, by elimination, on the reported view:**
+- the colour of the sea is fixed, instead of its depth: the circles remain;
+- normal vertical everywhere: they remain;
+- black ground, atmosphere alone: they remain. It's the atmosphere.
 
-**La cause : la distance passée à l'atmosphère en demi-flottant.**
-- **Le terrain écrit sa distance,** en km, dans l'alpha de l'image HDR ; l'atmosphère y arrête son intégration le long du rayon.
-- **Un demi-flottant n'a que 11 bits :** des pas de 0,5 km à 1 000 km, 8 km à 10 000 km, 16 km au-delà de 16 384 km.
-- **Le rayon s'arrêtait jusqu'à 8 km avant le sol,** ou au sol quand l'arrondi tombait dessous. La couche d'air la plus dense, 8 km d'échelle de hauteur, comptait ou non selon le pixel.
-- **Ces paliers suivent la distance :** des cercles autour du nadir. Plus serrés que le pixel, ils se replient en anneaux autour d'un réseau de centres, comme une mire de Fresnel.
+**The cause: the distance spent in the atmosphere in semi-floating.**
+- **The terrain writes its distance,** in km, in the alpha of the image HDR; the atmosphere stops its integration along the radius.
+- **A half-float has only 11 bits:** steps from 0,5 km to 1 000 km, 8 km to 10 000 km, 16 km beyond 16 384 km.
+- **The radius stopped up to 8 km before the ground,** or at the ground when the rounded fell below. The densest layer of air, 8 km height scale, counted or not depending on the pixel.
+- **These steps follow the distance:** of the circles around the nadir. Closer than the pixel, they fold into rings around a network of centers, like a Fresnel sight.
 
-**Le correctif :** l'image HDR passe en flottants 32 bits (`HdrFormat`, `D3DApp.h`). La distance y garde 2 m à 30 000 km, à l'endroit où passe toute distance vers l'atmosphère et le lissage temporel.
+**The fix:** the HDR image goes into floating 32 bits (`HdrFormat`, `D3DApp.h`). The distance there keeps 2 m to 30 000 km, where passes any distance to the atmosphere and time smoothing.
 
-**La règle** (`principes.md`) : une grandeur passée d'une passe à l'autre garde la précision de l'échelle où elle sert, pas celle de sa taille.
+**The rule** (`principes.md`): a quantity passed from one pass to another keeps the precision of the scale it serves, not that of its size.
 
-**Les mesures :**
-- **Plus aucun cercle,** de 2 000 à 30 000 km, sur deux régions, même à contraste × 8.
-- **L'océan s'éclaircit un peu de loin :** chaque pixel compte enfin toute la colonne d'air.
-- **Descente, parts inchangées au dixième :** neige 20,5 → 14,6 % en Afrique du Nord, mer 98,8 → 97,7 % de 25 000 à 1 200 km.
-- **Banc de qualité, 30 lieux :** tous les p95 à 0,1 dB près de la référence, mutation identique, segments droits par vue à 0,3 près.
-- **Près du sol, image identique** à 1/255 près ; coût dans le bruit de mesure, moins de 0,1 ms.
+**The measures:**
+- **No more circles,** from 2 000 to 30 000 km, over two regions, even in contrast × 8.
+- **The ocean clears up a little from far away:** every pixel finally counts the whole air column.
+- **Descent, shares unchanged at the tenth:** snow 20,5 → 14,6 % in North Africa, sea 98,8 → 97,7 % from 25 000 to 1 200 km.
+- **quality benchmark, 30 locations:** all p95 to 0,1 dB near reference, identical mutation, right segments per view to 0,3 near.
+- **Near ground, identical image** to close 1/255; cost in the noise measurement, less than 0,1 ms.
 
-## Correctif du 2026-10-24 : la mutation à l'approche
+## Fix of the 2026-10-24: the mutation approaching
 
-**Symptôme,** en vol vers un massif enneigé : une tache verte dans la neige, nette à 1,6 km du sol, mangée par le blanc à 1,3 km, revenue à 530 m ; des taches brunes au dernier moment, à 143 m. Vues : `tools/tests/2026-10-24-approche.txt`.
+**Symptom,** in flight towards a snowy mountain: a green spot in the snow, clear at 1,6 km from the ground, eaten by the white at 1,3 km, returned at 530 m; brown spots at the last moment, at 143 m. Views: `tools/tests/2026-10-24-approche.txt`.
 
-**Les causes, mesurées au banc de descente sur un carré de 100 m sous la tache, de 2 km à 100 m :**
-- **La normale des décisions perdait les formes de 13,5 à 100 m.** La grille fine s'éteignait entre des mailles de face de 40 et 20 m, de 1,9 km à 960 m de haut. Le maillage seul ne porte une octave qu'au-delà de 4 mailles : 84 m à 1 km, 13,5 m seulement sous 160 m. La température suit l'orientation des versants : la tache, versant tourné vers l'équateur, se refermait puis se rouvrait.
-- **La pente des textures changeait la neige près du sol.** Ajoutée à la normale de la neige pour les pixels de moins de 2 m, sans que sa part perdue compte de loin : sur les 600 derniers mètres, la neige perdait jusqu'à 7 points sur les pentes douces, la roche apparaissant dessous, et en gagnait 8 sur la roche raide.
-- **Écartés à la mesure :** sans `HeightBlend`, les parts ne bougent pas ; sans le grain `DetailSlope` dans les décisions, ou avec les versants cachés comptés à 8 °C, elles bougent davantage.
+**Causes, measured at the benchmark of descent on a square of 100 m below the spot, from 2 km to 100 m:**
+- **The decision normal lost the forms of 13,5 to 100 m.** The fine grid was extinguished between grid cells of front of 40 and 20 m, from 1,9 km to 960 m high. The mesh alone carries an octave only beyond 4 grid cells: 84 m to 1 km, 13,5 m only under 160 m. The temperature follows the orientation of the slopes: the spot, slope turned to the equator, closed and then reopened.
+- **The texture slope changed the snow near the ground.** Added to the normal snow for pixels less than 2 m, without its lost part counting by far: on the 600 last meters, snow lost up to 7 points on gentle slopes, the rock appearing below, and gained 8 on the steep rock.
+- **Distanced at measurement:** Without `HeightBlend`, the shares do not move; without the grain `DetailSlope` in the decisions, or with the hidden slopes counted at 8 °C, they move more.
 
-**Le correctif :** la grille fine reste active pour les décisions jusqu'aux mailles de 3,4 m, la lumière garde son seuil de 20 m ; la neige ne tient compte que de la pente du terrain. Les mesures sont dans `journal-planete.md`.
+**The fix:** the fine grid remains active for decisions up to the grid cells of 3,4 m, the light keeps its threshold of 20 m; snow only takes into account the slope of the terrain. Measurements are in `journal-planete.md`.
 
-**Reste :** l'octave de 13,5 m et une part de celle de 27 m manquent encore à la grille fine au-dessus de 500 m, et `SlopeSpread` ne les compte pas ; la roche monte encore de 3 à 9 % sur la tache entre 2 et 1,2 km, de 4 à 17 % sur des collines. Compter ces octaves avec la rugosité par type de terrain règle les montagnes mais déborde ailleurs : il faut la rugosité mesurée, plus haut.
+**Rest:** the octave of 13,5 m and a part of that of 27 m are still missing from the fine grid above 500 m, and `SlopeSpread` does not count them; the rock still rises from 3 to 9 % on the spot between 2 and 1,2 km, from 4 to 17 % on hills. Counting these octaves with the roughness by type of terrain regulates the mountains but overflows elsewhere: you need the roughness measured, higher.

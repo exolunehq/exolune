@@ -1,86 +1,86 @@
-# L'eau sur la verrière
+# Water on the canopy glass
 
-**Le but :** de l'eau réaliste et belle sur la verrière du vaisseau. Elle se pose en nuage et sous la pluie, se rassemble, coule, et l'air la chasse. Pas de gouttes dessinées avec des traînées rectilignes.
+**The goal:** realistic and beautiful water on the canopy glass ship. It settles in clouds and in the rain, gathers, sinks, and the air chases it away. No drops drawn with straight-line trails.
 
-**L'état, 2026-10-29 :** les gouttes simulées sont en place, à juger en vol.
-- **Les gouttes :** `ShipWater.hlsli`, trois passes de calcul par image (`ShipWaterMove`, `ShipWaterClear`, `ShipWaterSplat`), 8 192 au plus.
-- **Le rendu :** dans `ShipGlass.hlsl`, gouttes et traînées qui sèchent en se morcelant.
-- **Les fines perles d'une texture préparée sont retirées :** elles faisaient un grain qui ne ressemblait pas à de l'eau.
-- **Le séchage, réglé le 2026-10-29 :**
-  - **L'air est celui de l'altitude :** la vitesse passée au verre est ramenée au niveau de la mer, comme la pression dynamique. Dans l'espace, l'air ne pousse plus les gouttes.
-  - **Les gouttes que l'air ne peut chasser,** sous 0,5 mm, sèchent en une minute en air calme et en sept secondes environ en air rapide. Avant, il leur fallait plus d'une heure.
-  - **Au-dessus de 20 à 35 km, l'eau bout :** gouttes et traînées partent en deux ou trois secondes.
-- **Le coût ne se mesure pas :** dans le bruit, de 4 à 7 ms par image en 1080p selon la vue.
-- **La mémoire :** la carte et la pellicule prennent 46 Mo.
+**The state, 2026-10-29:** the simulated drops are in place, to be judged in flight.
+- **Droplets:** `ShipWater.hlsli`, three calculation passes per frame (`ShipWaterMove`, `ShipWaterClear`, `ShipWaterSplat`), 8 192 at most.
+- **The rendering:** in `ShipGlass.hlsl`, drops and trails that dry by crumbling.
+- **The fine beads of a prepared texture are removed:** they made a grain that did not look like water.
+- **Drying, set the 2026-10-29:**
+  - **The air is that of altitude:** the speed passed to the glass is brought back to sea level, like the dynamic pressure. In space, the air no longer pushes the drops.
+  - **Droplets that the air cannot blow away,** below 0,5 mm, dry in one minute in calm air and in about seven seconds in fast air. Before, it took them more than an hour.
+  - **Above 20 to 35 km, water boils:** drops and trails leave in two or three seconds.
+- **Cost is not measured:** in the noise, from 4 to 7 ms per frame in 1080p depending on the view.
+- **Memory:** the card and film take 46 MB.
 
-## Le constat, 2026-10-29
+## The observation, 2026-10-29
 
-- **Le modèle actuel est procédural** (`ShipGlass.hlsl`) : des perles et des filets tirés d'une grille de hachage, déplacés d'un bloc par colonne.
-  - Rien ne persiste : une goutte n'a pas d'histoire, ne fusionne pas et ne laisse pas d'eau derrière elle.
-  - Le mouvement est rectiligne et régulier. D'où les « clous » à grande vitesse.
-- **Pas de gouttes en traversant un nuage, en vol.** Trois causes se cumulent :
-  - **Le séchage est trop rapide :** à 500 m/s, l'air sèche le verre en une demi-seconde. Au bord d'un nuage, la densité faible ne mouille presque pas.
-  - **Les perles disparaissent :** au-dessus de 15 m/s, elles tombent au quart.
-  - **Les filets vont trop vite :** à 5 m/s, ils sautent d'une cellule entière à chaque image. Ils ne se voient plus.
-- **On repart donc de zéro,** sur une simulation de l'eau.
+- **The current model is procedural** (`ShipGlass.hlsl`): beads and nets drawn from a hash grid, moved one block per column.
+  - Nothing persists: a drop has no history, does not merge and leaves no water behind it.
+  - The movement is straight and regular. Hence the "nail" at high speed.
+- **No drops when crossing a cloud, in flight.** Three causes are cumulative:
+  - **Drying is too fast:** at 500 m/s, air dries the glass in half a second. At the edge of a cloud, low density hardly wets.
+  - **Pearls disappear:** above 15 m/s, they fall to the quarter.
+  - **The nets go too fast:** at 5 m/s, they jump of a whole cell at each frame. They don't see each other anymore.
+- **We start again from scratch,** on a simulation of water.
 
-## L'état de l'art
+## State of the art
 
-- **ToyShop, ATI 2006** ([Tatarchuk, chapitre 3.8](https://advances.realtimerendering.com/s2006/Chapter3-Artist-Directable_Real-Time_Rain_Rendering_in_City_Environments.pdf)), d'après [Kaneda 1999](https://home.hiroshima-u.ac.jp/kin/publications/JVCA/index.html).
-  - **Une grille de cellules sur la vitre,** dans une texture 16 bits RGBA : masse d'eau, vitesse x et y, passage d'une goutte ; plus la masse et l'affinité.
-  - **Les forces :** la gravité selon la masse, contre les frottements statique et dynamique. Ces frottements varient sur la vitre, par une carte.
-  - **Le trajet :** une goutte passe à l'une des trois cellules en aval. Le tirage est biaisé par sa vitesse, l'affinité et la mouillure de la cellule visée. Les gouttes préfèrent le mouillé, d'où les méandres et le suivi des traces.
-  - **Le rendu :** la masse donne une carte de normales. Celle-ci déplace l'image de la scène pour la réfraction et la réflexion. Une goutte lourde jette une ombre avec une pseudo-caustique.
+- **ToyShop, ATI 2006** ([Tatarchuk, chapter 3.8](https://advances.realtimerendering.com/s2006/Chapter3-Artist-Directable_Real-Time_Rain_Rendering_in_City_Environments.pdf)), based on [Kaneda 1999](https://home.hiroshima-u.ac.jp/kin/publications/JVCA/index.html).
+  - **A grid of cells on the glass,** in a texture 16 bits RGBA: mass of water, speed x and y, passage of a drop; plus mass and affinity.
+  - **Forces:** gravity according to mass, against static and dynamic friction. These frictions vary on the glass, by a card.
+  - **The path:** a drop passes to one of the three cells downstream. The draw is biased by its speed, affinity and wetting of the target cell. Droplets prefer wet, hence the meanders and the tracking of traces.
+  - **Rendering:** the mass gives a map of normals. This moves the image of the scene for refraction and reflection. A heavy drop casts a shadow with a pseudo-caustic.
 - **X-Plane 12** ([guide développeur](https://developer.x-plane.com/article/windshield-rain-effects/)).
-  - **Gouttes simulées en 3D :** vitesse, direction et quantité de mouvement, sous la gravité et les forces aérodynamiques. Elles sont déplacées sur une texture 2D, une île d'UV par vitre.
-  - **Une goutte meurt en sortant de son île.**
-  - **Le frottement règle les traînées :** moins de frottement, moins de traînées.
-- **Particules et carte de hauteur :**
-  - [Stuppacher 2007](https://old.cescg.org/CESCG-2007/papers/Hagenberg-Stuppacher-Ines/index.htm) garde l'eau dans une carte de hauteur sur le GPU. Il la floute, en tire des normales et l'éclaire par Fresnel.
-  - Chen, Chen et Wong 2013 (cités dans la [revue de 2024](https://arxiv.org/pdf/2411.15880)) mêlent particules et carte de hauteur : fusion des gouttes et formation de filets.
-  - Une [thèse d'Umeå, 2021](https://www.diva-portal.org/smash/get/diva2:1571363/FULLTEXT01.pdf), simule les gouttes d'un pare-brise par compute shader, puis les rend dans une texture 2D qui déforme le fond. Gravité, vent, essuie-glace, et les gouttes entre elles. Le document n'a pas pu être lu en entier.
-- **La physique de l'eau en vol,** d'après les études de givrage, par exemple [Leng et al.](https://uhra.herts.ac.uk/id/eprint/14127/1/Leng_et_al_water_film_accepted_manuscript.pdf) :
-  - **En nuage :** les gouttelettes captées se rassemblent en un film mince, poussé vers l'aval par le cisaillement de l'air.
-  - **Sous une épaisseur critique,** la tension de surface brise le film en filets.
-  - **Plus l'air va vite,** plus les filets naissent tôt et courent vite, plus ils sont étroits et serrés.
-  - **Les gouttes d'un nuage sont minuscules :** quelques dizaines de microns. On ne les voit pas une à une : on voit l'eau qu'elles forment sur le verre.
+  - **Drop simulated in 3D:** speed, direction and amount of movement, under gravity and aerodynamic forces. They are moved on a 2D texture, one UV island per glass.
+  - **A drop dies when leaving its island.**
+  - **Friction regulates drags:** less friction, less drags.
+- **Particulate matter and height map:**
+  - [Stuppacher 2007](https://old.cescg.org/CESCG-2007/papers/Hagenberg-Stuppacher-Ines/index.htm) keeps water in a height card on the GPU. He blurs it, draws normals from it and illuminates it by Fresnel.
+  - Chen, Chen and Wong 2013 (cited in the [review by 2024](https://arxiv.org/pdf/2411.15880)) mix particles and height map: merging of droplets and network formation.
+  - A [thesis of Umeå, 2021](https://www.diva-portal.org/smash/get/diva2:1571363/FULLTEXT01.pdf), simulates the drops of a windshield by compute shader, then renders them in a 2D texture that distorts the background. Gravity, wind, wiper, and the drops between them. The document could not be read in its entirety.
+- **Physics of water in flight,** based on ice-forming studies, e.g. [Leng et al.](https://uhra.herts.ac.uk/id/eprint/14127/1/Leng_et_al_water_film_accepted_manuscript.pdf):
+  - **Cloud:** the droplets collected gather into a thin film, pushed downstream by the shear of the air.
+  - **Below a critical thickness,** surface tension breaks the film into strands.
+  - **The faster the air goes,** the earlier the nets are born and run faster, the narrower and tighter they are.
+  - **Droplets in a cloud are tiny:** a few tens of microns. We don't see them one by one: we see the water they form on the glass.
 
-## Ce qu'on retient
+## What we recall
 
-- **Une simulation, pas un motif :** l'eau de la verrière est un état persistant. Elle tombe, se rassemble, coule et part.
-- **L'hybride particules et carte de hauteur,** le choix commun de la thèse, de Chen 2013 et de X-Plane :
-  - **les gouttes visibles sont des particules,** avec masse, vitesse et frottement. Petites, elles restent collées ; grosses, ou poussées par l'air, elles partent ;
-  - **une carte de hauteur dans l'espace de la vitre** reçoit les gouttes chaque image, et garde l'eau qu'elles laissent : leurs traces, que la suivante préfère ;
-  - **le rendu se lit dans cette carte :** normale, réfraction de la scène, Fresnel, éclat du ciel. Le verre ne dessine plus de goutte lui-même.
-- **Le nuage mouille par un film, puis des filets :** la capture suit la densité et la vitesse. Le film se brise en filets d'autant plus fins et rapides que l'air va vite.
+- **A simulation, not a pattern:** the water of the canopy glass is a persistent state. It falls, gathers, sinks and leaves.
+- **The hybrid particles and height map,** the common choice of the thesis, of Chen 2013 and X-Plane:
+  - **the visible droplets are particles,** with mass, velocity and friction. Small, they remain stuck; big, or pushed by the air, they leave;
+  - **a height card in the space of the glass** receives the drops each frame, and keeps the water they leave: their traces, that the next one prefers;
+  - **the rendering is read in this map:** normal, refraction of the scene, Fresnel, brightness of the sky. The glass no longer draws a drop itself.
+- **The cloud is wetted by a film, then nets:** the capture follows density and speed. The film breaks into thinner and faster nets as the air goes fast.
 
-## Le plan
+## The plan
 
-1. **La carte de l'eau :**
-   - deux textures dans le plan du vaisseau, qui couvrent les deux vitres, 1,9 × 4,4 m, à 1,2 mm le texel ;
-   - la carte, en R32_UINT : la hauteur d'eau et le numéro de la goutte la plus haute, pour les fusions ;
-   - la pellicule, en R32_FLOAT : l'eau laissée sur le passage des gouttes ;
-   - la vitre est plane, faite de deux triangles : pas d'UV à créer, le plan du vaisseau suffit.
-2. **Les gouttes en particules** (`ShipWater.hlsli`, compilé en calcul par `ShipWaterMove.hlsl`, `ShipWaterSplat.hlsl` et `ShipWaterClear.hlsl`), quelques milliers dans un tampon :
-   - **Naissance :** à la pluie, en impacts ; en nuage, par la capture du film, qui se rassemble en gouttes. Ces gouttes grossissent ensuite d'un demi-millimètre par seconde, jusqu'à couler.
-   - **Forces :**
-     - la gravité dans le plan de la vitre ;
-     - la traînée de l'air, vers l'arrière, en carré de la vitesse ; la goutte baigne dans la couche limite, où l'air ne va qu'au dixième de la vitesse du vaisseau ;
-     - un seuil de frottement statique, croissant pour les petites gouttes ;
-     - l'attrait du mouillé, pour les méandres ;
-     - un bruit de surface, pour qu'aucune trajectoire ne soit droite.
-   - **Fusion :** deux gouttes qui se touchent n'en font qu'une, par une grille de hachage.
-   - **Mort :** sortie de la vitre, ou évaporation. Le séchage est réglé sur la durée d'un vol, pas d'une image.
-3. **Le dépôt :**
-   - chaque goutte écrit sa calotte dans la carte, et laisse une fine pellicule sur son passage ;
-   - la carte s'efface lentement, plus vite dans l'air rapide.
-4. **Le rendu dans `ShipGlass.hlsl` :**
-   - normale tirée de la carte, lissée ;
-   - réfraction de la scène par cette normale ;
-   - Fresnel et croissant de ciel ;
-   - la pellicule floute à peine la vue.
-5. **Vérifier :**
-   - **en vol :** entrer dans un nuage et en sortir, à 30, 150 et 500 m/s ; pluie sous un cumulus ; arrêt au sol ;
-   - **en capture :** une suite d'images, pas une image seule.
+1. **The water map:**
+   - two textures in the plane of the ship, which cover the two windows, 1,9 × 4,4 m, at 1,2 mm the texel;
+   - the map, in R32_UINT: the water level and the number of the highest drop, for fusions;
+   - the film, in R32_FLOAT: the water left on the passage of the drops;
+   - the glass is flat, made of two triangles: no UV to create, the plane of the ship is enough.
+2. **Droplets in particles** (`ShipWater.hlsli`, compiled in calculation by `ShipWaterMove.hlsl`, `ShipWaterSplat.hlsl` and `ShipWaterClear.hlsl`), a few thousand in a buffer:
+   - **Birth:** in rain, in impacts; in cloud, by the capture of the film, which gathers in drops. These droplets then grow by half a millimeter per second, until they drop.
+   - **Forces:**
+     - gravity in the plane of the glass;
+     - the drag of the air, backwards, squared on the speed; the drop bathes in the limit layer, where the air goes only at a tenth of the speed of the vessel;
+     - a static friction threshold, increasing for small droplets;
+     - the attraction of the wet, for the meanders;
+     - a noise surface, so that no trajectory is straight.
+   - **Fusion:** two drops that touch make one, by a hash grid.
+   - **Death:** exit of the glass, or evaporation. Drying is set to the duration of a flight, not an image.
+3. **Deposit:**
+   - each drop writes its cap in the map, and leaves a thin film on its passage;
+   - the card fades slowly, faster in fast air.
+4. **The rendering in `ShipGlass.hlsl`:**
+   - normal drawn from the card, smoothed;
+   - refraction of the scene by this normal;
+   - Fresnel and crescent sky;
+   - the film barely blurs the view.
+5. **Check:**
+   - **in flight:** entering and exiting a cloud at 30, 150 and 500 m/s; rain under a cumulus; ground stop;
+   - **in capture:** a sequence of images, not a single image.
 
-**Le givre reste tel quel.** **La buée est retirée** : un voile sur tout le verre brouillait la vue sans rien montrer du temps.
+**The frost remains as it is.** **The fog is removed**: a veil on all the glass blurred the view without showing anything of the time.

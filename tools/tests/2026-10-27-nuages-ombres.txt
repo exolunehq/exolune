@@ -1,8 +1,8 @@
-﻿# Ombres des nuages, écrites pour la variante régionale, retirée le 2026-10-30 : ce sont les nuages du jeu. N nuages, C qualité, B silhouette sur le sol, Espace pause, V météo x1/x5, O/P soleil.
-Ombres marines depuis 80 km | 80000 0.5 161.775 80 0 | 5 215
-Ombres marines depuis 300 km | 300000 0.5 161.775 80 0 | -5 245
-Vue régionale depuis 800 km | 800000 0.5 161.775 80 0 | -15 175
-Survol des cumulus | 10000 1.87006 159.44055 35 90 | -15 175
-Nappe depuis 6 km | 6000 0.24004 161.67237 35 90 | -15 175
-Cirrus depuis 15 km | 15000 1.7998 160.83279 40 90 | -15 175
-Région sous un autre soleil | 80000 0.5 161.775 80 0 | 25 200
+# Cloud shadows, written for the regional variant, removed the 2026-10-30: these are the clouds of the game. N clouds, C quality, B silhouette on the ground, Space break, V weather x1/x5, O/P sun.
+Sea shadows from 80 km | 80000 0.5 161.775 80 0 | 5 215
+Sea shadows from 300 km | 300000 0.5 161.775 80 0 | -5 245
+Regional view from 800 km | 800000 0.5 161.775 80 0 | -15 175
+Over the cumulus | 10000 1.87006 159.44055 35 90 | -15 175
+layer from 6 km | 6000 0.24004 161.67237 35 90 | -15 175
+Cirrus from 15 km | 15000 1.7998 160.83279 40 90 | -15 175
+Region under another sun | 80000 0.5 161.775 80 0 | 25 200

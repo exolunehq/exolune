@@ -1,72 +1,72 @@
-# Référence locale guidée par Frostbite
+# Local reference guided by Frostbite
 
-**Au log depuis le 2026-10-30 :** spike clos. Sa recette, les bruits de Frostbite, les profils et l'extinction de 80/km, est reprise par les nuages du jeu, `../spec-nuages.md`. Lanceur, shaders et assets de l'essai : tag `piste/nuages-orbite-spike`. Les commandes ci-dessous décrivent l'essai, pas le lancement courant, `../lancement.md`.
+**Log from the 2026-10-30:** spike closed. Its recipe, the Frostbite noise functions, the profiles and extinction of 80/km, is taken over by the game's clouds, `../spec-nuages.md`. Launcher, shaders and assets of the test: tag `piste/nuages-orbite-spike`. The commands below describe the test, not the current launch, `../lancement.md`.
 
-**État, 27 octobre 2026 :** rendu local et stabilité à l'approche validés en vol par l'utilisateur pour le cumulus et la nappe. Cette version reste le témoin des essais de nouvelles familles. Aucun résultat planétaire validé.
+**State, 27 October 2026:** local rendering and approach stability validated in flight by the user for cumulus and blanket. This version remains the witness of the trials of new families. No planetary results validated.
 
-**Lancer le rendu :**
+**Start rendering:**
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/nuages-frostbite-reference.ps1
 ```
 
-- Météo figée par défaut ; F1–F6 : cumulus ; F7–F11 : nappe ; F12 : deux zones vues de dessus.
-- B : opacité sans éclairage ; C : pas économique48 m / référence24 m ; Espace : pause météo.
-- `-Vue Opacite` ouvre directement le diagnostic3D : blanc opaque, noir transparent.
-- `-Vue Densite` ouvre une coupe2D fixe du vrai champ, indépendante de la caméra.
-- Coupe : ouest à gauche, est à droite, de−64 à+64 km ; altitude0 en bas,10 km en haut ; blanc pour densité≥0,25.
-- Les diagnostics contournent exposition et courbe de tons ; le rendu éclairé les conserve.
-- `-Build -NoLaunch -Vue Rendu`, `Densite` ou `Opacite` recompile seulement la variante choisie.
-- `-Temoin` ouvre Courants C avec ses quatre assets réels figés ; sa météo diffère, ce n'est pas une comparaison à données identiques.
+- Default freeze weather; F1–F6: cumulus; F7–F11: cloud cover; F12: two areas seen from above.
+- B: opacity without lighting; C: not economical48 m / reference24 m; Space: weather break.
+- `-Vue Opacite` directly opens the diagnostic3D: opaque white, transparent black.
+- `-Vue Densite` opens a fixed 2D cut of the real field, independent of the camera.
+- Cut: west to left, east to right, from−64 to+64 km; altitude0 at the bottom,10 km at the top; white for density≥0,25.
+- Diagnostics bypass exposure and tone curve; illuminated rendering preserves them.
+- `-Build -NoLaunch -Vue Rendu`, `Densite` or `Opacite` recompile only the selected variant.
+- `-Temoin` opens Courants C with its four real assets frozen; its weather differs, it is not a comparison to identical data.
 
-**Ce qui vient des sources :**
+**What comes from the sources:**
 
-- Rapport : [Hillaire, Physically Based Sky, Atmosphere and Cloud Rendering in Frostbite, chapitre5](https://media.contentapi.ea.com/content/dam/eacom/frostbite/files/s2016-pbs-frostbite-sky-clouds-new.pdf), en particulier pages33–39.
-- Générateur : [sebh/TileableVolumeNoise, révision1f879a26b89aaa4b5a7f112f14ec149d08057661](https://github.com/sebh/TileableVolumeNoise/tree/1f879a26b89aaa4b5a7f112f14ec149d08057661).
-- Le code C++ original et ses paramètres sont inchangés ; MSVC19.44.35209, exécution4,68 s pour les TGA.
-- `noiseShapePacked.tga` fournit la forme128³ ; `noiseErosionPacked.tga` fournit l'érosion32³.
-- Conversion documentée des axes TGA, canaux RGB égaux et alpha255 ; mips par moyenne3D, sans modification de plage dynamique.
-- Sources et licences : `third_party/FrostbiteNoise/`, `third_party/FrostbiteNoise/README-provenance.md` ; commande et empreintes : `assets/frostbite-reference/noise-manifest.json`.
+- Report: [Hillaire, Physically Based Sky, Atmosphere and Cloud Rendering in Frostbite, chapter5](https://media.contentapi.ea.com/content/dam/eacom/frostbite/files/s2016-pbs-frostbite-sky-clouds-new.pdf), in particular pages33–39.
+- Generator: [sebh/TileableVolumeNoise, revision1f879a26b89aaa4b5a7f112f14ec149d08057661](https://github.com/sebh/TileableVolumeNoise/tree/1f879a26b89aaa4b5a7f112f14ec149d08057661).
+- The original C++ code and its parameters are unchanged; MSVC19.44.35209, execution4,68 s for the TGA.
+- `noiseShapePacked.tga` provides shape128³; `noiseErosionPacked.tga` provides erosion32³.
+- Documented conversion of TGA axes, RGB channels equal and alpha255; mips by mean3D, without dynamic range modification.
+- Sources and licenses: `third_party/FrostbiteNoise/`, `third_party/FrostbiteNoise/README-provenance.md`; order and footprints: `assets/frostbite-reference/noise-manifest.json`.
 
-**Ce qui est choisi pour ce test :**
+**What is chosen for this test:**
 
-- Le rapport ne fournit pas le shader de densité complet ni les réglages artistiques de ses images ; ce prototype n'est pas un port complet de Frostbite.
-- Deux zones de météo dessinées : cumulus autour de0,5°/161,5°, nappe autour de0,5°/162,05°.
-- Carte locale256×128 km, projetée sur une origine fixe0,5°/161,775° ; aucune répartition climatique ou NASA dans cette scène.
-- Les traits de couverture sont explicites et déterministes ; il ne s'agit pas d'une distribution naturelle globale à juger.
-- Profils de densité et d'érosion selon type/hauteur : `profiles-authored.json`, générés depuis les constantes de `tools/gen_frostbite_reference_scene.py`.
-- La table2D de profils est stockée dans le conteneur3D64³ existant, identique sur Z, pour éviter une modification native ; lecture au mip0.
-- Forme à période32 km, détail à4 km ; phases mondiales en double et reste local float, sans déformation ni bande additionnelle.
-- Combinaison fixée : seuil du bruit par couverture, multiplication par profil de densité, puis érosion pondérée par le second canal du profil.
-- Extinction neutre80/km et albédo1 ; quatre intervalles solaires progressifs0,125/0,25/0,5/1 km, échantillonnés au milieu.
-- Intégration analytique par segment conservée ; phase et approximation de second ordre héritées du spike, distinctes du moteur Frostbite complet.
+- The report does not provide the full density shader or artistic adjustments of its images; this prototype is not a full port of Frostbite.
+- Two weather zones drawn: cumulus around 0,5°/161,5°, cloud cover around 0,5°/162,05°.
+- Local map256×128 km, projected on a fixed origin0,5°/161,775°; no climatic or NASA distribution in this scene.
+- Cover traits are explicit and deterministic; it is not a global natural distribution to judge.
+- Density and erosion profiles according to type/hauteur: `profiles-authored.json`, generated from the constants of `tools/gen_frostbite_reference_scene.py`.
+- The 2D profile table is stored in the existing 3D64³ container, identical on Z, to avoid native modification; read to mip0.
+- Form at period32 km, detail at4 km; global phases in double precision and remains local float, without deformation or additional band.
+- Fixed combination: threshold of noise by cover, multiplication by density profile, then erosion weighted by the second channel of the profile.
+- Extinction neutre80/km and albedo1; four solar progressive intervals0,125/0,25/0,5/1 km, sampled in the middle.
+- Segment analytic integration retained; phase and second-order approximation inherited from spike, separate from full Frostbite engine.
 
-**Support et isolation :**
+**Support and insulation:**
 
-- Couche2–8 km ; profils nuls aux deux extrémités.
-- Le support météo entre dans une sphère80 km autour de l'origine fixe ; elle limite le parcours sans dessiner les silhouettes.
-- R météo mip1 moyen, mips2+ maximum conservateur ; sauts du vide mesurés dans le plan local avec marge du filtre.
-- Même exécutable V4 figé et mêmes ressources b1/t24–27 ; seuls les shaders locaux et leurs données changent.
-- Sorties indépendantes : `x64/NuageFrostbiteRefRendu/`, `NuageFrostbiteRefOpacite/`, `NuageFrostbiteRefDensite/`.
-- Témoin validé figé : `x64/NuageFrostbiteReferenceTemoin/`, exécutable, shaders, quatre assets et palette copiés ; empreintes dans `witness.json`.
-- En diagnostic, seule une copie isolée de ToneMap contourne l'exposition ; les anciens binaires et shaders restent intacts.
+- Layer2–8 km; null profiles at both ends.
+- The weather support enters a sphere80 km around the fixed origin; it limits the course without drawing the silhouettes.
+- R weather mip1 average, mips2+ maximum conservative; vacuum jumps measured in the local plane with filter margin.
+- Same frozen V4 executable and same b1/t24–27 resources; only local shaders and their data change.
+- Independent outputs: `x64/NuageFrostbiteRefRendu/`, `NuageFrostbiteRefOpacite/`, `NuageFrostbiteRefDensite/`.
+- Frozen validated witness: `x64/NuageFrostbiteReferenceTemoin/`, executable, shaders, four assets and palette copied; footprints in `witness.json`.
+- In diagnostics, only an isolated copy of ToneMap bypasses the exposure; old binary and shaders remain intact.
 
-**Contrôle court :**
+**Short control:**
 
-- Trois compilations DXC réussies, avertissement de shift préexistant dans Materials.hlsli.
-- Cinq captures : deux familles éclairées, deux silhouettes d'opacité et une coupe de densité ; source et poses dans `x64/FrostbiteReferencePreview/`.
-- La coupe confirme des profils distincts ; l'opacité permet de juger les contours sans l'éclairage.
-- Cumulus : sommets bourgeonnants visibles ; nappe : profil nettement plus mince et encore très lisse.
-- Bruits non constants, mips météo conservateurs, tranches de profils identiques et densité nulle aux limites vérifiés.
-- Temps ponctuels nuages+air :6,52 ms cumulus et5,29 ms nappe dans les captures ; GPU partagé, aucune comparaison statistique ni extrapolation à la planète.
-- Aucun banc complet ni historique temporel ; la validation du rendu et de la stabilité à l'approche vient des vérifications en vol de l'utilisateur.
+- Three successful DXC builds, pre-existing shift warning in Materials.hlsli.
+- Five captures: two illuminated families, two opacity silhouettes and a density cut; source and poses in `x64/FrostbiteReferencePreview/`.
+- The cut confirms distinct profiles; opacity allows to judge the contours without the lighting.
+- Cumulus: visible budging peaks; table: profile significantly thinner and still very smooth.
+- noise functions non-constants, mips weather conservatives, identical profile slices and zero density at the checked limits.
+- Clouds+air point times:6,52 ms cumulus and 5,29 ms nappe in captures; GPU shared, no statistical comparison or extrapolation to the planet.
+- No complete benchmark or time history; validation of rendering and approach stability comes from user in-flight checks.
 
-**Suite retenue :**
+**Follow-up:**
 
-- Compléter d'abord les familles locales avec les [cirrus](spike-nuages-cirrus.md), dans une sortie isolée.
-- Conserver la recette du cumulus et de la nappe validés.
-- Étudier ensuite la répartition de formations plus vastes, le filtrage lointain et l'extension planétaire.
-- Cumulonimbus : piste intéressante retenue pour plus tard ; tours et enclumes à traiter après les familles locales courantes.
-- Aucun commit, tag ni push demandé.
+- First complete the local families with the [cirrus](spike-nuages-cirrus.md), in an isolated exit.
+- Keep the recipe of the cumulus and the valid layer.
+- Next study the distribution of larger formations, distant filtering and planetary extension.
+- Cumulonimbus: experiment interesting retained for later; towers and anvils to be treated after the current local families.
+- No commit, tag or push requested.
 
-**Historique :** [recherche, variantes Wicked et Courants C](spike-nuages-reference-historique.md).
+**History:** [search, variants Wicked and Courants C](spike-nuages-reference-historique.md).

@@ -1,72 +1,72 @@
-# Formations nuageuses régionales
+# Regional cloud formations
 
-**Au log depuis le 2026-10-30 :** spike clos, remplacé par la météo sur la sphère entière, `../spec-nuages.md`. Lanceur et assets de l'essai : tag `piste/nuages-orbite-spike`.
+**Log from the 2026-10-30:** spike closed, replaced by the weather on the whole sphere, `../spec-nuages.md`. Launcher and assets of the test: tag `piste/nuages-orbite-spike`.
 
-**État, 27 octobre 2026 :** premier essai régional prêt pour le vol. Carte inspectée, trois variantes compilées et quatre captures cachées vérifiées. La répartition étendue est visible ; le rendu lointain conserve du grain répétitif et les cirrus des stries.
+**State, 27 October 2026:** First Regional Test Ready for Flight. Map inspected, three variants compiled and four hidden captures verified. The extended distribution is visible; the far rendering retains repetitive grain and cirrus of the striations.
 
-**Retour en vol :** l'utilisateur juge les autres nuages corrects et demande de réduire les cirrus trop réguliers. Le [spike orbital](spike-nuages-orbite.md) poursuit ce travail ; cette version régionale reste figée comme témoin dans `x64/NuageFrostbiteRegionalTemoin/`.
+**Return in flight:** the user judges the other clouds correct and requests to reduce the too regular cirrus. The [spike orbital](spike-nuages-orbite.md) continues this work; this regional version remains frozen as a witness in `x64/NuageFrostbiteRegionalTemoin/`.
 
-**Lancer :**
+**Launcher:**
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/nuages-region.ps1
 ```
 
-- F1–F4 : même centre depuis800,200,80 et30 km ; F11 :500 km.
-- F5–F7 : deux champs de cumulus et la nappe ; F8–F9 : cirrus ; F10 : éclaircie ; F12 : soleil bas.
-- `-Vue Meteo` ouvre la carte fixe ; `-Vue Opacite` ouvre la transmission en3D ; B bascule l'opacité dans le rendu normal.
-- `-Temoin` ouvre la scène locale figée des trois familles, avec sa palette.
-- C : qualité48/24 m ; Espace : pause/reprise ; V : météo×1/×5 ; météo figée au démarrage.
-- `-Build -NoLaunch -Vue Rendu`, `Meteo` ou `Opacite` recompile la variante choisie.
+- F1-F4: same centre from 800, 200,80 and 30 km; F11:500 km.
+- F5–F7: two cumulus fields and the blanket; F8–F9: cirrus; F10: clear; F12: low sun.
+- `-Vue Meteo` opens the fixed map; `-Vue Opacite` opens the 3D transmission; B switches the opacity to normal rendering.
+- `-Temoin` opens the local scene frozen of the three families, with its palette.
+- C: qualité48/24 m; Space: pause/reprise; V: weather×1/×5; weather frozen at start.
+- `-Build -NoLaunch -Vue Rendu`, `Meteo` or `Opacite` recompiles the selected variant.
 
-**Objectif :** juger des formations plus vastes et plus nombreuses à plusieurs distances, en gardant les formes locales comme référence.
+**Objective:** to judge larger and more numerous formations at different distances, keeping local forms as reference.
 
-**Répartition :**
+**Distribution:**
 
-- Carte météo locale de1200×800 km, origine0,5°/161,775° ; projection tangentielle fixe sur les couches sphériques.
-- Nappes fragmentées, front irrégulier, régions d'amas de cumulus, cirrus étendus et grandes éclaircies.
-- Les variations à plusieurs échelles agissent sur la carte météo.
-- Les profils verticaux, textures3D, éclairage et intégration des familles locales sont conservés.
-- La carte est un choix artistique explicite, inspiré du découpage météo/type/forme de Frostbite ; aucune simulation météorologique planétaire n'est revendiquée.
+- Local weather map of1200×800 km, origin0,5°/161,775°; fixed tangential projection on spherical layers.
+- Fragmented cloud cover, irregular front, regions of cumulus clusters, extended cirrus and large clearings.
+- Variations at multiple scales act on the weather map.
+- Vertical profiles, textures3D, lighting and integration of local families are preserved.
+- The map is an explicit artistic choice, inspired by Frostbite's météo/type/forme cut-out; no planetary weather simulation is claimed.
 
-**Isolation :**
+**Isolation:**
 
-- Sources, données et binaires des essais précédents conservés.
-- Témoin des trois familles : `x64/NuageFrostbiteFamiliesTemoin/`, quarante fichiers copiés, empreintes dans `witness.json`.
-- Trois textures3D copiées intégralement depuis `assets/frostbite-families/` ; seule la texture météo2D change.
-- R météo : couverture basse ; G : type nappe/cumulus ; B : cirrus ; A inutilisé.
-- Mip1 de couverture moyen, mips2+ maximum conservateur ; profil de type moyenné.
-- Bornes et enveloppe d'accélération élargies au support régional ; aucun parcours au-delà de la profondeur du terrain.
-- Les segments des deux couches restent triés le long du rayon.
-- Données, paramètres, empreintes et points de test : `assets/frostbite-regional/regional-manifest.json` et `regional-probes.json`.
-- Carte légendée : `assets/frostbite-regional/regional-weather-art-preview.png` ; carte des canaux et recadrage central fournis à côté.
+- Sources, data and binaries of previous trials retained.
+- Witness of the three families: `x64/NuageFrostbiteFamiliesTemoin/`, forty copied files, printed in `witness.json`.
+- Three 3D textures copied entirely from `assets/frostbite-families/`; only the 2D weather texture changes.
+- Weather R: low cover; G: type nappe/cumulus; B: cirrus; A unused.
+- Medium coverage Mip1, conservative maximum Mips2+; averaged type profile.
+- Expanded acceleration envelope and bounds to regional support; no path beyond the depth of field.
+- Segments of both layers remain sorted along the radius.
+- Data, parameters, printouts and test points: `assets/frostbite-regional/regional-manifest.json` and `regional-probes.json`.
+- Legended map: `assets/frostbite-regional/regional-weather-art-preview.png`; channel map and central cropping provided next to it.
 
-**Remise en main :**
+**Remission in main:**
 
-- Examiner d'abord la carte de répartition vue de dessus.
-- Puis compiler le rendu régional et faire quelques captures cachées sur plusieurs lieux et distances.
-- Palette dans `tools/tests/2026-10-27-nuages-region.txt` ; lancement par `tools/nuages-region.ps1`.
-- B : opacité ; C : qualité ; Espace : pause météo ; V : météo×1/×5.
-- Les vérifications en vol appartiennent à l'utilisateur ; aucun banc prolongé.
+- First examine the distribution map viewed from above.
+- Then compile the regional rendering and make some hidden captures over several locations and distances.
+- Pallet in `tools/tests/2026-10-27-nuages-region.txt`; launch by `tools/nuages-region.ps1`.
+- B: opacity; C: quality; Space: weather break; V: weather ×1/×5.
+- In-flight checks belong to the user; no extended benchmark.
 
-**Contrôle effectué :**
+**Control performed:**
 
-- Trois compilations DXC réussies ; avertissement de décalage binaire préexistant dans `Materials.hlsli`.
-- Quatre captures : région depuis800 et80 km, cumulus vus depuis10 km et nappe depuis6 km ; `x64/RegionalPreview/report.json`.
-- Trois textures3D identiques aux sources, recette de densité basse inchangée,11 mips météo conformes, mipsR/B de présence conservateurs et bords vides vérifiés.
-- Témoin complet et sources figées vérifiés intacts.
-- Nuages+air ponctuels :2,93 ms à800 km,5,59 ms à80 km,9,24 ms sur le champ de cumulus,5,15 ms sur la nappe ; GPU partagé, aucune comparaison statistique.
-- Sur les deux lieux proches, le calcul GPU du terrain domine aussi le temps total ; les FPS globaux de ces captures ne mesurent pas le seul coût des nuages.
-- Les captures rendent les limites lointaines explicites ; elles ne valident pas la stabilité en mouvement.
+- Three DXC builds successful; pre-existing binary shift warning in `Materials.hlsli`.
+- Four captures: region from 800 and 80 km, cumulus seen from 10 km and blanket from 6 km; `x64/RegionalPreview/report.json`.
+- Three3D textures identical to the sources, low density recipe unchanged,11 mips weather compliant, mipsR/B presence conservatives and blank edges checked.
+- Full witness and frozen sources checked intact.
+- Spot clouds+air:2,93 ms at 800 km,5,59 ms at 80 km,9,24 ms on the cumulus field,5,15 ms on the table; GPU split, no statistical comparison.
+- On the two nearby locations, the GPU calculation of the field also dominates the total time; the global FPS of these captures do not measure the cloud cost alone.
+- Captures make distant boundaries explicit; they do not validate stability in motion.
 
-**Limites à juger séparément :**
+**Limits to be judged separately:**
 
-- Les bruits3D périodiques peuvent rester reconnaissables sur une grande région.
-- Les mips de bruit ne garantissent pas la conservation de la transparence après seuillage.
-- L'extension permet d'observer ces limites ; elle ne valide pas encore un rendu stable de l'orbite au sol.
-- La couverture et la longueur des parcours peuvent augmenter le coût malgré le saut du vide.
-- Le filtrage lointain, la reconstruction temporelle et la répartition sur toute la planète restent des étapes suivantes.
+- Periodic 3D noise can remain recognizable over a large region.
+- The mips of noise do not guarantee the preservation of transparency after sealing.
+- The extension allows to observe these limits; it does not yet validate a stable rendering of the orbit at the ground.
+- The coverage and length of the routes can increase the cost despite the jump of the vacuum.
+- The distant filtering, the temporal reconstruction and the distribution over the whole planet remain next steps.
 
-**Mémoire :** cumulonimbus retenu pour une étape ultérieure ; tours et enclumes hors du présent essai.
+**Memory:** Cumulonimbus retained for later; tower and anvil out of this test.
 
-**Références :** [familles locales](spike-nuages-cirrus.md) ; [référence Frostbite et provenance](spike-nuages-reference.md).
+**References:** [local families](spike-nuages-cirrus.md); [reference Frostbite and provenance](spike-nuages-reference.md).

@@ -1,165 +1,165 @@
-# Spécification : POC des sommets fixes (CDLOD)
+# Specification: Fixed Tops POC (CDLOD)
 
-Statut : clos après l'étape 3, tag `piste/sommets-fixes-etape3`. Le concept garde le plan glissant : voir la conclusion en fin de document. Fait suite au bilan de `spec-stabilite.md`.
+Status: closed after step 3, tag `piste/sommets-fixes-etape3`. The concept keeps the sliding plan: see the conclusion at the end of the document. Following the review of `spec-stabilite.md`.
 
-## Le but
+## The purpose
 
-**Supprimer le tremblement à la racine :** chaque sommet échantillonne toujours le même point de la planète.
+**Remove the jitter at the root:** each vertex always samples the same point of the planet.
 
-- **Le plan glissant** fait échantillonner le relief en d'autres points à chaque image : c'est la cause du tremblement, mesurée et documentée dans `spec-stabilite.md`.
-- **Ce POC remplace seulement le placement du maillage.** Tout le reste est gardé tel quel :
-  - le bruit complexplanet, recalculé pour chaque sommet à chaque image ;
-  - l'atmosphère, les matériaux, le lissage temporel, l'arrondi des arêtes.
-- **Pas de mémoire, pas de rattrapage, pas de limite de vitesse :** comme aujourd'hui, tout est recalculé à chaque image.
-- **Comparaison directe en vol :** une touche bascule entre le plan glissant et les sommets fixes, avec le même terrain et le même éclairage.
+- **The sliding plane** makes the relief sampled in other points at each frame: this is the cause of the jitter, measured and documented in `spec-stabilite.md`.
+- **This POC only replaces the mesh placement.** Everything else is kept as is:
+  - the noise complexplanet, recalculated for each vertex at each frame;
+  - atmosphere, materials, time smoothing, rounding of edges.
+- **No memory, no catch-up, no speed limit:** as today, everything is recalculated at each frame.
+- **Direct comparison in flight:** one key switches between the sliding plane and fixed vertex, with the same terrain and the same lighting.
 
-## Le principe : la méthode CDLOD
+## The principle: the CDLOD method
 
-Référence : Strugar 2009, *Continuous Distance-Dependent Level of Detail for Rendering Heightmaps*. Adaptée ici à une sphère et à un relief procédural.
+Reference: Strugar 2009, *Continuous Distance-Dependent Level of Detail for Rendering Heightmaps*. Adapted here to a sphere and a procedural relief.
 
-### Le cube et ses carreaux
+### The cube and its tiles
 
-- **Six faces fixes d'un cube,** projetées sur la sphère. Une déformation en tangente égalise la taille des mailles entre le centre et les coins d'une face.
-- **Chaque face est un arbre de carreaux :** un carreau se divise en quatre carreaux deux fois plus petits. Profondeur jusqu'à environ 24 niveaux, pour des mailles de l'ordre du centimètre au sol.
-- **Chaque carreau est une grille de 64 × 64 mailles,** quel que soit son niveau. Seule sa taille change.
+- **Six fixed faces of a cube,** projected on the sphere. A tangent deformation equalizes the size of the grid cells between the center and corners of a face.
+- **Each face is a tile tree:** a tile divides into four tiles twice as small. Depth up to about 24 levels, for grid cells of the order of the centimeter to the ground.
+- **Each tile is a grid of 64 × 64 grid cells,** regardless of its level. Only its size changes.
 
-### Le choix des carreaux, à chaque image
+### The choice of tiles, at each frame
 
-- **Le processeur parcourt l'arbre** depuis les six faces.
-- **Un carreau est divisé** quand la caméra est assez proche pour que ses mailles deviennent trop grandes à l'écran. Les seuils de distance doublent d'un niveau au suivant.
-- **Il est écarté** s'il est hors du champ de vision ou derrière l'horizon, en tenant compte des plus hauts sommets possibles.
-- **Densité :** au pire, celle d'aujourd'hui, environ 7 pixels par maille. Réglable par un facteur de distance.
-- **Coût visé :** moins de 0,1 ms de processeur.
+- **The processor runs the tree** from all six faces.
+- **A tile is split** when the camera is close enough to make its grid cells become too large on the screen. Distance thresholds double from one level to the next.
+- **It is dismissed** if it is out of the field of view or behind the horizon, taking into account the highest possible peaks.
+- **Density:** at worst, today's one, about 7 pixels per grid cell. Adjustable by a distance factor.
+- **Target cost:** less than 0,1 ms of CPU.
 
-### Le fondu de hauteur
+### The fade of height
 
-**C'est lui qui rend les changements de niveau invisibles.** Les sommets ne bougent jamais à l'horizontale.
+**It is he who makes level changes invisible.** Vertices never move horizontally.
 
-- **Dans chaque carreau, on distingue deux sortes de sommets :**
-  - les sommets pairs, qui existent aussi dans le carreau parent, plus grossier ;
-  - les sommets impairs, qui n'existent qu'à ce niveau.
-- **Un sommet impair est tiré vers la surface grossière :** la moyenne de ses deux voisins pairs, prise en position 3D, sur l'arête ou la diagonale du triangle parent.
-- **Le facteur de fondu dépend de la distance du sommet à la caméra :**
-  - 0 près de la caméra : vraie hauteur ;
-  - 1 à la limite du niveau : posé sur la surface grossière ;
-  - entre les deux, il varie en continu.
-- **Le bruit est toujours évalué au point fixe du sommet,** jamais au point fondu : rien ne glisse.
-- **Le filtrage des octaves suit le fondu :** la taille de maille effective passe en continu de celle du niveau à celle du parent. À la limite du niveau, le carreau et son voisin plus grossier calculent donc exactement les mêmes hauteurs, sans fente à la jonction.
-- **Les diagonales des triangles** sont orientées de la même façon à tous les niveaux. Ainsi, une fois entièrement fondu, un carreau coïncide exactement avec son parent.
+- **In each tile, we distinguish two kinds of vertex:**
+  - even vertices, which also exist in the parent tile, coarser;
+  - Odd vertices, which exist only at this level.
+- **An odd vertex is drawn to the rough surface:** the average of its two even neighbors, taken in position 3D, on the edge or diagonal of the parent triangle.
+- **The fading factor depends on the distance from the summit to the camera:**
+  - 0 near the camera: true height;
+  - 1 at the level limit: laid on the rough surface;
+  - between the two, it varies continuously.
+- **The noise is always rated at the fixed point of the top,** never at the melting point: nothing slips.
+- **Octaves filtering follows the fade:** the actual grid spacing is continuously changed from the level to the parent. At the level limit, the tile and its coarser neighbor therefore calculate exactly the same heights, without a gap at the junction.
+- **The diagonals of triangles** are oriented in the same way at all levels. Thus, once completely melted, a tile coincides exactly with its parent.
 
-### Les normales et les bords
+### Normals and Edges
 
-- **La normale vient des sommets voisins,** comme aujourd'hui.
-- **Chaque carreau calcule une rangée de sommets de plus tout autour,** non dessinée. Ses sommets de bord ont ainsi leurs voisins, identiques à ceux du carreau adjacent du même niveau.
-- **Les arêtes du cube :** les carreaux de deux faces voisines partagent les mêmes points de la sphère sur l'arête commune.
+- **The normal comes from neighboring peaks,** as today.
+- **Each tile calculates one more row of vertices around,** not drawn. Its edge vertices have their neighbors, identical to those of the adjacent tile of the same level.
+- **Cube edges:** The tiles of two neighboring faces share the same points of the sphere on the common edge.
 
-### La précision
+### The precision
 
-**Même méthode qu'aujourd'hui : pas de grands nombres soustraits en float.**
+**Same method as today: no large float subtractions.**
 
-- **Le centre de chaque carreau** est calculé en double sur le processeur, en direction sur la sphère et en position relative à la caméra.
-- **Le décalage d'un sommet par rapport à ce centre** est calculé en float, avec des formules qui ne soustraient pas deux nombres proches.
-- **Le bruit reçoit** le centre en double plus ce décalage, comme le compute shader actuel le fait avec le nadir.
+- **The center of each tile** is calculated in double precision on the processor, in direction on the sphere and in position relative to the camera.
+- **The shift of a vertex from this center** is calculated in float, with formulas that did not subtract two close numbers.
+- **The noise receives** the double center plus this offset, as the current compute shader does with the nadir.
 
-### Le calcul et le dessin
+### Calculation and drawing
 
-- **Un seul dispatch de compute pour tous les carreaux retenus :** une liste de carreaux avec centre, axes, niveau et seuils de fondu, puis 67 × 67 sommets par carreau : 65 × 65 dessinés, plus la rangée de bord.
-- **Un seul appel de dessin,** instancié : une grille d'indices commune, et un décalage de sommets par carreau.
-- **Le vertex shader et le pixel shader** reçoivent les mêmes données qu'aujourd'hui, dont la taille de maille, ce qui garde le grain fin et les matériaux.
+- **A single compute dispatch for all tiles selected:** a list of tiles with center, axes, level and fading thresholds, then 67 × 67 vertices per tile: 65 × 65 drawn, plus the edge row.
+- **One single drawing call,** instantiated: a common clue grid, and a vertices offset per tile.
+- **The vertex shader and pixel shader** receive the same data as today, including the grid spacing, which keeps the fine grain and materials.
 
-## Ce qui change pour l'utilisateur
+## What changes for the user
 
-- **Touche M :** bascule entre le plan glissant et les sommets fixes. Le titre de la fenêtre indique le mode.
-- **`MYPLANETENGINE_MESH=fixed`** démarre en sommets fixes, pour les captures et le banc.
-- **Le banc de tremblement :** la caméra reste immobile, et le choix des carreaux se fait comme si elle volait. C'est l'équivalent exact du banc actuel.
+- **M key:** switches between the sliding plane and fixed vertex. The window title indicates the mode.
+- **`MYPLANETENGINE_MESH=fixed`** starts in fixed vertex, for captures and the benchmark.
+- **The benchmark of jitter:** the camera remains immobile, and the choice of tiles is as if it were flying. It is the exact equivalent of the current benchmark.
 
-## Les étapes
+## The steps
 
-1. **Le cube et les carreaux, sans fondu ni rangée de bord :** valider la géométrie, la précision et le choix des carreaux. Les fentes aux jonctions de niveaux sont attendues à ce stade.
-2. **Le fondu de hauteur :** les fentes et les sauts doivent disparaître.
-3. **Les normales,** avec la rangée de bord.
-4. **Le banc de tremblement en sommets fixes,** puis les mesures.
-5. **Le réglage de la densité et du coût.**
+1. **The cube and the tiles, without fade or row of edge:** validate the geometry, precision and choice of tiles. The slots at the level junctions are expected at this stage.
+2. **The height fade:** the slits and jumps must disappear.
+3. **The normal ones,** with the side row.
+4. **The benchmark of jitter in fixed vertex,** then the measurements.
+5. **The adjustment of density and cost.**
 
-## Critères de validation
+## Validation criteria
 
-1. **Tremblement au banc** nettement sous celui du plan glissant, sans lissage temporel, sur les vues de montagne et de plaine.
-2. **Pas de fente visible** aux jonctions de niveaux ni aux arêtes du cube.
-3. **Pas de saut visible** quand un carreau se divise ou se regroupe. Seule la montée progressive du relief fin à l'approche est acceptée.
-4. **Coût :** calcul GPU au pire comparable à aujourd'hui, au plus deux fois plus. Processeur sous 0,1 ms.
-5. **Jugement en vol,** avec la bascule entre les deux modes.
+1. **jitter to benchmark** clearly below that of the sliding plane, without temporal smoothing, on mountain and plain views.
+2. **No visible slit** at the level junctions or at the edges of the cube.
+3. **No visible jump** when a tile splits or regroups. Only the gradual rise of the fine relief at the approach is accepted.
+4. **Cost:** calculation GPU at worst comparable to today, at most twice as much. Processor under 0,1 ms.
+5. **Flight judgment,** with toggle between the two modes.
 
-## Ce qu'on perd
+## What we lose
 
-- **Le plan qui regarde la caméra,** et sa densification parfaitement continue. Elle est remplacée par des niveaux qui doublent, adoucis par le fondu.
-- **Si le POC est retenu,** le plan glissant pourra rester comme mode de comparaison, puis être retiré.
+- **The shot that looks at the camera,** and its perfectly continuous densification. It is replaced by doubled levels, softened by the fade.
+- **If POC is selected,** the sliding plane can remain as a comparison mode and then be removed.
 
-## Précisions de l'étape 2
+## Details of the stage 2
 
-- **Le fondu couvre toute la plage d'un niveau :** de la distance où le carreau se diviserait, 1,25 fois sa taille, à celle où son parent se regrouperait, 2,5 fois. Chaque sommet évolue ainsi à chaque image pendant toute l'approche.
-- **Distance mesurée au sol sous la caméra,** comme pour le choix des carreaux. Un carreau gardé a tous ses sommets au-delà de son seuil de division, son voisin plus grossier tous les siens au-delà du seuil de regroupement : à leur jonction, le fin est entièrement fondu.
-- **Taille de maille ne dépendant que du niveau :** R × π/2 / (64 × 2^niveau). La déformation en tangente garde la vraie taille à 6 % près. Deux carreaux voisins filtrent ainsi exactement pareil leurs sommets communs.
-- **La maille effective ne dépend que de la distance :** distance / (64 × 1,25), jamais sous la maille du carreau. Elle fixe les octaves du bruit, et le fondu : un sommet d'un niveau de grille commence à fondre quand la maille effective atteint celle de ce niveau, et l'est entièrement quand elle vaut le double.
-- **Le fondu est imbriqué :** à la jonction, le carreau grossier est lui-même en partie fondu vers son parent. Le carreau fin doit donc reproduire ce fondu sur ses sommets du niveau grossier.
-  - Chaque carreau fond tous ses niveaux de grille, du pas de 64 mailles au pas d'une maille, du plus grossier au plus fin.
-  - Un sommet est tiré vers le milieu de ses deux voisins de la grille deux fois plus lâche, tels qu'ils sont déjà dessinés.
-  - La surface dessinée ne dépend ainsi que du point et de sa distance : deux carreaux dessinent pareil leurs points communs, quels que soient leurs niveaux.
-- **Les passes de calcul :** la première évalue les vraies hauteurs. Puis une passe par niveau de grille, sept pour 64 mailles, écrit le maillage dessiné.
+- **Fade covers the entire range of a level:** from the distance where the tile would split, 1,25 times its size, to the distance where its parent would regroup, 2,5 times. Each vertex evolves with each frame during the whole approach.
+- **Distance measured from the ground below the camera,** as for tile selection. A guarded tile has all its vertices beyond its division threshold, its coarser neighbor all its vertices beyond the grouping threshold: at their junction, the end is completely melted.
+- **grid spacing depending only on the level:** R × π/2 / (64 × 2^level). Tangent deformation keeps the true size to 6 % close. Two neighboring tiles filter exactly the same their common vertices.
+- **The actual grid cell depends only on the distance:** distance / (64 × 1,25), never below the grid cell of the tile. It sets the octaves of the noise, and the fade: a vertex of a grid level begins to fade when the actual grid cell reaches that level, and is fully fade when it is worth twice.
+- **The fade is nested:** at the junction, the coarse tile itself is partially blended to its parent. The fine tile must therefore reproduce this fade on its vertices of the coarse level.
+  - Each tile blends all its grid levels, from the pitch of 64 grid cells to the pitch of a grid cell, from the coarsest to the finest.
+  - A vertex is drawn to the middle of its two neighbors of the twice looser grid, as they are already drawn.
+  - The surface drawn depends only on the point and its distance: two tiles draw the same common points, regardless of their levels.
+- **The calculation passes:** the first one evaluates the real heights. Then one pass per grid level, seven for 64 grid cells, writes the drawn mesh.
 
-## Précisions de l'étape 3
+## Details of the stage 3
 
-**Défaut vu en vol à l'étape 2 :** une couture d'éclairage le long des bords des carreaux. Chaque carreau calculait la normale de ses sommets de bord avec ses seuls sommets, donc d'un seul côté.
+**Defect seen in flight at step 2:** a seam of lighting along the edges of the tiles. Each tile calculated the normal of its edge vertices with its only vertices, thus on one side.
 
-- **La rangée de bord doit être fondue comme le reste.** Le fondu d'un sommet à une maille du bord demande ses voisins de la grille deux fois plus lâche, donc un sommet à deux mailles, qui demande lui-même un sommet à quatre mailles, et ainsi de suite.
-- **Des rangées à 1, 2, 4 et 8 mailles de chaque bord,** non dessinées. Chacune ne porte que les sommets de son niveau : tous les 1, 2, 4 et 8 sommets. Soit 496 sommets de plus par carreau, 12 % de calcul en plus.
-- **La rangée à 8 mailles n'est pas fondue.** C'est exact tant qu'un carreau ne s'étend pas sur plus de trois niveaux de distance, ce que garantit le choix des carreaux.
-- **Entre deux niveaux, les normales des bords se raccordent aussi :** le petit carreau y est entièrement fondu, et ses différences centrées tombent sur les mêmes triangles que celles du grand carreau.
+- **The edge row must be blended like the rest.** The fading of a vertices to a grid cell edge asks its neighbors in the grid twice as loose, so a vertices to two grid cells, which itself asks a vertices to four grid cells, and so on.
+- **Rows at 1, 2, 4 and 8 grid cells of each edge,** not drawn. Each one carries only the vertices of its level: all 1, 2, 4 and 8 vertices. So 496 more vertices per tile, 12 % more calculation.
+- **The row at 8 grid cells is not blended.** This is true as long as a tile does not extend over more than three levels of distance, which is ensured by the choice of tiles.
+- **Between two levels, the normals of the edges connect also:** the small tile is completely fused with it, and its centered differences fall on the same triangles as those of the large tile.
 
-## Les jointures en T
+## T-joints
 
-**À un changement de niveau, un petit carreau a deux fois plus de sommets sur le bord commun que son grand voisin.** Ses sommets en plus ne sont reliés à rien de l'autre côté : c'est une jointure en T. Si leur hauteur diffère de celle du bord du grand carreau, une fente s'ouvre.
+**At a level change, a small tile has twice as many vertices on the common edge as its large neighbor.** Its vertices are not connected to anything on the other side: it is a T-joint. If their height differs from that of the edge of the large tile, a slot opens.
 
-- **Ce que fait l'étape 2 :**
-  - au contact d'un voisin plus grossier, d'un niveau ou plus, les niveaux de grille plus fins du petit carreau sont entièrement fondus : ses sommets en plus sont placés au milieu exact de leurs deux voisins, donc sur le bord du grand carreau ;
-  - ses autres sommets sont aux mêmes points que ceux du grand carreau, avec les mêmes hauteurs, grâce au filtrage qui suit le fondu.
-- **Ce qui peut rester :** même posé exactement sur le bord, un sommet en T peut laisser des fentes d'une fraction de pixel, par les arrondis du rasteriseur.
-- **Les remèdes classiques, si elles se voient :**
-  - des jupes, petits murs verticaux le long des bords des carreaux, qui bouchent les fentes par en dessous ;
-  - ou une couture : retrianguler le bord du petit carreau pour supprimer les jointures en T.
+- **What the 2 step does:**
+  - on contact with a coarser neighbor, of one level or more, the finer grid levels of the small tile are completely fused: its vertices in addition are placed in the exact middle of their two neighbors, thus on the edge of the large tile;
+  - its other vertexes are at the same points as those of the large tile, with the same heights, thanks to the filtering that follows the fade.
+- **What can remain:** Even placed exactly on the edge, a T-vertice can leave slots of a fraction of a pixel, by the roundings of the rasterizer.
+- **The conventional remedies, if they are seen:**
+  - skirts, small vertical walls along the edges of the tiles, which block the slots from below;
+  - or a seam: retriangle the edge of the small tile to remove the T-joints.
 
-## Résultats de l'étape 1
+## Results of the stage 1
 
-- **Géométrie :** les carreaux se rejoignent, de l'orbite jusqu'au sol. Seules restent quelques fentes aux changements de niveau, attendues avant le fondu.
-- **Défaut trouvé et corrigé :** la tangente du GPU n'est précise qu'à environ 1e-6 en valeur absolue, soit 1 % d'erreur pour les petits angles des carreaux fins. Chaque carreau était 1,5 % trop petit, d'où une fente d'une maille entre tous les carreaux. Remplacée par son développement en série.
-- **Choix des carreaux :** la plage de hauteur d'un carreau est estimée autour du sol sous la caméra, plus ou moins une part de sa taille. Prendre 0 à 8 km pour tous divisait tous les petits carreaux proches jusqu'au centimètre.
-- **Coût, encore trop élevé :**
+- **Geometry:** the tiles join, from orbit to the ground. Only a few slots remain at level changes, expected before the fade.
+- **Fault found and corrected:** the tangent of the GPU is accurate only to about 1e-6 in absolute value, or 1 % error for small angles of thin tiles. Each tile was 1,5 % too small, resulting in a grid cell gap between all tiles. Replaced by its series development.
+- **Tile Choice:** The height range of a tile is estimated around the floor below the camera, plus or minus a part of its size. Take 0 to 8 km for all divided all small tiles close to the centimeter.
+- **Cost, still too high:**
 
-| Vue | Carreaux | Calcul, sommets fixes | Calcul, plan glissant |
+| View | Carreaux | Calculation, fixed vertices | Calculation, sliding plane |
 |---|---|---|---|
-| Montagne, 10 km | 116 | 1,4 ms | 0,3 ms |
+| Mountain, 10 km | 116 | 1,4 ms | 0,3 ms |
 | Plaine, 50 m | 299 | 5,7 ms | 1,2 ms |
 | Sol, 1 m | 446 | 12,3 ms | 3,3 ms |
 
-- **Pourquoi :** un carreau à moitié visible est calculé en entier, quand le plan glissant écarte chaque sommet hors champ. À traiter à l'étape 5 : carreaux plus petits, écart des sommets hors champ dans le compute shader.
+- **Why:** a half-visible tile is calculated in its entirety, when the sliding plane pushes each vertex out of the field. To be processed in step 5: smaller tiles, off-field vertices in the compute shader.
 
-## Résultats des étapes 2 et 3
+## Results of the steps 2 and 3
 
-- **Plus de fente ni de couture visible,** de 10 km à 50 m, en plein comme en fil de fer.
-- **Le relief fin monte en continu à l'approche,** sans saut au découpage d'un carreau.
-- **Coût du calcul en vue plongeante :** 1,6 ms en montagne à 10 km, 6,2 ms en plaine à 50 m.
+- **No visible slit or seam,** from 10 km to 50 m, in solid as in wire.
+- **The fine relief rises continuously as you approach,** without jumping when cutting a tile.
+- **Cost of calculation in plunge view:** 1,6 ms in mountain at 10 km, 6,2 ms in plain at 50 m.
 
-## Conclusion : la fluidité
+## Conclusion: fluidity
 
-**Jugé en vol : le vaisseau semble ralentir puis réaccélérer.** Mesuré par un vol automatique en ligne droite, `MYPLANETENGINE_FLIGHT`, vitesse ×5 :
+**Judged in flight: the ship seems to slow down and then accelerate again.** Measured by automatic straight-line flight, `MYPLANETENGINE_FLIGHT`, speed ×5:
 
-| Vol | Mode | Durée d'une image | Images à-coups | Calcul GPU |
+| Vol | Mode | Duration of an image | Images à-coups | Calculation GPU |
 |---|---|---|---|---|
-| Montagne, 800 m | Plan glissant | 3,6 ms, régulière | 0,5 % | 0,8 ms |
-| Montagne, 800 m | Sommets fixes | 12 ms, de 3,6 à 23 ms | 34 % | 7,5 ms, jusqu'à 17 |
-| Plaine, 70 m | Plan glissant | 3,6 ms, régulière | 0 % | 0,7 ms |
-| Plaine, 70 m | Sommets fixes | 8,5 ms | 1,5 % | 5,2 ms |
+| Mountain, 800 m | Plan glissant | 3,6 ms, regular | 0,5 % | 0,8 ms |
+| Mountain, 800 m | Fixed summits | 12 ms, from 3,6 to 23 ms | 34 % | 7,5 ms, up to 17 |
+| Plaine, 70 m | Plan glissant | 3,6 ms, regular | 0 % | 0,7 ms |
+| Plaine, 70 m | Fixed summits | 8,5 ms | 1,5 % | 5,2 ms |
 
-- **Le coût suit le nombre de carreaux retenus,** qui varie avec le relief et la vue : de 179 à 417 sur le vol en montagne. Une image qui dépasse la période de l'écran attend le rafraîchissement suivant : le mouvement saccade.
-- **Le plan glissant calcule toujours le même nombre de sommets :** coût constant, images régulières. C'est la force du concept.
-- **Cause secondaire :** la vitesse suit la hauteur au-dessus du sol, calculée ici avec toutes les octaves. Elle saute jusqu'à 22 % d'une image à l'autre, contre 5 % pour le plan glissant.
-- **Décision :** le POC reste sur sa branche, et on revient au plan glissant. Ses acquis réutilisables : le fondu imbriqué, la tangente en série et le vol automatique.
+- **The cost follows the number of tiles retained,** which varies with the relief and the view: from 179 to 417 on the mountain flight. An image that exceeds the screen period waits for the next refresh: the motion is jagged.
+- **Sliding plane always calculates the same number of vertices:** constant cost, regular images. That's the strength of the concept.
+- **Secondary cause:** the speed follows the height above the ground, calculated here with all octaves. It jumps up to 22 % from one frame to another, compared to 5 % for the sliding plan.
+- **Decision:** the POC stays on its branch, and we return to the sliding plane. Its reusable achievements: the nested fade, the tangent in series and the automatic flight.

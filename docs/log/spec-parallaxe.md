@@ -1,55 +1,55 @@
-# Spécification : la parallaxe du relief des matériaux
+# Specification: the parallax of the relief of materials
 
-Statut : première version faite le 2026-10-22, à juger en vol.
+Status: first version made the 2026-10-22, to be judged in flight.
 
-## Le constat
+## The finding
 
-- **Le maillage ne porte une forme qu'à partir de huit mailles par longueur d'onde,** `MATERIAL_RELIEF_BAND`. Une marche de 2 m n'apparaît dans la géométrie qu'à une vingtaine de mètres.
-- **Avant, les pixels ne la montrent que par l'éclairage.** Le relief est plat, seule la lumière le dessine.
-- **En approchant, la forme surgit donc dans les derniers mètres :** les corniches se creusent, et l'utilisateur voit les sommets bouger.
+- **The mesh bears a form only from eight grid cells per wavelength,** `MATERIAL_RELIEF_BAND`. A step of 2 m appears in the geometry only at about twenty meters.
+- **Before, pixels show it only by the lighting.** The relief is flat, only the light draws it.
+- **As you approach, the shape appears in the last meters:** the cornices are digging, and the user sees the summits move.
 
-## Le principe : la profondeur dans les pixels, avant le maillage
+## The principle: depth in pixels, before the mesh
 
-**La parallaxe par occultation,** la technique standard des moteurs : le pixel suit son rayon de vue dans le relief et prend les matériaux au point où le rayon touche la surface.
+**Parallax by occultation,** the standard engine technique: the pixel follows its viewing radius in the relief and takes materials at the point where the radius touches the surface.
 
-- **Elle ne montre que le relief que le maillage ne porte pas encore :** le relief entier, moins sa part portée, `gMeshReach` fois le relief filtré à la maille. À mesure que le maillage le prend, la parallaxe s'efface d'elle-même. Le passage de l'un à l'autre ne change donc pas la forme vue.
-- **Le relief suivi :** celui de la roche, la tuile de 8 m, la tuile de 64 m et la colonne stratigraphique. Ce sont eux qui portent les corniches. Le sable, l'herbe et les éboulis gardent leur relief dans l'éclairage seul : quelques centimètres.
-- **Pour le coût :**
-  - la famille de roche dominante seulement ;
-  - le plan de projection dominant seulement ;
-  - douze pas, puis un affinage ;
-  - seulement sur la roche, et seulement là où le relief résiduel dépasse le pixel.
-- **Ce qui ne change pas :** la profondeur écrite, donc les silhouettes contre le ciel, qui restent celles du maillage. Elles viendront avec lui.
+- **It shows only the relief that the mesh does not carry yet:** the whole relief, less its portion carried, `gMeshReach` times the relief filtered to the grid cell. As the mesh takes it, the parallax disappears by itself. The transition from one to the other does not change the shape seen.
+- **The relief followed:** that of the rock, the tile of 8 m, the tile of 64 m and the stratigraphic column. They are the ones who carry the cornices. Sand, grass and scree keep their relief in the lighting alone: a few centimeters.
+- **For the cost:**
+  - the dominant rock family only;
+  - the dominant projection plane only;
+  - twelve steps, then a refinement;
+  - only on the rock, and only where the residual relief exceeds the pixel.
+- **What does not change:** the depth of writing, so the silhouettes against the sky, which remain those of the mesh. They will come with him.
 
-## La mesure
+## The measure
 
-- **La vue de la corniche,** de `2182.0 31.16045 8.58814 1.9 -17.1` à `2181.5 31.16051 8.58812 2.3 -11.8` : la forme doit se voir dès 11 m et ne plus surgir.
-- **Le banc de tremblement** sur les mêmes positions.
-- **Le coût de rendu** au constat, au site de la roche et à la corniche.
+- **The view of the cornice,** from `2182.0 31.16045 8.58814 1.9 -17.1` to `2181.5 31.16051 8.58812 2.3 -11.8`: the shape must be seen from 11 m and no longer arise.
+- **The benchmark of jitter** on the same positions.
+- **The cost of rendering** at the discovery, at the site of the rock and at the cornice.
 
-## Critères de validation
+## Validation criteria
 
-- **La corniche a sa profondeur dès 11 m,** et le passage au maillage ne se voit plus.
-- **Pas de tremblement en plus.**
-- **Coût :** moins de 1 ms de rendu en plus.
+- **The cornice has its depth from 11 m,** and the transition to mesh is no longer visible.
+- **No jitter in addition.**
+- **Cost:** less than 1 ms of additional rendering.
 
-## Résultats de la première version
+## Results of the first version
 
-- **La corniche a sa profondeur dès 11 m :** le creux sous le replat se voit déjà, comme à 5 m. Sans parallaxe, il n'apparaissait qu'avec la géométrie.
-- **Ce qui est suivi :** la tuile de 64 m et la colonne stratigraphique, moins leur part portée par le maillage. La tuile de 8 m, quelques dizaines de centimètres, reste dans l'éclairage.
-- **Huit pas,** puis une interpolation du point de contact. La parallaxe s'efface là où elle déplacerait le point de moins de trois à six pixels.
-- **Coût,** même build avec et sans parallaxe, au minimum de trois passages : +0,8 ms au constat, +1,0 ms à la corniche et au site de la roche, rien à 56 km. À la limite du budget.
-- **Tremblement :**
+- **The cornice has its depth from 11 m:** the hollow under the plate is already visible, as at 5 m. Without parallax, it only appeared with geometry.
+- **What is followed:** the 64 m tile and stratigraphic column, less their share carried by the mesh. The tile of 8 m, a few tens of centimeters, remains in the lighting.
+- **Eight steps,** then an interpolation of the contact point. The parallax is erased where it would move the point less than three to six pixels.
+- **Cost,** same build with and without parallax, at least three passages: +0,8 ms to the observation, +1,0 ms to the cornice and the rock site, nothing at 56 km. Within budget.
+- **jitter :**
 
-| Avec / sans lissage | Sans parallaxe | Avec |
+| With / without smoothing | No Parallel | With |
 |---|---|---|
 | Corniche, 11 m | 0,17 / 0,89 | 0,22 / 1,41 |
 | Corniche, 5 m | 0,31 / 1,84 | 0,34 / 2,12 |
 | Constat | 0,39 / 2,78 | 0,40 / 2,83 |
 
-- **À faire si le coût gêne :** un seul calcul de la colonne par pas au lieu d'un par famille, ou moins de pas pour les pixels lointains.
+- **To do if cost is a problem:** a single column calculation per step instead of one per family, or fewer steps for distant pixels.
 
-## L'outil : des bancs qui ne prennent plus le focus
+## The tool: benchmarkss that no longer take the focus
 
-- **Les captures et le banc de tremblement rendent sans afficher la fenêtre.** L'exécutable écrit son titre dans `<capture>.txt`, que `tools/capture.ps1` relit.
-- **Les mesures de coût se comparent entre builds de même génération :** une fenêtre cachée n'est pas limitée par la synchronisation verticale, ce qui change les temps GPU mesurés.
+- **Captures and benchmark from jitter render without displaying the window.** The executable writes its title to `<capture>.txt`, which `tools/capture.ps1` reads back.
+- **Cost measurements are compared between builds of the same generation:** a hidden window is not limited by vertical sync, which changes the measured GPU times.

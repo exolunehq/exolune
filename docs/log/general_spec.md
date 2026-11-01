@@ -1,118 +1,118 @@
-# Spécifications techniques et fonctionnelles
+# Technical and functional specifications
 
-## Objectif du moteur
+## Engine objective
 
-Créer un moteur 3D performant sous DirectX pour un jeu vidéo spatial capable de :
+Create a 3D engine that performs under DirectX for a space game capable of:
 
-* Afficher une planète en temps réel, de l'espace jusqu'à l'atterrissage à sa surface.
-* Générer dynamiquement un terrain détaillé en fonction de la position et de l'orientation de la caméra.
+* View a planet in real time, from space to landing on its surface.
+* Dynamically generate detailed terrain based on camera position and orientation. View more
 
-## Fonctionnalités Principales
+## Main features of the app
 
-### Vue Générale
+### General view of the
 
-* Transition fluide entre les vues spatiales (vue planétaire distante) et locales (surface détaillée de la planète).
+* Seamless transition between space (distant planetary view) and local (detailed planet surface) views.
 
-## Génération du terrain planétaire
+## Generation of the planetary terrain
 
-### Principes de base
+### Basic principles
 
-* Utilisation d'un mesh plane initiale constituée d'un nombre déterminé de vertices, positionnée à une certaine altitude par rapport au centre orbital de la planète.
-* La mèche doit toujours être orientée face à la position caméra afin de maximiser l’efficacité du rendu.
+* The initial plane mesh consists of a certain number of vertices, positioned at a certain altitude relative to the orbital center of the planet.
+* The wick should always be oriented facing the camera position to maximize the efficiency of the rendering.
 
-### Méthodologie de génération
+### Generation methodology
 
-* Chaque frame :
+* Each frame:
 
-  1. Positionner la mesh :
+  1. Position the mesh:
 
-     1. **Positionnement :**
+     1. **Positioning:**
 
-        * Le centre du mesh doit être situé exactement sur la droite reliant le centre de la planète à la caméra.
-        * La position du mesh doit se trouver à une distance exacte de **6 378 km** du centre de la planète, soit à la surface terrestre.
+        * The center of the mesh must be located exactly on the line connecting the center of the planet to the camera.
+        * The position of the mesh must be at an exact distance of **6 378 km** from the center of the planet, or to the Earth's surface.
 
-     2. **Orientation :**
+     2. **Orientation:**
 
-        * Le mesh doit être orienté selon le plan tangent à la surface de la planète au point déterminé précédemment.
-        * L'orientation du mesh doit être perpendiculaire au vecteur reliant le centre de la planète et la caméra (la normale du mesh correspond exactement à ce vecteur).
+        * The mesh must be oriented according to the plane tangent to the surface of the planet at the point determined previously.
+        * The orientation of the mesh must be perpendicular to the vector connecting the center of the planet and the camera (the normal of the mesh corresponds exactly to this vector).
     
-    Implémentation pratique possible :
-    1. On positione la mesh au centre de la planète (0,0,0)
-    2. On l'oriente simplement pour qu'elle face toujours face à la position de la caméra.
-    3. On déplace les coordonées des vertices pour qu'ils soient à 6,378km du centre. Comme on est dans
-    l'espace relatif de la mesh, en fait on a juste à élever les vertices (donc on pourrait même le faire avant le point 2 si on voulait)
-    4. Enfin on normalize pour sphériser. 
+    Possible practical implementation:
+    1. We position the mesh at the center of the planet (0,0,0)
+    2. It is simply oriented so that it always faces the camera position.
+    3. We move the coordinates of the vertices so that they are at 6,378km from the center. As we are in
+    the relative space of the mesh, in fact we just have to raise the vertices (so we could even do it before the point 2 if we wanted)
+    4. Finally we normalize to spherize.
 
-     ### Résumé en termes techniques
+     ### Summary in technical terms
 
-     * **Centre du mesh** : Position du point tangent sur la surface de la planète, déterminé par l'intersection de la droite reliant le centre de la planète à la caméra.
-     * **Normale du mesh** : Vecteur dirigé du centre de la planète vers la caméra.
-     * **Distance exacte** : Rayon terrestre de 6 378 km.
+     * **Mesh center**: Position of the tangent point on the planet surface, determined by the intersection of the line connecting the center of the planet to the camera.
+     * **Normal mesh**: Vector directed from the center of the planet to the camera.
+     * **Exact distance**: Earth radius of 6 378 km.
 
-  2. Normaliser les vertices pour obtenir une courbure sphérique naturelle de la mesh.
+  2. Normalize the vertices to obtain a natural spherical curvature of the mesh.
 
-  3. Subdivision de la mesh
+  3. Subdivision of the mesh
 
-     #### 1. Subdivision adaptative en "toile d'araignée"
+     #### 1. Adaptive subdivision into "spider web"
 
-     * La subdivision suit un schéma radial, similaire à une toile d'araignée, avec une forte densité de subdivision au centre.
-     * La densité de subdivision diminue progressivement à mesure que l'on s'éloigne du centre vers les bords du mesh.
+     * The subdivision follows a radial pattern, similar to a spider web, with a high density of subdivision in the center.
+     * The subdivision density gradually decreases as one moves away from the center to the edges of the mesh.
 
-     #### 2. Détermination dynamique du centre de subdivision
+     #### 2. Dynamic determination of the subdivision center
 
-     * Le centre de la toile ne correspond pas forcément au centre géométrique du mesh.
-     * Le centre est déterminé dynamiquement en temps réel, en fonction de :
+     * The center of the canvas does not necessarily correspond to the geometric center of the mesh.
+     * The center is determined dynamically in real time, based on:
 
-       * La position de la caméra par rapport au mesh.
-       * Le vecteur de regard (direction du regard) de la caméra.
-       * L'intersection entre le vecteur de regard et le mesh (point focal).
+       * The position of the camera relative to the mesh.
+       * The viewing vector (direction of viewing) of the camera.
+       * The intersection between the look vector and the mesh (focal point).
 
-     #### 3. Gestion dynamique du niveau de détail
+     #### 3. Dynamic management of the level of detail
 
-     * Implémentation d'un système de contrôle de détail adaptatif permettant de :
+     * Implementation of an adaptive retail control system to:
 
-       * Ajuster dynamiquement la densité du maillage autour du point focal.
-       * Réduire rapidement la densité loin du point focal afin d'économiser des ressources.
-     * Assurer une transition fluide et imperceptible entre les différentes zones de niveaux de détails.
+       * Dynamically adjust the density of the mesh around the focal point.
+       * Rapidly reduce density away from the focal point to save resources.
+     * Ensure a smooth and imperceptible transition between different detail level areas.
 
-  4. Sélectionner uniquement les vertices visibles par la caméra pour optimisation.
+  4. Select only the vertices visible by the camera for optimization.
 
-  5. Envoyer les coordonnées des vertices au Compute Shader pour calcul parallèle.
+  5. Send the vertex coordinates to the Compute Shader for parallel computing.
 
-  6. Appliquer des fonctions de bruit cohérent imbriquées (Coherent Noise) pour calculer les élévations de chaque vertice.
+  6. Apply nested coherent noise functions (Coherent Noise) to calculate the elevations of each vertex.
 
-  7. Appliquer les élévations aux vertices
+  7. Applying elevation to vertices
 
-  8. Générer un rendu coloré cohérent selon l'élévation (ex : bleu pour eau, marron pour terre, blanc pour neige).
+  8. Generate a consistent color rendering according to elevation (ex: blue for water, brown for earth, white for snow).
 
-### Optimisation des performances
+### Optimizing performance
 
-* Utilisation intensive du GPU via des Compute Shaders (GP-GPU).
-* Génération uniquement des vertices visibles pour éviter le gaspillage des ressources GPU.
+* Intense use of the GPU via Compute Shaders (GP-GPU).
+* Generation only of visible vertices to avoid waste of resources GPU.
 
-## Gestion de la Caméra
+## Management of the Camera
 
-### Positionnement et mouvement
+### Positioning and movement
 
-* Initialement positionnée en orbite proche pour le développement.
-* Capacité de se déplacer de façon fluide jusqu’à la surface pour vérifier la cohérence et les performances du rendu en temps réel.
+* Initially positioned in near orbit for development.
+* Ability to move smoothly to the surface to verify consistency and performance of the rendering in real time.
 
 ###
 
-## Spécifications techniques générales
+## General technical specifications
 
-### Technologie et environnement
+### Technology and environment
 
-* DirectX (Direct3D) pour le rendu graphique.
-* Compute Shader pour calcul parallèle intensif (GPGPU).
-* Algorithmes de Coherent Noise imbriqués pour génération procédurale cohérente et réaliste.
+* DirectX (Direct3D) for graphics rendering.
+* Compute Shader for intensive parallel computing (GPGPU).
+* Nested Coherent Noise algorithms for consistent and realistic procedural generation.
 
-### Exigences de performance
+### Performance requirements
 
-* Temps réel avec taux de rafraîchissement fluide (minimum 30-60 FPS).
-* Génération et adaptation instantanée des détails à chaque mouvement ou changement de point de vue de la caméra.
+* Real time with smooth refresh rate (minimum 30-60 FPS).
+* Generate and instantly adapt details to each movement or change of camera view.
 
-## Notes additionnelles
+## Additional notes
 
-* La génération initiale à échelle cosmique (positionnement de systèmes solaires) est prévue mais sera abordée dans un second temps.
-* Ce document est évolutif, devant être enrichi au fur et à mesure de l'avancement technique et des validations intermédiaires.
+* The initial generation on a cosmic scale (positioning of solar systems) is planned but will be addressed in a second step.
+* This document is evolving, to be enriched as technical progress and intermediate validations.

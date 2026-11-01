@@ -1,15 +1,15 @@
-# Mode retiré le 2026-10-30, au tag `jalon/29-avant-ouverture` et `piste/nuages-orbite-spike` : Wicked V2, son exe figé. Par tools\lance.ps1 -Parcours, ces lieux montrent les nuages du jeu ; touches et options ci-dessous, celles d'alors.
-# Wicked V2 : C qualité, N nuages, Espace pause météo, B opacité, V météo x5.
-# Points pris dans la carte générée ; aucune exception de densité aux lieux des tests.
-Champ convectif, depuis le sol | 500 21.621 131.66 -15 90 | 5 135
-Champ convectif, sous la base | 3200 21.621 131.66 -20 90 | 5 135
-Champ convectif, profil et sommet | 4500 21.621 131.66 0 90 | 5 135
-Base douce, approcher et traverser | 3800 21.621 131.66 -2 90 | 5 135
-Champ convectif, au-dessus à 10 km | 10000 21.621 131.66 20 90 | 5 135
-Banc stratiforme, au-dessus à 8 km | 8000 8.613 -165.762 25 90 | 8 -160
-Moyenne distance à 160 km, motifs | 160403.5 21.621 131.66 50 90 | 5 135
-Planète entière, régions et fronts | 8000000 0.5 161.5 90 0 | 5 135
-Région polaire à 400 km | 400000 85 30 90 0 | 60 30
-Front et trouée, à 160 km | 160000 23.027 -98.613 60 90 | 20 -90
-Soleil bas, profil convectif | 4500 21.621 131.66 0 90 | 21 -145
-Même champ, descente depuis 60 km | 60000 21.621 131.66 60 90 | 5 135
+# Mode removed the 2026-10-30, tag `jalon/29-avant-ouverture` and `piste/nuages-orbite-spike`: Wicked V2, its exe frozen. By tools\lance.ps1 -Route, these places show the clouds of the game; keys and options below, those of then.
+# Wicked V2: C quality, N clouds, Weather break space, B opacity, V weather x5.
+# Points taken in the generated map; no density exceptions at test locations.
+Convective field, from the ground | 500 21.621 131.66 -15 90 | 5 135
+Convective field, under the base | 3200 21.621 131.66 -20 90 | 5 135
+Convective field, profile and summit | 4500 21.621 131.66 0 90 | 5 135
+Soft base, approach and cross | 3800 21.621 131.66 -2 90 | 5 135
+Convective field, above at 10 km | 10000 21.621 131.66 20 90 | 5 135
+cloud bank stratiform, above at 8 km | 8000 8.613 -165.762 25 90 | 8 -160
+Average distance to 160 km, patterns | 160403.5 21.621 131.66 50 90 | 5 135
+Whole planet, regions and fronts | 8000000 0.5 161.5 90 0 | 5 135
+Polar region at 400 km | 400000 85 30 90 0 | 60 30
+Front and hole, at 160 km | 160000 23.027 -98.613 60 90 | 20 -90
+Low sun, convective profile | 4500 21.621 131.66 0 90 | 21 -145
+Same field, descent from 60 km | 60000 21.621 131.66 60 90 | 5 135

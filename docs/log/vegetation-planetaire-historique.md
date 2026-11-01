@@ -1,112 +1,112 @@
-# Historique des essais de végétation planétaire
+# History of planetary vegetation tests
 
-**2026-10-27 : premières variantes en vol.**
-- L'hybride volumique est jugé trop coûteux et peu convaincant à distance intermédiaire par l'utilisateur.
-- Les imposteurs purs restent des images à toute distance ; leur agrandissement devient visible à l'approche.
-- La variante `hybrid-impostor` ajoute le maillage proche avec le même relais que l'hybride volumique.
-- Aucun banc ni capture automatique n'est lancé avant ces vols, à la demande de l'utilisateur.
+**2026-10-27: first variants in flight.**
+- The volume hybrid is considered too expensive and unconvincing at intermediate distance by the user.
+- Pure impostors remain images at any distance; their enlargement becomes visible when approaching.
+- The `hybrid-impostor` variant adds the close mesh with the same relay as the volume hybrid.
+- No benchmark or automatic capture is launched before these flights, at the user's request.
 
-**2026-10-27 : clignotement à caméra immobile.**
-- Le premier placement conservait les premiers arrivés par append atomique jusqu'à 65 536 plantes par liste.
-- Le renderer imposait encore une limite de 65 536 par espèce et représentation, après réunion des listes.
-- Dans le titre de l'application pendant le vol, le placement annonce 87 395 plantes lointaines, au-delà de sa capacité.
-- Le renderer annonce aussi 1 134 dépassements dans la file des imposteurs de feuillus.
-- Ces troncatures peuvent changer les plantes retenues selon l'ordre des vagues GPU, même sans mouvement de caméra.
-- Le masque d'opacité utilise déjà le pixel et la graine stable de la plante ; aucun numéro de frame n'y intervient.
-- La correction remplace les sélections saturantes par une compaction déterministe et dimensionne les files aval pour l'union des listes sources.
-- Les valeurs relevées viennent du titre existant de l'application ; elles ne constituent pas un banc de performance.
+**2026-10-27: flashing with a still camera.**
+- The first placement retained first-come first-served per atomic append up to 65 536 plants per list.
+- The renderer still imposed a limit of 65 536 per species and representation, after gathering the lists.
+- In the title of the application during the flight, the placement announces 87 395 distant plants, beyond its capacity.
+- The render also announces 1 134 overruns in the queue of hardwoods impostors.
+- These truncations can change the plants retained according to the order of the waves GPU, even without camera movement.
+- The opacity mask already uses the pixel and the stable seed of the plant; no frame number is involved.
+- The correction replaces saturating selections with deterministic compaction and sizes downstream queues for source list union.
+- The values are from the existing title of the application; they do not constitute a performance benchmark.
 
-**2026-10-27 : modèles photo, rectangles et filtrage matériel.**
-- Le premier raccord utilise le jeune sapin et le jacaranda Poly Haven, même dans les forêts adultes.
-- L'utilisateur juge le raccord et la portée satisfaisants, mais les modèles trop photoréalistes et trop détaillés.
-- Une première optimisation conserve ces modèles pour isoler les rectangles projetés et les textures filtrées par le matériel.
-- La direction choisie ensuite est semi-réaliste stylisée : formes naturelles, feuillage en masses et détails simplifiés.
-- Les modèles photo restent sélectionnables par `-Models photo` ; ils ne sont plus le défaut du lanceur.
+**2026-10-27: photo models, rectangles and material filtering.**
+- The first fitting uses the young spruce and Poly Haven jacaranda, even in adult forests.
+- The user finds the connection and range satisfactory, but the models are too photorealistic and detailed.
+- A first optimization keeps these models to isolate the projected rectangles and textures filtered by the hardware.
+- The direction chosen then is semi-realistic stylized: natural forms, foliage in masses and simplified details.
+- Photo models remain selectable by `-Models photo`; they are no longer the default of the launcher.
 
-**2026-10-27 : essai de bouquets pleins, rejeté.**
-- `tools/foliage/stylise.py` construit un feuillu de 9 720 triangles et un conifère de 8 174 triangles.
-- Le feuillage utilise des volumes opaques lobés, des couleurs douces et des normales lissées, sans feuilles individuelles.
-- L'utilisateur voit des boules et juge cette simplification excessive.
-- La cible est précisée : arbres réalistes de jeu AAA, feuilles et rameaux crédibles ; les masses se composent de feuillage détaillé.
-- `-Models stylized` conserve cet essai ; il n'est plus le défaut du lanceur.
-- La baisse du nombre de triangles ne constitue pas une validation visuelle ni une mesure de gain de FPS.
+**2026-10-27: full bundles test, rejected.**
+- `tools/foliage/stylise.py` builds a hardwood of 9 720 triangles and a conifer of 8 174 triangles.
+- The foliage uses lobed opaque volumes, soft colors and smoothed normals, without individual leaves.
+- The user sees balls and judges this simplification excessive.
+- The target is specified: realistic AAA game trees, credible leaves and twigs; the masses consist of detailed foliage.
+- `-Models stylized` retains this try; it is no longer the launcher's default.
+- The decrease in the number of triangles is not a visual validation or a measure of gain of FPS.
 
-**État présent :** `../vegetation-planetaire.md`.
+**Current condition:** `../vegetation-planetaire.md`.
 
-**2026-10-27 : pointillisme au sol et arbustes pleins.**
-- La capture de l'utilisateur montre un feuillu dont le tronc et les contours se désagrègent en points, devant les anciens arbustes en masses.
-- Vue : `364.2 10.37168 -119.46971 1.1 89.2` ; le titre de la capture annonce 56 FPS, sans constituer un banc.
-- Les imposteurs 128² participaient jusqu'à 512 pixels de hauteur théorique, avec opacité et relais stochastiques.
-- Les maillages proches lisaient les atlas au buffer, sans mipmaps ; les arbustes restaient dans l'ancien renderer.
-- La correction ajoute un relais plus précoce par plante, un alpha-test stable, les mipmaps et un véritable modèle d'arbuste.
-- Aucune mesure ni capture automatique n'a précédé ce nouveau vol, à la demande de l'utilisateur.
+**2026-10-27: pointillism on the ground and full bushes.**
+- The user's screenshot shows a deciduous tree with trunk and contours disintegrating in spots, in front of the old bushes in masses.
+- View: `364.2 10.37168 -119.46971 1.1 89.2`; the title of the capture announces 56 FPS, without constituting a benchmark.
+- The impostors 128² participated up to 512 pixels of theoretical height, with opacity and stochastic relays.
+- The nearby meshes read atlases to the buffer, without mipmaps; bushes remained in the old renderer.
+- The fix adds an earlier relay per plant, a stable alpha test, the mipmaps and a real bush model.
+- No automatic measurement or capture preceded this new flight, at the request of the user.
 
-**2026-10-27 : volume des feuillus et des arbustes.**
-- La demande suivante autorise des itérations hors écran comparées à des photos de forêt, sans viser leur reproduction photographique.
-- La boréale sert de témoin ; le manque de feuilles et le dessin filaire concernent surtout les feuillus et les arbustes.
-- Deux références de structure et de lumière ont été examinées : [Parkhill, Jim Champion](https://commons.wikimedia.org/wiki/File:Broadleafed_woodland_in_summer,_Parkhill,_New_Forest_-_geograph.org.uk_-_210761.jpg) et [A woodland edge, Evelyn Simak](https://commons.wikimedia.org/wiki/File:A_woodland_edge_-_geograph.org.uk_-_1348876.jpg), sous [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/). Les originaux locaux et leurs empreintes sont sous `x64/ForetVolumeComparaisons/references/`.
-- Critères retenus : bouquets hiérarchisés, feuillage orienté dans plusieurs plans, cœurs ombragés, extrémités éclairées, percées irrégulières ; les petits détails seuls ne donnent pas le volume.
-- L'approche d'occlusion précalculée s'appuie sur [Unity, Book of the Dead](https://unity.com/blog/industry/book-of-the-dead-quixel-wind-scene-building-and-content-optimization-tricks) ; l'orientation locale des normales sur [SpeedTree, Card generator](https://docs9.speedtree.com/modeler/doku.php?id=card_generator). Ce projet n'utilise ni Unity ni SpeedTree.
-- Série 1 : modèles sources et éclairage d'origine, puis bouquets plus fournis à éclairage identique (`volume_0`). Les couronnes se remplissent, mais les plans restent lisibles.
-- Série 2 : même géométrie avec forces d'auto-ombrage 0,65 et 1. La force maximale assombrit davantage les cœurs ; 0,65 garde plus de lisibilité.
-- Série 3 : normales foliaires à ancrage local, force 0,65. Géométrie et visibilités identiques à la série 2 ; le modelé progresse sans triangles supplémentaires.
-- Ces séries couvrent huit vues sur quatre biomes et deux soleils ; les six comptes sont identiques et les dépassements nuls dans chaque vue.
-- Les premières mesures GPU partagent la carte avec une autre application : elles ne permettent pas de conclure à un gain ou à une régression de FPS.
-- Le sous-bois noir révèle aussi une erreur préexistante : le couvert lumineux additionne arbres et arbustes, parfois au-delà de 1. La composition par transmission corrige cette règle pour le sol et ses objets.
-- Le banc qualité déclenche ensuite un blocage GPU sur son premier site. Le shader compilé lit le buffer de visibilité même sans sidecar ; son tampon neutre de 24 octets ne couvre pas les sommets. Un tampon complet corrige l'accès ; la vue ciblée est de nouveau capturée.
-- Les étapes intermédiaires, leurs exécutables et leurs assets sont figés et hachés dans `x64/ForetVolumeComparaisons/`.
-- Les 60 vues orthographiques du bake gagnent en moyenne 24,7 % de couverture pour le feuillu et 33,0 % pour l'arbuste, au même rayon et au seuil alpha 0,5. Cela mesure les silhouettes des modèles, pas le couvert planétaire ou les performances.
-- La version finale compose le couvert du sol par union ; le sol du sous-bois redevient lisible dans les vues comparées.
-- Optimisation retenue : lectures couleur et rejet alpha avant normales, profondeur et visibilité. Huit captures identiques bit à bit avant/après ; médiane du dessin de végétation 9,34 → 7,43 ms et p95 30,26 → 26,73 ms sur cette série de 192 images, sans répétitions indépendantes. Les temps globaux restent variables ; aucun gain de FPS garanti.
-- Variante écartée : ignorer les vues de poids exactement nul. Les huit images restent identiques, mais six vues sur huit ralentissent légèrement ; bénéfice global non établi. Le shader retenu garde seulement le rejet transparent précoce.
-- La référence qualité réparée termine les 24 sites sans blocage GPU. Elle dépasse déjà quatorze seuils p95 du canonique condensé à 30 sites ; ces écarts ne peuvent pas être attribués à la variante finale. La comparaison appariée utilise ces mêmes 24 sites.
-- Le candidat V1 termine aussi les 24 sites sans perte GPU, mais échoue à trois seuils : éboulis/50 m, gap +53,48 % et répétition +14,67 % sur quatre crops ; sol/200 m, gap +19,68 % sur 125 crops. Rapport : `x64/ForetVolumeComparaisons/qualite_finale/comparaison_p95.json`.
-- Les coordonnées des crops sont appariées exactement. Les images étiquetées éboulis contiennent une canopée ; celles du sol à 200 m contiennent de minuscules silhouettes végétales. L'analyse CPU voit le feuillage dominer les différences, sans prouver à elle seule une contribution nulle des ombres.
-- Les vues de diagnostic rejettent la végétation planétaire, alors que la couleur la dessine ; l'étiquette du crop ne signifie pas que tous ses pixels visibles sont du sol. Le banc et son seuil restent inchangés ; le candidat n'est pas déclaré validé.
-- Attribution ciblée : modèles sources, force 0, sol et objets avec union corrigée. Les quatre crops éboulis gardent le p95 gap à 1,49814, contre 1,49811 en référence et 2,29934 avec le candidat. Sur les 60 crops sol des seuls sites 23–24 : 2,11036, contre 2,10876 et 2,75590. L'union seule explique très peu ces écarts ; les nouveaux modèles et leur éclairage restent associés dans ce diagnostic. Rapport : `x64/ForetVolumeComparaisons/attribution_union/rapport.json`.
+**2026-10-27: volume of deciduous trees and shrubs.**
+- The following application allows off-screen iterations compared to forest photos, without aiming at their photographic reproduction.
+- The boreal serves as a witness; the lack of leaves and wire patterns are mainly found in deciduous trees and shrubs.
+- Two structure and light references were examined: [Parkhill, Jim Champion](https://commons.wikimedia.org/wiki/File:Broadleafed_woodland_in_summer,_Parkhill,_New_Forest_-_geograph.org.uk_-_210761.jpg) and [A woodland edge, Evelyn Simak](https://commons.wikimedia.org/wiki/File:A_woodland_edge_-_geograph.org.uk_-_1348876.jpg), under [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/). The local originals and their footprints are under `x64/ForetVolumeComparaisons/references/`.
+- Criteria used: hierarchical bouquets, foliage oriented in several planes, shaded hearts, illuminated ends, irregular piercings; small details alone do not give volume.
+- The pre-calculated occlusion approach is based on [Unity, Book of Dead](https://unity.com/blog/industry/book-of-the-dead-quixel-wind-scene-building-and-content-optimization-tricks); the local orientation of normals on [SpeedTree, Card generator](https://docs9.speedtree.com/modeler/doku.php?id=card_generator). This project does not use Unity or SpeedTree.
+- series 1: source models and original lighting, then more bundles supplied to identical lighting (`volume_0`). The crowns fill up, but the plans remain legible.
+- series 2: same geometry with self-shading forces 0,65 and 1. Maximum strength darkens the hearts further; 0,65 keeps more readability.
+- series 3: foliar normals with local anchorage, 0,65 strength. Geometry and visibility identical to series 2; modeling progresses without additional triangles.
+- These series cover eight views on four biomes and two suns; all six accounts are identical and zero overruns in each view.
+- The first measurements GPU share the map with another application: they do not allow to conclude a gain or a regression of FPS.
+- The black undergrowth also reveals a pre-existing error: the luminous cover adds trees and shrubs, sometimes beyond 1. Transmission composition corrects this rule for the ground and its objects.
+- The benchmark quality then triggers a GPU block on its first site. The compiled shader reads the visibility buffer even without sidecar; its neutral buffer of 24 bytes does not cover the vertexes. A full buffer corrects access; the target view is captured again.
+- Intermediate steps, their executables and assets are frozen and hashed in `x64/ForetVolumeComparaisons/`.
+- The 60 orthographic views of the bake gain on average 24,7 % of coverage for the deciduous and 33,0 % for the shrub, at the same radius and at the 0,5 alpha threshold. It measures the silhouettes of the models, not the planetary cover or performance.
+- The final version composes the soil cover by union; the undergrowth soil becomes readable again in the comparative views.
+- Optimisation retained: normal color and alpha rejection readings, depth and visibility. Eight identical captures bit-by-bit avant/après; median of the vegetation pattern 9,34 → 7,43 ms and p95 30,26 → 26,73 ms on this series of 192 images, without independent repetitions. Overall times remain variable; no FPS gain guaranteed.
+- Rejected variant: ignore views of exactly zero weight. All eight images remain identical, but six views out of eight slow down slightly; overall benefit not established. The retained shader only keeps the early transparent rejection.
+- The repaired quality reference ends the 24 sites without blocking GPU. It already exceeds fourteen p95 thresholds of the canon condensed at 30 sites; these deviations cannot be attributed to the final variant. The matched comparison uses these same 24 sites.
+- The candidate V1 also completes the 24 sites without loss GPU, but fails at three thresholds: éboulis/50 m, gap +53,48 % and repeat +14,67 % on four crops; sol/200 m, gap +19,68 % on 125 crops. Report: `x64/ForetVolumeComparaisons/qualite_finale/comparaison_p95.json`.
+- The coordinates of the crops are matched exactly. Images labeled scree contain a canopy; those on the ground at 200 m contain tiny plant silhouettes. The CPU analysis shows that foliage dominates the differences, without proving a zero contribution of shadows.
+- Diagnostic views reject planetary vegetation, while color draws it; the crop label does not mean that all of its visible pixels are from the ground. The benchmark and its threshold remain unchanged; the candidate is not declared validated.
+- Targeted assignment: source models, force 0, ground and objects with corrected union. The four scree crops maintain the p95 gap at 1,49814, against 1,49811 in reference and 2,29934 with the candidate. On the 60 soil crops of the only 23–24 sites: 2,11036, against 2,10876 and 2,75590. The union alone explains very little of these differences; the new models and their lighting remain associated in this diagnosis. Report: `x64/ForetVolumeComparaisons/attribution_union/rapport.json`.
 
-**2026-10-27 : les comparatifs du jalon 24, sortis de la spec le 2026-10-30.**
-- `tools/banc_foret_volume.py` et `tools/foliage/foret_volume_vues.json` fixaient huit vues sur quatre biomes et deux soleils. Retirés le 2026-10-30 : ils visaient l'arbuste unique `game_shrub` et la force d'auto-ombrage réglable.
-- Captures cachées, mêmes caméras, shaders et assets hachés ; 8 images de chauffe puis 24 mesures GPU par vue.
-- Les photos servent de références de structure et de lumière ; elles ne sont pas des scènes recalées pour une métrique pixel à pixel.
-- Les rapports, captures et journaux sont conservés dans `x64/ForetVolumeComparaisons/`.
-- Les premières séries partagent le GPU avec une autre application ; leurs temps ne démontrent aucun gain de FPS.
-- Sur la série appariée après réparation, l'optimisation seule donne un dessin de végétation médian de 9,34 à 7,43 ms, avec huit images identiques bit à bit ; les temps globaux restent variables.
-- Face aux modèles sources, le coût final augmente surtout au cœur des forêts tempérées et tropicales ; ce travail ne constitue pas une validation à 60 FPS.
-- Les buffers de représentation passent de 229,49 à 250,62 Mio sur cette comparaison ; files d'instances et mémoire temporaire exclues.
-- Le banc qualité accepte `--batch-suns --from-sites <rapport détaillé>` pour reproduire les sites et leur soleil dans un seul processus caché.
-- Le rapport condensé `tools/banc_qualite_reference.json` sert à `--before`, et non à `--from-sites`.
-- Les deux passes appariées terminent les mêmes 24 sites sans perte GPU ; les binaires et assets restent identiques à leurs empreintes de départ.
-- Le critère de qualité échoue sur 3 p95 sur 59 : trou d'échelle des éboulis à 50 m (+53,48 %, 4 crops), répétition des mêmes crops (+14,67 %) et trou d'échelle du sol à 200 m (+19,68 %, 125 crops).
-- Ces crops contiennent de la végétation dans la vue couleur, alors que les vues de diagnostic la rejettent ; leur nom de matériau n'isole donc pas le sol réellement visible. Les mesures sont conservées, sans changement de métrique.
-- Le canonique à 30 sites présente quatorze dépassements dans la référence à 24 sites comme dans le candidat ; les lieux différents ne permettent pas d'en attribuer la cause à cette itération.
-- La version est acceptée en l'état par décision utilisateur, avec ces écarts connus ; le seuil automatique reste non satisfait. Détails : `x64/ForetVolumeComparaisons/qualite_finale/comparaison_p95.json`.
+**2026-10-27: comparisons of the milestone 24, released from the spec 2026-10-30.**
+- `tools/banc_foret_volume.py` and `tools/foliage/foret_volume_vues.json` fixed eight views of four biomes and two suns. Removed the 2026-10-30: they targeted the single bush `game_shrub` and adjustable self-shading force.
+- Hidden captures, same cameras, shaders and hashed assets; 8 heat images then 24 measures GPU per view.
+- The photos serve as references of structure and light; they are not scenes set for a pixel-by-pixel metric.
+- Reports, captures, and logs are kept in `x64/ForetVolumeComparaisons/`.
+- The first series share the GPU with another application; their times show no gain from FPS.
+- On the matched series after repair, optimization alone gives a median vegetation pattern of 9,34 to 7,43 ms, with eight identical images bit by bit; the overall times remain variable.
+- Compared to the source models, the final cost increases especially in the middle of temperate and tropical forests; this work does not constitute a validation at 60 FPS.
+- Rendering buffers are changed from 229,49 to 250,62 MiB on this comparison; instance queues and temporary memory excluded.
+- The benchmark quality accepts `--batch-suns --from-sites <rapport détaillé>` to reproduce the sites and their sun in a single hidden process.
+- The condensed report `tools/banc_qualite_reference.json` is used for `--before`, not `--from-sites`.
+- The two paired passes end the same 24 sites without GPU loss; the binaries and assets remain identical to their starting footprints.
+- The quality criterion fails on 3 p95 on 59: scale hole of scree at 50 m (+53,48 %, 4 crops), repetition of the same crops (+14,67 %) and scale hole of the ground at 200 m (+19,68 %, 125 crops).
+- These crops contain vegetation in the color view, while diagnostic views reject it; therefore, their material name does not isolate the actual visible soil. Measurements are retained, without changing the metric.
+- The canonical at 30 sites has fourteen overruns in the reference to 24 sites as in the candidate; the different locations do not allow attributing the cause to this iteration.
+- The version is accepted as is by user decision, with these known deviations; the automatic threshold remains unmet. Details: `x64/ForetVolumeComparaisons/qualite_finale/comparaison_p95.json`.
 
-**2026-10-30 : les modes, les modèles et le lanceur retirés du moteur.**
-- **Retirés par le commit `3a4508a` ;** ils restent au tag `piste/vegetation-relais-fondu`. Le feuillage du jeu reste seul, actif par défaut.
-- **Les représentations retirées :** `hybrid`, volume 64³ au loin et maillage de près ; `volume`, volumes seuls, pour isoler leur comportement ; `impostor`, imposteurs seuls, pour comparer le coût. Les volumes utilisaient la projection des huit coins de leur boîte. Les deux variantes hybrides partageaient le même choix par plante.
-- **Les modèles retirés :** `-Models photo` gardait le jeune sapin et le jacaranda importés pour comparaison ; `-Models stylized`, l'essai de couronnes pleines. Leurs arbres gardaient le masque complémentaire historique à 384–512 pixels, et leurs imposteurs un alpha stochastique. L'arbuste utilisait le même renderer dans les trois jeux de modèles.
-- **Sans catalogue,** le Searsia Lucida restait l'arbuste unique ; `-Assets assets/foliage/volume_look_normals` le retrouvait. Le catalogue est désormais requis.
-- **Le repli bilinéaire des maillages** lisait les atlas bruts, chargés sur GPU pour lui seul ; le chemin actif filtrait déjà par le matériel.
-- **La force d'auto-ombrage** se réglait par `MYPLANETENGINE_FOLIAGE_VOLUME`, de 0 à 1 ; 0 retrouvait l'éclairage historique pour la même géométrie.
-- **Le lancement retiré :**
+**2026-10-30: the modes, models and launcher removed from the engine.**
+- **Removed by commit `3a4508a`;** they remain in the `piste/vegetation-relais-fondu` tag. The game foliage remains alone, active by default.
+- **Removed representations:** `hybrid`, volume 64³ at a distance and mesh at a close; `volume`, volumes alone, to isolate their behavior; `impostor`, impostors alone, to compare cost. The volumes used the projection of the eight corners of their box. Both hybrid variants shared the same per plant choice.
+- **Retired models:** `-Models photo` kept the imported young fir and jacaranda for comparison; `-Models stylized`, the full crown test. Their trees kept the historical complementary mask at 384–512 pixels, and their impostors stochastic alpha. The bush used the same renderer in all three model sets.
+- **Without a catalog,** the Searsia Lucida remained the unique shrub; `-Assets assets/foliage/volume_look_normals` found it. The catalog is now required.
+- **The meshes** bilinear folding read raw atlases, loaded on GPU for itself; the active path was already filtering through the hardware.
+- **The self-shading force** was set by `MYPLANETENGINE_FOLIAGE_VOLUME`, from 0 to 1; 0 returned the historical lighting for the same geometry.
+- **The withdrawn launch:**
 
 ```powershell
 ./tools/lance_planet_foliage.ps1 -Mode hybrid-impostor -Models game
 ```
 
-- Exécutable courant : `x64/FoliageShrubs/MyPlanetEngine.exe` ; le précédent reste sous `x64/FoliagePlanet/`.
-- Le lanceur utilise `tools/lance.ps1` et démarre près de la vue signalée, à 1,6 m du sol ; le cap tronqué de la capture est supposé à −115°.
-- `-Position` accepte cinq valeurs : altitude absolue, latitude, longitude, inclinaison et cap, pour reprendre un vol.
-- `-Sun` accepte la latitude et la longitude du soleil ; par défaut, `20 120`.
-- `MYPLANETENGINE_PLANET_FOLIAGE` active le raccord ; sans cette variable, la végétation habituelle reste utilisée.
-- Le prototype isolé et le mode planétaire ne peuvent pas être activés ensemble.
-- `-Mode hybrid-impostor` est le défaut du lanceur ; `-Mode hybrid` conserve le relais vers les volumes.
-- `-Mode volume` et `-Mode impostor` restent des représentations pures, y compris de près.
-- `-Models game` est le défaut du lanceur ; `-Models photo` retrouve les arbres du prototype précédent.
-- `-Assets` choisit explicitement le dossier des trois espèces ; le moteur ne cherche pas de variante dans ses sous-dossiers.
-- `-Volume` choisit la force d'auto-ombrage ; elle figure aussi dans le titre et les statistiques.
-- `MYPLANETENGINE_PLANET_FOLIAGE_MODELS=game` choisit les nouveaux modèles ; absente, cette variable garde les modèles photo.
-- Les palettes `2026-10-27-vegetation-volume.txt` et `2026-10-27-vegetation-planetaire.txt` restent disponibles par `-Tests`.
-- Le titre indique le jeu de modèles, les FPS, les temps GPU et les comptes de maillages et proxies.
-- **Les outils retirés avec eux :** `tools/foliage/telecharge.ps1` et `sources.json`, qui téléchargeaient les modèles photo ; `tools/foliage/stylise.py`, qui construisait les stylisés ; l'import des modèles photo de `tools/foliage/importe.py`.
+- Current executable: `x64/FoliageShrubs/MyPlanetEngine.exe`; previous one remains under `x64/FoliagePlanet/`.
+- The launcher uses `tools/lance.ps1` and starts near the reported view, at 1,6 m from the ground; the truncated capture course is assumed to be −115°.
+- `-Position` accepts five values: absolute altitude, latitude, longitude, inclination and heading, to resume a flight.
+- `-Sun` accepts the latitude and longitude of the sun; default is `20 120`.
+- `MYPLANETENGINE_PLANET_FOLIAGE` activates the connection; without this variable, the usual vegetation remains used.
+- Isolated prototype and planetary mode cannot be activated together.
+- `-Mode hybrid-impostor` is the default launcher; `-Mode hybrid` keeps the relay to volumes.
+- `-Mode volume` and `-Mode impostor` remain pure representations, including close-up.
+- `-Models game` is the launcher's default; `-Models photo` retrieves the shafts from the previous prototype.
+- `-Assets` explicitly chooses the folder of the three species; the engine does not look for a variant in its subfolders.
+- `-Volume` chooses the auto-shading strength; it is also shown in the title and statistics.
+- `MYPLANETENGINE_PLANET_FOLIAGE_MODELS=game` chooses new models; absent, this variable keeps photo models.
+- The pallets `2026-10-27-vegetation-volume.txt` and `2026-10-27-vegetation-planetaire.txt` remain available by `-Tests`.
+- The title indicates the set of models, the FPS, the GPU times and the meshes accounts and proxies.
+- **The tools removed with them:** `tools/foliage/telecharge.ps1` and `sources.json`, which downloaded the photo models; `tools/foliage/stylise.py`, which built the stylized; the import of the photo models of `tools/foliage/importe.py`.

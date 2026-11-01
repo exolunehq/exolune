@@ -1,119 +1,119 @@
-# Spécification : les brins d'herbe en géométrie
+# Specification: grass strands in geometry
 
-**Au log depuis le 2026-10-30 :** jamais faite. L'herbe proche est venue autrement : des touffes de 40 brins générés, parmi les objets de proximité, `../spec-objets-proximite.md`, étape 2.
+**In the log since the 2026-10-30:** never made. The near grass came otherwise: from tufts of 40 strands generated, among the near objects, `../spec-objets-proximite.md`, step 2.
 
-Statut : proposée le 2026-10-21, révisée après la recherche de `etat-de-l-art-details.md`, à valider. Partie de l'étape E de `spec-rendu.md`, les détails à la surface. Fait suite à la texture d'herbe de l'étape D.
+Status: proposed the 2026-10-21, revised after the search of `etat-de-l-art-details.md`, to validate. Part of the `spec-rendu.md` E stage, details on the surface. Follows the grass texture from step D.
 
-## Le but
+## The purpose
 
-**De vrais brins qui se dressent près de la caméra,** pour donner l'échelle au ras du sol.
+**Real strands that stand near the camera,** to give the scale at ground level.
 
-- **La texture d'herbe de l'étape D** peint le sol : touffes, grain, teintes. Vue de haut, elle suffit.
-- **En vue rasante, elle reste plate :** rien ne se dresse, rien ne se découpe sur le fond. C'est pourtant ce que l'œil prend pour repère d'échelle.
-- **Les brins prolongent la texture,** sans la remplacer : mêmes touffes, mêmes teintes. De loin, la texture seule reste.
+- **The grass texture of step D** paints the floor: tufts, grain, shades. Viewed from above, it is enough.
+- **In a raised view, it remains flat:** nothing rises, nothing is cut on the bottom. Yet this is what the eye takes for scale reference frame.
+- **The strands extend the texture,** without replacing it: same tufts, same shades. From afar, only the texture remains.
 
-## Les deux approches
+## The two approaches
 
-| | Brins en géométrie | Coques |
+|  | Strands in geometry | Shells |
 |---|---|---|
-| **Principe** | Un calcul génère à chaque image les brins proches ; chacun est un petit ruban de triangles, dessiné par instances | Le sol proche est redessiné en 8 à 16 couches superposées ; chaque pixel d'une couche garde ou jette une section de brin |
-| **Vue de haut** | Bien | Bien |
-| **Vue rasante** | Brins dressés, silhouettes sur le fond | Les couches se séparent : piles de disques, pas de silhouette |
-| **Scintillement** | Brins fins à tenir à au moins un pixel de large | Découpe au pixel près, scintille sous le lissage temporel |
-| **Coût** | Proportionnel au nombre de brins | Proportionnel à la surface proche, multipliée par le nombre de couches |
-| **Concept** | Tout par image, sans mémoire | Tout par image, sans mémoire |
+| **Prince** | A calculation generates the nearest strands for each frame; each is a small ribbon of triangles, drawn by instances | The near ground is redrawn in 8 to 16 superimposed layers; each pixel in a layer keeps or throws a strand section |
+| **Top view** | Well | Well |
+| **Raised view** | Straight strands, silhouettes on the background | Layers separate: stacks of discs, no silhouette |
+| **flicker** | Thin strands to hold at least one pixel wide | Cuts to pixel close, sparkles under temporal smoothing |
+| **Cost** | Proportional to the number of strands | Proportional to near surface area, multiplied by number of layers |
+| **Concept** | All by frame, no memory | All by frame, no memory |
 
-**Recommandation : les brins en géométrie.** Seuls ils donnent l'échelle en vue rasante, là où elle manque. Les coques ne font guère mieux que la texture actuelle.
+**Recommendation: strands in geometry.** Only they give the scale in rasant view, where it is lacking. The shells are hardly better than the current texture.
 
-## Le principe retenu
+## The principle adopted
 
-### Une grille fixe sur la planète
+### A grid fixed on the planet
 
-**Chaque brin naît dans une case d'une grille fixe sur la planète :** les six faces d'un cube projetées sur la sphère, comme au POC des sommets fixes.
+**Each strand is born in a square of a fixed grid on the planet:** the six faces of a cube projected on the sphere, as in the POC of fixed vertices.
 
-- **Indices exacts :** une face, puis deux entiers par case. Avec des cases de 3 cm, ils restent sous 2³¹.
-- **Précision :** le processeur calcule en double le centre de la fenêtre de cases autour de la caméra ; le GPU travaille en décalages float depuis ce centre. Méthode et tangente en série reprises du POC, tag `piste/sommets-fixes-etape3`.
-- **Chaque brin est tiré du hachage de sa case :** position dans la case, orientation, hauteur, largeur, courbure, teinte. Rien n'est stocké d'une image à l'autre : le même brin renaît au même endroit, identique.
+- **Exact clues:** one face, then two integers per square. With boxes of 3 cm, they remain under 2³¹.
+- **Precision:** the CPU doubles the center of the window of boxes around the camera; the GPU works in float offsets from this center. Method and tangent in series taken from POC, tag `piste/sommets-fixes-etape3`.
+- **Each strand is drawn from the hash of its box:** position in the box, orientation, height, width, curvature, hue. Nothing is stored from one frame to another: the same strand reappears in the same place, identical.
 
-### Où pousse l'herbe, et combien
+### Where the grass grows, and how much
 
-- **Les brins naissent des touffes :** la densité suit le champ de touffes de la texture d'herbe, `TuftField` dans `PixelShader.hlsl`. Les brins se groupent en touffes, avec des pieds plus clairsemés entre elles.
-- **Seulement là où la texture d'herbe est présente :** même poids que dans `GroundAt`, y compris le mélange par la hauteur avec la neige et la roche.
-- **Même teinte que le sol en dessous :** la couleur du sol est évaluée au pied du brin, par la même fonction que les pixels du sol. Le pied prend cette couleur, la pointe tire vers le jaune-vert. Un brin qui s'efface laisse donc le sol de la même couleur.
-- **Le sol sous l'herbe s'assombrit** selon la densité des brins, par la même fonction.
+- **The strands are born from tufts:** density follows the range of tufts of grass texture, `TuftField` in `PixelShader.hlsl`. The strands are grouped in tufts, with sparser feet between them.
+- **Only where grass texture is present:** same weight as in `GroundAt`, including height mixing with snow and rock.
+- **Same shade as the ground below:** the ground color is evaluated at the base of the strand, by the same function as the ground pixels. The foot takes this color, the tip pulls towards yellow-green. A strand that fades leaves the ground of the same color.
+- **The ground under the grass darkens** according to the density of the strands, by the same function.
 
-### L'éclaircissement avec la distance
+### Lightening with distance
 
-**La densité baisse en continu avec la distance, sans palier.**
+**The density decreases continuously with distance, without step.**
 
-- **Chaque brin reçoit un rang au hasard,** entre 0 et 1. Il est gardé si son rang est sous la densité voulue à sa distance.
-- **Un brin qui va disparaître rapetisse d'abord,** sur une petite marge de rang. Il ne saute pas.
-- **Les brins lointains s'élargissent** pour rester à un pixel au moins, et ne pas scintiller. Moins de brins, plus larges, plutôt que de la transparence.
-- **Au loin, la normale tend vers celle de la touffe :** les reflets ne scintillent plus.
-- **Au-delà d'environ 30 m, plus de brins :** la texture seule, de même teinte moyenne.
-- **Au-dessus de 30 m d'altitude, pas de brins du tout,** avec un fondu entre 20 et 30 m.
+- **Each strand is randomly ranked** between 0 and 1. It is kept if its rank is below the desired density at its distance.
+- **A strand that will disappear shrinks first,** on a small margin of row. He doesn't jump.
+- **The far strands widen** to stay at least one pixel away, and do not flicker. Fewer strands, wider, rather than transparency.
+- **In the distance, the normal tends to that of the tuft:** reflections no longer sparkle.
+- **Beyond about 30 m, no more strands:** the texture alone, of the same medium shade.
+- **Above 30 m altitude, no strands at all,** with a fade between 20 and 30 m.
 
-### Posés sur le sol dessiné
+### Laid on the floor drawn
 
-**Les brins doivent se poser exactement sur le sol qu'on voit,** qui est le maillage glissant.
+**The strands must land exactly on the floor that we see,** which is the mesh sliding.
 
-- **Par inversion du maillage :** la position d'un brin sur la planète donne ses coordonnées dans la face ou dans un anneau, par le calcul inverse de celui des sommets. On lit les trois sommets du triangle qui le porte, et on interpole leur hauteur.
-- **Pas de passe en plus,** et pas de mémoire.
-- **Près de la caméra, le maillage a des mailles de quelques centimètres :** la hauteur glisse de moins d'un millimètre, sans tremblement visible.
-- **Une carte de hauteur locale vue de dessus,** prévue d'abord, reste en réserve si l'inversion se révèle trop coûteuse.
+- **By inversion of the mesh:** the position of a strand on the planet gives its coordinates in the face or in a ring, by the inverse calculation of that of the vertices. We read the three vertices of the triangle that bears it, and we interpolate their height.
+- **No additional password,** and no memory.
+- **Near the camera, the mesh has grid cells of a few centimeters:** the height slides by less than a millimeter, without jitter visible.
+- **A local elevation map, viewed from above,** planned first, remains in reserve if reversal proves too costly.
 
-### Le calcul et le dessin
+### Calculation and drawing
 
-1. **Un calcul par case** de la fenêtre autour de la caméra : il tire le brin, applique la densité, écarte les brins hors champ, et ajoute les autres à une liste.
-2. **Un dessin indirect** des brins de la liste.
+1. **A per-box calculation** of the window around the camera: it pulls the strand, applies density, spreads strands out of the field, and adds the others to a list.
+2. **An indirect drawing** of the strands of the list.
 
-### La forme, d'après Ghost of Tsushima
+### The form, after Ghost of Tsushima
 
-- **Chaque brin est une courbe de Bézier,** réglée par sa hauteur, son inclinaison, sa courbure et son orientation, et s'affine vers la pointe.
-- **Deux niveaux :** 15 sommets jusqu'à environ 15 m, puis 7. Le brin prend la forme simplifiée avant la bascule, sans saut.
-- **Des touffes de Voronoï,** mêlées entre les deux centres les plus proches pour éviter les coutures. La touffe règle la hauteur, la teinte et l'orientation, et les brins penchent vers son centre.
-- **De l'hétérogénéité :** plaques nues, brins secs ou à pointe brune selon un bruit d'humidité lent, 5 à 15 % pour commencer.
+- **Each strand is a Bézier curve,** set by its height, inclination, curvature, and orientation, and tapers toward the tip.
+- **Two levels:** 15 summits up to about 15 m, then 7. The strand takes the simplified form before the swing, without jump.
+- **tufts from Voronezh,** mixed between the two closest centers to avoid seams. The tuft adjusts height, hue and orientation, and the strands lean towards its center.
+- **Heterogeneity:** bare plates, dry strands or brown tip according to a slow moisture noise, 5 to 15 % to start.
 
-### L'éclairage
+### The lighting
 
-- **Normale courbe** le long du brin et en travers, pour qu'il s'éclaire comme un ruban arrondi.
-- **Un brin vu par la tranche** s'épaissit un peu vers la caméra, pour ne pas disparaître.
-- **Un reflet cireux** en vue rasante, en traînées le long du brin.
-- **Translucidité :** un brin à contre-jour laisse passer une part de la lumière, teintée de vert.
-- **Pied plus sombre :** occlusion simple, de la base vers la pointe.
-- **Même chaîne que le sol :** haute dynamique, distance dans l'alpha pour l'atmosphère et le lissage temporel.
-- **Pas d'ombres portées :** le moteur n'en a pas encore. Les ombres de contact à l'écran, de Bend Studio, viendront avec la roche.
+- **Normal curve** along the strand and across, so that it lights up like a rounded ribbon.
+- **A strand seen by the slice** thickens a little towards the camera, so as not to disappear.
+- **A waxy reflection** in rasant view, in trails along the strand.
+- **Translucency:** a backlit strand lets through a part of the light, tinted green.
+- **Darker foot:** single occlusion, from base to tip.
+- **Same track as ground:** high dynamic, distance in alpha for atmosphere and temporal smoothing.
+- **No cast shadows:** the engine does not have any yet. The screen contact shadows, from Bend Studio, will come with the rock.
 
-### Le vent, en option
+### Wind, optional
 
-- **Une courbure qui ondule,** tirée d'un bruit fixe sur la planète qui défile avec le temps.
-- **Le risque le plus fort :** le lissage temporel suppose une scène immobile, et un brin qui bouge laisse une traînée.
-- **Le remède, peu coûteux :** chaque brin étant une fonction du hachage et du temps, on le recalcule à l'image précédente pour écrire son mouvement. Le lissage temporel doit alors lire ce mouvement par pixel. À faire avant le vent.
+- **A curve that waves,** taken from a noise fixed on the planet that scrolls with time.
+- **The greatest risk:** temporal smoothing assumes a still scene, and a moving strand leaves a trail.
+- **The remedy, inexpensive:** each strand being a function of hash and time, we recalculate it to the previous image to write its movement. The temporal smoothing must then read this movement per pixel. To do before the wind.
 
-## Le budget
+## The budget
 
-- **Moins de 1 ms à 2 m du sol,** en 1280 × 720.
-- **Ordre de grandeur :** 50 000 à 100 000 brins visibles. Ghost of Tsushima dessinait environ 83 000 brins en 2,5 ms sur PS4 ; une carte de bureau actuelle devrait tenir 200 000 brins en 1 à 2 ms.
-- **La limite sera le dessin des triangles fins,** pas le calcul : à mesurer tôt.
-- **Rien quand la caméra est haute.**
+- **Less than 1 ms to 2 m from the ground,** in 1280 × 720.
+- **Order of magnitude:** 50 000 to 100 000 visible strands. Ghost of Tsushima drew about 83 000 strands in 2,5 ms on PS4; a current desktop card should hold 200 000 strands in 1 to 2 ms.
+- **The limit will be the drawing of the thin triangles,** not the calculation: to measure early.
+- **Nothing when the camera is high.**
 
-## Les étapes
+## The steps
 
-1. **Les brins immobiles,** sans éclairage soigné : grille, inversion du maillage, densité, éclaircissement.
-2. **La forme et les touffes :** Bézier, deux niveaux, Voronoï, brins secs.
-3. **L'éclairage :** normale courbe, translucidité, pied sombre, teinte du sol.
-4. **Les réglages et les mesures :** densité, distances, coût.
-5. **Le mouvement par pixel pour le lissage temporel,** puis le vent.
+1. **The strands immobile,** without lighting neat: grid, inversion of the mesh, density, lightening.
+2. **The shape and the tufts:** Bézier, two levels, Voronoi, dry strands.
+3. **lighting:** normal curve, translucency, dark foot, ground tone.
+4. **Settings and measurements:** density, distances, cost.
+5. **Motion per pixel for temporal smoothing,** then wind.
 
-## La mesure
+## The measure
 
-- **Le banc de tremblement et le banc de mutation,** sur des vues à 2 m et 10 m au-dessus de l'herbe. Les brins ne doivent ni trembler quand le maillage glisse, ni apparaître par vagues à l'approche.
-- **Le coût GPU,** au pire, l'herbe couvrant tout l'écran.
-- **Le jugement en vol,** au ras du sol et en descente.
+- **The benchmark of jitter and the mutation benchmark,** on views at 2 m and 10 m above the grass. The strands must not shake when the mesh slides, nor appear in waves when approaching.
+- **The cost GPU,** at worst, grass covering the entire screen.
+- **The judgment in flight,** at ground level and in descent.
 
-## Critères de validation
+## Validation criteria
 
-- **L'échelle se lit en vue rasante :** brins dressés, silhouettes sur le fond.
-- **Pas de palier visible** entre les brins et la texture, ni en vol ni en descente.
-- **Pas de scintillement** des brins fins.
-- **Coût :** moins de 1 ms au pire.
+- **The scale is read in raised view:** straight strands, silhouettes on the bottom.
+- **No visible layer** between strands and texture, neither in flight nor in descent.
+- **No flicker** of thin strands.
+- **Cost:** less than 1 ms at worst.

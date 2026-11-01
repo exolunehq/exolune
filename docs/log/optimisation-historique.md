@@ -1,29 +1,29 @@
-# Historique de l'optimisation
+# History of optimization
 
-**Ce qui a servi aux rounds, et ne décrit plus l'état présent** (`../optimisation.md`).
+**What was used for rounds, and no longer describes the present state** (`../optimisation.md`).
 
-## Round 1 : l'analyse de départ
+## Round 1: the initial analysis
 
-**La passe des nuages pèse le plus partout,** de 10 à 51 ms. Un rayon par pixel en pleine résolution, à chaque image ; à chaque pas dans un nuage, quatre échantillons vers le soleil.
+**Cloud passing weighs the most everywhere,** from 10 to 51 ms. One ray per pixel at full resolution, in each frame; with each step in a cloud, four samples towards the sun.
 
-**Ce que coûte chaque part,** mesuré par variantes du shader :
-- **La quadrature lointaine,** quatre rayons de plus par pixel au loin (`spike-nuages-orbite.md`) : 39 ms sur 51 en orbite, 11 sur le globe, 6 en mer, 4 au cumulus. En mer et au cumulus, la caméra sous 14 km l'éteint : ces 6 et 4 ms venaient du poids de son code sur les registres de tous les pixels.
-- **L'ombre des nuages au sol,** une marche vers le soleil par pixel éclairé : 3 à 4 ms près du sol, 1 à 6 ailleurs.
-- **La marche principale, sans ces deux parts :** encore 23 à 35 ms en mer, au cumulus et sur le globe. En rasant l'horizon, un rayon traverse des centaines de kilomètres de couche à pas de 240 m au plus.
+**What each part costs,** measured by shader variants:
+- **The distant quadrature,** four rays more per pixel in the distance (`spike-nuages-orbite.md`): 39 ms on 51 in orbit, 11 on the globe, 6 at sea, 4 at cumulus. In sea and cumulus, the camera under 14 km turns it off: these 6 and 4 ms came from the weight of its code on the registers of all pixels.
+- **The shadow of clouds on the ground,** a walk to the sun per illuminated pixel: 3 to 4 ms near the ground, 1 to 6 elsewhere.
+- **The main march, without these two parts:** still 23 to 35 ms at sea, at cumulus and on the globe. By raking the horizon, a radius crosses hundreds of kilometers of layer at steps of 240 m at most.
 
-## Round 2 : l'analyse de départ
+## Round 2: the initial analysis
 
-**Le dessin du terrain pesait 11 à 17 ms près du sol, et 12 ms en survol.** Le vertex shader et la trame n'en prennent que 0,2 à 0,3 ms : tout est dans le pixel shader.
+**The terrain drawing weighed 11 to 17 ms near the ground, and 12 ms overhead.** The vertex shader and the frame take only 0,2 to 0,3 ms: everything is in the pixel shader.
 
-**Ce que coûte chaque part,** variantes du shader avant la profondeur d'abord, ms en forêt / montagne / survol :
-- **Le sol entier, matériaux et végétation :** 12,4 / 16,6 / 11,4. Le reste, normales, lumière, mer : 0,5 à 0,7.
-- **La végétation :** 4,9 / 7,0 / 5,5.
-- **Les textures :** 5,1 / 9,4 / 4,1.
-- **Les bruits local et de détail :** 2,9 / 3,0 / 2,8.
-- **Les strates :** 0,8 / 0,4 / 1,0 ; quadratures des pentes 0,2 / 1,8 / 0,4 ; normales des splines et pente fine, jusqu'à 0,5 chacune.
+**What each part costs,** shader variants before depth first, ms in forest / mountain / flyover:
+- **The whole soil, materials and vegetation:** 12,4 / 16,6 / 11,4. The rest, normal, light, sea: 0,5 to 0,7.
+- **Vegetation:** 4,9 / 7,0 / 5,5.
+- **The textures:** 5,1 / 9,4 / 4,1.
+- **The local and retail noise functions:** 2,9 / 3,0 / 2,8.
+- **The strata:** 0,8 / 0,4 / 1,0; squares of slopes 0,2 / 1,8 / 0,4; normals of splines and fine slope, up to 0,5 each.
 
-**Après la profondeur d'abord,** ms en forêt / montagne / survol / orbite :
-- **La présence des bois :** 1,5 / 1,8 / 2,6 / 0,6 ; la dalle de la canopée : 0,8 / 1,0 / 1,1 / 0,2 ; `PlantsDrawn` : 0,8 / 0,8 / 0,6 / 0,5.
-- **La roche :** 1,0 / 2,8 / 1,5 / 0,7 ; l'herbe : 1,2 / 0,9 / 0,7 / 0,3.
+**After depth first,** ms in forest / mountain / flyover / orbit:
+- **The presence of wood:** 1,5 / 1,8 / 2,6 / 0,6; the slab of the canopy: 0,8 / 1,0 / 1,1 / 0,2; `PlantsDrawn`: 0,8 / 0,8 / 0,6 / 0,5.
+- **Rock:** 1,0 / 2,8 / 1,5 / 0,7; grass: 1,2 / 0,9 / 0,7 / 0,3.
 
-**Le surcoût des quads,** mesuré après la profondeur d'abord (`IsHelperLane`, modèle 6.6) : 2,0 voies par pixel montré en survol, 1,9 en forêt, 1,6 en montagne et au cumulus, 1,2 en orbite.
+**Quad overhead,** measured after depth first (`IsHelperLane`, model 6.6): 2,0 lanes per pixel shown in flyby, 1,9 in forest, 1,6 in mountain and cumulus, 1,2 in orbit.

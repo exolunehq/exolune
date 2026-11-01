@@ -1,36 +1,36 @@
-# POC : nuage stable et animé
+# POC: stable and animated cloud
 
-**Au log depuis le 2026-10-30 :** POC clos. Les nuages du jeu sont décrits par `../spec-nuages.md`. Sources et lanceur de l'essai : tag `piste/nuages-orbite-spike`, qui contient la branche `codex/nuage-poc`.
+**Log since the 2026-10-30:** POC closed. The clouds in the game are described by `../spec-nuages.md`. Sources and test launcher: tag `piste/nuages-orbite-spike`, which contains the `codex/nuage-poc` branch.
 
-**But :** une formation cohérente quand on s'approche, qui évolue avec le temps. La référence figée a été validée en vol par l'utilisateur le 26 octobre 2026. Cette itération ajoute un mouvement météo partagé et des franges plus légères. Branche `codex/nuage-poc` ; vérifications end to end confiées à l'utilisateur à sa demande.
+**Goal:** a consistent training when approaching, which evolves with time. The fixed reference was validated in flight by the user on 26 October 2026. This iteration adds shared weather movement and lighter fringes. Branch `codex/nuage-poc`; end to end checks entrusted to the user on request.
 
-**Lancer :** `powershell -NoProfile -ExecutionPolicy Bypass -File tools/nuage-poc.ps1`. Ajouter `-Build` après modification, `-Build -NoLaunch` pour compiler seulement. Binaire animé : `x64/NuagePoc/MyPlanetEngineAnime.exe`. Le binaire précédent peut rester ouvert : il est distinct. L'exécutable et les shaders validés sont aussi conservés dans `x64/NuagePocReference/` ; réglages et mesures dans `poc-nuage-stable-historique.md`.
+**Lancer:** `powershell -NoProfile -ExecutionPolicy Bypass -File tools/nuage-poc.ps1`. Add `-Build` after modification, `-Build -NoLaunch` to compile only. Animated binary: `x64/NuagePoc/MyPlanetEngineAnime.exe`. The previous binary can remain open: it is distinct. The executable and validated shaders are also retained in `x64/NuagePocReference/`; settings and measurements in `poc-nuage-stable-historique.md`.
 
-**Contrôles :**
-- **Espace :** mettre en pause ou reprendre la météo, en gardant la caméra libre.
-- **V :** vitesse météo normale ou ×5. La barre de titre donne le temps, la pause et la vitesse.
-- **B :** opacité en blanc sur fond noir, ou rendu éclairé, pour séparer le contour de l'éclairage.
-- **F1–F8 :** loin, approche, bord, entrée, intérieur, autre face, dessus et dessous. Ces vues suivent le déplacement du nuage sans remettre l'horloge à zéro. Le lancement commence sur l'approche, à environ 3,3 km du centre.
-- Flèches pour se déplacer, Page haut/bas pour monter/descendre, bouton droit et souris pour regarder, molette pour la vitesse de vol.
+**Controls:**
+- **Space:** Pause or resume the weather, keeping the camera free.
+- **V:** normal weather speed or ×5. The title bar gives the time, pause and speed.
+- **B:** opacity in white on black, or lighted, to separate the outline of the lighting.
+- **F1–F8:** far, approach, edge, entry, inside, other face, top and bottom. These views follow the cloud's movement without resetting the clock. Launch begins on approach, about 3,3 km from the center.
+- Arrows to move, Page haut/bas to monter/descendre, right click and mouse to look, wheel for flight speed.
 
-**Comparer à temps figé :** `tools/nuage-poc.ps1 -Static`, ou Espace dans l'app. `-Time 60` démarre à 60 secondes ; F2 recale la vue sur le nuage actuel. L'horloge ne dépend ni du nombre d'images, ni du déplacement de caméra, ni des changements de vue. Les bancs sans fenêtre gardent le temps fixé.
+**Compare to fixed time:** `tools/nuage-poc.ps1 -Static`, or Space in the app. `-Time 60` starts at 60 seconds; F2 refocuses the view on the current cloud. The clock does not depend on the number of frames, camera movement, or view changes. The benchmarks without window keep the time set.
 
-**Le mouvement est un champ commun :**
-- Vent vers l'est : rotation partagée autour de l'axe de la planète, 12 m/s à l'équateur, vitesse locale proportionnelle au cosinus de latitude. Le centre et les coordonnées de densité utilisent le même déplacement inverse.
-- Déformation : trois ondes spatiales larges, de périodes 120, 150 et 200 s, évaluées dans les coordonnées de la planète entraînées par le vent. Aucun déphasage lié à l'identité d'un nuage. Déplacements de 80, 40 et 60 m au plus sur les axes de la planète.
-- Détail : remontée commune d'environ 1,71 m/s dans la tuile 3D. Les périodes et le défilement bouclent continûment à 2 400 s ; les phases restent précises en flottants.
-- Coût : même tuile, toujours deux lectures 3D par évaluation de densité ; trois ondes analytiques en plus. Aucun volume animé à recalculer ou cache météo supplémentaire.
+**Movement is a common field:**
+- Wind to the east: shared rotation around the axis of the planet, 12 m/s at the equator, local velocity proportional to the cosine of latitude. The center and density coordinates use the same reverse displacement.
+- Deformation: three wide space waves, periods 120, 150 and 200 s, evaluated in the coordinates of the planet driven by the wind. No phase shift related to the identity of a cloud. Displacements of 80, 40 and 60 m at most on the axis of the planet.
+- Detail: common lift of about 1,71 m/s in the tile 3D. Periods and scroll loop continuously at 2 400 s; phases remain precise in floats.
+- Cost: same tile, always two 3D readings per density evaluation; three analytical waves in more. No animated volumes to recalculate or additional weather cache.
 
-**Aspect moins solide :** extinction maximale de 24 à 16 /km, franges élargies de 0,18 à 0,26 dans le profil puis adoucies au carré, base plus progressive et éclairage diffus de 0,18 à 0,22. Le cœur reste opaque ; l'objectif est une enveloppe plus vaporeuse, pas de rendre tout le cumulus transparent.
+**Less solid appearance:** maximum extinction from 24 to 16 /km, fringes broadened from 0,18 to 0,26 in the profile then softened to square, base more progressive and diffuse lighting from 0,18 to 0,22. The core remains opaque; the goal is a more vaporous envelope, not to make the whole cumulus transparent.
 
-**Ce qui reste de la référence :** quatre lobes centrés à 4 000 m, position relative soustraite en double précision ; ray marching en pleine résolution, au plus 384 pas de 12 m, six points vers le soleil. Sans cascade, damier, jitter, historique temporel ou halo. La touche T garde le lissage désactivé. L'air est inséré au centroïde d'opacité, sans rétroaction sur la forme. Pas d'ombre de ce nuage au sol.
+**What remains of the reference:** four lobes centered at 4 000 m, relative position subtracted in double precision precision; ray marching in full resolution, at most 384 not 12 m, six points towards the sun. Without cascade, checkerboard, jitter, time history or halo. The T key keeps smoothing off. Air is inserted at the opacity centroid, without feedback on the shape. No shadow of this cloud on the ground.
 
-**Critères en vol :** en pause, même stabilité d'approche que la version validée. En marche, le nuage dérive et ses contours évoluent lentement même avec une caméra immobile. Bouger la caméra ne doit pas accélérer ni déclencher cette évolution. La pause reprend sans saut ; F1–F8 ne rajeunissent pas la formation.
+**Flight criteria:** in pause, same approach stability as the validated version. As it moves, the cloud drifts and its contours slowly evolve even with a still camera. Moving the camera should not accelerate or trigger this evolution. The break resumes without jump; F1–F8 do not rejuvenate the formation.
 
-**Portée :** une seule formation dans le POC ; la loi de mouvement est partagée et réutilisable, mais la couverture nuageuse de la planète n'est pas intégrée ici. Les lobes, densités et vitesses sont des réglages de maquette. Le rendu normal reste accessible sans `MYPLANETENGINE_CLOUD_POC`.
+**Scope:** a single formation in the POC; the law of motion is shared and reusable, but the cloud cover of the planet is not integrated here. The lobes, densities and speeds are model settings. The normal rendering remains accessible without `MYPLANETENGINE_CLOUD_POC`.
 
-**Fichiers :** `CloudMotion.hlsli` pour le champ commun, `CloudPoc.hlsli` pour la densité et l'éclairage, `D3DApp.cpp` pour l'horloge et le vent. Tous sous `MyPlanetEngine/`. Le passage plein écran est compilé par DXC pour les itérations rapides.
+**Files:** `CloudMotion.hlsli` for common field, `CloudPoc.hlsli` for density and lighting, `D3DApp.cpp` for clock and wind. All under `MyPlanetEngine/`. The full screen passage is compiled by DXC for fast iterations.
 
-**Contrôles sans fenêtre :** `python tools/banc_nuage_poc.py <exe> <sortie> [--reference <exe-v1>]`. Le banc compare une caméra fixe à plusieurs temps, suit le vent pour isoler la déformation, revient au même temps après d'autres vues et contrôle le raccord de la phase à 2 400 s. Format batch : `sortie.bmp vue hauteur latitude longitude inclinaison cap [faceFactor [weatherTime]]`. `MYPLANETENGINE_WEATHER_TIME` fixe le temps par défaut ; `MYPLANETENGINE_VIEW=clouds` rend l'opacité réellement intégrée. Le banc de qualité planétaire reste hors du périmètre de ce POC local.
+**Windowless controls:** `python tools/banc_nuage_poc.py <exe> <sortie> [--reference <exe-v1>]`. The benchmark compares a fixed camera at multiple times, follows the wind to isolate the deformation, returns at the same time after other views and controls the phase coupling to 2 400 s. Batch format: `sortie.bmp vue hauteur latitude longitude inclinaison cap [faceFactor [weatherTime]]`. `MYPLANETENGINE_WEATHER_TIME` sets the default time; `MYPLANETENGINE_VIEW=clouds` makes opacity actually integrated. The planetary quality benchmark remains outside the perimeter of this local POC.
 
-**Validation de cette itération :** compilation complète et cinq vérifications du banc réussies. Revenir à la même vue et au même temps redonne une opacité identique au pixel près. Déformation visible après compensation du vent et raccord continu à 2 400 s. Vue d'approche : 36 739 pixels partiellement transparents contre 24 907 dans la référence. Rendu médian mesuré à 2,75 ms contre 1,93 ms pour la version complète précédente, sur la même vue de ce poste. Détail et limites dans `../journal-planete.md` ; sorties locales sous `x64/NuagePocAnimationCheck/`. Jugement en vol attendu de l'utilisateur.
+**Validation of this iteration:** complete compilation and five benchmark checks successful. Returning to the same view and at the same time returns the same opacity to the pixel. Visible deformation after wind compensation and continuous connection to 2 400 s. Close-up view: 36 739 partially transparent pixels against 24 907 in reference. Median rendering measured at 2,75 ms versus 1,93 ms for the previous full version, on the same view of this station. Detail and limits in `../journal-planete.md`; local outputs in `x64/NuagePocAnimationCheck/`. Flight judgment expected from the user.

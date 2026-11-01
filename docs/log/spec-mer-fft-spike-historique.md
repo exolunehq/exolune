@@ -1,91 +1,91 @@
-# Spike FFT : mesures du 2026-10-26
+# Spike FFT: measurements of the 2026-10-26
 
-**Piste mesurée :** base 47c404b, tag `piste/mer-fft-spike`, avant le commit du `jalon/22-mer-fft`.
-**État courant :** [spec-mer-fft-spike.md](../spec-mer-fft-spike.md).
-**Sorties locales :** x64/MerFFT/validation et x64/MerFFT/qualite.
+**experiment measured:** base 47c404b, tag `piste/mer-fft-spike`, before commit of `jalon/22-mer-fft`.
+**Current status:** [spec-mer-fft-spike.md](../spec-mer-fft-spike.md).
+**Local exits:** x64/MerFFT/validation and x64/MerFFT/qualite.
 
-**Protocole**
-- Bancs cachés, aucun rendu concurrent du moteur.
-- 1280 × 720 ; Debug x64, shaders optimisés.
-- Temps simulé : 1/60 s par image, vitesse 1 ; vitesse 0 pour la mer figée.
-- Vent contrôlé, direction 70° dans le plan transporté.
-- Mesures réalisées avant le commit du jalon ; ancien prototype conservé au tag `piste/mer-animee`.
+**Protocol**
+- benchmarks hidden, no competing engine rendering.
+- 1280 × 720; Debug x64, shaders optimized.
+- Simulated time: 1/60 s per frame, speed 1; speed 0 for frozen sea.
+- Wind controlled, direction 70° in the transported plane.
+- Measurements made before the commit of the milestone; old prototype kept in the `piste/mer-animee` tag.
 
-**Aspect et coût**
-- Captures à 1 et 3 m, en mer fraîche à 20 m, en tempête à 20 m et sur la vue utilisateur à 142,4 m.
-- Tempête : vent 24 m/s, houle Hs 3,5 m ; capture après 600 images, soit 10 s simulées.
-- Vue utilisateur : 142.4 -44.75718 177.39448 22.5 -151.6 ; soleil 15 165.
-- Les filets blancs continus et les larges bandes translucides du témoin sont absents de cette capture.
-- Les premières captures montraient trop de plis très fins ; choppiness désormais amortie sous 40 cm de longueur d'onde.
-- Coût de la simulation complète : 0,13 ms GPU en mer fraîche et en tempête.
-- Rendu : 1,27 ms, minimum 1,25 ms, en mer fraîche ; 1,12 ms, minimum 1,10 ms, en tempête.
-- Ces temps proviennent du dernier intervalle affiché après 600 images, pas d'un percentile sur une longue session.
-- Côte signalée : 3,50 ms de rendu, minimum 3,35 ms, terrain compris, dans la capture précédente à instrumentation graphique identique.
-- Aspect à valider en vol ; ces mesures ne prouvent pas le réalisme de l'écume.
+**Appearance and cost**
+- Captures at 1 and 3 m, in freshwater at 20 m, in storm at 20 m and on user view at 142,4 m.
+- Storm: wind 24 m/s, swell Hs 3,5 m; capture after 600 images, or 10 s simulated.
+- User view: 142.4 -44.75718 177.39448 22.5 -151.6; sun 15 165.
+- The continuous white nets and broad translucent stripes of the sample are absent from this catch.
+- The first captures showed too many very fine folds; choppiness now dampened under 40 cm wavelength.
+- Cost of full simulation: 0,13 ms GPU in cool sea and storm.
+- Rendering: 1,27 ms, minimum 1,25 ms, in cool sea; 1,12 ms, minimum 1,10 ms, in storm.
+- These times are from the last interval displayed after 600 images, not from a percentile over a long session.
+- Reported slope: 3,50 ms of rendering, minimum 3,35 ms, including terrain, in the previous capture with identical graphical instrumentation.
+- Aspect to be validated in flight; these measurements do not prove the realism of the foam.
 
-**Qualité du terrain**
-- tools/banc_qualite.py --sites 30 --reuse-sites utilise les lieux, caps et matériaux cibles du témoin MerAnimee/bench-qualite-volume/qualite.json.
-- Toutes les couleurs, tous les masques et toutes les variantes de maille sont recalculés.
-- Comparaison requise par --before tools/banc_qualite_reference.json ; référence conservée.
-- Les mêmes 3 891 crops sont retenus ; aucun ajouté ou retiré.
-- 3 888 crops identiques ; dans chacun des trois autres, un pixel change d'un niveau sur 255.
-- Aucun p95 de trou, répétition ou mutation ne régresse de plus de 10 % par rapport au témoin.
-- Les six dépassements suivants de la référence sont strictement identiques à ceux du témoin.
+**Quality of the ground**
+- tools/banc_qualite.py --sites 30 --reuse-sites uses the target locations, caps, and materials of the MerAnimee/bench-qualite-volume/qualite.json. cookie
+- All colors, masks and variants of grid cell are recalculated.
+- Comparison required by --before tools/banc_qualite_reference.json; reference retained.
+- The same 3 891 crops are retained; none added or removed.
+- 3 888 identical crops; in each of the other three, a pixel changes one level on 255.
+- No hole, repetition or mutation p95 regresses by more than 10 % compared to the control.
+- The following six exceedances of the reference are strictly identical to those of the control.
 
-| Matériau | Hauteur | Mesure | Dépassement de la référence |
+| Material | Height | Measure | Exceeding the benchmark |
 |---|---|---|---|
-| Roche | 12 m | Répétition p95 | +14,9 % |
-| Roche | 3 000 m | Trou p95 | +314,3 % ; trois crops seulement |
-| Sable | 50 m | Répétition p95 | +50,8 % |
-| Éboulis | 12 m | Trou p95 | +66,6 % |
-| Neige | 3 000 m | Trou p95 | +21,7 % |
-| Neige | 3 000 m | Répétition p95 | +39,1 % |
+| Rock | 12 m | Repetition p95 | +14,9 % |
+| Rock | 3 000 m | Hole p95 | +314,3 %; only three crops |
+| Sand | 50 m | Repetition p95 | +50,8 % |
+| scree | 12 m | Hole p95 | +66,6 % |
+| Snow | 3 000 m | Hole p95 | +21,7 % |
+| Snow | 3 000 m | Repetition p95 | +39,1 % |
 
-**Stabilité**
-- tools/banc_tremblement_mer.py : caméra fixe, maillage glissant comme en vol ; écart maximal des canaux entre images, moyenné sur les pixels.
-- Les valeurs sont en niveaux d'image 8 bits ; l'écart animé inclut le mouvement voulu des vagues.
-- Vent frais : 12 / 70 / 1,8 ; côte : même vent ; micro : 4 / 70 / 0,4.
+**Stability**
+- tools/banc_tremblement_mer.py: fixed camera, mesh sliding like in flight; maximum channel gap between images, averaged on pixels.
+- Values are in 8 bit image levels; animated deviation includes the desired movement of the waves.
+- Fresh wind: 12 / 70 / 1,8; coast: same wind; micro: 4 / 70 / 0,4.
 
-| Vue | Cas | Sol hors mer | Mer | Contraste du détail de mer |
+| View | Case | Sol out of sea | More | Contrast of sea detail |
 |---|---|---|---|---|
-| Fraîche, 20 m | Figée, lissage | — | 0,90 | 10,94 |
-| Fraîche, 20 m | Figée, sans lissage | — | 0,93 | 10,94 |
-| Fraîche, 20 m | Animée, lissage | — | 2,17 | 11,41 |
-| Fraîche, 20 m | Animée, sans lissage | — | 2,19 | 11,41 |
-| Côte, 120 m | Figée, lissage | 0,02 | 0,43 | 6,36 |
-| Côte, 120 m | Figée, sans lissage | 0,08 | 0,51 | 6,36 |
-| Côte, 120 m | Animée, lissage | 0,02 | 0,59 | 6,34 |
-| Côte, 120 m | Animée, sans lissage | 0,08 | 0,65 | 6,36 |
-| Micro, 1 m | Figée, lissage ou sans | — | 1,06 | 14,33 |
-| Micro, 1 m | Animée, lissage ou sans | — | 12,75 | 18,56 |
+| Fresh, 20 m | Freezing, smoothing | — | 0,90 | 10,94 |
+| Fresh, 20 m | Frozen, without smoothing | — | 0,93 | 10,94 |
+| Fresh, 20 m | Animated, smoothing | — | 2,17 | 11,41 |
+| Fresh, 20 m | Animated, without smoothing | — | 2,19 | 11,41 |
+| Coast, 120 m | Freezing, smoothing | 0,02 | 0,43 | 6,36 |
+| Coast, 120 m | Frozen, without smoothing | 0,08 | 0,51 | 6,36 |
+| Coast, 120 m | Animated, smoothing | 0,02 | 0,59 | 6,34 |
+| Coast, 120 m | Animated, without smoothing | 0,08 | 0,65 | 6,36 |
+| Micro, 1 m | Frozen, smoothing or without | — | 1,06 | 14,33 |
+| Micro, 1 m | Animated, smoothing or without | — | 12,75 | 18,56 |
 
-- Le terrain côtier garde les valeurs du témoin : 0,02 avec lissage, 0,08 sans.
-- La mer figée fraîche varie davantage que le témoin analytique, 0,90 contre 0,20 ; la nouvelle géométrie reste sensible au déplacement du maillage.
-- Le banc ne prouve donc pas l'absence de scintillement géométrique ; jugement en vol nécessaire.
-- Aux pôles nord et sud, à 100 m : masque d'eau blanc sur 921 600 pixels, sans trou visible.
+- Coastal terrain keeps the values of the witness: 0,02 with smoothing, 0,08 without.
+- The fresh frozen sea varies more than the analytical control, 0,90 vs 0,20; the new geometry remains sensitive to the displacement of the mesh.
+- The benchmark does not therefore prove the absence of geometric flicker; flight judgment is necessary.
+- At the North and South Poles, at 100 m: white water mask on 921 600 pixels, no visible hole.
 
 **Reflet lointain**
-- tools/banc_mer.py, mode reflet, à 400 km ; lieux -17.36 -26.84 et 55.95 8.07.
-- Vent 12 m/s : écart moyen de 2,8 % sur chacun des deux lieux.
-- Vent 24 m/s : écart moyen de 6,2 % ; la cible de 5 % de la recherche initiale est manquée.
-- La faible queue du reflet est moins bien reproduite en vent fort ; raccord statistique à reprendre avant intégration.
-- Le vent planétaire et la couverture proche de Monahan ne sont pas validés par ce prototype à vent uniforme.
+- tools/banc_mer.py, reflection mode, at 400 km; locations -17.36 -26.84 and 55.95 8.07.
+- Wind 12 m/s: average variation of 2,8 % on each of the two locations.
+- Wind 24 m/s: average deviation of 6,2 %; the target of 5 % of the initial search is missed.
+- The weak tail of the reflection is less well reproduced in strong wind; statistical connection to be taken before integration.
+- Planetary wind and near Monahan coverage are not validated by this uniform wind prototype.
 
-**Jugement en vol**
-- tools/lance.ps1 avec tools/tests/2026-10-26-mer-fft-spike.txt et x64/MerFFT/MyPlanetEngine.exe.
-- F1 et F2 : microrelief ; F5 : tempête ; F7 : vue côtière signalée ; F11 et F12 : pôles.
-- Les cartes d'écume repartent au changement de vue ; laisser quelques secondes pour voir les traînées.
+**Judgment in flight**
+- tools/lance.ps1 with tools/tests/2026-10-26-mer-fft-spike.txt and x64/MerFFT/MyPlanetEngine.exe.
+- F1 and F2: micro-relief; F5: storm; F7: reported coastal view; F11 and F12: poles.
+- The foam maps return to the change of view; leave a few seconds to see the trails.
 
-**Intégration à main · 2026-10-26**
-- Rebase sur main 083bfb1 ; code terrestre du témoin identique à celui de la végétation v3, exécutable Veg3.
-- Debug x64 recompilé après le rebase ; ressources de la mer, carte planétaire, végétation et objets réunis.
-- Temps : 1280 × 720, Debug x64 avec shaders optimisés, après 600 images ; valeurs du dernier intervalle de titre sur cette machine.
-- Banc de qualité sur six lieux du tirage initial, un par matériau ; mêmes caps, cinq hauteurs, toutes les vues recalculées sur les deux exécutables.
-- Comparaison par --before à tools/banc_qualite_reference.json, puis comparaison appariée au témoin de main.
-- 753 crops communs, tous strictement identiques ; aucun ajouté ou retiré ; aucun p95 ne régresse par rapport au témoin.
-- Les quinze dépassements de la référence ci-dessous sont identiques dans le témoin et dans l'intégration ; le tirage de six lieux diffère du banc initial de trente lieux.
+**Integration with main · 2026-10-26**
+- Rebase to main 083bfb1; Earth code of the witness identical to that of vegetation v3, executable Veg3.
+- Debug x64 recompile after rebase; sea resources, planet map, vegetation and objects together.
+- Time: 1280 × 720, Debug x64 with optimized shaders, after 600 images; values from last title interval on this machine.
+- quality benchmark on six locations of the initial drawing, one per material; same caps, five heights, all views recalculated on the two executables.
+- Compare by --before to tools/banc_qualite_reference.json, then matched comparison to the main witness.
+- 753 common crops, all strictly identical; none added or removed; no p95 regression compared to control.
+- The fifteen overruns of the reference below are identical in the witness and in the integration; the draw of six places differs from the initial benchmark by thirty places.
 
-| Matériau | Hauteur | Mesure | Dépassement de la référence |
+| Material | Height | Measure | Exceeding the benchmark |
 |---|---|---|---|
 | grass | 12 m | repeat_p95 | +113,3 % |
 | grass | 50 m | repeat_p95 | +11,6 % |
@@ -103,6 +103,6 @@
 | soil | 800 m | gap_p95 | +13,7 % |
 | mutation | 12 m | p95 | +510,6 % |
 
-- Sorties locales : x64/MerMain/qualite-main-6, qualite-integre-6 et qualite-comparaison-main.json.
-- Tempête à 20 m, vent 24 m/s et houle Hs 3,5 m, 600 images : 0,13 ms de simulation, 1,22 ms de rendu, minimum 1,20 ms ; placement d'objets 0,23 ms, objets absents de l'eau.
-- Banc de vues de végétation : forêts tempérée et tropicale à 150 m ; les deux images 1280 × 720 sont strictement identiques au témoin, pixel par pixel.
+- Local outputs: x64/MerMain/qualite-main-6, qualite-integre-6 and qualite-comparaison-main.json.
+- Storm at 20 m, wind 24 m/s and swell Hs 3,5 m, 600 images: 0,13 ms simulation, 1,22 ms rendering, minimum 1,20 ms; object placement 0,23 ms, objects absent from the water.
+- benchmark of vegetation views: temperate and tropical forests at 150 m; the two images 1280 × 720 are strictly identical to the control, pixel by pixel.

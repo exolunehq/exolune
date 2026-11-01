@@ -1,2508 +1,2508 @@
-# Journal de la planète
+# Journal of the planet
 
-Historique des réglages du terrain : ce qui a changé, pourquoi, ce que ça a coûté ou rapporté, et comment revenir en arrière. L'entrée la plus récente est en haut.
+History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
-## 2026-10-31 · Parcours cinématique hors temps réel
+## 2026-10-31 · Off-real-time cinematic path
 
-- **Le mode `MYPLANETENGINE_CINE` :** poses indépendantes du vaisseau et de la caméra, cockpit du jeu, pas fixe, sans audio ni commandes ; les historiques survivent au mouvement, sauf au changement de vue.
-- **La sécurité :** lecture GPU du relief courant sous les deux poses ; chaque pince laisse son index dans `cine.log`.
-- **La météo du verre suit le vaisseau,** avec des constantes distinctes de la caméra extérieure ; température et pluie ne dépendent plus de son éloignement.
-- **Le générateur :** `tools/cine/parcours.py`, NumPy et relief CPU d'Exolune ; splines quintiques C2, bande de terrain et garde vérifiée après lissage.
-- **Le rendu :** `tools/cine/rendre.ps1`, plages de 600 images, chauffe de 120 ; H.264 CRF 14, suppression des BMP après vérification, reprise par empreinte.
-- **L'essai :** `tools/cine/essai.json`, graine 0, 10 s, descente de 2 000 km vers −7,37 / 116,88, rase-mottes à 150 m, cockpit puis caméra libre ; sortie finale `x64/cine/essai-640-livre/film.mp4`.
-- **Vérifié :** compilation VS 2022 Release x64 sans erreur ; 9 contrôles CPU ciblés ; 600 images à 60 Hz, H.264 `yuv420p`, 640×360 ; 12 images inspectées, vaisseau et habitacle présents, seules coupes de vue aux images 360 et 480 ; aucune pince.
-- **Les raccords :** rotation de la caméra extérieure limitée à 1,67° entre deux images sur cet essai ; garde minimale de 152 m sur la bande en rase-mottes ; rendu en deux plages de 300 essayé, puis version finale avec la plage de 600 ; reprise et suppression des BMP vérifiées.
-- **Reste à juger en vol :** `tools/tests/2026-10-31-cine.txt` ; atterrissage, mer, pluie et givre restent à contrôler visuellement dans le futur parcours de 90 s.
-- **État :** travail non commité, sans tag ; aucun banc lancé ; jugement en vol par l'utilisateur encore nécessaire.
+- **The `MYPLANETENGINE_CINE` mode:** independent poses of the ship and the camera, cockpit of the game, not fixed, without audio or controls; the history survives the movement, except the change of view.
+- **Security:** reading GPU of the current relief under the two poses; each clamp leaves its index in `cine.log`.
+- **The weather from the glass follows the ship,** with constants separate from the outside camera; temperature and rainfall no longer depend on its distance.
+- **Generator:** Exolune `tools/cine/parcours.py`, NumPy and CPU relief; C2 quintic splines, field band and guard checked after smoothing.
+- **Rendering:** `tools/cine/rendre.ps1`, ranges of 600 images, heating of 120; H.264 CRF 14, deletion of BMP after verification, retrieval by fingerprint.
+- **The test:** `tools/cine/essai.json`, seed 0, 10 s, descent from 2 000 km to −7,37 / 116,88, razor to 150 m, cockpit then free camera; final exit `x64/cine/essai-640-livre/film.mp4`.
+- **Verified:** VS compilation 2022 Release x64 without error; 9 targeted CPU controls; 600 images at 60 Hz, H.264 `yuv420p`, 640×360; 12 images inspected, ship and cabin present, only cut-offs to 360 and 480 images; no clamp.
+- **The connections:** rotation of the external camera limited to 1,67° between two images on this test; minimum guard of 152 m on the strip in razor; rendering in two ranges of 300 tried, then final version with the range of 600; resuming and deleting the BMP verified.
+- **To be judged in flight:** `tools/tests/2026-10-31-cine.txt`; landing, sea, rain and frost remain to be visually controlled in the future course of 90 s.
+- **Status:** work uncommitted, no tag; no benchmark launched; user in-flight judgment still needed.
 
-## 2026-10-31 · Filtrer la partie émergée des cordons
+## 2026-10-31 · Filter the emerged part of cords
 
-- **La règle :** un profil qui franchit la mer émerge sur deux mailles au moins, ou reste noyé ; sa largeur totale ne suffit pas.
-- **Le filtre :** `ReliefSeaProfile` redistribue le sommet dans un cœur aplati et abaisse son amplitude ; l'aire du profil reste constante, débordements compris.
-- **Le périmètre :** les cordons, leurs pointes et leurs débordements ; aucun profil distinct de flèche, platier ou motu volcanique sur cette branche.
-- **Les formes résolues restent identiques ;** aucune distance tectonique en double n'est convertie en flottant.
-- **Vérification ciblée, sans banc de `tools/` :** 200 000 profils satisfont la largeur émergée ou la submersion ; sur 40 intégrations numériques, erreur relative d'aire au plus 3,5 × 10⁻¹² ; à maille nulle, identité exacte du portage.
-- **Le portage contre la carte GPU :** 600 points, médiane 6,48 cm, p99 2,17 m, maximum 13,39 m ; même mesure avant et après.
-- **Les rendus :** graine 0, trois côtes à 20, 8 et 3 km, plus 60 m ; référence `−27,18082 / −152,21264`, autres cordons trouvés par `cp.py` à `26,5 / 104,5` et `18,5 / −5,5`.
-- **Résultat observé :** aucun pointillé sur les neuf vues d'altitude après filtrage ; à 3 km, écart maximal de 1/255 par canal ; à 60 m, même borne sauf un pixel de feuillage sur la côte est, sans changement visible de silhouette.
-- **Les fichiers de contrôle :** `x64/Codex/rendus/avant/`, `apres/`, `comparaisons/` et `differences.txt` ; compilation Release x64 isolée dans `x64/Codex/`.
-- **À juger en vol :** `tools/tests/2026-10-31-cordons-emergence.txt` ; changements non commités, sans nouveau tag.
+- **The rule:** a profile that crosses the sea emerges on two grid cells at least, or remains drowned; its total width is not enough.
+- **The filter:** `ReliefSeaProfile` redistributes the vertex in a flattened core and lowers its amplitude; the profile area remains constant, including overflows.
+- **The perimeter:** the cordons, their spikes and their overflows; no distinct profile of arrow, plateau or volcanic motu on this branch.
+- **Resolved shapes remain identical;** no tectonic distances in double precision are converted floating.
+- **Targeted verification, without benchmark of `tools/`:** 200 000 profiles meet emerging width or submersion; on 40 numerical integrations, relative area error at most 3,5 × 10⁻¹²; at grid cell zero, exact identity of the port.
+- **The port against the GPU map:** 600 points, median 6,48 cm, p99 2,17 m, maximum 13,39 m; same measurement before and after.
+- **Renderings:** seed 0, three ribs at 20, 8 and 3 km, plus 60 m; reference `−27,18082 / −152,21264`, other cords found by `cp.py` at `26,5 / 104,5` and `18,5 / −5,5`.
+- **Observed result:** no dotted on the nine altitude views after filtering; at 3 km, maximum deviation of 1/255 per channel; at 60 m, same boundary except a pixel of foliage on the east coast, no visible change of silhouette.
+- **Control files:** `x64/Codex/rendus/avant/`, `apres/`, `comparaisons/` and `differences.txt`; Release x64 build isolated in `x64/Codex/`.
+- **To be judged in flight:** `tools/tests/2026-10-31-cordons-emergence.txt`; uncommitted changes, no new tag.
 
-## Comment s'en servir
+## How to use it
 
-- **Avant toute correction, lire `principes.md` :** on corrige des règles, pas des cas. Ce fichier fait référence.
-- **Tous les réglages sont dans `MyPlanetEngine/PlanetSettings.hlsli`.** Changer une valeur et recompiler, 2 secondes, suffit à retrouver une configuration du journal.
-- **Pour un retour complet**, chaque entrée donne son commit ou son tag.
-- **Mesures :** temps de calcul GPU du terrain, au-dessus de 15° S, 50° E. Le pire cas est la pire des dix vues de référence décrites dans `log/spec-champ-de-vision.md`.
-- **Écart visuel :** comparaison pixel à pixel de captures avant et après, sur six vues : deux au-dessus du continent de départ, une vue d'orbite, un autre continent et deux vues de côte. Les images du journal montrent dans l'ordre : avant, après, différence amplifiée 8 fois.
+- **Before any correction, read `principes.md`:** we correct rules, not cases. This file refers.
+- **All settings are in `MyPlanetEngine/PlanetSettings.hlsli`.** Changing a value and recompiling, 2 seconds, is enough to find a log configuration.
+- **For a complete return**, each entry gives its commit or tag.
+- **Measurements:** calculation time GPU of the field, above 15° S, 50° E. The worst case is the worst of the ten reference views described in `log/spec-champ-de-vision.md`.
+- **Visual shift:** Pixel-by-pixel comparison of before and after captures, on six views: two over the continent of departure, one orbit view, another continent and two coastal views. The journal images show in order: before, after, difference amplified 8 times.
 
-## Jalons et pistes
+## milestones and experiments
 
-**Chaque étape validée et chaque piste essayée a un tag git.** `git checkout <tag>` retrouve l'état exact.
+**Every step committed and every experiment tried has a git tag.** `git checkout <tag>` gets the exact state.
 
-| Tag | Contenu |
+| Tag | Contents |
 |---|---|
-| `piste/orbite-rendu` | La planète vue d'orbite face à Apollo 17 : diffusion multiple des aérosols par similitude, lumière des nuages calée sur Monte-Carlo, eau indépendante de la couverture, statistique du pixel à la place de la quadrature lointaine, exposition d'orbite (`spec-rendu-orbite.md`). |
+|  `piste/orbite-rendu`  | The planet orbit view facing Apollo 17: multiple scattering of aerosols by similarity, cloud light set on Monte-Carlo, water independent of cover, pixel statistic instead of distant quadrature, orbit exposure (`spec-rendu-orbite.md`). |
 
-| `piste/meteo-epaisseur` | L'épaisseur des masses structurée pour l'eau du nuage du rendu : nappes minces en cellules, têtes et fronts épais, bords effilochés ; la table R remesurée (`spec-nuages.md`). |
-| `piste/meteo-bimodale` | Des ciels clairs : le ciel clair par défaut, le moucheté de petits nuages dans quatre régimes, la couverture portée par les masses, calée sur la photo d'Apollo 17 (`spec-nuages.md`). |
-| `piste/meteo-orbite` | La carte météo vue d'orbite : dépressions en virgule, fronts froids, ZCIT en amas, nappes, en masses opaques ; les petits nuages au grain du shader ; la couverture de la Terre par latitude (`spec-nuages.md`). |
-| `piste/nuages-climat` | La carte météo des nuages calculée au démarrage sur le climat et le relief : ZCIT, anticyclones, nappes des côtes froides, dépressions en virgule, bancs au vent (`spec-nuages.md`). |
-| `piste/climat` | Le climat calculé au démarrage sur la forme tectonique : vents, vapeur portée depuis les mers, pluie au vent des reliefs, continentalité, courants froids ; la carte lue par les matériaux, les plantes, la mer et le vaisseau (`spec-climat.md`). |
-| `piste/volcanisme` | Les volcans déduits de la carte tectonique : arcs, points chauds et leurs chaînes, atolls et guyots, rifts, calderas, coulées, cônes, traps ; basaltes et cendres ; branche `claude/volcanisme-7c3aea`, partie de `bruit-propre`, à juger en vol (`spec-volcanisme.md`). |
-| `jalon/29-avant-ouverture` | `main` juste avant le rangement pour l'ouverture, commit `48f2e42` : les essais de nuages, de végétation et de terrain encore dans le code, le lanceur `tools/nuages-planete.ps1`. |
-| `jalon/28-vaisseau-habitacle` | Le vaisseau, son vol et son habitacle : vue sans vaisseau et caméra libre, gaz à la molette, tête qui suit les accélérations ; panache des tuyères, ombres du relief sur le vaisseau et du vaisseau au sol, verrière qui sèche, écrans animés, commandes mobiles ; son synthétisé sur XAudio2. |
-| `piste/vegetation-relais-fondu` | Relais imposteur-maillage des modèles `game` : fondu tramé, animé à chaque image, entre 0,8 et 1,25 fois le seuil de chaque plante, touche H pour le couper ; imposteurs éclairés sur la dispersion de leurs feuilles et recuits en linéaire ; validé en vol. |
-| `jalon/27-vaisseau` | Le vaisseau dans le jeu : paquet cuit, vues du cockpit et de poursuite, pilotage clavier-souris, ombres propres ; verrière avec givre et eau simulée ; météo lue dans les nuages planétaires (`spec-vaisseau.md`). |
-| `piste/optimisation-r8-sol-vol-rapide` | Round 8 de l'optimisation : trouées de ciel dans les feuilles remplies par l'historique, grille du terrain en paires de floats en vol ; en vol rapide, forêt de 49 à 60 fps, lisière de 43 à 55, montagne de 48 à 54 ; image immobile identique, validé en vol. |
-| `piste/optimisation-r7-nuages-rapides` | Round 7 de l'optimisation : sous 14 km, les nuages dont l'historique a glissé sont tracés un pixel par carré 2×2, les autres interpolés ; cumulus en vol rapide de 36 à 90 fps, plongée près du sol de 34 à 52 ; image immobile identique, validé en vol. |
-| `piste/optimisation-r6-nuages-mouvement` | Round 6 de l'optimisation : chaque trace fraîche des nuages vérifie l'historique ; traînées, bruit et ghosting corrigés au banc, 4 à 6 ms de plus en vol lent en altitude et près des cumulus ; mis de côté, la branche `optimisation` reste sur la version rapide. |
-| `jalon/optimisation-r1-r5` | Phase d'optimisation, rounds 1 à 5, sur la branche `optimisation` : la version rapide, avec ses effets de bord des nuages en mouvement. |
-| `piste/optimisation-r5-mesure` | Round 5 de l'optimisation, arrêté à la mesure : le GPU n'attend le CPU que 0,6 à 1,2 ms par image ; cadence réelle au banc ; lanceur en plein écran 1920x1080. |
-| `piste/optimisation-r4-terrain` | Round 4 de l'optimisation : calcul du terrain gardé tant que ses entrées sont celles de l'image précédente ; au sol, 73 à 77 fps immobile, rien en vol ; image identique, validé en vol. |
-| `piste/optimisation-r3-vegetation` | Round 3 de l'optimisation : sol exact des plantes gardé d'une image à l'autre, imposteurs en profondeur conservatrice, maillages proches en profondeur d'abord ; forêt de 30 à 17 ms, image identique, validé en vol. |
-| `piste/optimisation-r1-nuages-mouvement` | Round 1, suite : passe temporelle des nuages juste en mouvement ; historique douteux retracé, air de la composition continu dans la distance du nuage ; plaques et seconde peau disparues en vol. |
-| `piste/optimisation-r2-terrain` | Round 2 de l'optimisation : terrain en profondeur d'abord, couleur sur la seule surface visible ; calculs sautés là où ils sont prouvés sans effet ; validé en vol. |
-| `piste/optimisation-r1-nuages` | Round 1 de l'optimisation : nuages tracés un pixel sur 16 par image et reprojetés dans le monde ; image immobile identique, jugement en vol à faire. |
-| `jalon/26-nuages-main` | Nuages planétaires, météo et ombres portées intégrés à main avec mer FFT et végétation ; éclairage précédent conservé. |
-| `piste/nuages-main-integration` | `main` au commit `f66ead9` fusionné dans les nuages, éclairage précédent conservé ; base du jalon 26. |
-| `piste/nuages-planete-spike` | Ombres des nuages sur la terre et la mer, météo sur la sphère entière ; les nuages du jeu (`spec-nuages.md`). |
-| `jalon/25-vegetation-performance-main` | Optimisation des bases angulaires, HiZ conservateur et profondeur matérielle des maillages ; populations et portée conservées. |
-| `jalon/24-vegetation-detaillee-main` | Version acceptée en l'état : modèles de jeu, maillages proches, imposteurs lointains et douze arbustes climatiques ; écarts de banc consignés. |
-| `piste/vegetation-optimisation-base` | Départ de la phase différée d'optimisation GPU et mémoire, à rendu, population et portée conservés. |
-| `piste/vegetation-hiz-base` | Base de la pyramide de profondeur courante et du masque conservateur ; travail de performance non commité. |
-| `piste/arbustes-climatiques-base` | Base du catalogue de six familles et douze formes, instances conservées et sous-plages GPU partagées ; travail intégré au jalon 24. |
-| `piste/vegetation-bouquets-lumiere-base` | Base des bouquets foliaires, normales locales et visibilités précalculées ; tag sur le commit de départ, travail intégré au jalon 24. |
-| `piste/vegetation-silhouettes-arbustes-base` | Base du relais sans tramage, des mipmaps et du remplacement des arbustes ; mêmes instances et portée, travail intégré au jalon 24. |
-| `piste/vegetation-modeles-jeu-base` | Base du remplacement des bouquets pleins par des modèles d'artistes à feuillage découpé et matériaux détaillés ; mêmes instances et portée, travail intégré au jalon 24. |
-| `piste/vegetation-stylisee-base` | Base du remplacement des arbres photo par des modèles originaux semi-réalistes stylisés ; mêmes instances et portée, travail intégré au jalon 24. |
-| `piste/vegetation-imposteurs-filtrage-base` | Base de l'optimisation des rectangles et du filtrage matériel des imposteurs ; densité et portée conservées, travail intégré au jalon 24. |
-| `piste/vegetation-compaction-stable-base` | Base de la correction des sélections GPU saturées ; compaction déterministe des tuiles et des plantes, travail intégré au jalon 24. |
-| `piste/vegetation-imposteurs-hybrides-base` | Base de la variante maillage proche et imposteurs lointains ; mêmes forêts et mêmes seuils que l'hybride volumique, travail intégré au jalon 24. |
-| `piste/vegetation-planetaire-base` | Base de l'essai de remplacement des arbres planétaires par les modèles détaillés et volumes ; premier jugement directement en vol, travail intégré au jalon 24. |
-| `piste/vegetation-foliage-base` | Base du prototype de végétation détaillée ; travail intégré au jalon 24. |
-| `piste/nuages-orbite-spike` | Essais voxel et Frostbite conservés, trois familles locales, répartition régionale et première quadrature orbitale ; cirrus plus rares. |
-| `jalon/01-jet1` | Une face du cube tournée vers la caméra, complexplanet porté en HLSL. |
-| `jalon/02-anneaux` | Champ de vision couvert par les anneaux, filtrage des octaves par sommet. |
-| `jalon/03-performance` | Pire cas du calcul de 15,1 à 1,6 ms. |
-| `piste/aimantation-crans` | Abandonnée : maillage aimanté par crans, niveaux de détail à paliers. |
-| `jalon/04-normales-voisins` | Normales sur les sommets voisins, grain fin par pixel, banc de tremblement. |
-| `jalon/05-atmosphere` | Haute dynamique, atmosphère, ciel et soleil. |
-| `jalon/06-materiaux` | Matériaux par pixel, climat simple. |
-| `piste/relief-par-pixel` | Abandonnée : vrai relief des montagnes par pixel. |
-| `jalon/07-lissage-192` | Lissage temporel, 192 mailles par côté. |
-| `jalon/08-aretes-arrondies` | Arêtes arrondies à l'échelle de la maille. |
-| `piste/sommets-fixes-etape1` | Sommets fixés sur la planète, étape 1 : cube et carreaux, sans fondu. |
-| `piste/sommets-fixes-etape3` | Close : sommets fixes avec fondu imbriqué et rangées de bord, sans fente ni couture, mais saccadé en vol. |
-| `jalon/09-normales-spline` | Normales par pixel en B-spline lissante, coupure du relief réglable. |
-| `jalon/10-herbe` | Textures de près, le cadre et l'herbe. |
-| `jalon/11-sable-roche` | Voie B : matériaux générés au démarrage, rides du sable au pixel à phase exacte, roche et éboulis, ombres fines, banc visuel. |
-| `jalon/12-roche-relief-lointain` | Relief réel des matériaux dans le maillage, détail fin au millimètre, couleurs de roche par région, roche en bancs, diaclases et corniches sur 64 m, mesure de réalisme ; de loin, roche et neige en fractions de la maille. |
-| `jalon/13-coherence-distance` | La planète garde la même apparence de l'orbite au sol : grille fine du vrai relief sous la maille, relief qui garde sa hauteur moyenne, règle universelle des limites entre matériaux, banc de descente et vues de diagnostic. |
-| `piste/couleurs-manuelles` | Les couleurs du sol choisies à la main, avant la palette de Blue Marble ; avec les principes et le correctif des strates au feutre. |
-| `piste/essai-hybride-scans` | Essai des scans photo pour le sable et la roche litée, mesurés contre le procédural ; repris pour le sable par la photo (`log/spec-hybride-scans.md`). |
-| `piste/palette-blue-marble` | Les couleurs du sol tirées de la vraie Terre : la palette de biomes mesurée sur Blue Marble. |
-| `piste/parois-gradins` | Parois en gradins : falaises des bancs durs, replats à l'angle d'éboulis, ravines et granite dans le maillage. Bien de près ; de 100 m à 1 km, encore rectiligne, « tissu ». |
-| `piste/bandes-cassees` | Strates cassées par des failles, teintes par groupes de formations. |
-| `piste/bandes-immobiles` | Bandes immobiles à l'approche, granite sans grillage, failles coupées, doc rangée. |
-| `piste/sol-nu` | Le sol nu, un matériau oublié, prend sa texture ; les bancs le mesurent. |
-| `jalon/14-banc-qualite` | Le banc de qualité : lieux tirés par matériau, flou, trous d'échelle, répétition, bandes droites, mutation ; référence chiffrée. |
-| `jalon/15-roche-photo` | Une seule roche, sa photo ; strates en couleur, perturbées, d'épaisseur variable ; papier peint en partie réglé. |
-| `jalon/16-une-roche` | Le code d'une seule roche : familles, tuiles dessinées, failles, marches de la colonne et parallaxe retirées. |
-| `piste/roche-regionale` | Mise de côté, avant « une seule roche » : la roche régionale par pixel selon la province, une croûte de roche mouillée, la forêt sur les pentes (`log/roche-regionale.md`). |
-| `jalon/17-brume` | La brume de la couche limite : visibilité de 40 km, aérosols colorés, pas du rayon à la moyenne de l'air. |
-| `piste/integration` | Une palette de tests pour chaque fonction ; ses fusions sont dans `main`. |
-| `jalon/18-lumiere` | La lumière : halo de l'objectif, exposition et courbe de tons, ombres portées du relief, rayons de soleil dans la brume ; parts des matériaux stables à l'approche. |
-| `jalon/19-detail-sol` | Le détail du sol près de la caméra : cailloux, touffes d'herbe et rochers selon le sol, à place fixe sur la planète, sans pop ni flottement. |
-| `jalon/20-ombre-carte` | Une seule ombre du relief, pour le sol et les rayons de soleil ; cailloux v5, présents par zones ; la brume suit le sol régional de la carte de la planète, carte hydrologique calculée au démarrage. |
-| `jalon/21-vegetation` | La végétation v3 : arbres et arbustes selon le climat, régions sans arbres, clairières, crêtes nues ; les arbres entiers ou absents, la canopée lointaine à leur hauteur. |
-| `piste/mutation-approche` | Correctif : la tache verte garde sa forme à l'approche ; grille fine jusqu'à 160 m du sol, neige sans la pente des textures, banc de descente des parts vues. Avec le nettoyage « une seule roche ». |
-| `piste/bandes-declarees` | La pile de bandes déclarée par matériau et son validateur mesuré. |
-| `piste/bandes-detail` | Les bandes de détail : neige, sable, herbe, éboulis. |
-| `piste/photo-falaise` | Géométrie à complexplanet, géométrie de proximité désactivée, photo de paroi `marble_cliff_04` sur la roche litée. |
-| `piste/erosion-filtre` | Mise de côté : filtre d'érosion dans le relief, une surcouche de remplacement de complexplanet (`geometrie.md`). |
-| `piste/papier-peint` | Essai roche-photo v12 ; deux photos du marbre selon l'orientation, bandes de la roche à la pente de sa photo, étalement mesuré au banc. |
-| `piste/cercles-orbite` | Correctif : plus de cercles sur les océans vus de loin ; la distance passée à l'atmosphère en flottants 32 bits. |
-| `piste/patchs-pixels` | Un bruit de gradient pour tous les champs : plus de mosaïque de loin ; la géographie est retirée. |
-| `piste/halo-optique` | Le halo de l'objectif autour du soleil, en 1/θ², qui conserve l'énergie, avant la courbe de tons. |
-| `piste/tons-exposition` | L'exposition réglée sur la lumière du jour sous la caméra, posemètre tourné vers le soleil ; la courbe de tons des photorécepteurs sur le canal le plus fort. |
-| `piste/ombres-relief` | Les ombres portées du relief : horizon vers le soleil à chaque sommet, interpolé comme un angle, part du soleil au pixel. |
-| `piste/rayons-soleil` | Rayons de soleil : l'air à l'ombre du relief, par la hauteur d'ombre lue à chaque pas du rayon de vue. |
-| `piste/etoiles` | Le ciel nocturne : étoiles et planètes en images de points, seuil de l'œil de Schaefer, Voie lactée, lueur atmosphérique, nuit au posemètre et clé de l'œil, bâtonnets. Branche `etoiles`, gardée pour être intégrée (`recherche-ciel-nocturne.md`). |
-| `piste/plages` | Les plages : la plage de 0 à 2,5 m, la ligne d'eau nette, le sable mouillé et sa brillance, la laisse de mer, les ceintures des roches. Branche `plages`, faite sur l'ancienne mer, à porter sur la mer FFT (`recherche-cotes.md`). |
-| `piste/objets-proximite` | Objets de proximité, étape 3 : le détail du sol, cailloux et touffes d'herbe, des débris seulement dans les régions caillouteuses, à place fixe sur la grille de la planète, sans pop. |
-| `piste/ombre-unique` | Une seule ombre du relief : la marche de l'horizon de chaque sommet donne aussi la hauteur d'ombre de l'air ; la grille polaire et ses deux passes retirées. |
-| `piste/carte-planete` | La carte de la planète : complexplanet sur un cube fixe, calculé et drainé au démarrage ; la brume suit le sol régional ; lacs et réseau mesurés. |
-| `piste/vegetation` | La végétation, étape 1 : arbres et arbustes selon le climat, trois espèces générées au démarrage, objets proches et canopée dans la matière du sol au-delà, raccordés en couche booléenne. |
-| `piste/vegetation-v2` | La végétation v2 : régions sans arbres et clairières par deux champs de bruit, arbustes par taches et en lisière, crêtes nues, huit variantes, sortie à 14 pixels avec une forme grossière. |
-| `piste/vegetation-v3` | La végétation v3 : les arbres entiers ou absents, jamais grandissants ; la canopée lointaine à la hauteur de ses arbres ; un cinquième d'arbustes en moins ; pas de forêt sous 1 000 mm. |
-| `piste/rivieres-lits` | Mise de côté : lacs au niveau du bilan d'eau, rivières larges de leur débit, lits creusés. Jugé très mauvais : lacs sur 35 % des terres, eau plate, tranchées sèches. À reprendre en prototype rapide, à deux. |
-| `piste/dendry-maquette` | La maquette Dendry : le relief de l'arbre des rivières sur une zone de 150 km, lu par le moteur ; contenue dans la branche `erosion-niveaux`. |
-| `jalon/avant-spikes-rivieres` | La maquette Dendry avant les spikes rivières du 26 octobre, commit `b0252c9` ; un `jalon/` posé sur une étape de piste. |
-| `piste/rivieres-spikes` | Mise de côté : les spikes rivières des 26 et 27 octobre, bassins construits avec leurs rivières, réseau global sur complexplanet, profils bornés, méandres et largeurs variables ; repris par `erosion-niveaux` (`log/recherche-rivieres-historique.md`). |
-| `jalon/rivieres-cp-resultat-prometteur` | Le commit de `piste/rivieres-spikes`, `31a1271` : le résultat jugé prometteur le 27 octobre ; un `jalon/` posé sur une étape de piste. |
-| `piste/mer-animee` | La mer : vent sur le climat, reflet du soleil et du ciel par Cox-Munk, vagues animées dans les pixels à variance constante, moutons de Monahan qui naissent et s'effacent, couleur de l'eau et fond vu. Branche `mer-animee`. |
-| `piste/essai-fusion-mer-plages` | Essai de fusion de `piste/plages` dans la mer animée : un seul reflet de l'eau ; mis de côté avec l'ancienne mer. |
-| `piste/mer-fft-spike` | Base du prototype FFT indépendant, avant le travail validé au jalon suivant. |
-| `jalon/22-mer-fft` | Océan FFT en quatre cascades, géométrie et normales communes, écume persistante ; aspect validé en vol. |
-| `jalon/23-mer-fft-main` | Mer FFT rebasée et intégrée à main, avec sa végétation, sa carte et son ombre unique. |
-| `piste/nuages` | Les nuages en volume, de l'orbite au sol : la carte du temps sur le climat, un volume lancé au quart des pixels, volutes 3D, cumulonimbus, ombres et brouillard. |
+|  `piste/meteo-epaisseur`  | The thickness of the masses structured for the cloud water of the rendering: thin sheets in cells, thick heads and fronts, frayed edges; the table R rescaled (`spec-nuages.md`). |
+|  `piste/meteo-bimodale`  | Clear skies: the clear sky by default, the speckling of small clouds in four regimes, the blanket worn by the masses, set on the photo of Apollo 17 (`spec-nuages.md`). |
+|  `piste/meteo-orbite`  | The weather map viewed from orbit: depressions in comma, cold fronts, ZCIT in clusters, sheets, opaque masses; small clouds with shader grain; the cover of the Earth by latitude (`spec-nuages.md`). |
+|  `piste/nuages-climat`  | The weather map of clouds calculated at startup on the climate and relief: ZCIT, anticyclones, cold coastal sheets, depressions in comma, cloud banks windward (`spec-nuages.md`). |
+|  `piste/climat`  | The climate calculated at startup on the tectonic form: winds, water vapor carried from the seas, rain windward of the reliefs, continentality, cold currents; the map read by materials, plants, sea and ship (`spec-climat.md`). |
+|  `piste/volcanisme`  | The volcanoes deduced from the tectonic map: arcs, hot spots and their chains, atolls and guyots, rifts, calderas, flows, cones, traps; basalts and ashes; branch `claude/volcanisme-7c3aea`, part of `bruit-propre`, to be judged in flight (`spec-volcanisme.md`). |
+|  `jalon/29-avant-ouverture`  |  `main` just before storing for opening, commit `48f2e42` : cloud, vegetation and ground testing still in code, launcher `tools/nuages-planete.ps1`. |
+|  `jalon/28-vaisseau-habitacle`  | The ship, its flight and its cabin: view without ship and free camera, gas wheel, head following acceleration; plume of nozzles, shadows of the relief on the ship and the ship on the ground, canopy glass drying, animated screens, mobile controls; sound synthesized on XAudio2. |
+|  `piste/vegetation-relais-fondu`  | Relay impostor-mesh Models `game` : raster fade, animated at each frame, between 0,8 and 1,25 times the threshold of each plant, key H to cut it; impostors illuminated on the dispersion of their leaves and annealed linearly; validated in flight. |
+|  `jalon/27-vaisseau`  | The ship in the game: cooked package, cockpit and chase views, keyboard-mouse piloting, clean shadows; canopy glass with simulated frost and water; weather read in planetary clouds (`spec-vaisseau.md`). |
+|  `piste/optimisation-r8-sol-vol-rapide`  | Round 8 of optimization: sky holes in the sheets filled by history, terrain grid in pairs of floats in flight; in fast flight, forest of 49 to 60 fps, edge of 43 to 55, mountain of 48 to 54; identical still image, validated in flight. |
+|  `piste/optimisation-r7-nuages-rapides`  | Round 7 of optimization: under 14 km, clouds whose history has slipped are plotted one pixel per square 2×2, the others interpolated; cumulus in fast flight from 36 to 90 fps, diving near the ground from 34 to 52; identical still image, validated in flight. |
+|  `piste/optimisation-r6-nuages-mouvement`  | Round 6 of optimization: each fresh cloud trail checks history; drags, noise and ghosting corrected at benchmark, 4 to 6 ms more in slow flight at altitude and near cumulus; set aside, branch `optimisation` stay on the fast version. |
+|  `jalon/optimisation-r1-r5`  | Optimization phase, rounds 1 to 5, on the branch `optimisation` : the fast version, with its edge effects of moving clouds. |
+|  `piste/optimisation-r5-mesure`  | Round 5 of optimization, stopped at measure: the GPU waits the CPU only 0,6 to 1,2 ms per frame; real cadence at benchmark; full screen launcher 1920x1080. |
+|  `piste/optimisation-r4-terrain`  | Round 4 of optimization: calculation of the ground kept as long as its inputs are those of the previous image; on the ground, 73 to 77 fps immobile, nothing in flight; identical image, validated in flight. |
+|  `piste/optimisation-r3-vegetation`  | Round 3 of optimization: exact soil of plants kept from one frame to another, impostors in conservative depth, meshes close in depth first; forest of 30 to 17 ms, identical frame, validated in flight. |
+|  `piste/optimisation-r1-nuages-mouvement`  | Round 1, continuation: temporal passage of clouds just in motion; traced doubtful history, air of the composition continuous in the distance of the cloud; plates and second skin disappeared in flight. |
+|  `piste/optimisation-r2-terrain`  | Round 2 of optimization: depth field first, color on the only visible surface; calculations skipped where they are proven without effect; validated in flight. |
+|  `piste/optimisation-r1-nuages`  | Round 1 of optimization: clouds traced one pixel on 16 per frame and reprojected in the world; identical still frame, judgment in flight to be made. |
+|  `jalon/26-nuages-main`  | Planetary clouds, weather and cast shadows integrated into main with FFT sea and vegetation; previous lighting retained. |
+|  `piste/nuages-main-integration`  |  `main` to commit `f66ead9` merged into the clouds, previous lighting retained; base of the milestone 26. |
+|  `piste/nuages-planete-spike`  | Shadows of clouds on land and sea, weather on the whole sphere; the clouds of the game (`spec-nuages.md`). |
+|  `jalon/25-vegetation-performance-main`  | Optimization of angular bases, conservative HiZ and material depth of meshes; populations and range preserved. |
+|  `jalon/24-vegetation-detaillee-main`  | Version accepted as is: game models, meshes near, impostors far and twelve climatic bushes; deviations of benchmark recorded. |
+|  `piste/vegetation-optimisation-base`  | Start the delayed phase of optimization GPU and memory, rendering, population and scope retained. |
+|  `piste/vegetation-hiz-base`  | Base of current depth pyramid and conservative mask; performance work not committed. |
+|  `piste/arbustes-climatiques-base`  | Catalog base of six families and twelve forms, retained instances and shared GPU sub-range; work integrated into milestone 24. |
+|  `piste/vegetation-bouquets-lumiere-base`  | Base of foliar bouquets, local normals and pre-calculated visibilities; tag on the initial commit, work integrated in the milestone 24. |
+|  `piste/vegetation-silhouettes-arbustes-base`  | Base of the relay without traming, mipmaps and bush replacement; same instances and scope, work integrated in the milestone 24. |
+|  `piste/vegetation-modeles-jeu-base`  | Based on replacing full bouquets with artist models with cut foliage and detailed materials; same instances and scope, work integrated into milestone 24. |
+|  `piste/vegetation-stylisee-base`  | Base of the replacement of photo trees by stylized semi-realistic original models; same instances and scope, work integrated in the milestone 24. |
+|  `piste/vegetation-imposteurs-filtrage-base`  | Base of rectangle optimization and hardware filtering of impostors; density and range retained, work integrated in milestone 24. |
+|  `piste/vegetation-compaction-stable-base`  | Base of the correction of saturated GPU selections; deterministic compaction of tiles and plants, work integrated in the milestone 24. |
+|  `piste/vegetation-imposteurs-hybrides-base`  | Base of the variant mesh near and impostors far; same forests and same thresholds as the volume hybrid, work integrated in the milestone 24. |
+|  `piste/vegetation-planetaire-base`  | Base of the test of replacement of planetary shafts by detailed models and volumes; first judgment directly in flight, work integrated in the milestone 24. |
+|  `piste/vegetation-foliage-base`  | Base of the detailed vegetation prototype; work integrated into the milestone 24. |
+|  `piste/nuages-orbite-spike`  | voxel and Frostbite tests preserved, three local families, regional distribution and first orbital quadrature; cirrus more rare. |
+|  `jalon/01-jet1`  | One side of the cube facing the camera, complexplanet worn in HLSL. |
+|  `jalon/02-anneaux`  | Field of view covered by rings, filtering octaves by vertex. |
+|  `jalon/03-performance`  | Worst case calculation of 15,1 to 1,6 ms. |
+|  `piste/aimantation-crans`  | Abandoned: mesh magnetized by notches, levels of detail in steps. |
+|  `jalon/04-normales-voisins`  | Normal on neighboring vertices, fine grain per pixel, benchmark from jitter. |
+|  `jalon/05-atmosphere`  | High dynamics, atmosphere, sky and sun. |
+|  `jalon/06-materiaux`  | Materials per pixel, simple climate. |
+|  `piste/relief-par-pixel`  | Abandoned: true relief of the mountains per pixel. |
+|  `jalon/07-lissage-192`  | Temporal smoothing, 192 grid cells per side. |
+|  `jalon/08-aretes-arrondies`  | Rounded edges to scale the grid cell. |
+|  `piste/sommets-fixes-etape1`  | Summits fixed on the planet, step 1: cube and tiles, without fade. |
+|  `piste/sommets-fixes-etape3`  | Close: fixed tops with nested fade and edge rows, without split or seam, but jagged in flight. |
+|  `jalon/09-normales-spline`  | Normals per pixel in smoothing B-spline, adjustable relief cut. |
+|  `jalon/10-herbe`  | Textures close up, frame and grass. |
+|  `jalon/11-sable-roche`  | Path B: materials generated at start, sand wrinkles to pixel phase exact, rock and scree, thin shadows, benchmark visual. |
+|  `jalon/12-roche-relief-lointain`  | Real relief of materials in the mesh, detail fine to the millimeter, rock colors by region, rock in beds, diaclases and cornices on 64 m, realism measure; from afar, rock and snow in fractions of the grid cell. |
+|  `jalon/13-coherence-distance`  | The planet keeps the same appearance of the orbit on the ground: fine grid of the real relief under the grid cell, relief that keeps its average height, universal rule of the boundaries between materials, benchmark of descent and diagnostic views. |
+|  `piste/couleurs-manuelles`  | The floor colors chosen at the main, before the Blue Marble palette; with the principles and correction of the strata felt. |
+|  `piste/essai-hybride-scans`  | Photo scans test for sand and layered rock, measured against the procedural; taken for sand by photo (`log/spec-hybride-scans.md`). |
+|  `piste/palette-blue-marble`  | The soil colors taken from the real Earth: the biome palette measured on Blue Marble. |
+|  `piste/parois-gradins`  | Step walls: hard beds cliffs, replats at the angle of scree, ravines and granite in the mesh. Very close; from 100 m to 1 km, still straight, “fabric”. |
+|  `piste/bandes-cassees`  | strata broken by faults, tinted by groups of formations. |
+|  `piste/bandes-immobiles`  | Immobile bands on approach, granite without grillage, faults cut, doc rowed. |
+|  `piste/sol-nu`  | The bare floor, a forgotten material, takes its texture; the benchmarks measure it. |
+|  `jalon/14-banc-qualite`  | The quality benchmark: places drawn by material, blur, scale holes, repetition, straight bands, mutation; cipher reference. |
+|  `jalon/15-roche-photo`  | A single rock, its photo; strata in color, disturbed, of variable thickness; wallpaper partly set. |
+|  `jalon/16-une-roche`  | The code of a single rock: families, tiles drawn, faults, column steps and parallax removed. |
+|  `piste/roche-regionale`  | Set aside, before "one rock": the regional rock per pixel according to the province, a wet rock crust, the forest on the slopes (`log/roche-regionale.md`). |
+|  `jalon/17-brume`  | The fog of the limit layer: visibility of 40 km, colored aerosols, not from the radius to the average of the air. |
+|  `piste/integration`  | A palette of tests for each function; its mergers are in `main`. |
+|  `jalon/18-lumiere`  | Light: halo of the objective, exposure and tone curve, cast shadows of the relief, sun rays in the fog; parts of stable materials at approach. |
+|  `jalon/19-detail-sol`  | The detail of the ground near the camera: pebbles, tufts of grass and rocks according to the ground, fixed place on the planet, without pop or floating. |
+|  `jalon/20-ombre-carte`  | A single shadow of the relief, for the soil and sun rays; pebbles v5, present by zones; the fog follows the regional soil of the map of the planet, hydrological map calculated at startup. |
+|  `jalon/21-vegetation`  | Vegetation v3: trees and shrubs according to the climate, regions without trees, clearings, bare ridges; trees whole or absent, the distant canopy at their height. |
+|  `piste/mutation-approche`  | Fix: the green spot keeps its shape at the approach; fine grid up to 160 m of the ground, snow without the slope of textures, benchmark of descent of the parts seen. With the cleaning "one rock". |
+|  `piste/bandes-declarees`  | The strip stack declared by material and its measured validator. |
+|  `piste/bandes-detail`  | Detail strips: snow, sand, grass, scree. |
+|  `piste/photo-falaise`  | Geometry at complexplanet, proximity geometry disabled, wall photo `marble_cliff_04` on the layered rock. |
+|  `piste/erosion-filtre`  | Set aside: erosion filter in relief, a replacement overlay from complexplanet (`geometrie.md`). |
+|  `piste/papier-peint`  | Rock-photo test v12; two photos of the marble according to the orientation, bands of the rock at the slope of its photo, spreading measured at benchmark. |
+|  `piste/cercles-orbite`  | Fix: no more circles on oceans seen from far away; distance passed to atmosphere in floating 32 bits. |
+|  `piste/patchs-pixels`  | A gradient noise for all fields: no more mosaic from far; geography is removed. |
+|  `piste/halo-optique`  | The halo of the lens around the sun, in 1/θ², which conserves energy, before the tone curve. |
+|  `piste/tons-exposition`  | Exposure set to daylight under the camera, exposure meter turned to the sun; the tone curve of the photoreceptors on the strongest channel. |
+|  `piste/ombres-relief`  | The shadows cast from the relief: horizon towards the sun at each vertex, interpolated as an angle, part of the sun to the pixel. |
+|  `piste/rayons-soleil`  | Sun rays: the air in the shadow of the relief, by the height of shadow read at each step of the ray of view. |
+|  `piste/etoiles`  | The night sky: stars and planets in point images, threshold of the Schaefer eye, Milky Way, atmospheric glow, night with the exposure meter and eye key, sticks. Branch `etoiles`, retained for integration (`recherche-ciel-nocturne.md`). |
+|  `piste/plages`  | Beaches: the beach of 0 to 2,5 m, the clean waterline, the wet sand and its brilliance, the sea leash, the rock belts. Branch `plages`, made on the old sea, to wear on the sea FFT (`recherche-cotes.md`). |
+|  `piste/objets-proximite`  | Proximity objects, step 3: the detail of the ground, pebbles and tufts grass, debris only in the stony regions, fixed on the grid of the planet, without pop. |
+|  `piste/ombre-unique`  | A single shadow of the relief: the walk of the horizon of each vertex also gives the shadow height of the air; the polar grid and its two passes removed. |
+|  `piste/carte-planete`  | The map of the planet: complexplanet on a fixed cube, calculated and drained at startup; fog follows the regional soil; lakes and network measured. |
+|  `piste/vegetation`  | Vegetation, step 1: trees and shrubs according to the climate, three species generated at startup, nearby objects and canopy in the soil matter beyond, connected in Boolean layer. |
+|  `piste/vegetation-v2`  | Vegetation v2: treeless areas and clearings by two fields of noise, shrubs by spots and borders, bare ridges, eight variants, output at 14 pixels with a rough shape. |
+|  `piste/vegetation-v3`  | The vegetation v3: the trees whole or absent, never growing; the distant canopy at the height of its trees; a fifth of shrubs less; no forest under 1 000 mm. |
+|  `piste/rivieres-lits`  | Setting aside: lakes at the level of the water balance, rivers wide of their flow, hollow beds. Rated very bad: lakes on 35 % of land, flat water, dry trenches. To be taken as a rapid prototype, two. |
+|  `piste/dendry-maquette`  | The Dendry model: the relief of the river tree on an area of 150 km, read by the engine; contained in the branch `erosion-niveaux`. |
+|  `jalon/avant-spikes-rivieres`  | The Dendry model before the river spikes of 26 October, commit `b0252c9` ; and `jalon/` laid on a stage of experiment. |
+|  `piste/rivieres-spikes`  | Aside: the river spikes of 26 and 27 October, basins built with their rivers, global network on complexplanet, bounded profiles, meanders and variable widths; taken up by `erosion-niveaux` (`log/recherche-rivieres-historique.md`). |
+|  `jalon/rivieres-cp-resultat-prometteur`  | The commit of `piste/rivieres-spikes`, `31a1271` : the result considered promising the 27 October; a `jalon/` laid on a stage of experiment. |
+|  `piste/mer-animee`  | The sea: wind on the climate, reflection of the sun and sky by Cox-Munk, animated waves in constant variance pixels, whitecaps by Monahan that arise and fade, water color and background seen. Branch `mer-animee`. |
+|  `piste/essai-fusion-mer-plages`  | Fusion test of `piste/plages` in the lively sea: a single reflection of the water; set aside with the old sea. |
+|  `piste/mer-fft-spike`  | Base of the independent prototype FFT, before the work validated to the following milestone. |
+|  `jalon/22-mer-fft`  | Ocean FFT in four cascades, common geometry and normals, persistent foam; aspect validated in flight. |
+|  `jalon/23-mer-fft-main`  | Sea FFT rebased and integrated into main, with its vegetation, map and unique shadow. |
+|  `piste/nuages`  | Clouds in volume, from orbit to ground: the weather map on the climate, a volume launched to the quarter of pixels, volute 3D, cumulonimbus, shadows and fog. |
 
-## Réglages actuels
+## Current settings
 
-| Réglage | Valeur | Effet |
+| Adjustment | Value | Effect |
 |---|---|---|
-| Relief (`Relief.hlsli`) | relief tectonique, `PLANET_SEED` 0 | Les grandes formes de la carte tectonique, gauchies de 30 km ; les côtes de 60 à 3 km, déplacées de 12 km sur les côtes raides, 8 sur les plates, cordons et lagunes ; le détail en 12 octaves de 50 km à 13,5 m, lacunarité 2,11, la plus large des chaînes en plis à 36 km, les trois plus larges étirées le long d'elles ; les réglages `RELIEF_*` de `PlanetSettings.hlsli` (`spec-relief-tectonique.md`). |
-| Carte tectonique | 6 × 512², trois tranches RGBA16F, une quatrième au quart pour les vues, au démarrage | Continents par lieu, 40 à 44 % de croûte ; 12 à 20 plaques ; frontières, familles de profils, âges, sutures ; rifts ouverts en mers étroites ; soulèvement et érodabilité pour le niveau 0 ; 0,85 s et 38 Mo ; écrite à côté de l'exécutable pour le portage CPU, cinq tranches (`Tectonics.cpp`). |
-| Volcans (`Volcanoes.hlsli`) | 1 113 volcans, 15 points chauds, graine 0, au démarrage | Arcs à 140 à 230 km de la fosse, chaînes de points chauds, rifts ; profils concaves ou en bouclier, contours lobés de 20 %, cratères, calderas, coulées de 40 et 15 m, cônes tous les 2,5 km, guyots et atolls ; houle des panaches, traps et plateaux océaniques dans la carte ; les réglages `VOLCANO_*` (`spec-volcanisme.md`). |
-| `EXACT_LATTICE_MAX_CELL` | 4 m | Double précision seulement pour les mailles de moins de 4 m. |
-| `CREASE_ROUNDING` | 2 | Arêtes de Billow et RidgedMulti arrondies sur environ deux mailles. L'arrondi perd son excès moyen : le relief garde sa hauteur moyenne à toute distance. |
-| `CREASE_MIN_CELL` | 2 m | Les crêtes ne s'affinent plus sous des mailles de 2 m, si proche que soit la caméra. |
-| Projection des textures | triplanaire, `max(|n| − 0,45, 0)²` | Un, deux ou trois plans selon la normale, continus partout ; remplace la biplanaire à la puissance 8. |
-| `MESH_BAND_LIMIT` | 2 | Longueur d'onde la plus courte du relief, en mailles. 3 ou 4 scintillent moins, mais la forme mute davantage à l'approche. |
-| `DETAIL_SLOPE` | 0,08 | Grain fin de l'éclairage dessiné dans les pixels : pente ajoutée par octave. 0 le désactive. |
-| `TEXTURE_DETAIL` | 1 | Textures de près des matériaux : herbe et roche calculées au pixel, sable généré au démarrage. 0 les désactive. |
-| `STRATA_FORMATION_CONTRAST` | 0,3 | Teintes par groupes de formations, palette des grès aux trois quarts. Couleur seulement. |
-| `STRATA_SLOPE` | 0,4 | Perturbation des strates de 8 km à 4 m, pente moindre de 15 % à chaque octave ; l'épaisseur des couches varie le long des parois. |
-| `SNOW_BANDS`, `SAND_BANDS`, `GRASS_BANDS`, `SCREE_BANDS` | voir `PlanetSettings.hlsli` | Bandes de détail de chaque matériau, `DetailBands` : longueurs d'onde, pente et couleur par octave. |
-| `SOIL_BANDS` | 50 cm à 64 m ; 0,05 ; 0,05 | Sol nu : photo du gravier sableux et bandes de détail. |
-| `ROCK_TILE` | 64/5 m | Tuile de la roche : la photo de paroi `marble_cliff_04`, 12,7 m, sur les pentes de plus de 45°. |
-| `ROCK_TOP_TILE` | 64/3 m | Le même marbre pris de dessus, `marble_cliff_05`, 20 m, sur la roche plus douce ; tranche `MATERIAL_ROCK_TOP`. |
-| `ROCK_BANDS` | 8 à 64 m ; 0,24 ; 0,06 | Bandes de la roche, au-dessus de ses photos : la pente par octave de sa photo, `STONE_SLOPE_SIGMA`. |
-| `BLEND_RISE` | 0,3 m | Hauteur de texture qui déplace d'un poids entier une bordure entre matériaux ; le mélange par la hauteur s'estompe pour les pixels de 25 cm à 2 m. |
-| Grille fine | 4 × la face, dès des mailles de 20 m | Normales et altitude du vrai relief sous la maille, recalculées à chaque image (`FineSubdivision`, `FineMinCell`). |
-| `OCTAVE_SLOPE` | 0,16 | Pente portée par chaque octave cachée des montagnes. Rugosité du relief : chaînes jeunes 1, mesas et badlands 0,6, vieilles chaînes 0,5, collines 0,35, plaines 0,1. |
-| `TEXTURE_FINE` | 1 | Tuile fine de 1 m par matériau, 1 mm par texel, posée sur la grossière tant qu'un pixel couvre moins de 1 à 2 cm. 0 la retire. |
-| `SPLINE_NORMALS` | 1 | Normale par pixel, B-spline sur les 4 × 4 sommets voisins. 0 revient à la normale des sommets. |
-| `SPLINE_SURFACE` | 1 | Matériaux et grain fin pris sur la surface spline, à la rencontre du rayon de vue. |
-| `DETAIL_MIN_WAVELENGTH` | 13,5 m | Pas de grain plus fin que l'octave la plus fine du relief. |
-| `DETAIL_MAX_WAVELENGTH` | 6 km | Pas de grain plus large que les octaves fines du relief. |
-| Matériaux | la carte du climat, `GroundMaterials` dans `Materials.hlsli` | Température : celle de la carte au niveau de la mer, −5 °C/km, bruit de la limite des neiges de 2 km au plus, ±0,6 °C. Neige sous −2 °C. Roche au-delà d'une pente de 0,65 à 1,0, éboulis de 0,43 à 0,75. Humidité : le log des précipitations de la carte, de 100 à 3 000 mm, plus `CLIMATE_LOCAL`, 0,08, de 100 à 6 km. Chaque limite montre sa moyenne sur le pixel (`SpreadStep`, `SlopeShares`) ; les versants cachés comptent 4 °C par unité de pente. |
-| Carte du climat | 6 × 256², deux cubes RGBA16F, 9 mips, au démarrage, après la carte tectonique (`Climate.hlsli`) | Précipitations, température au niveau de la mer, demi-amplitude des saisons, part de la pluie en été ; vent, continentalité, courants froids. Transport de la vapeur à l'équilibre sur 200 puis 100 km ; 0,23 s et 8 Mo ; écrite à côté de l'exécutable pour le portage (`Climate.cpp`, `spec-climat.md`). |
-| `LEDGE_SCREE`, `LEDGE_SOIL` | 0,72 à 0,82 ; 0,84 à 0,92 | Planéité de la roche texturée au-delà de laquelle éboulis puis sol couvrent les replats. |
-| `STONE_SLOPE_SIGMA` | 0,6 | Écart de la pente de la texture de roche, que les mips perdent de loin : la part des replats en tient compte. |
-| `EXPOSURE_COMPENSATION` | 1 IL | L'exposition suit la lumière du jour sous la caméra, un posemètre incident tourné vers le soleil : une carte grise face au soleil y montre sa réflectance, plus cette compensation. Après le coucher, la lumière du coucher. |
-| `FILM_CONTRAST` | 1,5 | Courbe de tons x^a / (x^a + k^a) sur le canal le plus fort, par la carte grise : pente 1,5 dans les ombres, 1,23 au gris, épaule vers le blanc. |
-| `HORIZON_STEP` | 0,02 | Ombres portées et rayons : pas de la marche vers le soleil, en part de la distance parcourue, jamais sous la maille. 0,05 donne les mêmes ombres au sol, mais les rayons tremblent davantage. |
-| Atmosphère | la Terre, d'après Hillaire 2020 | Rayleigh, ozone, 100 km d'épaisseur ; aérosols de la couche limite, visibilité de 40 km au niveau de la mer, jusqu'à 2 km au-dessus du sol régional ; albédo du sol 0,3, soleil d'éclairement π. |
-| `HAZE_GROUND_SCALE_KM` | 10 km | La couche de brume se pose sur le sol de la carte de la planète, lissé sur cet écart type : elle suit les plateaux, se nivelle sur les crêtes et les vallées. |
-| Carte de la planète | 6 × 1 024², au démarrage, après la carte tectonique (`PlanetMap.hlsli`) | Le relief sur un cube fixé sur la planète : le sol, l'eau des cuvettes remplies, l'aire drainée. De la donnée, aucun sommet ne bouge. |
-| `GLARE_STRAYLIGHT` | 0,3 deg²/sr | Halo de l'objectif : une source d'éclairement E voile l'image à θ degrés d'elle de 0,3 E / θ². Un objectif récent. 0 le retire. Coupé par défaut ; `MYPLANETENGINE_GLARE` l'active. |
-| `OBJECT_STONY` | 0,27 à 0,42 ; 0,22 | Objets de proximité : où il y a des débris, un champ de 0,5 à 32 km relevé par les éboulis, le sol nu sec et la pente. Aucun débris sur 74 % des prairies, 70 % des sables et sols nus, 11 % des éboulis. |
-| `PEBBLES`, `GRASS_ROCKS`, `TUFT_COVER` | 2 % à 3 cm, effacé au-delà de 8 cm ; 0,03 ; 20 % et 1 % par octave | La recette par sol : cailloux du sable et du sol nu ; rochers de l'herbe, loi de Golombek et Rapp ; touffes dans l'herbe, sèches sur le sable et le sol nu. |
-| `DEBRIS_ABUNDANCE` | 0,05 ; 0,25 | Pierres des éboulis ; éboulements au pied des vraies parois. Une loi de Golombek et Rapp chacune. |
-| `OBJECT_OCTAVES`, `TUFT_OCTAVES` | 3 cm à 2 m ; 12 à 50 cm | Les octaves de tailles des cailloux et des touffes ; le gravier plus fin est la texture du sol. |
-| `OBJECT_LANDFORM`, `OBJECT_CREST`, `OBJECT_GATHER`, `OBJECT_PATCHES`, `OBJECT_CLUMPS` | 16 m ; 0,004 à 0,02 /m, 10 % ; 10 à 20° ; nulles sur 58 % du sol ; 0,4 à 1,6 fois | La forme du sol lue sur 16 m ; les crêtes ; le pied des parois ; les taches des rochers ; les amas des cailloux et des touffes. |
-| `OBJECT_REPOSE`, `OBJECT_BURIAL` | 38°, −1° par octave, 3° ; 8 à 40 %, 3 mm au moins | Angle de repos par taille ; enfouissement de la roche au sol meuble. |
-| `OBJECT_PIXELS`, `OBJECT_CELLS` | 6 à 9 px ; 1 à 1,5 fois la largeur | Un objet sort du sol de 6 à 9 pixels de large, et seulement où les mailles font moins de 1,5 fois sa largeur. |
-| `TREE_SEASON_START`, `TREE_LINE` | 0,9 °C ; 5,7 à 7,1 °C | Végétation : les saisons de la carte du climat, sur terre 3,5 + 18 sin² de la latitude à la continentalité moyenne, ajusté sur TerraClimate ; la ligne des arbres par la saison de croissance, Körner et Paulsen. |
-| `TREE_CEILING`, `TREELESS_RAIN`, `FOREST_RAIN`, `TREE_COVER_MODES`, `STAND_COVER` | 1,98 × aridité − 0,142 ; 820 ± 190 mm, plancher 2 % ; 2 100 ± 380 mm, rien sous 1 000 mm ; 20 et 80 % ; 90 % | L'eau : plafond de Sankaran ; les trois états de Hirota, sans arbres, savane, forêt ; peuplements. |
-| `PRESENCE_SCALES` | 32 km et 1 km, jusqu'à 8 m | Où sont les bois : le champ des régions, puis celui des taches, les clairières. |
-| `EXPOSURE_RELIEF`, `EXPOSED_SEASON`, `EXPOSED_DRIVE` | 300 m ; 0,5 °C ; 2 écarts | Les crêtes et les creux : la hauteur sur le sol régional, la saison et les champs des bois. |
-| `SHRUB_LAND`, `SHRUB_COVER`, `SHRUB_ARIDITY`, `SHRUB_HEIGHT` | 50 % des terres ; 20, 60, 35 et 25 % ; 0,03 à 0,12, 0,3 à 1 ; 1,5 m | Les arbustes par taches : désert, terres sèches, clairières humides, sous-bois. |
-| `FOREST_EDGE`, `SHRUB_LINE_OFFSET` | 32 m, 2 écarts ; 1,5 °C | Le manteau d'arbustes des lisières ; le krummholz au-dessus de la ligne des arbres. |
-| `CANOPY_HEIGHT`, `PLANT_HEIGHT_SPREAD` | 40 m ; 0,6 octave | La hauteur de la canopée par la saison et l'eau ; l'étalement des hauteurs. |
-| `CANOPY_ALBEDO`, `PLANT_TINT`, `SHRUB_ALBEDO`, `CANOPY_RELIEF` | Amazonie ; 0,7 ; gris olive ; 0,6 et 0,2, les arbres seuls | Couleur de la canopée, des conifères, des arbustes ; relief des couronnes au sol. |
-| `PLANT_OCTAVES`, `PLANT_LOD_PIXELS` | 0,5 à 64 m ; 64 à 48 px | Les plantes sur la grille, une octave de hauteurs par niveau ; chacune entière dès qu'elle est dessinée, de 8 à 5 pixels de haut (`PlantPixelRange`, `Vegetation.hlsli`) ; sous 48 pixels, le pied sur le sol du maillage, de 48 à 64 vers le sol exact. |
-| Végétation planétaire | sortie 5 à 8 px ; 512 tuiles ; relais imposteur-maillage de 96 à 128 px selon la graine, fondu de 0,8 à 1,25 fois ce seuil ; auto-ombrage 0,65 | Le seul feuillage, actif par défaut, ses réglages en dur (`PlanetFoliage.cpp`, `PlanetFoliageLod.hlsli`) : maillages proches, imposteurs lointains, quatorze modèles ; canopée et placement partagent le seuil. |
-| `CANOPY_SIDE_LIGHT` | 0,2 ; 3 | La lumière de la canopée vue à l'élévation e, 1 − 0,2 (1 − sin e)³, mesurée sur les plantes dessinées. |
-| Ombre du relief dans l'air | hauteur d'ombre par sommet (`Shadows.hlsli`) | Donnée par la marche de l'horizon de chaque sommet, lue entre les sommets ; la lumière du soleil diffusée une fois est coupée sous elle. |
-| La mer | Quatre FFT 256² ; écume persistante dans deux cartes 512² ; `FOAM_ALBEDO` 0,22 au loin | Déplacement et normales communs ; la couleur de l'eau par la température de la carte du climat ; vent uniforme par vue, la carte du climat porte le vent, raccord à faire ; temps à 1/60 s par image en capture. |
-| Nuages | `Clouds.hlsli`, `CloudsTemporal.hlsli`, `assets/clouds`, `Climate::Weather` | Les nuages du jeu, actifs par défaut (`spec-nuages.md`) : couche basse de 2 à 8 km, cirrus de 9 à 13 km ; carte météo planétaire 1 024 × 512, calculée au démarrage sur le climat, forme sur 32 km, érosion sur 4 km ; extinction 80 /km, quatre pas vers le soleil, double Henyey-Greenstein ; vent de 12 m/s vers l'est ; passe temporelle, une trace par tuile 4 × 4. L'air de leur composition garde rayons et brume régionale. Vues `clouds`, `weather`, `cloudshadow`. |
+| Relief (`Relief.hlsli`) | tectonic relief, `PLANET_SEED` 0 | The large shapes of the tectonic map, left of 30 km; the ridges of 60 to 3 km, moved from 12 km on the steep ridges, 8 on the plateaus, cordons and lagoons; the detail in 12 octaves of 50 km to 13,5 m, lacunarity 2,11, the widest of the chains in folds at 36 km, the three widest stretched along them; the adjustments `RELIEF_*` of `PlanetSettings.hlsli` (`spec-relief-tectonique.md`). |
+| Tectonic map | 6 × 512², three slices RGBA16F, a fourth to quarter for views, on startup | Continents by location, 40 to 44 % of crust; 12 to 20 plates; borders, profile families, ages, sutures; open rifts in narrow seas; elevation and erosion for level 0; 0,85 s and 38 MB; written next to the executable for the port CPU, five slices (`Tectonics.cpp`). |
+| Volcanoes (`Volcanoes.hlsli`) | 1 113 volcanoes, 15 hot spots, seed 0, on startup | Arcs at 140 to 230 km of pit, hot spot chains, rifts; concave or shield profiles, lobed contours of 20 %, craters, calderas, flows of 40 and 15 m, cones all 2,5 km, guyots and atolls; swell of plumes, traps and oceanic plateaus in the map; adjustments `VOLCANO_*` (`spec-volcanisme.md`). |
+|  `EXACT_LATTICE_MAX_CELL`  | 4 m | Double precision only for grid cells less than 4 m. |
+|  `CREASE_ROUNDING`  | 2 | Billow and RidgedMulti edges rounded on about two grid cells. The rounding loses its average excess: the relief keeps its average height at any distance. |
+|  `CREASE_MIN_CELL`  | 2 m | Peaks no longer refine under grid cells of 2 m, as close as the camera. |
+| Projection of textures | triplanar, `max(|n| − 0,45, 0)²`  | One, two or three planes according to the normal, continuous everywhere; replaces the biplanar at the power 8. |
+|  `MESH_BAND_LIMIT`  | 2 | Shortest wavelength of the relief, in grid cells. 3 or 4 sparkle less, but the shape mutes more as it approaches. |
+|  `DETAIL_SLOPE`  | 0,08 | Fine grain of the lighting drawn in pixels: slope added per octave. 0 disables it. |
+|  `TEXTURE_DETAIL`  | 1 | Materials close-up textures: grass and rock calculated by pixel, sand generated at startup. 0 disables them. |
+|  `STRATA_FORMATION_CONTRAST`  | 0,3 | Tinted by groups of formations, sandstone palette at three quarters. Color only. |
+|  `STRATA_SLOPE`  | 0,4 | Perturbation of strata from 8 km to 4 m, slope decreasing by 15 % per octave; layer thickness varies along walls. |
+|  `SNOW_BANDS`, `SAND_BANDS`, `GRASS_BANDS`, `SCREE_BANDS`  | see `PlanetSettings.hlsli`  | Detail strips of each material, `DetailBands` : wavelengths, pitch and color per octave. |
+|  `SOIL_BANDS`  | 50 cm to 64 m; 0,05; 0,05 | Bare ground: photo of sandy gravel and detail strips. |
+|  `ROCK_TILE`  | 64/5 m | Tile of the rock: wall photo `marble_cliff_04`, 12,7 m, on slopes of more than 45°. |
+|  `ROCK_TOP_TILE`  | 64/3 m | The same marble taken from above, `marble_cliff_05`, 20 m, on softer rock; slice `MATERIAL_ROCK_TOP`. |
+|  `ROCK_BANDS`  | 8 to 64 m; 0,24; 0,06 | Bands of the rock, above his photos: the slope per octave of his photo, `STONE_SLOPE_SIGMA`. |
+|  `BLEND_RISE`  | 0,3 m | Texture height that moves a border between materials by an entire weight; blending by height fades for pixels from 25 cm to 2 m. |
+| Fine grid | 4 × the face, from grid cells to 20 m | Normals and altitude of the real relief under the grid cell, recalculated at each frame (`FineSubdivision`, `FineMinCell`). |
+|  `OCTAVE_SLOPE`  | 0,16 | Slope carried by every octave hidden mountains. roughness of the relief: young chains 1, mesas and badlands 0,6, old chains 0,5, hills 0,35, plains 0,1. |
+|  `TEXTURE_FINE`  | 1 | Fine tile of 1 m per material, 1 mm by texel, laid on the coarse as long as one pixel covers less than 1 to 2 cm. 0 removes it. |
+|  `SPLINE_NORMALS`  | 1 | Normal per pixel, B-spline on the 4 × 4 neighboring vertices. 0 returns to the normal summits. |
+|  `SPLINE_SURFACE`  | 1 | Materials and fine grain taken on the spline surface, meeting the radius of view. |
+|  `DETAIL_MIN_WAVELENGTH`  | 13,5 m | No grain finer than the finest octave of the relief. |
+|  `DETAIL_MAX_WAVELENGTH`  | 6 km | No grain wider than the fine octaves of the relief. |
+| Materials | the climate map, `GroundMaterials` in `Materials.hlsli`  | Temperature: that of the map at sea level, −5 °C/km, noise of the snow line of 2 km at most, ±0,6 °C. Snow at −2 °C. Rock beyond a slope of 0,65 to 1,0, scree from 0,43 to 0,75. Humidity: the precipitation log of the map, from 100 to 3 000 mm, more `CLIMATE_LOCAL`, 0,08, from 100 to 6 km. Each limit shows its average on the pixel (`SpreadStep`, `SlopeShares`) ; hidden slopes count 4 °C per unit of slope. |
+| Climate map | 6 × 256², two cubes RGBA16F, 9 mips, at startup, after the tectonic map (`Climate.hlsli`) | Precipitation, temperature at sea level, half-amplitude of seasons, share of rainfall in summer; wind, continentality, cold currents. water vapor transport to equilibrium on 200 then 100 km; 0,23 s and 8 MB; written next to the executable for the port (`Climate.cpp`, `spec-climat.md`). |
+|  `LEDGE_SCREE`, `LEDGE_SOIL`  | 0,72 to 0,82; 0,84 to 0,92 | Flatness of textured rock beyond which scree then soil cover the replats. |
+|  `STONE_SLOPE_SIGMA`  | 0,6 | Deviation of the slope of the rock texture, which the mips lose from far: the part of the replats takes this into account. |
+|  `EXPOSURE_COMPENSATION`  | 1 | The exposure follows the daylight under the camera, an incident exposure meter turned towards the sun: a gray card facing the sun shows its reflectance, plus this compensation. After bedtime, bedtime light. |
+|  `FILM_CONTRAST`  | 1,5 | tone curve x^a / (x^a + k^a) on the strongest channel, by the gray card: slope 1,5 in the shadows, 1,23 to gray, shoulder to white. |
+|  `HORIZON_STEP`  | 0,02 | Cast shadows and rays: no walking to the sun, part of the distance traveled, never under the grid cell. 0,05 gives the same shadows on the ground, but the rays shake more. |
+| Atmosphere | Earth, according to Hillaire 2020 | Rayleigh, ozone, 100 km thick; boundary layer aerosols, visibility of 40 km at sea level, up to 2 km above regional ground; ground albedo 0,3, sun of illuminance π. |
+|  `HAZE_GROUND_SCALE_KM`  | 10 km | The layer of mist settles on the ground of the planet map, smoothed on this standard deviation: it follows the plateaus, levelling on the ridges and valleys. |
+| Map of the planet | 6 × 1 024², at startup, after the tectonic map (`PlanetMap.hlsli`) | The relief on a cube fixed on the planet: the soil, the water of the filled bowls, the drained area. From the data, no summit moves. |
+|  `GLARE_STRAYLIGHT`  | 0,3 deg²/sr | Halo of the lens: a source of illuminance E veils the image at θ degrees from it of 0,3 E / θ². A recent goal. 0 removes it. Off by default; `MYPLANETENGINE_GLARE` It's active. |
+|  `OBJECT_STONY`  | 0,27 to 0,42; 0,22 | Nearby objects: where there is debris, a field of 0,5 to 32 km raised by the scree, dry bare ground and slope. No debris on 74 % of grasslands, 70 % of sands and bare soils, 11 % of scree. |
+|  `PEBBLES`, `GRASS_ROCKS`, `TUFT_COVER`  | 2 % to 3 cm, erased beyond 8 cm; 0,03; 20 % and 1 % per octave | The recipe by soil: pebbles of sand and bare soil; rocks of grass, law of Golombek and Rapp; tufts in grass, dry on sand and bare soil. |
+|  `DEBRIS_ABUNDANCE`  | 0,05 ; 0,25 | Stones of the scree; landslides at the foot of the real walls. A law of Golombek and Rapp each. |
+|  `OBJECT_OCTAVES`, `TUFT_OCTAVES`  | 3 cm to 2 m; 12 to 50 cm | The octaves of sizes of pebbles and tufts; the finer gravel is the texture of the soil. |
+|  `OBJECT_LANDFORM`, `OBJECT_CREST`, `OBJECT_GATHER`, `OBJECT_PATCHES`, `OBJECT_CLUMPS`  | 16 m; 0,004 to 0,02 /m, 10 %; 10 to 20°; zero on 58 % of soil; 0,4 to 1,6 times | The shape of the soil read on 16 m; the ridges; the foot of the walls; the spots of the rocks; the clusters of pebbles and tufts. |
+|  `OBJECT_REPOSE`, `OBJECT_BURIAL`  | 38°, −1° per octave, 3°; 8 to 40 %, 3 at least mm | Angle of rest by size; burial of rock in loose soil. |
+|  `OBJECT_PIXELS`, `OBJECT_CELLS`  | 6 to 9 px; 1 to 1,5 times width | An object rises from the ground from 6 to 9 pixels wide, and only where the grid cells make less than 1,5 times its width. |
+|  `TREE_SEASON_START`, `TREE_LINE`  | 0,9 °C; 5,7 to 7,1 °C | Vegetation: seasons of the climate map, on land 3,5 + 18 sin² of latitude to average continentality, adjusted on TerraClimate; tree line by growing season, Körner and Paulsen. |
+|  `TREE_CEILING`, `TREELESS_RAIN`, `FOREST_RAIN`, `TREE_COVER_MODES`, `STAND_COVER`  | 1,98 × aridity − 0,142; 820 ± 190 mm, floor 2 %; 2 100 ± 380 mm, nothing below 1 000 mm; 20 and 80 %; 90 % | Water: ceiling of Sankaran; the three states of Hirota, without trees, savannah, forest; settlements. |
+|  `PRESENCE_SCALES`  | 32 km and 1 km, up to 8 m | Where are the woods: the field of the regions, then that of the spots, the clearings. |
+|  `EXPOSURE_RELIEF`, `EXPOSED_SEASON`, `EXPOSED_DRIVE`  | 300 m; 0,5 °C; 2 deviations | Ridges and lows: the height on the regional soil, the season and the fields of the woods. |
+|  `SHRUB_LAND`, `SHRUB_COVER`, `SHRUB_ARIDITY`, `SHRUB_HEIGHT`  | 50 % of land; 20, 60, 35 and 25 %; 0,03 to 0,12, 0,3 to 1; 1,5 m | Shrubs by spots: desert, dry lands, wet clearings, undergrowth. |
+|  `FOREST_EDGE`, `SHRUB_LINE_OFFSET`  | 32 m, 2 deviations; 1,5 °C | The bush coat of the edges; the krummholz above the tree line. |
+|  `CANOPY_HEIGHT`, `PLANT_HEIGHT_SPREAD`  | 40 m; 0,6 octave | The height of the canopy by season and water; the spread of heights. |
+|  `CANOPY_ALBEDO`, `PLANT_TINT`, `SHRUB_ALBEDO`, `CANOPY_RELIEF`  | Amazon; 0,7; olive grey; 0,6 and 0,2, trees alone | Color of the canopy, conifers, shrubs; relief of crowns on the ground. |
+|  `PLANT_OCTAVES`, `PLANT_LOD_PIXELS`  | 0,5 to 64 m; 64 to 48 px | Plants on the grid, one octave of heights per level; each whole as soon as it is drawn, from 8 to 5 pixels high (`PlantPixelRange`, `Vegetation.hlsli`) ; under 48 pixels, the foot on the ground of the mesh, from 48 to 64 to the exact ground. |
+| Planetary vegetation | output 5 to 8 px; 512 tiles; relay impostor-mesh from 96 to 128 px according to seed, fade from 0,8 to 1,25 times this threshold; auto-shading 0,65 | The only foliage, active by default, its hard settings (`PlanetFoliage.cpp`, `PlanetFoliageLod.hlsli`) : meshes close, impostors distant, fourteen models; canopy and placement share the threshold. |
+|  `CANOPY_SIDE_LIGHT`  | 0,2 ; 3 | The light of the canopy seen at elevation e, 1 − 0,2 (1 − sin e)³, measured on the drawn plants. |
+| Shadow of relief in the air | shadow height per vertex (`Shadows.hlsli`) | Given by the walk of the horizon of each vertex, read between the vertices; the sunlight diffused once is cut under it. |
+| The sea | Four FFT 256²; persistent foam in two cards 512²; `FOAM_ALBEDO` 0,22 in the distance | Common displacement and normals; water color by climate map temperature; uniform wind per view, climate map bears wind, connection to make; time to 1/60 s per frame in capture. |
+| Nuages |  `Clouds.hlsli`, `CloudsTemporal.hlsli`, `assets/clouds`, `Climate::Weather`  | Game clouds, activated by default (`spec-nuages.md`) : low layer from 2 to 8 km, cirrus from 9 to 13 km; planetary weather map 1 024 × 512, calculated at start on climate, form on 32 km, erosion on 4 km; extinction 80 /km, four steps to the sun, double Henyey-Greenstein; wind from 12 m/s to the east; time pass, one trace per tile 4 × 4. The air of their composition keeps rays and regional mist. Views `clouds`, `weather`, `cloudshadow`. |
 
-Hors de ce fichier : `PLANT_CROWN` dans `Objects.hlsli`, 0,3, 0,45 et 1,1, les couronnes de Tallo ; `PlanetPlantWindow`, 512 tuiles de 4 × 4 cellules. Maillage de 192 × 192 + anneaux de croissance 1 + 2/192, réglés par le seul `FaceCells`, k = 2, rayon de 6 378 km, dans `D3DApp.h` et `D3DApp.cpp`. Le maillage glisse en continu avec la caméra. L'éclairage utilise la normale calculée sur les sommets voisins, dans le vertex shader, plus le grain fin dans les pixels ; la touche R revient à l'éclairage à facettes. Le soleil et le ciel éclairent le terrain à travers l'atmosphère, en lumière linéaire, dans une image en haute dynamique, en flottants 32 bits : son alpha porte la distance du terrain à l'atmosphère.
+Out of this file: `PLANT_CROWN` in `Objects.hlsli`, 0,3, 0,45 and 1,1, the crowns of Tallo; `PlanetPlantWindow`, 512 tiles of 4 × 4 cells. mesh of 192 × 192 + growth rings 1 + 2/192, regulated by the single `FaceCells`, k = 2, radius of 6 378 km, in `D3DApp.h` and `D3DApp.cpp`. The mesh slides continuously with the camera. The lighting uses the normal calculated on neighboring vertices, in the vertex shader, plus the fine grain in pixels; the R key returns to the faceted lighting. The sun and the sky illuminate the field through the atmosphere, in linear light, in a high dynamic image, in floating 32 bits: its alpha carries the distance from the field to the atmosphere.
 
 ---
 
-## 2026-10-31 · L'orbite basse : des nappes texturées, des cumulus organisés
-
-- **Le défaut :** à 750 km, des nappes blanches uniformes aux bords nets ; un semis régulier de petits cumulus entre elles.
-- **Les causes, par élimination :** l'eau d'un cœur de front dans toutes les nappes, τ ≈ 60, réflectance saturée ; une octave manquante entre 10 et 150 km, l'érosion de 4 km plaçant seule les cumulus. Ni la carte au mip 0 ni la variance fine.
-- **La correction :** l'eau dans le nuage suit l'épaisseur de la carte, `0,25 + 0,75 e`, e = (R − 0,28) / 0,62, convention partagée avec le climat ; la forme relue à 128 km, axes permutés, ajoutée au seuil (`spec-nuages.md`).
-- **Le résultat :** nappes texturées aux bords effilochés, cumulus en amas et en allées ; orbite tenue, nuage épais 0,674 ; de près, plus translucides et plus doux.
-- **Le coût :** +0,3 à +1,7 ms, le plus au sol sous la convection.
-- **Pour le climat :** la part couverte des R partiels bouge un peu avec l'octave ; sa table est à remesurer.
-
-## 2026-10-31 · Les nuages vus de près, sans reflet sur leurs contours
-
-- **Le défaut :** en vol, de près, des nuages de plastique brillant, un cerne sombre sur les contours et les plis, un liseré à contre-jour, un intérieur plat.
-- **Les causes, par élimination :** le facteur d'épaisseur F de la diffusion multiple mesuré le long de la vue, mince sur un bord rasant ; des bords opaques en 12 m sur un bruit lisse sous 125 m. Ni la phase ni la carte au mip 0.
-- **La correction :** F sur la colonne du nuage là où il existe, lissée à l'échelle de la diffusion, environ 1 km, et au moins l'épaisseur traversée ; la variance des échelles plus fines que les texels des bruits, 0,0124 et 0,033, à toute distance. Écartés : F le long du soleil, de la normale, de la colonne moyenne (`spec-rendu-orbite.md`).
-- **Le résultat :** plus de cerne, de pli ni de plastique ; orbite inchangée, nuage épais 0,685. Le relief des cumulus de près reste plus doux qu'avant la piste.
-- **Le coût :** +0,1 à +0,5 ms.
-
-## 2026-10-31 · La planète vue d'orbite face à Apollo 17
-
-- **Le défaut :** à 10 000 km, des nuages gris rosé et translucides, un grain sableux sur les nuages lointains, un voile lavande sur toute la planète. Mesuré contre « Blue Marble » : l'océan à 102, 129, 177 en sRGB contre 45, 67, 100 ; les nuages épais à 189, 186, 195 contre 220 à 233.
-- **Les causes, établies par élimination et contre des Monte-Carlo** (`tools/calage_orbite.py`) : la diffusion multiple des aérosols, prise isotrope, trois à cinq fois trop forte vers l'orbite, et un sol gris de 0,3 sous l'air ; des nuages plafonnés vers 0,25 de réflectance, une phase renvoyant dix fois trop de lumière simple vers l'arrière, une eau proportionnelle à la couverture ; des pas de six épaisseurs optiques et 4 à 8 rayons ponctuels par pixel de 10 km ; une exposition de paysage.
-- **Les corrections :** la similitude de van de Hulst pour les aérosols, `AIR_GROUND_ALBEDO` 0,12 ; une phase de gouttes, g = 0,85, une diffusion multiple calée sur Monte-Carlo, soleil et ciel ensemble, six échantillons vers le soleil, l'eau indépendante de la couverture ; la statistique jointe de la forme et de l'érosion au pixel, en colonnes de recouvrement maximal par empreinte, à la place de la quadrature lointaine ; la carte météo en B-spline ; 0 IL d'exposition en orbite, +1 au sol, la part de l'air sous la caméra entre les deux. Le détail : `spec-rendu-orbite.md`.
-- **Le résultat d'orbite :** l'océan à 55, 75, 111, les nuages à 208, 202, 203, plus de grain. En réflectance équivalente, avant la courbe : nuage épais 0,645 contre 0,237, océan 0,061 contre 0,090, contraste 10,5 au zénith et 6,6 au soleil oblique, contre 2,6 et 1,8 ; CERES : 0,5 à 0,8, 0,08 à 0,1. Au-dessus d'une couche à midi, des sommets blancs non écrêtés aux ombres internes plus marquées qu'avant ; au soleil bas, plus douces. Au-dessous, des bases plus claires, un peu crème à midi.
-- **Le même jour, la carte se lit au mip 0** et la source multiple décroît en `1 / (1 + b τs)`, la transmission diffuse d'une couche : W 3,40, b 0,040, k 0,061.
-- **Le coût :** d'orbite +0,5 ms ; à 10 km +1,7 à +2,8 ms, l'image sous les 60 images par seconde au-dessus des cumulus ; au sol 0,2 à 1 ms de moins.
-- **Reste :** une octave manque entre 32 et 160 km, les champs partiels sont flous en taches ; le coût à 10 km.
-- **À juger en vol :** `tools/tests/2026-10-31-orbite-rendu.txt`.
-- **Pour revenir :** le commit avant le tag `piste/orbite-rendu`.
-
-## 2026-10-31 · L'épaisseur des masses, pour des nappes texturées
-
-- **Ce qui change :** la carte porte au-dessus de R = 0,28 une épaisseur e structurée, que le rendu lit pour l'eau du nuage, `0,25 + 0,75 e` (journal du même jour, l'orbite basse). Nappes et stratus minces, de 0 à 0,25, en cellules de 120 km ; boucliers et bras moyens ; têtes, axes des fronts et cœurs convectifs épais, jusqu'à 1 ; des variations de 80 et 250 km ; e effilé à 0 sur les 40 à 80 km des bords. `spec-nuages.md`, la carte météo.
-- **La table R → part couverte,** remesurée sur la loi du rendu avec son octave de 128 km : plus douce, pleine à 0,92 pour R = 0,28.
-- **La couverture ne bouge pas,** à 0,02 près : 0,35 et 0,34 sur les graines 0 et 1, ciel clair sur 52 et 53 % de l'aire.
-- **Vérifié** à 10 000, 750 et 10 km, sur la branche du rendu fusionnée (`238439c`) : les nappes ont une texture et des bords effilochés vus de 750 km.
-- **Écrit par Codex,** relu ; la table mesurée et posée à la main.
-- **Pour revenir :** le tag `piste/meteo-bimodale` ; la piste porte le tag `piste/meteo-epaisseur`.
-
-## 2026-10-31 · Des ciels clairs : la couverture bimodale
-
-- **Le défaut, jugé en vol :** « des nuages quasiment partout ». Des champs partiels de 0,35 à 0,7 couvraient presque toute la sphère, et la loi du rendu en faisait un moucheté de cumulus partout, sans un ciel dégagé.
-- **Ce qui change :** le ciel est clair par défaut. Le moucheté n'existe que dans quatre régimes, éteints à 0 sur leurs bords : cellules ouvertes derrière les fronts, bords défaits des nappes, alizés en aval des nappes, terres humides et chaudes. Les masses organisées portent la couverture. Anticyclones, dorsales, secteurs chauds et déserts se dégagent sans plancher.
-- **Les cibles :** celles de la photo d'Apollo 17, 37 % de blanc, bimodale, et non plus les 0,66 de MODIS, qui comptent cirrus fins et nuages fragmentés.
-- **Les chiffres,** graines 0 et 1 : fraction opaque 0,37 et 0,35, contre 0,63 ; ciel clair sur 52 % de l'aire, contre 0 ; couvert sur 31 %.
-- **Vérifié** à 10 000, 750 et 10 km, avant et après, sur la branche `integration` et sa loi du rendu.
-- **Écrit par Codex,** relu et mesuré ; `spec-nuages.md`, la carte météo.
-- **À juger en vol :** `tools/tests/2026-10-31-meteo-orbite.txt`.
-- **Pour revenir :** le tag `piste/meteo-orbite` ; la piste porte le tag `piste/meteo-bimodale`.
-
-## 2026-10-31 · La météo vue d'orbite
-
-- **Ce qui change :** la carte météo dessine elle-même, à la façon de la Terre d'Apollo 17, des masses organisées opaques : les virgules des dépressions, 8 à 10 en anneau au sud et 6 à 8 au nord, leurs fronts froids de 2 500 à 5 000 km, leurs boucliers, les amas de la ZCIT, les nappes déchirées des côtes froides. Les champs de petits nuages sont laissés au grain du shader ; les déserts, les fentes sèches et les allées des fronts se dégagent. `spec-nuages.md`, la carte météo.
-- **Ce que R veut dire :** la part du ciel couverte, par une table mesurée sous la loi de la session du rendu, où la densité ne dépend plus de R ; l'épaisseur au-dessus de 0,28. Le plafond de 0,6 disparaît.
-- **La couverture,** graines 0 et 1 : 0,625 et 0,619, contre 0,110 avant, pour 0,66 sur Terre ; chaque bande de latitude dans ±0,08 des moyennes de la Terre, sauf 20-30° S de la graine 1, plus désertique, à 0,40.
-- **Ce qui ne change pas :** le format, ses mips, l'interface, la liste des dépressions ; le shader. Sous la loi actuelle, les champs partiels restent un voile translucide jusqu'à la fusion de la branche du rendu.
-- **Le démarrage :** 140 à 220 ms au titre, machine chargée ; au bit près d'un calcul à l'autre.
-- **Écrit par Codex** sur trois briefs, relu, calibré et vérifié d'orbite sur deux graines.
-- **À juger en vol :** `tools/tests/2026-10-31-meteo-orbite.txt`.
-- **Pour revenir :** le tag `piste/nuages-climat` ; la piste porte le tag `piste/meteo-orbite`.
-
-## 2026-10-31 · Les plages, à la distance de l'eau
-
-- **Le défaut :** la plage était une bande d'altitude, de 5 à 25 m. Sur les côtes plates et autour des cordons, des kilomètres de sable à l'intérieur des terres ; sur les côtes raides, une bande de sable peinte au ras de l'eau ; les motus des atolls, à 3 m, tout en sable, sans plantes.
-- **La bande :** l'étape 1 de `piste/plages`, commit `c87dcd9`, portée sur la mer FFT (`recherche-cotes.md`). Une hauteur d'eau, de 0 à la berme de 2,5 m, adoucie de ±1 m, multipliée par l'exposition aux vagues ; une part de la terre du pixel, `ShoreBelow` ; sous les pentes de 0,12 à 0,22 ; au-dessus de 0 °C. Sans le sable mouillé ni la laisse de mer de l'étape 2.
-- **La largeur plafonnée à 120 m fois l'exposition :** le haut de la bande vaut `min(2,5 m, 120 m × pente)`. Une bande de 2,5 m sur une pente de 0,002 faisait 1,25 km.
-- **La pente, à l'échelle de la plage :** prise sur 60 m de part et d'autre, `SHORE_BASELINE`, sur la surface du maillage. Prise sur la normale des matériaux, à 1 m, elle suivait les bosses et le plafond ne mordait pas : au portage, 73 % des terres d'une plaine côtière restaient en plage, 3 % avec la pente prise sur 20 m. Une règle nouvelle de `principes.md`.
-- **Au loin, la grille fine porte cette pente** dès que ses mailles couvrent 60 m. Vues de 20 km, les mailles de la face font 417 m : elles ne résolvent plus les flancs d'un cordon, et la normale des sommets, verticale sur sa crête, effaçait sa plage de 5 à 20 km. Plus fine, la grille ramènerait les bosses.
-- **L'exposition au large :** l'eau ouverte à 3, 10 et 30 km vers le bas de la pente, lue sur la carte de la planète ; une côte abritée garde 40 % de son exposition.
-- **Réglages :** `BEACH` 2,5 m, 1 m, 120 m et 0,4 ; `BEACH_SLOPE` 0,12 et 0,22 ; `BEACH_FETCH` 3, 10 et 30 km ; `SHORE_BASELINE` 60 m.
-- **Vérifié en rendu :**
-  - les motus d'un atoll, verts et frangés de sable ;
-  - un cordon de 20 km à 150 m, sa plage de 50 à 90 m côté mer, plus étroite côté lagune ;
-  - une côte plate, la plaine rendue aux couleurs du climat ;
-  - une côte raide, sans plage.
-- **Les limites :**
-  - les mares de quelques centaines de mètres derrière un cordon gardent un anneau de sable : la carte de la planète, lue à 3 km, ne les voit pas abritées ;
-  - au-delà de la face du maillage, sans grille fine, un cordon étroit perd sa plage.
-- **Coût :** 16 lectures de sommets de plus par sommet sous 60 m de maille ; trois lectures de la carte de la planète par pixel près de la mer. Non mesuré.
-- **À juger en vol :** `tools/tests/2026-10-31-plages.txt`.
-- **Pour revenir :** le commit `5fc1d47`.
-
-## 2026-10-31 · Les failles des rifts et les cordons des côtes plates
-
-- **Défaut 1, la faille du rift émergé :** vue de près, une tranchée droite en V, des corniches parallèles le long de ses murs, des rangées de dents blanches.
-  - **La cause :** le décalage du détail le long des transformantes, 8 km sur une zone de 0,3 km de part et d'autre. Le bruit y était cisaillé 13 fois : étiré le long de la faille, ses pentes multipliées. Il s'appliquait aussi aux rifts obliques, dont la part de cisaillement dépasse 1 m.
-  - **La preuve :** dans le moteur, vue `sun` facettée, la bande striée disparaît en coupant ce seul décalage, à deux endroits de la frontière ; le creux de la transformante, le graben et les plis n'y sont pour rien. Au portage, six failles sur les graines 0 à 2 : la même bande partout. Élargir la zone ne suffit pas : à 4 km la tranchée reste, à 8 km le décalage ne se voit plus.
-  - **La correction :** le décalage retiré, `RELIEF_TRANSFORM` réduit au creux. Une règle nouvelle de `principes.md`.
-- **Défaut 2, le cordon de la côte plate :** un ruban de largeur constante, en segments et en angles vifs, collé à la terre par un bloc rectangulaire.
-  - **La cause :** il suivait le contour du rivage bruité. Les octaves fines et les rias du bruit des côtes y font les angles ; dans une ria plus étroite que lui, ses deux flancs se rejoignaient en un bloc plat à 3 m. Sa crête, toujours 3 m, et sa largeur, toujours 0,6 km, faisaient le tuyau.
-  - **La preuve :** dans le moteur au même lieu, sans les rias le bloc disparaît, le ruban reste sinueux ; sans le bruit des côtes, le cordon devient un arc lisse. Au portage, le détail domine le rivage des côtes les plus plates : un cordon sur les seules grandes formes tombait à terre sur 50 à 90 % de sa longueur.
-  - **La correction :** le cordon suit le rivage lissé, les grandes formes, les trois plus larges octaves du bruit des côtes et du détail. Des îles en arcs entre des passes, recourbées vers elles ; dunes, largeur et crête variables ; des cônes de débordement côté lagune ; relevé depuis le relief sous lui, sa crête entière ; jamais sur la terre émergée. `spec-relief-tectonique.md`, les côtes.
-- **La ligne blanche pointillée sur la mer :** un cordon étroit vu de loin, échantillonné par le maillage. Son profil a deux mailles de large, mais seul son sommet émerge, un tiers de sa largeur sur une mer de 10 m : les sommets du maillage tombent tour à tour dessus et à côté. Établi dans le moteur au même cordon : en tirets à 20 km, continu à 8 et à 3 km ; le portage, à 20 m, le dessine continu. Le relever depuis le relief sous lui garde sa crête entière, 3,2 % de ses points au ras de l'eau au lieu de 8,3, mais n'ôte pas les tirets. Reste à faire : une crête émergée d'au moins deux mailles, un profil plus plat au sommet par exemple.
-- **Réglages :** `RELIEF_TRANSFORM` en float2 ; `RELIEF_BARRIER_FORM` nouveau, 0,6, 0,15, 4 km, 3 octaves.
-- **Les ordres de grandeur,** portage, graines 0 et 2 : inchangés, terres 32,9 et 30,5 %, sommets, fosses, part au-dessus de 3 km ; 9 à 12 % des points bougent, près des transformantes, de 11 à 14 m en médiane.
-- **Le portage :** contre la carte de la planète, écart médian 6,5 cm, p99 2,2 m.
-- **Coût du terrain :** un bruit de plus sur les cordons ; plus de décalage près des transformantes.
-- **À juger en vol :** `tools/tests/2026-10-31-relief-tectonique.txt`, la faille à 40 m et les cordons à 1,5 km et 60 m.
-- **Pour revenir :** le commit `ba3372e`.
-
-## 2026-10-31 · Les atolls, sur la forme de leur volcan
-
-- **Le défaut, vu en vol :** des atolls en anneaux trop circulaires, un récif « en bande ». Le contour du récif était un cercle bruité à part, son platier à +0,5 m de largeur constante : la houle le découvrait, une plage continue.
-- **La règle :** une forme posée sur une autre en suit le contour (`principes.md`). Le récif se lit sur le contour même de l'édifice, au niveau de l'ancien rivage ; un récif-barrière, un atoll, un guyot ont la forme de leur volcan.
-- **Le contour des édifices,** pour tous : allongé selon une direction tirée, jusqu'à 10 % du rayon d'un stratovolcan, 35 % d'un bouclier ; lobé et anguleux, deux octaves, 12 % à un écart-type ; 30 % au plus. La portée de l'index passe à 1,7 rayon.
-- **Le récif :** un platier à −1,5 m, sous l'eau, rongé, de 0,25 à 0,8 km, plus large au vent, l'est des alizés ; des motus séparés à +3 m, de 150 à 500 m de large, nombreux au vent, rares sous le vent ; des passes surtout sous le vent ; le fond du lagon par taches.
-- **Le repère de chaque volcan redressé :** son « est » était l'ouest.
-- **Réglages :** `VOLCANO_REEF` 4,5 m, −12 m, 1,5 km ; `VOLCANO_LOBES` 0,12, 0,1 et 0,35.
-- **Vérifié :** trois atolls et un récif-barrière de la graine 0, trois atolls et un récif-barrière de la graine 1, de 25 km à 300 m, au vent et sous le vent ; le portage à 7,6 cm au sol, 0,3 cm sur la carte de la planète.
-- **La limite :** les motus restent en sable nu près de l'eau, la plage étant une bande d'altitude de 5 à 25 m (`Materials.hlsli`) ; quelques palmiers seulement.
-- **Pour revenir :** le commit `5a546e6`.
-
-## 2026-10-31 · La neige qui scintille au bord de la roche
-
-- **Le défaut :** à 1 m du sol, dans la transition entre la neige et la roche ou le sol orange, la neige scintillait en mouchetures allongées dans la pente et bougeait avec la caméra.
-- **La cause :** la normale des décisions était celle des sommets, prise sur deux mailles, 4 cm à 1 m du sol. Elle suivait les millimètres du maillage, 1 à 3° qui changent à chaque glissement ; la neige en dépend par la pente qui la chasse et par l'exposition au pôle, 8 °C par unité d'inclinaison, sur une transition de 2 °C. Établi par élimination au même lieu, à la maille changée seule (k 2,0 contre 2,4) : couper la pente et l'exposition l'annule, rien d'autre. Déjà là avant la pile tectonique, deux fois moins fort.
-- **La correction :** les matériaux se décident sur une normale prise à `DECISION_BASELINE`, 1 m de part et d'autre, lue sur la surface du maillage (`VertexShader.hlsl`), là où les mailles sont plus fines ; l'octave de 13,5 m y garde 96 % de sa pente. Sur trois lieux, la neige qui change avec la maille passe de 4,1 % des pixels à 0,2 %, en vol entre deux poses de 2 cm de 4,7 % à 0,8 %.
-- **Reste :** à l'arrêt, le maillage repasse du calcul en paires au calcul exact, et quelques lignes de neige basculent une fois, 1,9 % des pixels contre 6,3 %.
-- **Coût :** 16 lectures de sommets par sommet sous 1 m de maille ; le dessin du terrain prend 0,05 à 0,14 ms de plus à la mesure.
-- **Pour revenir :** le commit `5a7b586`.
-
-## 2026-10-31 · Les nuages tirés du climat
-
-- **Ce qui change :** la carte météo des nuages n'est plus une texture de bruit figée, `weather-planet1024`, sans lien avec la géographie. Elle se calcule au démarrage sur la carte du climat et les grandes formes (`Climate::Weather`) : la convection de la ZCIT en amas, le ciel dégagé sous les anticyclones et sur les déserts, les nappes de stratocumulus au large des côtes à courant froid, 18 dépressions en virgule sur les rails vers 50° avec leurs fronts, leurs boucliers et leurs cirrus, les cellules derrière les fronts, les bancs au vent des reliefs et le ciel clair sous le vent. `spec-nuages.md`, la carte météo.
-- **Ce qui ne change pas :** le format, RGBA8 en 1 024 × 512, et ses mips, le maximum de R et de B dès le mip 2 ; le rendu, le vent vers l'est et l'horloge ; la verrière lit la même carte.
-- **Retirés :** `assets/clouds/weather-planet1024.rgba8mips` et `tools/gen_cloud_weather.py` (`log/spec-nuages-historique.md`) ; le manifeste ne décrit plus que les trois volumes.
-- **Le budget,** graine 0 : couverture moyenne 0,110, contre 0,094 ; au-dessus de 0,2 sur 16,8 % de la sphère, contre 15,5 ; cirrus au-dessus de 0,03 sur 3,3 %, contre 1,6. Le coût des nuages en vol n'est pas mesuré : aucun banc demandé.
-- **Le démarrage :** 235 à 296 ms de plus au titre, machine chargée ; au bit près d'un calcul à l'autre. Le moteur écrit `meteo-<graine>.bin` et la liste de ses dépressions, `meteo-<graine>.txt`.
-- **À juger en vol :** `tools/tests/2026-10-31-nuages-climat.txt`.
-- **Pour revenir :** le commit `07c8e0d`, avant la piste ; la piste porte le tag `piste/nuages-climat`.
-
-## 2026-10-31 · Le catalogue de plantes partagé, la planète nue sans lui
-
-- **Le défaut :** un worktree sans catalogue de plantes, fichiers générés que git ne suit pas, montrait un mur strié à distance fixe de la caméra, partout où pousse la forêt. Signalé en vol sur la branche d'intégration.
-- **La cause :** sans catalogue, la canopée au sol était dessinée partout ; vue de sous ses cimes, à hauteur d'homme, elle fait un rideau au bord de la portée des plantes. Établi en ajoutant le catalogue au même worktree : la forêt revient, le rideau disparaît. Le sol nu en deçà de la portée, essayé d'abord, noircissait le sol, ombré par des arbres absents : abandonné.
-- **La correction :** sans catalogue, aucune végétation, ni dessinée ni en canopée (`VegetationAbsent`, `TreesHere`, `ShrubsHere`). Le catalogue est publié à côté des dépôts par `tools\plantes.ps1`, `plantes/climate_shrubs_v2`, et tous les worktrees le trouvent en remontant depuis leur exe, comme les scans : un seul catalogue de 743 Mo pour tous.
-- **Pour revenir :** le commit `d304da0`.
-
-## 2026-10-31 · Le climat calculé au démarrage
-
-- **Ce qui change :** l'humidité n'est plus un bruit régional et une bande sèche à 24°, ni la température un bruit de ±3,6 °C. Une carte du climat se calcule au démarrage sur les grandes formes de la carte tectonique : les vents des trois cellules, l'équateur thermique qui suit l'été, les dépressions thermiques des terres ; la vapeur portée depuis les mers, la pluie par l'ascendance et au vent des reliefs, l'ombre pluviométrique ; la continentalité ; les courants froids. `spec-climat.md`, le détail.
-- **Ce qui la lit :** les matériaux et les plantes, température, humidité et demi-amplitude des saisons ; la couleur de la mer ; la verrière du vaisseau, dont le cube de bruit cuit au démarrage, `ShipClimate.hlsl`, est retiré. Les nuages ne la lisent pas.
-- **Réglages :** les lois en tête de `Climate.cpp` ; `CLIMATE_LOCAL` 0,08, la variation de la pluie sous la carte, de 100 à 6 km (`Materials.hlsli`) ; `SEASON_AMPLITUDE` quitte `PlanetSettings.hlsli`, la carte la donne.
-- **Les ordres de grandeur,** portage, graine 0 : 879 mm sur les terres ; 2 167 mm de 0 à 10°, 596 de 20 à 30° ; déserts sous 250 mm sur 28,5 % des terres, 33 % de la bande de 20 à 30° ; graines 1 et 2, 45 et 46 % de cette bande.
-- **Le démarrage :** 0,22 à 0,24 s au titre, machine chargée ; 8,0 Mo sur le GPU ; au bit près d'un calcul à l'autre. Le fichier `climat-<graine>.bin`, 12,6 Mo, pour le portage et l'érosion.
-- **Coût du terrain :** une lecture de la carte et quatre octaves de bruit de plus par pixel des matériaux ; non mesuré.
-- **Les lieux changent de climat :** la côte plate tropicale des vues de contrôle est une côte sous le vent, 250 mm ; les mesas, une savane de mousson ; une plaine équatoriale qui était un désert est une forêt.
-- **À juger en vol :** `tools/tests/2026-10-31-climat.txt`.
-- **Pour revenir :** le commit `fd92705`, avant la piste ; la piste porte le tag `piste/climat`.
-
-## 2026-10-31 · Le volcanisme
-
-- **Ce qui change :** la planète a ses volcans, listés au démarrage à la fin de `Tectonics::Build` et évalués point par point par `Volcanoes.hlsli`, sur la forme avant érosion. `spec-volcanisme.md`.
-- **Les lieux :** les arcs sur la plaque chevauchante, à 140 à 230 km de la fosse, un volcan tous les 35 à 80 km ; les rifts continentaux ; 8 à 16 points chauds, chacun une chaîne le long du mouvement de sa plaque, jusqu'à la tête de son panache, traps ou plateau océanique. Chaque volcan ramené par le gauchissement de la lecture de la carte : une règle nouvelle de `principes.md`.
-- **Les édifices :** stratovolcans concaves, boucliers presque droits, contours lobés ; cratères et calderas ; coulées de moyenne nulle, en langues étirées le long de la pente ; champs de cônes de scories ; îles arasées, guyots, récifs-barrières et atolls sous les tropiques. Tout profil sur deux mailles au moins, son volume gardé.
-- **Dans la carte :** la houle des panaches, 0,6 à 1,3 km ; les traps en marches ; les plateaux océaniques ; la roche volcanique autour des volcans.
-- **Les matériaux :** `gVolcanic`, dans l'ancien champ `relief` de `FaceVertex` : basalte pour la roche, cendres et scories sombres pour le sol, plages noires.
-- **Réglages :** `VOLCANO_FLOWS` 1,5 km, 0,25 rayon, 40 et 15 m ; `VOLCANO_CONES` 2,5 km ; `VOLCANO_REEF` 0,5 km, 3 m, −12 m, 3 km ; `VOLCANO_LOBES` 0,2 ; `VOLCANIC_ASH` 0,07, `VOLCANIC_COVER` 0,85.
-- **Les ordres de grandeur,** portage, mailles de 2 km : terres 32,8, 34,3 et 30,7 %, graines 0 à 2, contre 32,6, 34,0 et 30,5 % ; médiane des terres 388 m contre 380 ; modes +375 et −4 525 m ; au-dessus de 3 km 2,03 % contre 1,99. Graine 0 : 697 stratovolcans, 352 boucliers, 163 calderas, 26 atolls, 113 guyots.
-- **Le démarrage :** 60 à 77 ms de volcanisme sur 1,0 à 1,3 s de carte, la machine chargée par d'autres sessions ; mémoire GPU +0,18 Mo.
-- **Coût du terrain,** en mouvement, contre la même version les édifices coupés : +0,02 à +0,12 ms aux lieux volcaniques, 0,20 à 0,65 ms en tout ; GPU partagé.
-- **Le portage :** `cp.py` lit `volcans-<graine>.bin` ; contre la carte de la planète, 0,4 cm en médiane sur les volcans ; au sol, 7,9 cm en médiane après la fusion de `d304da0` et les cônes placés en doubles, la pente des flancs et le décimètre du titre.
-- **À juger en vol :** `tools/tests/2026-10-31-volcanisme.txt`, dix-sept vues.
-- **Pour revenir :** le commit `d304da0` de `bruit-propre`.
-
-## 2026-10-31 · Les murs des chaînes vus de près
-
-- **Le défaut :** vu à 1 m, le sol des chaînes formait des espaliers, des murs de 8 à 17 cm tous les 0,5 m, en damier par endroits, et un fourmillement en vol, le maillage glissant sur ces marches. Signalé en vol sur une pente orange et une colline grise.
-- **La cause :** la distance lissée à la frontière, des centaines de km en flottant, avançait par pas de quelques cm ; le soulèvement des chaînes et la phase des plis, qui la rendent au relief à environ 1 m par m, en faisaient des marches. Établi en coupant les deux : les murs disparaissent. Ni le scan de roche, ni le spéculaire, ni la position de lecture dans la carte : `precise` sur celle-ci ne changeait rien.
-- **La correction :** cette distance lue en double (`TectonicSample.along`), le soulèvement en double, la phase des plis en double ramenée à un tour. Vérifié sur cinq lieux, pente de chaîne, vue d'en haut, dôme enneigé, colline, t43 : plus aucun mur.
-- **Réglage :** le soulèvement suit une quintique au lieu d'une tanh, même pente à la frontière et même hauteur, atteinte à 844 km ; le relief des chaînes bouge un peu. Le portage suit.
-- **Coût :** une somme de B-spline en double par face lue ; le temps du terrain n'a pas bougé à la mesure, 0,2 à 0,3 ms.
-- **Pour revenir :** le commit `fd92705`.
-
-## 2026-10-31 · Les plis des chaînes, moins réguliers
-
-- **Ce qui change :** vus de 300 km, les plis des chaînes formaient des bandes parallèles d'espacement constant, une empreinte digitale. Désormais deux jeux, de 26 et 52 km, se relaient selon un bruit de 120 km : l'espacement varie du simple au double, et les crêtes d'un jeu prennent le relais de l'autre en échelon. Leur amplitude varie par segments de 50 km, de presque rien au double, sur le poids de l'octave ; un décalage commun, jamais plus raide que la distance, les courbe sans boucle ; les chevrons vifs près des jonctions triples s'effacent. `spec-relief-tectonique.md`, le détail.
-- **Réglages :** `RELIEF_FOLD` 26 km, décalage 0,35, 150 km ; `RELIEF_FOLD_SETS` nouveau, 2 et 120 km ; `RELIEF_FOLD_SADDLES` 0,8 et 50 km ; `RELIEF_FOLD_REACH` gagne le seuil des chevrons, 0,5 à 0,7 de la pente de la distance.
-- **Les ordres de grandeur,** portage, graine 0 : terres 32,9 % ; sommets des 12 plus hautes chaînes 6,9 à 7,6 km, contre 6,3 à 7,3 ; le reste inchangé. La carte tectonique n'a pas bougé : démarrage et mémoire identiques.
-- **Coût du terrain :** deux bruits de plus par sommet sur les chaînes, quatre en tout pour les plis.
-- **Le portage :** contre la carte de la planète, écart médian 6 cm, p99 1,9 m.
-- **À juger en vol :** `tools/tests/2026-10-31-relief-tectonique.txt`, la chaîne à 300 km et la cordillère.
-- **Pour revenir :** le commit `f4bf87d`, tag `piste/relief-tectonique`.
-
-## 2026-10-31 · Le relief tectonique, seconde passe
-
-- **Ce qui change :** les défauts connus de la première version corrigés ; `spec-relief-tectonique.md`, ses sections des côtes, du niveau 0 et des mesures.
-- **Les côtes :** près du rivage, un bruit de 60 à 3 km déplace la côte de 12 km à un écart-type sur une côte raide, 8 sur une plate ; son amplitude est la pente des grandes formes fois ce déplacement, une règle nouvelle de `principes.md`. Caps, baies, îles et rias ; sur la moitié des côtes plates, des cordons à 2,5 km au large, des lagunes et des flèches ; les plaines côtières plates plus calmes, leurs badlands aussi. Réglages `RELIEF_COAST`, `_COAST_SLOPE`, `_COAST_NOISE`, `_RIAS`, `_BARRIER`, `_BARRIER_GAPS`, `_COAST_QUIET`.
-- **Les rifts :** chacun s'ouvre depuis 1 à 3 Ma ; au-delà de 50 km, une mer étroite, croûte jeune de 2 à 3 km de fond, dorsale au milieu, marges jeunes et leurs épaulements. Les autres gardent un fond émergé : un dôme de 1,2 km, des épaulements de 1,1 km, un graben de 0,5 à 0,8 km. Rifts : 2,5, 8,6 et 2,5 % des frontières, graines 0 à 2, contre 15,7, 17,6 et 10,9 %.
-- **Les chaînes :** la plus large octave des chaînes en plis, des crêtes continues le long des lignes de niveau de la distance à la frontière, à 36 km, gauchies, des cols ; les vallées entre les chaînons ; les deux octaves suivantes réduites de moitié dessous, plus de taches. Jusqu'à 800 km de la frontière, sauf à mi-chemin de deux. Réglages `RELIEF_FOLD`, `_FOLD_SADDLES`, `_FOLD_REACH`.
-- **Le démarrage :** 0,81 à 0,86 s au titre, contre 2,53 s ; 0,88 à 0,90 s hors du moteur. Propagations sur des seaux, calculs indépendants en parallèle, ce qui dépasse 300 km sur un cube de demi-résolution. Mémoire GPU 37,9 Mo, contre 49,5 : la tranche des vues au quart. Toujours au bit près d'un calcul à l'autre.
-- **Le niveau 0 :** le soulèvement et l'érodabilité dans la carte, lus par `cp.uplift` et `cp.erodibility` ; le fichier `EXOTECT2`, cinq tranches, 65 Mo. Le branchement est décrit dans la spec, à faire sur `erosion-niveaux`.
-- **Les lieux :** le départ du jeu au-dessus d'un continent, −12°, 116,875°, la chaîne à l'horizon ; le globe du lanceur sur le grand continent ; `tools/tests/vues.txt` et ses ombres sur une terre, des collines sous des cumulus épars ; huit vues de contrôle, `rend_tecto.ps1`, référence `base_tecto`.
-- **Les ordres de grandeur,** portage, graine 0 : terres 32,9 % ; modes +125 m et −4 525 m ; sommets des 12 plus hautes chaînes 6,3 à 7,3 km ; fosses −9,1 à −10,1 km ; au-dessus de 3 km, 2,0 %.
-- **Coût du terrain :** image immobile, 0,1 à 0,4 ms de calcul avant comme après ; en mouvement, non mesuré : quelques bruits de plus près des côtes et sur les chaînes.
-- **Le portage :** contre la carte de la planète, écart médian 6 cm, p99 1,8 m.
-- **À juger en vol :** `tools/tests/2026-10-31-relief-tectonique.txt`, mise à jour.
-- **Pour revenir :** l'entrée `relief tectonique v1, avant vol` de `git stash list`.
-
-## 2026-10-31 · Le relief tectonique
-
-- **Ce qui change :** `Relief.hlsli` est réécrit sur la carte tectonique ; il ne garde rien de la composition héritée de complexplanet, ni graphe, ni réglages, ni noms. La première section de `PlanetSettings.hlsli` devient les réglages `RELIEF_*` ; `CUR_SEED` devient `PLANET_SEED`. `spec-relief-tectonique.md`.
-- **La carte tectonique corrigée :** la croûte continentale par lieu, plus par plaque ; les marges passives et actives ; les familles de profils par le signe du mouvement ; quatre tranches par face, avec une bordure, lues en B-spline et mêlées près des arêtes. Une vue `relief` en plus.
-- **Les grandes formes :** océans par l'âge, fosses et bourrelets, cordillères et arcs, chaînes de collision et plateaux, avant-pays, rifts, transformantes, vieilles chaînes, cratons ; lois de Stein et Stein, Turcotte et Schubert, Stern.
-- **Le détail :** les chaînes en 1 − |n|, orientées le long des frontières ; l'érosion par la pente sur un bruit à dérivées (`RlGradientNoiseD`) ; mesas et badlands. Aucune vallée n'est creusée.
-- **Le portage CPU :** `tools/hydro/cp.py` lit la carte du moteur, `x64/Release/tectonique-<graine>.bin` ; 8 cm d'écart au plus contre la carte de la planète.
-- **Les ordres de grandeur,** portage, graine 0 : terres 33,0 % ; modes +125 m et −4 625 m ; sommets des 12 plus hautes chaînes 6,8 à 7,9 km ; fosses −9,4 à −10,5 km. Graines 1 et 2 : terres 33,8 et 30,4 %.
-- **Coût :** carte tectonique 2,5 s et 50 Mo au démarrage, contre 1 s et 32 Mo ; calcul du terrain en mouvement 0,3 à 0,7 ms aux vues de référence, contre 0,5 à 1,3 ms, et 0,7 à 2,5 ms au ras du sol, contre 3,9.
-- **Les lieux tombent ailleurs :** les vues de référence sont en mer, sauf l'orbite et `macro` ; la référence du banc de qualité ne vaut plus.
-- **À juger en vol :** `tools/tests/2026-10-31-relief-tectonique.txt`, dix vues ; la carte, `tools/tests/2026-10-31-tectonique.txt`.
-- **Pour revenir :** le commit d'avant, `f00004d` ; la piste prendra le tag `piste/relief-tectonique` à son premier commit.
-
-## 2026-10-31 · Le relief en code original
-
-- **Ce qui change :** le relief est réécrit en salle blanche, depuis une spécification fonctionnelle, sans voir le portage de complexplanet ni libnoise. `ComplexPlanet.hlsli` et `LibNoise.hlsli` sont supprimés ; `Relief.hlsli` et `Noise.hlsli` les remplacent. `ComplexPlanetElevation` devient `ReliefElevation`, avec la surcharge `valleys` de `erosion-niveaux`.
-- **Le bruit :** gradient de Perlin sur le réseau entier, hachage xxHash32 imbriqué axe par axe, 256 gradients unitaires sur une spirale de Fibonacci. Écart-type 0,40 dans les deux qualités. Chaque octave décalée d'une fraction de maille (`principes.md`). Graines : 64 par module, sans recouvrement.
-- **Gardé :** le graphe et ses valeurs, les trois découpages du réseau, le filtrage des octaves, l'arrondi des crêtes, la rugosité. Moyennes remesurées : billow −0,350 et −0,345, ridged 0,510 et 0,505, Voronoï −0,055.
-- **Retiré :** `VECTOR_TURBULENCE`, la voie non vectorielle de la turbulence n'existe plus.
-- **Le portage CPU :** `tools/hydro/cp.py` réécrit, même hachage ; `tools/cotes/cp.py` s'appuie sur lui.
-- **Le caractère,** portage CPU, graine 0, mailles de 55 km, 2 km et 50 m :
-  - terres 59,8 / 60,1 / 60,3 %, contre 58,6 / 58,1 / 57,2 % ;
-  - médiane des terres 945 / 889 / 880 m, contre 736 / 691 / 686 m ;
-  - montagnes 8,6 / 8,9 / 8,6 % des terres, contre 6,6 / 6,7 / 6,8 % ; collines 17,7 / 17,8 / 17,3 %, contre 12,5 à 13,2 % ;
-  - point culminant 5,1 / 5,5 / 6,1 km, contre 5,0 / 6,0 / 5,7 km ;
-  - sur huit graines, les terres vont de 37 à 60 % ; la médiane et la part des montagnes restent au-dessus de l'ancien relief.
-- **Les lieux tombent ailleurs :** départ, bancs et tests en vol sont à revoir. La référence du banc de qualité ne vaut plus.
-- **À juger en vol :** `tools/tests/2026-10-31-relief.txt`, de l'orbite au sol.
-- **Licence :** `NOTICE` ne cite plus complexplanet ni libnoise ; `LICENSES/LGPL-2.1-or-later.txt` retiré ; `LICENSE` inchangé.
-- **Coût :** non mesuré.
-- **Pour revenir :** le commit d'avant, `f00004d`.
-
-## 2026-10-30 · Rangement pour l'ouverture
-
-- **Ce qui change :** le dépôt rangé pour sa publication sous GPL-2.0-or-later. L'exécutable sans variable est le jeu ; un seul lanceur, `tools/lance.ps1`.
-- **Les commits :**
-  - `d4f00c9`, la documentation : specs closes au log, index par thème, licence et `NOTICE` des tiers ;
-  - `3a4508a`, végétation et terrain : prototype volumique, végétation v3, relief des matériaux, parois en gradins et préfiltre spline retirés (entrée suivante) ;
-  - `df5c2b3`, les docs et outils de végétation à jour, les lanceurs et bancs des modes retirés supprimés ;
-  - `3663177`, nuages et atmosphère : un seul chemin, celui du jeu, actif par défaut. L'ancien volume, le POC, le voxel, Wicked V1 à V5, Formes, Courants et les variantes Frostbite sont retirés avec leurs lanceurs, générateurs et assets. Les shaders du jeu sont compilés par le projet sous des noms neutres ; ses quatre textures, figées dans `assets/clouds` avec leur provenance. TAA et halo découplés des nuages : le TAA coupé au démarrage, la touche T le rétablit ; le halo coupé, `MYPLANETENGINE_GLARE` l'active.
-- **La lumière de l'air rendue au jeu,** en place, à juger en vol (`tools/tests/2026-10-30-lumiere.txt`) : rayons de soleil, brume sur le sol régional le long de la vue, disque solaire derrière les nuages. La composition des nuages les omettait ; elle reprend l'air de la passe d'atmosphère d'avant (`spec-nuages.md`, l'air autour des nuages).
-- **La documentation :** `spike-nuages-planete.md` devient `spec-nuages.md`, la référence des nuages du jeu ; ses sections d'histoire vont dans `log/spec-nuages-historique.md`. Les docs vivantes ne citent plus le code retiré. Le `README.md` racine, en anglais, est la porte d'entrée publique.
-- **Écart visuel :** rendu du jeu identique au bit près sur six vues, avec et sans variables, d'après les messages des commits. La lumière rendue change l'air ; non mesurée.
-- **Coût :** non remesuré.
-- **Pour revenir :** `jalon/29-avant-ouverture`, l'état de `main` d'avant ; la chaîne des données des nuages, `jalon/26-nuages-main`.
-
-## 2026-10-30 · Ouverture : le code hors jeu retiré, végétation et terrain
-
-- **Réglages retirés,** avec le code qu'ils commandaient, commit `3a4508a` :
-  - `MATERIAL_RELIEF`, `_BAND`, `_MAX_CELL`, 0 ; 8 mailles ; 8 m, et `RELIEF_NORMAL_CELLS`, 32 : le relief des matériaux dans le maillage, désactivé depuis le 2026-10-23. Tag `piste/parois-gradins`, où il est actif.
-  - `WALL_RELIEF`, `_MAX_CELL`, `_SLOPE`, `_CLIFF`, `_REPOSE`, 0 ; 16 m ; 0,55 à 1 ; 0,35 ; 0,67 : les parois en gradins, désactivées depuis le 2026-10-23. Tag `piste/parois-gradins`.
-  - `SPLINE_SHARPENING`, 0, et le préfiltre de la spline cardinale : la B-spline lissante lit les sommets eux-mêmes. Tag `jalon/09-normales-spline`.
-  - `LEAF_ALBEDO`, 2,6, 1,7 et 1,8, et `PLANT_PIXELS`, 14 à 21 px : les plantes générées v1 à v3, qui ne dessinaient plus rien en jeu. Tag `piste/vegetation-v3`.
-- **Le feuillage du jeu, seul et par défaut :** maillages proches, imposteurs lointains, quatorze modèles, HiZ et profondeur matérielle. Ses variables sont retirées, ses réglages en dur ; son catalogue se trouve seul, et sans lui aucune plante. Le prototype volumique, les autres modes et les modèles `photo` et `stylized` restent au tag `piste/vegetation-relais-fondu`.
-- **Pourquoi :** la publication du moteur ; sans variable, l'exécutable montre le jeu.
-- **Coût :** les passes de copie du relief et du préfiltre ne tournent plus ; elles prenaient 0,07 à 0,19 et 0,02 à 0,13 ms au profil du round 4. Non remesuré.
-- **Écart visuel :** rendu du jeu identique au bit près sur six vues, d'après le message du commit.
-- **Pour revenir :** les tags ci-dessus ; l'état juste avant est le commit `d4f00c9`.
-
-## 2026-10-29 · Le relais imposteur-maillage : fondu et éclairage
-
-- **Réglage, le fondu :** pour les modèles `game` et les arbustes, un fondu tramé au relais, entre 0,8 et 1,25 fois le seuil de chaque plante. Le tramage change à chaque image : sans antialiasing temporel, coupé par le lanceur de vol, l'œil le fond. La touche H le coupe, pour comparer.
-- **Pourquoi :** sans fondu depuis le 2026-10-27, chaque arbre basculait d'un coup, et l'écart de lumière en faisait un saut net.
-- **En vol, le fondu :** validé.
-
-- **Réglage :** l'imposteur s'éclaire sur la dispersion de ses feuilles. La longueur de sa normale moyenne en donne la cohérence ; le direct, le contre-jour et le terme sol/ciel en prennent l'espérance, au lieu de la normale renormalisée qui l'éclairait comme une carte face à l'œil. Ses couleurs cuites se moyennent en linéaire, et non plus en sRGB ; les quatorze imposteurs sont recuits.
-- **Pourquoi :** en vol, un arbre sombre s'éclairait en devenant maillage. Antérieur à l'optimisation : `242d0f7` donne la même image.
-- **Mesure, luminance maillage / imposteur des mêmes plantes, 4 lieux et 5 soleils :** au sol, de 0,82–1,30 à 0,87–1,15, écart moyen de 13 à 7 % ; au relais, à 25 m du sol, de 0,86–2,05 à 0,86–1,74, écart moyen de 21 à 13 %. Le reste, maillage plus clair sous un soleil haut devant ou rasant, n'est pas expliqué.
-- **Coût :** quelques opérations par pixel d'imposteur, non mesuré au banc.
-- **Écart visuel :** les maillages sont identiques au bit près ; tous les imposteurs changent, plus clairs en contre-jour et sous un soleil haut, plus sombres soleil dans le dos.
-- **En vol, l'éclairage seul :** sans effet visible sur le saut ; gardé avec le fondu. `tools/tests/2026-10-29-imposteurs-eclairage.txt`.
-- **Détail :** `vegetation-planetaire.md`, l'éclairage des imposteurs.
-
-## 2026-10-29 · Optimisation, round 8 : le sol en vol rapide
-
-- **Réglage :** sous 14 km, une trouée de ciel dans les feuilles que ni l'historique ni les tuiles fraîches ne voient prend le texel le plus proche de l'historique qui voit le ciel, au lieu d'être tracée par la résolution ; à défaut, claire pour une image. En vol, mailles de moins de 4 m, la grille du terrain se découpe en paires de floats au lieu de doubles, dans un shader à part ; le sommet sous la caméra reste exact, et tout le maillage à l'arrêt.
-- **Mesure, `tools/banc_perf.py`, vol rapide à 5 % de la hauteur par image, contre le binaire d'avant dans la même séance :** forêt de 49 à 60 fps réels, lisière de 43 à 55, montagne de 48 à 54 ; calcul du terrain de 4,6 à 3,0 ms en forêt, résolution des nuages de 3,6 à 0,9 ms en lisière. Au-dessus du sol, inchangé.
-- **Écart visuel :** image immobile identique au bit près ; en mouvement, 0,05 à 0,09 niveau moyen au sol contre le binaire d'avant, aux bords des feuilles ; contre la passe pleine, les mêmes écarts à 0,1 niveau près. `banc_qualite.py` sans p95 changé.
-- **En vol :** validé, `tools/tests/2026-10-29-optimisation-sol-vol-rapide.txt`. Les arbres qui s'éclairent en passant de l'imposteur au maillage viennent d'avant l'optimisation : l'éclairage de l'imposteur, traité à part.
-- **Détail :** `optimisation.md`.
-
-## 2026-10-29 · Optimisation, round 7 : nuages en vol rapide
-
-- **Réglage :** sous 14 km, la porte de la quadrature lointaine, les pixels dont l'historique des nuages a glissé ou tourné ne sont plus tous retracés : un pixel par carré 2×2 est tracé, à tour de rôle, les trois autres en sont interpolés. Au-dessus, rien ne change. Le round 6, mis de côté, reste au tag `piste/optimisation-r6-nuages-mouvement`.
-- **Mesure, `tools/banc_perf.py`, vol rapide à 5 % de la hauteur par image :** cumulus à 10 km, passe de 24,2 à 8,1 ms, de 36 à 90 fps réels ; 150 m sous les cumulus, de 59 à 70 fps, et en plongée de 34 à 52. À 160 km, 440 km et en orbite, inchangé : 57, 53 et 22 fps.
-- **Écart visuel :** image immobile identique au bit près ; en mouvement, contre la passe pleine, écarts égaux sur onze vues, sauf le cumulus en vol rapide, 0,06 → 0,13 niveau moyen par des écarts d'un niveau, moins de pixels au-delà de 8. `banc_qualite.py` sans p95 changé.
-- **En vol :** validé, `tools/tests/2026-10-28-optimisation-nuages-rapides.txt`.
-- **Détail :** `optimisation.md`.
-
-## 2026-10-28 · Optimisation, round 5 : images en vol
-
-- **Réglage :** aucun. Mesuré puis arrêté : le GPU n'attend le CPU que 0,6 à 1,2 ms par image, sous le seuil d'1 ms au sol. Le banc mesure désormais l'image du CPU, la cadence réelle et l'inactivité du GPU.
-- **Mesure, `tools/banc_perf.py`, 1080p :** enregistrement et soumission 0,6 à 0,9 ms, préparation 0,01 ms ; au sol, cadence réelle de 64 à 71 fps immobile, 44 à 50 en vol, contre 68 à 75 et 45 à 52 au temps GPU. Deux images en vol rendraient ces 4 à 6 % au sol.
-- **Écart visuel :** aucun, dix vues identiques au bit près.
-- **Détail :** `optimisation.md`.
-
-## 2026-10-28 · Optimisation, round 4 : calcul du terrain
-
-- **Réglage :** le calcul du terrain n'est pas relancé quand les constantes que lisent ses passes sont, au bit près, celles de l'image précédente ; le maillage seul égal, la caméra tournant sur place, seuls les sommets entrés dans la vue sont calculés.
-- **Mesure, `tools/banc_perf.py`, 1080p :** immobile, calcul du terrain de 3,3 à 4,2 ms à 0 au sol, 73 à 76 fps ; en tournant sur place, de 4,3 à 1,7 ms en forêt, 52 à 59 fps au sol. En vol, rien ne change : 41 à 52 fps au sol.
-- **Écart visuel :** aucun, immobile comme en mouvement, contre le calcul entier à chaque image ; `banc_qualite.py` sans p95 changé.
-- **En vol :** validé, `tools/tests/2026-10-28-optimisation-terrain.txt`.
-- **Détail :** `optimisation.md`.
-
-## 2026-10-28 · Optimisation, round 3 : végétation
-
-- **Réglage :** sol exact des tuiles de plantes gardé d'une image à l'autre, effacé à chaque saut de la caméra ; imposteurs en profondeur conservatrice, à la borne de leur test HiZ ; maillages proches en profondeur d'abord, couleur en profondeur égale ; tri des tuiles sans ses seize plans quand la borne le prouve.
-- **Mesure, `tools/banc_perf.py`, 1080p :** placement et feuillage de 18-20 ms à 6 ms en forêt ; 54 à 59 fps au sol, 83 en survol, 115 en mer.
-- **Écart visuel :** au plus 1 niveau sur 3 à 11 pixels, sur seize vues ; `banc_qualite.py` sans p95 changé. En mouvement, la table garde des arrondis d'une caméra précédente : 0,006 % des pixels au plus.
-- **En vol :** validé, `tools/tests/2026-10-28-optimisation-vegetation.txt`.
-- **Détail :** `optimisation.md`.
-
-## 2026-10-28 · Optimisation, round 1, suite : nuages en mouvement
-
-- **Réglage :** l'historique des nuages qui a dérivé, ou dont la direction de vue tourne de plus d'1° par image, est retracé au lieu d'être rempli ; dérive mesurée sur l'étalement en distance de la lumière ; moyenne lointaine plafonnée à deux rayons en mouvement. L'air de la composition n'est plus coupé qu'au pas où se trouve le nuage.
-- **Mesure, `tools/banc_perf.py`, vol rapide à 5 % de la hauteur par image :** plaques à 160 km de 18 % à 3 % de l'image contre la passe unique ; au-delà de x5 en orbite, la passe coûte la passe unique, 10 à 38 ms.
-- **Écart visuel :** image immobile à moins de 0,3 niveau ; `banc_qualite.py`, mêmes sites que le round 2, tous les p95 identiques.
-- **En vol :** plaques et seconde peau disparues ; reste un bruit des nuages à haute vitesse, mis de côté, comme les traînées de la plongée depuis l'orbite.
-- **Détail :** `optimisation.md`.
-
-## 2026-10-28 · Optimisation, round 2 : dessin du terrain
-
-- **Réglage :** pré-passe de profondeur du terrain, puis sa couleur en profondeur égale, après objets et feuillage ; strates, présence des bois et fondus de la végétation calculés seulement où ils peuvent changer le pixel.
-- **Mesure, `tools/banc_perf.py`, 1080p :** dessin du terrain de 11-17 ms à 3-7 ms près du sol ; de 27-28 à 33-37 fps au sol, 64 en survol.
-- **Écart visuel :** au plus 1 niveau sur quelques pixels ; `banc_qualite.py` sans p95 dégradé, comparé à `main` sur les mêmes sites.
-- **En vol :** validé avec les nuages en passe unique (`nuages-planete.ps1 -PassePleine`, nouvelle option). Les plaques vues en vol viennent de la passe temporelle des nuages, en correction.
-- **Détail :** `optimisation.md`.
-
-## 2026-10-28 · Optimisation, round 1 : nuages et atmosphère
-
-- **Réglage :** passe temporelle des nuages, une trace par tuile 4×4 et par image, reprojetée dans le repère de la météo ; quadrature lointaine étalée sur jusqu'à huit visites. `MYPLANETENGINE_CLOUD_FULL=1` rend la passe unique d'avant.
-- **Mesure, `tools/banc_perf.py`, 1080p :** passe des nuages de 10 à 51 ms à 1,2 à 4,8 ms ; de 17 à 34 fps à 27 à 195 fps selon la vue.
-- **Écart visuel :** image immobile de 0 à 0,65 niveau ; 0,8 % des pixels au-delà de 8 niveaux au globe, dans le grain du bord.
-- **Reste à juger en vol :** zones découvertes et ombre au sol en retard d'au plus 16 images ; `tools/tests/2026-10-28-optimisation-nuages.txt`.
-- **Détail :** `optimisation.md`.
-
-## 2026-10-28 · Profil Release et plein écran
-
-- **Demande :** exécutable optimisé en plein écran, avec meilleure utilisation des ressources et conservation du rendu.
-- **Affichage :** résolution du moniteur au démarrage, fenêtre sans bordure, Alt+Entrée et Échap ; présentation libre avec capacité DXGI vérifiée. Les captures et bancs restent invisibles.
-- **Compilation :** options Release x64 `/O2`, fonctions en ligne, vitesse, optimisation globale et LTCG explicites ; sélection du GPU haute performance déjà présente, contrôlée et nom du GPU affiché.
-- **Profil :** `tools/lance_optimise.ps1` prépare `x64/Optimise/MyPlanetEngine.exe` et son fichier INI ; nuages, végétation détaillée et mer conservés. Le profil se recharge aussi par double-clic ; les variables de banc priment.
-- **Limites :** une image GPU en vol, constantes et lectures CPU encore partagées ; le plein écran1080p demande2,25 fois les pixels du720p. Pas de changement de portée, de densité ou de qualité pour produire un gain apparent.
-- **Vérification :** trois vues720p comparées au runtime précédent, un pixel différent au total ; deux vues1080p hors écran, forêt et mer, profil chargé et aucun dépassement végétal. Plein écran1920×1080 et retour en fenêtre observés ; capture souris annulée lors du basculement pour éviter une rotation parasite.
-- **État :** runtime préparé et relancé ; pas de gain FPS global mesuré, aucun commit ni push demandé. Guide : `execution-optimisee.md`.
-
-## 2026-10-27 · Composition des ombres de nuages sur la végétation
-
-- **Cause :** arbres et arbustes détaillés écrivaient leur couleur mais pas leur part solaire ; la composition relisait celle du terrain caché. Le chemin HiZ ne reliait aussi que la cible HDR après le calcul d'occlusion.
-- **Effet :** silhouettes noires ou végétation apparemment transparente devant le terrain, surtout clair ; les contours suivaient les formations végétales dessinées au sol, pas l'horizon.
-- **Correction :** deux sorties cohérentes sur toutes les surfaces opaques, y compris la profondeur matérielle et les imposteurs ; soleil direct séparé sans changer l'éclairage total des modèles. Réunion des deux cibles après HiZ ; retrait solaire borné et strictement neutre à transmission1.
-- **Régression reproduite :** en transmission forcée à1, l'ancien rendu modifiait154921,433185,37695 et115553 pixels de plus de1/255 sur quatre vues ; les nuages entièrement désactivés retrouvaient les mêmes images avec/sans ombres.
-- **Contrôle après correction :** compilation native Release x64 et72 shaders, puis shader Planète DXC ; transmission forcée à1 : quatre images strictement identiques avec/sans composition solaire, zéro pixel différent. Ni modèles, ni géométrie, ni population modifiés.
-- **Conservation :** composition solaire désactivée, quatre images avant/après strictement identiques ; éclairage des modèles conservé. Deux captures avec vraies ombres inspectées au sol et à35 m en forêt boréale : silhouettes opaques retrouvées ; vol relancé à35 m depuis main.
-- **Outil :** `tools/banc_composition_surfaces.py`, quatre vues hors écran ; captures et rapports dans `x64/SurfaceComposition/`. Aucun commit ni push demandé ; vérification en mouvement confiée à l'utilisateur.
-
-## 2026-10-27 · Activation de la végétation dans le lanceur nuages
-
-- **Cause :** les modèles détaillés étaient dans main, mais le lanceur nuages effaçait les variables de végétation sans sélectionner leur mode ; le rendu historique restait actif.
-- **Correction :** `tools/nuages-planete.ps1` sélectionne par défaut `hybrid-impostor`, modèles `game`, catalogue `climate_shrubs_v2`, volume0,65, HiZ et profondeur matérielle.
-- **Contrôle :** caches des deux arbres et douze arbustes présents ; application relancée près du sol, titre confirmant les modèles de jeu et des maillages d'arbres et d'arbustes actifs, sans dépassement. Vérification visuelle en vol confiée à l'utilisateur.
-- **Comparaison :** `-AncienneVegetation` retrouve le mode précédent ; `-Parcours` permet de choisir la palette végétale sans changer la palette nuages par défaut. Aucun shader ni modèle modifié.
-- **État :** correction locale sur main, sans commit ni push demandés.
+## 2026-10-31 · Low orbit: textured clouds, organized cumulus clouds
+
+- **The defect:** at 750 km, uniform white sheets with clear edges; a regular seeding of small cumulus between them.
+- **The causes, by elimination:** water from a frontal heart in all the sheets, τ ≈ 60, saturated reflectance; an octave missing between 10 and 150 km, the erosion of 4 km placing only the cumulus. Neither the card with the mip 0 nor the fine variance.
+- **Correction:** water in the cloud follows the thickness of the map, `0,25 + 0,75 e`, e = (R − 0,28) / 0,62, convention shared with the climate; the form reread to 128 km, axes permuted, added to the threshold (`spec-nuages.md`).
+- **The result:** textured sheets with frayed edges, cumulus in clusters and alleys; orbit held, thick cloud 0,674; close up, more translucent and softer.
+- **Cost:** +0,3 to +1,7 ms, the most ground under convection.
+- **For the climate:** the covered part of the partial R moves a little with the octave; its table is to be rescaled.
+
+## 2026-10-31 · Clouds seen close up, without reflection on their contours
+
+- **The defect:** in flight, close up, clouds of shiny plastic, a dark circle on the contours and folds, a backlit border, a flat interior.
+- **Causes, by elimination:** the thickness factor F of the multiple scattering measured along the view, thin on a smooth edge; opaque edges in 12 m on a smooth noise under 125 m. Neither the phase nor the card to the mip 0.
+- **The correction:** F on the cloud column where it exists, smoothed to the scale of diffusion, about 1 km, and at least the thickness crossed; the variance of scales thinner than the texels of the noise functions, 0,0124 and 0,033, at any distance. Spaced: F along the sun, normal, middle column (`spec-rendu-orbite.md`).
+- **The result:** no more circle, fold or plastic; orbit unchanged, thick cloud 0,685. The relief of the cumulus nearby remains softer than before the experiment.
+- **The cost:** +0,1 to +0,5 ms.
+
+## 2026-10-31 · The planet seen from orbit facing Apollo 17
+
+- **The defect:** at 10 000 km, translucent pink gray clouds, a sandy grain on the distant clouds, a lavender veil on the whole planet. Measured against Blue Marble: ocean at 102, 129, 177 in sRGB against 45, 67, 100; thick clouds at 189, 186, 195 against 220 to 233.
+- **The causes, established by elimination and against Monte-Carlo** (`tools/calage_orbite.py`): the multiple scattering of aerosols, isotropic take, three to five times too strong towards the orbit, and a gray ground of 0,3 under the air; clouds ceilinged towards 0,25 of reflectance, a phase returning ten times too much single light backwards, a water proportional to the cover; steps of six optical thicknesses and 4 to 8 point rays per pixel of 10 km; a landscape exposure.
+- **Corrections:** the van de Hulst similarity for aerosols, `AIR_GROUND_ALBEDO` 0,12; a droplet phase, g = 0,85, a multiple scattering calibrated on Monte Carlo, sun and sky together, six samples towards the sun, water independent of cover; the attached statistic of shape and erosion at pixel, in columns of maximum overlap per footprint, instead of the distant quadrature; the weather map in B-spline; 0 exposure EV in orbit, +1 on the ground, the share of air under the camera between the two. The detail: `spec-rendu-orbite.md`.
+- **Orbit result:** ocean at 55, 75, 111, clouds at 208, 202, 203, more grain. In equivalent reflectance, before the curve: thick cloud 0,645 against 0,237, ocean 0,061 against 0,090, contrast 10,5 at zenith and 6,6 at oblique sun, against 2,6 and 1,8; CERES: 0,5 to 0,8, 0,08 to 0,1. Above a layer at noon, white tops uncut with internal shadows more marked than before; at low sun, softer. Below, lighter bases, a little cream at noon.
+- **On the same day, the card reads at the mip 0** and the multiple source decreases to `1 / (1 + b τs)`, the diffuse transmission of a layer: W 3,40, b 0,040, k 0,061.
+- **Cost:** orbit +0,5 ms; at 10 km +1,7 to +2,8 ms, the image below the 60 images per second above the cumulus; on the ground 0,2 to 1 ms less.
+- **Rest:** an octave is missing between 32 and 160 km, partial fields are blurred in spots; cost at 10 km.
+- **To be judged in flight:** `tools/tests/2026-10-31-orbite-rendu.txt`.
+- **To return:** the commit before the `piste/orbite-rendu` tag.
+
+## 2026-10-31 · The thickness of the masses, for textured layers
+
+- **What changes:** the map bears above R = 0,28 a structured e thickness, which the rendering reads for cloud water, `0,25 + 0,75 e` (same day log, low orbit). Thin sheets and strata, from 0 to 0,25, in cells of 120 km; medium shields and arms; heads, front axis and thick convective hearts, up to 1; variations of 80 and 250 km; and tapered to 0 on the 40 to 80 km of the edges. `spec-nuages.md`, the weather map.
+- **The table R → is covered,** resized on the law of rendering with its octave of 128 km: softer, full at 0,92 for R = 0,28.
+- **Coverage does not move,** near 0,02: 0,35 and 0,34 on seeds 0 and 1, clear sky on 52 and 53 % of area.
+- **Verified** at 10 000, 750 and 10 km, on the merged rendering branch (`238439c`): the layers have a texture and frayed edges seen from 750 km.
+- **Written by Codex,** reread; the table measured and placed at the main.
+- **To return:** the tag `piste/meteo-bimodale`; the experiment has the tag `piste/meteo-epaisseur`.
+
+## 2026-10-31 · Clear skies: bimodal coverage
+
+- **The defect, judged in flight:** "clouds almost everywhere". Partial fields of 0,35 to 0,7 covered almost the whole sphere, and the law of rendering made it a speckled cumulus everywhere, without a clear sky.
+- **What changes:** The sky is clear by default. Spotting exists only in four regimes, extinguished at 0 on their edges: open cells behind the fronts, edges of the sheets, trade winds downstream of the sheets, wet and warm lands. The organized masses carry the cover. Anticyclones, ridges, hot areas and deserts are emerging without floor.
+- **The targets:** those of the Apollo photo 17, 37 % of white, bimodal, and no longer the 0,66 of MODIS, which count fine cirrus and fragmented clouds.
+- **The numbers,** seeds 0 and 1: opaque fraction 0,37 and 0,35, against 0,63; clear sky on 52 % of the area, against 0; cloudy on 31 %.
+- **Verified** at 10 000, 750 and 10 km, before and after, on the `integration` branch and its rendering law.
+- **Written by Codex,** reread and measured; `spec-nuages.md`, the weather map.
+- **To be judged in flight:** `tools/tests/2026-10-31-meteo-orbite.txt`.
+- **To return:** the tag `piste/meteo-orbite`; the experiment has the tag `piste/meteo-bimodale`.
+
+## 2026-10-31 · The weather view from orbit
+
+- **What changes:** the weather map draws itself, in the way of Apollo's Earth 17, opaque organized masses: the commas of the depressions, 8 to 10 in a ring in the south and 6 to 8 in the north, their cold fronts of 2 500 to 5 000 km, their shields, the clusters of the ZCIT, the torn sheets of the cold coasts. Fields of small clouds are left to the shader's grain; deserts, dry slits and fronts' alleys are cleared out. `spec-nuages.md`, weather map.
+- **What R means:** the part of the sky covered, by a table measured under the law of the session of the rendering, where the density no longer depends on R; the thickness above 0,28. The ceiling of 0,6 disappears.
+- **The cover,** seeds 0 and 1: 0,625 and 0,619, against 0,110 before, for 0,66 on Earth; each band of latitude in ±0,08 of Earth averages, except 20-30° S of seed 1, more desertic, to 0,40.
+- **What does not change:** the format, its mips, the interface, the list of depressions; the shader. Under the current law, partial fields remain a translucent veil until the rendering branch is merged.
+- **Startup:** 140 to 220 ms to title, loaded machine; to bit near one calculation to another.
+- **Written by Codex** on three briefs, reread, calibrated and orbit checked on two seeds.
+- **To be judged in flight:** `tools/tests/2026-10-31-meteo-orbite.txt`.
+- **To return:** the tag `piste/nuages-climat`; the experiment has the tag `piste/meteo-orbite`.
+
+## 2026-10-31 · Beaches, distance from the water
+
+- **The defect:** the range was a band of altitude, from 5 to 25 m. On the flat coasts and around the cordons, kilometers of sand inside the land; on the steep coasts, a strip of sand painted at the level of the water; the motus of the atolls, at 3 m, all in sand, without plants.
+- **The tape:** the step 1 of `piste/plages`, commit `c87dcd9`, carried on the sea FFT (`recherche-cotes.md`). A water height, from 0 to the berm of 2,5 m, softened by ±1 m, multiplied by wave exposure; a share of pixel land, `ShoreBelow`; under the slopes of 0,12 to 0,22; above 0 °C. Without the wet sand or the sea leash of the 2 stage.
+- **The width capped at 120 m times exposure:** the top of the band is worth `min(2,5 m, 120 m × pente)`. A strip of 2,5 m on a slope of 0,002 made 1,25 km.
+- **The slope, at the scale of the beach:** taken on 60 m on both sides, `SHORE_BASELINE`, on the surface of the mesh. Taken on the normal of materials, at 1 m, it followed the bumps and the ceiling did not bite: at port, 73 % of the lands of a coastal plain remained in beach, 3 % with the slope taken on 20 m. A new rule of `principes.md`.
+- **In the distance, the fine grid carries this slope** as soon as its grid cells covers 60 m. Views of 20 km, the grid cells of the face make 417 m: they no longer resolve the sides of a cord, and the normal of the vertices, vertical on its crest, erased its range of 5 to 20 km. Thinner, the grid would bring back the bumps.
+- **Offshore exposure:** open water at 3, 10 and 30 km down the slope, read on the planet map; a sheltered coast keeps 40 % of its exposure.
+- **Settings:** `BEACH` 2,5 m, 1 m, 120 m and 0,4; `BEACH_SLOPE` 0,12 and 0,22; `BEACH_FETCH` 3, 10 and 30 km; `SHORE_BASELINE` 60 m.
+- **Verified by rendering:**
+  - the motus of an atoll, green and sand-frayed;
+  - a cord of 20 km to 150 m, its range of 50 to 90 m on the sea side, narrower on the lagoon side;
+  - a flat coast, the plain rendered to the colors of the climate;
+  - a steep coast, without beach.
+- **Limitations:**
+  - pools of a few hundred meters behind a cordon keep a ring of sand: the map of the planet, read at 3 km, does not see them sheltered;
+  - beyond the face of the mesh, without fine grid, a narrow cord loses its range.
+- **Cost:** 16 more vertex readings per vertex under 60 m of grid cell; three planet map readings per pixel near the sea. Not measured.
+- **To be judged in flight:** `tools/tests/2026-10-31-plages.txt`.
+- **To return:** the commit `5fc1d47`.
+
+## 2026-10-31 · The faults of the rifts and the cords of the flat ridges
+
+- **Fault 1, the fault of the emerging rift:** close-up view, a straight trench in V, parallel cornices along its walls, rows of white teeth.
+  - **The cause:** the shift of the detail along the transformants, 8 km on an area of 0,3 km on both sides. The noise was sheared there 13 times: stretched along the fault, its slopes multiplied. It also applied to oblique rifts, whose shear share exceeds 1 m.
+  - **The proof:** in the engine, seen `sun` faceted, the striped strip disappears by cutting this only shift, at two places of the border; the hollow of the transformer, the graben and the folds are not for nothing. At port, six faults on the seeds 0 to 2: the same band everywhere. Enlarging the area is not enough: at 4 km the trench remains, at 8 km the shift is no longer visible.
+  - **The correction:** the offset removed, `RELIEF_TRANSFORM` reduced to the hollow. A new rule of `principes.md`.
+- **Defect 2, the flat rib cord:** a constant width ribbon, in segments and sharp angles, glued to the ground by a rectangular block.
+  - **The cause:** it followed the contour of the noisy shore. The fine octaves and rias of the noise of the ribs make the angles there; in a ria narrower than it, its two sides joined in a flat block at 3 m. Its crest, always 3 m, and its width, always 0,6 km, made the pipe.
+  - **The proof:** in the engine in the same place, without the wrinkles the block disappears, the ribbon remains sinuous; without the noise of the ribs, the cord becomes a smooth arc. At the port, the detail dominates the shore of the flattest coasts: a cordon on the only large forms fell to land on 50 to 90 % of its length.
+  - **The correction:** the cord follows the smooth shore, the large forms, the three widest octaves of the noise of the ribs and the detail. Islands in arcs between passes, curved towards them; dunes, width and ridge variable; cones of overflow side lagoon; raised from the relief below it, its entire ridge; never on the land emerging. `spec-relief-tectonique.md`, the ribs.
+- **The dotted white line on the sea:** a narrow cord seen from afar, sampled by the mesh. Its profile is two grid cells wide, but only its summit emerges, a third of its width on a sea of 10 m: the summits of the mesh fall in turn on and next to it. Established in the engine at the same cord: in dashes at 20 km, continuous at 8 and 3 km; the port, at 20 m, draws it continuous. Raising it from the relief below it keeps its entire crest, 3,2 % of its points at water level instead of 8,3, but does not remove the dash. Remains to be done: a ridge emerged of at least two grid cells, a flatter profile at the top for example.
+- **Settings:** `RELIEF_TRANSFORM` in float2; `RELIEF_BARRIER_FORM` new, 0,6, 0,15, 4 km, 3 octaves.
+- **The orders of magnitude,** port, seeds 0 and 2: unchanged, lands 32,9 and 30,5 %, vertices, pits, share above 3 km; 9 to 12 % of points move, near the transformants, from 11 to 14 m in median.
+- **The port:** against the map of the planet, median deviation 6,5 cm, p99 2,2 m.
+- **Cost of the ground:** one more noise on the cords; no shift near the transformers.
+- **To be judged in flight:** `tools/tests/2026-10-31-relief-tectonique.txt`, the fault at 40 m and the cords at 1,5 km and 60 m.
+- **To return:** the commit `ba3372e`.
+
+## 2026-10-31 · Atolls, on the shape of their volcano
+
+- **The defect, seen in flight:** atolls in rings too circular, a reef "band". The contour of the reef was a separate noise circle, its plateau at +0,5 m of constant width: the swell discovered it, a continuous beach.
+- **The ruler:** a shape placed on another follows the contour (`principes.md`). The reef is read on the contour of the building, at the level of the old shore; a barrier reef, an atoll, a guyot have the shape of their volcano.
+- **The contour of buildings,** for all: elongated in a drawn direction, up to 10 % of the radius of a stratovolcano, 35 % of a shield; lobed and angular, two octaves, 12 % to one standard deviation; 30 % at most. The scope of the index is changed to 1,7 radius.
+- **The reef:** a plateau at −1,5 m, underwater, eroded, from 0,25 to 0,8 km, wider windward, east of the trade winds; motus separated at +3 m, from 150 to 500 m wide, numerous windward, rare leeward; passes especially leeward; the bottom of the lagoon by spots.
+- **The reference frame of each straightened volcano:** its "east" was the west.
+- **Settings:** `VOLCANO_REEF` 4,5 m, −12 m, 1,5 km; `VOLCANO_LOBES` 0,12, 0,1 and 0,35.
+- **Verified:** three atolls and one barrier reef of the seed 0, three atolls and one barrier reef of the seed 1, from 25 km to 300 m, windward and leeward; the port to 7,6 cm on the ground, 0,3 cm on the planet map.
+- **The limit:** the motus remain in bare sand near the water, the beach being a band of altitude from 5 to 25 m (`Materials.hlsli`); a few palm trees only.
+- **To return:** the commit `5a546e6`.
+
+## 2026-10-31 · The snow that sparkles on the edge of the rock
+
+- **The fault:** at 1 m from the ground, in the transition between snow and rock or orange ground, the snow sparkled in elongated spots in the slope and moved with the camera.
+- **Cause:** the normal of the decisions was that of the summits, taken on two grid cells, 4 cm to 1 m of the ground. It followed the millimeters of the mesh, 1 to 3° which change with each slip; the snow depends on it by the slope that chases it and by the exposure to the pole, 8 °C per unit of inclination, on a transition of 2 °C. Established by elimination in the same place, at the grid cell changed alone (k 2,0 against 2,4): cut the slope and the exposure cancels it, nothing else. Already there before the tectonic pile, twice less strong.
+- **The correction:** the materials are decided on a normal taken at `DECISION_BASELINE`, 1 m on both sides, read on the surface of the mesh (`VertexShader.hlsl`), where the grid cells are finer; the octave of 13,5 m there keeps 96 % of its slope. On three locations, the snow that changes with the grid cell goes from 4,1 % of pixels to 0,2 %, in flight between two poses of 2 cm from 4,7 % to 0,8 %.
+- **Rest:** at the stop, the mesh switches back from pairs to exact calculation, and some snow lines switch once, 1,9 % of pixels against 6,3 %.
+- **Cost:** 16 vertex readings per vertex under 1 m of grid cell; terrain drawing takes 0,05 to 0,14 ms more to measure.
+- **To return:** the commit `5a7b586`.
+
+## 2026-10-31 · Clouds derived from climate
+
+- **What changes:** The cloud weather map is no longer a frozen noise texture, `weather-planet1024`, without any geographical connection. It is calculated at startup on the climate map and the large forms (`Climate::Weather`): the convection of the ZCIT in clusters, the clear sky under anticyclones and on deserts, the layers of stratocumulus off the coasts with cold current, 18 depressions in comma on the rails towards 50° with their fronts, their shields and their cirrus, the cells behind the fronts, the cloud banks windward reliefs and the clear sky leeward. `spec-nuages.md`, weather map.
+- **What does not change:** the format, RGBA8 in 1 024 × 512, and its mips, the maximum of R and B from the mip 2; the rendering, the wind to the east and the clock; the canopy glass reads the same map.
+- **Removed:** `assets/clouds/weather-planet1024.rgba8mips` and `tools/gen_cloud_weather.py` (`log/spec-nuages-historique.md`); the manifest now describes only the three volumes.
+- **The budget,** seed 0: average coverage 0,110, against 0,094; above 0,2 on 16,8 % of the sphere, against 15,5; cirrus above 0,03 on 3,3 %, against 1,6. The cost of clouds in flight is not measured: no benchmark requested.
+- **Startup:** 235 to 296 ms more to title, loaded machine; to bit close from one calculation to another. The engine writes `meteo-<graine>.bin` and the list of its depressions, `meteo-<graine>.txt`.
+- **To be judged in flight:** `tools/tests/2026-10-31-nuages-climat.txt`.
+- **To return:** the commit `07c8e0d`, before the experiment; the experiment has the tag `piste/nuages-climat`.
+
+## 2026-10-31 · The shared plant catalog, the naked planet without it
+
+- **The flaw:** a worktree without plant catalog, generated files that git does not track, showed a striated wall at a fixed distance from the camera, wherever the forest grows. Reported in flight on the integration branch.
+- **The cause:** without catalog, the canopy on the ground was drawn everywhere; seen from under its tops, at man's height, it makes a curtain at the edge of the range of plants. Established by adding the catalogue to the same worktree: the forest returns, the curtain disappears. The bare ground below the reach, tried first, blackened the ground, shaded by trees absent: abandoned.
+- **The correction:** without catalog, no vegetation, neither drawn nor in canopy (`VegetationAbsent`, `TreesHere`, `ShrubsHere`). The catalog is published next to the repositories by `tools\plantes.ps1`, `plantes/climate_shrubs_v2`, and all worktrees find it by going back from their exe, like the scans: a single catalog of 743 MB for all.
+- **To return:** the commit `d304da0`.
+
+## 2026-10-31 · The climate calculated at startup
+
+- **What changes:** Humidity is no longer a regional noise and a dry band at 24°, nor the temperature a noise of ±3,6 °C. A climate map is calculated at startup on the large forms of the tectonic map: the winds of the three cells, the thermal equator that follows the summer, the thermal depressions of the lands; the water vapor carried from the seas, the rain by the ascension and windward of the reliefs, the rain shadow; the continentality; the cold currents. `spec-climat.md`, detail.
+- **What reads it:** the materials and plants, temperature, humidity and half-amplitude of the seasons; the color of the sea; the canopy glass of the ship, from which the cube of noise cooked at startup, `ShipClimate.hlsl`, is removed. The clouds do not read it.
+- **Settings:** the laws at the head of `Climate.cpp`; `CLIMATE_LOCAL` 0,08, the variation of rainfall under the map, from 100 to 6 km (`Materials.hlsli`); `SEASON_AMPLITUDE` leaves `PlanetSettings.hlsli`, the map gives it.
+- **The orders of magnitude,** port, seed 0: 879 mm on the lands; 2 167 mm from 0 to 10°, 596 from 20 to 30°; deserts under 250 mm on 28,5 % of the lands, 33 % of the band from 20 to 30°; seeds 1 and 2, 45 and 46 % of this band.
+- **Startup:** 0,22 to 0,24 s at title, loaded machine; 8,0 MB on the GPU; at bit near one calculation to another. The file `climat-<graine>.bin`, 12,6 MB, for the port and erosion.
+- **Cost of land:** one map read and four octaves of noise more per pixel of materials; not measured.
+- **Places change climate:** the tropical flat coast of the control views is a coast leeward, 250 mm; the mesas, a monsoon savannah; an equatorial plain that was a desert is a forest.
+- **To be judged in flight:** `tools/tests/2026-10-31-climat.txt`.
+- **To return:** the commit `fd92705`, before the experiment; the experiment has the tag `piste/climat`.
+
+## 2026-10-31 · Volcanism
+
+- **What changes:** the planet has its volcanoes, listed at startup at the end of `Tectonics::Build` and evaluated point by point by `Volcanoes.hlsli`, on the form before erosion. `spec-volcanisme.md`.
+- **The places:** the arcs on the overlapping plate, at 140 to 230 km of the pit, a volcano all the 35 to 80 km; the continental rifts; 8 to 16 hot spots, each a chain along the movement of its plate, up to the head of its plume, traps or ocean shelf. Each volcano brought back by the lefting of the map reading: a new rule of `principes.md`.
+- **The buildings:** concave stratovolcanoes, almost straight shields, lobed outlines; craters and calderas; zero-average flows, in tongues stretched along the slope; fields of slag cones; flattened islands, guyots, barrier reefs and atolls in the tropics. Any profile on two grid cells at least, its volume kept.
+- **In the map:** the plume swell, 0,6 to 1,3 km; the traps in marches; the oceanic plateaus; the volcanic rock around the volcanoes.
+- **The materials:** `gVolcanic`, in the old field `relief` of `FaceVertex`: basalt for the rock, ashes and dark slags for the soil, black beaches.
+- **Settings:** `VOLCANO_FLOWS` 1,5 km, 0,25 radius, 40 and 15 m; `VOLCANO_CONES` 2,5 km; `VOLCANO_REEF` 0,5 km, 3 m, −12 m, 3 km; `VOLCANO_LOBES` 0,2; `VOLCANIC_ASH` 0,07, `VOLCANIC_COVER` 0,85.
+- **Orders of magnitude,** port, grid cells from 2 km: land 32,8, 34,3 and 30,7 %, seed 0 to 2, against 32,6, 34,0 and 30,5 %; median land 388 m against 380; modes +375 and −4 525 m; above 3 km 2,03 % against 1,99. Seed 0: 697 stratovolcanoes, 352 shields, 163 calderas, 26 atolls, 113 guyots.
+- **Startup:** 60 to 77 ms of volcanism on 1,0 to 1,3 s of card, the machine loaded by other sessions; memory GPU +0,18 MB.
+- **Cost of the land,** in motion, against the same version the buildings cut: +0,02 to +0,12 ms to volcanic places, 0,20 to 0,65 ms in all; GPU shared.
+- **The port:** `cp.py` reads `volcans-<graine>.bin`; against the map of the planet, 0,4 cm in median on volcanoes; on the ground, 7,9 cm in median after the fusion of `d304da0` and the cones placed in double precision, the slope of the sides and the decimeter of the title.
+- **To be judged in flight:** `tools/tests/2026-10-31-volcanisme.txt`, seventeen views.
+- **To return:** the commit `d304da0` of `bruit-propre`.
+
+## 2026-10-31 · The walls of the chains at close sight
+
+- **The defect:** seen at 1 m, the floor of the chains formed rails, walls of 8 to 17 cm all the 0,5 m, checkered in places, and a tingling in flight, the mesh sliding on these steps. Signaled in flight on an orange slope and a gray hill.
+- **The cause:** the distance smoothed at the border, hundreds of km floating, advanced by steps of a few cm; the lifting of the chains and the phase of the folds, which make it to the relief at about 1 m by m, made it steps. Established by cutting the two: the walls disappear. Neither the rock scan, nor the specular, nor the reading position in the map: `precise` on it changed anything.
+- **The correction:** this distance read in double precision (`TectonicSample.along`), the lift in double precision, the phase of double folds reduced to one turn. Verified on five locations, chain slope, top view, snowy dome, hill, t43: no more walls.
+- **Setting:** the rise follows a quintic instead of a tanh, same slope at the border and same height, reached at 844 km; the relief of the chains moves a little. The port follows.
+- **Cost:** a sum of B-spline in double precision per side read; the field time did not move to the measurement, 0,2 to 0,3 ms.
+- **To return:** the commit `fd92705`.
+
+## 2026-10-31 · The folds of chains, less regular
+
+- **What changes:** seen from 300 km, the folds of the chains formed parallel bands of constant spacing, a fingerprint. Now two sets, of 26 and 52 km, take turns according to a noise of 120 km: the spacing varies from single to double, and the peaks of one set take the relay of the other in scale. Their amplitude varies by segments of 50 km, from almost nothing to double, on the weight of the octave; a common shift, never steeper than the distance, curves them without loop; the sharp chevrons near the triple junctions are erased. `spec-relief-tectonique.md`, detail.
+- **Settings:** `RELIEF_FOLD` 26 km, offset 0,35, 150 km; `RELIEF_FOLD_SETS` new, 2 and 120 km; `RELIEF_FOLD_SADDLES` 0,8 and 50 km; `RELIEF_FOLD_REACH` gains the threshold of the chevrons, 0,5 to 0,7 of the slope of the distance.
+- **The orders of magnitude,** port, seed 0: lands 32,9 %; summits of the 12 higher chains 6,9 to 7,6 km, against 6,3 to 7,3; the rest unchanged. The tectonic map has not moved: boot and memory identical.
+- **Cost of land:** two more noise functions per vertex on chains, four in total for folds.
+- **The port:** against the map of the planet, median deviation 6 cm, p99 1,9 m.
+- **To be judged in flight:** `tools/tests/2026-10-31-relief-tectonique.txt`, the chain at 300 km and the cordillera.
+- **To return:** the commit `f4bf87d`, tag `piste/relief-tectonique`.
+
+## 2026-10-31 · The tectonic relief, second pass
+
+- **What changes:** the known defects of the first version fixed; `spec-relief-tectonique.md`, its ribs sections, 0 level and measurements.
+- **The coasts:** near the shore, a noise of 60 to 3 km moves the coast of 12 km to a standard deviation on a steep coast, 8 on a flat; its amplitude is the slope of the large shapes once this displacement, a new rule of `principes.md`. Capes, bays, islands and rias; on half of the flat coasts, cordons to 2,5 km off, lagoons and arrow; the flat coastal plains calmer, their badlands too. `RELIEF_COAST`, `_COAST_SLOPE`, `_COAST_NOISE`, `_RIAS`, `_BARRIER`, `_BARRIER_GAPS`, `_COAST_QUIET`.
+- **The rifts:** each opens from 1 to 3 Ma; beyond 50 km, a narrow sea, young crust of 2 to 3 km of depth, middle ridge, young margins and their shoulders. The others keep an emerged bottom: a dome of 1,2 km, shoulders of 1,1 km, a graben of 0,5 to 0,8 km. Rifts: 2,5, 8,6 and 2,5 % of borders, seeds 0 to 2, against 15,7, 17,6 and 10,9 %.
+- **The chains:** the widest octave of the chains in folds, continuous ridges along the level lines of the distance to the border, at 36 km, left-handed, passes; the valleys between the chains; the next two octaves reduced by half below, more spots. Up to 800 km from the border, except halfway between two. `RELIEF_FOLD`, `_FOLD_SADDLES`, `_FOLD_REACH` settings.
+- **Starting:** 0,81 to 0,86 s in title, against 2,53 s; 0,88 to 0,90 s out of engine. Propagations on buckets, independent parallel calculations, which exceeds 300 km on a half-resolution cube. Memory GPU 37,9 MB, against 49,5: the quarter view segment. Always bit close from one calculation to another.
+- **The level 0:** the elevation and erodibility in the map, read by `cp.uplift` and `cp.erodibility`; the file `EXOTECT2`, five slices, 65 MB. The connection is described in the spec, to be done on `erosion-niveaux`.
+- **The locations:** the start of the game over a continent, −12°, 116,875°, the chain on the horizon; the globe of the launcher on the large continent; `tools/tests/vues.txt` and its shadows on a land, hills under scattered cumulus; eight control views, `rend_tecto.ps1`, reference `base_tecto`.
+- **Orders of magnitude,** port, seed 0: lands 32,9 %; modes +125 m and −4 525 m; summits of the 12 higher chains 6,3 to 7,3 km; pits −9,1 to −10,1 km; above 3 km, 2,0 %.
+- **Land cost:** still image, 0,1 to 0,4 ms of calculation before and after; moving, not measured: some noise functions closer to the coasts and on the chains.
+- **The port:** against the map of the planet, median deviation 6 cm, p99 1,8 m.
+- **To be judged in flight:** `tools/tests/2026-10-31-relief-tectonique.txt`, updated.
+- **To return:** the entry `relief tectonique v1, avant vol` of `git stash list`.
+
+## 2026-10-31 · The tectonic relief
+
+- **What changes:** `Relief.hlsli` is rewritten on the tectonic map; it keeps nothing of the composition inherited from complexplanet, no graph, no settings, no names. The first section of `PlanetSettings.hlsli` becomes `RELIEF_*` settings; `CUR_SEED` becomes `PLANET_SEED`. `spec-relief-tectonique.md`.
+- **The corrected tectonic map:** the continental crust by location, plus by plate; passive and active margins; profile families by sign of movement; four slices per face, with a border, read in B-spline and mixed near the edges. A view `relief` more.
+- **The great forms:** oceans by age, pits and bumps, mountain ranges and arcs, collision chains and plateaus, forelands, rifts, transformants, old chains, cratons; laws of Stein and Stein, Turcotte and Schubert, Stern.
+- **Detail:** chains in 1 − |n|, oriented along borders; erosion by slope on a noise with derivatives (`RlGradientNoiseD`); mesas and badlands. No valley is dug.
+- **The port CPU:** `tools/hydro/cp.py` reads the engine map, `x64/Release/tectonique-<graine>.bin`; 8 cm of difference at most against the planet map.
+- **The orders of magnitude,** port, seed 0: lands 33,0 %; modes +125 m and −4 625 m; summits of the 12 higher chains 6,8 to 7,9 km; pits −9,4 to −10,5 km. Seeds 1 and 2: land 33,8 and 30,4 %.
+- **Cost:** tectonic map 2,5 s and 50 MB at startup, versus 1 s and 32 MB; moving terrain calculation 0,3 to 0,7 ms at reference views, versus 0,5 to 1,3 ms, and 0,7 to 2,5 ms at ground level, versus 3,9.
+- **The places fall elsewhere:** the reference views are at sea, except the orbit and `macro`; the reference of the quality benchmark is no longer valid.
+- **To be judged in flight:** `tools/tests/2026-10-31-relief-tectonique.txt`, ten views; the map, `tools/tests/2026-10-31-tectonique.txt`.
+- **To go back:** the previous commit, `f00004d`; the experiment will take the `piste/relief-tectonique` tag at its first commit.
+
+## 2026-10-31 · The relief in original code
+
+- **What changes:** the relief is rewritten in clean room, from a functional specification, without seeing the port of complexplanet or libnoise. `ComplexPlanet.hlsli` and `LibNoise.hlsli` are deleted; `Relief.hlsli` and `Noise.hlsli` replace them. `ComplexPlanetElevation` becomes `ReliefElevation`, with the `valleys` overload of `erosion-niveaux`.
+- **The noise:** Perlin gradient over the entire network, xxHash32 hash nested axis by axis, 256 unit gradients on a Fibonacci spiral. Standard deviation 0,40 in both grades. Each octave shifted by a fraction of grid cell (`principes.md`). Seeds: 64 per module, without covering.
+- **Keeped:** the graph and its values, the three sections of the network, the filtering of octaves, the rounding of peaks, the roughness. Rescaled averages: billow −0,350 and −0,345, ridged 0,510 and 0,505, Voronoi −0,055.
+- **Removed:** `VECTOR_TURBULENCE`, the non-vector path of turbulence no longer exists.
+- **The port CPU:** `tools/hydro/cp.py` rewritten, same hash; `tools/cotes/cp.py` relies on it.
+- **The character,** port CPU, seed 0, grid cells of 55 km, 2 km and 50 m:
+  - land 59,8 / 60,1 / 60,3 %, against 58,6 / 58,1 / 57,2 %;
+  - median land 945 / 889 / 880 m, against 736 / 691 / 686 m;
+  - mountains 8,6 / 8,9 / 8,6 % of land, compared to 6,6 / 6,7 / 6,8 %; hills 17,7 / 17,8 / 17,3 %, compared to 12,5 to 13,2 %;
+  - highest point 5,1 / 5,5 / 6,1 km, against 5,0 / 6,0 / 5,7 km;
+  - on eight seeds, the land ranges from 37 to 60 %; the median and the proportion of mountains remain above the old relief.
+- **The places fall elsewhere:** start, benchmarks and flight tests are to be reviewed. The quality benchmark reference is no longer valid.
+- **To be judged in flight:** `tools/tests/2026-10-31-relief.txt`, from orbit to ground.
+- **License:** `NOTICE` no longer cites complexplanet or libnoise; `LICENSES/LGPL-2.1-or-later.txt` removed; `LICENSE` unchanged.
+- **Cost:** not measured.
+- **To go back:** the previous commit, `f00004d`.
+
+## 2026-10-30 · Storage for opening
+
+- **What changes:** the repository placed for publication under GPL-2.0-or-later. The variable-free executable is the game; a single launcher, `tools/lance.ps1`.
+- **Commits:**
+  - `d4f00c9`, documentation: specs closed to log, index by theme, license and `NOTICE` third parties;
+  - `3a4508a`, vegetation and terrain: volume prototype, vegetation v3, relief of materials, walls in steps and spline prefilter removed (next entry);
+  - `df5c2b3`, the docs and vegetation tools updated, launchers and benchmarks of the removed modes removed;
+  - `3663177`, clouds and atmosphere: only one path, the game path, active by default. The old volume, POC, voxel, Wicked V1 to V5, Shapes, Currents and Frostbite variants are removed with their launchers, generators and assets. The shaders of the game are compiled by the project under neutral names; its four textures, frozen in `assets/clouds` with their provenance. TAA and halo decoupled from clouds: the TAA cut off at startup, the T key restores it; the halo cut off, `MYPLANETENGINE_GLARE` activates it.
+- **The air light rendered to the game,** in place, to be judged in flight (`tools/tests/2026-10-30-lumiere.txt`): sun rays, fog on the regional ground along the view, solar disk behind the clouds. The composition of the clouds omitted them; it takes the air of the atmosphere pass before (`spec-nuages.md`, the air around the clouds).
+- **Documentation:** `spike-nuages-planete.md` becomes `spec-nuages.md`, the cloud reference of the game; its story sections go into `log/spec-nuages-historique.md`. Live docs no longer quote the removed code. The `README.md` root, in English, is the public gateway.
+- **Visual difference:** Rendering the game bit-to-bit identical on six views, with and without variables, based on commit messages. The light rendered changes the air; not measured.
+- **Cost:** not resized.
+- **To return:** `jalon/29-avant-ouverture`, the state of `main` before; the data string of clouds, `jalon/26-nuages-main`.
+
+## 2026-10-30 · Opening: Out of play code removed, vegetation and terrain
+
+- **Settings removed,** with the code they commanded, commit `3a4508a`:
+  - `MATERIAL_RELIEF`, `_BAND`, `_MAX_CELL`, 0; 8 grid cells; 8 m, and `RELIEF_NORMAL_CELLS`, 32: the relief of materials in the mesh, disabled since the 2026-10-23. Tag `piste/parois-gradins`, where it is active.
+  - `WALL_RELIEF`, `_MAX_CELL`, `_SLOPE`, `_CLIFF`, `_REPOSE`, 0; 16 m; 0,55 to 1; 0,35; 0,67: the step walls, disabled since 2026-10-23. Tag `piste/parois-gradins`.
+  - `SPLINE_SHARPENING`, 0, and the cardinal spline prefilter: the smoothing B-spline reads the vertices themselves. Tag `jalon/09-normales-spline`.
+  - `LEAF_ALBEDO`, 2,6, 1,7 and 1,8, and `PLANT_PIXELS`, 14 to 21 px: the plants generated v1 to v3, which did not draw anything in the game. Tag `piste/vegetation-v3`.
+- **The game foliage, alone and default:** meshes near, impostors far, fourteen models, HiZ and material depth. Its variables are removed, its settings hard; its catalog is alone, and without it no plant. The volume prototype, other modes and the `photo` and `stylized` models remain in the `piste/vegetation-relais-fondu` tag.
+- **Why:** the engine release; without variable, the executable shows the game.
+- **Cost:** the copy passes of the relief and the prefilter do not rotate anymore; they took 0,07 to 0,19 and 0,02 to 0,13 ms at the profile of the round 4. Not resized.
+- **Visual difference:** Rendering the game bit-to-bit identical on six views, based on the commit message.
+- **To return:** the tags above; the state just before is the commit `d4f00c9`.
+
+## 2026-10-29 · The relay impostor-mesh: melted and lighting
+
+- **Setting, the fade:** for models `game` and shrubs, a relay fade, between 0,8 and 1,25 times the threshold of each plant. The traming changes with each frame: without temporal antialiasing, cut by the launcher of flight, the eye the bottom. The H key cuts it, to compare.
+- **Why:** Without fading from the 2026-10-27, each tree tipped at once, and the light gap made it a clear jump.
+- **In flight, the fade:** validated.
+
+- **Setting:** the impostor lights up on the dispersion of its leaves. The length of its average normal gives the consistency; the direct, the backlight and the term sol/ciel take the hope, instead of the renormalized normal that illuminated it as a card face to the eye. Its cooked colors are averaged in linear, and no longer in sRGB; the fourteen impostors are annealed.
+- **Why:** In flight, a dark tree would light up by becoming mesh. Prior to optimization: `242d0f7` gives the same image.
+- **Measurement, luminance mesh / impostor of the same plants, 4 places and 5 suns:** at the ground, from 0,82–1,30 to 0,87–1,15, mean deviation of 13 to 7 %; at the relay, at 25 m from the ground, from 0,86–2,05 to 0,86–1,74, mean deviation of 21 to 13 %. The rest, mesh lighter under a high front or rasing sun, is not explained.
+- **Cost:** few operations per pixel of impostor, not measured at benchmark.
+- **Visual difference:** the meshes are identical to the bit close; all the impostors change, lighter in backlight and under a high sun, darker sun in the back.
+- **In flight, the lighting alone:** no visible effect on the jump; kept with the fade. `tools/tests/2026-10-29-imposteurs-eclairage.txt`.
+- **Detail:** `vegetation-planetaire.md`, the lighting of the impostors.
+
+## 2026-10-29 · Optimization, round 8: ground in fast flight
+
+- **Setting:** under 14 km, a sky hole in the leaves that neither the history nor the fresh tiles see takes the texel closest to the history that sees the sky, instead of being plotted by resolution; failing, clear for an image. In flight, grid cells of less than 4 m, the grid of the terrain is cut into pairs of floats instead of doubles, in a separate shader; the vertex under the camera remains accurate, and all the mesh at a standstill.
+- **Measurement, `tools/banc_perf.py`, fast flight at 5 % of height per frame, against the front binary in the same session:** forest from 49 to 60 actual fps, edge from 43 to 55, mountain from 48 to 54; terrain calculation from 4,6 to 3,0 ms in forest, cloud resolution from 3,6 to 0,9 ms in edge. Above ground, unchanged.
+- **Visual deviation:** still image identical to bit close; in motion, 0,05 to 0,09 medium level on the ground against the front binary, at the edges of the leaves; against the full pass, the same deviation at 0,1 close level. `banc_qualite.py` without p95 changed.
+- **In flight:** validated, `tools/tests/2026-10-29-optimisation-sol-vol-rapide.txt`. The shafts that light up when moving from impostor to mesh come from before the optimization: the lighting of the impostor, treated separately.
+- **Detail:** `optimisation.md`.
+
+## 2026-10-29 · Optimization, round 7: clouds in fast flight
+
+- **Setting:** under 14 km, the gate of the distant quadrature, the pixels whose cloud history has slipped or turned are no longer all traced: one pixel per square 2×2 is traced, in turn, the other three are interpolated. Above, nothing changes. The 6 round, set aside, remains on the `piste/optimisation-r6-nuages-mouvement` tag.
+- **Measurement, `tools/banc_perf.py`, fast flight at 5 % of height per frame:** cumulus at 10 km, goes from 24,2 to 8,1 ms, from 36 to 90 fps real; 150 m under cumulus, from 59 to 70 fps, and in dive from 34 to 52. At 160 km, 440 km and in orbit, unchanged: 57, 53 and 22 fps.
+- **Visual deviation:** still image identical to the bit close; in motion, against the full pass, equal deviation on eleven views, except the cumulus in fast flight, 0,06 → 0,13 average level by deviation of one level, less pixels beyond 8. `banc_qualite.py` without p95 changed.
+- **In flight:** validated, `tools/tests/2026-10-28-optimisation-nuages-rapides.txt`.
+- **Detail:** `optimisation.md`.
+
+## 2026-10-28 · Optimization, round 5: flying images
+
+- **Setting:** none. Measured and stopped: the GPU waits for the CPU only 0,6 to 1,2 ms per frame, below the threshold of 1 ms at the ground. The benchmark now measures the image of the CPU, the actual cadence and idle of the GPU.
+- **Measurement, `tools/banc_perf.py`, 1080p:** recording and submission 0,6 to 0,9 ms, preparation 0,01 ms; on the ground, actual cadence of 64 to 71 fps still, 44 to 50 in flight, against 68 to 75 and 45 to 52 at GPU time. Two in-flight images would make these 4 to 6 % on the ground.
+- **Visual deviation:** none, ten identical views to the bit.
+- **Detail:** `optimisation.md`.
+
+## 2026-10-28 · Optimization, round 4: terrain calculation
+
+- **Setting:** the calculation of the terrain is not restarted when the constants that read its passes are, to the bit close, those of the previous image; the mesh only equal, the camera turning in place, only the vertices entered in the view are calculated.
+- **Measurement, `tools/banc_perf.py`, 1080p:** stationary, terrain calculation from 3,3 to 4,2 ms to 0 on the ground, 73 to 76 fps; turning on the spot, from 4,3 to 1,7 ms in forest, 52 to 59 fps on the ground. In flight, nothing changes: 41 to 52 fps on the ground.
+- **Visual deviation:** none, still as moving, against the whole calculation at each frame; `banc_qualite.py` without p95 changed.
+- **In flight:** validated, `tools/tests/2026-10-28-optimisation-terrain.txt`.
+- **Detail:** `optimisation.md`.
+
+## 2026-10-28 · Optimization, round 3: vegetation
+
+- **Setting:** exact floor of the tiles of plants kept from one frame to another, erased at each jump of the camera; impostors in conservative depth, at the end of their HiZ test; meshes close in depth first, color in equal depth; sorting of the tiles without its sixteen plans when the end proves it.
+- **Measurement, `tools/banc_perf.py`, 1080p:** placement and foliage of 18-20 ms to 6 ms in forest; 54 to 59 fps at ground, 83 in fly-over, 115 at sea.
+- **Visual deviation:** at most 1 level on 3 to 11 pixels, on sixteen views; `banc_qualite.py` without p95 changed. When moving, the table keeps roundings from a previous camera: 0,006 % of pixels at most.
+- **In flight:** validated, `tools/tests/2026-10-28-optimisation-vegetation.txt`.
+- **Detail:** `optimisation.md`.
+
+## 2026-10-28 · Optimization, round 1, continue: clouds in motion
+
+- **Setting:** the history of clouds that drifted, or whose direction of view rotates by more than 1° per frame, is traced instead of filled; drift measured on the distance spread of the light; far average capped at two moving rays. The air of the composition is cut only at the step where the cloud is.
+- **Measure, `tools/banc_perf.py`, fast flight at 5 % of height per frame:** plates at 160 km from 18 % to 3 % of frame against single pass; beyond x5 in orbit, pass costs single pass, 10 to 38 ms.
+- **Visual deviation:** still image less than 0,3 level; `banc_qualite.py`, same sites as the round 2, all p95 identical.
+- **In flight:** plates and second skin disappeared; remains a noise of high-speed clouds, set aside, like the trails of diving from orbit.
+- **Detail:** `optimisation.md`.
+
+## 2026-10-28 · Optimization, round 2: plot drawing
+
+- **Setting:** pre-pass of depth of the field, then its color in equal depth, after objects and foliage; strata, presence of woods and vegetation fades calculated only where they can change the pixel.
+- **Measurement, `tools/banc_perf.py`, 1080p:** terrain drawing from 11-17 ms to 3-7 ms near the ground; from 27-28 to 33-37 fps at ground, 64 in fly-over.
+- **Visual deviation:** at most 1 level on a few pixels; `banc_qualite.py` without p95 gradient, compared to `main` on the same sites.
+- **In flight:** validated with single pass clouds (`nuages-planete.ps1 -PassePleine`, new option). The plates seen in flight come from the temporal passage of clouds, in correction.
+- **Detail:** `optimisation.md`.
+
+## 2026-10-28 · Optimization, round 1: clouds and atmosphere
+
+- **Setting:** clouds time pass, one track per tile 4×4 and per frame, reprojected in the weather reference frame; distant quadrature spread over up to eight visits. `MYPLANETENGINE_CLOUD_FULL=1` makes the pass unique from front.
+- **Measure, `tools/banc_perf.py`, 1080p:** moves clouds from 10 to 51 ms to 1,2 to 4,8 ms; from 17 to 34 fps to 27 to 195 fps depending on view.
+- **Visual deviation:** still image of 0 to 0,65 level; 0,8 % of pixels beyond 8 levels to the globe, in the grain of the edge.
+- **Remains to be judged in flight:** areas discovered and shadow on the ground late at most 16 images; `tools/tests/2026-10-28-optimisation-nuages.txt`.
+- **Detail:** `optimisation.md`.
+
+## 2026-10-28 · Profile Release and Full Screen
+
+- **Request:** Full-screen optimized executable, with better resource utilization and rendering preservation.
+- **Display:** Monitor resolution at startup, window without border, Alt+Enter and Esc; free display with DXGI capability verified. Captures and benchmarks remain invisible.
+- **Compilation:** options Release x64 `/O2`, inline functions, speed, global optimization and LTCG explicit; GPU high performance selection already present, controlled and GPU name displayed.
+- **Profile:** `tools/lance_optimise.ps1` prepares `x64/Optimise/MyPlanetEngine.exe` and its INI file; clouds, detailed vegetation and sea preserved. The profile is also reloaded by double-click; the variables of benchmark take precedence.
+- **Limits:** one GPU image in flight, constants and CPU readings still shared; fullscreen1080p requires2,25 times the pixels of 720p. No change in range, density or quality to produce apparent gain.
+- **Verification:** three 720p views compared to previous runtime, one pixel different in total; two 1080p views off-screen, forest and sea, profile loaded and no vegetation overflow. Full screen1920×1080 and return to window observed; mouse capture cancelled on switching to avoid parasitic rotation.
+- **State:** runtime prepared and restarted; no global FPS gain measured, no commit or push requested. Guide: `execution-optimisee.md`.
+
+## 2026-10-27 · Composition of cloud shadows on vegetation
+
+- **Cause:** detailed trees and shrubs wrote their color but not their solar part; the composition replayed that of the hidden terrain. The HiZ path also connected only to the HDR target after the occlusion calculation.
+- **Effect:** black silhouettes or vegetation seemingly transparent in front of the ground, mostly light; the contours followed the vegetation formations drawn on the ground, not the horizon.
+- **Fix:** two consistent outputs on all opaque surfaces, including material depth and impostors; direct sun separated without changing the total lighting of models. Meeting of the two targets after HiZ; solar retreat bounded and strictly neutral at transmission1.
+- **Replayed regression:** in forced transmission at 1, the old rendering changed154921,433185,37695 and115553 pixels more than 1/255 on four views; clouds completely disabled returned the same images with/without shadows.
+- **Check after correction:** compilation native Release x64 and 72 shaders, then shader Planet DXC; transmission forced at 1: four images strictly identical with/without solar composition, zero pixel different. No models, no geometry, no population changed.
+- **Conservation:** solar composition disabled, four images avant/après strictly identical; lighting models preserved. Two captures with real shadows inspected on the ground and at 35 m in boreal forest: opaque silhouettes found; flight resumed at 35 m from main.
+- **Tool:** `tools/banc_composition_surfaces.py`, four off-screen views; captures and reports in `x64/SurfaceComposition/`. No commit or push required; in-motion verification entrusted to the user.
+
+## 2026-10-27 · Activation of vegetation in the cloud launcher
+
+- **Cause:** Detailed models were in main, but the cloud launcher cleared vegetation variables without selecting their mode; historical rendering remained active.
+- **Fix:** `tools/nuages-planete.ps1` selects `hybrid-impostor`, `game` models, `climate_shrubs_v2` catalog, volume0,65, HiZ and hardware depth by default.
+- **Control:** caches of the two trees and twelve bushes present; application re-launched near the ground, title confirming the game patterns and the meshes of trees and bushes active, without overrunning. Visual verification in flight entrusted to the user.
+- **Comparison:** `-AncienneVegetation` returns to the previous mode; `-Parcours` allows you to choose the vegetable palette without changing the default cloud palette. No shader or model modified.
+- **Status:** local fix on main, no commit or push requested.
 
-## 2026-10-27 · Retour de l'éclairage précédent et fusion de main
+## 2026-10-27 · Return of the previous lighting and merger of main
 
-- **Décision utilisateur :** « C'était mieux avant. » Compensation diffuse retirée ; éclairage du commit `5b53b81` conservé. Essai et mesures déplacés dans `log/spike-nuages-lumiere.md`.
-- **Intégration :** fusion de `main` au commit `f66ead9` dans `codex/nuages-voxel-poc`, sans réécriture de son historique publié ; piste `piste/nuages-main-integration`.
-- **Contrats :** végétation et angle du pixel restent dans `taa.zw`, mer dans `waveAxisX/Y`, météo dans `cloudMotion.xy` ; carte globale en `t29`, hors des ressources des nuages. Diagnostic nuages32, diagnostics terrain et climat de main conservés.
-- **Surfaces :** mer FFT avec profondeur signée conservée pour le lissage, distance absolue pour les rayons de nuages. La seconde cible reçoit le direct solaire exact du sol, de l'eau et de l'écume ; le reflet du ciel reste séparé.
-- **Construction :** lanceur Planète reconstruit le natif Release x64 et ses shaders dans un dossier isolé ; liens Direct3D et sous-système Windows configurés aussi en Release. Témoins figés inchangés.
-- **Vérification :** C++ et72 shaders du projet compilés, puis variante Planète DXC ; captures hors écran en orbite et à60 m au-dessus de la mer FFT. Nuages+air ponctuels27,65 et17,75 ms ; pas de banc prolongé ni de validation en mouvement.
-- **Végétation détaillée :** démarrage avec les assets locaux de main,13610 imposteurs, zéro dépassement ni flottement ; GPU total37,97 ms, dont14,44 ms nuages+air, sur une seule capture.
-- **Référence :** `docs/spike-nuages-planete.md`, `tools/nuages-planete.ps1`, captures dans `x64/MainCloudPreview/`.
+- **User decision:** "It was better before." Fuzzy compensation removed; lighting from `5b53b81` commit retained. Testing and measurements moved to `log/spike-nuages-lumiere.md`.
+- **Integration:** Merge of `main` to commit `f66ead9` in `codex/nuages-voxel-poc`, without rewriting its published history; experiment `piste/nuages-main-integration`.
+- **Contracts:** Vegetation and pixel angle remain in `taa.zw`, sea in `waveAxisX/Y`, weather in `cloudMotion.xy`; global map in `t29`, out of cloud resources. Clouds32 diagnosis, main field and climate diagnosis preserved.
+- **Surfaces:** sea FFT with signed depth retained for smoothing, absolute distance for cloud rays. The second target receives the exact direct solar light from the ground, water and foam; the reflection of the sky remains separate.
+- **Build:** Planet launcher rebuild the native Release x64 and its shaders in an isolated folder; Direct3D links and Windows subsystem configured also in Release. Frozen witnesses unchanged.
+- **Verification:** C++ and 72 shaders of the project compiled, then variant Planet DXC; captures off-screen in orbit and at 60 m above sea level FFT. Point clouds+air27,65 and17,75 ms; no prolonged benchmark or validation in motion.
+- **Detailed vegetation:** start with local assets of main,13610 impostors, zero overflow or floating; GPU total37,97 ms, of which14,44 ms clouds+air, on a single capture.
+- **Reference:** `docs/spike-nuages-planete.md`, `tools/nuages-planete.ps1`, captures in `x64/MainCloudPreview/`.
 
-## 2026-10-27 · Intégration des performances végétales · `jalon/25-vegetation-performance-main`
-
-**Décision :** demande de commit, push, rebase puis fusion dans `main`.
-
-**Contenu :** bases angulaires partagées, HiZ de l'image courante, masque conservateur et variante de profondeur matérielle des maillages proches. Modèles, sources, densité et portée conservés.
-
-**Vérification :** compilation et bancs déjà terminés avant le vol comparatif ; résultats et limites dans `vegetation-hiz.md` et `../tools/foliage/results/2026-10-27/hiz.json`.
+## 2026-10-27 · Integration of plant performance · `jalon/25-vegetation-performance-main`
+
+**Decision:** request to commit, push, rebase and merge into `main`.
+
+**Content:** Shared angular bases, HiZ of current image, conservative mask and material depth variant of near meshes. Models, sources, density and scope preserved.
+
+**Verification:** compilation and benchmarks already completed before comparative flight; results and limits in `vegetation-hiz.md` and `../tools/foliage/results/2026-10-27/hiz.json`.
 
-**Suite :** réduire le coût du placement et des calculs de terrain ; le gain du dessin ne suffit pas encore à garantir une grande marge globale en vol.
+**Next:** reduce the cost of placement and field calculations; the drawing gain is not yet sufficient to guarantee a large overall margin in flight.
 
-## 2026-10-27 · HiZ végétation · base `piste/vegetation-hiz-base`
+## 2026-10-27 · HiZ vegetation · base `piste/vegetation-hiz-base`
 
-**Demande :** culling hiérarchique par profondeur, à rendu, densité et portée conservés ; dégager une marge au-dessus des 30 FPS signalés.
+**Request:** hierarchical culling by depth, with rendering, density and range preserved; clear a margin above the reported 30 FPS.
 
-**Règle :** profondeur de l'image courante après terrain et maillages proches, pyramide par minimum en Z inversé, masque de visibilité GPU. Sources et ordre de dessin conservés ; cas incertains visibles. Les imposteurs cachés produisent un quad dégénéré avant le travail coûteux.
+**Rule:** current image depth after field and meshes close, pyramid by minimum in reversed Z, visibility mask GPU. Sources and order of drawing preserved; uncertain cases visible. The hidden impostors produce a degenerate quad before the expensive work.
 
-**Profondeur proche :** variante matérielle du shader mesh, mêmes couleurs et découpes alpha, sans profondeur recalculée ni earlydepthstencil forcé. Le témoin reste accessible.
-
-**Mesures :** quatre états intercalés dans un seul processus, six vues, 64 cycles par vue. Rendu végétal tempéré intérieur de 10,30 à 4,64 ms, tropical de 8,21 à 3,46 ms ; le temps GPU total reste borné aussi par terrain et placement. Voir `vegetation-hiz.md`.
-
-**Vérification :** HiZ seul strictement identique sur quatorze vues dans les deux modes de profondeur ; variante finale avec 25 pixels d'écart au total. Populations et ressources inchangées, zéro dépassement. Banc général : dix pixels modifiés sur 745 crops, aucune nouvelle régression de plus de 10 % sur 59 p95 face au témoin courant ; écarts canoniques antérieurs conservés. Synthèse : `../tools/foliage/results/2026-10-27/hiz.json`.
-
-**État :** intégré au jalon 25 ; compilation et bancs hors écran terminés. Version relancée en vol par `tools/lance_vegetation_hiz.ps1`, zéro dépassement à la vue de départ ; témoin accessible par `-Reference`.
-
-## 2026-10-27 · Optimisation de la végétation · base `piste/vegetation-optimisation-base`
-
-**Demande :** réduire le coût en conservant le rendu, la densité et la portée, puis relancer en vol ; auditer le culling existant.
+**Near depth:** Hardware variant of the mesh shader, same colors and alpha cutouts, no recalculated depth or forced earlydepthstencil. The witness remains accessible.
+
+**Measurements:** four states interspersed in a single process, six views, 64 cycles per view. Indoor temperate vegetative rendering of 10,30 to 4,64 ms, tropical of 8,21 to 3,46 ms; the total GPU time is also limited by terrain and placement. See `vegetation-hiz.md`.
+
+**Verification:** HiZ only strictly identical on fourteen views in both depth modes; final variant with 25 pixels of difference in total. Populations and resources unchanged, zero overfishing. benchmark general: ten pixels changed on 745 crops, no new regression of more than 10 % on 59 p95 against the current control; previous canonical deviations retained. Summary: `../tools/foliage/results/2026-10-27/hiz.json`.
+
+**Status:** integrated into milestone 25; compilation and benchmarks off-screen completed. Version re-launched in flight by `tools/lance_vegetation_hiz.ps1`, zero overrun at the starting view; witness accessible by `-Reference`.
+
+## 2026-10-27 · Optimisation of vegetation · base `piste/vegetation-optimisation-base`
+
+**Request:** reduce cost by maintaining rendering, density and reach, then re-launch in flight; audit existing culling.
 
-**Changement retenu :** les bases angulaires des quatre vues d'imposteurs, déjà calculées au vertex, sont réutilisées au pixel. Le placement, les représentations, les seuils et les modèles restent identiques.
+**Change retained:** the angular bases of the four views of impostors, already calculated at the vertex, are reused at the pixel. The placement, representations, thresholds and models remain the same.
 
-**Mesure :** horodatage du placement distinct de la classification, même instrumentation dans le témoin et le candidat. Les essais de scans ne donnent pas de gain stable et sont écartés ; `log/optimisation-vegetation-historique.md`.
+**Measurement:** Placement time stamp separate from classification, same instrumentation in control and candidate. Scanning tests do not give stable gain and are rejected; `log/optimisation-vegetation-historique.md`.
 
-**Culling :** rejet des sommets hors champ avant le bruit de relief, filtrage des octaves, sélection de tuiles puis de plantes, commandes indirectes et profondeur. Aucune pyramide de profondeur pour éliminer les plantes masquées ; `optimisation-vegetation.md`.
+**Culling:** rejection of out-of-field vertices before the relief noise, filtering of octaves, selection of tiles then plants, indirect controls and depth. No depth pyramid to eliminate masked plants; `optimisation-vegetation.md`.
 
-**État :** travail non commité sur sa branche, intégré depuis au `jalon/25-vegetation-performance-main`, base taguée ; compilation et comparaisons hors écran, puis palette de vol `2026-10-27-vegetation-performance.txt`.
+**State:** work not committed on its branch, integrated since the `jalon/25-vegetation-performance-main`, tagged base; compilation and off-screen comparisons, then palette flight `2026-10-27-vegetation-performance.txt`.
 
-**Vérification :** quatorze BMP identiques, mêmes comptes par modèle, zéro dépassement. Banc général sur six lieux et cinq hauteurs : 744 PNG identiques sur 745, un pixel d'écart de 1/255, aucun nouveau p95 dégradé de plus de 10 %. Dessin des forêts denses réduit d'environ 0,3 à 0,55 ms dans plusieurs vues ; temps total variable. Synthèse : `../tools/foliage/results/2026-10-27/optimisation.json`.
-
-## 2026-10-27 · Intégration validée · `jalon/24-vegetation-detaillee-main`
+**Verification:** Fourteen identical BMP, same accounts per model, zero overrun. benchmark general on six locations and five heights: 744 PNG identical on 745, one pixel deviation from 1/255, no new p95 gradient of more than 10 %. Dense forest drawing reduced from about 0,3 to 0,55 ms in multiple views; total time variable. Summary: `../tools/foliage/results/2026-10-27/optimisation.json`.
+
+## 2026-10-27 · Integration validated · `jalon/24-vegetation-detaillee-main`
 
-**Décision :** l'utilisateur valide la végétation en l'état et demande son rebase puis sa fusion sur `main`.
-
-**Périmètre :** modèles de jeu, maillage proche et imposteurs lointains, bouquets et éclairage, douze arbustes climatiques. Densité et portée du vol validé conservées. La maquette Dendry de la branche de départ reste hors de cette intégration ; la mer de `main` est conservée.
+**Decision:** the user validates the vegetation in the state and requests its rebase then its fusion on `main`.
+
+**Perimeter:** game models, near mesh and distant impostors, bouquets and lighting, twelve climatic shrubs. Density and range of the validated flight retained. The Dendry mock-up of the starting branch remains out of this integration; the `main` sea is retained.
 
-**Acceptation :** jugement visuel utilisateur, avec les cinq écarts p95 connus des comparaisons appariées. Le seuil automatique reste non satisfait ; aucun changement de métrique ni de référence. Les rapports et leurs limites restent consignés dans les deux specs de végétation.
+**Acceptance:** user visual judgment, with the five known p95 deviations from paired comparisons. The automatic threshold remains unmet; no metric or baseline changes. The ratios and their limits remain recorded in both vegetation specs.
 
-**Intégration :** compilation complète Debug x64 réussie après rebase, mer et végétation réunies. Plages de descripteurs séparées ; horodatages mer 6–7 et végétation 8–11. Aucun banc de rendu relancé pour cette fusion.
+**Integration:** Complete compilation Debug x64 successful after rebase, sea and vegetation together. Separate descriptor ranges; time stamps sea 6–7 and vegetation 8–11. No benchmark rendering restarted for this merge.
 
-**Suite différée :** optimisation des performances GPU et de la mémoire, décrite dans `optimisation-vegetation.md`, base `piste/vegetation-optimisation-base`. Aucun nouveau réglage de rendu pour cette phase.
+**Delayed continuation:** GPU performance and memory optimization, described in `optimisation-vegetation.md`, base `piste/vegetation-optimisation-base`. No new rendering settings for this phase.
 
-## 2026-10-27 · Arbustes climatiques · base `piste/arbustes-climatiques-base`
+## 2026-10-27 · Climatic shrubs · base `piste/arbustes-climatiques-base`
 
-**Demande :** diversifier les arbustes et leur donner un port et un feuillage cohérents avec le froid, l'aridité et la montagne, comme les arbres.
+**Application:** to diversify shrubs and give them a port and foliage consistent with the cold, aridity and mountain, like trees.
 
-**Réglages :**
-- Six familles, deux architectures chacune ; 2 492 à 4 272 triangles par modèle.
-- Hauteurs relatives : boréal 0,65, désert 0,85, steppe 0,60, montagne 0,30, tempéré 1, tropical 1,15 ; couronne maximale de référence 1,1.
-- Partition continue des champs climatiques existants, sans plancher forçant une famille hors de son climat.
-- Graines, positions, tailles sources, présence et portée conservées ; mêmes fichiers des deux arbres.
-- Six régions GPU partagées de 192 Mio ; comptage, préfixes et dispersion, puis dessins groupés par représentation et commandes vides ignorées sur GPU.
+**Adjustments:**
+- Six families, two architectures each; 2 492 to 4 272 triangles per model.
+- Altitudes: boreal 0,65, desert 0,85, steppe 0,60, mountain 0,30, temperate 1, tropical 1,15; maximum reference crown 1,1.
+- Continuous partitioning of existing climate fields, without flooring forcing a family out of its climate.
+- Seeds, positions, source sizes, presence and range preserved; same files of both trees.
+- Six GPU regions shared from 192 MiB; counting, prefixes and scatter, then drawings grouped by representation and empty commands ignored on GPU.
 
-**Vérification :** compilation isolée réussie ; identités et positions identiques sur quatorze vues, mêmes totaux, zéro dépassement ; quatre lieux voisins supplémentaires. Les BMP avant/après réorganisation des appels sont identiques. Les représentations ajoutent environ 445 Mio de données, hors files.
+**Verification:** isolated compilation successful; identical identities and positions on fourteen views, same totals, zero overrun; four additional neighboring locations. The BMP avant/après call rearrangements are identical. The representations add about 445 MiB of data, excluding queues.
 
-**Qualité :** les vingt-quatre sites terminent sans perte GPU, mais deux p95 régressent de plus de 10 % face au candidat précédent. Les trois échecs antérieurs restent hérités. Il s'agit d'une piste de jugement, sans validation du critère du projet ; `arbustes-climatiques.md` et son log donnent les mesures.
+**Quality:** all twenty-four sites finish without loss GPU, but two p95 regress by more than 10 % compared to the previous candidate. The three previous failures remain inherited. This is a experiment judgment, without validation of the project criterion; `arbustes-climatiques.md` and its log give the measurements.
 
-**Retour :** `-Assets assets/foliage/volume_look_normals` retrouve l'arbuste unique précédent sur le même exécutable. Le tag est sur le commit de départ ; les changements ne sont pas commités.
+**Return:** `-Assets assets/foliage/volume_look_normals` finds the previous single bush on the same executable. The tag is on the initial commit; changes are not committed.
 
-## 2026-10-27 · Bouquets et lumière · base `piste/vegetation-bouquets-lumiere-base`
+## 2026-10-27 · Bouquets and light · base `piste/vegetation-bouquets-lumiere-base`
 
-**Demande :** poursuivre le rendu des feuillus et des arbustes par itérations comparées à des références de forêt ; plus de densité foliaire et de volume, même population et portée.
+**Request:** continue rendering of deciduous trees and shrubs by iterations compared to forest references; more foliar density and volume, same population and range.
 
-**Réglages :**
-- Feuilles d'origine réparties autour des rameaux ; feuillu 7 010 triangles, arbuste 13 406, pin inchangé.
-- Normales foliaires mélangées à 55 % vers un champ radial local, biais haut 0,15.
-- Ciel : seize rayons précalculés ; soleil : six directions locales ; force de rendu 0,65.
-- Couvert lumineux du sol et des objets composé par transmission : l'addition arbres + arbustes dépassait parfois 1.
-- Relais 96–128 pixels, fenêtre 512 et sortie 5–8 pixels inchangés.
-- Les premiers essais comparent la géométrie, puis les forces 0 / 0,65 / 1 et les normales à géométrie égale ; les mesures intermédiaires restent dans le log.
+**Adjustments:**
+- Original leaves spread around the twigs; deciduous 7 010 triangles, shrub 13 406, pine unchanged.
+- Foliar normals mixed at 55 % to a local radial field, high bias 0,15.
+- Sky: sixteen pre-calculated rays; sun: six local directions; rendering force 0,65.
+- Luminous cover of the ground and objects composed by transmission: the addition trees + shrubs sometimes exceeded 1.
+- Relay 96–128 pixels, window 512 and output 5–8 pixels unchanged.
+- The first tests compare the geometry, then the forces 0 / 0,65 / 1 and the normals with equal geometry; the intermediate measurements remain in the log.
 
-**Vérification :** captures cachées sur huit vues, deux soleils et quatre biomes ; mêmes six comptes d'instances, aucun dépassement dans ces vues. Une lecture hors allocation du buffer de visibilité absent a été identifiée dans le shader compilé, corrigée par un tampon neutre complet, puis vérifiée sur la vue qui bloquait le GPU. Les rapports détaillés sont sous `x64/ForetVolumeComparaisons/` ; `vegetation-planetaire.md` décrit le protocole.
+**Verification:** Hidden captures on eight views, two suns and four biomes; even six instance counts, no overruns in these views. An out-of-allocation reading of the missing visibility buffer was identified in the compiled shader, corrected by a full neutral buffer, and then checked on the view that blocked the GPU. Detailed reports are under `x64/ForetVolumeComparaisons/`; `vegetation-planetaire.md` describes the protocol.
 
-**Retour :** `-Assets assets/foliage -Volume 0` retrouve les modèles et leur éclairage source ; la composition corrigée du couvert du sol reste active. Le tag désigne le commit de départ ; les modifications et les données générées ne sont pas dans un commit.
+**Return:** `-Assets assets/foliage -Volume 0` finds the models and their lighting source; the corrected soil cover composition remains active. The tag denotes the starting commit; changes and generated data are not in a commit.
 
-**Statut du banc :** les deux séries de 24 sites terminent sans perte GPU. Le candidat ne passe pas trois p95 sur 59 ; il reste une piste de jugement, sans correction acceptée. Les mesures, leurs échantillons et les limites des masques sont consignés dans `vegetation-planetaire.md` et son log.
+**Status of the benchmark:** the two series of 24 sites end without loss GPU. The candidate does not pass three p95 on 59; there remains a experiment of judgment, without correction accepted. Measurements, their samples and mask limits are recorded in `vegetation-planetaire.md` and its log.
 
-## 2026-10-27 · Silhouettes et arbustes · base `piste/vegetation-silhouettes-arbustes-base`
+## 2026-10-27 · Silhouettes and shrubs · base `piste/vegetation-silhouettes-arbustes-base`
 
-**Demande :** corriger le grain et le flou à hauteur d'homme, puis remplacer les arbustes pleins en restant efficient ; même densité et même portée, sans tests avant le vol.
+**Request:** correct the grain and blur at man's height, then replace the full bushes while remaining efficient; same density and same range, without tests before the flight.
 
-**Le changement :**
-- Modèles `game` : une seule représentation par plante, seuil stable de 96 à 128 pixels selon la graine et l'encombrement projeté hauteur/largeur.
-- Fin du fondu en points pour ces modèles ; troncs proches opaques. Un saut de forme reste possible au relais.
-- Alpha-test fixe 0,5 pour leurs imposteurs ; mipmaps conservant approximativement la couverture et soutien de silhouette entre les quatre vues.
-- Textures des maillages filtrées par le matériel, anisotropie ×8, mipmaps pondérés par alpha et couleurs dilatées aux bords.
-- Arbuste Searsia Lucida f CC0 de Poly Haven, 7 232 triangles, branches et feuilles découpées ; même pipeline que les arbres.
-- Six files GPU et quinze SRV ; les anciens appels de dessin des plantes sont sautés en mode planétaire.
-- Présence, graines, allométrie, fenêtre 512 tuiles et retrait à 5–8 pixels conservés.
-- F12 reprend la vue au sol signalée ; `-Sun` permet de reprendre aussi son éclairage.
+**Change:**
+- Models `game`: only one representation per plant, stable threshold of 96 to 128 pixels depending on seed and projected size hauteur/largeur.
+- End of dot fading for these models; near trunks opaque. A jump in form is still possible at the relay.
+- Alpha-test fixed 0,5 for their impostors; mipmaps approximately retaining cover and silhouette support between the four views.
+- meshes textures filtered by hardware, ×8, mipmaps anisotropy weighted by alpha and colors expanded at the edges.
+- Searsia Lucida f CC0 shrub from Poly Haven, 7 232 triangles, branches and cut leaves; same pipeline as trees.
+- Six rows GPU and fifteen SRV; old plant drawing calls are skipped in planetary mode.
+- Presence, seeds, allometry, window 512 tiles and withdrawal at 5–8 pixels retained.
+- F12 resumes the ground view indicated; `-Sun` allows to resume also its lighting.
 
-**Préparation :** construction des assets, revue statique croisée et compilation uniquement ; aucun test, banc ou capture de contrôle avant le vol.
-- L'initialisation et la mémoire augmentent ; le buffer des files réserve 192 Mio. Aucun gain de FPS annoncé sans mesure.
-- Les modèles d'arbres sont conservés pour juger d'abord leur représentation ; la qualité de la bibliothèque reste à poursuivre.
-- Travail non commité ; le tag garde la base, pas les modifications locales.
+**Preparation:** asset construction, cross-static review and compilation only; no test, benchmark or control capture before flight.
+- Initialization and memory increase; queue buffer reserves 192 MiB. No gain of FPS announced without measure.
+- Tree models are kept to judge first their representation; the quality of the library remains to be pursued.
+- Uncommitted work; the tag keeps the base, not local changes.
 
-**Détail :** `vegetation-planetaire.md` ; signalement précédent dans `log/vegetation-planetaire-historique.md`.
+**Detail:** `vegetation-planetaire.md`; previously reported in `log/vegetation-planetaire-historique.md`.
 
-## 2026-10-27 · Modèles d'arbres pour le jeu · base `piste/vegetation-modeles-jeu-base`
+## 2026-10-27 · Tree models for the game · base `piste/vegetation-modeles-jeu-base`
 
-**Demande :** des arbres réalistes de qualité jeu AAA, feuilles et branches crédibles ; densité et distance conservées, essai directement en vol.
+**Request:** realistic trees of quality game AAA, leaves and branches credible; density and distance retained, test directly in flight.
 
-**Le changement :**
-- Pin d'evolveduk sous CC BY 4.0, 5 627 triangles ; feuillu Rakshi Games Tree10_1 sous CC BY 3.0, 3 308 triangles.
-- Modèles d'artistes, branches maillées et cartes de feuillage découpées ; les bouquets opaques ont été rejetés.
-- Atlas couleur, normales, rugosité et transmission ; normales Unity empaquetées converties pour le feuillu.
-- Le feuillu utilise une rugosité constante ; les cartes source du pin sont conservées.
-- Normal mapping proche, occlusion ambiante, reflet solaire modéré et transmission foliaire bornée ; lumière atmosphérique commune.
-- Imposteurs 12 × 5 en 128² et volume 64³ reconstruits depuis les mêmes maillages ; filtrage matériel et rectangles conservés.
-- Même peuplement, hauteur, largeur de couronne, retrait 5–8 pixels et relais maillage/proxy 384–512 pixels.
-- Le lanceur choisit `-Models game` et `-Mode hybrid-impostor` par défaut ; crédits et sources dans `../assets/foliage/game_origins.md`.
+**Change:**
+- Pin from evolveduk under CC BY 4.0, 5 627 triangles; leafy Rakshi Games Tree10_1 under CC BY 3.0, 3 308 triangles.
+- Artist models, mesh branches and cut foliage cards; opaque bouquets were rejected.
+- Atlas color, normals, roughness and transmission; packaged Unity normals converted for hardwood.
+- Hardwood uses a constant roughness; pine source maps are retained.
+- Normal mapping close, ambient occlusion, moderate solar reflection and limited foliar transmission; common atmospheric light.
+- impostors 12 × 5 in 128² and volume 64³ rebuilt from the same meshes; hardware filtering and rectangles preserved.
+- Even population, height, crown width, retraction 5–8 pixels and relay maillage/proxy 384–512 pixels.
+- Launcher chooses `-Models game` and `-Mode hybrid-impostor` by default; credits and sources in `../assets/foliage/game_origins.md`.
 
-**Préparation :** sources récupérées, conversion, construction des représentations et compilation uniquement ; aucun test, banc ou capture de vérification avant le vol.
-- La qualité visuelle et les performances restent à juger ; les budgets de triangles ne prouvent pas un niveau AAA.
-- Travail non commité ; le tag garde la base, pas les modifications locales.
+**Preparation:** sources retrieved, conversion, representation construction and compilation only; no test, benchmark or verification capture before flight.
+- Visual quality and performance remain to be judged; triangle budgets do not prove a AAA level.
+- Uncommitted work; the tag keeps the base, not local changes.
 
-**Détail :** `vegetation-planetaire.md`.
+**Detail:** `vegetation-planetaire.md`.
 
-## 2026-10-27 · Arbres semi-réalistes stylisés · base `piste/vegetation-stylisee-base`
+## 2026-10-27 · Stylized semi-realistic trees · base `piste/vegetation-stylisee-base`
 
-**Demande :** remplacer les modèles trop photoréalistes par des formes naturelles au feuillage en masses ; même densité et même portée, jugement directement en vol.
+**Request:** replace the too photorealistic models by natural forms with foliage in masses; same density and same range, judgment directly in flight.
 
-**Le changement :**
-- Deux modèles originaux construits hors ligne : feuillu ramifié, 9 720 triangles ; conifère étagé, 8 174 triangles.
-- Bouquets lobés opaques, percées dans la couronne, branches effilées et textures de couleurs simplifiées.
-- Même maillage source pour les imposteurs 12 × 5 en 128² et le volume 64³.
-- `-Models stylized` devient le défaut du lanceur ; `-Models photo` garde les arbres précédents pour comparaison.
-- Même population, graines, climat, allométrie, distances et relais à 384–512 pixels.
-- Filtrage matériel et rectangles projetés conservés ; les arbustes gardent leur géométrie actuelle.
+**Change:**
+- Two original models built off-line: branched hardwood, 9 720 triangles; tiered conifer, 8 174 triangles.
+- Opaque lobed bouquets, pierced in the crown, tapered branches and simplified color textures.
+- Same mesh source for the impostors 12 × 5 in 128² and volume 64³.
+- `-Models stylized` becomes the launcher's default; `-Models photo` keeps the previous shafts for comparison.
+- Same population, seeds, climate, allometry, distances and relays at 384–512 pixels.
+- Material filtering and projected rectangles preserved; bushes keep their current geometry.
 
-**Préparation :** génération des assets, revue statique et compilation ; aucun test, banc ou capture de vérification avant le vol.
-- Les budgets de triangles décrivent les nouveaux maillages ; ils ne mesurent pas un gain de FPS.
-- Travail non commité ; le tag garde la base, pas les modifications locales.
+**Preparation:** asset generation, static review and compilation; no test, benchmark or verification capture before flight.
+- The triangle budgets describe the new meshes; they do not measure a gain of FPS.
+- Uncommitted work; the tag keeps the base, not local changes.
 
-**Détail :** `vegetation-planetaire.md` et `../assets/foliage/README.md`.
+**Detail:** `vegetation-planetaire.md` and `../assets/foliage/README.md`.
 
-## 2026-10-27 · Rectangles et filtrage matériel des imposteurs · base `piste/vegetation-imposteurs-filtrage-base`
+## 2026-10-27 · Rectangles and hardware filtering of impostors · base `piste/vegetation-imposteurs-filtrage-base`
 
-**Demande :** optimiser les imposteurs sans changer la densité ni la distance ; relancer pour comparaison en vol, sans tests préalables.
+**Request:** optimize the impostors without changing the density or distance; relaunch for comparison in flight, without prior tests.
 
-**Le changement :**
-- Rectangle perspective calculé sur les quatre plans de vues, limité à l'ancien carré ; marge d'un pixel et repli conservateur au plan proche.
-- Deux tableaux de textures RGBA16F par espèce ; couleur linéaire, normales et profondeur prémultipliées par la couverture.
-- Filtrage bilinéaire et entre mipmaps par le matériel ; même mélange des quatre vues.
-- Population, modèles, placement, relais à 384–512 pixels et retrait à 5–8 pixels conservés.
-- Les modèles suivants devront suivre la direction semi-réaliste stylisée choisie par l'utilisateur : formes naturelles et feuillage en masses.
+**Change:**
+- Perspective rectangle calculated on the four view planes, limited to the old square; margin of one pixel and conservative fold to the near plane.
+- Two texture tables RGBA16F per species; linear color, normals and depth pre-multiplied by cover.
+- Bilinear and between mipmaps filtering by hardware; same mix of four views.
+- Population, patterns, placement, relay at 384–512 pixels and withdrawal at 5–8 pixels retained.
+- The following models will have to follow the stylized semi-realistic direction chosen by the user: natural forms and foliage in masses.
 
-**Vérification :** revue statique et compilation uniquement ; aucun banc, capture ou test avant le vol de l'utilisateur.
-- Aucun gain chiffré annoncé avant comparaison.
-- Travail non commité ; le tag garde la base de la piste, pas l'état des modifications locales.
+**Verification:** static review and compilation only; no benchmark, capture or test before user flight.
+- No gains announced before comparison.
+- Uncommitted work; the tag keeps the base of the experiment, not the state of local changes.
 
-**Détail :** `vegetation-planetaire.md`.
+**Detail:** `vegetation-planetaire.md`.
 
-## 2026-10-27 · Sélection stable des arbres · base `piste/vegetation-compaction-stable-base`
+## 2026-10-27 · Stable tree selection · base `piste/vegetation-compaction-stable-base`
 
-**Problème :** des arbres lointains clignotent à caméra immobile pendant le vol de l'utilisateur.
+**Issue:** Distant trees flash in still camera during user's flight.
 
-**Cause identifiée :**
-- Le titre annonce 87 395 plantes lointaines pour une liste de 65 536, et un autre dépassement dans le renderer.
-- Les append atomiques saturés gardent des sous-ensembles différents selon l'ordre des vagues GPU.
+**Cause identified:**
+- The title announces 87 395 distant plants for a list of 65 536, and another overrun in the renderer.
+- The saturated atomic append keep different subsets according to the order of the waves GPU.
 
-**La règle corrigée :**
-- Index fixe de tuile, puis sommes préfixes et compaction dans un ordre déterministe.
-- Même méthode pour les individus proches et lointains ; les grandes octaves sont prioritaires.
-- Listes sources de 262 144 plantes ; files de rendu de 524 288, suffisantes pour leur union.
-- Les limites amont restent explicites ; elles ne choisissent plus les arbres selon l'ordre d'arrivée.
-- Les modèles, le climat, les graines, le terrain et les seuils de distance restent les mêmes.
+**The corrected rule:**
+- Fixed tile index, then sums prefixes and compaction in deterministic order.
+- Same method for close and distant individuals; large octaves are prioritized.
+- Source lists of 262 144 plants; render queues of 524 288, sufficient for their union.
+- Upstream limits remain explicit; they no longer choose trees according to the order of arrival.
+- The models, climate, seeds, terrain and distance thresholds remain the same.
 
-**Vérification :** lecture des compteurs existants, revue statique croisée et compilation ; aucun banc ni capture préalable, selon la demande de l'utilisateur.
-- La mémoire temporaire augmente ; le peuplement auparavant tronqué peut aussi demander davantage de dessin.
-- La stabilité et le coût de cette version restent à juger en vol.
+**Verification:** Reading existing counters, cross-static review and compilation; no benchmark or pre-capture, as per user request.
+- Temporary memory increases; the previously truncated population may also require more drawing.
+- The stability and cost of this version remains to be judged in flight.
 
-**Détail :** `vegetation-planetaire.md` ; essais remplacés dans `log/vegetation-planetaire-historique.md`. Travail non commité.
-
-## 2026-10-27 · Maillage proche et imposteurs lointains · base `piste/vegetation-imposteurs-hybrides-base`
+**Detail:** `vegetation-planetaire.md`; tests replaced in `log/vegetation-planetaire-historique.md`. Uncommitted work.
+
+## 2026-10-27 · mesh near and impostors far · base `piste/vegetation-imposteurs-hybrides-base`
 
-**Demande :** juger l'approche avec les imposteurs sur les mêmes forêts, sans tests préalables.
+**Request:** judge the approach with the impostors on the same forests, without prior testing.
 
-**Le changement :**
-- Nouveau mode `hybrid-impostor` : les modèles détaillés remplacent les imposteurs à l'approche.
-- Même relais complémentaire entre 384 et 512 pixels que l'hybride volumique.
-- Même population, placement, taille, climat, lumière et palette F1 à F12.
-- Le mode `impostor` reste disponible pour les imposteurs seuls, même de près.
-- Compilation puis lancement interactif ; aucun banc ni capture de validation.
-- Les performances et le rendu de cette variante restent à juger en vol.
-
-**Lancer :** `tools/lance_planet_foliage.ps1 -Mode hybrid-impostor`. Travail non commité ; détail dans `vegetation-planetaire.md`.
-
-## 2026-10-27 · Essai planétaire de la végétation détaillée · base `piste/vegetation-planetaire-base`
-
-**Demande :** remplacer les arbres actuels pour juger les performances et l'approche en vol ; aucun test préalable demandé par l'utilisateur.
-
-**Le changement :**
-- Les instances du peuplement alimentent directement des files GPU de conifères et de feuillus.
-- Maillage détaillé de près, volume 64³ au loin ; fondu complémentaire entre 384 et 512 pixels.
-- Sortie entre 5 et 8 pixels et fenêtre de 512 tuiles ; même règle pour retirer les plantes de la canopée.
-- Le terrain, le climat, les graines et les hauteurs restent communs au placement actuel.
-- Les arbustes restent sur leur rendu précédent.
-- La palette de douze vues couvre quatre lieux ; lancement direct en forêt tempérée par `tools/lance_planet_foliage.ps1`.
-
-**Vérification :** compilation uniquement ; aucun banc ni capture avant le jugement de l'utilisateur.
-- Les mesures de la parcelle isolée ci-dessous ne valident pas ce raccord.
-- La conservation du couvert, les bases des proxies et le coût des forêts denses restent à observer.
-- Le titre indique les comptes et les dépassements des files de rendu.
-
-**Détail :** `vegetation-planetaire.md`. Sans `MYPLANETENGINE_PLANET_FOLIAGE`, retour à la végétation habituelle. Travail non commité.
-
-## 2026-10-27 · Prototype de végétation détaillée · base `piste/vegetation-foliage-base`
-
-**But :** comparer les modèles détaillés, les imposteurs multivues et les volumes hiérarchiques avant le raccord à la végétation de la planète.
-
-**La piste :**
-- Travail non commité sur sa branche, intégré depuis au `jalon/24-vegetation-detaillee-main` ; le tag garde sa base.
-- Jacaranda et jeune sapin Poly Haven CC0 ; 3 863 832 et 157 402 triangles importés.
-- Même arbre normalisé à 12 m, même ancre, même caméra, même lumière dans les trois modes.
-- Volumes de 32³ à 128³ ; 64³ par défaut ; transmission filtrée pour conserver le couvert.
-- Pied sur le vrai triangle dessiné, par intersection radiale en double précision ; le terrain ne change pas.
-- Activation par `MYPLANETENGINE_FOLIAGE` ; absent, le rendu habituel reste inchangé.
-
-**Ce qu'on retient :**
-- Le volume 64³ améliore le masque sur les six vues finales ; il coûte davantage que l'imposteur.
-- Pour 1 024 instances demandées, le dessin du jacaranda coûte 0,980 ms de médiane en volume 64³, contre 0,373 ms en imposteur, sur RTX 4070 Ti.
-- Le 128³ rapproche le couvert de la référence, avec huit fois plus de mémoire et un gain de forme modéré.
-- De près, seul le modèle détaillé garde les feuilles individuelles ; le sapin source peut aussi être moins coûteux que ses proxies.
-- Les normales moyennées et la visibilité restent insuffisantes pour la lumière ; ombres et vent sont absents.
-- La parcelle de comparaison ne remplace pas encore le peuplement planétaire ni son relais de distance.
-
-**Vérification :**
-- Compilation C++ et HLSL ; captures sans fenêtre, modes mesurés successivement.
-- Comparaison finale de six vues à deux résolutions, plus les essais de charge.
-- Douze cas de placement sur deux lieux ; résidu au plan inférieur à 0,032 mm pour les pieds trouvés ; un cas proche de 1 024 demandes n'en trouve que 971.
-- Exploration sur deux lieux et plusieurs lumières ; les essais invalides sont consignés dans le log.
-- Le rendu habituel garde ses mesures sur 24 lieux et ses 2 990 extraits identiques pixel par pixel.
-- Les dépassements de la référence historique existent déjà avant ce travail ; aucun p95 supplémentaire ne se dégrade.
-- Les palettes de `tools/tests/2026-10-26-vegetation-prototype*.txt` permettent le jugement en vol, via `tools/lance_foliage.ps1`.
-
-**Détail et mesures :** `log/prototype-vegetation-volumique.md` ; `tools/foliage/results/2026-10-26/`.
-
-## 2026-10-27 · Les spikes rivières, mis de côté · tag `piste/rivieres-spikes`
-
-**Hors de `main` :** l'ancienne branche `codex/rivieres-spikes`, partie de la maquette Dendry, tag `jalon/avant-spikes-rivieres`. Doc complète, état final, essais remplacés et journal des spikes : `log/recherche-rivieres-historique.md`.
-
-- **Essayé les 26 et 27 octobre :** la maquette Dendry en tronçons continus, écartée en vol ; un relief construit avec ses rivières, dans un visualiseur ; le Phasor de Grenier et al. sur un bassin ; un bruit de bassin aux cours descendants par construction, rendu dans le moteur ; trois bassins côtiers ; un réseau global en cellules sur complexplanet, puis dans le moteur.
-- **Le résultat,** tag `jalon/rivieres-cp-resultat-prometteur` : l'incision ne relève jamais complexplanet ; les profils descendent, bornés par le terrain ; méandres et largeurs variables jusqu'à l'embouchure. Jugé prometteur, sur une seule graine.
-- **Restait :** une organisation des branches encore géométrique, pas de delta, la stabilité en mouvement, les autres graines, le coût.
-- **La suite :** la branche `erosion-niveaux`.
-
-## 2026-10-26 · Mer FFT dans main · jalon/23-mer-fft-main
-
-- **Demande :** rebase, fusion et lancement depuis main.
-- **Base :** main 083bfb1 ; végétation v3, objets de proximité, carte planétaire et ombre unique conservés.
-- **Raccord GPU :** carte en t10, mer en t11 à t16 ; horodatages de mer 6 et 7, distincts des objets.
-- **Diagnostics :** identifiants 1 à 26 de main conservés ; les cinq vues de mer ajoutées de 27 à 31.
-- **Atmosphère :** appel de la lumière de l'eau sur la tranche de brume à sol régional nul ; ombre unique de main conservée.
-- **Qualité :** six lieux appariés, un par matériau, cinq hauteurs ; 753 crops strictement identiques au témoin de main, aucun nouveau p95 dégradé. Référence inchangée ; ses dépassements préexistants sont consignés dans le log.
-- **Tempête :** simulation 0,13 ms GPU ; rendu 1,22 ms, minimum 1,20 ms ; placement d'objets 0,23 ms, aucun objet sur l'eau ; 1280 × 720, après 600 images.
-- **En vol :** tools/tests/2026-10-26-mer-main.txt, mer, deux forêts, orbite et pôles ; tools/lance.ps1.
-
-## 2026-10-26 · Océan FFT validé · jalon/22-mer-fft
-
-**État :** aspect validé en vol par l'utilisateur. Base 47c404b sous piste/mer-fft-spike.
-
-- **Demande :** noyau visuel neuf après le rejet des filets d'écume et des bandes translucides.
-- **Réglages :** quatre FFT 256², tailles 1 103 / 113,1 / 11,57 / 1,183 m ; choppiness 1,25 amortie sous 40 cm ; fetch 90 km, JONSWAP 3,3 ; houle explicite.
-- **Écume :** deux cartes 512² de 128 / 1 024 m ; seuil de Jacobien 0,68, gain 2 ; dissipation 0,22/s, fraîcheur 1,6/s ; pores multiéchelles.
-- **Coordonnées :** plan transporté, origines modulo en double, indices de cartes entiers.
-- **Caméra :** surface déformée et garde de 75 cm ; ancien sol en cache et lecture GPU de l'ancienne position invalidés au changement de lieu.
-- **Coût :** simulation et écume 0,13 ms GPU ; rendu 1,12–1,27 ms en pleine mer, minimum 3,35 ms sur la côte signalée ; 1280 × 720, Debug x64, shaders optimisés.
-- **Qualité :** 30 lieux appariés, 3 891 crops, trois pixels changés d'un niveau ; aucun nouveau p95 dégradé. Six dépassements de la référence existaient déjà, inchangés.
-- **Vérifications :** mer fraîche, tempête, côte signalée, ras de l'eau et deux pôles ; terrain stable, variation de la mer figée encore présente.
-- **Reflet :** écart moyen Cox-Munk de 2,8 % à 12 m/s et 6,2 % à 24 m/s ; cible 5 % manquée en vent fort. Mesures dans log/spec-mer-fft-spike-historique.md.
-- **Limites :** vent contrôlé, côte et raccord planétaire simplifiés ; spec-mer-fft-spike.md.
-- **Comparaison :** ancien rendu conservé dans mer-animee ; ce jalon porte le noyau FFT validé.
-- **Source :** Noniv/web-ocean, MIT ; licence conservée dans third_party/web-ocean.
-
-## 2026-10-25 · La végétation v3 : les arbres ne poussent plus · tag `piste/vegetation-v3`
-
-**Réglages nouveaux :** `CANOPY_SIDE_LIGHT` ; `FOREST_RAIN.z`, 1 000 mm ; `SHRUB_LAND` 50 %, `SHRUB_COVER` 35 et 25 % ; `SHRUB_ALBEDO` gris-vert. Détail et mesures : `recherche-vegetation.md`, section « v3 ».
-
-- **Demande :** dans les vues comme F3, les arbres semblent pousser à mesure que la caméra avance ; un peu moins d'arbustes.
-- **La cause :** un arbre grandissait avec son fondu, de 14 à 21 pixels ; au-delà, la canopée était plate, une hauteur d'arbre sous les cimes.
-- **Fait :**
-  - **un arbre entier ou absent,** à son propre seuil du fondu ; la forme grossière couvre l'écran comme la fine ;
-  - **la canopée à la hauteur de ses arbres :** le rayon de vue traverse les couronnes des plantes non dessinées avant le sol ; les lisières se dressent, les cimes ont leur parallaxe, la perspective aérienne leur distance ; leur lumière vue de biais, mesurée sur les plantes dessinées ;
-  - **les arbustes,** un cinquième de moins ; les buissons du désert, des dômes bas gris-vert ;
-  - **pas d'état de forêt sous 1 000 mm** (Staver) : plus de taches sombres sur les déserts vus d'orbite.
-- **Essayé, pas gardé :** les couronnes de chaque arbre lancées dans le pixel, 10 ms de plus à F3.
-- **Mesures :**
-  - **le vol,** banc `mouvement` : la hauteur vue de la forêt au-delà des arbres dessinés, 26 à 37 m jusqu'à 3 km, contre 0 à 4 m en v2 au-delà de 2 km ; par bande de sol, 1,92 m d'une image à la suivante contre 2,58 à 150 m ;
-  - **le relais de lumière** à F3, de 1 à 3 km : les arbres dessinés 5 à 12 % plus sombres que la canopée, contre 13 à 20 % ;
-  - **pas de pop en descente,** aucune plante ne flotte, le tremblement inchangé ;
-  - **le coût :** le rendu du sol 1 ms de plus, le placement inchangé.
-- **Questions en suspens, posées à l'utilisateur :** réchauffer le climat des latitudes moyennes ; retirer la part de forêt de la palette des biomes.
-- **Images :** `journal/2026-10-25-vegetation-v3-avant-apres-1.jpg` et `-2.jpg`, v2 à gauche, v3 à droite ; `-v3-vol-150m.jpg`, 1 km de vol image par image ; `-v3-tests.jpg`.
-- **Pour revenir :** le tag `piste/vegetation-v2`.
-- **Verdict, le 2026-10-25 :** validée, fusionnée en `jalon/21-vegetation`. À reprendre plus tard : l'apparition des arbres reste trop brutale.
-
-## 2026-10-25 · La végétation v2 : où il n'y a pas d'arbres · tag `piste/vegetation-v2`
-
-**Réglages nouveaux :** `PRESENCE_SCALES`, `SHRUB_LAND`, `FOREST_EDGE`, `SHRUB_LINE_OFFSET`, `EXPOSURE_RELIEF`, `EXPOSED_SEASON`, `EXPOSED_DRIVE`, `TREELESS_RAIN`, `FOREST_RAIN`, `PLANT_LOD_PIXELS` ; `PLANT_PIXELS` de 24 à 14 pixels. Détail et mesures : `recherche-vegetation.md`, section « v2 ».
-
-- **Demande :** des règles de répartition avec du bruit, comme pour les cailloux, des endroits sans arbres quel que soit le sol ; plus d'arbustes, par taches ; pas d'arbres sur les crêtes ; des arbres un peu plus complexes, qui sortent plus tôt.
-- **Fait :**
-  - **où sont les bois :** deux champs de bruit, une seule règle ; les régions, 32 km à 8 m, laissent des terres entières sans arbres ; les taches, 1 km à 8 m, ouvrent des clairières de 30 m à 1 km dans toute forêt ;
-  - **les arbustes :** un champ de taches à eux, sur 60 % des terres ; 40 % du sol dans les clairières humides, 30 % en sous-bois ; un manteau sur les lisières ; le krummholz au-dessus de la ligne des arbres ;
-  - **les crêtes :** la hauteur du sol sur le sol régional de la carte de la planète, à 16 km ; les crêtes perdent leurs arbres, les creux les gardent ;
-  - **les formes :** huit variantes par espèce, verticilles étagés, feuillus sur plusieurs troncs, couronnes penchées ;
-  - **sortir plus tôt :** à 14 pixels au lieu de 24, une forme grossière de 156 sommets sous 48 pixels, sans trame ; au loin, le pied sur le sol dessiné.
-- **Mesures :**
-  - **les crêtes,** au-dessus de 300 m sur le sol régional : 0 à 2 % de sol sous les arbres, contre 11 à 83 % en v1 ; les creux, 14 à 80 % ;
-  - **la couverture des arbres :** 7 à 9 points de moins dans les biomes forestiers, 43 à 50 % ; plus d'arbustes ;
-  - **pas de pop :** la part de forêt par pixel à ±1 point de 2 km à 200 m, ±1,5 en savane ;
-  - **aucune plante ne flotte** d'un demi-pixel sur les seize vues de test ;
-  - **le tremblement,** sans lissage, monte de 0,01 à 0,03 jusqu'à 0,05 à 0,10, le niveau du sol nu d'avant ; avec, 0,02 au plus ;
-  - **le coût des plantes :** 0,6 à 1,6 ms au repos, contre 0,4 à 1,2, pour trois fois plus de surface ; le premier jet coûtait 2,5 à 4 ms ;
-  - **le raccord de lumière :** 0,98 à 1,14, sauf la forêt boréale de biais, 0,48 : ses cônes cachent la neige des clairières.
-- **Questions en suspens, posées à l'utilisateur :** réchauffer le climat des latitudes moyennes ; retirer la part de forêt de la palette des biomes.
-- **Images :** `journal/2026-10-25-vegetation-v2-avant-apres-1.jpg` et `-2.jpg`, v1 à gauche, v2 à droite ; `-v2-tests.jpg`, les vues de `tools/tests/2026-10-25-vegetation-v2.txt`.
-- **Pour revenir :** le tag `piste/vegetation` retrouve la v1.
-
-## 2026-10-25 · La végétation, étape 1
-
-**Réglages nouveaux :** le bloc « Vegetation » de `PlanetSettings.hlsli`, tableau ci-dessus. Tag `piste/vegetation`. Recherche, détail et mesures : `recherche-vegetation.md`.
-
-- **Demande :** des arbres de plusieurs types selon l'altitude et le terrain, des arbustes, des forêts ; l'état de l'art d'abord.
-- **L'architecture :** une seule population, `Vegetation.hlsli`, deux représentations.
-  - **Près :** une classe d'objets de plus sur la grille de la planète ; trois espèces générées au démarrage, conifère, feuillu, arbuste, quatre variantes chacune ; elles sortent du sol de 24 à 36 pixels de haut.
-  - **Loin :** la canopée dans la matière du sol, sa part dessinée retirée en couche booléenne ; sa couleur, celle de l'Amazonie, plus sombre pour les conifères ; le relief de ses couronnes ; son ombre au sol, aux cailloux et aux touffes.
-- **Où pousse quoi :** la saison de croissance pour le froid, Körner ; l'aridité de Holdridge, le plafond de Sankaran, les modes de Hirota, la bistabilité de Staver pour l'eau ; des peuplements par un champ de bruit ; les hauteurs par la saison et l'eau ; Tallo pour les couronnes.
-- **Mesures :**
-  - **pas de pop :** la part de forêt par pixel, de 20 km à 50 m, à ±1,5 point près sur trois lieux ; avant le raccord booléen, elle perdait 8 points où les arbres naissent ;
-  - **la couverture par biome :** arbres 52 à 58 % dans les biomes forestiers, 15 % en savane et dans les terres sèches, 3 % au désert, comme les modes publiés ;
-  - **la ligne des arbres :** les arbres tombent à moitié pour une saison de 5,3 à 6,3 °C, Körner donne 6,4 ± 0,7 ; 4 320 m à l'équateur, la Terre 3 100 à 3 900 ; aux latitudes moyennes, 1,5 à 2,5 km sous celle de la Terre : le climat de la planète y est plus froid ;
-  - **le raccord de lumière** entre plantes et canopée : 0,99 à 1,07 pour les feuillus, la savane et le maquis ; 0,70 à 0,89 pour la forêt boréale sur la neige ;
-  - **aucune plante ne flotte** d'un demi-pixel sur les quatorze vues de test ;
-  - **le tremblement** ne monte nulle part ;
-  - **le coût :** sous la charge des autres instances, le placement passe de 0 à 9 % du calcul du terrain à 24 à 47 % dans les forêts, 0,1 à 2 ms rapporté au repos ; le dessin, 0,1 à 0,2 ms au repos.
-  - **le banc de qualité,** 12 lieux : l'herbe gagne +4 à +10 dB de détail fin de 50 m à 3 km ; à 12 m, les troncs droits, la répétition des quatre variantes et les masses lisses des arbustes dégradent segments, répétition, trou et détail fin au-delà des 10 % ; la mutation p95, +16 à +45 % de 200 m à 3 km. À traiter avant toute fusion : les formes.
-- **Correctif en chemin :** la vue de diagnostic `objects` dessinait les objets dans la vue `sun` ; `ObjectsView` de 12 à 13.
-- **Images :** `journal/2026-10-25-vegetation.jpg`, les vues de `tools/tests/2026-10-25-vegetation.txt` ; `-descente.jpg` ; `-raccord.jpg`.
-- **Pour revenir :** `MYPLANETENGINE_NO_PLANTS` retire les objets, la canopée au sol partout ; le tag `jalon/19-detail-sol` retrouve l'état d'avant.
-
-## 2026-10-25 · Objets de proximité : où il y a des cailloux, et lesquels · tag `piste/objets-proximite`
-
-**Réglages :** `OBJECT_STONY` nouveau ; `OBJECT_OCTAVES` dès 3 cm ; `PEBBLES` 2 %, effacé au-delà de 8 cm ; `GRASS_ROCKS` 0,03. Spec : `spec-objets-proximite.md`, étape 3.
-
-- **L'avis en vol :** trop de cailloux partout, un peu trop gros ; du gravier couramment, les plus gros moins ; de grandes prairies et de grands sables sans rien.
-- **Avant,** la présence venait des seules parts des sols et des taches de 8 à 64 m : tout sable portait des cailloux.
-- **Changements :**
-  - un champ de pierrosité propre aux débris, de 0,5 à 32 km, relevé par les éboulis, le sol nu sec et la pente, seuillé par la règle des limites ;
-  - le gravier sous 3 cm laissé à la texture du sol ; des cailloux cinq fois moins nombreux à chaque octave au-dessus de 3 cm ;
-  - les rochers de l'herbe au bas des sites mesurés.
-- **Mesures :**
-  - sans débris : 74 % des prairies, 70 % des sables et sols nus, 11 % des éboulis, 68 % de tout le sol, sur 67 lieux tirés au hasard ;
-  - sable caillouteux, par m² de 3 à 50 cm : 5,2, 1,0, 0,14, 0,008, le bas de la photo, 16, 6, 0,5 ;
-  - tout le sol de 0 à 10° : 2,2 objets par m² au lieu de 71 ;
-  - aucun objet flottant ; arrivées à 0,06 px au plus ; tremblement jamais plus que sans objets ;
-  - placement 6 à 19 % du calcul du terrain sous charge, contre 14 à 28 %.
-- **Tests en vol, remplacés :** sable caillouteux, sable sans débris près de la côte, herbe et rochers, prairie sèche sans débris, sol nu caillouteux, pente d'éboulis.
-- Image : `journal/2026-10-25-objets-pierrosite.jpg`, les photos à gauche.
-
-## 2026-10-25 · Une seule ombre du relief · tag `piste/ombre-unique`
-
-**Réglages :** `HORIZON_STEP` 0,05 → 0,02 ; la hauteur d'ombre de l'air vient de la marche de l'horizon, la grille polaire de 512 × 512 et ses passes `SunShadowTerrain.hlsl`, `SunShadow.hlsl` sont retirées.
-
-- **Pourquoi :** deux sources pour une ombre. Les ombres portées marchaient vers le soleil à chaque sommet, sur les hauteurs de l'image ; les rayons recalculaient le relief sur leur grille et marchaient à nouveau.
-- **Changements** (`recherche-rayons.md`, partie 4) :
-  - la marche de l'horizon garde aussi, de chaque point marché, sa hauteur au-dessus du rayon du soleil tiré du sommet ; la plus grande donne la hauteur d'ombre de la colonne, `FaceVertex.shadow` ;
-  - elle s'arrête quand rien ne peut plus dépasser l'horizon, ni passer au-dessus du rayon tiré de la hauteur d'ombre : un sommet au soleil marche comme avant ;
-  - l'atmosphère lit la hauteur d'ombre entre les quatre sommets autour du point, `MeshCell`, la même recherche que la hauteur du maillage ; `ShadowRay` perd son champ `grid` ;
-  - la couverture tient : le maillage garde toute colonne visible de la mer à 10 km, et tout relief dont l'ombre peut l'atteindre (`ShadowSweep`).
-- **Mesures,** contre `jalon/18-lumiere`, `images/ombre-unique-avant-apres.jpg` : avant, après, différence amplifiée 8 fois.
-  - Rayons, onze vues : écart moyen de 0,00 à 0,88 niveau sur 255, 99,9e centile 19 au plus, sauf « pic, soleil de côté », 45. L'air est un peu plus sombre au ras des crêtes : une grille de 1 024 × 1 024 s'écarte deux fois moins de la nouvelle ombre que de l'ancienne, 0,33 contre 0,64 sur six vues. La grille de 512 abaissait les crêtes.
-  - Ombres portées, huit vues : écart moyen de 0,03 à 0,74 ; quelques bords d'ombre gagnent un à trois pixels, ce que la marche à 5 % manquait ; 99,9e centile 67 au plus, « plans successifs ».
-  - Tremblement avec / sans lissage, `banc_tremblement.py` : pic à 14°, 0,10 / 0,66 → 0,10 / 0,66 ; vallées à 9°, 0,07 / 0,43 → 0,06 / 0,40 ; aiguille à 11°, 0,07 / 0,45 → 0,06 / 0,45 ; massif à 8 km, 0,18 / 1,14 → 0,18 / 1,12 ; pyramide, 0,14 / 0,71 → 0,13 / 0,71.
-  - Coût, paires de captures successives sur le GPU partagé : calcul −0,7 à −1,3 ms sur les quatre vues de rayons mesurées au calme, rendu inchangé à 0,1 ms près ; au pas de 5 %, −0,7 à −1,0 ms sur les dix-neuf vues. Soleil dans le dos, le pire cas de la marche, mesuré seulement avec quatre autres instances sur le GPU : −0,4 à −1,2 ms en médiane, à confirmer.
-  - Code : 248 lignes retirées, 110 ajoutées, en HLSL et C++ ; trois fichiers de moins.
-- **Essayé, pas gardé :** le pas de 5 %. Ombres du sol inchangées, 1 ms de moins, mais l'air tremblait davantage au pic à 14°, 0,12 / 0,69. La hauteur d'ombre compte une hauteur manquée entre deux pas entière, l'horizon seulement sur sa distance. 3 % : 0,10 / 0,67.
-- **Pour les nuages, tag `piste/nuages` :** `IntegrateScattering` et `ShadowRay` gardent leur forme ; `ShadowRay` perd seulement `grid`, et `ShadowGridScale` disparaît : `AtmospherePass.hlsl` ne remplit plus ce champ. Le registre `t9` de l'atmosphère porte le maillage, `StructuredBuffer<FaceVertex>` ; `Clouds.hlsli` y déclare `cloudWeatherZ`, un conflit déjà présent depuis `jalon/18-lumiere`.
-- **Reste :** la pénombre du soleil dans l'air ; des pas plus serrés près de la caméra sur les rayons du ciel.
-- **Retour arrière :** le tag `jalon/18-lumiere`.
-
-## 2026-10-25 · La carte de la planète : la brume suit le sol · tag `piste/carte-planete`
-
-**Réglages :** `HAZE_GROUND_SCALE_KM` = 10, nouveau. La carte de la planète, nouvelle (`PlanetMap.hlsli`, `PlanetMap.hlsl`, `PlanetMap.cpp`). Tables de l'atmosphère à 25 tranches de sol. Vues `ground`, `haze`, `lakes`, `rivers` ; banc `tools/banc_carte.py`.
-
-- **Pourquoi une carte :** deux besoins, une seule source.
-  - La brume suivait le niveau de la mer : un haut plateau restait dans l'air pur (la brume de la couche limite, plus bas).
-  - Aucun calcul par point ne trouve le niveau d'un lac ni le chemin vers la mer (`recherche-rivieres.md`).
-- **La carte :**
-  - complexplanet tel quel, la fonction du maillage, au centre de chaque texel d'un cube fixé sur la planète ; octaves filtrées à deux texels, comme le maillage à deux mailles ;
-  - 1 024² par face, la maille du plan des rivières : 9,8 km au centre d'une face, 4,6 km aux coins ;
-  - de la donnée, pas de la géométrie : aucun sommet ne bouge (`geometrie.md`) ;
-  - par texel : le sol, max(e, 0) ; l'eau des cuvettes remplies ; l'aire drainée ; des mips par moyennes 2 × 2.
-- **Le coût au démarrage, mesuré :**
-  - calcul sur GPU, lecture comprise, 14 à 125 ms selon la charge du GPU ; drainage sur CPU, 0,6 à 0,8 s ; mips et demi-flottants, 0,15 s ; envoi, 0,03 à 0,1 s. Moins d'une seconde en tout ;
-  - 64 Mo sur le GPU, RGBA en demi-flottants avec mips ; au démarrage, 0,3 Go de mémoire vive et 0,1 Go sur le GPU, rendus aussitôt ;
-  - le drainage est compilé optimisé même en Debug. Avec le tas et l'accès vérifié de la STL, il prenait 2,4 s.
-- **Vérifiée** (`tools/banc_carte.py`) :
-  - altitude contre le portage numpy de complexplanet, 600 mailles : écart médian 7 cm, 9,5 m au plus ;
-  - surface remplie identique, maille pour maille, à un Priority-Flood simple écrit à part ;
-  - chaque maille s'écoule vers une voisine sans monter, jusqu'à la mer, qui reçoit 100 % des terres.
-
-**La brume suit le sol régional :**
-- **La règle physique :** la couche limite suit le relief à grande échelle et se nivelle au-dessus des reliefs étroits. Un plateau bien plus large que la couche est épaisse fait sa propre couche ; une crête ou une vallée de quelques fois cette épaisseur, non (De Wekker et Kossmann 2015).
-- **Le choix :** le sol de la carte lissé sur 10 km d'écart type, le mip de 20 km lu linéairement, à la même échelle sur tout le cube.
-  - Un plateau de 100 km garde 82 % de sa hauteur ; des crêtes espacées de 20 km, moins de 1 %.
-  - La brume s'amincit sur les sommets et remplit les vallées.
-- **Le long du rayon de vue :** chaque pas lit le sol régional à ses deux bouts et en son milieu. La moyenne exacte de la brume sur le pas suit sa hauteur au-dessus de ce sol.
-- **Les tables du démarrage, la solution juste la plus simple :** une troisième dimension, le sol de la brume.
-  - 25 tranches de 0 à 6 km ; le sol régional le plus haut fait 5,2 km. Chaque tranche est l'air d'un sol uniforme.
-  - Le pixel et chaque pas les lisent au sol régional de leur point ; le reste de l'air garde l'altitude au-dessus de la mer.
-  - Interpolation entre tranches : 0,06 % de la transmission au soleil zénithal, 0,5 % au soleil à 6°, au pire, au sommet de la couche.
-  - L'exposition garde sa carte grise au niveau de la mer, dans la brume de la mer : inchangée.
-- **Mesures,** avant → après :
-  - le sol lointain sur le ciel d'horizon, à 5 km d'altitude : 2,47 → 1,62 et 4,17 → 2,00 ; en plaine, 1,00 avant comme après. Le ciel d'horizon du plateau austral s'éclaircit : 0,18 → 0,31 ;
-  - descente au-dessus du plateau, de 1 500 km à 30 m : contre l'ancienne brume, au plus 0,05 IL d'une hauteur à la suivante. Vu d'en haut, −0,07 IL : la brume voile la neige ;
-  - tremblement avec/sans lissage : plateau austral 0,14 / 0,71 → 0,11 / 0,57 ; plateau du nord 0,04 / 0,22 → 0,02 / 0,14 ; montagnes 0,19 / 1,37 → 0,17 / 1,25 ;
-  - coût du rendu inchangé au bruit près, le GPU partagé : minimum sur 8 captures, 4,47 → 4,30 ms au sol du plateau, 2,20 → 2,31 ms en avion. Deux lectures de la carte par pas du rayon, des tables en trois dimensions ; +3,5 Mo de tables ;
-  - plaines, mer, côte et orbite inchangées, écart moyen de 0,5 à 3 / 255 ; montagnes, 8 à 15 / 255 ; plateaux, 15 à 18 / 255. Banc de qualité, 12 lieux, contre l'avant : mutation p95 en baisse, 0,140 → 0,108 à 200 m, 0,085 → 0,060 à 800 m ; un seul p95 au-delà de 10 %, le trou de la neige à 200 m, 1,0 → 1,2 dB, la brume voilant désormais la neige d'altitude ; les photos en ont 3,5.
-- **À juger en vol :** `tools/tests/2026-10-25-carte.txt`, plateaux et montagnes ; `tools/tests/2026-10-24-profondeur.txt`, plaines, côte et orbite, inchangées. Avant et après, `journal/2026-10-25-carte.jpg`.
-
-**L'hydrologie, étape 1 du plan des rivières :**
-- **Un Priority-Flood depuis la mer** (Barnes 2014) : le niveau de chaque cuvette, le sens de l'écoulement, l'aire drainée. Sur CPU : plus simple, et assez rapide.
-- **Les lacs, chaque cuvette remplie :** 43 % des terres, 231 m de fond en médiane ; le banc 0 en trouvait 41 % à 55 km. 20 359 lacs.
-  - Trois cuvettes de 58, 28 et 10 millions de km² : les intérieurs des continents, plus bas que leurs bords.
-  - 95 % des terres se jettent dans une cuvette ; sur Terre, les bassins sans issue font 20 % (Wang 2018).
-  - Tailles : N(>A) ∝ A^−0,99 au-dessus de 1 000 km² ; HydroLAKES, A^−1,14 (Cael et Seekell 2016).
-- **Le réseau :**
-  - densité de drainage au-delà de 1 000 km² drainés : 0,056 km/km² ; sur Terre, environ 0,037, HydroRIVERS prolongé par l'exposant terrestre ;
-  - P(A > a) ∝ a^−0,63, contre a^−0,43 sur Terre ; loi de Hack, exposant 0,36, contre 0,5 à 0,6 ;
-  - trop peu ramifié : il traverse les grandes cuvettes en lignes droites, du seuil vers l'amont. Une rivière dans un lac n'en est pas une : la vue `rivers` les masque.
-- **Ce que ça tranche :** les mers intérieures. Sans bilan d'eau, 43 % des terres seraient sous l'eau. Le bilan d'eau vient avant tout lac dessiné.
-
-**Reste, pour dessiner lacs et rivières :**
-- le bilan d'eau, Fill-Spill-Merge, du ruissellement de notre climat : la part réelle des lacs, et le choix pour les mers intérieures ;
-- un identifiant et un niveau par lac dans la carte ; l'eau plate au niveau du lac, avec le modèle d'eau de la mer de la branche `mer-animee` ; la côte généralisée par `SpreadStep` ;
-- les rivières : le réseau hors des lacs, lissé et méandré, largeur 7,2 Q^0,5, un ruban en part du pixel ; puis les tuiles fines près de la caméra.
-
-**Pour revenir :** `RegionalGround` qui rend 0 ramène la brume au niveau de la mer, tables comprises ; la carte reste, inutilisée.
-**Réglages nouveaux :** le bloc « Vegetation » de `PlanetSettings.hlsli`, tableau ci-dessus. Tag `piste/vegetation`. Recherche, détail et mesures : `recherche-vegetation.md`.
-## 2026-10-25 · La mer animée : reflet du soleil et du ciel, moutons, vagues · tag `piste/mer-animee`
-
-**Réglages :** `WAVE_LONGEST` = 512 m, `SLOPE_OCTAVES` = 16, `FOAM_ALBEDO` = 0,22, nouveaux ; 14 octaves de 12 ondes (`Planet.hlsli`, `D3DApp.h`). Nouveau fichier `Sea.hlsli` ; vues `foam` et `glint` ; `MYPLANETENGINE_TIME`. Détail : `recherche-mer.md`, section 8.
-
-- **Demande :** « Mer : reflet du soleil et du ciel, moutons. Mais animé, pas statique. »
-- **Avant :** une mer plate et diffuse, bleue selon la profondeur sur 3 000 m ; ni reflet, ni écume, ni mouvement.
-- **Changements :**
-  - **le vent,** une carte sur le climat : circulation par latitude, temps de 3 000 à 300 km, rafales de 100 à 5 km ;
-  - **la pente de la mer a la variance de Cox et Munk à toute distance :** 168 ondes dessinées dans le pixel, chacune sa moyenne sur lui ; le reste élargit le reflet ;
-  - **un seul reflet de l'eau, `ReflectOnWater` :** le soleil par Cox-Munk et masquage de Smith, le ciel marché depuis l'eau, le Fresnel moyen de Bruneton ;
-  - **les vagues bougent :** dispersion en eau profonde, sous le vent du pixel ; leur plan est porté par la caméra, leurs phases tenues en double sur le CPU ;
-  - **les moutons :** la part de Monahan de loin ; de près, nés sur les crêtes des groupes de vagues, ils les suivent et s'effacent, à la même moyenne ;
-  - **l'eau :** un type par latitude et plateau, le fond vu en eau peu profonde ; plus de dégradé sur 3 000 m ;
-  - **le lissage temporel** saute les pixels de mer qui montrent des vagues : il étalait leur mouvement, 30 % de contraste perdu à 20 m ;
-  - **la barre de titre** donne aussi l'image la plus rapide : le GPU est partagé, les autres programmes allongent la moyenne.
-- **Mesures :**
-  - **le reflet d'orbite contre Cox-Munk,** pixel par pixel : à 1 % près au centre de 2,6 à 14,6 m/s, 2 % à 20 m/s ; écart moyen 1,1 à 3,6 % (`images/mer-reflet-cox-munk.png`) ;
-  - **en descente,** de 1 500 km à 10 m, trois sites de 6,7 à 26,6 m/s : le reflet moyen à 2 % de Cox-Munk jusqu'à 200 m, −8 à +11 % plus bas où la vue ne voit qu'un groupe de vagues ; les moutons à 1 % de Monahan jusqu'à 3 km, ±8 % de près, 20 % dessous à 6,7 m/s ;
-  - **scintillement,** maillage qui glisse : hors de la mer, inchangé quand elle bouge, 0,02 / 0,08 à la côte ; la mer, 0,05 figée ; son mouvement garde tout son contraste, contre 70 % avec le lissage d'avant ;
-  - **coût,** image la plus rapide : +0,4 ms d'orbite, +1,5 à 2 ms près de l'eau en plein écran, 1280 × 720, RTX 4070 Ti ;
-  - **la terre est inchangée,** au pixel près.
-- **Choix :** une somme d'ondes au pixel plutôt qu'une FFT. Ni ressource ni passe nouvelle, un filtrage exact par onde, le vent local sur chaque amplitude. 6 ondes par octave dessinaient un treillis ; s'effacer sur une octave seulement, aussi.
-- **Fusion avec `plages` :** essai fait et compilé, tag `piste/essai-fusion-mer-plages` ; `WaterSheen` remplacé par `ReflectOnWater` (`recherche-mer.md`, section 8).
-- **Vues en vol :** `tools/tests/2026-10-25-mer.txt` ; planche `images/mer-tests.jpg`.
-- **Reste :** les vagues en géométrie près de la caméra, le déferlement à la côte, une FFT pour le coût de près, la houle, le fetch, les lacs.
-- **Pour revenir :** le commit `044bcf2`.
-## 2026-10-27 · Ombres des nuages et première météo sur la sphère entière
-
-- **Retour utilisateur :** rendu jugé plutôt bon ; ajouter des ombres sur terre et mer, puis essayer une répartition planétaire issue des références.
-- **Témoin :** Orbit accepté figé dans `x64/NuageFrostbiteOrbitTemoin/`,44 fichiers vérifiés, dont les sources copiées ; base Git `6cd34e7`, tag `piste/nuages-orbite-spike`.
-- **Ombres :** parcours des deux coquilles depuis la surface vers le soleil ; même densité et temps ; extinction80/km ; pas minimum250 m et au plus256 intervalles par segment. Seul le direct solaire `t17` est atténué avant l'air.
-- **Répartition :** carte globale1024×512, champs Perlin3D sur la sphère, fronts irréguliers, nappes et régions convectives ; tendances de latitude douces. R>0,03 sur55,93% de l'aire de la carte ; B>0,03 sur1,59%, sans équivalence avec la couverture rendue.
-- **Conservation :** trois textures3D copiées exactement d'Orbit ; pas et filtrage de vue hérités. La variante régionale et l'option sans ombres permettent des comparaisons séparées.
-- **Contrôles courts :** rendu de deux hémisphères, région dense à800 km, ombres sur terre et mer, comparaisons avec/sans et diagnostic de transmittance. La comparaison terrestre change32,1% des pixels de plus de2/255 ; l'effet maritime à80 km reste discret. Aucune validation en mouvement ni banc prolongé.
-- **Coût ponctuel :** nuages+air19,46 et18,76 ms sur les deux globes ;28,09 ms sur la région dense à800 km ;10,36 contre8,98 ms sur le point terrestre à30 km avec/sans ombres. GPU partagé ; ces captures ne valident pas un budget.
-- **Limites :** météo artistique sans géographie, carte mip1 proche de78 km à l'équateur, fibres de cirrus dans le repère fixe du site initial ; coût et filtrage des ombres encore approximatifs.
-- **Essayer :** `tools/nuages-planete.ps1`, palette `tools/tests/2026-10-27-nuages-planete.txt` ; détail et références dans `spike-nuages-planete.md`.
-- **Publication sur demande :** tag `piste/nuages-planete-spike` ; sources, assets et outils inclus, sorties `x64/` locales et ignorées. PR en brouillon contre `main` ;12 conflits signalés par la simulation de fusion avec `f66ead9`.
-
-## 2026-10-27 · Cirrus plus rares et première quadrature orbitale
-
-- **Retour utilisateur :** les nuages bas régionaux sont corrects ; trop de cirrus régulièrement alignés. Passage demandé à la très haute altitude et à l'orbite.
-- **Témoin :** version Régional figée dans `x64/NuageFrostbiteRegionalTemoin/`, quarante fichiers et sources avec empreintes.
-- **Cirrus :** météoB groupée à24/42/70 km, moyenne26,8% de Régional ; nouveau champ de filaments rares,7,42% du mip0 au-dessus de0,05. FormeR/B/A et météoR/G/A inchangées à tous les mips.
-- **Filtrage :** moyenne de la lumière prémultipliée et de la transmittance de quatre ou neuf rayons distants, avec mélange continu au rayon hérité ; empreinte0,25–0,8 km et rampes de sécurité hors des couches/rayons rasants.
-- **Près :** recette de densité basse inchangée ; vue de contrôle proche identique pixel à pixel avec et sans filtrage. Composition atmosphérique une fois après la quadrature.
-- **Coût :** à800 km sur une paire de captures à données identiques, nuages+air2,88 ms sans filtre et11,37 ms avec quatre rayons ; premier compromis à juger, sans budget global validé.
-- **Contrôle :** quatre variantes compilées, quatre vues et deux comparaisons cachées inspectées ; copies, mips et témoin vérifiés.
-- **Livraison :** `tools/nuages-orbite.ps1`, douze vues ; `-Temoin` pour Régional et `-SansFiltrage` pour comparer le filtre avec les mêmes nouveaux cirrus.
-- **Limites :** quadrature finie, coût accru et périodicité résiduelle ; validation en vol par l'utilisateur, sans historique temporel.
-- **Publication sur demande :** tag `piste/nuages-orbite-spike` ; sources, assets et licences inclus, sorties `x64/` locales et ignorées.
-
-## 2026-10-27 · Formations régionales sur une carte météo étendue
-
-- **Décision :** étendre d'abord la répartition, puis juger le même champ à plusieurs distances ; carte vue de dessus avant remise en main du volume.
-- **Témoin :** scène locale des trois familles figée dans `x64/NuageFrostbiteFamiliesTemoin/`, quarante fichiers avec empreintes ; sources et données antérieures conservées.
-- **Météo :** carte1024×512 sur1200×800 km, origine0,5°/161,775° ; nappes/fronts fragmentés, deux régions d'amas de cumulus, cirrus associés et grandes éclaircies.
-- **Réglages :** variations du masque à15/60/160 km ; R couverture basse, G type, B cirrus ; source et paramètres dans `tools/gen_frostbite_regional_weather.py` et le manifeste régional.
-- **Conservation :** les trois textures3D, les profils, la lumière et les pas d'intégration restent ceux de la scène locale ; seules météo, étendue et accélération du vide changent.
-- **Parcours :** sphère650 km autour de l'origine fixe ; preuve du vide aux mips7–3, sauts bornés à50 km ; mipsR/B de présence conservateurs.
-- **Limite :** carte artistique régionale ; répétition des bruits et transparence lointaine encore à juger, sans nouvelle reconstruction temporelle ni nouveau LOD statistique.
-- **Contrôle :** trois variantes compilées ; carte légendée et quatre captures sur deux distances et deux lieux inspectées ; copies3D, densité basse, mips de présence et témoin vérifiés.
-- **Constat :** répartition régionale visible ; grain répétitif lointain et stries des cirrus toujours présents. Nuages+air ponctuels2,93–9,24 ms ; calcul terrain coûteux sur deux lieux proches, sans verdict de performance globale.
-- **Livraison :** `tools/nuages-region.ps1`, vues Rendu/Meteo/Opacite, douze positions ; validation en vol à l'utilisateur.
-- **Git :** aucun commit, tag ni push demandé.
-
-## 2026-10-27 · Trois familles ensemble et correction du masque des cirrus
-
-- **Retour utilisateur :** les ondulations des cirrus sont plutôt bonnes, mais leurs contours communs semblent coupés par un masque ; fibres trop larges par rapport à leur longueur.
-- **Scène :** cumulus, nappe et cirrus réunis ; données et recette de densité des deux familles validées conservées exactement.
-- **Canaux :** t24R reste la forme Frostbite, t24G porte les fibres ; t27R/G restent la météo basse, t27B porte les cirrus ; mips bas inchangés.
-- **Contours :** suppression du seuil de couverture0,03 pour les seuls cirrus ; queues gaussiennes et exponentielles raccordées sur4 km, halo faible, fondus aux extrémités.
-- **Fibres :** domaine64×16×8 km, corrélations Est8/6 km et Nord0,28/0,14 km ; léger cisaillement mondial, densité maximale0,018.
-- **Parcours :** jusqu'à quatre segments des coquilles2–8 et9–13 km, triés le long du rayon ; pas de parcours du vide entre couches.
-- **Contrôle :** trois variantes compilées et quatre captures cachées inspectées ; données, recette basse, mips de présence et témoin vérifiés. Validation en vol à l'utilisateur.
-- **Livraison :** `tools/nuages-familles.ps1`, douze vues ; B opacité, C qualité, Espace pause, V météo×1/×5.
-- **Git :** aucun commit, tag ni push demandé.
-
-## 2026-10-27 · Cirrus locaux et conservation des témoins
-
-- **Retour utilisateur :** rendu et stabilité à l'approche du cumulus et de la nappe excellents ; validation locale acquise.
-- **Priorité :** compléter les formes locales avec des cirrus avant d'étendre la répartition.
-- **Témoin :** copie figée des binaires, shaders, quatre assets et palette dans `x64/NuageFrostbiteReferenceTemoin/`, avec empreintes vérifiées.
-- **Cirrus :** champ3D fibreux anisotrope précalculé128³, domaine fixe Est64/Nord32/vertical8 km ; trois bandes locales de couverture.
-- **Densité :** fibres façonnées avant les mips ; profil compact centré vers11 km, centre variable de±0,35 km et épaisseur0,7–1,2 km dans une coquille9–13 km ; maximum0,022 avec extinction80/km héritée.
-- **Limite :** essai artistique local, pas une météo planétaire ni une nouvelle reproduction complète de Frostbite ; vérifications en vol à l'utilisateur.
-- **Mémoire :** cumulonimbus retenu pour la suite, après les familles locales courantes.
-- **Git :** aucun commit, tag ni push demandé.
-
-## 2026-10-27 · Référence locale guidée par Frostbite
-
-- **Décision :** arrêter les variations globales sans référence visuelle ; isoler deux familles et leurs diagnostics.
-- **Bruits :** générateur C++ original sebh/TileableVolumeNoise, révision1f879a26b89aaa4b5a7f112f14ec149d08057661 ; aucun paramètre ni formule modifié.
-- **Entrées :** profils de densité/érosion explicites, carte locale256×128 km et deux zones dessinées ; choix artistiques du test, pas données originales du moteur Frostbite.
-- **Rendu :** forme32 km, détail4 km, extinction80/km neutre, albédo1, quatre intervalles solaires ; intégration analytique et repères doubles conservés.
-- **Diagnostics :** coupe de densité fixe, opacité3D et rendu éclairé séparés ; exposition neutralisée dans les seules vues de données.
-- **Contrôle :** trois compilations et cinq captures sur deux lieux ; mips et données vérifiés. Aucun banc complet ni validation en mouvement.
-- **Livraison :** `tools/nuages-frostbite-reference.ps1`, palette du27 octobre ; Courants C figé comme témoin.
-- **Limite :** profils encore à juger ; passage planétaire et reconstruction à traiter après la validation locale.
-- **Git :** aucun commit, tag ni push demandé.
-
-## 2026-10-27 · Courants C : remettre la perturbation à l'échelle macro
-
-- **Retour utilisateur :** B déforme les nuages en filaments ; la demande visait les grands ensembles et courants.
-- **Retrait :** shader B repris avec warp24 vers3 seulement ; B et sa vraie météo B figés comme témoin.
-- **Macro :** transport conjoint RGBA depuis météo A, champ tangent2/4 sur la sphère, déplacement médian182 km et maximum573 km.
-- **Preuve de présence :** R modifié, mips conservateurs reconstruits ; trois textures3D identiques.
-- **Comparaison :** C avec cartes A/C, même shader local ; `-MeteoA` isole le transport et `-Temoin` retrouve B.
-- **Contrôle :** compilation et deux paires cachées à180/1 600 km, deux hémisphères ; aucun pli mesuré sur la grille de carte.
-- **Limite :** transport statique de référence ; répétitions, plafonds et coût proche ne sont pas résolus par cet essai.
-- **Livraison :** `tools/nuages-courants-c.ps1 -Static`, douze vues dans la palette.
-- **Git :** aucun commit, tag ni push demandé.
-
-## 2026-10-27 · Formes B : retour sur les silhouettes et les régimes
-
-- **Retour utilisateur :** Formes A reste répétitive, plate en haut et en bas ; grands contours trop géométriques.
-- **Densité :** potentiel3D moins hauteur au carré, puis partie positive au carré ; suppression des deux rampes à plateau.
-- **Variété :** mélange mondial de bandes8/29,3 km, déformation128 km d'amplitude±12 km, demi-hauteurs locales variables.
-- **Macro :** GBA perturbés ensemble sur la sphère ; R et les trois textures3D conservés. Option `-MeteoA` pour isoler cette modification.
-- **Témoin :** Formes A et ses assets figés ; code natif et marcher inchangés.
-- **Contrôle :** compilation, audit des données et captures cachées ciblées ; coût proche initial accru, aucun verdict global ou de mouvement.
-- **Livraison :** `tools/nuages-formes-b.ps1 -Static`, `-Temoin` pour Formes A ; détails et limites dans la notice du spike.
-- **Git :** aucun commit, tag ni push demandé.
-
-## 2026-10-27 · Formes A : cumulus, nappes et extinction verticale
-
-- **Demande :** deux familles distinctes, bases et sommets moins clampés ; remise rapide pour jugement en vol.
-- **Témoin :** météo A et rendu V4 figés, quatre textures empaquetées avec empreintes ; aucune modification de sa session.
-- **Densité :** champ large de 32 km pour les nappes, champ 3D primaire de 8 km pour les cumulus ; G interpole les familles.
-- **Profil :** support local variable lu au mip 3 fixe, puis fades après le seuil de couverture et l'érosion ; aucun déplacement de profil selon la caméra.
-- **Bornes :** support compris entre 1,45 et 8,47 km, strictement dans la coquille 1–9 km.
-- **Contraste de nappe :** `smoothstep(0,55, 0,85, sheetMacro)` ; support normalisé par `smoothstep(0,50, 0,90, sheetMacro)`.
-- **Préservation :** carte météo, quatre textures, exécutable, lumière, extinction et marcher identiques ; seul le shader de densité change.
-- **Coût :** même maximum de cinq lectures par densité occupée, carte météo incluse ; aucun nouveau volume ni historique. Pas de mesure de performance statistique.
-- **Contrôle :** DXC réussi ; trois paires de captures initiales, puis deux paires ciblées après correction d'une nappe trop uniforme. Deux lieux et deux familles ; vol à l'utilisateur.
-- **Livraison :** `tools/nuages-formes-a.ps1 -Static` ; `-Temoin` pour météo A aux mêmes douze vues. Sources et sorties isolées.
-- **Limites :** aspect et disparition de l'effet clamp à juger ; aucun nouveau LOD, cirrus, correction des bandes radiales ou validation planétaire.
-- **Git :** aucun commit, tag ni push demandé.
-
-## 2026-10-27 · Météo A : essai de répartition seule sur V4
-
-- **Demande :** isoler la répartition avant de reprendre les formes et le LOD ; remise rapide pour les vérifications en vol.
-- **Règle :** comparer à temps, rendu et positions identiques ; seul R de la carte change.
-- **Conversion :** `R = 0,75 × smoothstep(0,08, 0,68, L)` remplace le relèvement des faibles luminances NASA.
-- **Limite :** hypothèse de contraste régional ; ce coefficient n'est pas une fraction nuageuse physique ni une nouvelle simulation météo.
-- **Préservation :** exécutable, shaders, trois textures 3D V4 et GBA de tous les mips identiques ; témoin sans écriture.
-- **Mesure de carte :** moyenne R pondérée par l'aire de 0,403798 à 0,215494 ; aucune équivalence avec la couverture rendue.
-- **Contrôle :** trois paires de captures cachées, orbite, motifs à 271 km et nappe proche ; empreintes et sidecars dans `x64/WickedWeatherACompare/`.
-- **Constat :** zones faibles moins couvertes ; répétitions toujours visibles dans les bancs denses. Aucun verdict de mouvement ni de performance.
-- **Livraison :** `tools/nuages-meteo-a.ps1 -Static`, `-Temoin` pour V4 ; douze vues communes dans la palette du 27 octobre.
-- **Git :** aucun commit, tag ni push demandé.
-
-## 2026-10-27 · Retour en vol : V5 non retenue
-
-- **Aspect :** LOD jugé moins bon ; répétitions persistantes, contours plus nets et réduction de bruit peu convaincante.
-- **Régression proche :** les hausses de couverture et le remplissage des nappes changent aussi le champ fin ; J ne retire pas ces modifications.
-- **Limites confirmées :** répartition sans organisation météo convaincante, profils verticaux trop visibles, absence de cirrus distincts.
-- **Décision :** V4 conservée comme témoin ; aucun nouveau réglage ni binaire dans ce diagnostic.
-- **Suivi :** séparer les essais de répartition, de morphologie et de LOD ; détails de la V5 déplacés au log du spike.
-- **Git :** aucun commit, tag ni push demandé.
-
-## 2026-10-27 · Wicked V5 : formations et couverture optique
-
-- **Demande :** varier les organisations horizontales et filtrer les contours lointains, avec remise rapide à l'utilisateur.
-- **Formes :** bancs régionaux à 192 km, enveloppe à 32 km et microvolume à 8 km ; modulation continue des nappes et amas convectifs.
-- **Filtrage :** moyenne de transmittance sur 512 colonnes × 48 pas dans une table 32³ ; aucun seuil nouveau sur un bruit déjà moyenné.
-- **LOD :** mélange lumière/transmittance entre 0,12 et 0,65 km d'empreinte ; mode J pour comparer à la même formation fine.
-- **Limbe :** milieu de segment pour les rayons sans croisement du proxy, cap de hauteur continu ; approximation à contrôler.
-- **Natif :** une texture t28, b1 conservé, drapeau `MYPLANETENGINE_CLOUD_WICKED_OPTICAL_LOD`, J et `-FineOnly` ; sorties V5 distinctes.
-- **Contrôles :** compilation ciblée et captures cachées, plusieurs lieux ; pas de banc complet ni de validation de mouvement.
-- **Limites :** éclairage moyen et statistiques locales approximatifs ; bandes radiales fines non résolues.
-- **Livraison :** `tools/nuages-wicked-v5.ps1`, témoin V4 aux mêmes positions et palette du 27 octobre ; aucun commit/tag/push demandé.
-
-## 2026-10-27 · Wicked V4 : correction ciblée de la grille
-
-- **Périmètre utilisateur :** garder le rendu actuel ; corriger rayons et distribution rectiligne.
-- **Bruit :** octave Perlin périodique à une cellule remplacée par une base 3 ; fréquences 3–48 et somme des poids conservée.
-- **Mips :** filtre binomial périodique du shape, sans changer son mip0 ; filtres de la seconde lecture shape et de la déformation adaptés à leurs fréquences.
-- **Données :** `assets/wicked-clouds-v4/` séparé ; détail, déformation, météo et profils V2 conservés.
-- **Rayons :** essais d'interpolation positive, signée et quadratique, puis d'albédo constant, écartés pour bandes restantes et coût. Déformation apériodique HLSL également écartée ; voir le log du spike.
-- **Décision :** marche V2 conservée ; V4 livre seulement la correction de grille. Les rayons restent ouverts.
-- **Contrôle :** quatre captures courtes à météo figée, pas de banc complet ni de validation du mouvement. Poses et coûts dans `x64/WickedV4DeliveryPreview/startup.json`.
-- **Livraison :** `tools/nuages-wicked-v4.ps1`, F1 proche, F7 à 454 km, F8 à 2 601 km ; `-Temoin` ouvre la V2 avec la même palette et les mêmes positions.
-- **Notice :** `log/spike-nuages-reference.md` ; vérifications en vol à l'utilisateur. Aucun commit, tag ni push demandé.
-
-## 2026-10-27 · Wicked V3 de diagnostic : bandes radiales
-
-- **Retour utilisateur :** anneaux mobiles à 2 601 km et près des nuages ; motifs répétitifs à 454 km.
-- **Cause isolée :** bandes présentes en opacité seule, sans atmosphère et avec une forme macro constante ; sous-échantillonnage du volume par les pas de 48–240 m.
-- **Essais :** pas uniforme de 12 m trop cher ; raffinement par variation optique insuffisant près des nuages ; archives sous `x64/RadialDiagnostic/` et `x64/Recovery/WickedV3AdaptiveFirst/`.
-- **V3 :** subdivision des intervalles contenant du nuage à 12 m Éco / 6 m Référence ; parcours vide et saut météo conservateur maintenus ; arrêt sur transmission sous 0,003.
-- **Contrôle court :** quatre captures cachées, trois lieux et plusieurs distances ; grandes bandes atténuées, répétitions restantes.
-- **Coût nuages + air :** 31,67 / 26,26 / 38,55 / 45,88 ms ; régression, version de diagnostic non validée comme solution finale.
-- **Livraison :** `tools/nuages-wicked-v3.ps1`, palette du 27 octobre, `-Temoin` pour V2 ; binaires V2 inchangés.
-- **Notice :** `log/spike-nuages-reference.md` ; vérifications en vol confiées à l'utilisateur, aucun banc complet ni commit/tag/push demandé.
-
-## 2026-10-27 · Wicked V2 : enveloppes locales et couverture de référence
-
-- **Retour utilisateur :** progrès de stabilité près des nuages ; limites hautes et basses trop planes, répartition uniforme et motifs répétitifs surtout vers 160 km.
-- **Enveloppes :** coquille de parcours 1–9 km ; profils locaux de base et de sommet, variations macro et rampes douces. Le profil de famille ne recoupe plus avant la rampe finale.
-- **Formes :** deux repères de bruit monde fixes ; un seul remap des Perlin-Worley combinés, niveaux macro fractionnaires et lumière solaire indépendante du LOD vue.
-- **Essai écarté :** carte météo purement synthétique ; trop grandes plaques pleines et rendu granuleux. Conservé sous `x64/WickedV2Preview/` et `x64/Recovery/WickedV2Start/`.
-- **Référence :** composite historique NASA Blue Marble Clouds comme proxy de couverture ; types, bases et épaisseurs restent synthétiques. Crédits et image originale dans `third_party/NASA/`.
-- **Vide :** mip1 réel inchangé ; R des mips2+ au maximum pour prouver le vide. Sauts bornés par le secteur sphérique et la marge bilinéaire, jamais par sigma seul.
-- **Livraison :** `x64/NuageWickedV2/MyPlanetEngineWickedV2.exe`, lanceur `tools/nuages-wicked-v2.ps1`, témoin V1 par `-Temoin`. La session utilisateur en V1 n'est pas interrompue.
-- **Contrôles finaux :** trois captures ciblées, proche, 160 km et orbite ; compilation native et DXC réussies. GPU nuages+air 13,12 / 3,22 / 8,57 ms en 720p figé sur GPU partagé ; coût et moyenne distance restent imparfaits.
-- **État :** essai en vol attendu, pas de validation globale. Notice `log/spike-nuages-reference.md`, artefacts `x64/WickedV2FinalPreview/`. Aucun commit, tag ni push demandé.
+**Change:**
+- New `hybrid-impostor` mode: detailed models replace the impostors on approach.
+- Same complementary relay between 384 and 512 pixels as the volume hybrid.
+- Same population, placement, size, climate, light and palette F1 to F12.
+- The `impostor` mode remains available for the impostors alone, even at close range.
+- Compilation then interactive launch; no benchmark or validation capture.
+- The performance and rendering of this variant remains to be judged in flight.
+
+**Lancer:** `tools/lance_planet_foliage.ps1 -Mode hybrid-impostor`. Uncommitted work; detail in `vegetation-planetaire.md`.
+
+## 2026-10-27 · Planetary test of detailed vegetation · base `piste/vegetation-planetaire-base`
+
+**Request:** Replace current shafts to judge flight performance and approach; no prior test requested by the user.
+
+**Change:**
+- population instances feed directly into GPU queues of coniferous and hardwood trees.
+- mesh detailed close up, volume 64³ in the distance; complementary fade between 384 and 512 pixels.
+- Exit between 5 and 8 pixels and window of 512 tiles; same rule for removing plants from the canopy.
+- The soil, climate, seeds and heights remain common to the current placement.
+- The shrubs remain on their previous rendering.
+- The palette of twelve views covers four locations; direct launch in temperate forest by `tools/lance_planet_foliage.ps1`.
+
+**Verification:** compilation only; no benchmark or capture before user judgment.
+- The measurements of the isolated plot below do not validate this connection.
+- Cover conservation, proxy bases and the cost of dense forests remain to be observed.
+- The title indicates the accounts and overruns of the render queues.
+
+**Detail:** `vegetation-planetaire.md`. Without `MYPLANETENGINE_PLANET_FOLIAGE`, return to the usual vegetation. Uncommitted work.
+
+## 2026-10-27 · Prototype of detailed vegetation · base `piste/vegetation-foliage-base`
+
+**Purpose:** compare detailed models, impostors multiviews and hierarchical volumes before connecting to the vegetation of the planet.
+
+**The experiment:**
+- Uncommitted work on its branch, integrated since the `jalon/24-vegetation-detaillee-main`; the tag keeps its base.
+- Jacaranda and Poly Haven Spruce CC0; 3 863 832 and 157 402 triangles imported.
+- Same shaft standardized to 12 m, same anchor, same camera, same light in all three modes.
+- Volumes from 32³ to 128³; 64³ by default; transmission filtered to maintain coverage.
+- Foot on the true triangle drawn, by radial intersection in double precision precision; the terrain does not change.
+- Activation by `MYPLANETENGINE_FOLIAGE`; absent, the usual rendering remains unchanged.
+
+**What we remember:**
+- The 64³ volume enhances the mask on all six final views; it costs more than the impostor.
+- For 1 024 requested instances, the jacaranda drawing costs 0,980 ms of median in volume 64³, against 0,373 ms in impostor, on RTX 4070 Ti.
+- The 128³ brings the cover closer to the reference, with eight times more memory and a moderate form gain.
+- At close sight, only the detailed model retains individual leaves; the source fir can also be less expensive than its proxies.
+- The averaged normals and visibility remain insufficient for light; shadows and wind are absent.
+- The comparison plot does not yet replace the planetary population or its distance relay.
+
+**Verification:**
+- C++ and HLSL compilation; windowless captures, modes measured successively.
+- Final comparison of six views at two resolutions, plus load tests.
+- Twelve cases of placement on two locations; residue in the lower plane to 0,032 mm for feet found; a case close to 1 024 requests finds only 971.
+- Exploration on two locations and multiple lights; invalid attempts are recorded in the log.
+- The usual rendering keeps its measurements on 24 places and its 2 990 extracts identical pixel by pixel.
+- The historical reference exceedances exist already before this work; no additional p95 is degraded.
+- The pallets of `tools/tests/2026-10-26-vegetation-prototype*.txt` allow judgment in flight, via `tools/lance_foliage.ps1`.
+
+**Detail and measurements:** `log/prototype-vegetation-volumique.md`; `tools/foliage/results/2026-10-26/`.
+
+## 2026-10-27 · River spikes, set aside · tag `piste/rivieres-spikes`
+
+**Out of `main`:** the old branch `codex/rivieres-spikes`, part of the Dendry model, tag `jalon/avant-spikes-rivieres`. Complete documentation, final status, replaced tests and spike log: `log/recherche-rivieres-historique.md`.
+
+- **Tested the 26 and 27 October:** the model Dendry in continuous sections, spread out in flight; a relief built with its rivers, in a visualizer; the Phasor of Grenier et al. on a basin; a noise basin with downstream courses by construction, rendered in the engine; three coastal basins; a global network in cells on complexplanet, then in the engine.
+- **The result,** tag `jalon/rivieres-cp-resultat-prometteur`: the incision never raises complexplanet; the profiles descend, bounded by the terrain; meanders and variable widths up to the mouth. Promising, on one seed.
+- **Remained:** an organization of branches still geometric, no delta, stability in motion, other seeds, cost.
+- **The following:** the branch `erosion-niveaux`.
+
+## 2026-10-26 · Sea FFT in main · jalon/23-mer-fft-main
+
+- **Request:** rebase, merge and launch from main.
+- **Base:** main 083bfb1; vegetation v3, proximity objects, planetary map and single shadow retained.
+- **Connection GPU:** map in t10, sea in t11 to t16; sea timestamps 6 and 7, separate from objects.
+- **Diagnostics:** identifiers 1 to 26 from main retained; the five sea views added from 27 to 31.
+- **Atmosphere:** water light call on the zero regional ground mist slice; single shadow of main retained.
+- **Quality:** six paired locations, one per material, five heights; 753 crops strictly identical to the main control, no new p95 degraded. Reference unchanged; its pre-existing overruns are recorded in the log.
+- **Storm:** simulation 0,13 ms GPU; rendering 1,22 ms, minimum 1,20 ms; object placement 0,23 ms, no objects on water; 1280 × 720, after 600 images.
+- **In flight:** tools/tests/2026-10-26-mer-main.txt, sea, two forests, orbit and poles; tools/lance.ps1.
+
+## 2026-10-26 · Ocean FFT validated · jalon/22-mer-fft
+
+**State:** aspect validated in flight by the user. Base 47c404b on piste/mer-fft-spike.
+
+- **Application:** New visual core after the removal of foam nets and translucent strips.
+- **Settings:** four FFT 256², sizes 1 103 / 113,1 / 11,57 / 1,183 m; choppiness 1,25 amortized under 40 cm; fetch 90 km, JONSWAP 3,3; explicit swell.
+- **Foam:** two 512² cards of 128 / 1 024 m; Jacobian threshold 0,68, gain 2; dissipation 0,22/s, cooling 1,6/s; multiscale pores.
+- **Coordinates:** transported plan, modulo origins in double precision precision, whole map indices.
+- **Camera:** deformed surface and guard of 75 cm; old ground in cache and reading GPU of the old position invalidated at change of place.
+- **Cost:** simulation and foam 0,13 ms GPU; rendering 1,12–1,27 ms in open sea, minimum 3,35 ms on reported coast; 1280 × 720, Debug x64, optimized shaders.
+- **Quality:** 30 places matched, 3 891 crops, three pixels changed by one level; no new p95 gradient. Six exceedances of the baseline already existed, unchanged.
+- **Verifications:** cool sea, storm, coastline reported, waterline and two poles; stable terrain, variation of frozen sea still present.
+- **Reflection:** average Cox-Munk deviation of 2,8 % to 12 m/s and 6,2 % to 24 m/s; target 5 % missed in strong wind. Measurements in log/spec-mer-fft-spike-historique.md.
+- **Limits:** Wind controlled, coast and planetary coupling simplified; spec-mer-fft-spike.md.
+- **Comparison:** old rendering kept in mer-animee; this milestone carries the validated FFT kernel.
+- **Source:** Noniv/web-ocean, MIT; license retained in third_party/web-ocean.
+
+## 2026-10-25 · Vegetation v3: trees don't grow anymore · tag `piste/vegetation-v3`
+
+**New settings:** `CANOPY_SIDE_LIGHT`; `FOREST_RAIN.z`, 1 000 mm; `SHRUB_LAND` 50 %, `SHRUB_COVER` 35 and 25 %; `SHRUB_ALBEDO` gray-green. Detail and measurements: `recherche-vegetation.md`, section "v3".
+
+- **Request:** In views like F3, trees seem to grow as the camera moves forward; a little less shrubs.
+- **Cause:** a tree grew with its fade, from 14 to 21 pixels; beyond, the canopy was flat, a tree height under the crowns.
+- **Fact:**
+  - **a whole or absent tree,** at its own threshold of the fade; the coarse form covers the screen as the fine;
+  - **the canopy at the height of its trees:** the ray of view crosses the crowns of the plants not drawn before the ground; the edges stand up, the tops have their parallax, the aerial perspective their distance; their light seen from bias, measured on the drawn plants;
+  - **the shrubs,** a fifth less; the bushes of the desert, low dome gray-green;
+  - **no forest state under 1 000 mm** (Staver): no more dark spots on deserts seen from orbit.
+- **Tried, not kept:** the crowns of each tree thrown into the pixel, 10 ms more at F3.
+- **Measures:**
+  - **the flight,** benchmark `mouvement`: the height seen of the forest beyond the trees drawn, 26 to 37 m up to 3 km, against 0 to 4 m in v2 beyond 2 km; by ground strip, 1,92 m from one image to the next against 2,58 to 150 m;
+  - **the light relay** at F3, from 1 to 3 km: the trees drawn 5 to 12 % darker than the canopy, against 13 to 20 %;
+  - **no pop downhill,** no plants float, the jitter unchanged;
+  - **the cost:** the rendering of the floor 1 ms more, the placement unchanged.
+- **Pending questions, asked to the user:** warm the climate of the middle latitudes; remove the forest part of the biomes palette.
+- **frames:** `journal/2026-10-25-vegetation-v3-avant-apres-1.jpg` and `-2.jpg`, v2 left, v3 right; `-v3-vol-150m.jpg`, 1 km of flight frame by frame; `-v3-tests.jpg`.
+- **To return:** the tag `piste/vegetation-v2`.
+- **Verdict, the 2026-10-25:** validated, merged into `jalon/21-vegetation`. To resume later: the appearance of the trees remains too brutal.
+
+## 2026-10-25 · Vegetation v2: where there are no trees · tag `piste/vegetation-v2`
+
+**New settings:** `PRESENCE_SCALES`, `SHRUB_LAND`, `FOREST_EDGE`, `SHRUB_LINE_OFFSET`, `EXPOSURE_RELIEF`, `EXPOSED_SEASON`, `EXPOSED_DRIVE`, `TREELESS_RAIN`, `FOREST_RAIN`, `PLANT_LOD_PIXELS`; `PLANT_PIXELS` from 24 to 14 pixels. Detail and measurements: `recherche-vegetation.md`, section “v2”.
+
+- **Request:** distribution rules with noise, as for the pebbles, places without trees regardless of the soil; more shrubs, by spots; no trees on the ridges; trees a little more complex, which come out earlier.
+- **Fact:**
+  - **where are the woods:** two fields of noise, one rule; regions, 32 km to 8 m, leave entire lands without trees; spots, 1 km to 8 m, open clearings of 30 m to 1 km in any forest;
+  - **the shrubs:** a field of spots of their own, on 60 % of the land; 40 % of the soil in wet clearings, 30 % in undergrowth; a coat on the edges; the krummholz above the tree line;
+  - **the ridges:** the height of the ground on the regional ground of the planet map, at 16 km; the ridges lose their trees, the hollows keep them;
+  - **forms:** eight variants per species, staggered verticles, deciduous on several trunks, inclined crowns;
+  - **emerge earlier:** at 14 pixels instead of 24, a rough form of 156 vertices under 48 pixels, without frame; in the distance, the foot on the ground drawn.
+- **Measures:**
+  - **ridges,** above 300 m on regional soil: 0 to 2 % of soil under trees, compared to 11 to 83 % in v1; hollows, 14 to 80 %;
+  - **tree cover:** 7 to 9 points less in forest biomes, 43 to 50 %; more shrubs;
+  - **no pop:** the proportion of forest per pixel at ±1 point from 2 km to 200 m, ±1,5 in savannah;
+  - **no plant floating** by half a pixel on the sixteen test views;
+  - **jitter,** without smoothing, rises from 0,01 to 0,03 up to 0,05 to 0,10, the bare ground level from front; with, 0,02 at most;
+  - **the cost of plants:** 0,6 to 1,6 ms at rest, against 0,4 to 1,2, for three times more surface; the first iteration cost 2,5 to 4 ms;
+  - **the light connection:** 0,98 to 1,14, except the boreal forest of bias, 0,48: its cones hide the snow of the clearings.
+- **Pending questions, asked to the user:** warm the climate of the middle latitudes; remove the forest part of the biomes palette.
+- **Images:** `journal/2026-10-25-vegetation-v2-avant-apres-1.jpg` and `-2.jpg`, v1 left, v2 right; `-v2-tests.jpg`, the views of `tools/tests/2026-10-25-vegetation-v2.txt`.
+- **To return:** the tag `piste/vegetation` finds the v1.
+
+## 2026-10-25 · Vegetation, step 1
+
+**New settings:** the “Vegetation” block of `PlanetSettings.hlsli`, table above. Tag `piste/vegetation`. Search, detail and measurements: `recherche-vegetation.md`.
+
+- **Request:** trees of several types according to altitude and terrain, shrubs, forests; the state of the art first.
+- **The architecture:** a single population, `Vegetation.hlsli`, two representations.
+  - **Near:** one more class of objects on the planet grid; three species generated at start, conifer, deciduous, shrub, four variants each; they rise from the ground from 24 to 36 pixels high.
+  - **Far away:** the canopy in the soil material, its drawn part removed in Boolean layer; its color, that of the Amazon, darker for conifers; the relief of its crowns; its shadow on the ground, to the pebbles and to the tufts.
+- **Where grows what:** the growing season for cold, Körner; the aridity of Holdridge, the ceiling of Sankaran, the modes of Hirota, the bistability of Staver for water; the settlements by a field of noise; the heights by season and water; Tallo for crowns.
+- **Measures:**
+  - **no pop:** the proportion of forest per pixel, from 20 km to 50 m, at ±Z1,5 point close on three places; before the Boolean connection, it lost 8 points where trees are born;
+  - **biome coverage:** trees 52 to 58 % in forest biomes, 15 % in savannah and drylands, 3 % in desert, as published modes;
+  - **the tree line:** trees fall half for a season of 5,3 to 6,3 °C, Körner gives 6,4 ± 0,7; 4 320 m at the equator, the Earth 3 100 to 3 900; at medium latitudes, 1,5 to 2,5 km below that of the Earth: the planet's climate is colder there;
+  - **the light connection** between plants and canopy: 0,99 to 1,07 for hardwoods, savannah and scrub; 0,70 to 0,89 for boreal forest on snow;
+  - **no plant floating** by half a pixel on the fourteen test views;
+  - **the jitter** does not rise anywhere;
+  - **the cost:** under the load of other instances, the placement goes from 0 to 9 % of the calculation of the terrain to 24 to 47 % in forests, 0,1 to 2 ms at rest; the drawing, 0,1 to 0,2 ms at rest.
+  - **the quality benchmark,** 12 locations: grass gains +4 to +10 dB of fine detail from 50 m to 3 km; at 12 m, straight trunks, the repetition of the four variants and smooth masses of shrubs degrade segments, repetition, hole and fine detail beyond the 10 %; the mutation p95, +16 to +45 % from 200 m to 3 km. To treat before any fusion: the forms.
+- **Fix on the way:** `objects` diagnostic view was drawing objects in `sun` view; `ObjectsView` from 12 to 13.
+- **Images:** `journal/2026-10-25-vegetation.jpg`, the views of `tools/tests/2026-10-25-vegetation.txt`; `-descente.jpg`; `-raccord.jpg`.
+- **To return:** `MYPLANETENGINE_NO_PLANTS` removes the objects, the canopy on the ground everywhere; the tag `jalon/19-detail-sol` returns to the previous state.
+
+## 2026-10-25 · Nearby objects: where there are pebbles, and which · tag `piste/objets-proximite`
+
+**Settings:** `OBJECT_STONY` new; `OBJECT_OCTAVES` from 3 cm; `PEBBLES` 2 %, erased beyond 8 cm; `GRASS_ROCKS` 0,03. Spec: `spec-objets-proximite.md`, step 3.
+
+- **The opinion in flight:** too many pebbles everywhere, a little too big; gravel commonly, the bigger less; large meadows and large sands without anything.
+- **Before,** the presence came only from parts of the soils and spots of 8 to 64 m: all sand carried pebbles.
+- **Changes:**
+  - a field of debris-specific stonyness, from 0,5 to 32 km, surveyed by the scree, dry bare ground and slope, threshold by the limit rule;
+  - the gravel below 3 cm left to the texture of the soil; the pebbles five times less numerous at every octave above 3 cm;
+  - grass rocks at the bottom of the measured sites.
+- **Measures:**
+  - free of debris: 74 % of grasslands, 70 % of sands and bare soils, 11 % of scree, 68 % of all soil, on 67 randomly selected sites;
+  - gravelly sand, per m² from 3 to 50 cm: 5,2, 1,0, 0,14, 0,008, bottom of photo, 16, 6, 0,5;
+  - all the floor from 0 to 10°: 2,2 objects per m² instead of 71;
+  - no floating objects; arrivals at 0,06 px at most; jitter never more than without objects;
+  - placement 6 to 19 % of the calculation of the ground under load, against 14 to 28 %.
+- **Flight tests, replaced:** rocky sand, sand without debris near the coast, grass and rocks, dry grassland without debris, bare rocky ground, slope of scree.
+- Image: `journal/2026-10-25-objets-pierrosite.jpg`, photos on the left.
+
+## 2026-10-25 · A single shadow of the relief · tag `piste/ombre-unique`
+
+**Settings:** `HORIZON_STEP` 0,05 → 0,02; the shadow height of the air comes from the walk of the horizon, the polar grid of 512 × 512 and its passes `SunShadowTerrain.hlsl`, `SunShadow.hlsl` are removed.
+
+- **Why:** Two sources for one shadow. The cast shadows walked towards the sun at each vertex, on the heights of the image; the rays recalculated the relief on their grid and walked again.
+- **Changes** (`recherche-rayons.md`, part 4):
+  - the march of the horizon also keeps, from each point marked, its height above the ray of the sun drawn from the top; the greater gives the shadow height of the column, `FaceVertex.shadow`;
+  - it stops when nothing can go beyond the horizon, nor pass above the ray drawn from the shadow height: a summit in the sun runs as before;
+  - the atmosphere reads the shadow height between the four vertices around the point, `MeshCell`, the same search as the height of the mesh; `ShadowRay` loses its field `grid`;
+  - the cover holds: the mesh keeps any visible column of the sea at 10 km, and any relief whose shadow can reach it (`ShadowSweep`).
+- **Measurements,** against `jalon/18-lumiere`, `images/ombre-unique-avant-apres.jpg`: before, after, difference amplified 8 times.
+  - Rays, eleven views: average deviation from 0,00 to 0,88 level on 255, 99,9e percentile 19 at most, except "peak, side sun", 45. The air is a little darker at the ridges: a grid of 1 024 × 1 024 departs half as far from the new shadow as from the old, 0,33 against 0,64 on six views. The grid of 512 lowered the ridges.
+  - Cast shadows, eight views: average deviation from 0,03 to 0,74; some shadow edges gain one to three pixels, which the walk at 5 % was missing; 99,9e percentile 67 at most, "successive shots".
+  - jitter with / without smoothing, `banc_tremblement.py`: peak at 14°, 0,10 / 0,66 → 0,10 / 0,66; valleys at 9°, 0,07 / 0,43 → 0,06 / 0,40; needle at 11°, 0,07 / 0,45 → 0,06 / 0,45; mass at 8 km, 0,18 / 1,14 → 0,18 / 1,12; pyramid, 0,14 / 0,71 → 0,13 / 0,71.
+  - Cost, pairs of successive captures on the shared GPU: calculation −0,7 to −1,3 ms on the four ray views measured at calm, rendered unchanged at 0,1 ms near; at the step of 5 %, −0,7 to −1,0 ms on the nineteen views. Sun in the back, the worst case of walking, measured only with four other instances on the GPU: −0,4 to −1,2 ms in median, to be confirmed.
+  - Code: 248 lines removed, 110 added, in HLSL and C++; three files less.
+- **Tried, not kept:** 5 % step. Ground shadows unchanged, 1 ms less, but air was shaking more at peak at 14°, 0,12 / 0,69. The shadow height counts a missed height between two whole steps, the horizon only on its distance. 3 % : 0,10 / 0,67.
+- **For clouds, tag `piste/nuages`:** `IntegrateScattering` and `ShadowRay` keep their shape; `ShadowRay` loses only `grid`, and `ShadowGridScale` disappears: `AtmospherePass.hlsl` no longer fills this field. The `t9` register of the atmosphere bears the mesh, `StructuredBuffer<FaceVertex>`; `Clouds.hlsli` declares `cloudWeatherZ`, a conflict already present since `jalon/18-lumiere`.
+- **Rest:** the penumbra of the sun in the air; tighter steps near the camera on the rays of the sky.
+- **Return back:** the tag `jalon/18-lumiere`.
+
+## 2026-10-25 · The map of the planet: the fog follows the ground · tag `piste/carte-planete`
+
+**Settings:** `HAZE_GROUND_SCALE_KM` = 10, new. The map of the planet, new (`PlanetMap.hlsli`, `PlanetMap.hlsl`, `PlanetMap.cpp`). Tables of the atmosphere to 25 floor slices. Views `ground`, `haze`, `lakes`, `rivers`; benchmark `tools/banc_carte.py`.
+
+- **Why a card:** Two needs, one source.
+  - The fog followed the sea level: a high plateau remained in the clean air (the fog of the boundary layer, lower).
+  - No point calculation finds the level of a lake or the path to the sea (`recherche-rivieres.md`).
+- **The map:**
+  - complexplanet as such, the function of the mesh, at the center of each texel of a cube fixed on the planet; octaves filtered to two texels, like the mesh to two grid cells;
+  - 1 024² per face, the grid cell of the river plan: 9,8 km at the center of a face, 4,6 km at the corners;
+  - of the data, not of the geometry: no vertices move (`geometrie.md`);
+  - by texel: soil, max(e, 0); water from filled bowls; drained area; of mips by averages 2 × 2.
+- **Start-up cost, measured as:**
+  - calculation on GPU, including reading, 14 to 125 ms depending on the load of GPU; drainage on CPU, 0,6 to 0,8 s; mips and semi-floating, 0,15 s; sending, 0,03 to 0,1 s. Less than a second in all;
+  - 64 MB on the GPU, RGBA in semi-floating with mips; at startup, 0,3 GB of RAM and 0,1 GB on the GPU, rendered immediately;
+  - drainage is compiled optimized even in Debug. With the stack and verified access of the STL, it took 2,4 s.
+- **Verified** (`tools/banc_carte.py`):
+  - altitude against complexplanet numpy port, 600 grid cells: median deviation 7 cm, 9,5 m at most;
+  - identical filled surface, grid cell for grid cell, to a single Priority-Flood written separately;
+  - each grid cell flows to a neighbour without rising, until the sea, which receives 100 % of the land.
+
+**The fog follows the regional soil:**
+- **The physical rule:** the boundary layer follows the large-scale relief and levelles above the narrow reliefs. A plateau much wider than the layer is thick makes its own layer; a ridge or valley of several times that thickness, no (De Wekker and Kossmann 2015).
+- **The choice:** the floor of the map smoothed on 10 km of standard deviation, the mip of 20 km read linearly, at the same scale on the whole cube.
+  - A plateau of 100 km keeps 82 % of its height; spaced ridges of 20 km, less than 1 %.
+  - The fog thins on the summits and fills the valleys.
+- **Along the Ray of View:** Each step reads the regional ground at both ends and in the middle. The exact average of the mist on the step follows its height above this ground.
+- **The tables of the start-up, just the simplest solution:** a third dimension, the ground of the mist.
+  - 25 ranges from 0 to 6 km; the highest regional ground is 5,2 km. Each slice is the air of a uniform floor.
+  - The pixel and each step read them to the regional ground of their point; the rest of the air keeps the altitude above the sea.
+  - Interpolation between slices: 0,06 % of transmission at zenith sun, 0,5 % at sun at 6°, worst, at top of layer.
+  - The exhibition keeps its gray card at sea level, in the fog of the sea: unchanged.
+- **Measurements,** before → after:
+  - the distant ground on the horizon sky, at 5 km altitude: 2,47 → 1,62 and 4,17 → 2,00; in plain, 1,00 before and after. The horizon sky of the southern plateau clears up: 0,18 → 0,31;
+  - descent above the plateau, from 1 500 km to 30 m: against the old fog, at most 0,05 EV from one height to the next. Seen from above, −0,07 EV: fog covers the snow;
+  - jitter with/without smoothing: southern plateau 0,14 / 0,71 → 0,11 / 0,57; northern plateau 0,04 / 0,22 → 0,02 / 0,14; mountains 0,19 / 1,37 → 0,17 / 1,25;
+  - cost of rendering unchanged to noise near, the GPU shared: minimum on 8 captures, 4,47 → 4,30 ms at the floor of the plateau, 2,20 → 2,31 ms in plane. Two readings of the map by step of the radius, tables in three dimensions; +3,5 MB of tables;
+  - plains, sea, coast and orbit unchanged, mean deviation from 0,5 to 3 / 255; mountains, 8 to 15 / 255; plateaus, 15 to 18 / 255. quality benchmark, 12 places, against the front: mutation p95 downward, 0,140 → 0,108 to 200 m, 0,085 → 0,060 to 800 m; a single p95 beyond 10 %, the hole of the snow at 200 m, 1,0 → 1,2 dB, the fog now covering the snow of altitude; the photos have 3,5.
+- **To be judged in flight:** `tools/tests/2026-10-25-carte.txt`, plateaus and mountains; `tools/tests/2026-10-24-profondeur.txt`, plains, coast and orbit, unchanged. Before and after, `journal/2026-10-25-carte.jpg`.
+
+**Hydrology, stage 1 of the river plan:**
+- **A Priority-Flood from the sea** (Barnes 2014): the level of each basin, the flow direction, the drained area. On CPU: simpler, and quite fast.
+- **Lakes, each filled basin:** 43 % of land, 231 m of median depth; the benchmark 0 found 41 % at 55 km. 20 359 lakes.
+  - Three basin of 58, 28 and 10 million km²: the interiors of continents, lower than their edges.
+  - 95 % of the land flows into a basin; on Earth, no-exit pools make 20 % (Wang 2018).
+  - Sizes: N(>A) ∝ A^−0,99 above 1 000 km²; HydroLAKES, A^−1,14 (Cael and Seekell 2016).
+- **The network:**
+  - drainage density beyond 1 000 km² drained: 0,056 km/km²; on Earth, approximately 0,037, HydroRIVERS extended by the terrestrial exponent;
+  - P(A > a) ∝ a^−0,63, against a^−0,43 on Earth; Hack's law, exposing 0,36, against 0,5 to 0,6;
+  - too little branched: it crosses the large bowls in straight lines, from the threshold upstream. A river in a lake is not one: the view `rivers` masks them.
+- **What makes it stand out:** inland seas. Without water balance, 43 % of land would be under water. The water balance comes before any drawn lake.
+
+**Rest, to draw lakes and rivers:**
+- the water balance, Fill-Spill-Merge, of runoff in our climate: the real share of lakes, and the choice for inland seas;
+- an identifier and a level per lake in the map; flat water at lake level, with the seawater model of the branch `mer-animee`; coast generalized by `SpreadStep`;
+- rivers: the network out of lakes, smooth and meandering, width 7,2 Q^0,5, a ribbon in part of the pixel; then the thin tiles near the camera.
+
+**To return:** `RegionalGround` which makes 0 brings the fog back to sea level, including tables; the map remains, unused.
+**New settings:** the “Vegetation” block of `PlanetSettings.hlsli`, table above. Tag `piste/vegetation`. Search, detail and measurements: `recherche-vegetation.md`.
+## 2026-10-25 · The animated sea: reflection of the sun and sky, whitecaps, waves · tag `piste/mer-animee`
+
+**Settings:** `WAVE_LONGEST` = 512 m, `SLOPE_OCTAVES` = 16, `FOAM_ALBEDO` = 0,22, new; 14 octaves of 12 waves (`Planet.hlsli`, `D3DApp.h`). New file `Sea.hlsli`; views `foam` and `glint`; `MYPLANETENGINE_TIME`. Details: `recherche-mer.md`, section 8.
+
+- **Request:** “Sea: reflection of the sun and the sky, whitecaps. But lively, not static.”
+- **Before:** a flat and diffuse sea, blue according to the depth on 3 000 m; no reflection, no foam, no movement.
+- **Changes:**
+  - **wind,** a climate map: circulation by latitude, time from 3 000 to 300 km, gusts from 100 to 5 km;
+  - **the slope of the sea has the variance of Cox and Munk at any distance:** 168 waves drawn in the pixel, each its average on it; the rest expands the reflection;
+  - **a single reflection of the water, `ReflectOnWater`:** the sun by Cox-Munk and masking Smith, the sky walked from the water, the Fresnel medium of Bruneton;
+  - **waves move:** deep water dispersion, leeward of the pixel; their plane is carried by the camera, their phases held in double precision precision on the CPU;
+  - **the whitecaps:** the part of Monahan from far; from close, born on the crests of the groups of waves, they follow them and fade away, at the same average;
+  - **water:** a type by latitude and plateau, the bottom seen in shallow water; no more gradient on 3 000 m;
+  - **temporal smoothing** skips sea pixels showing waves: it spreads their movement, 30 % of contrast lost at 20 m;
+  - **the title bar** also gives the fastest image: the GPU is shared, the other programs lengthen the average.
+- **Measures:**
+  - **the orbit reflection against Cox-Munk,** pixel by pixel: at 1 % near the center of 2,6 to 14,6 m/s, 2 % to 20 m/s; average deviation 1,1 to 3,6 % (`images/mer-reflet-cox-munk.png`);
+  - **downhill,** from 1 500 km to 10 m, three sites from 6,7 to 26,6 m/s: the average reflection at 2 % of Cox-Munk up to 200 m, −Z8 to +11 % lower where the view sees only a group of waves; the whitecaps to 1 % of Monahan up to 3 km, ±8 % close up, 20 % below at 6,7 m/s;
+  - **flicker,** mesh that slides: out of the sea, unchanged when it moves, 0,02 / 0,08 at the coast; the sea, 0,05 frozen; its movement keeps all its contrast, against 70 % with the smoothing of before;
+  - **cost,** fastest image: +0,4 ms orbit, +1,5 to 2 ms near water in full screen, 1280 × 720, RTX 4070 Ti;
+  - **the earth is unchanged,** pixel by pixel.
+- **Choice:** a sum of waves per pixel rather than a FFT. Neither resource nor new pass, an exact filtering by wave, the local wind on each amplitude. 6 waves per octave drew a lattice; fade on one octave only, too.
+- **Merge with `plages`:** test done and compiled, tag `piste/essai-fusion-mer-plages`; `WaterSheen` replaced by `ReflectOnWater` (`recherche-mer.md`, section 8).
+- **Flight views:** `tools/tests/2026-10-25-mer.txt`; board `images/mer-tests.jpg`.
+- **Rest:** the waves in geometry near the camera, the surge at the coast, a FFT for the cost of close, the swell, the fetch, the lakes.
+- **To return:** the commit `044bcf2`.
+## 2026-10-27 · Cloud shadows and first weather on the whole sphere
+
+- **User feedback:** rendered considered quite good; add shadows on land and sea, then try a planetary distribution from references.
+- **Witness:** Orbit accepted frozen in `x64/NuageFrostbiteOrbitTemoin/`,44 verified files, including copied sources; Git base `6cd34e7`, tag `piste/nuages-orbite-spike`.
+- **Shadows:** path of the two shells from the surface to the sun; same density and time; extinction80/km; not minimum250 m and maximum256 intervals per segment. Only the direct solar `t17` is attenuated before the air.
+- **Distribution:** Global map1024×512, Perlin3D fields on the sphere, irregular fronts, blankets and convective regions; smooth latitude trends. R>0,03 on55,93% of the area of the map; B>0,03 on1,59%, without equivalence with the rendered coverage.
+- **Retention:** three 3D textures copied exactly from Orbit; inherited pas and view filtering. The regional variant and the shadowless option allow separate comparisons.
+- **Short checks:** rendering of two hemispheres, dense region at 800 km, shadows on land and sea, with/without comparisons and transmittance diagnostics. The terrestrial comparison changes32,1% of pixels more than 2/255; the maritime effect at 80 km remains discrete. No validation in motion or extended benchmark.
+- **Point cost:** clouds + air19,46 and18,76 ms on both globes;28,09 ms on the dense region at 800 km;10,36 against8,98 ms on the terrestrial point at 30 km with/without shadows. GPU shared; these captures do not validate a budget.
+- **Limits:** Artistic weather without geography, mip1 map close to78 km to the equator, cirrus fibers in the fixed reference frame of the initial site; cost and shadow filtering still approximate.
+- **Test:** `tools/nuages-planete.ps1`, palette `tools/tests/2026-10-27-nuages-planete.txt`; detail and references in `spike-nuages-planete.md`.
+- **Publish on demand:** `piste/nuages-planete-spike` tag; sources, assets and tools included, `x64/` outputs local and ignored. PR in draft against `main`;12 conflicts reported by the merge simulation with `f66ead9`.
+
+## 2026-10-27 · Rare Cirrus and first orbital quadrature
+
+- **User feedback:** low regional clouds are correct; too many cirrus regularly aligned. Passage requested at very high altitude and orbit.
+- **Witness:** Regional version frozen in `x64/NuageFrostbiteRegionalTemoin/`, forty files and sources with footprints.
+- **Cirrus:** weatherB clustered à24/42/70 km, average26,8% of Regional; new field of rare filaments,7,42% of mip0 above 0,05. FormeR/B/A and météoR/G/A unchanged to all mips.
+- **Filtering:** average light premultiplied and transmittance of four or nine distant rays, with continuous mixing to the inherited ray; footprint0,25–0,8 km and safety ramps out of the couches/rayons rasant.
+- **Near:** Low-density recipe unchanged; close control view identical pixel-by-pixel with and without filtering. Atmospheric composition once after the quadrature.
+- **Cost:** at 800 km on a pair of captures with identical data, clouds+air2,88 ms without filter and11,37 ms with four rays; first compromise to judge, without global budget validated.
+- **Control:** four compiled variants, four views and two hidden comparisons inspected; copies, mips and control verified.
+- **Delivery:** `tools/nuages-orbite.ps1`, twelve views; `-Temoin` for Regional and `-SansFiltrage` to compare the filter with the same new cirrus.
+- **Limits:** quadrature finished, increased cost and residual periodicity; user in-flight validation, no time history.
+- **Publish on demand:** `piste/nuages-orbite-spike` tag; sources, assets and licenses included, `x64/` outputs local and ignored.
+
+## 2026-10-27 · Regional formations on an extended weather map
+
+- **Decision:** first extend the distribution, then judge the same field at several distances; top view map before rendering in main of the volume.
+- **Witness:** local scene of the three families frozen in `x64/NuageFrostbiteFamiliesTemoin/`, forty files with fingerprints; sources and previous data preserved.
+- **Weather:** map1024×512 on1200×800 km, origin0,5°/161,775°; nappes/fronts fragmented, two regions of cumulus clusters, associated cirrus and large clearings.
+- **Settings:** mask variations à15/60/160 km; R low coverage, G type, B cirrus; source and parameters in `tools/gen_frostbite_regional_weather.py` and regional manifest.
+- **Conservation:** the three3D textures, profiles, light and integration steps remain those of the local scene; only weather, extent and vacuum acceleration change.
+- **Trail:** sphere650 km around fixed origin; proof of vacuum at mips7–3, jumps limited to50 km; mipsR/B of conservative presence.
+- **Limit:** regional artistic map; repetition of noise functions and distant transparency still to be judged, without new temporal reconstruction or new LOD statistic.
+- **Control:** three variants compiled; legended map and four captures on two distances and two locations inspected; copies3D, low density, presence mips and witness verified.
+- **Constat:** visible regional distribution; distant repetitive grain and striations of cirrus still present. Clouds+air point2,93–9,24 ms; costly field calculation on two nearby locations, without overall performance verdict.
+- **Delivery:** `tools/nuages-region.ps1`, Rendu/Meteo/Opacite views, twelve positions; in-flight validation to the user.
+- **Git:** no commit, tag or push requested.
+
+## 2026-10-27 · Three families together and correction of the cirrus mask
+
+- **User feedback:** the waves of cirrus are quite good, but their common contours seem cut by a mask; fibers too wide compared to their length.
+- **Scene:** cumulus, nappe and cirrus together; data and density recipe of the two validated families kept exactly.
+- **Channels:** t24R remains Frostbite form, t24G carries fibers; t27R/G remains low weather, t27B carries cirrus; mips low unchanged.
+- **Outlines:** removal of the coverage threshold0,03 for only cirrus; Gaussian and exponential tails connected over4 km, halo weak, melted at the ends.
+- **Fibres:** domain64×16×8 km, correlations Est8/6 km and North0,28/0,14 km; slight global shear, maximum density0,018.
+- **Trail:** up to four shell segments2–8 and9–13 km, sorted along the radius; no vacuum tracking between layers.
+- **Control:** three compiled variants and four hidden captures inspected; data, low recipe, presence mips and control verified. Validation in flight to the user.
+- **Delivery:** `tools/nuages-familles.ps1`, twelve views; B opacity, C quality, Space pause, V weather×1/×5.
+- **Git:** no commit, tag or push requested.
+
+## 2026-10-27 · Local cirrus and witness conservation
+
+- **User feedback:** Excellent rendering and stability at cumulus and cloud cover approach; local validation acquired.
+- **Priority:** to complete local forms with cirrus before extending the distribution.
+- **Witness:** Frozen copy of binary, shaders, four assets and palette in `x64/NuageFrostbiteReferenceTemoin/`, with verified footprints.
+- **Cirrus:** pre-calculated anisotropic fibrous 3D field128³, fixed domain Est64/Nord32/vertical8 km; three local coverage bands.
+- **Density:** fibers shaped before the mips; compact profile centered at 11 km, center variable of±0,35 km and thickness0,7–1,2 km in a shell9–13 km; maximum0,022 with extinction80/km inherited.
+- **Limit:** Local art trial, not a planetary weather or a full new Frostbite reproduction; in-flight checks to user.
+- **Memory:** Cumulonimbus retained for the following, after the current local families.
+- **Git:** no commit, tag or push requested.
+
+## 2026-10-27 · Local reference guided by Frostbite
+
+- **Decision:** stop global variations without visual reference; isolate two families and their diagnoses.
+- **noise functions:** original C++ generator sebh/TileableVolumeNoise, revision1f879a26b89aaa4b5a7f112f14ec149d08057661; no parameters or formulas changed.
+- **Entries:** explicit densité/érosion profiles, local map256×128 km and two drawn zones; artistic choices from the test, not original Frostbite engine data.
+- **Rendering:** shape32 km, detail4 km, extinction80/km neutral, albedo1, four solar intervals; analytical integration and reference frames doubles preserved.
+- **Diagnostics:** Fixed density cut, 3D opacity and illuminated rendering separate; exposure neutralized in data views only.
+- **Control:** three compilations and five captures in two locations; mips and data verified. No benchmark complete or validation in motion.
+- **Delivery:** `tools/nuages-frostbite-reference.ps1`, pallet of October 27; Currents C frozen as a witness.
+- **Limit:** profiles still to be judged; planetary passage and reconstruction to be processed after local validation.
+- **Git:** no commit, tag or push requested.
+
+## 2026-10-27 · Currents C: returning the disturbance to the macro scale
+
+- **User feedback:** B distorts clouds into filaments; the request was for large sets and currents.
+- **Retirement:** shader B resumed with warp24 vers3 only; B and its real weather B frozen as witness.
+- **Macro:** joint transport RGBA from weather A, field tangent2/4 on the sphere, median displacement182 km and maximum573 km.
+- **Proof of presence:** R modified, mips conservators reconstructed; three identical 3D textures.
+- **Comparison:** C with A/C cards, same local shader; `-MeteoA` isolates transport and `-Temoin` finds B.
+- **Control:** compilation and two hidden pairs à180/1 600 km, two hemispheres; no fold measured on the card grid.
+- **Limit:** Reference static transport; repeats, ceilings and near cost are not resolved by this test.
+- **Delivery:** `tools/nuages-courants-c.ps1 -Static`, twelve views in the palette.
+- **Git:** no commit, tag or push requested.
+
+## 2026-10-27 · Forms B: a review of silhouettes and regimes
+
+- **User feedback:** Forms A remains repetitive, flat at the top and bottom; large contours too geometric.
+- **Density:** potential3D minus square height, then positive square part; removal of the two plateau ramps.
+- **Variation:** global mix of bandes8/29,3 km, deformation128 km of amplitude±12 km, local variable half-heights.
+- **Macro:** GBA disturbed together on the sphere; R and the three3D textures preserved. Option `-MeteoA` to isolate this modification.
+- **Witness:** Forms A and its assets frozen; native code and marcher unchanged.
+- **Control:** compilation, data audit and targeted hidden captures; increased near initial cost, no overall or movement verdict.
+- **Delivery:** `tools/nuages-formes-b.ps1 -Static`, `-Temoin` for Forms A; details and limits in spike manual.
+- **Git:** no commit, tag or push requested.
+
+## 2026-10-27 · Forms A: cumulus, sheets and vertical extinction
+
+- **Request:** two separate families, bases and tops less clamped; quick release for flight judgment.
+- **Witness:** weather A and V4 rendering frozen, four textures packed with footprints; no changes to its session.
+- **Density:** wide field of 32 km for clouds, primary field 3D of 8 km for cumulus; G interpolates families.
+- **Profile:** Variable local support read to fixed mip 3 fixed, then fades after coverage threshold and erosion; no profile displacement depending on camera.
+- **bounds:** support between 1,45 and 8,47 km, strictly in the shell 1–9 km.
+- **Cloth contrast:** `smoothstep(0,55, 0,85, sheetMacro)`; support standardized by `smoothstep(0,50, 0,90, sheetMacro)`.
+- **Preservation:** weather map, four textures, executable, light, extinction and walk identical; only the density shader changes.
+- **Cost:** even maximum of five readings per occupied density, weather map included; no new volume or history. No statistical performance measures.
+- **Control:** DXC successful; three pairs of initial captures, then two targeted pairs after correcting a too uniform layer. Two places and two families; flight to the user.
+- **Delivery:** `tools/nuages-formes-a.ps1 -Static`; `-Temoin` for weather A to the same twelve views. Isolated sources and outputs.
+- **Limits:** appearance and disappearance of the clamp effect to be judged; no new LOD, cirrus, radial band correction or planetary validation.
+- **Git:** no commit, tag or push requested.
+
+## 2026-10-27 · Weather A: distribution test only on V4
+
+- **Request:** isolate the distribution before resuming the forms and the LOD; quick release for flight checks.
+- **Rule:** compare at identical time, rendering and positions; only R of the map changes.
+- **Conversion:** `R = 0,75 × smoothstep(0,08, 0,68, L)` replaces the low luminance boost NASA.
+- **Limit:** regional contrast assumption; this coefficient is not a physical cloud fraction or a new weather simulation.
+- **Preservation:** executable, shaders, three 3D V4 and GBA textures of all mips identical; witness without writing.
+- **Map Measurement:** Area-weighted R mean from 0,403798 to 0,215494; no equivalence with rendered coverage.
+- **Control:** three pairs of hidden captures, orbit, patterns at 271 km and near layer; footprints and sidecars in `x64/WickedWeatherACompare/`.
+- **Constat:** Weak areas less covered; repetitions still visible in dense benchmarks. No verdict of movement or performance.
+- **Delivery:** `tools/nuages-meteo-a.ps1 -Static`, `-Temoin` for V4; twelve common views in the palette of the 27 October.
+- **Git:** no commit, tag or push requested.
+
+## 2026-10-27 · Return in flight: V5 not retained
+
+- **Appearance:** LOD deemed less good; persistent repetitions, sharper contours and unconvincing reduction of noise.
+- **Close regression:** coverage increases and blanket fill also change the fine field; J does not remove these changes.
+- **Confirmed limits:** distribution without convincing weather organization, vertical profiles too visible, absence of distinct cirrus.
+- **Decision:** V4 retained as control; no new settings or binary in this diagnostic.
+- **Follow-up:** separate distribution, morphology and LOD tests; details of V5 moved to spike log.
+- **Git:** no commit, tag or push requested.
+
+## 2026-10-27 · Wicked V5: training and optical coverage
+
+- **Request:** Varie horizontal organizations and filter distant contours, with quick delivery to the user.
+- **Forms:** benchmarks regional at 192 km, envelope at 32 km and microvolume at 8 km; continuous modulation of convective sheets and clusters.
+- **Filtering:** transmittance average on 512 columns × 48 not in a 32³ table; no new threshold on a noise already averaged.
+- **LOD:** mix lumière/transmittance between 0,12 and 0,65 km footprint; J mode to compare to the same fine formation.
+- **Tongue:** segment middle for radii without proxy crossing, continuous height cap; approximation to be checked.
+- **Native:** a texture t28, b1 retained, flag `MYPLANETENGINE_CLOUD_WICKED_OPTICAL_LOD`, J and `-FineOnly`; separate V5 outputs.
+- **Controls:** targeted compilation and hidden captures, multiple locations; no full benchmark or motion validation.
+- **Limits:** lighting approximate average and local statistics; thin radial bands unresolved.
+- **Delivery:** `tools/nuages-wicked-v5.ps1`, V4 test at the same positions and palette of 27 October; no commit/tag/push requested.
+
+## 2026-10-27 · Wicked V4: targeted grid correction
+
+- **User Perimeter:** keep current rendering; correct radii and straight distribution.
+- **noise:** periodic Perlin octave at one cell replaced by a 3 base; frequencies 3–48 and sum of weights retained.
+- **mips:** periodic binomial filter of the shape, without changing its mip0; filters of the second reading shape and deformation adapted to their frequencies.
+- **Data:** `assets/wicked-clouds-v4/` separated; detail, deformation, weather and V2 profiles preserved.
+- **Radius:** positive, signed and quadratic interpolation tests, then constant albedo, excluded for remaining bands and cost. Periodic deformation HLSL also dismissed; see spike log.
+- **Decision:** V2 step retained; V4 delivers only grid correction. The shelves remain open.
+- **Control:** four short captures with frozen weather, no full benchmark or movement validation. Laying and costs in `x64/WickedV4DeliveryPreview/startup.json`.
+- **Delivery:** `tools/nuages-wicked-v4.ps1`, F1 close, F7 to 454 km, F8 to 2 601 km; `-Temoin` opens the V2 with the same palette and positions.
+- **Notice:** `log/spike-nuages-reference.md`; in-flight checks to user. No commit, tag or push requested.
+
+## 2026-10-27 · Wicked V3 Diagnostic: Radial Bands
+
+- **User feedback:** moving rings at 2 601 km and near clouds; repetitive patterns at 454 km.
+- **Isolated cause:** bands present in opacity alone, without atmosphere and with a constant macro shape; volume subsampling by steps of 48–240 m.
+- **Tests:** not uniform of 12 m too expensive; refinement by optical variation insufficient near clouds; archives under `x64/RadialDiagnostic/` and `x64/Recovery/WickedV3AdaptiveFirst/`.
+- **V3:** subdivision of cloud-containing intervals at 12 m Eco / 6 m Reference; empty run and conservative weather jump maintained; transmission stop at 0,003.
+- **Short control:** four hidden captures, three locations and multiple distances; large bands attenuated, remaining repeats.
+- **Clouds + air cost:** 31,67 / 26,26 / 38,55 / 45,88 ms; regression, diagnostic version not validated as final solution.
+- **Delivery:** `tools/nuages-wicked-v3.ps1`, palette of October 27, `-Temoin` for V2; V2 binaries unchanged.
+- **Notice:** `log/spike-nuages-reference.md`; flight checks entrusted to the user, no complete benchmark or commit/tag/push required.
+
+## 2026-10-27 · Wicked V2: Local Envelopes and Reference Coverage
+
+- **User feedback:** stability progress near clouds; high and low limits too flat, uniform distribution and repetitive patterns especially towards 160 km.
+- **Envelopes:** 1–9 km course shell; local base and summit profiles, macro variations and soft ramps. The family profile no longer crosses before the final ramp.
+- **Forms:** two fixed reference frames of noise world; a single remap of the combined Perlin-Worley, fractional macro levels and sunlight independent of the LOD view.
+- **Test rejected:** purely synthetic weather map; too large solid plates and grainy rendering. Preserved under `x64/WickedV2Preview/` and `x64/Recovery/WickedV2Start/`.
+- **Reference:** historical composite NASA Blue Marble Clouds as cover proxy; types, bases and thicknesses remain synthetic. Credits and original image in `third_party/NASA/`.
+- **Empty:** Real mip1 unchanged; R of mips2+ to the maximum to prove the empty. Jumps bounded by the spherical sector and the bilinear margin, never by sigma alone.
+- **Delivery:** `x64/NuageWickedV2/MyPlanetEngineWickedV2.exe`, launcher `tools/nuages-wicked-v2.ps1`, V1 test by `-Temoin`. The user session in V1 is not interrupted.
+- **Final checks:** three target captures, near, 160 km and orbit; native compilation and DXC successful. GPU clouds+air 13,12 / 3,22 / 8,57 ms in 720p frozen on GPU shared; cost and mean distance remain imperfect.
+- **Status:** flight test expected, no global validation. Notice `log/spike-nuages-reference.md`, artefacts `x64/WickedV2FinalPreview/`. No commit, tag or push requested.
 
 ## 2026-10-27 · Premier spike Wicked Engine · tag `piste/nuages-orbite-spike`
 
-- **Demande :** repartir d'une base publiée, garder l'ancien témoin et laisser rapidement l'utilisateur juger en vol.
-- **Modèle :** adaptation HLSL de Wicked Engine, révision `5433f0a6cb0ed9ddfd41b7742978d038eaff70de`, licence MIT conservée dans `third_party/WickedEngine/`.
-- **Champ :** une coquille de 3 à 6,5 km ; couverture et type météo continus en 3D, forme Perlin-Worley et érosion, sans instancier le volume du POC.
-- **Textures :** 128³, 32³ et 64³ RGBA8 avec mips, 10 935 148 octets ; chargées une fois et animées par les coordonnées.
-- **Premières captures :** la période de forme initiale de 1,67 km répétait ses silhouettes ; réglage remplacé par 8 km, détail 1 km et déformation continue ±1,5 km à l'échelle de 37 km.
-- **Précision :** références d'entrée et phases en double, racines raffinées par Newton et plancher entier, puis décalages float dans les boucles.
-- **Qualité :** C compare 48–240 m / un échantillon solaire et 24–160 m / deux échantillons ; aucun historique temporel dans ce premier jet.
-- **Contrôles :** compilation réussie ; quatre vues cachées initiales et deux après réglage. Derniers contrôles en 720p figé : profil 9,91 ms/frame dont 8,76 ms nuages+air ; dessus 7,51 dont 6,10 ms. GPU partagé, mesures ponctuelles.
-- **Livraison :** lanceur `tools/nuages-wicked.ps1`, palette du 27 octobre ; `-Temoin` ouvre l'ancienne V2, dont les binaires sont inchangés. Première session `MyPlanetEngineWicked.exe` conservée ouverte ; `MyPlanetEngineWickedV1.exe` corrige le compteur et les accents au prochain lancement, avec le même shader.
-- **Limites :** lumière, perspective aérienne, filtrage après seuil et rendu orbital restent des approximations à juger. Essais en vol confiés à l'utilisateur ; aucun commit, tag ni push demandé.
-- **Notice :** `log/spike-nuages-reference.md` ; captures finales `x64/WickedPreview/`.
+- **Request:** start from a published database, keep the old witness and let the user quickly judge on the fly.
+- **Model:** HLSL adaptation from Wicked Engine, `5433f0a6cb0ed9ddfd41b7742978d038eaff70de` revision, MIT license retained in `third_party/WickedEngine/`.
+- **Field:** a shell of 3 to 6,5 km; continuous weather cover and type in 3D, Perlin-Worley shape and erosion, without instantiating the volume of the POC.
+- **Textures:** 128³, 32³ and 64³ RGBA8 with mips, 10 935 148 bytes; loaded once and animated by coordinates.
+- **First captures:** the initial shape period of 1,67 km repeated its silhouettes; adjustment replaced by 8 km, detail 1 km and continuous deformation ±1,5 km at the scale of 37 km.
+- **Precision:** Input references and phases in double precision precision, roots refined by Newton and whole floor, then float offsets in loops.
+- **Quality:** C compares 48–240 m/one solar sample and 24–160 m/two samples; no time history in this first throw.
+- **Controls:** Compilation successful; four initial hidden views and two after adjustment. Last checks in 720p frozen: profile 9,91 ms/frame of which 8,76 ms clouds+air; above 7,51 of which 6,10 ms. GPU shared, spot measurements.
+- **Delivery:** launcher `tools/nuages-wicked.ps1`, palette of the 27 October; `-Temoin` opens the old V2, whose binaries are unchanged. First session `MyPlanetEngineWicked.exe` kept open; `MyPlanetEngineWickedV1.exe` fixes counter and accents on next launch, with the same shader.
+- **Limits:** light, aerial perspective, filtering after threshold and orbital rendering remain approximations to be judged. User-managed flight tests; no commit, tag or push requested.
+- **Notice:** `log/spike-nuages-reference.md`; final captures `x64/WickedPreview/`.
 
-## 2026-10-27 · Arrêt de la V3 voxel et retour aux références publiées
+## 2026-10-27 · V3 voxel shutdown and return to published references
 
-- **Retour utilisateur :** bandes et scintillement vus de côté ; distribution répétitive, performances insuffisantes et bénéfice voxel non démontré.
-- **Décision :** interrompre les agents avant la compilation V3 ; conserver la V2 comme témoin.
-- **État rétabli :** sources natives et lanceur V2 ; le shader V3 à trois familles n'a pas été implémenté. Sauvegarde des préparatifs natifs dans `x64/Recovery/V3Interrupted-20261027/`.
-- **Recherche :** Nubis Evolved, Nubis³, documentation Unreal et shaders HLSL de Wicked Engine. Cadrage dans `log/spike-nuages-reference.md` ; aucun nouveau binaire livré.
-- **Proposition :** adapter un noyau publié de météo, forme, érosion et éclairage ; commencer par une couche convaincante et les vues sol, profil, intérieur, dessus et orbite.
-- **Portée :** aucune campagne GPU ou end to end lancée ; vérifications en vol confiées à l'utilisateur. Aucun commit, tag ni push demandé.
+- **User feedback:** strips and flicker seen from the side; repetitive distribution, insufficient performance and voxel benefit not demonstrated.
+- **Decision:** Stop agents before build V3; keep V2 as a witness.
+- **Restored status:** native sources and launcher V2; three-family shader V3 has not been implemented. Save native preparations in `x64/Recovery/V3Interrupted-20261027/`.
+- **Search:** Nubis Evolved, Nubis³, Unreal documentation and HLSL shaders from Wicked Engine. Framing in `log/spike-nuages-reference.md`; no new binary delivered.
+- **Proposal:** Adapt a published core of weather, shape, erosion and lighting; start with a convincing layer and ground, profile, interior, top and orbit views.
+- **Scope:** no GPU or end to end campaigns launched; in-flight checks entrusted to the user. No commit, tag or push requested.
 
-## 2026-10-26 · Spike voxel planétaire · tag `piste/nuages-orbite-spike`
+## 2026-10-26 · Spike voxel planetary · tag `piste/nuages-orbite-spike`
 
-**Demande :** après un POC local fonctionnel, essayer rapidement l'échelle planétaire dans les mêmes conditions ; l'utilisateur réalise les vérifications en vol.
+**Request:** after a local POC functioning, quickly try the planetary scale in the same conditions; the user performs the checks in flight.
 
-- **Retour V1 :** environ 10 FPS en voxel et procédural ; blocs trop répétitifs pour juger le lointain. Ancienne distribution et mesures dans `log/spike-nuages-voxel-planete-historique.md`.
-- **V2 :** calculs d'entrée en double, puis boucles en coordonnées locales float ; couverture régionale continue, 1 023 cellules par axe et formations plus petites et variées.
-- **Diagnostic V2 :** N coupe réellement les nuages ; temps GPU nuages+air et frame visibles. Sortie distincte `x64/NuageVoxelPlaneteV2/`. Deux captures finales à météo figée : 13,66 ms/frame en approche, 26,97 ms depuis l'orbite. Rapport `x64/VoxelPlanetV2Placement/startup.json` ; aucun verdict en vol.
-- **Placement V2 :** centres largement décalés, neuf cellules candidates et somme des recouvrements ; rangées cassées, petites formations encore visibles comme des points depuis l'orbite. Première optimisation plus rapide mais encore alignée conservée dans l'historique.
+- **Return V1:** about 10 FPS in voxel and procedural; blocks too repetitive to judge the distant. Old distribution and measures in `log/spike-nuages-voxel-planete-historique.md`.
+- **V2:** double input calculations, then loops in float local coordinates; continuous regional coverage, 1 023 cells per axis and smaller and varied formations.
+- **Diagnosis V2:** N actually cuts clouds; time GPU clouds+air and frame visible. Separate output `x64/NuageVoxelPlaneteV2/`. Two final captures with frozen weather: 13,66 ms/frame approaching, 26,97 ms from orbit. Report `x64/VoxelPlanetV2Placement/startup.json`; no verdict in flight.
+- **V2 location:** widely offset centers, nine candidate cells and sum of overlaps; broken rows, small formations still visible as points from orbit. First optimization faster but still aligned kept in history.
 
-- **Choix V1 :** répéter le volume partagé sur six faces de 127 × 127 cellules fixes ; aucune texture de densité par formation.
-- **But de l'essai :** couverture, continuité en descente et fluidité visible ; formes répétées et marche lointaine simplifiées.
-- **Isolation V1 :** sortie `x64/NuageVoxelPlanete/MyPlanetEngineVoxelPlanete.exe`, POC local conservé.
-- **État V1 :** compilation Debug x64 réussie ; deux captures cachées, planète à 8 000 km et approche, produites sans erreur. Distribution régulière visible depuis l'orbite ; aucun verdict en vol ni banc complet. Contrôle `x64/VoxelPlanetStartup/startup.json`. Aucun commit, tag ou push demandé.
-- **Notice archivée :** `log/spike-nuages-voxel-planete.md`, lanceur témoin V2 `tools/nuage-voxel-planete.ps1`.
+- **Choice V1:** Repeat the shared volume on six faces of 127 × 127 fixed cells; no density texture per formation.
+- **Test purpose:** coverage, downhill continuity and visible fluidity; repeated shapes and simplified far walking.
+- **Isolation V1:** output `x64/NuageVoxelPlanete/MyPlanetEngineVoxelPlanete.exe`, POC local retained.
+- **State V1:** Debug x64 compilation successful; two hidden captures, planet at 8 000 km and approach, produced without error. Regular distribution visible from orbit; no flight verdict or complete benchmark. Control `x64/VoxelPlanetStartup/startup.json`. No commit, tag or push requested.
+- **Archived notice:** `log/spike-nuages-voxel-planete.md`, V2 test launcher `tools/nuage-voxel-planete.ps1`.
 
-## 2026-10-26 · POC voxel isolé · tag `piste/nuages-orbite-spike`
+## 2026-10-26 · POC voxel isolated · tag `piste/nuages-orbite-spike`
 
-**Demande :** essai rapide dans un worktree séparé ; l'utilisateur prend la main dès qu'une version est montrable. La conversation principale poursuit sa solution planétaire.
+**Request:** Quick test in a separate worktree; user takes the main as soon as a version is showable. The main conversation continues its planetary solution.
 
-- **Base :** `7298330`, POC proche animé validé.
-- **Volume :** densité finale R32_FLOAT, cube local fixe de 4,8 km, grille 128³ ou 256³, sans mipmap.
-- **Temps :** même météo ; volume reconstruit quand sa phase change, réutilisé pendant la pause.
-- **Comparaison :** C bascule voxel/procédural à pose et temps identiques ; palette F1–F8 conservée.
-- **Portée :** un nuage local dense ; aucune conclusion sur la mémoire ou les performances planétaires.
-- **Vérification :** compilation et démarrage léger seulement, selon la demande ; verdict visuel confié à l'utilisateur.
-- **État :** compilation Debug x64 réussie ; une capture cachée 128³ en 1 280 × 720 produite sans erreur. Nuage visible, corps de la fonction procédurale inchangé. Contrôle `x64/VoxelStartup/startup.json` ; aucun banc complet, aucun verdict en vol. Aucun commit, tag ou push demandé.
-- **Notice :** `log/poc-nuage-voxel.md`, lanceur `tools/nuage-voxel-poc.ps1`.
+- **Base:** `7298330`, POC animated near validation.
+- **Volume:** final density R32_FLOAT, fixed local cube of 4,8 km, grid 128³ or 256³, without mipmap.
+- **Time:** same weather; volume rebuilt when phase changes, reused during break.
+- **Comparison:** C swings voxel/procédural at identical exposure and time; F1–F8 palette retained.
+- **Scope:** a dense local cloud; no conclusions on planetary memory or performance.
+- **Verification:** Compilation and light boot only, as requested; visual verdict entrusted to the user.
+- **State:** x64 Debug compilation successful; a hidden capture 128³ in 1 280 × 720 produced without error. Cloud visible, body of procedural function unchanged. `x64/VoxelStartup/startup.json` control; no benchmark complete, no verdict in flight. No commit, tag or push requested.
+- **Note:** `log/poc-nuage-voxel.md`, launcher `tools/nuage-voxel-poc.ps1`.
 
-## 2026-10-26 · Une météo partagée, des franges plus légères · branche `codex/nuage-poc`
+## 2026-10-26 · A shared weather, lighter fringes · branch `codex/nuage-poc`
 
-**Retour utilisateur :** le POC précédent reste stable à l'approche et son aspect est validé. Demande suivante : mouvement et déformation avec le temps, pensés comme une météo commune ; rendu un peu moins solide.
+**User feedback:** The previous POC remains stable at approach and its appearance is validated. Next request: movement and deformation with time, thought as a common weather; made a little less solid.
 
-- **Champ commun :** vent par rotation autour de l'axe de la planète, 12 m/s à l'équateur ; inverse du même mouvement pour lire la densité. Trois ondes dans le monde, périodes 120/150/200 s, amplitudes 80/40/60 m. Détail entraîné vers le haut à 1,71 m/s. Aucun paramètre de mouvement propre à l'identité d'un nuage.
-- **Horloge :** temps réel partagé, indépendant des entrées de caméra et du nombre d'images ; phase continue bouclée à 2 400 s. Les bancs figent le temps, avec instantanés par tâche. Espace pause/reprise, V ×1/×5 ; F1–F8 suivent le vent sans réinitialiser le temps.
-- **Aspect :** extinction 24 → 16 /km, franges 0,18 → 0,26 avec profil au carré, base plus progressive ; diffus 0,18 → 0,22. Même budget de marche et de lumière, toujours deux lectures de détail par densité ; trois ondes analytiques en plus.
-- **Versions :** nouveau binaire `x64/NuagePoc/MyPlanetEngineAnime.exe` ; version figée validée conservée dans `x64/NuagePocReference/`. Historique : `log/poc-nuage-stable-historique.md`. Aucune fusion, aucun commit ou push demandé.
-- **Validation :** compilation complète réussie ; les cinq vérifications de `tools/banc_nuage_poc.py` passent. Retour au même temps et à la même vue : différence d'opacité exactement nulle. Variation moyenne à 1/60 s : 0,0000211 ; déformation après suivi du vent à 30 s : 0,0214 ; raccord 2 399,99 → 2 400 s : 0,00000911. Valeurs d'opacité linéaire moyennées sur l'image. Le vol interactif reste au jugement de l'utilisateur.
-- **Franges mesurées, vue d'approche :** 36 739 pixels d'opacité partielle contre 24 907 dans la référence ; opacité moyenne de l'image 0,1234 contre 0,1374. Les deux versions complètes sont comparées, déformation initiale comprise.
-- **Coût mesuré sur ce poste, même vue et soleil, temps 0 :** rendu médian 1,93 → 2,75 ms (nouvelle version : 2,59–3,12 ms sur quatre relevés). Comparaison des versions complètes, avec les nouvelles franges, pas une mesure isolée des trois ondes. Résultats : `x64/NuagePocAnimationCheck/verification.json`, `animation.png`, `cout/mesures.json`.
-- **Portée :** la loi de mouvement commune s'exerce sur la formation du POC ; intégration de la couverture planétaire hors du périmètre de cette itération.
+- **Common field:** wind by rotation around the axis of the planet, 12 m/s at the equator; reverse of the same movement to read density. Three waves in the world, periods 120/150/200 s, amplitudes 80/40/60 m. Detail driven up at 1,71 m/s. No movement parameters specific to the identity of a cloud.
+- **Clock:** Shared real time, independent of camera inputs and frame count; continuous phase looped at 2 400 s. The benchmarks freezes time, with snapshots per task. Space pause/reprise, V ×1/×5; F1–F8 follow the wind without resetting time.
+- **Appearance:** extinction 24 → 16 /km, fringes 0,18 → 0,26 with square profile, more progressive base; diffuse 0,18 → 0,22. Same budget of walk and light, always two detailed readings per density; three analytical waves in addition.
+- **Versions:** new binary `x64/NuagePoc/MyPlanetEngineAnime.exe`; frozen validation version retained in `x64/NuagePocReference/`. History: `log/poc-nuage-stable-historique.md`. No merge, no commit or push requested.
+- **Validation:** Complete compilation successful; all five checks of `tools/banc_nuage_poc.py` pass. Return to the same time and the same view: opacity difference exactly zero. Mean change at 1/60 s: 0,0000211; wind-tracking deformation at 30 s: 0,0214; 2 399,99 → 2 400 s: 0,00000911. Linear opacity values averaged on the image. The interactive flight remains at the user's discretion.
+- **Fringe measured, close-up view:** 36 739 pixels of partial opacity versus 24 907 in reference; average image opacity 0,1234 versus 0,1374. The two complete versions are compared, including initial deformation.
+- **Cost measured at this station, same view and sun, time 0:** median rendering 1,93 → 2,75 ms (new version: 2,59–3,12 ms on four readings). Comparison of the full versions, with the new fringes, not an isolated measurement of the three waves. Results: `x64/NuagePocAnimationCheck/verification.json`, `animation.png`, `cout/mesures.json`.
+- **Scope:** common law of motion is exercised on the formation of POC; integration of planetary cover outside the perimeter of this iteration.
 
-## 2026-10-26 · Un cumulus fixe, référence d'approche · branche `codex/nuage-poc`
+## 2026-10-26 · A fixed cumulus, approach reference · branch `codex/nuage-poc`
 
-**But :** valider rapidement la position, la forme et le contour en approche, avant les optimisations. Mode explicite `MYPLANETENGINE_CLOUD_POC`, sans modification du rendu normal. L'utilisateur prend en charge le verdict end to end.
+**Goal:** Quickly validate the position, shape and contour in approach, before optimizing. Explicit mode `MYPLANETENGINE_CLOUD_POC`, without modification of normal rendering. The user supports the end to end verdict.
 
-- **Réglages de maquette :** centre à 4 000 m, 0,5 N, 161,5 E ; quatre lobes, tuile 3D fixe à 4,096 et 1,024 km, extinction au plus 24 /km ; pleine résolution, pas d'au plus 12 m, au plus 384 pas et six points vers le soleil.
-- **Règle :** la densité dépend de la position dans le nuage, jamais du maillage glissant, de l'ancre ou de l'empreinte de caméra. Position relative calculée en double précision avant passage au shader. Sans cascade, damier, jitter, vent, lissage temporel ni halo.
-- **Lancer et itérer :** `tools/nuage-poc.ps1`, `-Build` après modification. Build `x64/NuagePoc`. Palette F1–F8 : loin, approche, bord, entrée, intérieur, retour, dessus, dessous.
-- **Portée :** un seul volume local, éclairage simplifié et pas d'ombre au sol. Le banc planétaire de qualité est hors du périmètre de cette référence. Pas de fusion, commit ou tag avant demande et validation.
-- **Validation :** compilation complète réussie ; cinq captures sans fenêtre à 1 280 × 720 (loin, approche, bord, intérieur, opacité). Sur huit images d'opacité à caméra fixe avec le maillage du terrain en mouvement : différence moyenne de 0,0000355 sur 255, maximum de 1 sur 255. Cela contrôle l'indépendance du maillage, pas le vol réel. Résultats locaux : `x64/NuagePocCheck/verification.json`, `apercu.png`. Approche et traversée en vol à valider par l'utilisateur.
-- **Itérations :** les passages plein écran sont tous compilés par DXC pour conserver une chaîne compatible ; reconstruction incrémentale contrôlée. Les erreurs d'un banc sans fenêtre s'écrivent dans `<jobs>.error.txt` au lieu d'attendre une boîte de dialogue invisible.
-- **Détail :** `log/poc-nuage-stable.md`, `MyPlanetEngine/CloudPoc.hlsli`, `tools/tests/2026-10-26-nuage-poc.txt`.
+- **Mock-up settings:** center at 4 000 m, 0,5 N, 161,5 E; four lobes, tile 3D fixed at 4,096 and 1,024 km, extinction at most 24 /km; full resolution, no more than 12 m, no more than 384 step and six points to the sun.
+- **Rule:** Density depends on the position in the cloud, never the mesh sliding, anchor or camera footprint. Relative position calculated in double precision precision before shading. Without cascade, checkerboard, jitter, wind, temporal smoothing or halo.
+- **Run and iterate:** `tools/nuage-poc.ps1`, `-Build` after modification. Build `x64/NuagePoc`. Palette F1–F8: away, approach, edge, entry, inside, back, top, bottom.
+- **Scope:** a single local volume, lighting simplified and no shadow on the ground. The quality planetary benchmark is out of the scope of this reference. No merge, commit or tag before request and validation.
+- **Validation:** Complete compilation successful; five windowless captures at 1 280 × 720 (far, approach, edge, inside, opacity). On eight fixed camera opacity images with the mesh of the moving field: average difference of 0,0000355 on 255, maximum of 1 on 255. This controls the independence of the mesh, not the actual flight. Local results: `x64/NuagePocCheck/verification.json`, `apercu.png`. Approach and crossing in flight to be validated by the user.
+- **Iterations:** Full-screen passages are all compiled by DXC to keep a compatible string; incremental rebuild controlled. Errors from a windowless benchmark are written to `<jobs>.error.txt` instead of waiting for an invisible dialog.
+- **Detail:** `log/poc-nuage-stable.md`, `MyPlanetEngine/CloudPoc.hlsli`, `tools/tests/2026-10-26-nuage-poc.txt`.
 
-## 2026-10-25 · La stabilité des nuages · branche `muse-nuages-stabilite`
+## 2026-10-25 · Cloud stability · branch `muse-nuages-stabilite`
 
-**Symptôme, en vol sur le volume ci-dessous :** des fourmillements et des scintillements, des glitches carrés et tournés à 54 et 135 km, un disque sombre vu du sol, des mutations à l'approche ; et une animation qui semblait vivre en petit à l'intérieur du nuage. Le champ est figé, sans vent : tout ce mouvement était du bruit d'échantillonnage.
+**Symptom, in flight on the volume below:** tingling and flickering, square glitches and turned at 54 and 135 km, a dark disk seen from the ground, mutations on approach; and an animation that seemed to live in small within the cloud. The field is frozen, without wind: all this movement was sample noise.
 
-**Les causes, et ce qui les règle** (détail et règles : `log/recherche-nuages-historique.md`, « La stabilité » ; `principes.md`) :
-- **La couture des cascades :** leur portée se lisait en norme max, un carré, et chaque recentrage reprenait des axes est-nord qui tournaient la grille et redécoupaient chaque colonne. Portée en distance, fondu élargi, recentrage par texels entiers du plan propre, axes transportés, niveau fin fractionnaire en descente, maximum lissé entre contraintes de niveau.
-- **Le damier :** la moitié des texels gardait la marche de l'image précédente, et l'historique la remélangeait comme fraîche, dans une caméra qui a bougé. La confiance se gouverne par le déplacement de reprojection en texels ; la distance des nuages s'accumule comme leur lumière ; le passé se clipse aux moments du voisinage.
-- **Le disque du détail proche :** son fondu était linéaire en distance, et la même volute ouvrait la porte et soulevait le sommet, gonflant l'épaisseur moyenne d'un côté du fondu. Fondu par octaves d'empreinte, sommet en lognormal de moyenne la colonne, porte décalée de la corrélation.
-- **La coupure au terrain** se faisait par quarts de pixels entiers : la distance se lit filtrée comme la lumière.
+**The causes, and what rules them** (detail and rules: `log/recherche-nuages-historique.md`, “The stability”; `principes.md`):
+- **The sewing of the cascades:** their range was read in standard max, a square, and each refocus took east-north axes that turned the grid and recut each column. Range in distance, broadened fade, refocus by texels wholes of the own plane, transported axes, fractional fine level in descent, maximum smoothed between level constraints.
+- **The checkerboard:** half of the texels kept the march of the previous image, and the history remixed it as fresh, in a camera that moved. Trust is governed by the reprojection shift in texels; the distance of the clouds accumulates like their light; the past is clipped at the moments of neighborhood.
+- **The close detail disc:** its fade was linear in distance, and the same volute opened the door and lifted the top, inflating the average thickness of one side of the fade. Blend by octaves of footprint, lognormal summit of average the column, correlation offset gate.
+- **The cut-off on the field** was made by quarters of whole pixels: the distance is read filtered as light.
 
-**Tremblement au repos** (banc `stabilite`, nouveau : caméra fixe, maillage en vol ; écart moyen entre images successives, avec lissage) :
+**jitter at rest** (benchmark `stabilite`, new: fixed camera, mesh in flight; average difference between successive images, with smoothing):
 
-| Vue signalée | Avant | Après |
+| View reported | Before | After |
 |---|---|---|
-| Sol, 764 m, vers le haut | 0,23 | 0,09 |
+| Ground, 764 m, upwards | 0,23 | 0,09 |
 | 54 km | 0,22 | 0,23 |
 | 135 km | 0,29 | 0,28 |
 
-- **Sans lissage :** 3,48 → 2,66 au sol ; 2,87 → 3,11 et 3,76 → 3,99 en hauteur : la marche brute varie un peu plus, le fondu du détail couvre plus d'octaves.
-- **Mutation en descente rendue,** 200 → 25 km par pas, centres appariés : 0,0347 → 0,0344 de luminance linéaire en moyenne. Les captures du banc sont convergées vue par vue : le gain des recentrages en vol continu se juge en vol, pas au banc.
-- **Écartés par la mesure :** le décalage de marche fixe par pixel (repos à 0,01-0,07, mais un pointillé régulier de biais de quadrature sur les images convergées) et sa progression dorée commune (1,05 et 1,38). Le décalage renouvelé par image est gardé ; l'historique gouverné l'absorbe.
-- **Inchangés :** fraction par bande et descente du banc (43,6 → 43,0 %, écart 0,5 point). Disque entier : contraste 2,5 → 2,7, rapport des pixels sombres 12,9 → 11,0 ; la planète laiteuse reste, ci-dessous.
-- **Banc qualité,** 12 sites, `--before` la base de la branche : 23 tuiles sur 26 à ±0,0. Trois trous p95 bougent de +0,4 à +0,8 dB (neige à 12 et 800 m, herbe à 800 m), là où l'ombre des nuages change de place avec les cascades ; le p95 des photos est à 3,4 dB. Segments droits et mutation du maillage inchangés.
+- **Without smoothing:** 3,48 → 2,66 on the floor; 2,87 → 3,11 and 3,76 → 3,99 in height: the rough walk varies a little more, the detail fade covers more octaves.
+- **Rendered downward mutation,** 200 → 25 km per step, paired centers: 0,0347 → 0,0344 of luminance linear average. The captures of the benchmark are converged view by view: the gain of continuous flight refocus is judged in flight, not at the benchmark.
+- **Excluded by measurement:** the fixed pixel-by-pixel walk offset (rest at 0,01-0,07, but a regular dotted bias of quadrature on converged images) and its common golden progression (1,05 and 1,38). The shift renewed by frame is kept; the governed history absorbs it.
+- **Unchanged:** fraction per band and descent of benchmark (43,6 → 43,0 %, variance 0,5 point). Whole disc: contrast 2,5 → 2,7, dark pixel ratio 12,9 → 11,0; the milky planet remains, below.
+- **benchmark quality,** 12 sites, `--before` the base of the branch: 23 tiles on 26 to ±0,0. Three p95 holes move from +0,4 to +0,8 dB (snow at 12 and 800 m, grass at 800 m), where the cloud shadow changes place with the cascades; the p95 in the photos is at 3,4 dB. Right segments and mutation of the mesh unchanged.
 
-**Reste :** un arc fin au passage de portée des cascades (le plafond et le sigma d'un texel grossier ne sont pas la moyenne des fins : cascades par moyennage descendant à faire) ; le vent et le mouvement ample des formations, chantier suivant ; le coût sous les cirrus et la planète laiteuse, inchangés.
+**Rest:** a fine arc at the passage of range of the cascades (the ceiling and the sigma of a coarse texel are not the average of the ends: cascades by descending average to do); the wind and the wide movement of the formations, following work; the cost under the cirrus and the milky planet, unchanged.
 
-- Image : `journal/2026-10-25-nuages-stabilite.jpg`. Tests en vol : `tools/tests/2026-10-25-nuages-stabilite.txt`. Bancs : `tools/banc_nuages.py --parts stabilite`, `tools/banc_tremblement.py`.
+- Image: `journal/2026-10-25-nuages-stabilite.jpg`. Flight tests: `tools/tests/2026-10-25-nuages-stabilite.txt`. benchmarks : `tools/banc_nuages.py --parts stabilite`, `tools/banc_tremblement.py`.
 
-## 2026-10-25 · Les nuages en volume, de l'orbite au sol · tag `piste/nuages`
+## 2026-10-25 · Clouds in volume, from orbit to ground · tag `piste/nuages`
 
-**Réglages :** nouveaux fichiers `Clouds.cpp`, `Clouds.h`, `GpuHelpers.h` et les passes `CloudBake.hlsl`, `CloudDetail.hlsl`, `CloudCascades.hlsl`, `CloudVolume.hlsl`, `CloudResolve.hlsl`. La couche 2D est retirée. Cascades de 1 024² texels, demi-largeurs 32 × 4^k km ; tuile de volutes de 128³ texels ; 80 pas au plus, la moitié des pixels par image en damier, trois points vers le soleil. Vue de diagnostic `clouds` : 14. Registres des nuages : t10 à t22. Plan et écarts : `recherche-nuages.md`, section « Fait : le volume ».
+**Settings:** new `Clouds.cpp`, `Clouds.h`, `GpuHelpers.h` files and `CloudBake.hlsl`, `CloudDetail.hlsl`, `CloudCascades.hlsl`, `CloudVolume.hlsl`, `CloudResolve.hlsl` passes. The 2D layer is removed. cascades of 1 024² texels, half widths 32 × 4^k km; volutes tile of 128³ texels; 80 not at most, half of pixels per frame in checkerboard, three points to the sun. Diagnostic view `clouds`: 14. Cloud records: t10 to t22. Plan and deviations: `recherche-nuages.md`, section "Fact: the volume".
 
-**Pourquoi une refonte :** en vol, l'utilisateur voyait des nuages plats, cassés dessous et dedans ; d'orbite, des grilles de points et une planète laiteuse ; à 855 km, des ponts coupés aux côtes ; à 2,5 km, un pont plein, sans transparence.
+**Why a redesign:** in flight, the user saw flat clouds, broken below and inside; orbit, grids of points and a milky planet; at 855 km, bridges cut at the ribs; at 2,5 km, a full bridge, without transparency.
 
-**Les causes, et ce qui les règle :**
-- **Les grilles de points :** les octaves du bruit s'annulaient ensemble aux nœuds de leurs grilles emboîtées. Chaque octave est décalée (`CloudFbm`). Règle ajoutée à `principes.md`.
-- **Les côtes :** la carte ne connaît pas la terre ; la couche 2D effaçait les nuages d'une région entière. Le volume la remplace.
-- **Le pont plein et gris :** la diffusion multiple inversait ses deux faces, R à la base et 1 − R au sommet. Remise à l'endroit, et prise le long du rayon du soleil.
-- **Des aiguilles et des falaises :** un champ 2D dressé en hauteur. Ses octaves de 1 km et moins passent en 3D, des volutes de même écart-type. Règle ajoutée à `principes.md`.
-- **Des pyramides au loin :** le pied d'un pas valait toute sa longueur, et floutait les tours. Il vaut l'empreinte du pixel plus un quart du pas.
+**The causes, and what regulates them:**
+- **The grids of points:** the octaves of the noise canceled together at the nodes of their nested grids. Each octave is offset (`CloudFbm`). Rule added to `principes.md`.
+- **Coastlines:** the map does not know the land; the layer 2D erased the clouds of an entire region. The volume replaces it.
+- **The solid and gray deck:** the multiple scattering reversed its two faces, R at the base and 1 − R at the top. Returned to place, and taken along the ray of the sun.
+- **Needles and cliffs:** a field 2D set up in height. Its octaves of 1 km and less pass into 3D, volutes of the same standard deviation. Rule added to `principes.md`.
+- **Pyramids in the distance:** the foot of a step was worth all its length, and blurred the towers. It is worth the pixel footprint plus a quarter of the pitch.
 
-**Photos de référence,** de mémoire, aucune n'étant téléchargée, contre les tests en vol :
-- **de l'ISS, 400 km :** cumulus des alizés en pop-corn, chacun avec son ombre sur l'océan sombre ; ponts de stratocumulus en cellules ; enclumes en disques. Tenu : pop-corn et ombres, ponts troués où la mer se voit.
-- **d'avion au-dessus d'un pont :** sommets bosselés blancs au soleil, creux plus sombres. Tenu à 2,5 km.
-- **du sol :** cumulus à base plate et grise, sommets ronds éclairés ; plafond de stratus gris uniforme ; brouillard à 100 m de visibilité. Tenu, bases un peu claires.
-- **de côté :** cumulus en chou-fleur, cumulonimbus en tour coiffée d'une enclume. Tenu pour les cumulus ; les tours sont trop régulières, des cylindres bosselés.
+**Reference pictures,** memory, none being uploaded, against the flight tests:
+- **from the ISS, 400 km:** cumulus of trade winds in popcorn, each with its shadow on the dark ocean; stratocumulus bridges in cells; anvils in disks. Outfit: popcorn and shadows, hole bridges where the sea is seen.
+- **plane over a bridge:** white sun-hugged tops, darker bottoms. Held at 2,5 km.
+- **from the ground:** cumulus with flat and gray base, round illuminated peaks; uniform gray stratus ceiling; fog at 100 m of visibility. Hold, somewhat clear bases.
+- **side:** cumulus in cauliflower, cumulonimbus in tower crowned with an anvil. Hold for cumulus; the towers are too regular, cylinders humped.
 
-**Épaisseur optique et couverture :** τ croît avec la profondeur dans le champ, de 0 au bord à 11 pour un stratus de 0,3 km et 34 pour un cumulus de 1,5 km, 45 /km d'extinction. Une région en partie couverte transmet 1 − c (1 − e^−τ) : la mer se voit entre les nuages, jamais à travers un cœur épais.
+**Optical thickness and coverage:** τ increases with depth in the field, from 0 at the edge to 11 for a stratus of 0,3 km and 34 for a cumulus of 1,5 km, 45 /km extinction. A partially covered region transmits 1 − c (1 − e^Z−τ): the sea is seen through the clouds, never through a thick core.
 
-**Fraction nuageuse par bande de 10°,** vue `clouds`, 16 vues par bande, contre MODIS (King et al. 2013) :
+**Cloudy fraction per band of 10°,** view `clouds`, 16 views per band, vs. MODIS (King et al. 2013) :
 
-| Bande | 90-80 S | 80-70 S | 70-60 S | 60-50 S | 50-40 S | 40-30 S | 30-20 S | 20-10 S | 10-0 S |
+| Band | 90-80 S | 80-70 S | 70-60 S | 60-50 S | 50-40 S | 40-30 S | 30-20 S | 20-10 S | 10-0 S |
 |---|---|---|---|---|---|---|---|---|---|
 | Nuages | 70 % | 92 % | 86 % | 72 % | 69 % | 62 % | 58 % | 56 % | 64 % |
 | MODIS | 45 % | 55 % | 82 % | 88 % | 82 % | 68 % | 55 % | 55 % | 62 % |
 
-| Bande | 0-10 N | 10-20 N | 20-30 N | 30-40 N | 40-50 N | 50-60 N | 60-70 N | 70-80 N | 80-90 N |
+| Band | 0-10 N | 10-20 N | 20-30 N | 30-40 N | 40-50 N | 50-60 N | 60-70 N | 70-80 N | 80-90 N |
 |---|---|---|---|---|---|---|---|---|---|
 | Nuages | 68 % | 53 % | 47 % | 57 % | 73 % | 81 % | 84 % | 94 % | 96 % |
 | MODIS | 68 % | 57 % | 50 % | 57 % | 68 % | 75 % | 76 % | 78 % | 76 % |
 
-- **Le globe :** 65,5 % contre 65,1 %.
-- **De 40° S à 70° N, à 8 points près.** L'océan austral, −16 et −13 ; l'Arctique, +16 et +20. Le décalage des octaves a changé le tirage de la planète, pas la loi ; 16 vues par bande au lieu de 32.
+- **The globe:** 65,5 % against 65,1 %.
+- **From 40° S to 70° N, to 8 points close.** Southern Ocean, −16 and −13; Arctic, +16 and +20. The shift of octaves changed the drawing of the planet, not the law; 16 views per tape instead of 32.
 
-**Descente,** part de nuages d'une zone de 60 km, de 1 500 à 60 km, 8 lieux : moyenne de 43,6 à 43,0 %, écart maximal 0,5 point.
+**Descent,** cloud share of an area of 60 km, from 1 500 to 60 km, 8 locations: average of 43,6 to 43,0 %, maximum variation 0,5 point.
 
-**Côtes,** 12 lieux vus de 400 km, part de nuages par distance à la côte :
+**Coast,** 12 places seen from 400 km, cloud share by distance to coast:
 
-| Bande | terre 25-50 km | terre 10-25 km | terre 0-10 km | mer 0-10 km | mer 10-25 km | mer 25-50 km |
+| Band | land 25-50 km | land 10-25 km | land 0-10 km | more 0-10 km | more 10-25 km | more 25-50 km |
 |---|---|---|---|---|---|---|
 | Nuages | 51,2 % | 51,9 % | 55,2 % | 56,9 % | 60,2 % | 61,3 % |
 
-- **Pas de marche à la côte :** 1,7 point entre les deux bandes qui la bordent, moins qu'entre deux bandes voisines du même côté. La pente d'ensemble vient du tirage de 12 lieux.
+- **No walk to the coast:** 1,7 point between the two stripes that border it, less than between two neighboring stripes on the same side. The overall slope comes from the draw of 12 places.
 
-**Disque entier depuis 7 400 km,** soleil dans le dos, 6 vues :
-- **Océan dégagé,** sous moins de 20 % de nuage au pixel de 20 km : 4,4 % du disque. Pixels sombres, sous deux fois sa lumière : 57 %.
-- **Contraste nuages épais sur océan dégagé :** 2,5 ; 3,1 avant la fusion avec `jalon/19-detail-sol`. Sur Terre, nuages épais 0,5 à 0,8, océan vu d'orbite avec son air 0,08 à 0,1 (CERES) : 6 à 8.
-- **Déciles de luminance,** linéaire : de 0,19-0,30 à 10 % à 0,70-0,72 à 90 %.
-- **La planète reste laiteuse, pour deux raisons mesurées.** Sans nuages, l'océan dégagé est 2,1 fois plus clair qu'avant la fusion, 0,233 contre 0,109 : l'exposition. Et le champ des cumulus, ses petites octaves pesées 2,5 fois, laisse peu de grandes zones claires au pixel de 20 km. Les ramener à 1,5 fois ne change presque rien au disque et rend les cumulus en blocs : gardé à 2,5.
+**Whole disc from 7 400 km,** sun in the back, 6 views:
+- **Clear ocean,** below less than 20 % of clouds per pixel of 20 km: 4,4 % of disk. Dark pixels, under twice its light: 57 %.
+- **Contrast thick clouds on clear ocean:** 2,5; 3,1 before merging with `jalon/19-detail-sol`. On Earth, thick clouds 0,5 to 0,8, ocean seen from orbit with its air 0,08 to 0,1 (CERES): 6 to 8.
+- **Deciles of luminance,** linear: from 0,19-0,30 to 10 % to 0,70-0,72 to 90 %.
+- **The planet remains milky, for two measured reasons.** Cloudless, the clear ocean is 2,1 times clearer than before the fusion, 0,233 against 0,109: the exposure. And the cumulus field, its small octaves weighted 2,5 times, leaves few large clear areas at the pixel of 20 km. Bringing them back to 1,5 times changes almost nothing to the disk and makes the cumulus blocks: kept at 2,5.
 
-**Luminance rendue d'une zone de 60 km, de 1 500 à 25 km :** 0,316 à 0,373 sur l'équateur, 0,19 à 0,26 à 41° S, sans tendance ; à 15 % près.
+**luminance rendered from an area of 60 km, from 1 500 to 25 km:** 0,316 to 0,373 on the equator, 0,19 to 0,26 to 41° S, without trend; close to 15 %.
 
-**Coût** des passes du volume, cascades, marche et lissage, entre deux horodatages GPU. Le GPU était occupé à 92-97 % par cinq autres moteurs, qui découpent les longues passes : la moyenne n'y veut rien dire. Le temps retenu est le minimum sur cinq lancements de 165 images chacun, une borne haute du temps au repos :
+**Cost** of volume passes, cascades, walk and smooth, between two GPU timestamps. The GPU was occupied at 92-97 % by five other engines, which cut the long passes: the average does not mean anything. The time held is the minimum on five launches of 165 images each, a high limit of time at rest:
 
-| Vue | Sous des cumulus, 500 m | Pont, 2,5 km | Sommets, 2,6 km | Cumulus de 6 km | Cumulonimbus, 3 km | Brouillard | Horizon, 1,7 km | Avion, 10 km | 400 km | 855 km | 7 400 km |
+| View | Under cumulus, 500 m | Bridge, 2,5 km | Summits, 2,6 km | Cumulus of 6 km | Cumulonimbus, 3 km | Fog | Horizon, 1,7 km | Airplane, 10 km | 400 km | 855 km | 7 400 km |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | Nuages | 2,0 ms | 1,3 ms | 1,7 ms | 1,0 ms | 2,3 ms | 0,8 ms | 0,6 ms | 3,6 ms | 0,8 ms | 0,6 ms | 0,6 ms |
 
-- **Dans le budget de 2 à 3 ms sauf sous les cirrus,** 3,6 ms : un rayon rasant y traverse des dizaines de km de voile.
-- **Ce qui l'a ramené là :** la moitié des pixels marchée par image, en damier ; trois points vers le soleil ; le niveau des cascades partagé par pas ; douze pas à travers les cirrus ; le décalage des tours limité à la forte convection.
-- **Non compté :** l'ombre et l'air sous les nuages dans la passe d'atmosphère.
+- **In the budget of 2 to 3 ms except under cirrus,** 3,6 ms: a radius of racing crosses tens of kilometers of sail.
+- **What brought it back there:** half of the pixels walked per frame, in checkerboard; three points to the sun; the level of cascades divided by steps; twelve steps through cirrus; the shift of the towers limited to strong convection.
+- **Not counted:** shadow and air under clouds in the atmosphere pass.
 
-**Reste :**
-- **le coût sous les cirrus,** 3,6 ms ;
-- **la planète laiteuse d'orbite,** ci-dessus ;
-- **les tours de cumulonimbus trop régulières ;**
-- **pas de vent,** cirrus et rues figés ;
-- **le scintillement,** non mesuré au banc.
+**Rest:**
+- **the cost under cirrus,** 3,6 ms;
+- **the milky orbit planet,** above;
+- **Cumulonimbus towers too regular;**
+- **no wind,** cirrus and frozen streets;
+- **the flicker,** not measured at the benchmark.
 
-- Image : `journal/2026-10-25-nuages-volume.jpg`. Tests en vol : `tools/tests/2026-10-24-nuages.txt`. Bancs : `tools/banc_nuages.py`, côtes et disque entier ajoutés.
+- Image: `journal/2026-10-25-nuages-volume.jpg`. Flight tests: `tools/tests/2026-10-24-nuages.txt`. benchmarks: `tools/banc_nuages.py`, ribs and whole disk added.
 
-## 2026-10-25 · Le ciel nocturne : étoiles, planètes, Voie lactée · tag `piste/etoiles`
+## 2026-10-25 · Night sky: stars, planets, Milky Way · tag `piste/etoiles`
 
-**Hors de `main` :** branche `etoiles`, gardée pour être intégrée ; le plan est dans `recherche-ciel-nocturne.md`. Ses réglages ne sont pas dans « Réglages actuels ».
+**Out of `main`:** branch `etoiles`, kept to be integrated; the plan is in `recherche-ciel-nocturne.md`. Its settings are not in “Current Settings”.
 
-**Réglages :** `SUN_MAGNITUDE` = -26,74, `SUN_LUX` = 125 885 lx, `STAR_POINT_LIMIT` = 8, `DIFFUSE_GALACTIC_LIGHT` = 0,3, `AIRGLOW_ZENITH_MAGNITUDE` = 22,4, `AIRGLOW_ALTITUDE_KM` = 90, `AIRGLOW_WIDTH_KM` = 4, `AIRGLOW_COLOR_INDEX` = 0,8, nouveaux ; tables de l'atmosphère en flottants 32 bits, diffusion multiple sur 256 × 32 au lieu de 32 × 32. Recherche, choix et sources : `recherche-ciel-nocturne.md`.
+**Settings:** `SUN_MAGNITUDE` = -26,74, `SUN_LUX` = 125 885 lx, `STAR_POINT_LIMIT` = 8, `DIFFUSE_GALACTIC_LIGHT` = 0,3, `AIRGLOW_ZENITH_MAGNITUDE` = 22,4, `AIRGLOW_ALTITUDE_KM` = 90, `AIRGLOW_WIDTH_KM` = 4, `AIRGLOW_COLOR_INDEX` = 0,8, new; atmosphere tables in floating 32 bits, multiple scattering on 256 × 32 instead of 32 × 32. Search, selection and sources: `recherche-ciel-nocturne.md`.
 
-- **Demande :** les étoiles, constellations, galaxies et planètes, vues de l'espace et du sol ; leur visibilité de jour et de nuit à travers l'air ; une lumière faible sur les nuits.
-- **Règles, dans `principes.md` :** le ciel est de la lumière, pas un décor ; la nuit reste la nuit ; une table résout la fonction qu'elle porte.
-- **Changements :**
-  - **les étoiles et les planètes,** `Stars.hlsl` : un quad par étoile, un seul dessin, dans une couche à elles que la courbe de tons ajoute après le lissage temporel. Leur lumière en magnitudes, par l'échelle du Soleil ; leur couleur, de B-V par Planck ; leur image, un profil de Moffat de 2 pixels, chaque pixel la part qu'il couvre ;
-  - **ce qu'on voit :** la transmittance de l'air, puis le seuil de l'œil de Schaefer contre le ciel derrière l'étoile, lu dans l'image composite ; l'œil ne voit que l'excès ;
-  - **les étoiles,** `BrightStars.hlsli` : 320 écrites jusqu'à 3,5 ; un champ procédural jusqu'à 8, aux comptes publiés par magnitude et à la concentration galactique d'Allen ;
-  - **les planètes :** éléments de JPL à la date que donne la place du Soleil, en 2026 ; magnitudes de l'Astronomical Almanac ;
-  - **la Voie lactée,** `Sky.hlsli` : la lumière des étoiles plus faibles que 8, sa moyenne par les comptes, sa forme par les comptes d'Allen, des nuages de bruit de gradient ; dans la passe du ciel, derrière l'air ;
-  - **la lueur atmosphérique,** `NightSky.hlsli` : une émission dans la marche du ciel, couche en sech² à 90 km ; elle éclaire le sol par la table d'éclairement du ciel, avec la moyenne de la lumière des étoiles ;
-  - **l'exposition,** `ToneMap.hlsl` : le posemètre lit le crépuscule et la nuit, au lieu de garder la lumière du coucher ; la clé de l'œil de Krawczyk, rapportée à midi, assombrit la nuit de 4,5 IL ; les bâtonnets voient sans couleur ce qui est sombre pour un œil adapté au sombre ;
-  - **les tables de l'atmosphère :** en flottants 32 bits, la nuit tombait sous le plus petit demi-flottant ; la diffusion multiple sur 256 hauteurs du soleil ;
-  - **la sortie 8 bits :** un demi-niveau de bruit fixe sur l'écran avant l'arrondi ; le dégradé du ciel de nuit se coupait en paliers ;
-  - **une vue de mesure,** `MYPLANETENGINE_VIEW=luminance` : la luminance sur 16 bits et le posemètre ; `MYPLANETENGINE_NO_STARS` retire les étoiles ;
-  - **un banc,** `tools/banc_etoiles.py` : vues, crépuscule, comptes, scintillement, coût.
-- **Mesures, `tools/banc_etoiles.py` :**
-  - **comptes,** tout le ciel, table et champ, contre les comptes publiés : à 4, 523 contre 513 ; à 5, 1 624 contre 1 603 ; à 6, 4 821 contre 4 797 ; à 6,5, 9 123 contre 9 099 ; à 8, 41 999 contre 41 976 ;
-  - **concentration galactique,** densité à moins de 10° du plan sur plus de 60° : 3,17 à 6, Allen 3,20 ; 3,02 à 8, Allen 3,10 ;
-  - **le dessin contre le modèle,** une calotte de 25° autour du centre galactique vue de l'espace : 132 étoiles plus brillantes que 5, 132 attendues ; 361 à 6, 362 attendues ;
-  - **du jour à la nuit,** le désert à 26° N, vers le zénith, le soleil de 0° à -24° : le ciel, le posemètre et la magnitude limite contre le modèle de Schaefer et les éclairements publiés ; les étoiles que le seuil laisse passer, celles que l'écran montre (3 niveaux de plus au moins) :
+- **Request:** stars, constellations, galaxies and planets, views from space and ground; their visibility day and night through the air; a dim light on nights.
+- **Rules, in `principes.md`:** the sky is light, not a decor; night remains night; a table resolves the function it carries.
+- **Changes:**
+  - **the stars and planets,** `Stars.hlsl`: one quad per star, one drawing, in a layer to them that the tone curve adds after the time smoothing. Their light in magnitudes, by the scale of the Sun; their color, from B-V by Planck; their image, a Moffat profile of 2 pixels, each pixel the part it covers;
+  - **what we see:** the transmittance of the air, then the threshold of Schaefer's eye against the sky behind the star, read in the composite image; the eye sees only the excess;
+  - **stars,** `BrightStars.hlsli`: 320 written up to 3,5; a procedural field up to 8, to published counts by magnitude and Allen galactic concentration;
+  - **planets:** elements of JPL at the date given by the place of the Sun, in 2026; magnitudes of the Astronomical Almanac;
+  - **the Milky Way,** `Sky.hlsli`: the light of the stars fainter than 8, its average by counts, its shape by Allen's counts, gradient noise clouds; in the passage of the sky, behind the air;
+  - **the atmospheric glow,** `NightSky.hlsli`: an emission in the walk of the sky, layer in six² at 90 km; it illuminates the ground by the table of illuminance of the sky, with the average of the light of the stars;
+  - **the exposure,** `ToneMap.hlsl`: the exposure meter reads twilight and night, instead of keeping the light of bedtime; the key of the eye of Krawczyk, reported at noon, darkens the night of 4,5 EV; the sticks see without color what is dark for an eye adapted to the dark;
+  - **the tables of the atmosphere:** in floating 32 bits, the night fell under the smallest half-floating; the multiple scattering on 256 heights of the sun;
+  - **the output 8 bits:** a half level of noise fixed on the screen before rounding; the gradient of the night sky cut in steps;
+  - **a measurement view,** `MYPLANETENGINE_VIEW=luminance`: the luminance on 16 bits and the exposure meter; `MYPLANETENGINE_NO_STARS` removes the stars;
+  - **a benchmark,** `tools/banc_etoiles.py`: views, twilight, accounts, flicker, cost.
+- **Measurements, `tools/banc_etoiles.py`:**
+  - **counts,** all the sky, table and field, against the published accounts: to 4, 523 against 513; to 5, 1 624 against 1 603; to 6, 4 821 against 4 797; to 6,5, 9 123 against 9 099; to 8, 41 999 against 41 976;
+  - **galactic concentration,** density at less than 10° of the plane on more than 60°: 3,17 to 6, Allen 3,20; 3,02 to 8, Allen 3,10;
+  - **the drawing against the model,** a cap of 25° around the galactic center seen from space: 132 stars brighter than 5, 132 expected; 361 to 6, 362 expected;
+  - **day to night,** the desert at 26° N, towards the zenith, the sun from 0° to -24°: the sky, the exposure meter and the limit magnitude against the Schaefer model and the published illuminations; the stars that the threshold lets pass, those that the screen shows (3 levels of more to less):
 
 | Soleil | 0° | -4° | -6° | -8° | -10° | -12° | -14° | -16° | -18° | -24° |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Zénith, cd/m² | 169 | 9,9 | 1,0 | 0,086 | 0,012 | 2,4e-3 | 6,2e-4 | 2,5e-4 | 1,5e-4 | 1,4e-4 |
+| Zenith, cd/m² | 169 | 9,9 | 1,0 | 0,086 | 0,012 | 2,4e-3 | 6,2e-4 | 2,5e-4 | 1,5e-4 | 1,4e-4 |
 | Schaefer, cd/m² | 101 | 2,4 | 0,38 | 0,059 | 9,4e-3 | 1,7e-3 | 4,6e-4 | 2,7e-4 | 2,4e-4 | 2,4e-4 |
-| Posemètre, lux | 1 050 | 66 | 9,8 | 0,87 | 0,076 | 0,011 | 2,8e-3 | 1,0e-3 | 7,1e-4 | 6,0e-4 |
-| Publié, lux | 410 à 585 | | 2 à 3,5 | | | 0,008 | | | 6e-4 | |
-| Limite à l'œil, ce ciel | -0,5 | 1,9 | 3,3 | 3,9 | 4,2 | 4,9 | 5,9 | 6,4 | 6,7 | 6,7 |
-| Limite, ciel de Schaefer | 0,0 | 2,8 | 3,6 | 4,0 | 4,2 | 5,2 | 6,1 | 6,4 | 6,4 | 6,5 |
-| Étoiles passées, à l'écran | 0, 0 | 6, 0 | 29, 1 | 41, 13 | 43, 30 | 76, 70 | 207, 190 | 381, 369 | 522, 515 | 599, 581 |
-| La plus faible à l'écran | | | 0,2 | 3,3 | 4,0 | 4,8 | 5,8 | 6,4 | 6,7 | 6,7 |
+| Exposure meter, lux | 1 050 | 66 | 9,8 | 0,87 | 0,076 | 0,011 | 2,8e-3 | 1,0e-3 | 7,1e-4 | 6,0e-4 |
+| Published, lux | 410 to 585 |  | 2 to 3,5 |  |  | 0,008 |  |  | 6e-4 |  |
+| Limit to the eye, this sky | -0,5 | 1,9 | 3,3 | 3,9 | 4,2 | 4,9 | 5,9 | 6,4 | 6,7 | 6,7 |
+| Limit, Schaefer Sky | 0,0 | 2,8 | 3,6 | 4,0 | 4,2 | 5,2 | 6,1 | 6,4 | 6,4 | 6,5 |
+| Stars past, on the screen | 0, 0 | 6, 0 | 29, 1 | 41, 13 | 43, 30 | 76, 70 | 207, 190 | 381, 369 | 522, 515 | 599, 581 |
+| The weakest on the screen |  |  | 0,2 | 3,3 | 4,0 | 4,8 | 5,8 | 6,4 | 6,7 | 6,7 |
 
-  - **lecture :** de -8° à la nuit, ciel et limite suivent Schaefer à 45 % et 0,3 magnitude près ; la nuit, notre ciel est 0,5 magnitude plus sombre que le sien, qui compte la lumière zodiacale. De 0° à -6°, le ciel est 1,7 à 4 fois trop clair. Dans ce champ, la première étoile paraît à -6° : Arcturus, 0,2 à travers l'air ;
-  - **scintillement,** la caméra tournant de 0,04° par image, 24 images, environ 350 étoiles suivies : leur lumière sommée change de 0,5 % (p95 3,5 %), leur pixel le plus brillant de 6,6 %, 1,9 niveau de l'écran (p95 3,1). Caméra immobile : 0. En points d'un pixel : 0,1 %, 0 niveau, mais toute étoile plus brillante que 5,5 y était le même pixel blanc ;
-  - **la nuit au sol :** posemètre 6,0e-4 lux, soleil à -20° ; l'intégrale de van Rhijn sur notre air en attend 5,7e-4, lueur 3,3e-4 et étoiles 2,3e-4 ; publié 6e-4 lux à -18°, 1e-3 lux avec la lumière zodiacale, absente ici. Le désert, d'albédo 0,10, à 1,2e-5 cd/m² : une silhouette noire sous un ciel gris foncé ;
-  - **les vues de test, la nuit,** `tools/tests/2026-10-25-etoiles.txt` : le ciel au centre de 21,15 mag/arcsec² vers le centre galactique à 22,13 ailleurs, publié 21,9 à 22,0 ; de 84 à 1 269 étoiles à l'écran selon le champ ; la plus faible à 0,01 ou 0,02 magnitude de la limite de l'œil sur le ciel derrière elle, entre 6,6 et 7,1 ;
-  - **de jour, ou face au jour :** aucune étoile à l'écran. D'orbite, la planète au jour devant : 22 étoiles passent le seuil de l'œil sur le noir, aucune ne se voit, l'exposition est celle du jour ; vers le terminateur, 476 et aucune ;
-  - **au crépuscule :** à -4° vers l'est, 2 dessinées, aucune à l'écran ; à -9° vers l'ouest, 14 dessinées, 3 à l'écran, Vénus, Jupiter et Mercure ; à l'aube de décembre, -12°, 34 à l'écran, Vénus en tête ;
-  - **les tons,** `tools/banc_tons.py`, contre le jalon 18, sol médian à l'écran : vues de jour à 0,02 IL près ; soleil bas de 8° à 2°, -0,08 à -0,26 IL, la clé de l'œil ; crépuscule à -3°, +1,34 IL, le posemètre suivant la lumière au lieu de garder celle du coucher ;
-  - **coût,** `banc_etoiles.py cout`, RTX 4070 Ti partagée avec d'autres instances, le moins de six captures alternées, 1280 × 720 : la passe des étoiles reste sous le bruit, 0,01 ms ; la passe du ciel prend 0,12 ms de plus vers l'espace, 0,26 ms sous un ciel de jour qui remplit l'image, la Voie lactée par pixel et la lueur à chaque pas de la marche. Au sol de nuit, le bruit de mesure, 0,5 ms, couvre l'écart ;
-- **Essayé et écarté :**
-  - **les étoiles en points d'un pixel :** parfaitement stables, mais toutes saturées, sans hiérarchie d'éclat ;
-  - **le lissage temporel sur les étoiles :** il étale et assombrit une étoile qui glisse ; d'où leur couche à part ;
-  - **une couleur de lueur à moitié dans la raie verte :** un ciel vert olive ; puis la couleur mesurée du ciel, brune près de l'horizon. Les bâtonnets la rendent grise ;
-  - **une Voie lactée au profil d'Allen seul, bruitée partout :** des nuages sur tout le ciel ; d'où la bande étroite, seule bruitée.
-- **Reste :**
-  - **le crépuscule de 0° à -6°,** 1,7 à 4 fois plus clair que le modèle de Schaefer, le posemètre 2 fois au coucher et 3 à 5 fois à -6° : l'approximation de la diffusion multiple de Hillaire ;
-  - **la lumière zodiacale,** 20 à 30 % de la nuit, et son cône au crépuscule ;
-  - **les catalogues :** le BSC5 pour les étoiles jusqu'à 6,5, la carte de la NASA pour la Voie lactée ; fichiers à demander, `recherche-ciel-nocturne.md` ;
-  - **une seule couche de lueur,** de couleur moyenne : vue d'orbite, la ligne verte de l'oxygène à 97 km ne s'en distingue pas ;
-  - **au crépuscule, l'écran perd 0,2 à 0,7 magnitude sur l'œil :** l'image d'une étoile, 2 pixels de 5', dilue la lumière que l'œil des cônes concentre sur 1' ; la nuit, 0,01 à 0,02. Un écran plus fin la rapproche ;
-  - **le ciel de nuit à l'écran,** gris à 25 % : à juger en vol ;
-  - **pas de Lune ; la date** ne parcourt que la moitié de l'année, de décembre à juin ;
-  - **la Voie lactée et la lueur se calculent aussi de jour,** invisibles : 0,26 ms qu'un test sur la clarté du ciel épargnerait ;
-  - **le crépuscule plus clair à l'écran qu'au jalon 18,** +1,3 IL à -3°, le posemètre le suivant : à juger en vol.
-- **Pour revenir :** `MYPLANETENGINE_NO_STARS=1` retire les étoiles et les planètes ; le reste, `git checkout jalon/18-lumiere`.
-- **Tests en vol :** `tools/tests/2026-10-25-etoiles.txt`, à lancer par `tools/lance.ps1 -Exe x64\Etoiles\MyPlanetEngine.exe -Tests tools\tests\2026-10-25-etoiles.txt` ; les quatorze vues, `images/ciel-nocturne.jpg`.
+  - **reading:** from -8° at night, sky and limit follow Schaefer at 45 % and 0,3 magnitude close; at night, our sky is 0,5 magnitude darker than his, which counts the zodiacal light. From 0° to -6°, the sky is 1,7 to 4 times too clear. In this field, the first star appears at -6°: Arcturus, 0,2 through the air;
+  - **flicker,** the camera rotating of 0,04° per frame, 24 frames, about 350 stars followed: their summed light changes of 0,5 % (p95 3,5 %), their brightest pixel of 6,6 %, 1,9 screen level (p95 3,1). Still camera: 0. In pixel points: 0,1 %, 0 level, but any star brighter than 5,5 there was the same white pixel;
+  - **night on the ground:** exposure meter 6,0e-4 lux, sun at -20°; van Rhijn integral on our air of waiting 5,7e-4, glow 3,3e-4 and stars 2,3e-4; published 6e-4 lux at -18°, 1e-3 lux with zodiacal light, absent here. The desert, from albedo 0,10, to 1,2e-5 cd/m²: a black silhouette under a dark gray sky;
+  - **the test views, at night,** `tools/tests/2026-10-25-etoiles.txt`: the sky at the center from 21,15 mag/arcsec² to the galactic center at 22,13 elsewhere, published 21,9 to 22,0; from 84 to 1 269 stars on the screen according to the field; the fastest at 0,01 or 0,02 magnitude of the eye limit on the sky behind it, between 6,6 and 7,1;
+  - **day, or face to day:** no stars on the screen. From orbit, the planet in front of the day: 22 stars pass the threshold of the eye on the black, none is seen, the exposure is that of the day; towards the terminator, 476 and none;
+  - **at twilight:** at -4° to the east, 2 drawn, none on screen; at -9° to the west, 14 drawn, 3 on screen, Venus, Jupiter and Mercury; at dawn of December, -12°, 34 on screen, Venus in the foreground;
+  - **tones,** `tools/banc_tons.py`, against the milestone 18, mid-ground on the screen: day views at 0,02 EV near; low sun from 8° to 2°, -0,08 to -0,26 EV, the key of the eye; twilight at -3°, +1,34 EV, the exposure meter following the light instead of keeping the one of the sunset;
+  - **cost,** `banc_etoiles.py cout`, RTX 4070 Ti shared with other instances, at least six alternate captures, 1280 × 720: the pass of the stars remains below the noise, 0,01 ms; the pass of the sky takes 0,12 ms more into space, 0,26 ms under a day sky that fills the image, the Milky Way per pixel and the glow at every step of the walk. At night ground, the measurement noise, 0,5 ms, cover the gap;
+- **Tested and rejected:**
+  - **the stars in points of one pixel:** perfectly stable, but all saturated, without hierarchy of brightness;
+  - **the temporal smoothing on the stars:** it spreads and darkens a star that slides; hence their layer apart;
+  - **a half glow color in the green line:** an olive green sky; then the measured color of the sky, brown near the horizon. The sticks make it gray;
+  - **a Milky Way in Allen's profile alone, noise everywhere:** clouds all over the sky; hence the narrow band, only noise.
+- **Rest:**
+  - **the twilight of 0° to -6°,** 1,7 to 4 times brighter than the Schaefer model, the exposure meter 2 times at nightfall and 3 to 5 times at -6°: the approximation of Hillaire's multiple scattering;
+  - **the zodiacal light,** 20 to 30 % of the night, and its cone at twilight;
+  - **the catalogues:** the BSC5 for stars up to 6,5, the map of the NASA for the Milky Way; files to request, `recherche-ciel-nocturne.md`;
+  - **a single layer of glow,** medium color: orbit view, the green line of oxygen at 97 km is not distinguished;
+  - **at dusk, the screen loses 0,2 to 0,7 magnitude on the eye:** the image of a star, 2 pixels of 5', dilutes the light that the eye of the cones focuses on 1'; at night, 0,01 to 0,02. A thinner screen brings it closer;
+  - **night sky on the screen,** gray to 25 %: to be judged in flight;
+  - **no Moon; the date** only runs half the year, from December to June;
+  - **the Milky Way and the glow are also calculated by day,** invisible: 0,26 ms that a test on the clarity of the sky would spare;
+  - **the twilight clearer on the screen than at the milestone 18,** +1,3 EV to -3°, the exposure meter the following: to judge in flight.
+- **To return:** `MYPLANETENGINE_NO_STARS=1` removes the stars and planets; the rest, `git checkout jalon/18-lumiere`.
+- **Flight tests:** `tools/tests/2026-10-25-etoiles.txt`, to be launched by `tools/lance.ps1 -Exe x64\Etoiles\MyPlanetEngine.exe -Tests tools\tests\2026-10-25-etoiles.txt`; all fourteen views, `images/ciel-nocturne.jpg`.
 
-## 2026-10-25 · Les plages · tag `piste/plages`
+## 2026-10-25 · The beaches · tag `piste/plages`
 
-**Hors de `main` :** branche `plages`, faite sur l'ancienne mer, à porter sur la mer FFT ; le plan est dans `recherche-cotes.md`. Ses réglages ne sont pas dans « Réglages actuels ».
+**Out of `main`:** branch `plages`, made on the old sea, to carry on the sea FFT; the plan is in `recherche-cotes.md`. Its settings are not in “Current Settings”.
 
-**Réglages :** la plage passe d'une bande de 5 à 25 m, ±9 m, à une bande de 0 à 2,5 m, ±1 m, sur les pentes de moins de 0,12 à 0,22 ; nouveaux, le sol mouillé et sa brillance, la laisse de mer, les algues et le lichen noir des roches ; la ligne d'eau perd son fondu fixe de −1 à +1 m (`GroundMaterials`, `PixelShader.hlsl`). Plan et recherche : `recherche-cotes.md`, étapes 1 et 2.
+**Settings:** the range changes from a band of 5 to 25 m, ±9 m, to a band of 0 to 2,5 m, ±1 m, on slopes less than 0,12 to 0,22; new, wet ground and its shine, sea leash, algae and black lichen of rocks; the waterline loses its fixed fade from −1 to +1 m (`GroundMaterials`, `PixelShader.hlsl`). Map and search: `recherche-cotes.md`, steps 1 and 2.
 
-- **Symptôme :** des plages de 540 m de large en médiane, plus de 1,9 km pour un rivage sur dix ; du sable jusqu'à 25 m sur les falaises ; 30 à 45 m de rivage flou.
-- **Cause :** une bande d'altitude de 5 à 25 m sur des côtes de plaine en pente de 4 à 6 %. La largeur d'une bande est sa hauteur sur la pente : sur Terre, les bandes d'un rivage sont des hauteurs d'eau, de 1 à 3 m.
-- **Règles, dans `principes.md` :** la côte est une limite comme les autres ; un bruit élargit une limite de ce qu'il la déplace, pas plus.
-- **Changements :**
-  - toutes les bandes sont des hauteurs d'eau, multipliées par l'exposition de la côte, `CoastExposure`, tirée du bruit local : plage 2,5 m, sol mouillé 1 m, laisse 1,06 à 1,16 m, algues 0,4 m, lichen noir 0,8 à 3 m ;
-  - chacune est une part de la terre du pixel, `ShoreBelow`, puisque la mer couvre le reste ; la mer couvre la part des hauteurs sous 0, celles que cache la maille et celles du pixel, sa pente fois sa taille, `ShoreSpread` ;
-  - la plage s'arrête aux pentes de 0,12 à 0,22, les faces de plage réelles ; le sol mouillé est deux fois plus sombre et brille, un film d'eau de rugosité 0,2 au Fresnel de l'eau, `WaterSheen`, à partager avec la mer ;
-  - la laisse est cassée en taches par un bruit de 16 m à 50 cm ; algues et lichen ne teintent que la roche.
-- **Mesures :**
-  - largeur de plage sur 968 rivages, portage CPU, `tools/cotes/t8.py` : médiane 502 → 39 m, 53 m là où il y a une plage ; p90 2 196 → 209 m ; 18 % des rivages sans plage, trop raides ; sol mouillé, médiane 14 m, p90 51 m ;
-  - banc de descente, part de plage, côte de 0,478° N 116,513° E : carré de 300 km, 4,7 → 2,8 % avant, 0,3 à 0,4 % après, de 1 500 à 260 km ; carré de 60 km, 4,3 à 5,2 % → 0,4 à 0,6 % de 800 à 60 km, pour 0,65 % au sol (`t9.py`) ; carré de 2 km, 14,8 à 16,2 % ; carré de 150 m, 46,0 à 47,0 % ;
-  - autre côte, 28,32° S 104,70° O : carré de 60 km, 11,3 → 5,5 % avant, 0,5 à 1,0 % après, pour 1,0 % au sol ; carré de 2 km, 12,9 → 9,9 %, en suivant la part de mer, qui varie autant avant ;
-  - banc de qualité, 30 lieux : identique, aucun lieu tiré n'a de rivage ;
-  - tremblement avec / sans lissage : mer à 120 m 0,01 / 0,04 → 0,01 / 0,05 ; ras de l'eau 0,00 / 0,01, inchangé ; contre-jour à 30 m 0,01 / 0,06 → 0,01 / 0,08 ; falaise 0,08 / 0,39 → 0,08 / 0,41 ;
-  - coût : sous le bruit de mesure, le GPU partagé avec d'autres bancs.
-- **Essayé et écarté :** la limite de pente de la plage déplacée par le bruit des limites de la roche : son étalement, pris pour des limites vers 0,8, retirait de loin deux tiers de la plage.
-- **Vues en vol :** `tools/tests/2026-10-25-plages.txt` ; avant et après, `journal/2026-10-25-plages.jpg`.
-- **Reste :**
-  - au ras de l'eau, le sable mouillé reflète le ciel et paraît blanc à côté d'une mer encore sans reflet : la mer doit refléter le ciel de même ;
-  - la part de mer de loin varie de 6 points sur un carré de 2 km, avant comme après : `ElevationSpread`, une rugosité tirée du type de terrain ;
-  - les rides de vent restent sur la face de plage ; pas encore de galets ni de vase, le type de côte, étape 3.
-- **Pour revenir :** le commit `044bcf2`, tag `jalon/18-lumiere`.
+- **Symptom:** beaches of 540 m wide in median, more than 1,9 km for one shore in ten; sand up to 25 m on cliffs; 30 to 45 m of blurred shore.
+- **Cause:** a band of altitude of 5 to 25 m on plain coasts with slopes of 4 to 6 %. The width of a strip is its height on the slope: on Earth, strips of a shoreline are water heights, from 1 to 3 m.
+- **Rules, in `principes.md`:** the coast is a limit like the others; a noise broadens a limit by what it moves it, not more.
+- **Changes:**
+  - all bands are water heights, multiplied by coastal exposure, `CoastExposure`, taken from the local noise: beach 2,5 m, wet soil 1 m, leash 1,06 to 1,16 m, algae 0,4 m, black lichen 0,8 to 3 m;
+  - each is a part of the pixel's land, `ShoreBelow`, since the sea covers the rest; the sea covers the part of the heights under 0, those that the grid cell hides and those of the pixel, its slope times its size, `ShoreSpread`;
+  - the beach stops at the slopes of 0,12 to 0,22, the actual beach faces; the wet ground is twice as dark and shines, a water film of roughness 0,2 to the Fresnel of water, `WaterSheen`, to share with the sea;
+  - the leash is broken into spots by a noise of 16 m to 50 cm; algae and lichen only stain the rock.
+- **Measures:**
+  - width of beach on 968 shores, port CPU, `tools/cotes/t8.py`: median 502 → 39 m, 53 m where there is a beach; p90 2 196 → 209 m; 18 % of shores without beach, too steep; wet ground, median 14 m, p90 51 m;
+  - benchmark of descent, beach share, coast of 0,478° N 116,513° E: square of 300 km, 4,7 → 2,8 % before, 0,3 to 0,4 % after, from 1 500 to 260 km; square of 60 km, 4,3 to 5,2 % → 0,4 to 0,6 % of 800 to 60 km, for 0,65 % at ground level (`t9.py`); square of 2 km, 14,8 to 16,2 %; square of 150 m, 46,0 to 47,0 %;
+  - other coast, 28,32° S 104,70° W: square of 60 km, 11,3 → 5,5 % before, 0,5 to 1,0 % after, for 1,0 % on land; square of 2 km, 12,9 → 9,9 %, following the proportion of sea, which varies as much before;
+  - quality benchmark, 30 places: identical, no drawn place has a shore;
+  - jitter with/without smoothing: sea at 120 m 0,01 / 0,04 → 0,01 / 0,05; waterline 0,00 / 0,01, unchanged; backlight at 30 m 0,01 / 0,06 → 0,01 / 0,08; cliff 0,08 / 0,39 → 0,08 / 0,41;
+  - cost: under the measurement noise, the GPU shared with other benchmarks.
+- **Trying and discarding:** the slope limit of the beach moved by the noise from the rock limits: its spreading, taken for limits towards 0,8, removed far two thirds of the beach.
+- **Flight views:** `tools/tests/2026-10-25-plages.txt`; before and after, `journal/2026-10-25-plages.jpg`.
+- **Rest:**
+  - at the level of the water, the wet sand reflects the sky and appears white next to a sea still without reflection: the sea must reflect the sky as well;
+  - the part of sea from far varies from 6 points on a square of 2 km, before as after: `ElevationSpread`, a roughness drawn from the type of terrain;
+  - wind wrinkles remain on the beach face; no pebbles or mud yet, the type of coast, step 3.
+- **To return:** the commit `044bcf2`, tag `jalon/18-lumiere`.
 
-## 2026-10-24 · La mutation à l'approche
+## 2026-10-24 · The approaching mutation
 
-**Réglages :** `FineMinCell`, 20 → 3,4 m (`D3DApp.h`) ; `FINE_LIGHT_MIN_CELL`, 20 m, nouveau : la lumière garde l'ancien seuil ; la neige ne tient plus compte de la pente des textures (`GroundMaterials`).
+**Settings:** `FineMinCell`, 20 → 3,4 m (`D3DApp.h`); `FINE_LIGHT_MIN_CELL`, 20 m, new: light keeps the old threshold; snow no longer takes into account the slope of textures (`GroundMaterials`).
 
-- **Symptôme,** en vol vers un massif enneigé : une tache verte dans la neige, de forme nette à 1,6 km du sol, mangée petit à petit par le blanc à 1,3 km, revenue à 530 m ; puis des taches brunes au dernier moment, à 143 m. Vues : `tools/tests/2026-10-24-approche.txt`.
-- **Le banc :** `tools/banc_descente.py` rend en un seul lancement toutes les hauteurs et toutes les vues de diagnostic, et donne les parts vues, neige sur roche sur éboulis sur sol, comme `banc_qualite.py`. Ici, un carré de 100 m sous la tache, 32,9325° N 173,9705° E, de 2 km à 100 m.
-- **Cause 1, la forme de la tache :** la normale des décisions perdait les formes de 13,5 à 100 m.
-  - La grille fine s'éteignait entre des mailles de face de 40 et 20 m, de 1,9 km à 960 m de haut.
-  - Le maillage seul ne porte une octave qu'au-delà de 4 mailles : 84 m à 1 km, 13,5 m seulement sous 160 m.
-  - La tache est un versant tourné vers l'équateur, plus chaud. Lissé, il se refroidissait : la neige gagnait, puis reculait quand le maillage s'affinait.
-- **Cause 2, les taches brunes :** la pente des textures s'ajoutait à la normale de la neige pour les pixels de moins de 2 m, sans que sa part perdue compte de loin. Elle changeait la neige de plusieurs points sur les 600 derniers mètres : −7 points sur les pentes douces, la roche apparaissant dessous, +8 sur la roche raide.
-- **Règles, dans `principes.md` :** les décisions voient les formes du relief à toute hauteur ; un effet des textures sur une limite ne s'efface avec le pixel que s'il garde la moyenne.
-- **Changements :**
-  - la grille fine reste active pour les décisions jusqu'aux mailles de face de 3,4 m, où le maillage porte l'octave de 13,5 m sur ses 4 mailles : de 2 km à 160 m, elles voient le même relief ;
-  - la lumière ne la prend qu'à partir de mailles de 20 m, comme avant, `FINE_LIGHT_MIN_CELL` ;
-  - la neige ne tient compte que de la pente du terrain ; la hauteur des textures la déplace toujours, `HeightBlend`, centrée.
-- **Mesures sur la tache, parts vues, de 2 km à 100 m :**
+- **Symptom,** in flight towards a snowy mountain: a green spot in the snow, of clear shape at 1,6 km from the ground, eaten little by little by the white at 1,3 km, returned at 530 m; then brown spots at the last moment, at 143 m. Views: `tools/tests/2026-10-24-approche.txt`.
+- **The benchmark:** `tools/banc_descente.py` makes in a single launch all the heights and all the diagnostic views, and gives the views shares, snow on rock on scree on ground, as `banc_qualite.py`. Here, a square of 100 m under the spot, 32,9325° N 173,9705° E, from 2 km to 100 m.
+- **Cause 1, the shape of the spot:** the normal of the decisions lost the forms of 13,5 to 100 m.
+  - The fine grid was extinguished between grid cells front 40 and 20 m, from 1,9 km to 960 m high.
+  - The mesh alone carries an octave only beyond 4 grid cells: 84 m to 1 km, 13,5 m only under 160 m.
+  - The spot is a slope facing the equator, warmer. Smoothed, it cooled: the snow gained, then retreated when the mesh thinned.
+- **Cause 2, brown spots:** the slope of textures added to the normal snow for pixels less than 2 m, without its lost part counting far. It changed the snow by several points on the last 600 meters: −7 points on the gentle slopes, the rock appearing below, +8 on the steep rock.
+- **Rules, in `principes.md`:** decisions see the relief shapes at any height; a texture effect on a boundary is erased with the pixel only if it keeps the average.
+- **Changes:**
+  - the fine grid remains active for decisions up to the grid cells of 3,4 m, where the mesh carries the octave of 13,5 m on its 4 grid cells: from 2 km to 160 m, they see the same relief;
+  - light takes it only from grid cells of 20 m, as before, `FINE_LIGHT_MIN_CELL`;
+  - snow only takes into account the slope of the terrain; the height of the textures always moves it, `HeightBlend`, centered.
+- **Measurements on spot, parts seen, from 2 km to 100 m:**
 
-| Part vue | 2 km | 1,5 km | 1,2 km | 1 km | 800 m | 600 m | 400 m | 250 m | 150 m | 100 m |
+| Part view | 2 km | 1,5 km | 1,2 km | 1 km | 800 m | 600 m | 400 m | 250 m | 150 m | 100 m |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Neige, avant | 8,3 | 6,1 | 10,3 | 11,9 | 8,9 | 6,2 | 5,3 | 6,6 | 7,9 | 9,1 |
-| Neige, après | 8,3 | 7,4 | 8,6 | 9,4 | 9,4 | 9,5 | 10,2 | 8,0 | 8,0 | 9,2 |
-| Roche, avant | 3,1 | 1,3 | 1,1 | 2,4 | 2,6 | 3,6 | 6,7 | 7,7 | 8,4 | 9,2 |
-| Roche, après | 3,1 | 5,8 | 8,4 | 9,2 | 9,8 | 8,9 | 9,1 | 8,2 | 8,4 | 9,1 |
-| Sol, avant | 51,3 | 56,0 | 53,6 | 48,3 | 49,6 | 53,2 | 52,7 | 47,9 | 44,2 | 43,0 |
-| Sol, après | 51,3 | 50,0 | 45,8 | 42,3 | 43,8 | 45,7 | 44,7 | 45,5 | 44,2 | 43,0 |
+| Snow, front | 8,3 | 6,1 | 10,3 | 11,9 | 8,9 | 6,2 | 5,3 | 6,6 | 7,9 | 9,1 |
+| Snow, after | 8,3 | 7,4 | 8,6 | 9,4 | 9,4 | 9,5 | 10,2 | 8,0 | 8,0 | 9,2 |
+| Roche, front | 3,1 | 1,3 | 1,1 | 2,4 | 2,6 | 3,6 | 6,7 | 7,7 | 8,4 | 9,2 |
+| Roche, after | 3,1 | 5,8 | 8,4 | 9,2 | 9,8 | 8,9 | 9,1 | 8,2 | 8,4 | 9,1 |
+| Ground, front | 51,3 | 56,0 | 53,6 | 48,3 | 49,6 | 53,2 | 52,7 | 47,9 | 44,2 | 43,0 |
+| Ground, after | 51,3 | 50,0 | 45,8 | 42,3 | 43,8 | 45,7 | 44,7 | 45,5 | 44,2 | 43,0 |
 
-- **Sur neuf autres lieux, enneigés et herbeux,** le plus grand écart d'une part vue de 2 km à 100 m, avant → après :
-  - neige : −34,7° −122,3° 7,4 → 5,9 ; −47,5° 124,2° 4,3 → 4,3 ; −67,2° 32,5° 13,8 → 7,1 ; −41,9° 64,0° 7,0 → 2,2 ;
-  - roche, éboulis, herbe ou sol : −67,2° 32,5° 21,2 → 13,6 ; collines, 0,89° 133,68°, 40,7 → 24,1 ; −41,9° 64,0° 5,1 → 2,1 ; −20,2° 79,9° 8,1 → 6,3 ; 12,8° −111,1° 5,4 → 6,0 ; deux prairies, 32,3° 17,9° et 45,1° −161,7°, plates à 2 points près, avant comme après.
-  - De loin, rien ne change : descentes de 1 500 à 60 km identiques au dixième, site de la roche et Afrique du Nord.
-- **Vue d'en haut,** `journal/2026-10-24-approche.jpg` : la tache garde ses lobes de 2 km à 300 m ; avant, ils fondaient à 1 km.
-- **Scintillement, avec / sans lissage :** 1,6 km 0,27 / 1,80 → 0,30 / 1,96 ; 1,3 km 0,25 / 1,70 → 0,28 / 1,97 ; 530 m 0,35 / 2,23 → 0,28 / 1,83 ; 143 m 0,22 / 1,11 → 0,21 / 0,99 ; crête enneigée 0,08 / 0,46 → 0,07 / 0,41 ; dune inchangée. Total des six vues −2 %.
-- **Coût :** de 160 à 770 m du sol, la grille fine en double précision, +3,5 ms de calcul, 0,5 → 4,1 ms, GPU au repos. En simple précision, +1 ms, mais ses normales tremblent deux fois plus quand elles éclairent : 0,66 / 4,13 à 530 m.
-- **Banc de qualité, 30 lieux, contre la base du jour :** aucun p95 ne se dégrade de plus de 10 % ; au plus +0,2 dB, le trou de la neige à 12 m. Mutation p95 0,080 → 0,077 à 200 m, +6 % à 800 m, +3 % à 3 km ; segments droits inchangés.
-- **Essayé et écarté :**
-  - compter dans `SlopeSpread` les octaves que la normale perd vraiment, sous 4 mailles et par la différence centrée, au lieu de celles sous la maille : roche plate sur la tache, mais la rugosité par type de terrain déborde ailleurs, écart de 5 à 12 points à 12,8° −111,1°, et la roche d'orbite gagne 50 % ;
-  - la pente perdue des textures de roche dans la même quadrature 2D que les pentes cachées, au lieu d'un `SpreadStep` sur une norme : dérive du sol des replats divisée par deux sur la roche raide, mais roche vue d'orbite +65 à +95 % ;
-  - les versants cachés comptés à 8 °C : neige de loin deux fois trop abondante sur la tache ;
-  - la grille fine éclairant aussi toute l'approche : lumière et décisions sur le même relief, détail fin +1,5 à +4 dB à 800 m, mais des traits fins le long des crêtes, le trou p95 à 800 m +1 dB sur la neige et le sol, au-delà des 10 %, et le scintillement +40 % à 1,3 km.
-- **Reste :**
-  - la roche monte encore de 3 à 9 % sur la tache entre 2 et 1,2 km, de 4 à 17 % sur des collines jusqu'à 400 m : les octaves de 13,5 et 27 m manquent à la grille fine au-dessus de 500 m, et `SlopeSpread` ne les compte pas. Il faut une rugosité mesurée, pas tirée du type de terrain ;
-  - sur la roche raide, les replats couverts passent de 47 à 33 % du sol à l'approche, à −67,2° 32,5°, `RockShares` ;
-  - les vues de diagnostic tirent leurs seuils d'un hachage biaisé : un poids de 0,25 donne 23 %.
-- **Pour revenir :** `FineMinCell = 20.0` ; `normal = normalize(normal - gHeightBlend * textureSlope)` avant la neige, sur `SlopeOf(dot(normal, up))`.
-- Tests en vol : `tools/tests/2026-10-24-approche.txt`. Le soleil n'était pas relevé : celui du démarrage y est couché, les quatre dernières vues ont un soleil levé.
+- **On nine other locations, snowy and grassy,** the largest deviation from a view of 2 km to 100 m, before → after:
+  - snow : −34,7° −122,3° 7,4 → 5,9; −47,5° 124,2° 4,3 → 4,3; −67,2° 32,5° 13,8 → 7,1; −41,9° 64,0° 7,0 → 2,2;
+  - rock, scree, grass or soil: −67,2° 32,5° 21,2 → 13,6; hills, 0,89° 133,68°, 40,7 → 24,1; −41,9° 64,0° 5,1 → 2,1; −20,2° 79,9° 8,1 → 6,3; 12,8° −111,1° 5,4 → 6,0; two meadows, 32,3° 17,9° and 45,1° −161,7°, flat at 2 points near, before and after.
+  - From far, nothing changes: descents from 1 500 to 60 km identical to the tenth, site of the rock and North Africa.
+- **Top view,** `journal/2026-10-24-approche.jpg`: the spot keeps its lobes from 2 km to 300 m; before, they melted at 1 km.
+- **flicker, with/without smoothing:** 1,6 km 0,27 / 1,80 → 0,30 / 1,96; 1,3 km 0,25 / 1,70 → 0,28 / 1,97; 530 m 0,35 / 2,23 → 0,28 / 1,83; 143 m 0,22 / 1,11 → 0,21 / 0,99; snow ridge 0,08 / 0,46 → 0,07 / 0,41; dune unchanged. Total of six views −2 %.
+- **Cost:** from 160 to 770 m from the ground, fine grid in double precision precision, +3,5 ms of calculation, 0,5 → 4,1 ms, GPU at rest. In simple precision, +1 ms, but its normals shake twice as much when they light up: 0,66 / 4,13 to 530 m.
+- **quality benchmark, 30 places, against the day base:** no p95 degrades by more than 10 %; at most +0,2 dB, the snow hole at 12 m. Mutation p95 0,080 → 0,077 to 200 m, +6 % to 800 m, +3 % to 3 km; right segments unchanged.
+- **Tested and rejected:**
+  - count in `SlopeSpread` the octaves that the normal really loses, under 4 grid cells and by the centered difference, instead of those under the grid cell: flat rock on the spot, but the roughness by terrain type overflows elsewhere, difference from 5 to 12 points at 12,8° −111,1°, and the orbit rock gains 50 %;
+  - the lost slope of rock textures in the same quadrature 2D as the hidden slopes, instead of a `SpreadStep` on a standard: ground drift of replat divided by two on steep rock, but rock seen from orbit +65 to +95 %;
+  - hidden slopes counted at 8 °C: snow by far twice as abundant on the spot;
+  - the fine grid illuminating also the whole approach: light and decisions on the same relief, fine detail +1,5 to +4 dB to 800 m, but fine lines along the ridges, the hole p95 to 800 m +1 dB on the snow and the ground, beyond the 10 %, and the flicker +40 % to 1,3 km.
+- **Rest:**
+  - rock still rises from 3 to 9 % on the spot between 2 and 1,2 km, from 4 to 17 % on hills up to 400 m: the octaves of 13,5 and 27 m are missing from the fine grid above 500 m, and `SlopeSpread` does not count them. It takes a measured roughness, not drawn from the type of terrain;
+  - on steep rock, the covered replants change from 47 to 33 % of the approaching ground, to −67,2° 32,5°, `RockShares`;
+  - diagnostic views draw their thresholds from a biased hash: a weight of 0,25 gives 23 %.
+- **To return:** `FineMinCell = 20.0`; `normal = normalize(normal - gHeightBlend * textureSlope)` before the snow, on `SlopeOf(dot(normal, up))`.
+- Flight tests: `tools/tests/2026-10-24-approche.txt`. The sun was not risen: the one of the start is set there, the last four views have a sun risen.
 
-## 2026-10-24 · Le halo de l'objectif
+## 2026-10-24 · The halo of the lens
 
-**Réglage :** `GLARE_STRAYLIGHT` = 0,3, nouveau.
+**Setting:** `GLARE_STRAYLIGHT` = 0,3, new.
 
-- **Symptôme :** le soleil, 45 750 fois un blanc au soleil, n'était qu'un point blanc de 6 pixels ; rien ne disait sa force.
-- **La règle :** le halo d'un point décroît en s E / θ², la loi lointaine de l'œil (CIE, Vos 2003) et des objectifs. Linéaire, il conserve l'énergie : l'image garde 1 − W de sa lumière, le halo répartit W. Pas de seuil, avant la courbe de tons (`recherche-halo.md`).
-- **Changements :**
-  - une pyramide de demi-images, du pixel à l'écran, sommée à poids égaux : exactement la loi en 1/θ², sans échelle ; `GlareDown.hlsl`, `GlareUp.hlsl` ;
-  - fondue dans l'image composite avant le lissage temporel ; `ToneMap.hlsl` inchangé ;
-  - le disque du soleil montre la part du pixel qu'il couvre : à bord franc, son énergie variait de −10 à +5 % d'un pixel à l'autre, et le halo aurait pulsé.
-- **Le réglage :** s = 0,3, un objectif récent mesuré en ISO 18844 (Koren 2018). Essayé à 1,7, un voile de 1 % : une boule blanche de 4,3° autour du soleil haut, pas discrète. Pas le halo de l'œil, s ≈ 10 : l'œil du spectateur ajoute déjà le sien à ce que montre l'écran.
-- **Mesures,** `tools/banc_halo.py` :
-  - le soleil vu de l'espace, sans air : le halo suit la loi à 0,91 à 1,06 près de 2° à 20°, +24 % au bord de l'écran ;
-  - soleil à 36° : +33 % de luminance à 2,4°, +9 % à 5°, +3 % à 10° ;
-  - autour de la neige : sous un niveau de la sortie 8 bits, comme la loi le prédit ;
-  - tremblement inchangé, 0,05 / 0,39 contre 0,05 / 0,40 aux montagnes ; pompage du soleil d'un pixel à l'autre, 0,4 % ;
-  - coût, 0,17 ms en 1280 × 720.
-- **À juger en vol :** `tools/tests/2026-10-24-halo.txt`, à comparer avec `MYPLANETENGINE_NO_GLARE=1`.
-- **Reste :** pas de halo pour un soleil hors champ ; tramage de la sortie 8 bits, dont le dégradé du halo montre les paliers ; l'auréole de l'air trop faible près du soleil.
+- **Symptom:** the sun, 45 750 times a white in the sun, was only a white dot of 6 pixels; nothing said its strength.
+- **The rule:** the halo of a point decreases in s E / θ², the distant law of the eye (CIE, Your 2003) and objectives. Linear, it conserves energy: the image keeps 1 − W of its light, the halo distributes W. No threshold, before the tone curve (`recherche-halo.md`).
+- **Changes:**
+  - a pyramid of half-images, from pixel to screen, summed at equal weights: exactly the law in 1/θ², without scale; `GlareDown.hlsl`, `GlareUp.hlsl`;
+  - blended into the composite image before time smoothing; `ToneMap.hlsl` unchanged;
+  - the sun disc shows the part of the pixel it covers: at free edge, its energy varied from −Z10 to +5 % from one pixel to another, and the halo would have pulsed.
+- **Setting:** s = 0,3, a recent objective measured in ISO 18844 (Koren 2018). Tryed at 1,7, a veil of 1 %: a white ball of 4,3° around the sun high, not discreet. Not the halo of the eye, s ≈ 10: the eye of the viewer already adds his own to what the screen shows.
+- **Measurements,** `tools/banc_halo.py`:
+  - the sun seen from space, without air: the halo follows the law at 0,91 to 1,06 near 2° to 20°, +24 % at the edge of the screen;
+  - sun at 36°: +33 % of luminance to 2,4°, +9 % to 5°, +3 % to 10°;
+  - around the snow: below a level of the output 8 bits, as the law predicts;
+  - jitter unchanged, 0,05 / 0,39 against 0,05 / 0,40 in mountains; sun pumping from pixel to pixel, 0,4 %;
+  - cost, 0,17 ms in 1280 × 720.
+- **To be judged in flight:** `tools/tests/2026-10-24-halo.txt`, to be compared with `MYPLANETENGINE_NO_GLARE=1`.
+- **Rest:** no halo for an out-of-field sun; dithering of the output 8 bits, whose gradient of the halo shows the levels; the halo of the air too weak near the sun.
 
-## 2026-10-24 · L'exposition et la courbe de tons
+## 2026-10-24 · The exhibition and the tone curve
 
-**Réglages :** `EXPOSURE_COMPENSATION` = 1 IL et `FILM_CONTRAST` = 1,5, nouveaux ; la courbe de Khronos PBR Neutral retirée. Recherche, choix et mesures : `recherche-tons-exposition.md`.
+**Settings:** `EXPOSURE_COMPENSATION` = 1 EV and `FILM_CONTRAST` = 1,5, new; Khronos curve PBR Neutral removed. Research, selection and measurements: `recherche-tons-exposition.md`.
 
-- **Symptôme :** les images ne se lisent pas comme des photos : sol terne, ombres claires, peu de relief ; au soleil bas, l'image s'éteint.
-- **Cause :** aucune exposition, une radiance de 1 donnait le blanc ; une courbe sans pied, l'identité sous 0,76. Sol médian 0,096 en luminance linéaire, contre 0,266 sur les photos ensoleillées ; 0,023 au soleil bas.
-- **Règle, dans `principes.md` :** l'écran montre la lumière, pas le cadrage.
-- **Changements, `ToneMap.hlsl` :**
-  - l'exposition suit la lumière du jour sous la caméra, un posemètre incident tourné vers le soleil, lu dans les tables de l'atmosphère ; une carte grise face au soleil y montre sa réflectance, plus 1 IL ; après le coucher, la lumière du coucher ;
-  - la courbe des photorécepteurs, x^a / (x^a + k^a), sur le canal le plus fort, par la carte grise : pente 1,5 dans les ombres, 1,23 au gris ; les teintes ne tournent pas, les hautes lumières blanchissent ;
-  - le lissage temporel garde la lumière de la scène, avant l'exposition ; un halo s'ajoute à la ligne marquée, avant la courbe ;
-  - les vues de diagnostic ne passent ni par l'exposition ni par la courbe : leur blanc vaut 1 ;
-  - `D3DApp.cpp` : la passe finale reçoit les tables de l'atmosphère.
-- **Mesures, `tools/banc_tons.py` :**
-  - jour, sol p5, p50, p95 : 0,036, 0,096, 0,262 → 0,095, 0,254, 0,520 ; photos 0,011, 0,266, 0,571 ;
-  - soleil bas, sol médian 0,023 → 0,224 ; vers le soleil, le ciel s'écrête sur 9 à 16 % de l'image ;
-  - tourner la caméra : le même ciel et le même sol à 0,02 IL près, quand l'image entière varie de 1,4 à 2,1 IL ;
-  - descente de 1 500 km à 30 m : sans saut, 0,07 IL au plus d'une hauteur à la suivante ;
-  - tremblement avec lissage 0,16 → 0,18 et 0,09 → 0,12, pour une image 1,5 fois plus claire ;
-  - banc de qualité, 12 lieux : la neige gagne 3 à 6 dB de détail fin ; le reste à 0,2 dB près ; au-delà de 10 %, le trou d'échelle p95 de la neige à 800 et 3 000 m, +0,5 dB, et la mutation p95 à 12 et 200 m, +19 et +11 % ; la répétition du sable à 50 m, 0,12 → 0,28, un p95 qui bascule d'un crop à l'autre.
-- **Essayé, pas gardé :** le posemètre à plat, soleil bas plus clair que midi ; le ciel propre de la carte, 0,1 à 0,5 IL de moins au soleil bas, pour une table de plus.
-- **Vues en vol :** `tools/tests/2026-10-24-tons.txt` ; avant et après sur sept vues, `images/tons-avant-apres.jpg`.
-- **Reste :** les ombres portées, 1,3 IL d'ombres contre 4,6 sur les photos ; vers un soleil bas, brume et ciel restent clairs ; d'orbite au-dessus de la nuit, le jour au loin est surexposé.
+- **Symptom:** the images do not read like photos: dull ground, light shadows, little relief; in low sunlight, the image goes out.
+- **Cause:** no exposure, a radiance of 1 gave white; a curve without foot, identity under 0,76. 0,096 in linear luminance, against 0,266 on sunny photos; 0,023 in low sun.
+- **Rule, in `principes.md`:** the screen shows the light, not the framing.
+- **Changes, `ToneMap.hlsl`:**
+  - the exposure follows the daylight under the camera, an incident exposure meter turned to the sun, read in the atmosphere tables; a gray card facing the sun shows its reflectance, plus 1 EV; after bedtime, the nightlight;
+  - the curve of the photoreceptors, x^a / (x^a + k^a), on the strongest channel, by the gray card: slope 1,5 in the shadows, 1,23 in gray; the shades do not turn, the high lights whiten;
+  - temporal smoothing keeps the light of the scene, before the exposure; a halo is added to the marked line, before the curve;
+  - diagnostic views do not pass through the exposure or the curve: their white is 1;
+  - `D3DApp.cpp`: the final pass receives the atmosphere tables.
+- **Measurements, `tools/banc_tons.py`:**
+  - day, ground p5, p50, p95: 0,036, 0,096, 0,262 → 0,095, 0,254, 0,520; photos 0,011, 0,266, 0,571;
+  - sun low, middle ground 0,023 → 0,224; towards the sun, the sky is cut off on 9 to 16 % of the image;
+  - turn the camera: the same sky and the same ground close to 0,02 EV, when the whole image varies from 1,4 to 2,1 EV;
+  - descent from 1 500 km to 30 m: without jump, 0,07 EV at most one height to the next;
+  - jitter with smoothing 0,16 → 0,18 and 0,09 → 0,12, for a 1,5 times clearer image;
+  - quality benchmark, 12 locations: snow gains 3 to 6 dB of fine detail; the rest to 0,2 dB close; beyond 10 %, the snow scale hole p95 at 800 and 3 000 m, +0,5 dB, and the mutation p95 at 12 and 200 m, +19 and +11 %; the repetition of sand at 50 m, 0,12 → 0,28, a p95 that switches from one crop to another.
+- **Try, not kept:** the exposure meter flat, low sun more clear than noon; the sky clean of the map, 0,1 to 0,5 EV less at low sun, for a table more.
+- **Flight views:** `tools/tests/2026-10-24-tons.txt`; before and after on seven views, `images/tons-avant-apres.jpg`.
+- **Rest:** the cast shadows, 1,3 EV shadows against 4,6 on the photos; towards a low sun, fog and sky remain clear; orbit over the night, the day in the distance is overexposed.
 
-## 2026-10-24 · Les ombres portées du relief
+## 2026-10-24 · The shadows cast by the relief
 
-**Réglage :** `HORIZON_STEP` = 0,05, nouveau. Nouvelle passe `Horizon.hlsl`, nouveau fichier `Shadows.hlsli`, vue de diagnostic `sun`, banc `tools/banc_ombres.py`.
+**Setting:** `HORIZON_STEP` = 0,05, new. New pass `Horizon.hlsl`, new file `Shadows.hlsli`, diagnostic view `sun`, benchmark `tools/banc_ombres.py`.
 
-- **Symptôme :** aucune ombre portée ; au soleil bas, les fonds de vallée restent éclairés, les plans ne se découpent pas (`recherche-profondeur-atmospherique.md`, 3.6).
-- **Choix :** l'horizon du relief vers le soleil, par sommet, marché sur les hauteurs du maillage ; interpolé comme un angle, la part du disque solaire prise au pixel. État de l'art et raisons : `recherche-ombres-relief.md`.
-- **Changements :**
-  - la passe `Horizon.hlsl`, après le relief des matériaux : pour chaque sommet visible, la marche le long du grand cercle vers le soleil, pas de 5 % de la distance, arrêt quand rien ne peut plus dépasser l'horizon et le bas du disque ;
-  - le maillage calcule aussi les sommets dont l'ombre peut tomber à l'écran (`ShadowSweep`) ;
-  - le pixel prend la part du disque au-dessus de l'horizon interpolé, élargie de l'étalement de l'horizon qu'il couvre, fois l'ombrage de Smith du relief plus fin que la maille ;
-  - seule la lumière directe change.
-- **Mesures,** détail dans `recherche-ombres-relief.md`, image `images/ombres-avant-apres.jpg` :
-  - scintillement, avec / sans lissage, jamais au-dessus d'avant sur quatre vues de montagne au soleil bas : par exemple 0,18 / 0,98 → 0,16 / 0,92 sur un massif à 8 km ;
-  - descente de 50 km à 200 m, lumière directe moyenne sur le même sol : écarts de +5, +4, +2, −6 % d'une hauteur à la suivante, contre +7, +7, +13, −10 % pour l'éclairage d'avant ; sur un fond de vallée, le bord de l'ombre reste en place de 8 km à 200 m ;
-  - l'ombrage de Smith retenu sur cette mesure : sans lui, le loin est 3 à 8 % trop clair ;
-  - coût de calcul +0,2 à +1,4 ms, le pire le soleil dans le dos ; rendu inchangé au bruit près ;
-  - pas de 2 % : mêmes ombres qu'à 5 %.
-  - banc de qualité, 10 lieux, soleil vers 50° : inchangé à 0,0 dB près, mutation comprise.
-- **Essai écarté :** le ciel caché par les versants, quatre marches de plus par sommet : +6 ms.
-- **Reste :** le ciel caché, avec des marches bornées par le plus haut sommet du maillage ; des contours d'ombre arrondis de loin ; les rayons de soleil ; des photos de montagne au soleil bas pour juger.
+- **Symptom:** no shadow cast; in low sunlight, the valley bottoms remain illuminated, the planes do not cut (`recherche-profondeur-atmospherique.md`, 3.6).
+- **Choice:** the horizon of the relief towards the sun, by vertex, market on the heights of the mesh; interpolated as an angle, the part of the solar disk taken by pixel. State of the art and reasons: `recherche-ombres-relief.md`.
+- **Changes:**
+  - the pass `Horizon.hlsl`, after the relief of materials: for each visible vertex, the walk along the large circle towards the sun, no 5 % of the distance, stop when nothing can go beyond the horizon and the bottom of the disk;
+  - the mesh also calculates the vertices whose shadow can fall on the screen (`ShadowSweep`);
+  - the pixel takes the part of the disk above the interpolated horizon, enlarged by the spread of the horizon it covers, times the Smith shading of the relief thinner than the grid cell;
+  - only the direct light changes.
+- **Measurements,** detail in `recherche-ombres-relief.md`, image `images/ombres-avant-apres.jpg`:
+  - flicker, with / without smoothing, never above front on four mountain views at low sun: for example 0,18 / 0,98 → 0,16 / 0,92 on a mountain at 8 km;
+  - descent from 50 km to 200 m, average direct light on the same ground: deviations of +5, +4, +2, −6 % from one height to the next, against +7, +7, +13, −10 % for the lighting before; on a valley background, the edge of the shadow remains in place from 8 km to 200 m;
+  - Smith shading retained on this measure: without it, the far is 3 to 8 % too light;
+  - calculation cost +0,2 to +1,4 ms, worst the sun in the back; rendered unchanged to noise near;
+  - no 2 %: same shadows as at 5 %.
+  - quality benchmark, 10 places, sun towards 50°: unchanged to 0,0 dB near, mutation included.
+- **Test removed:** the sky hidden by the slopes, four more steps per vertex: +6 ms.
+- **Rest:** the hidden sky, with steps bounded by the highest summit of the mesh; rounded shadow contours from afar; sun rays; mountain photos at low sun to judge.
 
-## 2026-10-24 · Les rayons de soleil : l'air à l'ombre du relief · tag `piste/rayons-soleil`
+## 2026-10-24 · Sun rays: the air in the shadow of the relief · tag `piste/rayons-soleil`
 
-**Réglages :** la hauteur d'ombre, nouvelle, sur une grille de 512 × 512 (`SunShadow.hlsli`), filtrée par `MESH_BAND_LIMIT` ; `MAX_TERRAIN_HEIGHT` passe de `Terrain.hlsli` à `PlanetSettings.hlsli`.
+**Settings:** the shadow height, new, on a grid of 512 × 512 (`SunShadow.hlsli`), filtered by `MESH_BAND_LIMIT`; `MAX_TERRAIN_HEIGHT` goes from `Terrain.hlsli` to `PlanetSettings.hlsli`.
 
-- **Symptôme :** à contre-jour, le soleil derrière une montagne, l'air devant elle restait baigné de lumière ; aucun rayon, aucune ombre dans la brume (`recherche-profondeur-atmospherique.md`, 3.7).
-- **Cause :** l'atmosphère ne savait pas que le relief cache le soleil ; seul l'horizon de la sphère coupait sa lumière.
-- **Changements** (`recherche-rayons.md`) :
-  - la hauteur d'ombre : l'altitude au-dessus de laquelle une colonne d'air voit le soleil. Un champ en deux dimensions, sur une grille polaire autour de la caméra, toutes directions ;
-  - chaque image, le relief sur la grille, puis une marche vers le soleil sur la sphère, d'une demi-cellule par pas, d'après la carte d'ombre du terrain de Red Dead Redemption 2 ;
-  - chaque pas du rayon de vue lit la hauteur d'ombre à ses bouts et en son milieu, et garde la part éclairée de sa longueur. Seule la lumière du soleil diffusée une fois est coupée : l'ombre garde la lumière du ciel ;
-  - une règle dans `principes.md` : l'ombre du relief est une hauteur d'ombre, pour l'air comme pour le sol, et rien ne vient de l'écran.
-- **Mesures :** `tools/tests/2026-10-24-rayons.txt`, planche par `tools/banc_tests.py` ; `images/rayons-avant-apres.jpg`.
-  - Soleil caché par un pic : la lueur devant lui disparaît, la caméra est dans son ombre. Soleil juste au-dessus des crêtes : faisceaux et coins d'ombre de chaque aiguille dans la brume. Soleil de côté ou dans le dos, désert, orbite : peu ou pas de changement.
-  - Coût, minimum sur les images, RTX 4070 Ti, 1280 × 720 : relief 0,50 à 0,67 ms, marche 0,27 à 0,37 ms, lecture 0,02 à 0,09 ms ; en tout 0,8 à 1,1 ms de calcul en plus.
-  - Tremblement avec/sans lissage, trois vues de rayons : 0,04 / 0,34 → 0,06 / 0,46 ; 0,06 / 0,40 → 0,06 / 0,44 ; 0,04 / 0,30 → 0,05 / 0,34. L'air seul : 0,01 / 0,05 → 0,01 / 0,09, aux bords des faisceaux ; l'image plus sombre pèse aussi dans le chiffre.
-  - Rotation de 1° : l'air seul, ramené sur l'image précédente, s'écarte de 0,41 avec l'ombre, 0,43 sans. Rien ne rampe quand la caméra tourne.
-  - Une grille de 256 × 256 abaissait les aiguilles : l'air devant le haut d'un pic restait au soleil et tremblait. 768 × 768 ne change presque plus rien, pour 2,4 ms.
-- **Reste :** une seule marche avec les ombres portées, tag `piste/ombres-relief`, qui marchent déjà l'horizon de chaque sommet du maillage : la même boucle donnerait la hauteur d'ombre, la grille et ses passes disparaîtraient. Puis la pénombre du soleil, et des pas plus serrés près de la caméra sur les rayons du ciel.
-- **Retour arrière :** le commit `565e598` ; ou `shadow.on = false` dans `AtmospherePass.hlsl`, qui retire l'ombre de l'air sans retirer ses passes.
-## 2026-10-24 · Les nuages, étapes 1 et 2 : la carte du temps et la couche 2D · commit `6a88d33`
+- **Symptom:** Backlit, sun behind a mountain, air in front of it was bathed in light; no rays, no shadows in the fog (`recherche-profondeur-atmospherique.md`, 3.7).
+- **Cause:** the atmosphere did not know that the relief hid the sun; only the horizon of the sphere cut off its light.
+- **Changes** (`recherche-rayons.md`):
+  - the shadow height: the altitude above which an air column sees the sun. A two-dimensional field, on a polar grid around the camera, all directions;
+  - each frame, the relief on the grid, then a walk to the sun on the sphere, half a cell per step, according to the Red Dead Redemption 2 terrain shadow map;
+  - each step of the ray of view reads the shadow height at its ends and in its middle, and keeps the illuminated part of its length. Only the sunlight diffused once is cut off: the shadow keeps the light of the sky;
+  - a rule in `principes.md`: the shadow of the relief is a height of shadow, for the air as for the ground, and nothing comes from the screen.
+- **Measurements:** `tools/tests/2026-10-24-rayons.txt`, board by `tools/banc_tests.py`; `images/rayons-avant-apres.jpg`.
+  - Sun hidden by a peak: the glow in front of it disappears, the camera is in its shadow. Sun just above the ridges: beams and shadow corners of each needle in the fog. Sun on the side or in the back, desert, orbit: little or no change.
+  - Cost, minimum on images, RTX 4070 Ti, 1280 × 720: relief 0,50 to 0,67 ms, walk 0,27 to 0,37 ms, read 0,02 to 0,09 ms; in total 0,8 to 1,1 ms of calculation in addition.
+  - jitter with/without smoothing, three radius views: 0,04 / 0,34 → 0,06 / 0,46; 0,06 / 0,40 → 0,06 / 0,44; 0,04 / 0,30 → 0,05 / 0,34. Air alone: 0,01 / 0,05 → 0,01 / 0,09, at the edges of the beams; the darker image also weighs in the figure.
+  - Rotation of 1°: air alone, returned on the previous image, departs from 0,41 with shadow, 0,43 without. Nothing crawls when the camera is rotating.
+  - A grid of 256 × 256 lowered the hands: the air in front of the top of a peak remained in the sun and trembled. 768 × 768 does not change almost anything, for 2,4 ms.
+- **Rest:** a single step with the cast shadows, tag `piste/ombres-relief`, which already walk the horizon of each vertex of the mesh: the same loop would give the shadow height, the grid and its passes would disappear. Then the penumbra of the sun, and tighter steps near the camera on the rays of the sky.
+- **Backward:** the commit `565e598`; or `shadow.on = false` in `AtmospherePass.hlsl`, which removes the shadow from the air without removing its passes.
+## 2026-10-24 · Clouds, steps 1 and 2: time map and layer 2D · commit `6a88d33`
 
-**Réglages :** nouveau fichier `Clouds.hlsli`. `CLOUD_GAIN` = 0,79 ; nébulosité 0,58 + 0,40 × (humidité − 0,6) + 0,16 au front polaire, de 19 à 56° ; nuages hauts 0,05 + front + 0,3 × convection ; humidité relative 0,3 + 0,55 × humidité + 0,15 × fronts ; `CLOUD_EXTINCTION` = 45 /km ; `CLOUD_BEAM_SHARE` = 0,2775 ; `CLOUD_CELL_KM` = 5 ; `HIGH_CLOUD_THICKNESS` = 1,5 km. Vue de diagnostic `clouds`. Plan : `recherche-nuages.md`, étapes 1 et 2.
+**Settings:** new file `Clouds.hlsli`. `CLOUD_GAIN` = 0,79; cloudiness 0,58 + 0,40 × (humidity − 0,6) + 0,16 at the polar front, from 19 to 56°; high clouds 0,05 + front + 0,3 × convection; relative humidity 0,3 + 0,55 × humidity + 0,15 × fronts; `CLOUD_EXTINCTION` = 45 /km; `CLOUD_BEAM_SHARE` = 0,2775; `CLOUD_CELL_KM` = 5; `HIGH_CLOUD_THICKNESS` = 1,5 km. Diagnostic view `clouds`. Plan: `recherche-nuages.md`, stages 1 and 2.
 
-- **La carte, étape 1 :** sur le climat existant, partagé avec le sol (`ClimateNoise`, `SeaLevelTemperature`), deux bruits de plus. Elle décide par colonne la nébulosité, la convection, le type, la base de Lawrence, le brouillard quand la base touche le sol, le sommet, les cirrus.
-- **Un seul spectre, sans trou d'échelle :** le temps et les nuages sont les octaves d'un même bruit de gain 0,79, le k^-5/3 des champs nuageux. Avec les gains du plan, 0,5 et 0,55, rien entre 30 et 300 km : des nuages tous de la même taille, en peau de léopard. C'est la règle de `principes.md`, chaque échelle couverte.
-- **Les couches, étape 2 :** une coquille épaisse par étage, de la base au sommet ; un rayon y voit la première cellule qu'il rencontre, la part du pixel, puis la moyenne de la région derrière elle. Lumière à deux flux, éclairée par nos tables ; le sommet des cumulus éclairé selon sa pente.
-- **Composée avec l'air :** l'intégration de l'atmosphère est coupée aux traversées des couches ; l'air sous les nuages n'est éclairé que de ce qu'ils laissent passer.
-- **Le sol :** l'ombre des deux couches, moyenne sur le pixel et le disque du soleil ; sous un plafond, le ciel renvoyé vers le haut et la lumière du soleil diffusée vers le bas.
-- **Hooks :** une ligne dans `AtmospherePass.hlsl` (`CloudyScattering`) ; l'ombre et la lumière diffuse dans `PixelShader.hlsl` (`CloudShadeAt`) ; le nom de la vue dans `D3DApp.cpp`.
+- **The map, step 1:** on the existing climate, shared with the ground (`ClimateNoise`, `SeaLevelTemperature`), two more noise functions. It decides by column the cloudiness, convection, type, Lawrence base, fog when the base touches the ground, summit, cirrus.
+- **A single spectrum, without scale hole:** the time and clouds are the octaves of a same noise gain 0,79, the k^-5/3 of cloudy fields. With the gains of the plan, 0,5 and 0,55, nothing between 30 and 300 km: clouds all of the same size, in leopard skin. This is the rule of `principes.md`, every scale covered.
+- **Layers, step 2:** a thick shell per floor, from the base to the top; a ray sees the first cell it encounters, the pixel part, then the average of the region behind it. Two-flow light, illuminated by our tables; the summit of the cumulus illuminated according to its slope.
+- **Composed with air:** the integration of the atmosphere is cut off at the crossings of the layers; the air under the clouds is illuminated only by what they let through.
+- **The ground:** the shadow of the two layers, average on the pixel and the sun disc; under a ceiling, the sky returned upwards and sunlight diffused downwards.
+- **Hooks:** a line in `AtmospherePass.hlsl` (`CloudyScattering`); shadow and diffused light in `PixelShader.hlsl` (`CloudShadeAt`); the name of the view in `D3DApp.cpp`.
 
-**Fraction nuageuse par bande de 10°,** vue `clouds` d'en haut, 32 vues par bande, contre MODIS, Terra et Aqua en moyenne annuelle (King et al. 2013 ; Stubenrauch et al. 2013), lu sur leurs profils à 5 points près :
+**Cloud fraction per band of 10°,** view `clouds` from above, 32 views per band, vs MODIS, Terra and Aqua annual average (King et al. 2013 ; Stubenrauch et al. 2013), read on their profiles at 5 points near:
 
-| Bande | 90-80 S | 80-70 S | 70-60 S | 60-50 S | 50-40 S | 40-30 S | 30-20 S | 20-10 S | 10-0 S |
+| Band | 90-80 S | 80-70 S | 70-60 S | 60-50 S | 50-40 S | 40-30 S | 30-20 S | 20-10 S | 10-0 S |
 |---|---|---|---|---|---|---|---|---|---|
 | Nuages | 79 % | 77 % | 78 % | 82 % | 74 % | 61 % | 46 % | 53 % | 65 % |
 | MODIS | 45 % | 55 % | 82 % | 88 % | 82 % | 68 % | 55 % | 55 % | 62 % |
 
-| Bande | 0-10 N | 10-20 N | 20-30 N | 30-40 N | 40-50 N | 50-60 N | 60-70 N | 70-80 N | 80-90 N |
+| Band | 0-10 N | 10-20 N | 20-30 N | 30-40 N | 40-50 N | 50-60 N | 60-70 N | 70-80 N | 80-90 N |
 |---|---|---|---|---|---|---|---|---|---|
 | Nuages | 72 % | 56 % | 48 % | 71 % | 71 % | 70 % | 77 % | 71 % | 87 % |
 | MODIS | 68 % | 57 % | 50 % | 57 % | 68 % | 75 % | 76 % | 78 % | 76 % |
 
-- **Le globe :** 64,8 % contre 65,1 %.
-- **La loi de la carte,** moyennée sur les climats possibles, tient MODIS à 8 points près sur toutes les bandes, hors calotte antarctique.
-- **Notre planète s'en écarte de plus de 10 points sur deux bandes :** 30-40° N, +13,5, où son climat est humide, 58 % d'humidité contre 38 % attendus ; 80-90° N, +11. Ce sont ses propres climats : les nuages suivent l'humidité qui fait ses forêts et ses déserts.
-- **Le profil est vérifié deux fois :** une réplique exacte de la carte en Python, sur une grille de 1°, rend les mêmes bandes à 2 points près.
-- **La calotte antarctique,** 90-70° S, +34 et +22 : une glace à 3 km, l'air le plus sec de la Terre, qu'une colonne au niveau de la mer ne peut pas connaître avant la carte du relief de l'étape 4.
+- **The globe:** 64,8 % against 65,1 %.
+- **The law of the map,** averaged on possible climates, holds MODIS to 8 points close on all bands, except Antarctic cap.
+- **Our planet deviates from this by more than 10 points on two bands:** 30-40° N, +13,5, where its climate is humid, 58 % humidity against 38 % expected; 80-90° N, +11. These are its own climates: clouds follow the humidity that makes its forests and deserts.
+- **The profile is checked twice:** an exact replica of the map in Python, on a grid of 1°, renders the same bands at 2 points close.
+- **The Antarctic cap,** 90-70° S, +34 and +22: an ice at 3 km, the driest air on Earth, which a column at sea level cannot know before the relief map of the 4 stage.
 
-**Descente :** la part de nuages d'une zone de 60 km, de 1 500 à 60 km, sur 8 lieux.
-- **La moyenne des lieux :** de 53,0 à 52,6 %, écart maximal 0,5 point.
-- **Chaque lieu :** à 2,4 points près, ce que permet le tirage d'une zone de 25 pixels à 1 500 km.
+**Descent:** the cloud share of an area of 60 km, from 1 500 to 60 km, on 8 places.
+- **The average of the locations:** from 53,0 to 52,6 %, maximum variance 0,5 point.
+- **Each location:** at 2,4 points close, which allows drawing an area of 25 pixels at 1 500 km.
 
-**Aspect,** sur les tests en vol, comparé de mémoire à la base des photos de l'ISS, aucune photo n'étant téléchargée :
-- **ce qui tient :** d'orbite, des systèmes de centaines de km aux bords effilochés, des cumulus épars sur des régions entières, des trous où l'océan sombre porte l'ombre des nuages. Des nuages 10 fois plus clairs que l'océan, comme sur les photos. Un plafond gris, plus clair vers le soleil ; le brouillard ; des nuages orange au coucher.
-- **ce qui manque :** les cumulus en pop-corn nets, avec leur ombre portée sur le pont ; les rues de nuages et les cirrus effilochés, faute de vent ; les tours de cumulonimbus.
+**Aspect,** on the tests in flight, compared from memory to the base of photos of the ISS, no photo being uploaded:
+- **what holds:** orbit, systems of hundreds of km with frayed edges, cumulus scattered over entire regions, holes where the dark ocean carries the shadow of clouds. Clouds 10 times clearer than the ocean, as in the photos. A gray ceiling, lighter towards the sun; fog; orange clouds at sunset.
+- **what is missing:** the clear popcorn cumulus, with their shadow carried on the deck; the streets of clouds and the frayed cirrus, lack of wind; the towers of cumulonimbus.
 
-**Coût,** images alternées avec et sans nuages dans le même processus, GPU au repos, trois passages identiques à 0,01 ms près :
+**Cost,** alternate images with and without clouds in the same process, GPU at rest, three identical passages to 0,01 near ms:
 
-| Hauteur | 2 000 km | 400 km | 160 km | 30 km | 10 km | 1 km | 300 m, sous un plafond |
+| Height | 2 000 km | 400 km | 160 km | 30 km | 10 km | 1 km | 300 m, under a ceiling |
 |---|---|---|---|---|---|---|---|
-| Rendu sans nuages | 1,12 ms | 0,50 ms | 0,45 ms | 0,57 ms | 0,60 ms | 0,64 ms | 0,69 ms |
+| Render without clouds | 1,12 ms | 0,50 ms | 0,45 ms | 0,57 ms | 0,60 ms | 0,64 ms | 0,69 ms |
 | Nuages | +1,90 ms | +1,86 ms | +1,49 ms | +1,68 ms | +1,79 ms | +1,97 ms | +1,40 ms |
 
-- **L'ombre et la lumière diffuse sur le sol en prennent 0,9 à 1,8 ms :** la passe du terrain, déjà lourde, les calcule pixel par pixel. Les couches dans le ciel, 0,3 à 0,7 ms.
-- **Deux fois le budget du plan,** 0,3 à 0,9 ms.
-- **Les pistes :** la carte du temps cuite au démarrage, celle de l'étape 4, retire les bruits du climat et du temps, la moitié des octaves ; l'ombre calculée dans une passe d'écran plutôt que dans celle du terrain.
+- **The shadow and the diffused light on the ground take 0,9 to 1,8 ms:** the pass of the field, already heavy, calculates them pixel by pixel. The layers in the sky, 0,3 to 0,7 ms.
+- **Two times the plan budget,** 0,3 to 0,9 ms.
+- **The experiments:** the weather map cooked at startup, that of the 4 stage, removes the noise functions of the climate and time, half of the octaves; the shadow calculated in a screen pass rather than in the terrain.
 
-**Reste :**
-- **Dans la couche, tout est plat :** pas de tours ni de flancs ; la caméra dans le nuage voit un brouillard uniforme, avec un mince trait clair à l'horizon. C'est l'étape 3, le volume.
-- **Les cirrus ne sont pas effilochés,** il faudrait le vent ; ils se voient gris par-dessous.
-- **L'air sous les nuages est ombré par la moyenne de la région ;** le sol ne renvoie pas sa lumière vers leur base.
-- **Le lissage temporel** reprojette les nuages à la profondeur du terrain, ou à l'infini sur le ciel : traînées possibles de près, en vol rapide.
-- **Le coût,** ci-dessus.
+**Rest:**
+- **In the layer, everything is flat:** no turns or sides; the camera in the cloud sees a uniform fog, with a thin clear line on the horizon. This is the step 3, the volume.
+- **The cirrus are not frayed,** it would take the wind; they are gray below.
+- **The air under the clouds is shaded by the average of the region;** the ground does not reflect its light to their base.
+- **Time smoothing** reprojects clouds deep in the ground, or infinitely in the sky: possible trails close, in fast flight.
+- **The cost,** above.
 
-- **Pour revenir :** `IntegrateScattering` à la place de `CloudyScattering` dans `AtmospherePass.hlsl` ; `clouds.sun` et `clouds.sky` retirés de l'éclairage dans `PixelShader.hlsl`.
-- Image : `journal/2026-10-24-nuages.jpg`. Tests en vol : `tools/tests/2026-10-24-nuages.txt`. Banc : `tools/banc_nuages.py`.
+- **To return:** `IntegrateScattering` in place of `CloudyScattering` in `AtmospherePass.hlsl`; `clouds.sun` and `clouds.sky` removed from the lighting in `PixelShader.hlsl`.
+- Image: `journal/2026-10-24-nuages.jpg`. Flight tests: `tools/tests/2026-10-24-nuages.txt`. benchmark : `tools/banc_nuages.py`.
 
-## 2026-10-24 · La brume de la couche limite
+## 2026-10-24 · The fog of the boundary layer
 
-**Réglages :** `VISIBILITY_KM` = 40, nouveau, d'où se déduisent `MIE_EXTINCTION` et `MIE_SCATTERING` ; `HAZE_TOP_KM` = 2, `HAZE_TOP_WIDTH_KM` = 0,3, nouveaux, au lieu de `MIE_SCALE_HEIGHT` = 1,2 ; `MIE_ASYMMETRY` 0,8 → 0,7.
+**Settings:** `VISIBILITY_KM` = 40, new, from which `MIE_EXTINCTION` and `MIE_SCATTERING` are derived; `HAZE_TOP_KM` = 2, `HAZE_TOP_WIDTH_KM` = 0,3, new, instead of `MIE_SCALE_HEIGHT` = 1,2; `MIE_ASYMMETRY` 0,8 → 0,7.
 
-- **Symptôme :** pas de profondeur ; les plans successifs ne se séparent pas (`recherche-profondeur-atmospherique.md`).
-- **Cause :** l'air de la démo de Bruneton, presque pur, une épaisseur optique d'aérosols de 0,005 contre 0,19 sur les continents : 217 km de visibilité, quand un beau jour ordinaire en donne 20 à 60. Et sa brume, une exponentielle de 1,2 km depuis la mer, ne laissait que 4 % d'elle-même à un sol à 4 km.
-- **Changements :**
-  - un seul réglage, la visibilité au niveau de la mer ; l'extinction des aérosols s'en déduit (Koschmieder), 90 % en diffusion ;
-  - la brume remplit la couche limite jusqu'à 2 km, puis s'éclaircit sur 0,3 km : la bande vue d'avion, l'air clair au-dessus ; à 40 km, une épaisseur optique de 0,17 ;
-  - les aérosols colorés selon Ångström, exposant 1,3, et un halo vers le soleil moins serré ;
-  - chaque pas du rayon, à l'écran comme dans les tables du démarrage, montre la moyenne de l'air qu'il traverse : vue d'orbite, la brume était comptée 4,6 fois trop faible et aurait changé d'aspect à la descente.
-- **Mesures :** descente verticale sur un désert de 400 km à 1,5 km, couleur au centre régulière, sans saut. Vue en vol, essai A contre B, `tools/tests/2026-10-24-profondeur.txt` : « globalement, ça marche plutôt bien ».
-- **Reste :** la couche suit le niveau de la mer, pas le sol : un haut plateau reste dans l'air pur ; il faudra une carte du relief régional. Puis les ombres portées du relief, l'exposition et la courbe de tons, le halo, les rayons.
+- **Symptom:** no depth; successive shots do not separate (`recherche-profondeur-atmospherique.md`).
+- **Cause:** the air of the demo of Bruneton, almost pure, an optical thickness of aerosols of 0,005 against 0,19 on the continents: 217 km of visibility, when a nice ordinary day gives 20 to 60. And its fog, an exponential of 1,2 km from the sea, left only 4 % of itself to a ground at 4 km.
+- **Changes:**
+  - a single setting, the visibility at sea level; the extinction of aerosols is deduced (Koschmieder), 90 % in diffusion;
+  - fog fills the boundary layer up to 2 km, then clears on 0,3 km: the airplane view strip, clear air above; at 40 km, an optical thickness of 0,17;
+  - aerosols colored according to Ångström, exposing 1,3, and a halo towards the sun less tight;
+  - each step of the radius, on the screen as in the start tables, shows the average of the air it passes through: orbit view, the fog was counted 4,6 times too weak and would have changed its aspect at the descent.
+- **Measurements:** vertical descent on a desert of 400 km to 1,5 km, color in the center regular, without jump. Flight view, test A vs B, `tools/tests/2026-10-24-profondeur.txt`: “overall, it works pretty well.”
+- **Rest:** the layer follows the sea level, not the ground: a high plateau remains in the pure air; a map of the regional relief will be needed. Then the shadows cast from the relief, the exposure and the tone curve, the halo, the rays.
 
-## 2026-10-25 · Objets de proximité : le détail du sol, une recette par sol · tag `piste/objets-proximite`
+## 2026-10-25 · Objects of proximity: the detail of the soil, a recipe per soil · tag `piste/objets-proximite`
 
-**Réglages :** `PEBBLES`, `GRASS_ROCKS`, `TUFT_OCTAVES`, `TUFT_COVER`, `OBJECT_CREST`, `OBJECT_CLUMPS`, nouveaux ; `OBJECT_HOLLOW` retiré ; `OBJECT_OCTAVES` dès 1,5 cm ; `DEBRIS_ABUNDANCE` 0,05 ; 0,25 ; `OBJECT_BURIAL` 8 à 40 %, 3 mm au moins. Spec : `spec-objets-proximite.md`, étape 2.
+**Settings:** `PEBBLES`, `GRASS_ROCKS`, `TUFT_OCTAVES`, `TUFT_COVER`, `OBJECT_CREST`, `OBJECT_CLUMPS`, new; `OBJECT_HOLLOW` removed; `OBJECT_OCTAVES` from 1,5 cm; `DEBRIS_ABUNDANCE` 0,05; 0,25; `OBJECT_BURIAL` 8 to 40 %, 3 mm at least. Spec: `spec-objets-proximite.md`, step 2.
 
-- **L'avis en vol,** deux photos à l'appui : « plus rendu des roches sur un thème éboulis que réellement des détails du sol » ; des cailloux au bas de chaque ravin ; « posés au milieu de nulle part ».
-- **Les photos comptées :** une tache de premier plan d'environ 3,7 m², son échelle tirée de l'horizon de la mer et d'un appareil à 1,6 m ; les touffes et les rochers de l'herbe, à l'échelle des touffes.
-- **Changements :**
-  - une recette par sol : cailloux et graviers sur le sable et le sol nu ; touffes partout dans l'herbe, rochers à demi enfouis par taches ; pierres des éboulis ;
-  - les touffes d'herbe, une classe nouvelle sur la même grille, 40 brins générés, la couleur de l'herbe du sol ; un second dessin indirect ;
-  - une octave de 1,5 cm, un enfouissement de 3 mm au moins ;
-  - les éboulements au pied des seules pentes de plus de 35 à 45°, plus au fond des creux.
-- **Mesures,** par m², le moteur puis la photo :
-  - sable, cailloux de 1,5 à 25 cm par octave : 54, 12, 2,6, 0,45 ; 30 et plus, 16, 6, 0,5 ; 6,7 % du sol, 6 à 8 % ;
-  - herbe : 9 touffes sur 34 % du sol, 6 à 15 sur 30 à 60 % ; rochers de 20 cm à 1 m dans les taches, 1,1 contre 2 ;
-  - creux : 10 % de blocs de 50 cm et plus au lieu de 40 % ;
-  - aucun objet flottant ; arrivées à 0,07 px au plus sur 8 800 ; tremblement jamais plus que sans objets ;
-  - placement 0,4 à 0,75 ms sous charge, dessin 0,04 à 0,23 ms.
-- **Tests en vol, remplacés,** à 1,7 m, regard devant : sable près de la côte, crête herbeuse, sol nu, pente d'éboulis.
-- Image : `journal/2026-10-25-objets-sol.jpg`, les photos à gauche.
+- **The flying notice,** two photos in support: "more rendering of rocks on a scree theme than actually details of the ground"; pebbles at the bottom of each ravine; "laid in the middle of nowhere".
+- **Photos counted:** a spot of the foreground of about 3,7 m², its scale drawn from the horizon of the sea and a device at 1,6 m; the tufts and the rocks of the grass, at the scale of the tufts.
+- **Changes:**
+  - a recipe per soil: pebbles and gravel on sand and bare ground; tufts all over the grass, half-buried rocks by spots; stones of scree;
+  - the tufts grass, a new class on the same grid, 40 strands generated, the color of grass on the ground; a second indirect drawing;
+  - one octave of 1,5 cm, a burial of 3 mm at least;
+  - landslides at the foot of the only slopes of more than 35 to 45°, more at the bottom of the hollows.
+- **Measurements,** per m², the engine then the photo:
+  - sand, pebbles from 1,5 to 25 cm per octave: 54, 12, 2,6, 0,45; 30 and above, 16, 6, 0,5; 6,7 % of soil, 6 to 8 %;
+  - grass: 9 tufts on 34 % of soil, 6 to 15 on 30 to 60 %; rocks: 20 cm to 1 m in spots, 1,1 against 2;
+  - hollow: 10 % of blocks of 50 cm and above instead of 40 %;
+  - no floating objects; arrivals at 0,07 px at most on 8 800; jitter never more than without objects;
+  - placement 0,4 to 0,75 ms under load, drawing 0,04 to 0,23 ms.
+- **Flight tests, replaced,** at 1,7 m, front view: sand near the coast, grassy ridge, bare ground, slope of scree.
+- Image: `journal/2026-10-25-objets-sol.jpg`, photos on the left.
 
-## 2026-10-24 · Objets de proximité : la forme du sol et les taches · tag `piste/objets-proximite`
+## 2026-10-24 · Objects nearby: the shape of the ground and the spots · tag `piste/objets-proximite`
 
-**Réglages :** `OBJECT_LANDFORM`, `OBJECT_HOLLOW`, `OBJECT_GATHER`, `OBJECT_PATCHES`, nouveaux ; `OBJECT_FOOT` retiré ; `DEBRIS_ABUNDANCE` 0,05 ; 0,25 ; 0,01. Spec : `spec-objets-proximite.md`, étape 1 ter.
+**Settings:** `OBJECT_LANDFORM`, `OBJECT_HOLLOW`, `OBJECT_GATHER`, `OBJECT_PATCHES`, new; `OBJECT_FOOT` removed; `DEBRIS_ABUNDANCE` 0,05; 0,25; 0,01. Spec: `spec-objets-proximite.md`, step 1 ter.
 
-- **L'avis en vol :** trop uniforme ; des blocs au fond des ravines, de petites pierres dans les pentes, presque rien sur les crêtes, les hauts de falaise et les plaines.
-- **Les références :** les fragments de roche des sols, Poesen et Lavee ; les blocs des chenaux, Shobe et al. ; les regs, Wood et al. ; l'agrégation des semis de pierres, Hickory Run, Mars, Ryugu.
-- **Changements :**
-  - la forme du sol, lue sur 16 m sur le sol exact : pente au-dessus, courbure, pente des bords ;
-  - les débris s'amassent où le sol s'adoucit sous 10 à 20°, au pied d'une pente raide ou au fond d'un creux encaissé, avec une abondance de 0,25 ;
-  - les crêtes n'en gardent que 10 % ;
-  - chaque source sa loi de Golombek et Rapp : petites pierres où les débris passent, blocs où ils s'amassent ;
-  - des taches de 8 à 64 m, vides sur 58 % du sol, qui changent le nombre, pas les tailles.
-- **Mesures, avant puis après,** couverture du sol :
-  - creux 1,65 → 1,09 %, dont 40 % de blocs ; plat 1,63 → 0,19 % ; crêtes 1,27 → 0,06 % ;
-  - pentes de 20 à 35°, 4 à 8 % de blocs au lieu de 14 à 22 % ;
-  - la moitié des pierres de 25 cm et plus dans 9 % des cellules de 20 m, contre 25 % ;
-  - aucun objet flottant ; tremblement jamais plus que sans objets ;
-  - placement 14 à 17 % du calcul du terrain sous charge, contre 12 à 14 %.
-- **Tests en vol, remplacés :** fond de ravine, ravine vue de 30 m, pied de pente, crête, plaine, pente d'éboulis.
-- Image : `journal/2026-10-24-objets-formes.jpg`, avant à gauche.
+- **The opinion in flight:** too uniform; blocks at the bottom of the ravines, small stones in the slopes, almost nothing on the ridges, the cliffs and the plains.
+- **References:** soil rock fragments, Poesen and Lavee; channel blocks, Shobe et al.; regs, Wood et al.; aggregation of stone seedlings, Hickory Run, Mars, Ryugu.
+- **Changes:**
+  - the shape of the ground, read on 16 m on the exact ground: slope above, curvature, slope of the edges;
+  - debris accumulates where the soil softens under 10 to 20°, at the foot of a steep slope or at the bottom of a recessed hollow, with an abundance of 0,25;
+  - the peaks retain only 10 %;
+  - each source its law of Golombek and Rapp: small stones where debris passes, blocks where they accumulate;
+  - spots from 8 to 64 m, empty on 58 % of the ground, which change in number, not size.
+- **Measurements, before and after,** soil cover:
+  - hollow 1,65 → 1,09 %, of which 40 % blocks; flat 1,63 → 0,19 %; crests 1,27 → 0,06 %;
+  - slopes of 20 to 35°, 4 to 8 % of blocks instead of 14 to 22 %;
+  - half of the stones of 25 cm and more in 9 % of cells of 20 m, against 25 %;
+  - no floating objects; jitter never more than without objects;
+  - placement 14 to 17 % of the calculation of the ground under load, against 12 to 14 %.
+- **Flight tests, replaced:** ravine bottom, ravine view of 30 m, slope foot, ridge, plain, slope of scree.
+- Image: `journal/2026-10-24-objets-formes.jpg`, front left.
 
-## 2026-10-24 · Objets de proximité : des cailloux, leurs tailles et leurs pentes
+## 2026-10-24 · Nearby objects: pebbles, their sizes and slopes
 
-**Réglages :** `DEBRIS_ABUNDANCE`, `OBJECT_REPOSE`, `OBJECT_FOOT`, `OBJECT_BURIAL` remplacent `SCREE_OBJECTS` et `ROCK_OBJECTS`. Spec : `spec-objets-proximite.md`, étape 1 bis.
+**Settings:** `DEBRIS_ABUNDANCE`, `OBJECT_REPOSE`, `OBJECT_FOOT`, `OBJECT_BURIAL` replace `SCREE_OBJECTS` and `ROCK_OBJECTS`. Spec: `spec-objets-proximite.md`, step 1 bis.
 
-- **L'avis en vol :** trop d'objets sur les pentes raides, où ils ne tiendraient pas ; trop de rochers moyens ; des blocs à demi enfouis dans les parois, « mauvaise intégration ».
-- **La ligne, écrite dans la spec :** cette piste fait les cailloux, des débris posés ; la roche en place et son relief sont la piste de la géométrie.
-- **Le banc d'abord :** `tools/banc_objets.py recensement`, chaque cellule de 23 lieux enregistrée par le moteur, gardée ou non ; objets par m² et part couverte par octave de taille, par bande de pente, au pied des pentes.
-- **Les références :** la loi de Golombek et Rapp, mesurée sur Terre et sur Mars ; l'angle de repos des talus, 33 à 37° ; le tri par la chute, les gros au pied.
-- **Changements :**
-  - plus aucun objet sur la roche nue ;
-  - trois sources de débris : éboulis, pied des pentes de plus de 35 à 45°, sol nu et désert ;
-  - leur abondance partagée par la loi de Golombek et Rapp ;
-  - rien au-delà de 38° pour les plus petits, un degré de moins par octave ;
-  - enfouis de 30 % dans un sol meuble, de 8 % sur la roche, jamais moins de 1 cm ;
-  - la lumière renvoyée par le sol sur les faces à l'ombre.
-- **Mesures, avant puis après :**
-  - au-delà de 40°, de 9 à 11 % du sol couvert à rien ;
-  - au pied des parois, de 1,7 % à 15 %, dont 29 % de blocs ;
-  - sur les éboulis, les tailles de 25 cm à 1 m de 7,8 % à 2,7 % ; 2,1 petits cailloux par m² pour 0,03 pierre de plus de 50 cm ;
-  - sur le sol nu et le désert, de rien à 3 %, la loi à chaque octave ;
-  - aucun objet flottant de 200 à 1,5 m ; tremblement jamais plus qu'avant les objets.
-- **Coût :** un sol exact de plus par candidat ; sous charge, placement 13 à 24 % du calcul du terrain, contre 7 à 27 % ; dessin jusqu'à 0,6 ms sur un reg, des formes trop fines pour quelques pixels.
-- **Pour revenir :** le commit `1a74c9e`.
-- **Tests en vol, remplacés :** éboulis, talus au pied d'une paroi, blocs tombés, reg, champ de pierres, pied de paroi vu de 20 m.
-- Image : `journal/2026-10-24-objets-cailloux.jpg`, avant à gauche.
+- **The flying note:** too many objects on the steep slopes, where they would not fit; too many medium rocks; blocks half buried in the walls, "bad integration".
+- **The line, written in the spec:** this experiment makes the pebbles, the laid debris; the bedrock and its relief are the experiment of the geometry.
+- **The benchmark first:** `tools/banc_objets.py recensement`, each cell of 23 places recorded by the engine, kept or not; objects per m² and part covered by octave of height, by slope band, at the foot of slopes.
+- **References:** the law of Golombek and Rapp, measured on Earth and on Mars; the angle of rest of slopes, 33 to 37°; sorting by fall, the big ones at the foot.
+- **Changes:**
+  - no more objects on the bare rock;
+  - three sources of debris: scree, foot of slopes of more than 35 to 45°, bare ground and desert;
+  - their abundance shared by the law of Golombek and Rapp;
+  - nothing beyond 38° for the smallest, one degree less per octave;
+  - buried of 30 % in a loose soil, of 8 % on the rock, never less than 1 cm;
+  - the light reflected from the ground on the shaded faces.
+- **Measurements, before and after:**
+  - beyond 40°, from 9 to 11 % of ground covered to zero;
+  - at the foot of the walls, from 1,7 % to 15 %, of which 29 % is blocks;
+  - on the scree, the sizes of 25 cm to 1 m from 7,8 % to 2,7 %; 2,1 small pebbles per m² for 0,03 stone of more than 50 cm;
+  - on bare ground and desert, from nothing to 3 %, the law at every octave;
+  - no floating object from 200 to 1,5 m; jitter never more than before objects.
+- **Cost:** one more exact floor per candidate; under load, placement 13 to 24 % of the plot calculation, against 7 to 27 %; drawing up to 0,6 ms on a reg, shapes too fine for a few pixels.
+- **To return:** the commit `1a74c9e`.
+- **Flight tests, replaced:** scree, slope at the foot of a wall, fallen blocks, reg, stone field, wall foot seen from 20 m.
+- Image: `journal/2026-10-24-objets-cailloux.jpg`, front left.
 
-## 2026-10-24 · Objets de proximité, étape 1 : pierres et blocs
+## 2026-10-24 · Nearby objects, step 1: stones and blocks
 
-**Réglages nouveaux :** `SCREE_OBJECTS`, `ROCK_OBJECTS`, `OBJECT_OCTAVES`, `OBJECT_PIXELS`, `OBJECT_CELLS`. Spec : `spec-objets-proximite.md`.
+**New settings:** `SCREE_OBJECTS`, `ROCK_OBJECTS`, `OBJECT_OCTAVES`, `OBJECT_PIXELS`, `OBJECT_CELLS`. Spec : `spec-objets-proximite.md`.
 
-- **La demande :** des petits cailloux, des touffes, des rochers qui sortent un peu du sol ; placés selon les bruits, mais pas glissés image par image comme le maillage ; un niveau de détail classique, qui apparaît à proximité ; un terrain d'abord, puis tous.
-- **Le terrain choisi : les éboulis et la roche.**
-  - Des objets statiques, sans vent ni transparence ;
-  - deux matériaux qui existent, dont `GroundMaterials` donne la part partout ;
-  - des silhouettes dures, le test le plus sévère du flottement et du pop.
-- **Le système, un pour toutes les classes à venir :**
-  - **une place fixe :** une cellule de la grille cartésienne de la planète, une octave de tailles par niveau, de 6 cm à 2 m ; place, taille, forme, tirage viennent du hachage de la cellule ;
-  - **une densité :** la part du sol que couvre chaque octave, par matériau, multipliée par la part visible du matériau, filtrée à la cellule, sur le sol exact ;
-  - **une apparition :** de 6 à 9 pixels de large, l'objet grandit depuis son pied enfoui, là seulement où les mailles font moins de 1,5 fois sa largeur ;
-  - **deux passes de calcul :** une légère sur 112 × 112 cellules par octave, une lourde sur la liste des candidats vus, puis un seul dessin indirect ;
-  - **huit formes,** générées au démarrage : une icosphère coupée par des plans, arêtes adoucies ; la couleur du sol de roche à sa place, la photo de la roche et sa tuile fine dans le repère de la pierre, la lumière du sol.
-- **Le flottement :** le pied sur le sol exact, enfoui d'un quart de sa hauteur sur les éboulis, de moitié sur la roche. Sur trois lieux, de 200 à 1,5 m : aucun objet ne flotte, écart à l'écran sous 0,6 px, 1,75 px au plus près du sol.
-  - **La règle des mailles,** mesurée : sans elle, des blocs de 2 m vus de 200 m, dans des mailles de 4 m, flottaient de 84 cm.
-  - **Trouvé en chemin :** complexplanet a un plancher de précision près du sol. Déplacer le point de 1 mm change son altitude jusqu'à 16 mm à 2,6 km d'altitude, 1,2 mm à 1 km : l'arrondi des flottants dans la somme des octaves. Le maillage le porte aussi ; une piste pour le tremblement près du sol.
-- **Le pop :** sur des descentes de 40 à 3 m, 1 670 objets arrivés à l'écran avec au plus 0,06 px de large ; entiers, ils arrivaient à 7,5 à 8,6 px en médiane, 15,6 px au plus.
-- **Le tremblement :** jamais plus qu'avant sur cinq vues d'éboulis et de roche, un peu moins près du sol, 3,59 → 3,49 avec lissage.
-- **Banc de qualité,** 30 lieux contre la référence : trous de la roche −0,8 à −2,7 dB au p95, répétition −0,1 ; détail fin de la roche à 12 m −4,6 dB en médiane, les blocs ajoutant du contraste moyen ; ailleurs moins de 0,4 dB.
-- **Coût,** GPU au repos : placement 0,31 à 0,43 ms, dessin 0,01 à 0,08 ms, pour un calcul du terrain de 2 à 5 ms. Une passe unique coûtait 40 à 80 % du calcul du terrain, les candidats vus épars dans les vagues.
-- **Outils :** la vue de diagnostic `objects`, les mesures du flottement dans le titre, `tools/banc_objets.py`. `RockColor` passe dans `Materials.hlsli`, `BorderPoint` dans `Mesh.hlsli`.
-- **Pour revenir :** `SCREE_OBJECTS.z = ROCK_OBJECTS.z = 0`, ou le commit `cfba322`.
-- Image : `journal/2026-10-24-objets.jpg`, avant à gauche. Tests en vol : `tools/tests/2026-10-24-objets.txt`.
+- **The request:** small pebbles, tufts, rocks that come out a little from the ground; placed according to the noise functions, but not slided frame by frame like the mesh; a classic level of detail, which appears nearby; a first land, then all.
+- **The chosen terrain: the scree and the rock.**
+  - Static objects, without wind or transparency;
+  - two materials that exist, of which `GroundMaterials` gives the share everywhere;
+  - hard silhouettes, the most severe test of float and pop.
+- **The system, one for all classes to come:**
+  - **a fixed place:** a cell of the Cartesian grid of the planet, one octave of sizes per level, from 6 cm to 2 m; place, size, shape, drawing come from the hash of the cell;
+  - **a density:** the part of the floor that each octave covers, by material, multiplied by the visible part of the material, filtered at the cell, on the exact floor;
+  - **an appearance:** from 6 to 9 pixels wide, the object grows from its buried foot, only where the grid cells are less than 1,5 times its width;
+  - **two calculation passes:** a light on 112 × 112 cells per octave, a heavy on the list of candidates seen, then a single indirect drawing;
+  - **eight shapes,** generated at start: an icosphere cut by planes, smoothed edges; the color of the rock soil in its place, the photo of the rock and its fine tile in the stone reference frame, the light of the ground.
+- **The floating:** the foot on the exact ground, buried a quarter of its height on the scree, half on the rock. On three locations, from 200 to 1,5 m: no object floating, screen gap under 0,6 px, 1,75 px closest to the ground.
+  - **The rule of grid cells,** measured: without it, blocks of 2 m seen from 200 m, in grid cells of 4 m, floated from 84 cm.
+  - **Found on the way:** complexplanet has a precision floor close to the ground. Moving the point from 1 mm changes its altitude up to 16 mm to 2,6 km altitude, 1,2 mm to 1 km: rounding floating points in the sum of octaves. The mesh also has it; a experiment for the jitter near the ground.
+- **The pop:** on descents of 40 to 3 m, 1 670 objects arrived on the screen with at most 0,06 px wide; whole, they arrived at 7,5 to 8,6 px in median, 15,6 px at most.
+- **The jitter:** never more than before on five views of scree and rock, a little less close to the ground, 3,59 → 3,49 with smoothing.
+- **quality benchmark,** 30 locations against reference: rock holes −0,8 at −2,7 dB at p95, repeat −0,1; fine detail of rock at 12 m −4,6 dB in median, blocks adding medium contrast; elsewhere less than 0,4 dB.
+- **Cost,** GPU at rest: placement 0,31 to 0,43 ms, drawing 0,01 to 0,08 ms, for a terrain calculation of 2 to 5 ms. A single pass cost 40 to 80 % of the field calculation, candidates seen scattered in the waves.
+- **Tools:** the diagnostic view `objects`, the measurements of the float in the title, `tools/banc_objets.py`. `RockColor` goes into `Materials.hlsli`, `BorderPoint` into `Mesh.hlsli`.
+- **To return:** `SCREE_OBJECTS.z = ROCK_OBJECTS.z = 0`, or the commit `cfba322`.
+- Image: `journal/2026-10-24-objets.jpg`, front left. Flight tests: `tools/tests/2026-10-24-objets.txt`.
 
-## 2026-10-24 · Une seule roche dans le code
+## 2026-10-24 · A single rock in the code
 
-**Réglages retirés :** `STRATA_DIP`, `STRATA_FOLD`, `STRATA_WANDER`, `STRATA_PLATE_RISE`, `STRATA_PLATE_TILT`, `STRATA_FAULT_ZONE`, `MASSIVE_TILE`, `MATERIAL_PARALLAX`, `PARALLAX_DEPTH`, `PARALLAX_STEPS`. Tranches de matériaux : 12 → 7.
+**Settings removed:** `STRATA_DIP`, `STRATA_FOLD`, `STRATA_WANDER`, `STRATA_PLATE_RISE`, `STRATA_PLATE_TILT`, `STRATA_FAULT_ZONE`, `MASSIVE_TILE`, `MATERIAL_PARALLAX`, `PARALLAX_DEPTH`, `PARALLAX_STEPS`. Materials ranges: 12 → 7.
 
-- **Pourquoi :** l'essai roche-photo, validé en vol, laissait du code mort marqué `EXPERIMENT` : familles, tuiles dessinées, marches de la colonne, décalage de la photo, failles.
-- **Retiré, image identique :** les familles de roche, `RockFamilies` ; les générateurs du granite, du basalte et des badlands et leurs tranches ; les failles, `StrataPlates` ; les anciens pendage, plis et ondulation ; la tuile de 64 m et le décalage dans `GeneratedTexture`.
-  - Vérifié sur 12 vues de 160 km à 16 m : identiques au pixel près.
-  - Seule la photo de dessus est retirée au sort : sa tranche a changé de numéro, et le numéro tire la place de ses copies.
-- **Retiré, image changée :** la parallaxe de la roche, `RockParallax`, avec la tuile dessinée de 64 m et le relief de la colonne qu'elle seule lisait encore. Elle décalait la photo selon un relief que les pixels ne montrent plus.
-  - Aspect inchangé à l'œil : les copies de la photo se placent un peu autrement de près.
-  - Scintillement sans lissage −3 à −5 % sur quatre vues de roche, inchangé avec.
-  - Rendu −0,65 à −0,93 ms, 12 à 22 %.
-- **Banc de qualité, mêmes 30 lieux, avant puis après le nettoyage :** roche à 0,3 dB près de 50 à 800 m ; à 12 m, détail fin médian −1,0 dB, p5 +2,1 dB, trou −0,4 dB ; les autres matériaux ne bougent pas.
-- **Contre l'ancienne roche dessinée,** la référence du banc : −3 à −6 dB de détail fin. Ce sont ses corniches, craquelures et traits que le banc comptait comme détail. Comparée en vol sur 7 vues du banc où la roche photo est la plus floue, `tools/tests/2026-10-24-detail-roche.txt` : la roche photo jugée meilleure sur 6, l'ancienne sur une, à 12 m, pour ses corniches. Les corniches de près relèvent de la géométrie de proximité, à part (`geometrie.md`).
-- **Palette de tests :** un test sans soleil reprend celui du démarrage ; il gardait celui du test précédent, parfois de nuit.
-- **Docs :** `spec-parallaxe.md` passe dans `log/` ; `spec-roche-organique.md` dit ce qui en reste ; `tools/bandes_materiaux.json` n'a plus qu'une roche.
-- **Code :** 522 lignes de moins.
+- **Why:** the rock-photo test, validated in flight, left dead code marked `EXPERIMENT`: families, tiles drawn, steps of the column, offset of the photo, faults.
+- **Removed, identical image:** the rock families, `RockFamilies`; the generators of granite, basalt and badlands and their slices; the faults, `StrataPlates`; the ancient hanging, folds and ripples; the 64 m tile and the offset in `GeneratedTexture`.
+  - Verified on 12 views from 160 km to 16 m: identical to pixel close.
+  - Only the top picture is drawn at random: its slice has changed number, and the number draws the place of its copies.
+- **Removed, image changed:** the parallax of the rock, `RockParallax`, with the tile drawn of 64 m and the relief of the column that it alone read still. It shifted the photo according to a relief that the pixels no longer show.
+  - Unchanged appearance to the eye: the copies of the photo are placed a little different close.
+  - flicker without smoothing −3 to −5 % on four rock views, unchanged with.
+  - Rendering −0,65 to −0,93 ms, 12 to 22 %.
+- **quality benchmark, same 30 locations, before and after cleaning:** rock at 0,3 dB near 50 at 800 m; at 12 m, fine detail median −1,0 dB, p5 +2,1 dB, hole −0,4 dB; other materials do not move.
+- **Against the old rock drawn,** the reference of the benchmark: −3 to −6 dB of fine detail. It is its cornices, cracks and strokes that the benchmark counted as detail. Compared in flight on 7 views of the benchmark where the photo rock is the most blurred, `tools/tests/2026-10-24-detail-roche.txt`: the photo rock judged better on 6, the old one on a, at 12 m, for its cornices. The near-sighted cornices are part of the near-sighted geometry, apart from (`geometrie.md`).
+- **Tests palette:** a test without sun takes over the one of the start; it kept the one of the previous test, sometimes at night.
+- **Docs:** `spec-parallaxe.md` goes into `log/`; `spec-roche-organique.md` says what remains of it; `tools/bandes_materiaux.json` has only one rock left.
+- **Code:** 522 lines less.
 
-## 2026-10-24 · Le papier peint des parois
+## 2026-10-24 · The wallpaper of the walls
 
-**Réglages :** `ROCK_BANDS`, pente de 0,05 à 0,24 par octave ; nouvelle tranche `MATERIAL_ROCK_TOP`, la photo `marble_cliff_05`. Sur l'essai roche-photo v12, commité tel quel avec.
+**Settings:** `ROCK_BANDS`, slope from 0,05 to 0,24 per octave; new slice `MATERIAL_ROCK_TOP`, photo `marble_cliff_05`. On the rock-photo v12 test, committed as is with.
 
-- **Symptôme,** en vol : de 100 à 400 m, les parois tapissées du même petit motif de la photo, égal partout, pire sur les grandes faces, `2828.4 -0.03727 118.14886 -9.7 176.8`. Et un dallage sur une paroi vue en rasant, `1758.2 0.00182 118.14986 -10.9 81.8`.
-- **Cause :** au-dessus de la tuile de 12,8 m, rien ne variait.
-  - Les bandes de 8 à 64 m portaient 0,05 de pente par octave, copiée des éboulis : le quart de celle de la photo.
-  - La règle lointaine compte pourtant ces octaves, `STONE_SLOPE_SIGMA` sur treize octaves. De près, elles manquaient.
-  - La photo de paroi couvrait aussi la roche douce.
-- **Règles, dans `principes.md` :** les bandes prolongent la pente de la photo ; une photo garde l'orientation de sa prise de vue.
-- **Changements :**
-  - `ROCK_BANDS` porte 0,24, la pente par octave de la photo : ombres, facettes et replats de 8 à 64 m.
-  - La roche de moins de 45° prend `marble_cliff_05`, le même marbre pris de dessus. La limite suit `SlopeShares` et le bruit des limites : les deux photos se rencontrent par plaques.
-  - Le banc de qualité mesure l'étalement d'un crop à l'autre : clarté, contraste, contraste relatif, photos réelles en regard. `uniformite.py` y est fondu.
-- **Mesures, crops de roche des vues, avant puis après, en dB :**
+- **Symptom,** in flight: from 100 to 400 m, the walls upholstered with the same small pattern of the photo, equal everywhere, worse on the large faces, `2828.4 -0.03727 118.14886 -9.7 176.8`. And a paving on a wall seen by raking, `1758.2 0.00182 118.14986 -10.9 81.8`.
+- **Cause:** above the tile of 12,8 m, nothing changed.
+  - The bands of 8 to 64 m carried 0,05 of slope per octave, copied of the scree: the quarter of that of the photo.
+  - The distant rule counts these octaves, `STONE_SLOPE_SIGMA` on thirteen octaves. Close up, they were missing.
+  - The wall picture also covered the soft rock.
+- **Rules, in `principes.md`:** the strips extend the slope of the photo; a photo keeps the orientation of its shot.
+- **Changes:**
+  - `ROCK_BANDS` bears 0,24, the slope per octave of the photo: shadows, facets and replats from 8 to 64 m.
+  - The rock of less than 45° takes `marble_cliff_05`, the same marble taken from above. The limit follows `SlopeShares` and the noise limits: the two photos meet by plates.
+  - The quality benchmark measures the spread from one crop to another: clarity, contrast, relative contrast, real photos in front. `uniformite.py` is melted into it.
+- **Measurements, rock crops of views, before and after, in dB:**
 
-| Vue | Étalement de la clarté | Du contraste | Du contraste relatif |
+| View | Spreading of clarity | A bit of contrast | Relative contrast |
 |---|---|---|---|
-| `4363.2 16.26802 …` | 1,82 → 2,10 | 4,65 → 4,38 | 2,08 → 1,94 |
-| `4376.2 16.42557 …` | 0,16 → 0,22 | 1,28 → 1,71 | 1,45 → 2,07 |
-| `2828.4 -0.03727 …` | 0,88 → 0,95 | 1,52 → 1,07 | 2,05 → 2,55 |
-| `1758.2 0.00182 …` | 0,34 → 0,58 | 1,23 → 1,15 | 1,62 → 1,85 |
-| Photos réelles | 0,44 à 2,32 | 0,71 à 11,5 | 0,80 à 15,6 |
-
-- **Banc de qualité, 30 lieux :** les p95 de la roche baissent, trou à 50 et 200 m de 3,8 et 4,1 à 2,9 et 2,5 dB, répétition de 50 à 800 m de 0,15 à 0,32 avant, 0,10 à 0,12 après. Le reste bouge dans le bruit du tirage, au plus +8 % contre v12, le trou du sable à 50 m. Étalement de la clarté de la roche à 200 m de 0,38 à 0,52 dB, à 800 m de 0,59 à 0,43 : sur des lieux tirés au hasard, le défaut n'est que partiellement réglé.
-- **Scintillement, sans lissage :** inchangé sur deux vues ; +7 à +12 % sur trois autres, `2828.4`, `1022.9`, `4363.2`. Avec le lissage, à 0,01 près partout.
-- **Ce que le test a montré :** la paroi « douce » de la vue `1758.2` monte de 25 m pour 10 m, 68°. La règle d'orientation y garde la photo de face, comme sur les trois vues signalées, toutes au-delà de 60°. Elle sert la roche douce : sommets de buttes, épaulements.
-- **Essayé et écarté :**
-  - le bruit de clarté à spectre égal par octave, même écart : aucun effet mesuré ;
-  - le même deux à trois fois plus fort : clarté du sommet `4376.2` de 0,16 à 0,34 dB, au prix de taches sales ;
-  - le contraste des photos modulé de lieu en lieu : contraste relatif proche de la médiane des photos, mais scintillement +20 % sur deux vues et trou du sable à 12 m +56 %.
-- **Reste :** la clarté du sommet `4376.2` sous les photos, son relief au-delà de 64 m étant celui du maillage, lisse ; le dallage de la vue `1758.2` ; la parallaxe lit encore la tuile de 64 m effacée par l'essai.
-- **Pour revenir :** `ROCK_BANDS.z = 0.05` ; `face = 1.0` dans `GroundMaterials`.
-- Image : `journal/2026-10-24-papier-peint.jpg`, avant à gauche : `2828.4`, `4376.2`, la falaise orange, la paroi rasante. Tests en vol : `tools/tests/2026-10-24-papier.txt`.
-
-## 2026-10-24 · Une seule roche, la photo
-
-**Réglages :** essai roche-photo, marqué `EXPERIMENT` dans le code. `RockFamilies` rend la roche litée seule ; plus de tuile dessinée de 64 m sur la roche ; `ROCK_BANDS`, nouveau ; strates en couleur seulement ; `STRATA_SLOPE` = 0,4 remplace `STRATA_DIP`, `STRATA_FOLD` et `STRATA_WANDER` ; palette des grès aux trois quarts de son contraste.
-
-- **Symptômes,** en vol, tous de la même famille :
-  - craquelures du granite en traits arrondis, `4242.2 16.27025 123.15986 16.1 -166.5` ;
-  - traits au feutre sur le granite, `4363.2 16.26802 123.16025 23.7 -111.3` et `4376.2 16.42557 123.15934 7.3 63.0` ;
-  - strates arc-en-ciel des badlands, `4074.5 16.27626 123.18392 10.8 155.2` ; courbes de niveau, `1941.7 0.00280 118.14145 -0.2 156.6` ; corniches claires et noires, `2828.4 -0.03727 118.14886 -9.7 176.8` ;
-  - traînées étirées, `1415.0 -9.54451 102.98665 4.2 -98.9`.
-  - Jugées belles, à garder : la roche litée et sa photo, `1022.9 -0.23076 118.41645 7.3 61.0`, `2922.5 3.15497 110.91028 20.7 50.3`, `487.8 -0.05421 112.67541 0.6 -25.5`.
-- **Cause commune :** des structures dessinées à la main, fissures, sillons, rigoles, marches, rideaux sombres, qui se lisent comme un dessin ; des couches parfaitement planes là où la région n'avait ni pendage ni plis. La photo, elle, passait. Plutôt que corriger chaque dessin, on les retire.
-- **Changements :**
-  - une seule roche, la photo de paroi, partout : granite, basalte et badlands dessinés ne s'affichent plus ;
-  - plus de tuile dessinée de 64 m sur la roche : des bandes de détail à la place, comme pour les autres matériaux ;
-  - la photo n'est plus décalée le long des strates : sur une pente parallèle aux couches, le décalage l'étirait sans fin. Tournée par les couches perturbées, elle tourbillonnait : elle reste de niveau ;
-  - strates en couleur seulement : leurs marches traçaient des traits continus sur des faces entières ;
-  - une seule perturbation des couches, de 8 km à 4 m, partout, sa pente moindre de 15 % à chaque octave vers le mètre ; elle remplace pendage, plis et ondulation, qui ne touchaient que certaines régions ;
-  - l'épaisseur des couches varie le long de la paroi, jusqu'au biseau : deux sinus de 23 et 7,3 m le long des couches, aux phases tirées de 32 à 256 m, leurs pentes à 0,9 au plus pour qu'aucune couche ne se replie.
-- **Mesures, banc de qualité de l'étape « couleur seulement » contre la référence, mêmes 30 lieux :** roche +1,7 à +4,2 dB de détail fin de 50 à 200 m, répétition en baisse de 0,1 ; aucun autre matériau ne bouge ; mutation inchangée.
-- **Validé en vol** le 2026-10-24, avec le papier peint de l’entrée ci-dessus : « franchement pas mal ».
-- **Reste :** retirer le code mort, familles, générateurs dessinés, marches et corniches des strates, décalage de la photo, réglages remplacés ; `RockParallax` lit encore la tuile de 64 m retirée.
-
-## 2026-10-24 · Plus de patchs de pixels de loin : un bruit de gradient partout
-
-**La géographie est retirée.** Déserts, prairies, neiges et sortes de roche changent de place. Le relief ne bouge pas : complexplanet et `LibNoise.hlsli` sont intacts.
-
-- **Symptôme,** en vol : de loin, le sol en mosaïque de carrés de quelques km aux teintes plates, comme une texture basse résolution, `160551.2 1.12602 114.67687 31.2 -88.7` et `300000.0 -15.00000 50.00000 50.0 0.0`.
-- **Cause :** la clarté du sol, `m.local.z`, un `Fbm3` de bruit de valeur.
-  - Un bruit de valeur est plat autour de chaque point de sa grille.
-  - Ses octaves, sur des grilles emboîtées, alignent leurs plateaux.
-  - Au-delà de 50 km, le pixel n'en garde que deux ou trois : les plateaux se voient.
-  - Écartés : l'alpha du rendu HDR, carrés inchangés en 32 bits ; la grille fine et le grain : carrés inchangés sans eux. Sans la clarté, plus de carrés.
-- **Règle :** un bruit ne montre jamais sa grille (`principes.md`).
-- **Changement :** `ValueNoise3` devient `Noise3`, trois bruits de gradient pour un hachage par coin.
-  - Ses bits sont posés en mantisses, sans conversion : le coût reste proche.
-  - Il est ramené à l'écart type du bruit de valeur : écart type du `Fbm3` 0,195 contre 0,194, queues à 3 % près. Les seuils restent valables.
-  - Tous les champs y passent : climat, géologie, clarté, limites de neige et de roche, plages, strates, lentilles, herbe, rides.
-- **Lieux déplacés,** vus à 2 km du sol :
-  - `banc_visuel` : le désert (26° N, 45° E) devient prairie, l'herbe (15° S, 50° E) devient désert, la roche (14,96° S, 119,99° E) perd sa neige ;
-  - `banc_roche` : le canyon (11,05° S, 50,07° E) devient désert ; sec, granite et badlands (20° S, 125° E) deviennent verts, le granite devient grès orange ;
-  - `banc_cretes` : la crête sèche (24,3° S, 129,75° E) perd sa neige ;
-  - `banc_hybride` : le sable (26° N, 45° E) devient prairie, les éboulis (31,16° N, 8,59° E) perdent leur neige ;
-  - `banc_descente` : la chaîne d'Afrique du Nord (32,3° N, 17,9° E) n'a plus de neige ; le site de la roche (15° S, 120° E) ne change pas ;
-  - tests : « Sol nu en montagne » devient prairie à roche orange, « Désert de 50 m à 1 km » devient prairie, les craquelures perdent de la roche, « Orange et vert » devient gris ;
-  - inchangés : « Neige », « Paroi litée », « Orbite », la roche rouge.
-- **Mesures :**
-  - **Le bruit seul,** segments droits de 20 px et plus, par 1 000 px de terre : 160 km 10,2 → 4,9, 300 km 2,7 → 1,2, 200 km 6,6 → 3,2, 600 km 0,5 → 0,1 ; à 3 et 10 km, inchangés.
-  - **Le rendu,** segments de 12 px et plus : −20 % à 160 km, −27 % à 300 km, −23 % à 200 km.
-  - **Mêmes statistiques, lieux déplacés,** sur 60 lieux tirés au hasard : neige 22 → 20 %, roche 2,8 → 3,1 %, éboulis 4,0 → 4,2 %, herbe 35 → 32 %, sable 30 → 37 %.
-  - **Scintillement :** de loin, inchangé. Vue de neige : 0,51 → 0,64 sans lissage. À 564 m : 1,20 → 3,84, car le versant de sable ridé est devenu de la roche. Le bruit seul ne scintille pas : 0,07 au plus.
-  - **Coût :** de loin, rien. Près du sol, +0,4 ms à 564 m et +1,4 ms à 2,6 km, minimum de 8 rendus sous charge.
-  - **Banc de qualité,** 30 lieux retirés, contre les photos (trou p95 3,5 dB, répétition p95 0,18) : trous de la roche à 200 et 800 m, 5,1 et 4,8 dB sur 33 et 23 crops ; répétition du sable à 12 m 0,47, les rides, 0,55 avant ; le reste au niveau des photos ou dessous. Les segments longs du banc montent à 800 et 3 000 m avec les nouveaux lieux ; sur les mêmes vues, ceux du bruit seul baissent, de 166 à 116.
-- **La référence du banc est remplacée** par cette mesure : l'ancienne portait sur des lieux qui ont changé.
-- **Pour revenir :** l'ancien `ValueNoise3` à la place de `Noise3`, dans `Materials.hlsli` (commit `3f899da`).
-- **Tests :** `tools/tests/2026-10-24-pixels.txt`.
-
-## 2026-10-24 · Des craquelures et des rigoles organiques
-
-- **Symptômes,** en vol : des craquelures en segments droits aux angles vifs, `4242.2 16.27025 123.15986 16.1 -166.5` ; un versant de badlands couvert de rides verticales régulières, du velours côtelé, `4285.0 16.27172 123.16603 4.8 -159.1`.
-- **Causes :** les fissures du granite, les cristaux et les pierres suivent les bords d'un Voronoi, droits par construction ; les rigoles des badlands, toutes les 1,3 à 2,7 m, à profondeur presque égale, sur toute la tuile de 64 m. Deux structures d'un trait uniforme (`principes.md`).
-- **Changement :** la grille du Voronoi est déformée par un bruit périodique d'une demi-maille et d'un huitième, ses bords ondulent, à l'endroit commun à ses trois usages ; une fissure de granite s'élargit, se resserre et s'interrompt le long d'elle-même ; les rigoles vont et viennent par plaques de 8 à 32 m et se rassemblent en ravines d'environ 16 m.
-- **Mesures :** banc de qualité sans régression nette, le trou d'échelle de la roche à 12 m de 3,0 à 3,4 dB, sous le niveau des photos ; scintillement inchangé.
-- **Coût :** aucun, les tuiles sont générées au démarrage.
-
-## 2026-10-24 · Correctif : les cercles sur les océans, vus de loin
-
-**Réglage :** l'image HDR en flottants 32 bits, au lieu de 16 (`HdrFormat`, `D3DApp.h`).
-
-- **Symptôme,** en vol : de très loin, les océans couverts d'anneaux concentriques autour de nombreux centres, `24622915.3 46.51198 60.64808 79.2 78.2`. Nets de 10 000 à 30 000 km, pâles dès 2 000 km, sur les terres aussi. Présent depuis `jalon/05-atmosphere`.
-- **Cause :** l'atmosphère reçoit la distance du terrain dans l'alpha de l'image HDR, en demi-flottant : des pas de 16 km au-delà de 16 384 km. Le rayon s'arrêtait jusqu'à 8 km avant le sol et perdait, selon le pixel, l'air le plus dense. Ces paliers forment des cercles autour du nadir, repliés en moiré par les pixels.
-- **Correctif :** la distance garde le mètre à toute distance. Règle nouvelle dans `principes.md`.
-- **Mesures :** cercles disparus de 2 000 à 30 000 km sur deux régions ; parts de neige et de mer en descente identiques au dixième ; banc de qualité sur 30 lieux : tous les p95 à 0,1 dB près de la référence, mutation identique ; près du sol, image identique à 1/255 près ; coût dans le bruit de mesure, moins de 0,1 ms.
-- **Pour revenir :** `HdrFormat` en `DXGI_FORMAT_R16G16B16A16_FLOAT`.
-- Image : `images/cercles-avant-apres.jpg`. Détails : `spec-rendu-lointain.md`. Tests en vol : `tools/tests/2026-10-24-cercles.txt`.
-
-## 2026-10-23 · Le sol nu, un matériau oublié
-
-**Réglage, nouveau :** `SOIL_BANDS`, de 50 cm à 64 m.
-
-- **Symptôme,** en vol : de larges zones brun clair floues à toute distance, en montagne et ailleurs, `2588.6 32.10988 10.53312 9.8 49.1`.
-- **Cause :** du sol nu, trop sec pour l'herbe et trop humide ou froid pour le sable : aucun matériau, la seule couleur du biome, aucune texture. Les bancs ne le mesuraient pas.
-- **Changement :** le sol nu prend la photo du gravier sableux et ses bandes de détail ; le banc et le validateur ont une classe `soil`.
-- **Mesures, mêmes 30 lieux :** détail fin du sol nu +4,7 à +5,4 dB de près, trous d'échelle −1 à −2,5 dB ; rien d'autre ne bouge ; scintillement inchangé.
-- **Essayé et retiré :** le grain du relief sous la maille ; sans gain, il coûtait un point de roche en descente et 14 % de scintillement sur une vue.
-- **Pour revenir :** `soilAmount` à 0 dans `GroundMaterials`.
-- Détails : `spec-texturage-universel.md`, étape 3.
+|  `4363.2 16.26802 …`  | 1,82 → 2,10 | 4,65 → 4,38 | 2,08 → 1,94 |
+|  `4376.2 16.42557 …`  | 0,16 → 0,22 | 1,28 → 1,71 | 1,45 → 2,07 |
+|  `2828.4 -0.03727 …`  | 0,88 → 0,95 | 1,52 → 1,07 | 2,05 → 2,55 |
+|  `1758.2 0.00182 …`  | 0,34 → 0,58 | 1,23 → 1,15 | 1,62 → 1,85 |
+| Real photos of | 0,44 to 2,32 | 0,71 to 11,5 | 0,80 to 15,6 |
+
+- **quality benchmark, 30 places:** p95 of the rock drop, hole at 50 and 200 m from 3,8 and 4,1 to 2,9 and 2,5 dB, repeat of 50 to 800 m from 0,15 to 0,32 before, 0,10 to 0,12 after. The rest moves in the noise of the draw, at most +8 % against v12, the sand hole at 50 m. Spread of rock clarity at 200 m from 0,38 to 0,52 dB, at 800 m from 0,59 to 0,43: on randomly selected locations, the defect is only partially resolved.
+- **flicker, without smoothing:** unchanged on two views; +7 to +12 % on three other views, `2828.4`, `1022.9`, `4363.2`. With smoothing, to 0,01 almost everywhere.
+- **What the test showed:** The “soft” wall of the `1758.2` view rises from 25 m to 10 m, 68°. The orientation rule keeps the photo from the front, as on the three views reported, all beyond 60°. It serves the soft rock: summits of hills, shoulders.
+- **Tested and rejected:**
+  - the noise of clarity with equal spectrum per octave, same deviation: no effect measured;
+  - the same two to three times louder: clarity of the summit `4376.2` from 0,16 to 0,34 dB, at the price of dirty spots;
+  - the contrast of the photos modulated from place to place: relative contrast close to the median of the photos, but flicker +20 % on two views and sand hole at 12 m +56 %.
+- **Rest:** the clarity of the summit `4376.2` under the photos, its relief beyond 64 m being that of the mesh, smooth; the paving of the view `1758.2`; the parallax still reads the tile of 64 m erased by the test.
+- **To return:** `ROCK_BANDS.z = 0.05`; `face = 1.0` in `GroundMaterials`.
+- Image: `journal/2026-10-24-papier-peint.jpg`, front left: `2828.4`, `4376.2`, the orange cliff, the raised wall. Flight tests: `tools/tests/2026-10-24-papier.txt`.
+
+## 2026-10-24 · A single rock, the photo
+
+**Settings:** rock-photo test, marked `EXPERIMENT` in the code. `RockFamilies` makes the layered rock alone; no more 64 m tile drawn on the rock; `ROCK_BANDS`, new; strata in color only; `STRATA_SLOPE` = 0,4 replaces `STRATA_DIP`, `STRATA_FOLD` and `STRATA_WANDER`; sandstone palette at three quarters of its contrast.
+
+- **Symptoms,** in flight, all of the same family:
+  - cracks of granite in rounded strokes, `4242.2 16.27025 123.15986 16.1 -166.5`;
+  - felt strokes on granite, `4363.2 16.26802 123.16025 23.7 -111.3` and `4376.2 16.42557 123.15934 7.3 63.0`;
+  - strata badlands rainbow, `4074.5 16.27626 123.18392 10.8 155.2`; contour lines, `1941.7 0.00280 118.14145 -0.2 156.6`; light and black cornices, `2828.4 -0.03727 118.14886 -9.7 176.8`;
+  - stretched drags, `1415.0 -9.54451 102.98665 4.2 -98.9`.
+  - Considered beautiful, to keep: the layered rock and its photo, `1022.9 -0.23076 118.41645 7.3 61.0`, `2922.5 3.15497 110.91028 20.7 50.3`, `487.8 -0.05421 112.67541 0.6 -25.5`.
+- **Common cause:** structures drawn in the main style, cracks, furrows, gutters, steps, dark curtains, which read as a drawing; perfectly flat layers where the region had no hanging or folds. The photo, it, passed. Rather than correcting each drawing, we remove them.
+- **Changes:**
+  - a single rock, the wall photo, everywhere: granite, basalt and badlands drawn are no longer displayed;
+  - no more 64 m tile drawn on rock: detail strips instead, as for other materials;
+  - the photo is no longer offset along the strata: on a slope parallel to the layers, the offset stretched it endlessly. Spinned by the disturbed layers, it swirled: it remains level;
+  - strata in color only: their steps drew continuous lines on whole faces;
+  - a single disturbance of the layers, from 8 km to 4 m, everywhere, its slope less of 15 % every octave towards the meter; it replaces hanging, folds and wavy, which affected only certain regions;
+  - the thickness of the layers varies along the wall, up to the bevel: two sinuses of 23 and 7,3 m along the layers, at the phases drawn from 32 to 256 m, their slopes to 0,9 at most so that no layer folds.
+- **Measurements, quality benchmark of the "color only" step against reference, same 30 locations:** rock +1,7 to +4,2 dB of fine detail from 50 to 200 m, repeat drop from 0,1; no other material moves; mutation unchanged.
+- **Validation in flight** the 2026-10-24, with the wallpaper of the entry above: “frankly not bad”.
+- **Rest:** remove dead code, families, generators drawn, steps and cornices of strata, photo offset, settings replaced; `RockParallax` still reads the tile of 64 m removed.
+
+## 2026-10-24 · no more pixel patches from far away: a gradient noise everywhere
+
+**Geography is removed.** Deserts, meadows, snow and rocks change places. The relief does not move: complexplanet and `LibNoise.hlsli` are intact.
+
+- **Symptom,** in flight: from afar, the mosaic floor of squares of a few km with flat shades, like a low resolution texture, `160551.2 1.12602 114.67687 31.2 -88.7` and `300000.0 -15.00000 50.00000 50.0 0.0`.
+- **Cause:** the clarity of the ground, `m.local.z`, a `Fbm3` of noise of value.
+  - A noise value is flat around each point of its grid.
+  - Its octaves, on nested grids, align their plates.
+  - Beyond 50 km, the pixel only keeps two or three: the plateaux are visible.
+  - Spaced: the alpha of the HDR rendering, squares unchanged in 32 bits; fine grid and grain: squares unchanged without them. Without clarity, no more squares.
+- **Rule:** a noise never shows its grid (`principes.md`).
+- **Change:** `ValueNoise3` becomes `Noise3`, three gradient noise functions for one hash per corner.
+  - Its bits are laid in mantisses, without conversion: the cost remains close.
+  - It is reduced to the standard deviation of the noise value: standard deviation of the `Fbm3` 0,195 against 0,194, tails to 3 % close. The thresholds remain valid.
+  - All fields are covered: climate, geology, clarity, snow and rock boundaries, beaches, strata, lenses, grass, wrinkles.
+- **Displaced places,** seen at 2 km from the ground:
+  - `banc_visuel`: the desert (26° N, 45° E) becomes a meadow, the grass (15° S, 50° E) becomes a desert, the rock (14,96° S, 119,99° E) loses its snow;
+  - `banc_roche`: canyon (11,05° S, 50,07° E) becomes desert; dry, granite and badlands (20° S, 125° E) become green, granite becomes orange sandstone;
+  - `banc_cretes`: the dry ridge (24,3° S, 129,75° E) loses snow;
+  - `banc_hybride`: sand (26° N, 45° E) becomes grassland, scree (31,16° N, 8,59° E) lose their snow;
+  - `banc_descente`: the North African mountain range (32,3° N, 17,9° E) no longer has snow; the rock site (15° S, 120° E) does not change;
+  - tests: “Naked mountain soil” becomes orange rocky meadow, “Desert from 50 m to 1 km” becomes meadow, cracks lose rock, “Orange and green” becomes gray;
+  - unchanged: "Snow", "Litted wall", "Orbite", the red rock.
+- **Measures:**
+  - **noise alone,** straight segments of 20 px and above, by 1 000 px of land: 160 km 10,2 → 4,9, 300 km 2,7 → 1,2, 200 km 6,6 → 3,2, 600 km 0,5 → 0,1; at 3 and 10 km, unchanged.
+  - **Rendering,** segments of 12 px and more: −20 % to 160 km, −27 % to 300 km, −23 % to 200 km.
+  - **Same statistics, relocated locations,** on 60 randomly selected locations: snow 22 → 20 %, rock 2,8 → 3,1 %, scree 4,0 → 4,2 %, grass 35 → 32 %, sand 30 → 37 %.
+  - **flicker:** from far, unchanged. Snow view: 0,51 → 0,64 without smoothing. At 564 m: 1,20 → 3,84, because the slope of sand wrinkled became rock. The noise alone does not sparkle: 0,07 at most.
+  - **Cost:** by far, nothing. Near ground, +0,4 ms to 564 m and +1,4 ms to 2,6 km, minimum of 8 rendered under load.
+  - **quality benchmark,** 30 places removed, against the photos (hole p95 3,5 dB, repeat p95 0,18): holes of the rock at 200 and 800 m, 5,1 and 4,8 dB on 33 and 23 crops; repetition of the sand at 12 m 0,47, the wrinkles, 0,55 before; the rest at the level of the photos or below. The long segments of the benchmark rise to 800 and 3 000 m with the new locations; on the same views, those of the noise alone fall, from 166 to 116.
+- **The reference of the benchmark is replaced** by this measure: the old one was about places that have changed.
+- **To return:** the old `ValueNoise3` instead of `Noise3`, in `Materials.hlsli` (commit `3f899da`).
+- **Tests:** `tools/tests/2026-10-24-pixels.txt`.
+
+## 2026-10-24 · Organic cracks and gutters
+
+- **Symptoms,** in flight: cracks in sharp-angled right segments, `4242.2 16.27025 123.15986 16.1 -166.5`; a badlands slope covered with regular vertical wrinkles, ribbed velvet, `4285.0 16.27172 123.16603 4.8 -159.1`.
+- **Causes:** cracks in granite, crystals and stones follow the edges of a Voronoi, straight by construction; badlands gutters, all 1,3 to 2,7 m, at almost equal depth, on the entire tile of 64 m. Two structures of a uniform stroke (`principes.md`).
+- **Change:** the Voronoi grid is distorted by a periodic noise of half-grid cell and an eighth, its edges wavy, at the common place to its three uses; a granite crack widens, tightens and interrupts along itself; the gutters come and go by plates of 8 to 32 m and gather in ravines of about 16 m.
+- **Measurements:** quality benchmark without net regression, the scale hole of the rock at 12 m from 3,0 to 3,4 dB, below the level of the photos; flicker unchanged.
+- **Cost:** none, tiles are generated at startup.
+
+## 2026-10-24 · Fix: Circles on the oceans, seen from far
+
+**Setting:** the HDR image in floating 32 bits, instead of 16 (`HdrFormat`, `D3DApp.h`).
+
+- **Symptom,** in flight: from very far, the oceans covered with concentric rings around many centers, `24622915.3 46.51198 60.64808 79.2 78.2`. Nets from 10 000 to 30 000 km, pale from 2 000 km, on land also. Present since `jalon/05-atmosphere`.
+- **Cause:** the atmosphere receives the distance from the ground in the alpha of the image HDR, in semi-floating: steps of 16 km beyond 16 384 km. The ray stopped up to 8 km before the ground and lost, according to the pixel, the densest air. These layers form circles around the nadir, folded in moiré by the pixels.
+- **Fix:** distance keeps the meter at any distance. New rule in `principes.md`.
+- **Measurements:** missing circles from 2 000 to 30 000 km over two regions; snow and sea shares in descent identical to the tenth; quality benchmark on 30 locations: all p95 to 0,1 dB near reference, identical mutation; near ground, image identical to 1/255 near; cost in the noise measurement, less than 0,1 ms.
+- **To return:** `HdrFormat` in `DXGI_FORMAT_R16G16B16A16_FLOAT`.
+- Image: `images/cercles-avant-apres.jpg`. Details: `spec-rendu-lointain.md`. Flight tests: `tools/tests/2026-10-24-cercles.txt`.
+
+## 2026-10-23 · The bare floor, a forgotten material
+
+**Setting, new:** `SOIL_BANDS`, from 50 cm to 64 m.
+
+- **Symptom,** in flight: large light brown areas blurred at all distances, in mountains and elsewhere, `2588.6 32.10988 10.53312 9.8 49.1`.
+- **Cause:** bare soil, too dry for grass and too wet or cold for sand: no material, only biome color, no texture. The benchmarks did not measure it.
+- **Change:** the bare ground takes the picture of the sandy gravel and its detail strips; the benchmark and the validator have a `soil` class.
+- **Measurements, same 30 locations:** Fine detail of bare ground +4,7 to +5,4 dB close up, scale holes −1 to −2,5 dB; nothing else moves; flicker unchanged.
+- **Tried and removed:** the grain of the relief under the grid cell; without gain, it cost one rock point downhill and 14 % of flicker on a view.
+- **To return:** `soilAmount` to 0 in `GroundMaterials`.
+- Details: `spec-texturage-universel.md`, step 3.
 
-## 2026-10-23 · Correctif : la géologie de nouveau par sommet
+## 2026-10-23 · Fix: geology again by vertex
 
-- **Symptôme,** en vol : de l'orbite, à 1 228 km, `1228341.6 0.13844 115.66320 56.0 -33.3`, les régions de roche couvertes de taches rondes de granite gris, de basalte noir et de grès orange.
-- **Cause :** la géologie passée au pixel le 2026-10-23, avec les strates et les lentilles. Filtrée par la maille, elle s'effaçait de loin ; au pixel, ses octaves de 5 à 40 km se voient, et le partage des familles de roche les découpe en taches.
-- **Correctif :** la géologie revient aux sommets ; les strates et les lentilles restent aux pixels, c'étaient elles qui faisaient glisser les bandes. Vérifié : orbite comme avant, bandes toujours immobiles à l'approche.
-- **Reste à revoir :** le partage des familles en taches rondes, qui se verrait dès que la géologie serait filtrée au pixel. Les vraies régions géologiques sont des ceintures.
-
-## 2026-10-23 · Les bandes de détail : neige, sable, herbe, éboulis
+- **Symptom,** in flight: from orbit, at 1 228 km, `1228341.6 0.13844 115.66320 56.0 -33.3`, rock regions covered with round spots of gray granite, black basalt and orange sandstone.
+- **Cause:** the geology passed to the pixel the 2026-10-23, with the strata and the lenses. Filtered by the grid cell, it was erased from far; at pixel, its octaves of 5 to 40 km are seen, and the division of the rock families cuts them into spots.
+- **Fix:** the geology returns to the summits; the strata and the lenses remain pixels, they were the ones that drag the bands. Verified: orbits as before, bands still immobile on approach.
+- **Remains to be reviewed:** the division of families in round spots, which would be seen as soon as the geology was filtered to pixel. The real geological regions are belts.
+
+## 2026-10-23 · The detail strips: snow, sand, grass, scree
 
-**Réglages, nouveaux :** `SNOW_BANDS`, `SAND_BANDS`, `GRASS_BANDS`, `SCREE_BANDS` : longueurs d'onde, pente et couleur par octave.
+**New settings:** `SNOW_BANDS`, `SAND_BANDS`, `GRASS_BANDS`, `SCREE_BANDS`: wavelengths, pitch and color per octave.
 
-- **Changement :** une seule fonction, `DetailBands`, comble les échelles vides de chaque matériau, mesurées par `tools/valide_bandes.py` : une octave de bruit par longueur d'onde, à pente et couleur égales.
-- **Pourquoi :** la neige n'avait aucun détail ; le sable rien de 50 cm à 16 m ; l'herbe deux creux.
-- **Effet :** la neige prend une surface ; le sable comble son creux au niveau de ses scans réels ; les trous d'échelle du banc reviennent au niveau des photos.
-- **Mesures :** neige +30 dB sous 1 m ; sable +18 dB à 4 m ; herbe +2 à +5 dB ; tremblement, répétition et mutation inchangés.
-- **Pour revenir :** les quatre réglages à une pente et une couleur nulles.
-- Détails : `spec-texturage-universel.md`, étape 3.
-
-## 2026-10-23 · Des bandes immobiles, un granite sans grillage, la doc rangée
+- **Change:** a single function, `DetailBands`, fills the empty scales of each material, measured by `tools/valide_bandes.py`: one octave of noise per wavelength, at equal gradient and color.
+- **Why:** Snow had no detail; sand nothing from 50 cm to 16 m; grass two hollows.
+- **Effect:** snow takes a surface; sand fills its hollow at the level of its real scans; the scale holes of the benchmark return to the level of photos.
+- **Measurements:** snow +30 dB under 1 m; sand +18 dB to 4 m; grass +2 to +5 dB; jitter, repetition and mutation unchanged.
+- **To return:** all four settings to a zero gradient and color.
+- Details: `spec-texturage-universel.md`, step 3.
+
+## 2026-10-23 · Immobile strips, a granite without wire, the doc arranged
 
-**Réglages :** `STRATA_WANDER` = 2,5 m, nouveau ; `MASSIVE_TILE` = 8 m, nouveau ; `STRATA_PLATE_RISE` = 0 et `STRATA_PLATE_TILT` = 0, au lieu de 20 m et 0,12.
+**Settings:** `STRATA_WANDER` = 2,5 m, new; `MASSIVE_TILE` = 8 m, new; `STRATA_PLATE_RISE` = 0 and `STRATA_PLATE_TILT` = 0, instead of 20 m and 0,12.
 
-- **Les bandes ne glissent plus à l'approche :** géologie, décalage des strates et lentilles sont calculés dans les pixels, filtrés par leur taille. Filtrés par la maille, 13 pixels, leurs octaves apparaissaient à vue.
-- **Les strates ondulent davantage,** 2,5 m d'écart type sur 4 à 256 m, au lieu de 0,8 m sur 4 à 64 m.
-- **Le granite n'a plus de grillage :** ses grandes fractures se montrent par tronçons. Granite et basalte retrouvent leur tuile de 8 m.
-- **Les failles sont coupées :** elles arrêtaient les bandes net, les « sparadraps ». Leur code reste, fixé sur la planète, pour la règle des arrêts.
-- **La doc :** 10 specs passées dans `log/`, un index `README.md`, `AGENTS.md` et sa règle du log ; la méthode change, `spec-texturage-universel.md`.
-- **Mesures :** tremblement avec lissage égal ou meilleur ; descente de la roche inchangée.
-- **Pour revenir :** le tag `piste/bandes-cassees`.
-
-## 2026-10-23 · Les bandes cassées
-
-**Réglages, nouveaux :** `STRATA_PLATE_RISE` = 20 m, `STRATA_PLATE_TILT` = 0,12, `STRATA_FORMATION_CONTRAST` = 0,3.
-
-- **Changement :** des failles presque verticales cassent les strates en plaques d'environ 128 m, relevées et inclinées chacune ; les formations prennent la teinte de groupes cinq fois plus épais. Couleur seulement, la géométrie ne change pas.
-- **Pourquoi :** de 300 m à 1 km, des bandes continues et régulières faisaient tissu.
-- **Effet :** des bandes interrompues et décalées, des couleurs par grandes masses ; restent les joints sombres entre bancs, en tronçons.
-- **Mesures :** tremblement avec lissage 0,43 → 0,42 et 0,23 → 0,26 ; rendu +0,1 à 0,3 ms ; descente de la roche inchangée.
-- **Pour revenir :** `STRATA_PLATE_RISE` = 0, `STRATA_PLATE_TILT` = 0, `STRATA_FORMATION_CONTRAST` = 1.
-- Détails : `spec-parois-minerales.md`.
-
-## 2026-10-23 · La géométrie à complexplanet, la photo de falaise sur la roche
-
-**Réglages :** `MATERIAL_RELIEF` = 0 et `WALL_RELIEF` = 0, au lieu de 1 ; `ROCK_TILE` = 64/5 m, au lieu de 8 m.
-
-- **La règle :** complexplanet est la source de vérité de la géométrie. Toute surcouche est classée et documentée dans `geometrie.md` ; un remplacement vit sur une piste taguée.
-- **La géométrie de proximité est désactivée,** relief des matériaux et gradins : le rendu se règle d'abord sur complexplanet seul.
-- **Le filtre d'érosion est mis de côté,** tag `piste/erosion-filtre`.
-- **La photo de falaise :** `marble_cliff_04` de Poly Haven, CC0, une paroi de 12,7 m de face, sur la tuile de la roche litée. Toutes ses longueurs d'onde, 30 % de sa teinte.
-- **Effet :** une matière fracturée et cannelée sur les parois ; de 300 m à 1 km, les bandes de strates dominent encore.
-- **Mesures :** tremblement avec lissage 0,40 → 0,43 au pire ; coût et descente de la roche inchangés.
-- **Pour revenir :** les deux réglages à 1, `ROCK_TILE` à 8 m et la ligne `marble_cliff_04` retirée de `kScans`.
-- Détails : `spec-parois-minerales.md`.
-
-## 2026-10-23 · Parois en gradins, options 1 et 2
-
-**Réglages, nouveaux :** `WALL_RELIEF` = 1, `WALL_MAX_CELL` = 16 m, `WALL_SLOPE` = 0,55 à 1, `WALL_CLIFF` = 0,35, `WALL_REPOSE` = 0,67.
-
-- **Changement :** les bancs durs de la colonne stratigraphique font des falaises, les bancs tendres des replats à l'angle d'éboulis. Le maillage porte ce qu'il peut sans trembler, les pixels éclairent le reste. Ravines, contreforts et masses de granite dans le maillage.
-- **Pourquoi :** les parois de 15 à 150 m étaient lisses et peintes de bandes ; le défaut était la géométrie.
-- **Effet :** vraies falaises en gradins sur les parois très raides ; pentes de 45° presque inchangées ; rien sous l'angle d'éboulis.
-- **Mesures :** tremblement avec lissage de 0,37 à 0,61 sur la paroi la plus raide, +0,03 à +0,05 ailleurs ; descente de la roche inchangée.
-- **Coût :** +0,2 ms.
-- **Pour revenir :** `WALL_RELIEF` = 0.
-- Détails : `log/spec-parois.md`.
-
-## 2026-10-22 · Le sable en photo
-
-**Réglages :** `SAND_TILE` = 64/24 m, au lieu de 8 m ; `kScanKeep` = 0,5 m dans `D3DApp.cpp`.
-
-- **Changement :** la tuile du sable est un scan photo CC0, `sandy_gravel_02` de Poly Haven, chargé au démarrage par WIC à son échelle réelle. Il reste un facteur de moyenne 1, recoloré par le biome. Il ne porte que les longueurs d'onde de moins de 50 cm ; le grain fin et le reste restent procéduraux. La roche reste procédurale.
-- **Pourquoi :** la recommandation de l'essai hybride, les sols meubles aux scans, la roche au procédural.
-- **Effet :** un sol de désert à graviers et cailloux de près, au lieu d'un sable uniforme. Rien ne change au-delà de 50 m.
-- **Mesures :** réalisme contre `aerial_sand` ×7,66 → ×6,54, spectre 8,8 → 5,2 dB ; descente du sable et de l'herbe inchangée de 800 à 8 km ; tremblement inchangé avec lissage.
-- **Coût :** aucun mesurable au rendu ; +1,1 s au démarrage en Debug.
-- **Pour revenir :** retirer la ligne de `kScans` et remettre `SAND_TILE` à 8 m.
-- Détails : `log/spec-hybride-scans.md`.
-
-## 2026-10-22 · Couleurs du sol tirées de la vraie Terre
-
-- **Changement :** la couleur du sol vient d'un tableau température × humidité mesuré sur Blue Marble et sur les normales TerraClimate, `BiomePalette.hlsli`, généré par `tools/palette_biomes.py`. Il remplace les teintes choisies à la main : désert, steppe, prairie, forêt, toundra.
-- **Effet :** déserts presque inchangés ; régions humides tempérées moins vertes, plus olive.
-- **Coût :** aucun mesurable.
-- **Pour revenir :** le commit précédent.
-- Détails : `spec-photos-par-echelle.md`.
-
-## 2026-10-22 · Principes et correctif de l'effet « feutre » des strates
-
-- **`principes.md`, nouveau :** on corrige des règles, pas des cas. Il recense les règles établies et les bancs qui les vérifient. Ce fichier fait référence.
-- **Strates :**
-  - marches des plans en loi au cube, la plupart à peine visibles ;
-  - bords qui ondulent ;
-  - bancs qui s'interrompent sur 16 à 128 m, seuil élargi selon la règle universelle ;
-  - couloirs continus et irréguliers, plus discrets.
-- **Mesures :** tremblement en légère baisse ; roche en descente inchangée ; coût à remesurer, GPU partagé.
-- Détails : `spec-roche-organique.md`.
-
-## 2026-10-22 · Parallaxe du relief de la roche
-
-**Réglages :** `MATERIAL_PARALLAX` = 1, `PARALLAX_DEPTH` = 1,5 m, `PARALLAX_STEPS` = 8.
-
-- **Changement :** les pixels suivent leur rayon de vue dans le relief de la roche que le maillage ne porte pas encore, tuile de 64 m et colonne stratigraphique, et prennent les matériaux au point touché.
-- **Effet :** la corniche a sa profondeur dès 11 m, au lieu de surgir avec la géométrie.
-- **Coût :** +0,8 à +1,0 ms de près, rien de loin. **Tremblement :** légèrement plus, 0,17 → 0,22 à 11 m.
-- **Outil :** les bancs rendent sans afficher la fenêtre et ne prennent plus le focus ; le titre va dans `<capture>.txt`.
-- **Pour revenir :** `MATERIAL_PARALLAX = 0`.
-- Détails : `log/spec-parallaxe.md`. Retirée le 2026-10-24.
-
-## 2026-10-22 · Correctif : les matériaux ne dépendent plus du relief porté par le maillage
-
-- **Symptôme :** une corniche changeait de matériau dans les derniers mètres de l'approche ; sa couleur disparaissait, puis revenait sous une autre forme.
-- **Cause :** les décisions se prenaient sur la normale du maillage, qui porte de plus en plus du relief des matériaux en approchant.
-- **Correctif :** décisions sur la normale du terrain seul, calculée sur les sommets d'avant la passe de relief, et sur la pente entière des textures. La lumière seule retire la part portée par le maillage.
-- **Mesure :** la bande du replat reste à sa place de 11 m à 5 m ; tremblement inchangé ; descente inchangée.
-- Détails : `log/spec-relief-reel.md`.
-
-## 2026-10-22 · Fusion de la roche organique, sous la règle universelle
-
-**Réglage :** `STONE_SLOPE_SIGMA` = 0,6.
-
-- **Fusion :** la branche `roche-organique`, PR EtienneLescot/MyPlanetEngine#10, apporte familles de roche, colonne stratigraphique, pendage, plis, replats et usure. En cas de conflit, le travail de cohérence a gardé la priorité : règle universelle, projection triplanaire, correctifs du relief.
-- **Converti à la règle universelle :**
-  - **familles :** leurs limites sur le bruit de géologie s'élargissent de ce que la maille en cache ;
-  - **roche tendre :** ses limites de pente passent par `SlopeShares` ;
-  - **replats :** une part, par quadrature sur les pentes cachées et la pente perdue de la texture, `RockShares`.
-- **Pourquoi les replats :** tels quels, ils se décidaient sur la pente douce du maillage de loin, et couvraient toute la roche. Elle tombait à 0 % de 800 à 90 km. Maintenant, la roche vue reste à 9–13 % de 800 à 8 km, et la roche avant replats à 18–22 %.
-- **Sommets :** `FaceVertex` garde la rugosité et reçoit le relief porté.
-- **Coût :** les tuiles ne sont plus lues au-delà d'un pixel de deux tuiles, et la quadrature des replats saute près de la caméra. Rendu +0,1 à +0,8 ms par rapport à avant la fusion.
-- **Tremblement :** roche rouge 2,1 → 0,57 ; vue du constat 0,23 → 0,35.
-- **Neige :** inchangée au banc de descente.
-- **Vue de diagnostic :** `rockall`, la roche, replats compris.
-
-## 2026-10-22 · Correctif : lames, aiguilles et scintillement du relief des matériaux
-
-**Réglages :** `CREASE_MIN_CELL` = 2 m ; `RELIEF_NORMAL_CELLS` = 32 ; projection triplanaire.
-
-- **Neige :** dans la passe de relief, elle ne se décide plus sur la pente des textures. Elle basculait d'un sommet à l'autre et dressait des lames.
-- **Projection :** des poids triplanaires continus remplacent la biplanaire à la puissance 8, qui basculait près de la diagonale du cube.
-- **Normale de la passe de relief :** sur 32 mailles au lieu de 4.
-- **Mesure,** banc de tremblement : roche rouge 10,1 → 2,1, crête enneigée 1,7 → 0,55. Plus de lames ni d'aiguilles sur les vues signalées.
-- **Coût :** +0,2 à 0,3 ms de calcul.
-- Détails : `log/spec-relief-reel.md`.
-
-## 2026-10-22 · Correctif : scintillement de près, précision de l'arrondi des crêtes
-
-- **Symptôme :** après le jalon 13, gros scintillements et formes aberrantes près du sol.
-- **Cause :** le retrait de l'excès moyen de l'arrondi des crêtes. Sa forme exacte perdait sa précision en simple précision pour les petits arrondis, donc près de la caméra.
-- **Correctif :** la série de cet excès sous un arrondi de 0,4.
-- **Mesure,** banc de tremblement sur les deux positions signalées : 1,26 → 0,37 et 2,37 → 0,16 avec lissage, mieux qu'avant le jalon.
-- **Nouveau banc :** `tools/banc_tremblement.py`, qui reprend une position exacte de la barre de titre.
-- Détails : `spec-rendu-lointain.md`.
-
-## 2026-10-22 · Jalon 13 : la même planète de l'orbite au sol · tag `jalon/13-coherence-distance`
-
-**Le jalon :** testé en vol par l'utilisateur, « une avancée considérable ». La planète ne change plus d'apparence en descendant : les montagnes gardent leur taille, la neige et la roche gardent leur place et leur part.
-
-- **Le vrai relief sous la maille, d'orbite :** une grille quatre fois plus fine que la face, recalculée à chaque image, donne au pixel la normale et l'altitude du relief que le maillage ne porte pas.
-- **Le relief garde sa hauteur moyenne :** l'arrondi des crêtes perd son excès moyen. Les montagnes ne gonflent plus de 300 à 1 000 m vers 200 km de vue.
-- **Une règle pour toutes les limites entre matériaux :** un pixel montre la moyenne d'une limite sur ce qu'il couvre. Les bruits restent les mêmes à toute distance, et ce que le pixel n'en montre pas élargit la limite.
-- **Les outils de mesure :** le banc de descente, `tools/banc_descente.py`, et les vues de diagnostic, `MYPLANETENGINE_VIEW`. Chaque matériau se mesure de 800 km à quelques km.
-- **Mesures, de loin à près :**
-  - roche 18 → 22 %, contre 0 → 17 % ;
-  - neige 12 → 16 %, contre 6 → 45 → 26 % ;
-  - altitude moyenne sans bosse ;
-  - mer, plage, éboulis et herbe stables.
-- **Ce qui reste ouvert :**
-  - la grille fine ne couvre que la face, pas les anneaux ;
-  - un écart de 400 m du relief sur une chaîne ;
-  - une rugosité mesurée plutôt que tirée du type de terrain ;
-  - de près, le tremblement de la roche et l'aspect de briques vers 100 m.
-- Détails : `spec-rendu-lointain.md`.
+- **The strips no longer slide on approach:** geology, offset of strata and lenses are calculated in pixels, filtered by their size. Filtered by the grid cell, 13 pixels, their octaves appeared in sight.
+- **strata ripple more,** 2,5 m of standard deviation on 4 to 256 m, instead of 0,8 m on 4 to 64 m.
+- **Granite has no more grid:** its large fractures are shown by sections. Granite and basalt find their tile of 8 m.
+- **The faults are cut:** they stopped the net bands, the “sparadraps”. Their code remains, fixed on the planet, for the rule of stops.
+- **The doc:** 10 specs passed in `log/`, an index `README.md`, `AGENTS.md` and its log rule; the method changes, `spec-texturage-universel.md`.
+- **Measurements:** jitter with smoothing equal or better; rock descent unchanged.
+- **To return:** the tag `piste/bandes-cassees`.
+
+## 2026-10-23 · The broken strips
+
+**Settings, new:** `STRATA_PLATE_RISE` = 20 m, `STRATA_PLATE_TILT` = 0,12, `STRATA_FORMATION_CONTRAST` = 0,3.
+
+- **Change:** Nearly vertical faults break the strata into plates of about 128 m, raised and inclined each; formations take the shape of groups five times thicker. Color only, geometry does not change.
+- **Why:** From 300 m to 1 km, continuous and regular strips made fabric.
+- **Effect:** discontinued and offset strips, colors by large masses; remain the dark joints between benchmarks, in sections.
+- **Measurements:** jitter with smoothing 0,43 → 0,42 and 0,23 → 0,26; rendering +0,1 to 0,3 ms; rock descent unchanged.
+- **To return:** `STRATA_PLATE_RISE` = 0, `STRATA_PLATE_TILT` = 0, `STRATA_FORMATION_CONTRAST` = 1.
+- Details: `spec-parois-minerales.md`.
+
+## 2026-10-23 · Geometry at complexplanet, the photo of cliff on the rock
+
+**Settings:** `MATERIAL_RELIEF` = 0 and `WALL_RELIEF` = 0, instead of 1; `ROCK_TILE` = 64/5 m, instead of 8 m.
+
+- **The rule:** complexplanet is the source of truth of geometry. Any overlay is classified and documented in `geometrie.md`; a replacement lives on a tagged experiment.
+- **Proximity geometry is disabled,** relief of materials and grades: rendering is first set on complexplanet alone.
+- **The erosion filter is set aside,** tag `piste/erosion-filtre`.
+- **Cliff photo:** Poly Haven `marble_cliff_04`, CC0, a 12,7 m wall from the front, on the tile of the layered rock. All its wavelengths, 30 % of its hue.
+- **Effect:** a fractured and grooved material on the walls; from 300 m to 1 km, the bands of strata still dominate.
+- **Measurements:** jitter with smoothing 0,40 → 0,43 at worst; cost and rock descent unchanged.
+- **To return:** the two settings to 1, `ROCK_TILE` to 8 m and the `marble_cliff_04` line removed from `kScans`.
+- Details: `spec-parois-minerales.md`.
+
+## 2026-10-23 · Step walls, options 1 and 2
+
+**Settings, new:** `WALL_RELIEF` = 1, `WALL_MAX_CELL` = 16 m, `WALL_SLOPE` = 0,55 to 1, `WALL_CLIFF` = 0,35, `WALL_REPOSE` = 0,67.
+
+- **Change:** the hard beds of the stratigraphic column make cliffs, the soft beds replats at the angle of scree. The mesh carries what it can without shaking, the pixels light up the rest. Ravines, foothills and granite masses in the mesh.
+- **Why:** The walls of 15 to 150 m were smooth and striped; the defect was geometry.
+- **Effect:** real cliffs in steps on very steep walls; slopes of 45° almost unchanged; nothing under the angle of scree.
+- **Measurements:** jitter with smoothing from 0,37 to 0,61 on the steepest wall, +0,03 to +0,05 elsewhere; descent of rock unchanged.
+- **Cost:** +0,2 ms.
+- **To return:** `WALL_RELIEF` = 0.
+- Details: `log/spec-parois.md`.
+
+## 2026-10-22 · The sand in pictures
+
+**Settings:** `SAND_TILE` = 64/24 m, instead of 8 m; `kScanKeep` = 0,5 m in `D3DApp.cpp`.
+
+- **Change:** the sand tile is a photo scan of CC0, `sandy_gravel_02` from Poly Haven, loaded at startup by WIC at its full scale. There is a 1 average factor left, recolored by the biome. It only carries wavelengths less than 50 cm; fine grain and the rest remain procedural. The rock remains procedural.
+- **Why:** the recommendation of the hybrid test, the soft soils to scans, the rock to procedural.
+- **Effect:** a desert soil with gravel and pebbles close, instead of a uniform sand. Nothing changes beyond 50 m.
+- **Measurements:** realism against `aerial_sand` ×7,66 → ×6,54, spectrum 8,8 → 5,2 dB; sand and grass descent unchanged from 800 to 8 km; jitter unchanged with smoothing.
+- **Cost:** none measurable at rendering; +1,1 s at start in Debug.
+- **To return:** remove the line from `kScans` and return `SAND_TILE` to 8 m.
+- Details: `log/spec-hybride-scans.md`.
+
+## 2026-10-22 · Soil colours drawn from the real Earth
+
+- **Change:** the color of the soil comes from a table temperature × humidity measured on Blue Marble and on the TerraClimate normals, `BiomePalette.hlsli`, generated by `tools/palette_biomes.py`. It replaces the shades chosen at the main: desert, steppe, meadow, forest, tundra.
+- **Effect:** almost unchanged deserts; temperate humid regions less green, more olive.
+- **Cost:** none measurable.
+- **To go back:** the previous commit.
+- Details: `spec-photos-par-echelle.md`.
+
+## 2026-10-22 · Principles and correction of the felt effect of strata
+
+- **`principes.md`, new:** we correct rules, not cases. It lists the established rules and the benchmarks that check them. This file refers.
+- **strata :**
+  - steps of the plans in law to the cube, most barely visible;
+  - wavy edges;
+  - benchmarks interrupting on 16 to 128 m, threshold expanded according to universal rule;
+  - continuous and irregular corridors, more discreet.
+- **Measurements:** jitter in slight decrease; rock in descent unchanged; cost to resize, GPU shared.
+- Details: `spec-roche-organique.md`.
+
+## 2026-10-22 · Parallax of the rock relief
+
+**Settings:** `MATERIAL_PARALLAX` = 1, `PARALLAX_DEPTH` = 1,5 m, `PARALLAX_STEPS` = 8.
+
+- **Change:** pixels follow their viewing radius in the rock relief that the mesh does not yet bear, 64 m tile and stratigraphic column, and take the materials at the touched point.
+- **Effect:** the cornice has its depth from 11 m, instead of emerging with the geometry.
+- **Cost:** +0,8 to +1,0 ms close, nothing far. **jitter:** slightly more, 0,17 → 0,22 to 11 m.
+- **Tool:** benchmarkss render without displaying the window and no longer take the focus; the title goes in `<capture>.txt`.
+- **To return:** `MATERIAL_PARALLAX = 0`.
+- Details: `log/spec-parallaxe.md`. Removed the 2026-10-24.
+
+## 2026-10-22 · Fix: materials no longer depend on the relief carried by the mesh
+
+- **Symptom:** A cornice changed material in the last meters of the approach; its color disappeared, then returned in another form.
+- **Cause:** decisions were made on the normal of the mesh, which carries more and more of the relief of materials as it approaches.
+- **Fix:** decisions on the normal of the terrain alone, calculated on the vertices before the relief pass, and on the entire slope of the textures. Light alone removes the part carried by the mesh.
+- **Measurement:** the replat strip remains in place from 11 m to 5 m; jitter unchanged; descent unchanged.
+- Details: `log/spec-relief-reel.md`.
+
+## 2026-10-22 · Organic rock melting, under the universal rule
+
+**Setting:** `STONE_SLOPE_SIGMA` = 0,6.
+
+- **Fusion:** the branch `roche-organique`, PR EtienneLescot/MyPlanetEngine#10, brings rock families, stratigraphic column, hanging, folds, replats and wear. In case of conflict, the work of consistency has kept the priority: universal rule, projection triplanar, relief corrections.
+- **Converted to universal rule:**
+  - **families:** their limits on the noise of geology expand from what the grid cell in cache;
+  - **soft rock:** its slope limits pass through `SlopeShares`;
+  - **replats:** one part, by quadrature on the hidden slopes and the lost slope of the texture, `RockShares`.
+- **Why the replats:** as they were, they decided on the gentle slope of the mesh from afar, and covered the whole rock. It fell to 0 % from 800 to 90 km. Now, the rock seen remains at 9–13 % of 800 to 8 km, and the rock before replacement at 18–22 %.
+- **Tops:** `FaceVertex` keeps the roughness and receives the relief carried.
+- **Cost:** Tiles are no longer read beyond one pixel of two tiles, and the quadrature of replats jumps near the camera. Rendered +0,1 to +0,8 ms compared to before the merge.
+- **jitter:** red rock 2,1 → 0,57; view of the report 0,23 → 0,35.
+- **Snow:** unchanged at the benchmark of descent.
+- **Diagnostic view:** `rockall`, rock, including replacing.
+
+## 2026-10-22 · Correction: blades, needles and flicker of the relief of materials
+
+**Settings:** `CREASE_MIN_CELL` = 2 m; `RELIEF_NORMAL_CELLS` = 32; projection triplanar.
+
+- **Snow:** in the relief pass, it no longer decides on the slope of textures. It swayed from one summit to another and raised blades.
+- **Projection:** Continuous triplanar weights replace the biplanar at the power 8, which tilted near the diagonal of the cube.
+- **Relief pass normal:** on 32 grid cells instead of 4.
+- **Measure,** benchmark of jitter: red rock 10,1 → 2,1, snowy ridge 1,7 → 0,55. No more blades or needles on the reported views.
+- **Cost:** +0,2 to 0,3 ms of calculation.
+- Details: `log/spec-relief-reel.md`.
+
+## 2026-10-22 · Correction: flicker close, accuracy of the rounding of the peaks
+
+- **Symptom:** after the milestone 13, big sparkles and aberrant shapes near the ground.
+- **Cause:** removal of the excess average of the rounding of the crests. Its exact shape lost its precision in simple precision for small rounded, so close to the camera.
+- **Fix:** the series of this excess under a rounding of 0,4.
+- **Measurement,** benchmark of jitter on the two positions reported: 1,26 → 0,37 and 2,37 → 0,16 with smoothing, better than before the milestone.
+- **New benchmark:** `tools/banc_tremblement.py`, which takes an exact position of the title bar.
+- Details: `spec-rendu-lointain.md`.
+
+## 2026-10-22 · milestone 13: the same planet as the Earth orbit · tag `jalon/13-coherence-distance`
+
+**The milestone:** user-tested in flight, “a considerable breakthrough.” The planet no longer changes its appearance as it descends: mountains keep their size, snow and rock keep their place and their share.
+
+- **The real relief under the grid cell, orbit:** a grid four times thinner than the face, recalculated at each frame, gives the pixel the normal and the altitude of the relief that the mesh does not carry.
+- **The relief keeps its average height:** the rounding of the ridges loses its average excess. Mountains no longer inflate from 300 to 1 000 m to 200 km of view.
+- **A rule for all material boundaries:** a pixel shows the average of a boundaries on what it covers. The noise functions remains the same at any distance, and what the pixel does not show expands the limit.
+- **Measurement tools:** the descent benchmark, `tools/banc_descente.py`, and diagnostic views, `MYPLANETENGINE_VIEW`. Each material is measured from 800 km to a few km.
+- **Measurements, from far to close:**
+  - rock 18 → 22 %, against 0 → 17 %;
+  - snow 12 → 16 %, against 6 → 45 → 26 %;
+  - average altitude without bump;
+  - sea, beach, scree and grass stable.
+- **What remains open:**
+  - the fine grid covers only the face, not the rings;
+  - a deviation of 400 m from the relief on a chain;
+  - a roughness measured rather than derived from the type of terrain;
+  - close up, the jitter rock and the appearance of bricks towards 100 m.
+- Details: `spec-rendu-lointain.md`.
 
-## 2026-10-22 · Règle universelle des limites entre matériaux
+## 2026-10-22 · Universal boundary rule between materials
 
-**Réglages :** `OCTAVE_SLOPE` = 0,16 ; rugosités par type de terrain 1 / 0,6 / 0,4 / 0,1 ; orientation des versants cachés à 4 °C par unité de pente.
+**Settings:** `OCTAVE_SLOPE` = 0,16; roughness by terrain type 1 / 0,6 / 0,4 / 0,1; orientation of hidden slopes at 4 °C per unit of slope.
 
-- **La règle :** un pixel montre la moyenne d'une limite sur ce qu'il couvre. Les bruits restent les mêmes à toute distance, et ce que le pixel n'en montre pas élargit la limite.
-- **Appliquée à** la neige, la roche, les éboulis, la plage, la mer, l'herbe et le sable, et à la couleur de la toundra.
-- **Mesures, de loin à près :** roche 18 → 22 % contre 0 → 17 % ; neige 12 → 16 % ; mer et plage stables.
-- **Vues de diagnostic :** `MYPLANETENGINE_VIEW` = snow, rock, elevation, spread, scree, grass, sand, beach, wet ou sea.
-- **Coût :** +0,10 à +0,28 ms.
-- Détails : `spec-rendu-lointain.md`.
+- **The rule:** a pixel shows the average of a limit on what it covers. The noise functions remains the same at any distance, and what the pixel does not show expands the limit.
+- **Applied to** snow, rock, scree, beach, sea, grass and sand, and to the color of the tundra.
+- **Measurements, from far to near:** rock 18 → 22 % vs. 0 → 17 %; snow 12 → 16 %; sea and beach stable.
+- **Diagnostic views:** `MYPLANETENGINE_VIEW` = snow, rock, elevation, spread, scree, grass, sand, beach, wet or sea.
+- **Cost:** +0,10 to +0,28 ms.
+- Details: `spec-rendu-lointain.md`.
 
-## 2026-10-22 · Mutation en descente : relief et neige
+## 2026-10-22 · Downhill mutation: terrain and snow
 
-- **Le relief garde sa hauteur moyenne :** l'arrondi des crêtes, `CreaseAbs`, perd son excès moyen. Les montagnes ne gonflent plus de 300 à 1 000 m vers 200 km de vue.
-- **La neige suit l'altitude de la grille fine,** et un bruit de température de 2 km au plus, le même à toute distance. Ce que le pixel n'en montre pas élargit la limite des neiges.
-- **Mesure,** banc de descente sur la chaîne d'Afrique du Nord : neige de 6 → 45 → 26 % à 8 → 12 % de 400 à 60 km.
-- Détails : `spec-rendu-lointain.md`.
+- **The relief keeps its average height:** the rounding of the ridges, `CreaseAbs`, loses its average excess. Mountains no longer inflate from 300 to 1 000 m to 200 km of view.
+- **Snow follows the altitude of the fine grid,** and a noise temperature of 2 km at most, the same at any distance. What the pixel does not show widens the snow line.
+- **Measure,** benchmark of descent on the North African chain: snow from 6 → 45 → 26 % to 8 → 12 % of 400 to 60 km.
+- Details: `spec-rendu-lointain.md`.
 
-## 2026-10-22 · Roche organique, étape 5 : l'usure
+## 2026-10-22 · Organic rock, stage 5: wear
 
-- **Lentilles :** un champ lent, bruits de 256 et 128 m calculés par sommet, contre lequel chaque plan de stratification a son seuil. En dessous, sa marche s'efface : les bancs s'interrompent en lentilles. Les formations, rarement.
-- **Arêtes arrondies :** contremarches et replats 2,5 fois plus larges pour la roche tendre.
-- **Coût :** une famille sous 5 % n'est plus calculée, les autres se partagent sa place.
-- **Mesure finale, GPU libre, rendu :** +0,26 ms au constat, +0,32 ms au canyon à 100 m, +0,53 ms au site sec à 100 m. Calcul inchangé. Le site sec est au budget de 0,5 ms à 0,03 ms près : la pression de registres des quatre familles déroulées, même non prises.
-- **Essayé sans gain :** deux familles choisies par indice, `[branch]`, boucle non déroulée, hachage plus court.
-- Détails : `spec-roche-organique.md`.
+- **Lenses:** a slow field, noise functions of 256 and 128 m calculated per vertex, against which each stratification plane has its threshold. Below, his march fades: the beds interrupt in lenses. Training, rarely.
+- **Rounded edges:** Steps and replat 2,5 times wider for soft rock.
+- **Cost:** a family under 5 % is no longer calculated, the others share its place.
+- **Final measurement, GPU free, rendered:** +0,26 ms at the observation, +0,32 ms at the canyon at 100 m, +0,53 ms at the dry site at 100 m. Calculation unchanged. The dry site is at the budget of 0,5 ms to 0,03 ms near: the register pressure of the four families unfolded, even not taken.
+- **Tested without gain:** two families chosen by index, `[branch]`, loop unfolded, shorter hash.
+- Details: `spec-roche-organique.md`.
 
-## 2026-10-22 · Roche organique, étape 4 : coulées et roches tendres
+## 2026-10-22 · Organic rock, stage 4: flows and soft rocks
 
-**Réglages :** `STRATA_FOLD` 0,4 → 0,25.
+**Settings:** `STRATA_FOLD` 0,4 → 0,25.
 
-- **Quatre familles :** basalte en coulées, granite massif, calcaire et grès lités, badlands tendres là où la région est sèche et ferrugineuse. Transitions étroites entre deux familles.
-- **Coulées :** bancs de 3 à 20 m, chacun terminé par un large replat, son talus ; tuile de 64 m en colonnes prismatiques. Basalte presque noir.
-- **Tendre :** bandes de 2 à 15 m très colorées, bancs de 0,8 à 3 m ; tuile de 64 m en rigoles serrées ; roche nue dès 25° de pente.
-- **Pendage et plis dosés par le bruit de géologie** au lieu d'un bruit régional propre : moins cher par sommet.
-- **Allègements :** hachage 1D pour les plans de stratification, recherche plus courte, sorties rapides au loin.
-- **Mesure :** coût total depuis le départ +0,2 à +0,35 ms au rendu, estimé sous un GPU chargé à 80 % par une autre instance. Crêtes sans pics.
-- Détails : `spec-roche-organique.md`.
+- **Four families:** flowing basalt, solid granite, lited limestone and sandstone, soft badlands where the region is dry and ferrugineous. Close transitions between two families.
+- **Castings:** beds from 3 to 20 m, each ending with a wide plate, its slope; tile of 64 m in prismatic columns. Basalt almost black.
+- **Tender:** strips of 2 to 15 m very colorful, beds of 0,8 to 3 m; tile of 64 m in tight gutters; bare rock from 25° of slope.
+- **Shang and folds dosed by the geology noise** instead of a regional noise clean: cheaper per vertex.
+- **Lightening:** 1D hash for layering plans, shorter search, fast outputs at distance.
+- **Measure:** Total cost from start +0,2 to +0,35 ms to render, estimated under a GPU loaded at 80 % by another instance. Ridges without peaks.
+- Details: `spec-roche-organique.md`.
 
-## 2026-10-22 · Roche organique, étape 3 : familles massive et litée
+## 2026-10-22 · Organic rock, stage 3: massive and litated families
 
-- **Deux familles,** choisies par le bruit de géologie : granite, massif ; calcaire et grès, lités. Elles se mêlent entre deux régions.
-- **Litée, une colonne stratigraphique** calculée au pixel sur l'altitude moins le décalage de l'étape 2 : formations de 10 à 60 m teintées du blanc au rouge, bancs de 4 à 24 m, durs en replats, tendres en pente. Les bancs filent d'un bout à l'autre de la paroi et ne se répètent jamais. La tuile de 64 m ne garde que diaclases, couloirs, stratification oblique et rideaux.
-- **Massive, deux tuiles granite** de 8 m et 64 m : bosses, dômes, écailles courbes, grandes fractures, stries d'eau. Couleur gris clair.
-- **Corrigé en route :** zigzags d'éclairage, l'altitude de la spline lissée ne suivait pas le relief retranché ; dents de scie, effacement des bancs par plan.
-- **Mesure :** coût +0,1 à 0,2 ms au rendu par rapport à l'étape 2. Crêtes sans pics.
-- Détails : `spec-roche-organique.md`.
+- **Two families,** chosen by the noise of geology: granite, massive; limestone and sandstone, lited. They mix between two regions.
+- **Litée, a stratigraphic column** calculated to pixel on the altitude less the shift of the step 2: formations of 10 to 60 m dyed from white to red, beds of 4 to 24 m, hard in replats, soft in slope. The bedss spin from one end to the other of the wall and never repeat themselves. The 64 m tile keeps only diaclases, corridors, oblique stratification and curtains.
+- **Solid, two granite tiles** of 8 m and 64 m: bumps, domes, curved scales, large fractures, water streaks. Light gray color.
+- **Fixed on the way:** zigzags of lighting, the height of the smoothed spline did not follow the cut relief; saw teeth, erasure of benchmarks by plane.
+- **Measure:** cost +0,1 to 0,2 ms to render compared to step 2. Ridges without peaks.
+- Details: `spec-roche-organique.md`.
 
-## 2026-10-22 · Roche organique, étape 2 : pendage et plis
+## 2026-10-22 · Organic rock, step 2: hanging and folds
 
-**Réglages :** `STRATA_DIP` = 0,5 et `STRATA_FOLD` = 0,4, tangentes du pendage régional et des plis.
+**Settings:** `STRATA_DIP` = 0,5 and `STRATA_FOLD` = 0,4, tangents of regional hanging and folds.
 
-- **Les strates montent ou descendent d'un champ en mètres,** calculé par sommet : pendage régional sur des octaves de 8 à 2 km, plis de 1 km à 128 m là où la région est déformée. Les tuiles de roche décalent leurs strates d'autant.
-- **Essayé puis écarté :** tourner les tuiles par plan de projection. Chaque plan voit un autre pendage : chevrons nets le long des coutures de la projection biplanaire.
-- **Mesure :** coût +0,1 ms au rendu, +0,1 ms au calcul près du sol. Crêtes sans pics. Les strates dessinent des V dans les ravins.
-- Détails : `spec-roche-organique.md`.
+- **stratas rise or fall from a field in meters,** calculated per vertex: regional hanging on octaves from 8 to 2 km, folds from 1 km to 128 m where the region is distorted. Rock tiles shift their strata by as much.
+- **Tryed and then rejected:** turn the tiles by projection plane. Each plane sees another hanging: net rafters along the seams of the biplanar projection.
+- **Measurement:** cost +0,1 ms to render, +0,1 ms to calculate near the ground. Ridges without peaks. The strata draw Vs in the ravines.
+- Details: `spec-roche-organique.md`.
 
-## 2026-10-22 · Roche organique, étape 1 : le sol sur les replats
+## 2026-10-22 · Organic rock, step 1: soil on replants
 
-**Réglages :** `LEDGE_SCREE` = 0,72 à 0,82 et `LEDGE_SOIL` = 0,84 à 0,92, cosinus de la pente de la roche texturée.
+**Settings:** `LEDGE_SCREE` = 0,72 to 0,82 and `LEDGE_SOIL` = 0,84 to 0,92, cosinus of the slope of the textured rock.
 
-- **La décision prend la pente de la texture :** là où la surface de la roche, maillage plus tuile, devient plate, les éboulis puis le sol la couvrent. Le relief et la pente gardent la forme de la roche.
-- **Des replats dans la tuile de 64 m :** le haut de chaque banc penche vers l'arrière sur 40 % du banc, au plus 2,5 m ; une contremarche au pied du banc suivant. `HEIGHT_RANGE` de la tuile : 4 → 6 m.
-- **Mesure :** coût nul à 0,01 ms près. Crêtes sans pics. Les replats s'effacent avec le filtrage de la tuile, au-delà de 500 m.
-- Détails : `spec-roche-organique.md`.
+- **The decision takes the slope of texture:** where the surface of the rock, mesh plus tile, becomes flat, the scree then the ground cover it. The relief and slope keep the shape of the rock.
+- **Replats in the 64 m tile:** the top of each benchmark leans backward on 40 % of the benchmark, at most 2,5 m; a backstep at the foot of the following benchmark. `HEIGHT_RANGE` of the tile: 4 → 6 m.
+- **Measurement:** cost zero to 0,01 ms close. Ridges without peaks. Replacements are erased with the filtering of the tile, beyond 500 m.
+- Details: `spec-roche-organique.md`.
 
-## 2026-10-21 · Rendu de loin, étape 2 : la grille fine
+## 2026-10-21 · Rendering from a distance, step 2: the fine grid
 
-- **Changement :** une grille 4 fois plus fine que la face du maillage, recalculée à chaque image pour les normales des pixels, au-dessus de mailles de face de 20 m. Le vrai relief sous la maille, d'orbite.
-- **Coût :** +0,6 à 1,6 ms en altitude.
-- **Corrections :** plantage loin de la planète, lecture hors du buffer des normales fines au bord de la face ; hauteurs des copies mêlées sans amplification, ce qui supprime les lames sur les crêtes ; relief enfoui sous la neige ; position de la caméra dans le titre, cap en argument ; banc des crêtes.
-- Détails : `spec-rendu-lointain.md`.
+- **Change:** a grid 4 times thinner than the face of the mesh, recalculated at each frame for pixel normals, above grid cells of 20 face m. The real relief under the grid cell, orbit.
+- **Cost:** +0,6 to 1,6 ms at altitude.
+- **Fixes:** crash away from planet, out of buffer reading of fine normals at face edge; heights of copies mixed without amplification, which removes blades on ridges; relief buried under snow; camera position in title, heading in argument; benchmark of ridges.
+- Details: `spec-rendu-lointain.md`.
 
-## 2026-10-21 · Rendu de loin, étape 1 : roche et neige en fractions
+## 2026-10-21 · Rendering from a distance, stage 1: rock and snow in fractions
 
-**Réglage :** `MATERIAL_RELIEF_MAX_CELL` = 8 m, au lieu de 1 m.
+**Setting:** `MATERIAL_RELIEF_MAX_CELL` = 8 m, instead of 1 m.
 
-- **De loin,** roche, éboulis et neige deviennent des fractions de la maille, d'après la dispersion des pentes que le maillage ne porte pas. Les bruits locaux s'effacent avec la taille du pixel. Les confettis vus d'orbite disparaissent.
-- **Rayures de neige et de roche à 450 m :** le mélange par la hauteur s'estompe pour des pixels de 25 cm à 2 m.
-- **Ailerons de près :** la passe de relief prend la normale sur quatre mailles.
-- Détails : `spec-rendu-lointain.md`.
+- **From afar,** rock, scree and snow become fractions of the grid cell, according to the dispersion of slopes that the mesh does not carry. The local noise functionss fade with the pixel size. Confetti seen from orbit disappear.
+- **Snow and Rock Stripes at 450 m:** Mix by Height fade for pixels from 25 cm to 2 m.
+- **Fine close:** the relief pass takes the normal on four grid cells.
+- Details: `spec-rendu-lointain.md`.
 
-## 2026-10-21 · Structure de la roche au-delà de 8 m
+## 2026-10-21 · Rock structure beyond 8 m
 
-- **Changement :** une tuile de roche de 64 m, 6 cm par texel : bancs de 2 à 8 m en corniches, fractures en couloirs, rideaux de vernis. La hauteur sous la caméra est lue après la passe de relief.
-- **Mesure :** coût +0,10 à 0,22 ms. Tremblement sur la roche à 3 m 0,05 → 0,10, venu du relief de ±1 m porté par le maillage.
-- Détails : `spec-textures-generees.md`.
+- **Change:** a rock tile of 64 m, 6 cm by texel: beds from 2 to 8 m in cornices, fractures in corridors, varnish curtains. The height under the camera is read after the relief pass.
+- **Measurement:** cost +0,10 to 0,22 ms. jitter on the rock at 3 m 0,05 → 0,10, coming from the relief of ±1 m carried by the mesh.
+- Details: `spec-textures-generees.md`.
 
-## 2026-10-21 · Sable mêlé de roche, roche en bancs et diaclases
+## 2026-10-21 · Sand mixed with rock, rock in beds and diaclases
 
-- **Sable mêlé de roche :** les bordures entre matériaux comparent les vraies hauteurs, en mètres, `BLEND_RISE` = 0,3 m. La roche n'affleure plus dans chaque creux de ride.
-- **Roche :** les blocs de Voronoi tous de 1,3 m, vus comme des écailles en vol, deviennent des bancs de 0,5 à 2 m recoupés de diaclases tous les 0,8 à 4 m, une sur quatre ouverte.
-- **Réalisme :** neutre, motifs un peu moins bons, spectre un peu meilleur.
-- Détails : `spec-textures-generees.md`.
+- **Sand mixed with rock:** borders between materials compare real heights, in meters, `BLEND_RISE` = 0,3 m. The rock no longer surfaces in every groove.
+- **Rock:** Voronoi blocks all of 1,3 m, seen as scales in flight, become beds of 0,5 to 2 m intersected with diaclases all the 0,8 to 4 m, one on four open.
+- **Realism:** neutral, patterns a little less good, spectrum a little better.
+- Details: `spec-textures-generees.md`.
 
-## 2026-10-21 · Couleurs de la roche
+## 2026-10-21 · Colours of the rock
 
-**Changement :** la roche n'a plus une seule couleur. Détails : `spec-textures-generees.md`.
+**Change:** The rock no longer has one color. Details: `spec-textures-generees.md`.
 
-- **Par région :** un bruit de 500 m à 40 km, calculé par sommet, choisit dans une palette de roches réelles : basalte, granite, calcaire, grès ocre, grès rouge. Deux autres bruits ajoutent l'oxydation et le vernis du désert.
-- **Dans l'affleurement :** couches teintées du pâle à la rouille, blocs à ±20 %, taches d'oxyde de fer, vernis dans les coulures, lichens en colonies.
-- **Coût :** +0,05 à 0,08 ms.
+- **By region:** a noise of 500 m to 40 km, calculated by vertex, chooses from a palette of real rocks: basalt, granite, limestone, ochre sandstone, red sandstone. Two more noise functions add oxidation and desert varnish.
+- **In the surface:** layers tinted from pale to rust, blocks at ±20 %, iron oxide stains, varnish in the grooves, lichens in colonies.
+- **Cost:** +0,05 to 0,08 ms.
 
-## 2026-10-21 · Correctif : pics du relief des matériaux
+## 2026-10-21 · Fix: peaks in material relief
 
-**Symptôme :** en zone sèche, des pics de 10 à 30 cm sortent du sol et scintillent en vol.
+**Symptom:** in dry zone, spikes of 10 to 30 cm come out of the ground and sparkle in flight.
 
-- **Cause :** le mélange des matériaux par la hauteur, `HeightBlend`. Dans la passe de relief, il faisait basculer un sommet de la hauteur de la roche à celle du sable entre deux voisins, au rythme des rides et des pierres. La roche porte ±30 cm, le sable presque rien : un pic.
-- **Correctif :** la passe de relief mêle les matériaux sans la hauteur, `gHeightBlend` = 0. Les pixels gardent le mélange par la hauteur.
-- **Mesure :** les plaques en pointe disparaissent en désert rocheux, à 26° N, 130° E. Tremblement 0,07 → 0,06.
+- **Cause:** the mixing of materials by height, `HeightBlend`. In the relief pass, he made a summit shift from the height of the rock to that of the sand between two neighbors, at the rhythm of the wrinkles and stones. The rock bears ±30 cm, the sand almost nothing: a peak.
+- **Fix:** The relief pass mixes materials without height, `gHeightBlend` = 0. Pixels keep the mix by height.
+- **Measure:** the pointed plates disappear in rocky desert, at 26° N, 130° E. jitter 0,07 → 0,06.
 
-## 2026-10-21 · Niveau de détail fin des matériaux
+## 2026-10-21 · Fine detail level of materials
 
-**Réglage :** `TEXTURE_FINE` = 1. Une seconde tuile de 1 m par matériau, 1 mm par texel : grains et graviers du sable, cristaux et piqûres de la roche, gravillons des éboulis. Le grain de 7,8 mm de la tuile de sable grossière disparaît. Détails : `spec-textures-generees.md`.
+**Setting:** `TEXTURE_FINE` = 1. A second tile of 1 m by material, 1 mm by texel: grains and gravels of sand, crystals and piqûres of rock, gravels of scree. The grain of 7,8 mm of the coarse sand tile disappears. Details: `spec-textures-generees.md`.
 
-- **Réalisme, motifs :** sable ×17 → ×4,9 ; roche ×5,3 → ×2,3, ×8,8 → ×3,2, ×7,5 → ×3,6.
-- **Tremblement :** inchangé. **Coût :** +0,05 ms à 1,5 m.
-- **Pour revenir :** `TEXTURE_FINE = 0`.
+- **Realism, motifs:** sand ×17 → ×4,9; rock ×5,3 → ×2,3, ×8,8 → ×3,2, ×7,5 → ×3,6.
+- **jitter:** unchanged. **Cost:** +0,05 ms to 1,5 m.
+- **To return:** `TEXTURE_FINE = 0`.
 
-## 2026-10-21 · Mesure de réalisme contre six scans réels
+## 2026-10-21 · Realistic measurement against six actual scans
 
-**Changement :** six scans Poly Haven, sous licence CC0, rangés hors du dépôt dans `../scans/`. `tools/realisme.py` les compare au sol du moteur, à la même échelle. Détails : `spec-textures-generees.md`.
+**Change:** six Poly Haven scans, licensed CC0, placed out of the repository in `../scans/`. `tools/realisme.py` compares them to the engine floor, at the same scale. Details: `spec-textures-generees.md`.
 
-- **Notes :** roche ×5 à ×9 du scan, sable ×8 à ×17. Le scan contre lui-même vaut ×1.
-- **Leçons :** matériaux flous de près, texel de 7,8 mm ; sable sans grain ni cailloux ; couleurs de roche ternes.
+- **Notes:** Rock ×5 to ×9 of scan, sand ×8 to ×17. The scan against itself is worth ×1.
+- **Lessons:** blurred materials close up, texel of 7,8 mm; grainless sand and pebbles; dull rock colors.
 
-## 2026-10-21 · Relief réel des matériaux, étapes 1 à 3 · gain visuel faible
+## 2026-10-21 · Real relief of materials, steps 1 to 3 · Low visual gain
 
-**Changement :** une passe déplace les sommets proches de la hauteur des matériaux, filtrée à leur maille. Spécification : `log/spec-relief-reel.md`.
+**Change:** a pass moves the vertices close to the height of the materials, filtered to their grid cell. Specification: `log/spec-relief-reel.md`.
 
-- **Code commun** des matériaux et du maillage, sans changement de rendu, vérifié au pixel près.
-- **`MATERIAL_RELIEF` = 1,** qui s'efface quand les mailles approchent `MATERIAL_RELIEF_MAX_CELL` = 1 m. 0 revient à la texture seule.
-- **Plancher de la caméra relevé de 30 cm,** pour ne jamais toucher le relief.
-- **Étape 3 :** les pixels ne gardent que le relief plus fin que le filtre du maillage.
-- **`MATERIAL_RELIEF_BAND` = 8 :** filtré à deux mailles, le relief faisait trembler la roche quatre fois plus ; à huit mailles, 0,06 contre 0,04 sans relief.
-- **Gain visuel faible :** la roche générée est trop douce pour découper des silhouettes. Coût : 0,1 ms.
-- **Mesure de réalisme :** `tools/realisme.py` compare le sol à un scan réel, à la même échelle. Il faut des scans du matériau visé.
+- **Common code** of materials and mesh, without rendering change, verified to pixel close.
+- **`MATERIAL_RELIEF` = 1,** which fades when the grid cells approach `MATERIAL_RELIEF_MAX_CELL` = 1 m. 0 returns to texture alone.
+- **Camera floor raised by 30 cm,** so as never to touch the relief.
+- **Step 3:** pixels keep only the relief finer than the filter of the mesh.
+- **`MATERIAL_RELIEF_BAND` = 8:** filtered at two grid cells, the relief made the rock shake four times more; at eight grid cells, 0,06 against 0,04 without relief.
+- **Low visual gain:** the generated rock is too soft to cut out silhouettes. Cost: 0,1 ms.
+- **Reality Measurement:** `tools/realisme.py` compares the floor to a real scan, at the same scale. Scans of the targeted material are needed.
 
-## 2026-10-21 · Voie B, étape 2 : rides au pixel, roche et éboulis générés · tag `jalon/11-sable-roche`
+## 2026-10-21 · Path B, step 2: pixel, rock and scree generated wrinkles · tag `jalon/11-sable-roche`
 
-**Changement :** les rides du sable sont calculées au pixel, en onde plane à phase exacte, au lieu d'être pavées. Roche et éboulis sont générés au démarrage, et mêlés au sol par la hauteur. Détails : `spec-textures-generees.md`.
+**Change:** Sand ridges are calculated pixel by pixel, in exact phase plane wave, instead of being paved. Rock and scree are generated at start, and mixed with the ground by height. Details: `spec-textures-generees.md`.
 
-- **Le sable :** plus de raccords ni de rides croisées, espacement et crêtes variables, antialiasing selon le pas à l'écran.
-- **La roche :** six tours de banc, des écailles aux dalles et fissures discrètes ; ombres fines au soleil. Reste plate : relief réel à spécifier.
-- **Le banc visuel :** `tools/banc_visuel.py` capture chaque site à quatre hauteurs à côté de sa référence.
-- **La roche calculée au pixel de l'étape D.2 est retirée.**
+- **The sand:** no more cross-linking or cross-wrinkling, variable spacing and crests, antialiasing according to the pitch on the screen.
+- **The rock:** six turns of benchmark, scales to slabs and discreet cracks; thin shadows in the sun. Flat remains: real relief to be specified.
+- **The visual benchmark:** `tools/banc_visuel.py` captures each site at four heights next to its reference.
+- **The rock calculated at the pixel of the step D.2 is removed.**
 
-## 2026-10-21 · Voie B, étape 1 : générateur de matériaux et sable · commit `63ebda2`
+## 2026-10-21 · Path B, step 1: material generator and sand · commit `63ebda2`
 
-**Changement :** un générateur de matériaux tourne une fois au démarrage, en compute, et produit des tuiles sans couture : couleur et creux, pente et hauteur, avec leurs mipmaps. Premier matériau : le sable. Spécification : `spec-textures-generees.md`, cible : `images/cible-desert.jpg`.
+**Change:** a material generator runs once at start, in compute, and produces seamless tiles: color and hollow, slope and height, with their mipmaps. First material: sand. Specification: `spec-textures-generees.md`, target: `images/cible-desert.jpg`.
 
-- **Le sable :** rides de 12,5 cm au profil dissymétrique, tournées par un vent régional, posées par un pavage stochastique ancré sur la planète et une projection biplanaire.
-- **Couleur de loin préservée,** tremblement inchangé avec lissage temporel, coût non mesurable.
-- **Pour revenir :** `TEXTURE_DETAIL = 0` désactive toutes les textures de près.
+- **The sand:** wrinkles of 12,5 cm with a asymmetric profile, turned by a regional wind, laid by a stochastic pavement anchored on the planet and a biplanar projection.
+- **Color from far preserved,** jitter unchanged with temporal smoothing, cost not measurable.
+- **To return:** `TEXTURE_DETAIL = 0` disables all close textures.
 
-## 2026-10-21 · Textures de près, étape D.2 : la roche · jugée peu convaincante
+## 2026-10-21 · Textures close up, step D.2: rock · considered unconvincing
 
-**Changement :** la roche a sa texture de près. Détails et mesures : `log/spec-rendu.md`, étape D.
+**Change:** the rock has its texture close. Details and measurements: `log/spec-rendu.md`, step D.
 
-- **La roche :** strates ondulées d'environ 0,8 m tirées d'un bruit de 256 m, fissures de 2 m et 50 cm, lichens gris-vert de 25 cm, rugosité jusqu'au pixel. Ses bosses percent la neige mince.
-- **L'herbe n'est plus calculée sous la roche pleine :** la roche ne coûte presque rien en plus, +0,07 ms au ras du sol.
-- **Couleur de loin préservée,** tremblement inchangé avec lissage temporel.
-- **Pour revenir :** `TEXTURE_DETAIL = 0` désactive herbe et roche.
+- **The rock:** strata wavy of about 0,8 m drawn from a noise of 256 m, cracks of 2 m and 50 cm, gray-green lichens of 25 cm, roughness up to the pixel. Its bumps are thin snow.
+- **Grass is no longer calculated under the solid rock:** the rock costs almost nothing more, +0,07 ms at ground level.
+- **Color from far preserved,** jitter unchanged with temporal smoothing.
+- **To return:** `TEXTURE_DETAIL = 0` disables grass and rock.
 
-## 2026-10-21 · Textures de près, étape D.1 : le cadre et l'herbe · commit `cbdcb87`
+## 2026-10-21 · Textures close up, step D.1: frame and grass · commit `cbdcb87`
 
-**Changement :** chaque matériau peut avoir sa texture de près, couleur et pente, de 4 m jusqu'au pixel, ancrée sur la planète et filtrée sous 2 pixels. Premier matériau : l'herbe. Spécification et mesures : `log/spec-rendu.md`, étape D.
+**Change:** each material can have its close texture, color and slope, from 4 m to pixel, anchored on the planet and filtered under 2 pixels. First material: grass. Specification and measurements: `log/spec-rendu.md`, step D.
 
-- **L'herbe :** plaques de 2 m, touffes douces de 15 à 35 cm, grain des brins à partir de 3 cm. Sa hauteur déplace les frontières : les touffes percent une neige mince.
-- **Couleur de loin préservée,** tremblement inchangé avec lissage temporel.
-- **Coût :** +0,4 ms au pire, au ras du sol.
-- **Pour revenir :** `TEXTURE_DETAIL = 0`.
+- **Grass:** plates from 2 m, tufts soft from 15 to 35 cm, grain of strands from 3 cm. Its height moves the boundaries: the tufts falls thin snow.
+- **Color from far preserved,** jitter unchanged with temporal smoothing.
+- **Cost:** +0,4 ms at worst, at ground level.
+- **To return:** `TEXTURE_DETAIL = 0`.
 
-## 2026-10-21 · Mesure de la mutation au banc · ajoutée
+## 2026-10-21 · Added mutation measurement at benchmark ·
 
-**Changement :** le banc mesure aussi la mutation, la lente transformation des formes quand la maille rétrécit à l'approche. `MYPLANETENGINE_TREMBLE_FRAMES=64`, détails dans `log/spec-stabilite.md`.
+**Change:** the benchmark also measures mutation, the slow transformation of forms when the grid cell shrinks to the approach. `MYPLANETENGINE_TREMBLE_FRAMES=64`, details in `log/spec-stabilite.md`.
 
-- **Mesure :** caméra immobile, maillage qui avance d'environ une hauteur ; écart entre la moyenne des 8 premières et des 8 dernières images, après un flou de 8 pixels.
-- **Validée sur la coupure du relief :** à 50 m, le premier plan mute deux fois plus à 4 mailles qu'à 2, de 0,17 à 0,36. Le jugement en vol est confirmé.
-- **À 10 km, la mutation ne dépend pas de la coupure :** forte entre 20 et 120 km avec les trois coupures. Cause à chercher.
-- **Réglages inchangés :** coupure à 2 mailles.
+- **Measurement:** still camera, mesh moving forward about one height; difference between the average of the first 8 and the last 8 images, after a blur of 8 pixels.
+- **Validated on the cut of the relief:** at 50 m, the foreground mutes twice as much at 4 grid cells as at 2, from 0,17 to 0,36. The flight judgment is confirmed.
+- **At 10 km, the mutation is not dependent on the cut:** strong between 20 and 120 km with all three cut. Cause to look.
+- **Settings unchanged:** cut off at 2 grid cells.
 
-## 2026-10-21 · Normales spline et coupure du relief · spline gardée, coupure laissée à 2 mailles
+## 2026-10-21 · Normal spline and relief cutoff · spline kept, cutoff left at 2 grid cells
 
-**Changement :** la normale de l'éclairage reconstruite par pixel, en B-spline sur les 4 × 4 sommets voisins. Spécification et mesures : `spec-normales-spline.md`. Pistes : `log/pistes-glissement.md`.
+**Change:** the normal of the lighting reconstructed by pixel, in B-spline on the 4 × 4 neighboring vertices. Specification and measurements: `spec-normales-spline.md`. experiments : `log/pistes-glissement.md`.
 
-- **B-spline lissante :** 12 à 16 % de tremblement en moins sur les trois vues. La spline cardinale, qui passe par les sommets, l'aggrave au contraire de 27 à 59 %.
-- **Diagnostic :** les deux tiers du tremblement de la vue de montagne à 10 km ne viennent pas de la normale, mais de la géométrie.
-- **Coupure du relief, `MESH_BAND_LIMIT` :** à 4 mailles au lieu de 2, scintillement divisé par deux au banc, de 1,01 à 0,51 sans lissage temporel.
-- **Jugé en vol, les trois coupures côte à côte :** 2 mailles reste la meilleure. Plus la coupure est haute, plus chaque détail naît près de la caméra, donc grand à l'écran, et plus la forme mute à l'approche. Le banc ne mesure pas cette mutation lente : à ajouter.
-- **Marge d'écart hors champ :** 6 mailles au lieu de 3, pour la spline et son préfiltre.
-- **Coût :** moins de 0,1 ms.
-- **Pour revenir :** `SPLINE_NORMALS = 0`.
+- **B-spline smoothing:** 12 to 16 % of jitter less on all three views. The cardinal spline, which passes through the vertices, worsens it on the contrary from 27 to 59 %.
+- **Diagnosis:** two thirds of the jitter of the mountain view at 10 km do not come from the normal, but from the geometry.
+- **Cut relief, `MESH_BAND_LIMIT`:** to 4 grid cells instead of 2, flicker divided by two to benchmark, from 1,01 to 0,51 without time smoothing.
+- **Judged in flight, the three cut side by side:** 2 grid cells remains the best. The higher the cut, the closer every detail comes to the camera, so large on the screen, and the more the shape mutes as it approaches. The benchmark does not measure this slow mutation: to be added.
+- **Out-of-field margin:** 6 grid cells instead of 3, for the spline and its prefilter.
+- **Cost:** less than 0,1 ms.
+- **To return:** `SPLINE_NORMALS = 0`.
 
-## 2026-10-21 · POC des sommets fixes, étapes 2 et 3 · clos, tag `piste/sommets-fixes-etape3`
+## 2026-10-21 · POC fixed vertices, steps 2 and 3 · closed, tag `piste/sommets-fixes-etape3`
 
-**Changement :** le fondu de hauteur entre niveaux et les rangées de bord. Détails et mesures dans `log/spec-sommets-fixes.md`.
+**Change:** the height fade between levels and edge rows. Details and measurements in `log/spec-sommets-fixes.md`.
 
-- **Fondu imbriqué :** à la jonction, le carreau grossier est lui-même en partie fondu. Chaque carreau fond donc ses sept niveaux de grille, du plus grossier au plus fin. La surface ne dépend plus que du point et de sa distance : plus de fente.
-- **Rangées de bord :** des sommets non dessinés à 1, 2, 4 et 8 mailles, pour des normales identiques des deux côtés d'un bord. La couture d'éclairage vue en vol a disparu.
-- **Vol automatique :** `MYPLANETENGINE_FLIGHT=fichier` vole tout droit et note chaque image ; `MYPLANETENGINE_SPEED` règle la vitesse.
-- **Verdict en vol :** le vaisseau semble ralentir puis réaccélérer. Mesuré : 34 % d'images à-coups en montagne, contre 0,5 % pour le plan glissant. Le coût suit le nombre de carreaux, qui varie sans cesse.
-- **Décision :** POC clos. On revient au plan glissant, dont le coût constant fait la fluidité.
+- **Nested melt:** at the junction, the coarse tile is itself partially melt. Each tile thus blends its seven grid levels, from the coarsest to the finest. The surface no longer depends on the point and its distance: no more slit.
+- **Edge rows:** undrawn vertices at 1, 2, 4 and 8 grid cells, for identical normals on both sides of an edge. The seam of lighting seen in flight has disappeared.
+- **Automatic flight:** `MYPLANETENGINE_FLIGHT=fichier` flies straight and notes each frame; `MYPLANETENGINE_SPEED` adjusts the speed.
+- **Flight verdict:** the ship seems to slow down and then accelerate again. Measured: 34 % of mountain shots, compared to 0,5 % for the sliding plane. The cost follows the number of tiles, which varies constantly.
+- **Decision:** POC closed. We return to the sliding plane, whose constant cost makes the fluidity.
 - **Tag :** `piste/sommets-fixes-etape3`.
 
-## 2026-10-21 · POC des sommets fixes, étape 1 · tag `piste/sommets-fixes-etape1`
+## 2026-10-21 · POC of fixed vertex, step 1 · tag `piste/sommets-fixes-etape1`
 
-**Changement :** un second mode de maillage, touche M : les six faces d'un cube, en carreaux de 64 × 64 mailles choisis à chaque image selon la distance. Chaque sommet reste sur son point de la planète. Spécification : `log/spec-sommets-fixes.md`.
+**Change:** a second mode of mesh, key M: the six faces of a cube, in tiles of 64 × 64 grid cells chosen at each frame according to the distance. Each vertex remains on its point of the planet. Specification: `log/spec-sommets-fixes.md`.
 
-- **Étape 1 :** cube, carreaux, choix sur le processeur, un seul dispatch et un seul appel de dessin. Pas encore de fondu entre niveaux.
-- **Corrigé :** la tangente du GPU, imprécise pour les petits angles, laissait une maille de fente entre tous les carreaux.
-- **Mesure :** calcul 4 à 5 fois plus cher que le plan glissant près du sol, à réduire à l'étape 5.
+- **1 step:** cube, tiles, processor choice, one dispatch and one draw call. No fading between levels yet.
+- **Corrected:** the tangent of the GPU, imprecise for small angles, left a grid cell of slit between all tiles.
+- **Measure:** calculation 4 to 5 times more expensive than the sliding plane near the ground, to reduce to step 5.
 - **Tag :** `piste/sommets-fixes-etape1`.
 
-## 2026-10-21 · Arêtes arrondies à l'échelle de la maille · validé en vol, gain léger
+## 2026-10-21 · Rounded edges to the scale of the grid cell · validated in flight, slight gain
 
-**Changement :** la valeur absolue des bruits Billow et RidgedMulti devient une parabole sous un seuil qui suit la maille du sommet. Les crêtes et les creux vifs sont arrondis sur environ deux mailles, et se raffermissent en continu à l'approche. Spécification : `log/spec-stabilite.md`.
+**Change:** the absolute value of the noise functions Billow and RidgedMulti becomes a parabola below a threshold that follows the grid cell of the summit. The sharp peaks and dips are rounded about two grid cells, and are continuously firmened as they approach. Specification: `log/spec-stabilite.md`.
 
-- **Pourquoi :** une arête infiniment fine ne s'échantillonne jamais sans erreur, et un maillage qui glisse déplace cette erreur à chaque image.
-- **Mesure :** tremblement en montagne à 10 km de 0,46 à 0,17 avec le lissage, de 3,02 à 1,20 sans. Coût nul.
-- **Écart visuel :** crêtes un peu plus douces à 10 km, presque rien de près.
-- **Pour revenir :** `CREASE_ROUNDING = 0`.
+- **Why:** An infinitely fine edge never samples error-free, and a mesh that slides moves this error at each frame.
+- **Measurement:** jitter in mountain to 10 km from 0,46 to 0,17 with smoothing, from 3,02 to 1,20 without. No cost.
+- **Visual deviation:** somewhat softer ridges at 10 km, almost nothing close.
+- **To return:** `CREASE_ROUNDING = 0`.
 
-## 2026-10-21 · Maillage de 192 mailles par côté · validé en vol
+## 2026-10-21 · mesh of 192 grid cells per side · validated in flight
 
-**Changement :** de 128 à 192 mailles par côté. Une maille fait environ 7 pixels à l'écran au lieu de 11, de près comme de loin.
+**Change:** from 128 to 192 grid cells per side. A grid cell makes about 7 pixels on the screen instead of 11, close and far.
 
-- **Une seule source de vérité :** `FaceCells` dans `D3DApp.h`. La croissance des anneaux en découle, 1 + 2/FaceCells. Le facteur de taille du plan ne règle plus que l'étendue du plan central.
-- **Mesure :** calcul au pire de 1,8 à 3,9 ms, au ras du sol. Tremblement en montagne à 10 km, avec le lissage, de 0,62 à 0,46.
-- **Constat en vol :** nettement mieux, pas encore parfait.
-- **Pour revenir :** `FaceCells = 128`.
+- **One source of truth:** `FaceCells` in `D3DApp.h`. The rings grow from this, 1 + 2/FaceCells. The plane size factor now only regulates the extent of the central plane.
+- **Measurement:** worst case calculation of 1,8 to 3,9 ms, at ground level. jitter in mountain to 10 km, with smoothing, from 0,62 to 0,46.
+- **Flight test:** clearly better, not yet perfect.
+- **To return:** `FaceCells = 128`.
 
-## 2026-10-21 · Vrai relief des montagnes dans les pixels · arrêté ; lissage temporel · gardé
+## 2026-10-21 · True relief of mountains in pixels · stopped; time smoothing · kept
 
-**Changement :** les pixels réévaluent les fractales des montagnes de complexplanet, à leur propre résolution. Le relief que la géométrie ne montre pas encore plie la normale et relève l'élévation. Un lissage temporel, reprojeté exactement, absorbe le scintillement. Spécification : `log/spec-rendu.md`, étape C bis.
+**Change:** Pixels re-evaluate the fractals of complexplanet mountains, at their own resolution. The relief that the geometry does not yet show bends the normal and raises the elevation. A temporal smoothing, exactly re-engineered, absorbs the flicker. Specification: `log/spec-rendu.md`, step C bis.
 
-- **Même source de vérité :** les fonctions du compute shader, partagées avec le pixel shader. Les déformations et le facteur d'échelle viennent des sommets.
-- **Mutation,** après un flou de 8 pixels : de 1,91 à 1,36 à 10 km, de 2,76 à 1,95 à 3 km.
-- **Tremblement :** en montagne à 10 km, de 3,39 à 0,95. Sans le lissage, le relief seul le portait à 7,99, à cause de la parallaxe.
-- **Écarté :** une correction de parallaxe, plus chère et pire.
-- **Corrigé après essai en vol :** de fausses crêtes, dues aux octaves comptées deux fois. Les sommets donnent maintenant une normale sans les montagnes, le pixel y ajoute toute leur pente.
-- **Arrêté :** de loin, seules les crêtes des montagnes apparaissaient, sans le volume que la géométrie montre de près. Tout le graphe par pixel coûterait 8 à 33 ms. Le coût est dans le bruit, pas dans les sommets : densifier le maillage est la meilleure voie. Seul le lissage temporel est gardé.
-- **Coût :** rendu jusqu'à 1,6 ms en montagne à 50 m.
-- **Pour comparer :** touche T pour couper le lissage, `MYPLANETENGINE_NO_TAA=1`.
-- **Pour revenir :** le commit précédent.
+- **Same source of truth:** the functions of the compute shader, shared with the pixel shader. The deformations and scale factor come from the vertex.
+- **Mutation,** after a blur of 8 pixels: from 1,91 to 1,36 to 10 km, from 2,76 to 1,95 to 3 km.
+- **jitter:** in mountains at 10 km, from 3,39 to 0,95. Without smoothing, the relief alone brought it to 7,99, because of the parallax.
+- **Discarded:** a parallax correction, more expensive and worse.
+- **Corrected after flight test:** false peaks, due to octaves counted twice. The summits now give a normal without the mountains, the pixel adds all their slope.
+- **Stop:** From afar, only the mountain crests appeared, without the volume that the geometry shows close up. The whole graph per pixel would cost 8 to 33 ms. The cost is in the noise, not in the peaks: densify the mesh is the best way. Only the temporal smoothing is kept.
+- **Cost:** rendered up to 1,6 ms in mountains to 50 m.
+- **To compare:** T key to cut smoothing, `MYPLANETENGINE_NO_TAA=1`.
+- **To go back:** the previous commit.
 
-## 2026-10-21 · Matériaux par pixel et climat simple · en test
+## 2026-10-21 · Materials per pixel and simple climate · in test
 
-**Changement :** la couleur ne suit plus l'altitude par seuils nets. Un climat simple, fait de quelques bruits fixés sur la planète, choisit le sol pixel par pixel. Spécification : `log/spec-rendu.md`, étape C.
+**Change:** The color no longer follows the altitude by net thresholds. A simple climate, made of a few noise functions fixed on the planet, chooses the ground pixel by pixel. Specification: `log/spec-rendu.md`, step C.
 
-- **Température :** latitude, altitude, bruits régional et local, versants tournés vers le pôle plus froids.
-- **Humidité :** désert, steppe, prairie ou forêt ; toundra dans le froid.
-- **Roche sur les pentes, neige sous −2 °C, plage près de la mer.** Toutes les limites sont découpées par le bruit local, du kilomètre au mètre.
-- **Normales :** le grain fin est renforcé sur la roche, adouci sur la neige et le sable.
-- **Mesure :** rendu de 0,26 à 0,78 ms au pire. Tremblement inchangé, divisé par deux en montagne à 50 m.
-- **Pour revenir :** le commit précédent.
+- **Temperature:** latitude, altitude, noise functions regional and local, slopes facing the pole colder.
+- **Humidity:** desert, steppe, meadow or forest; tundra in the cold.
+- **Rocky slopes, snow below −2 °C, beach near the sea.** All limits are cut by the local noise, from kilometer to meter.
+- **Normal:** fine grain is reinforced on rock, softened on snow and sand.
+- **Measure:** rendering from 0,26 to 0,78 ms at worst. jitter unchanged, split by two in mountain at 50 m.
+- **To go back:** the previous commit.
 
-![Départ à 50 m : avant, après](journal/2026-10-21-materiaux-depart-50m.png)
-![Montagne à 50 m](journal/2026-10-21-materiaux-montagne-50m.png)
-![Montagne à 10 km](journal/2026-10-21-materiaux-montagne-10km.png)
-![Continent à 50 km](journal/2026-10-21-materiaux-continent-50km.png)
+![Starting at 50 m: before, after](journal/2026-10-21-materiaux-depart-50m.png)
+![Mountain at 50 m](journal/2026-10-21-materiaux-montagne-50m.png)
+![Mountain at 10 km](journal/2026-10-21-materiaux-montagne-10km.png)
+![Continent at 50 km](journal/2026-10-21-materiaux-continent-50km.png)
 
-## 2026-10-21 · Atmosphère, ciel et soleil · en test
+## 2026-10-21 · Atmosphere, sky and sun · in test
 
-**Changement :** l'image est calculée en haute dynamique, sous une atmosphère d'après Hillaire 2020. Spécification : `log/spec-rendu.md`, étapes A et B.
+**Change:** the image is calculated in high dynamic, under an atmosphere according to Hillaire 2020. Specification: `log/spec-rendu.md`, Steps A and B.
 
-- **Étape A, chaîne d'image :** rendu en virgule flottante, compression des hautes lumières, sortie sRGB. Image identique à ±1 niveau près.
-- **Étape B, atmosphère :** trois petites tables calculées au démarrage, puis le ciel et la perspective aérienne calculés pixel par pixel.
-- **Éclairage :** les couleurs du terrain deviennent des réflectances. Le soleil arrive filtré par l'air, et le ciel éclaire les ombres.
-- **Mesure :** rendu de 0,11 à 0,26 ms au pire des dix vues de référence. Calcul du terrain inchangé.
-- **Pour comparer :** touches O et P pour déplacer le soleil, `MYPLANETENGINE_SUN` pour les captures.
-- **Pour revenir :** le commit précédent. Les réglages de l'atmosphère sont dans `PlanetSettings.hlsli`.
+- **Stage A, image string:** floating-point rendering, highlight compression, sRGB output. Image identical to ±1 level close.
+- **Step B, atmosphere:** three small tables calculated at start, then the sky and the aerial perspective calculated pixel by pixel.
+- **lighting:** the colors of the field become reflections. The sun comes filtered by the air, and the sky illuminates the shadows.
+- **Measurement:** 0,11 to 0,26 ms rendering at worst of ten reference views. Land calculation unchanged.
+- **To compare:** O and P keys to move the sun, `MYPLANETENGINE_SUN` for captures.
+- **To go back:** the previous commit. The atmosphere settings are in `PlanetSettings.hlsli`.
 
-![Départ à 50 m : avant, après](journal/2026-10-21-atmosphere-depart-50m.png)
-![Montagne à 10 km](journal/2026-10-21-atmosphere-mont-10km.png)
-![Côte à 200 m](journal/2026-10-21-atmosphere-cote-200m.png)
-![Orbite à 300 km](journal/2026-10-21-atmosphere-orbite-300km.png)
-![Coucher de soleil à 50 m, orbite à 2 000 km](journal/2026-10-21-atmosphere-coucher-orbite.png)
+![Starting at 50 m: before, after](journal/2026-10-21-atmosphere-depart-50m.png)
+![Mountain at 10 km](journal/2026-10-21-atmosphere-mont-10km.png)
+![Coast at 200 m](journal/2026-10-21-atmosphere-cote-200m.png)
+![Orbite at 300 km](journal/2026-10-21-atmosphere-orbite-300km.png)
+![Sunset at 50 m, orbit at 2 000 km](journal/2026-10-21-atmosphere-coucher-orbite.png)
 
-## 2026-10-21 · Normales sur les sommets voisins et grain fin dans les pixels · gardées, à reprendre
+## 2026-10-21 · Normals on neighboring vertices and fine grain in pixels · kept, to be taken back
 
-**Changement :** la normale vient des quatre sommets voisins, sur deux mailles. Le grain fin perdu est redessiné dans les pixels par un bruit léger, fixe sur la planète. Spécification : `log/spec-stabilite.md`.
+**Change:** the normal comes from the four neighboring vertices, on two grid cells. The lost fine grain is re-drawn in pixels by a light noise, fixed on the planet. Specification: `log/spec-stabilite.md`.
 
-- **Vues :** le continent de départ, 15° S, 50° E, et des montagnes à 15° S, 120° E.
-- **Problème :** le banc de mesure a montré que le tremblement vient presque entièrement de l'éclairage. La normale à un quart de maille capte les arêtes fines du relief, qui changent dès que les sommets glissent.
-- **Grain fin :** seulement entre 1 et 8 mailles, la bande que les normales des sommets perdent, et seulement entre 13,5 m et 6 km, là où complexplanet a du relief fin. Sinon il inventerait du relief.
-- **Mesure :** pire cas du calcul de 4,9 à 1,9 ms : plus d'évaluations supplémentaires par sommet. Rendu de 0,05 à 0,11 ms au plus.
+- **Views:** the continent of departure, 15° S, 50° E, and mountains at 15° S, 120° E.
+- **Problem:** Measurement benchmark showed that the jitter comes almost entirely from the lighting. The normal at one quarter of grid cell captures the fine edges of the relief, which change as soon as the vertices slide.
+- **Fine grain:** only between 1 and 8 grid cells, the band that the normals of the summits lose, and only between 13,5 m and 6 km, where complexplanet has fine relief. Otherwise he would invent relief.
+- **Measure:** worst case of 4,9 to 1,9 calculation ms: no more additional evaluations per vertex. Rendering from 0,05 to 0,11 ms at most.
 
-| Tremblement, sur 255 | Avant | Après |
+| jitter, on 255 | Before | After |
 |---|---|---|
-| Départ, 50 m, horizon | 0,49 | 0,22 |
-| Départ, 50 m, vers le bas | 0,43 | 0,23 |
-| Départ, 10 km, horizon | 0,79 | 0,45 |
-| Montagne, 50 m, horizon | 1,74 | 0,57 |
-| Montagne, 10 km, horizon | 17,6 | 6,6 |
+| Start, 50 m, horizon | 0,49 | 0,22 |
+| Starting, 50 m, down | 0,43 | 0,23 |
+| Start, 10 km, horizon | 0,79 | 0,45 |
+| Mountain, 50 m, horizon | 1,74 | 0,57 |
+| Mountain, 10 km, horizon | 17,6 | 6,6 |
 
-- **Écart visuel :** au-dessus du continent de départ, quasi identique, même grain fin mesuré à 3 % près. En montagne, les arêtes sont plus douces : 9 % de grain en moins à 50 m, 38 % à 10 km. Le bruit générique ne reproduit pas les arêtes vives du bruit ridged.
-- **Reste en montagne à 10 km :** surtout la couleur roche ou neige, qui dépend encore de la pente aux sommets.
-- **Pour revenir :** `DETAIL_SLOPE = 0` retire le grain. Pour l'ancienne normale, le commit précédent.
+- **Visual deviation:** above the continent of departure, almost identical, same fine grain measured to 3 % close. In mountains, the edges are softer: 9 % grain less at 50 m, 38 % at 10 km. The generic noise does not reproduce the sharp edges of the ridged noise.
+- **Rest in mountains at 10 km:** especially the color rock or snow, which still depends on the slope at the summits.
+- **To return:** `DETAIL_SLOPE = 0` removes the grain. For old normal, the previous commit.
 
-![Départ à 50 m : avant, après, différence × 8](journal/2026-10-21-normales-voisins-depart-50m.png)
-![Départ à 10 km](journal/2026-10-21-normales-voisins-depart-10km.png)
-![Montagne à 50 m](journal/2026-10-21-normales-voisins-montagne-50m.png)
-![Montagne à 10 km](journal/2026-10-21-normales-voisins-montagne-10km.png)
+![Start at 50 m: before, after, difference × 8](journal/2026-10-21-normales-voisins-depart-50m.png)
+![Departure at 10 km](journal/2026-10-21-normales-voisins-depart-10km.png)
+![Mountain at 50 m](journal/2026-10-21-normales-voisins-montagne-50m.png)
+![Mountain at 10 km](journal/2026-10-21-normales-voisins-montagne-10km.png)
 
-## 2026-10-21 · Normales lisses calculées sur le relief · remplacées
+## 2026-10-21 · Smooth normals calculated on the relief · replaced
 
-**Changement :** l'éclairage utilise la normale du relief lui-même, au lieu de la pente de chaque triangle.
+**Change:** the lighting uses the normal of the relief itself, instead of the slope of each triangle.
 
-- **Problème :** l'éclairage à facettes amplifiait le tremblement. Quand un sommet bouge de quelques centimètres, la pente des triangles voisins change, donc leur luminosité aussi.
-- **Principe :** dans le compute shader, chaque sommet évalue le relief en deux points supplémentaires, à un quart de maille, et en déduit la normale de la surface. L'éclairage devient lisse et presque indépendant de la position des sommets.
-- **Mesure :** pire cas de 1,6 à 5,6 ms, à cause des deux évaluations supplémentaires par sommet. À optimiser si la solution est gardée.
-- **Pour comparer :** touche R, qui revient à l'éclairage à facettes.
+- **Problem:** The faceted lighting amplifies the jitter. When a vertex moves a few centimeters, the slope of the neighboring triangles changes, so their brightness too.
+- **Principle:** In the compute shader, each vertex evaluates the relief at two additional points, at one quarter of grid cell, and deduces the normal of the surface. The lighting becomes smooth and almost independent of the position of the vertex.
+- **Measure:** worst case of 1,6 to 5,6 ms, due to the two additional evaluations per vertex. To be optimized if the solution is kept.
+- **To compare:** R key, which returns to the faceted lighting.
 
-## 2026-10-21 · Stabilisation par crans · abandonnée
+## 2026-10-21 · · notch stabilization discontinued
 
-Le maillage revient au glissement continu. Les réglages `RING_FILTER_CELLS` et `RING_FILTER_RAMP` sont retirés.
+The mesh returns to continuous sliding. The `RING_FILTER_CELLS` and `RING_FILTER_RAMP` settings are removed.
 
-- **Constat en vol :** plus de tremblement dans le carré central, mais des changements de géométrie par paliers. Hors du carré, le tremblement restait. Un filtrage plus sévère, testé avec les touches M et N, lissait trop le relief sans supprimer le tremblement.
-- **Pourquoi c'est abandonné :** le glissement continu du plan est justement ce qui densifie le maillage progressivement et rend l'approche sans couture. Des crans le transforment en niveaux de détail à paliers, à l'ancienne.
+- **Flight observation:** no more jitter in the central square, but geometry changes in increments. Out of the square, the jitter remained. More severe filtering, tested with the M and N keys, smoothed out too much relief without removing the jitter.
+- **Why it is abandoned:** the continuous slip of the plane is precisely what densifies the mesh gradually and makes the approach seamless. Some of the notches turn it into old-fashioned tiered detail levels.
 
-## 2026-10-20 · Stabilisation du maillage · abandonnée le 2026-10-21
+## 2026-10-20 · Stabilization of mesh · abandoned on 2026-10-21
 
-**Réglages :** `RING_FILTER_CELLS` de 2 à 4, `RING_FILTER_RAMP` = 16, et la stabilisation côté C++. Détail dans `log/spec-stabilite.md`.
+**Settings:** `RING_FILTER_CELLS` from 2 to 4, `RING_FILTER_RAMP` = 16, and stabilization on the C++ side. Detail in `log/spec-stabilite.md`.
 
-- **Problème :** en vol, le relief tremblait. La touche G, qui fige le maillage, l'a fait disparaître : c'était le maillage qui glissait sur le relief, pas la précision.
-- **Principe :** la grille ne bouge plus que par crans, choisis pour que les sommets retombent sur d'anciens sommets.
-  - Le plan tourne par crans d'une maille du carré central.
-  - La taille change par crans de croissance des anneaux, d'après une hauteur du sol lissée.
-  - Les anneaux, qui glissent encore un peu, sont filtrés plus sévèrement.
-- **Mesure :** pire cas de 1,6 à 1,9 ms, sous la cible de 2 ms.
-- **Écart visuel :** le relief lointain est un peu plus doux, à cause du filtrage des anneaux.
-- **Pour revenir :** touche H en vol pour comparer. Pour tout retirer : `RING_FILTER_CELLS = 2.0` et `mStabilized = false` dans `D3DApp.h`.
+- **Problem:** In flight, the relief was shaking. The G key, which freezes the mesh, made it disappear: it was the mesh that slipped on the relief, not the precision.
+- **Principle:** the grid moves only by increments, chosen so that the vertex fall back on old vertex.
+  - The plan rotates by increments of a grid cell of the central square.
+  - The size changes by the growth of the rings, based on a smoothed soil height.
+  - The rings, which still slip a little, are filtered more severely.
+- **Measurement:** worst case of 1,6 to 1,9 ms, below the target of 2 ms.
+- **Visual deviation:** the distant relief is a little softer, because of the filtering of the rings.
+- **To return:** H key in flight to compare. To remove everything: `RING_FILTER_CELLS = 2.0` and `mStabilized = false` in `D3DApp.h`.
 
-## 2026-10-20 · Turbulence vectorielle · activée
+## 2026-10-20 · Vector turbulence · activated
 
-**Réglage :** `VECTOR_TURBULENCE` de `false` à `true`. Le code est arrivé désactivé dans le commit `ea35946`, et l'activation suit l'entrée de ce journal dans l'historique git.
+**Setting:** `VECTOR_TURBULENCE` from `false` to `true`. The code arrived disabled in the `ea35946` commit, and the activation follows the entry of this log in the git history.
 
-- **Principe :** une turbulence déplace un point avec trois bruits de Perlin, un par axe. La version vectorielle calcule les trois axes d'un coup : même découpage de la grille de bruit, mêmes poids de mélange, mêmes graines que libnoise. Mais les trois axes sont échantillonnés au point lui-même, au lieu de trois points décalés.
-- **Mesure :** pire cas de 2,8 à 1,6 ms. Toutes les autres vues sont sous 0,3 ms.
-- **Écart visuel :** le caractère du relief reste le même, mêmes zones de roche et de collines. La forme exacte des taches de roche et des ondulations change. Écart moyen de 1 à 3 sur 255 selon la vue, environ 1 % des pixels changent nettement.
-- **Images :** `journal/2026-10-20-turbulence-vectorielle-1m.png`, `-10km.png`, `-cote.png`.
-- **Décision :** testée en vol, avec puis sans. Aucune différence remarquée à l'œil : on garde la version la plus rapide.
-- **Pour revenir :** `VECTOR_TURBULENCE = false`.
+- **Principle:** a turbulence moves a point with three noise functions of Perlin, one per axis. The vector version calculates all three axes at once: same grid cut-off of noise, same mix weights, same seeds as libnoise. But the three axes are sampled at the point itself, instead of three offset points.
+- **Measurement:** worst case of 2,8 to 1,6 ms. All other views are under 0,3 ms.
+- **Visual difference:** the character of the relief remains the same, same areas of rock and hills. The exact shape of rock spots and ripples changes. Average variation from 1 to 3 on 255 depending on view, about 1 % of pixels change markedly.
+- **Images:** `journal/2026-10-20-turbulence-vectorielle-1m.png`, `-10km.png`, `-cote.png`.
+- **Decision:** tested in flight, with and without. No difference noticed by the eye: we keep the fastest version.
+- **To return:** `VECTOR_TURBULENCE = false`.
 
-## 2026-10-20 · Turbulences des continents plafonnées · commit `ea35946`
+## 2026-10-20 · Turbulence of continents capped · commit `ea35946`
 
-**Réglage :** `CONTINENT_TURBULENCE_MAX_FREQUENCY` de sans limite à 1024.
+**Setting:** `CONTINENT_TURBULENCE_MAX_FREQUENCY` from no limit to 1024.
 
-- **Principe :** les trois turbulences des continents perdent leurs octaves fines. Celles-ci ne déplaçaient les côtes que de quelques mètres.
-- **Mesure :** pire cas de 3,2 à 2,8 ms.
-- **Écart visuel :** seul le contour fin de quelques îlots change, sur la vue de côte : 0,2 % des pixels. Rien ailleurs.
-- **Image :** `journal/2026-10-20-turbulences-continents-1024-cote.png`.
-- **Pour revenir :** `CONTINENT_TURBULENCE_MAX_FREQUENCY = NO_LIMIT`.
-- Le même commit regroupe tous les réglages dans `PlanetSettings.hlsli`.
+- **Principle:** the three turbulence of the continents lose their fine octaves. These moved the coasts only by a few meters.
+- **Measurement:** worst case of 3,2 to 2,8 ms.
+- **Visual deviation:** only the fine outline of some islands changes, on the coast view: 0,2 % of pixels. Nothing else.
+- **Image:** `journal/2026-10-20-turbulences-continents-1024-cote.png`.
+- **To return:** `CONTINENT_TURBULENCE_MAX_FREQUENCY = NO_LIMIT`.
+- The same commit brings together all the settings in `PlanetSettings.hlsli`.
 
-## 2026-10-20 · Table de gradients partagée, double précision près de la caméra · commit `5d221d4`
+## 2026-10-20 · Shared gradient table, double precision near camera · commit `5d221d4`
 
-**Réglage :** `EXACT_LATTICE_MAX_CELL` = 4 m. Avant, la double précision servait partout.
+**Setting:** `EXACT_LATTICE_MAX_CELL` = 4 m. Before, double precision was used everywhere.
 
-- **Table de gradients en mémoire partagée :** rendu identique au pixel près. Gain de 16 à 50 % selon la vue.
-- **Double précision réservée aux mailles de moins de 4 m :** plus loin, la précision du float, 0,4 m sur la planète, ne se voit pas. Écart visuel de 0,01 sur 255. Jusqu'à 70 % de gain selon la vue.
-- **Correctif :** la caméra pouvait rester sous le relief si la fenêtre perdait le focus au démarrage.
-- **Mesure :** pire cas de 4,6 à 3,2 ms.
-- **Pour revenir :** `EXACT_LATTICE_MAX_CELL = NO_LIMIT`. La table partagée n'a pas de réglage, puisqu'elle ne change rien au rendu.
+- **Gradient table in shared memory:** rendered identical to pixel. Gain from 16 to 50 % depending on view.
+- **Double precision reserved for grid cellss less than 4 m:** further, the precision of the float, 0,4 m on the planet, is not seen. Visual difference from 0,01 to 255. Up to 70 % gain depending on view.
+- **Fix:** The camera could stay under the relief if the window lost focus on startup.
+- **Measurement:** worst case of 4,6 to 3,2 ms.
+- **To return:** `EXACT_LATTICE_MAX_CELL = NO_LIMIT`. The shared table has no adjustment, since it does not change the rendering.
 
-## 2026-10-20 · Champ de vision, type de terrain filtré · commit `5429682`
+## 2026-10-20 · Field of view, filtered terrain type · commit `5429682`
 
-**Réglage :** `TERRAIN_TYPE_MAX_FREQUENCY` = 64. Avant, il n'y avait pas de limite.
+**Setting:** `TERRAIN_TYPE_MAX_FREQUENCY` = 64. Before, there was no limit.
 
-- **Champ de vision :** les sommets hors du champ ne sont plus calculés. Pire cas de 15,1 à 7,6 ms. Aucun effet visuel.
-- **Type de terrain :** limité aux longueurs d'onde de plus de ~100 km, puisqu'il ne sert qu'à choisir entre plaines, collines et montagnes. Pire cas de 7,6 à 4,6 ms. Écart visuel d'au plus 0,13 sur 255.
-- **Pour revenir :** `TERRAIN_TYPE_MAX_FREQUENCY = NO_LIMIT`.
+- **Field of view:** Out-of-field vertices are no longer calculated. Worst case of 15,1 to 7,6 ms. No visual effects.
+- **Terrain type:** limited to wavelengths greater than ~100 km, since it is only used to choose between plains, hills and mountains. Worst case of 7,6 to 4,6 ms. Visual deviation of no more than 0,13 on 255.
+- **To return:** `TERRAIN_TYPE_MAX_FREQUENCY = NO_LIMIT`.
 
-## 2026-10-20 · Anneaux jusqu'à l'horizon, filtrage des octaves · commit `91bcea4`
+## 2026-10-20 · Rings to the horizon, octave filtering · commit `91bcea4`
 
-- **Maillage :** face de 128 × 128 mailles, entourée d'anneaux qui grandissent de 1 + 2/128 chacun, jusqu'à l'horizon plus 323 km pour les montagnes. k = 2.
-- **Filtrage des octaves :** chaque sommet n'évalue que les octaves visibles à sa taille de maille. Une octave écartée est remplacée par sa moyenne : −0,36 pour Billow, 0,52 pour RidgedMulti, −0,06 pour Voronoi.
-- **Mesure :** pire cas de 15,1 ms au ras du sol.
+- **mesh :** compared to 128 × 128 grid cells, surrounded by rings that grow from 1 + 2/128 each, until the horizon more 323 km for mountains. k = 2.
+- **Octave filtering:** each vertex evaluates only the octaves visible at its grid spacing. An octave that is not in the line is replaced by its average: −0,36 for Billow, 0,52 for RidgedMulti, −0,06 for Voronoi.
+- **Measurement:** worst case of 15,1 ms at ground level.
 
-## 2026-10-20 · Portage de complexplanet · commit `b7b8c76`
+## 2026-10-20 · port de complexplanet · commit `b7b8c76`
 
-- **Terrain :** l'exemple complexplanet de libnoise, porté en HLSL avec ses valeurs d'origine, mais avec la version actuelle du bruit de libnoise. Les images du site de libnoise utilisent l'ancienne version 1 : la planète n'est donc pas la même.
-- **Précision :** la position dans la grille de bruit est calculée en double précision. Le compute shader passe par DXC, en Shader Model 6, à cause d'un bug du pilote NVIDIA avec FXC.
-- **Rayon :** 6 378 km, contre environ 7 040 km pour la planète de complexplanet. Les reliefs sont donc environ 10 % plus petits que dans l'original.
+- **Terrain:** the complexplanet example from libnoise, ported to HLSL with its original values, but with the current version of the noise from libnoise. The images on the libnoise site use the old version 1: the planet is not the same.
+- **Precision:** the position in the grid of noise is calculated in double precision precision. The compute shader is DXC, in Shader Model 6, because of a bug in the NVIDIA driver with FXC.
+- **Radius:** 6 378 km, against about 7 040 km for the complexplanet planet. The reliefs are therefore about 10 % smaller than in the original.

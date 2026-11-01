@@ -1,149 +1,149 @@
-# Historique : le relief tectonique
+# Background: tectonic relief
 
-**Les sections dépassées de `../spec-relief-tectonique.md`, pour mémoire.** Rien ici ne décrit l'état présent.
+**The outdated sections of `../spec-relief-tectonique.md`, for memory.** Nothing here describes the present state.
 
-## Les cordons avant le filtrage de leur émergence, 2026-10-31
+## The cords before filtering their emergence, 2026-10-31
 
-- **Troisième passe :** posés sur le contour du rivage bruité, ils en suivaient les angles et les rias ; dans une ria plus étroite qu'eux, leurs deux flancs se rejoignaient en un bloc plat à 3 m.
-- **Quatrième passe :** le rivage lissé porte les arcs ; la crête se relève depuis le relief sous elle, pour que les octaves fines ne l'entaillent plus jusqu'à la mer.
-- **La largeur totale seule était filtrée :** au moins deux mailles, amplitude abaissée en proportion.
-- **Défaut restant :** vers 20 km d'altitude, la crête émergée occupait moins d'une maille et se dessinait en pointillés blancs ; continue à 8 et 3 km.
-- **Remplacé par le filtrage de la partie émergée,** décrit dans `../spec-relief-tectonique.md`.
-- **Les mesures antérieures du portage,** sur 600 mailles près du centre des faces : médiane 6 cm, p99 1,8 m, maximum 13 m sur le mur d'une fosse ; la première version, 6 cm, 1,6 m et 3,4 m.
+- **Third pass:** placed on the contour of the noise-filled shore, they followed its angles and rias; in a ria narrower than themselves, their two sides joined in a flat block at 3 m.
+- **Fourth pass:** the smoothed shore carries the arches; the ridge rises from the relief below it, so that the thin octaves no longer cut it to the sea.
+- **Total width alone was filtered:** at least two grid cells, amplitude lowered proportionally.
+- **Remaining defect:** towards 20 km of altitude, the emerged ridge occupied less than a grid cell and was drawn in white dotted; continues at 8 and 3 km.
+- **Replaced by filtering the emerged part,** described in `../spec-relief-tectonique.md`.
+- **Previous measurements of the port,** on 600 grid cells near the center of the faces: median 6 cm, p99 1,8 m, maximum 13 m on the wall of a pit; the first version, 6 cm, 1,6 m and 3,4 m.
 
-## Les étapes 1 à 3 telles que faites le 2026-10-31, avant la seconde passe
+## Steps 1 to 3 as you do the 2026-10-31, before the second pass
 
-Corrigé le même jour : les côtes, les rifts, les chaînes, le budget du démarrage, les entrées du niveau 0 (`../spec-relief-tectonique.md`). Les mesures et les défauts d'alors.
+Fixed the same day: the ridges, the rifts, the chains, the start budget, the entries of the level 0 (`../spec-relief-tectonique.md`). The measures and the defects of then.
 
-**Le stockage d'alors :** quatre tranches par face sur le GPU, 49,5 Mo ; la tranche 3 portait un soulèvement indicatif, celui de la seule frontière la plus proche, et la distance au bord des continents jusqu'à 3 000 km. Le fichier, `EXOTECT1`, ces quatre tranches.
+**The storage of then:** four slices per face on the GPU, 49,5 MB; the slice 3 carried an indicative elevation, that of the only border nearest, and the distance to the edge of the continents up to 3 000 km. The file, `EXOTECT1`, these four slices.
 
-**Le calcul d'alors :** les propagations sur un tas, une à une le long du chemin critique ; les champs régionaux à pleine résolution ; deux propagations des dorsales avant la polarité ; les cratons sur les continents d'après les marges actives.
+**The calculation of then:** propagations on a pile, one by one along the critical path; regional fields at full resolution; two propagations of ridges before polarity; cratons on continents according to active margins.
 
-### Les mesures
+### Measures
 
-**Les ordres de grandeur,** portage CPU, graine 0, 400 000 points, mailles de 2 km :
+**Orders of magnitude,** port CPU, seed 0, 400 000 points, grid cells of 2 km:
 
-| Mesure | Relief tectonique | Cible |
+| Measure | Tectonic relief | Target |
 |---|---|---|
-| Terres | 33,0 % ; graines 1 et 2 : 33,8 et 30,4 % | 30 à 45 %, plus proche de la Terre, 29 % |
-| Mode des terres | +125 m, médiane 366 m | la Terre : médiane vers 400 m |
-| Mode des océans | −4 625 m, médiane −4 447 m | −4 à −5 km |
-| Sommets des 12 plus hautes chaînes | 6,8 à 7,9 km | 6 à 8 km |
-| Fosses, les 8 plus profondes | −9,4 à −10,5 km | −8 à −10 km |
-| Au-dessus de 3 km | 1,9 % de la surface | la Terre : 1,6 % |
+| Terres | 33,0 %; seeds 1 and 2: 33,8 and 30,4 % | 30 to 45 %, closer to Earth, 29 % |
+| Land mode | +125 m, median 366 m | Earth: median to 400 m |
+| Oceans Fashion | −4 625 m, median −4 447 m | −4 to −5 km |
+| Summits of the 12 highest chains | 6,8 to 7,9 km | 6 to 8 km |
+| Pits, the deepest 8 | −9,4 to −10,5 km | −8 to −10 km |
+| Above 3 km | 1,9 % of area | Earth: 1,6 % |
 
-- **Pourquoi 33 % de terres :** 44 % de croûte continentale, dont les plateaux, les talus et les bassins bas noient un quart, comme sur Terre (41 % pour 29 %).
-- **L'hypsométrie est bimodale,** vers +0,1 et −4,6 km : `tecto3_hypsometrie.png` dans les captures de la session.
+- **Why 33 % of land:** 44 % of continental crust, of which the plateaus, slopes and low basins drown a quarter, as on Earth (41 % for 29 %).
+- **Hypsometry is bimodal,** to +0,1 and −4,6 km: `tecto3_hypsometrie.png` in session captures.
 
-**Le temps :**
-- **La carte tectonique :** 2,5 s au démarrage, contre 1 s à la première version : neuf propagations au lieu de quatre, deux classements des frontières. Mémoire GPU 50 Mo, contre 32.
-- **Le calcul GPU du terrain,** caméra en mouvement, terrain recalculé à chaque image, mêmes six vues : 0,3 à 0,7 ms aux altitudes basses et moyennes, contre 0,5 à 1,3 ms ; au ras du sol, 0,7 à 2,5 ms selon la charge, contre 3,9. Les lieux des vues de référence sont désormais en mer, sauf l'orbite et le sol de `macro`, en forêt.
-- **La carte de la planète :** 18 ms sur le GPU.
+**Time:**
+- **The tectonic map:** 2,5 s at startup, against 1 s in the first version: nine propagations instead of four, two border rankings. Memory GPU 50 MB, against 32.
+- **The GPU calculation of the terrain,** moving camera, terrain recalculated at each frame, even six views: 0,3 to 0,7 ms at low and medium altitudes, versus 0,5 to 1,3 ms; at ground level, 0,7 to 2,5 ms depending on load, versus 3,9. The locations of the reference views are now at sea, except the orbit and ground of `macro`, in the forest.
+- **The map of the planet:** 18 ms on the GPU.
 
-**Le jeu de vérification :** la compilation sans erreur ni nouvel avertissement ; les vues en vol de `tools/tests/2026-10-31-relief-tectonique.txt` ; la planche `tecto3_planche.jpg`.
+**The check set:** the compilation without error or new warning; the flying views of `tools/tests/2026-10-31-relief-tectonique.txt`; the board `tecto3_planche.jpg`.
 
-### Les défauts connus
+### Known defects
 
-- **Les côtes sont lisses entre 50 et 5 km** sur les plaines côtières : le détail y est faible, la côte suit le seuil d'un champ lisse.
-- **Les rifts sont nombreux,** 17 % des frontières, et leurs grabens souvent noyés en mers étroites aux murs réguliers.
-- **Les chaînes à 300 km sont des rides ondulées,** un peu marbrées ; aucun réseau de vallées ne les draine.
-- **La vue `relief` montre les facettes du maillage** sur les profils vifs vus d'orbite ; le relief du jeu ne les montre pas.
-- **Pas encore de points chauds, de cônes volcaniques, de collines abyssales orientées par l'âge.**
-- **Les vues de référence de `base_lumiere` tombent en mer :** il faut de nouvelles vues de contrôle sur terre ; la référence du banc de qualité ne vaut plus.
-- **Le temps de démarrage :** 2,5 s pour une planète ; pour un système, le calcul en parallèle des corps reste à faire.
-- **Aucune vallée creusée :** en attendant le niveau 0, `valleys` ne change rien.
+- **The coasts are smooth between 50 and 5 km** on the coastal plains: the detail is low, the coast follows the threshold of a smooth field.
+- **The rifts are numerous,** 17 % of the borders, and their grabens often drowned in narrow seas with regular walls.
+- **The chains at 300 km are wavy ridges,** somewhat marbled; no network of valleys drain them.
+- **The `relief` view shows the facets of the mesh** on the sharp profiles seen from orbit; the relief of the game does not show them.
+- **Not yet hot spots, volcanic cones, abyssal hills oriented by age.**
+- **The reference views of `base_lumiere` fall into the sea:** new control views on land are needed; the reference of quality benchmark is no longer valid.
+- **The start time:** 2,5 s for a planet; for a system, the parallel calculation of the bodies remains to be done.
+- **No valleys dug:** waiting for level 0, `valleys` does not change anything.
 
-## L'étape 1 telle que faite le 2026-10-31, avant la correction des continents
+## The step 1 as made the 2026-10-31, before the correction of the continents
 
-Les plaques y étaient entières, toutes continentales ou toutes océaniques ; chaque côte était une frontière de plaques. Corrigé le même jour : la croûte continentale par lieu, les marges passives et actives (`../spec-relief-tectonique.md`, la carte tectonique).
+The plates were entire, all continental or all oceanic; each coast was a plate boundary. Fixed the same day: continental crust by location, passive and active margins (`../spec-relief-tectonique.md`, tectonic map).
 
-### La carte tectonique, première version
+### The tectonic map, first version
 
-**En place, le relief ne la lit pas.** Elle se calcule au démarrage et se montre dans six vues de diagnostic.
+**In place, the relief does not read it.** It is calculated at startup and is shown in six diagnostic views.
 
-#### Le calcul, `Tectonics.cpp`
+#### The calculation, `Tectonics.cpp`
 
-**Une carte par corps céleste :** `Tectonics::Build({ seed, radiusKm })`. Le même corps donne la même carte, au bit près ; la planète prend la graine du relief, `CUR_SEED`.
+**One card per celestial body:** `Tectonics::Build({ seed, radiusKm })`. The same body gives the same card, to the bit close; the planet takes the seed of the relief, `CUR_SEED`.
 
-1. **La grille :** le cube de la carte de la planète, 6 × N², N la puissance de deux qui donne des texels de 20 km environ. Pour la planète, 512².
-2. **Les coûts :** des fBm de bruit de gradient, de 2 000 à 60 km, en exp(3 fBm) : la moitié à deux fois la médiane à un écart-type.
-3. **Les plaques :** 12 à 20 germes, chacun le plus éloigné des autres parmi 24 tirés. Une croissance concurrente à coût bruité, des vitesses de 0,4 à 2,5 : des plaques de 0,3 à 17 % de la surface, aux contours irréguliers, jamais des arcs de grand cercle.
-4. **Continentale ou océanique :** les plaques dans un ordre tiré, continentales tant que leur part reste sous une cible de 30 à 40 %.
-5. **Les mouvements :** un pôle d'Euler tiré sur la sphère ; 40 à 100 mm/an à 90° du pôle pour une plaque océanique, 10 à 40 pour une continentale.
-6. **Les frontières :** toute cellule voisine d'une autre plaque. La normale entre les cellules des deux plaques sur 4 pas ; la vitesse relative (ω_a − ω_b) × p, projetée sur la normale, moyennée le long de la frontière sur environ 100 km, des deux côtés.
-   - **transformante** si la composante normale fait moins de 40 % de la vitesse relative ;
-   - **convergente :** subduction océan sous continent, océan sous océan, collision de deux continents ;
-   - **divergente :** dorsale si un côté est océanique, rift entre deux continents.
-7. **La polarité, un choix par paire de plaques :** l'océanique sous la continentale ; de deux océaniques, la croûte la plus vieille ; de deux continents, celui qui avance le plus dans l'autre.
-8. **L'âge du fond océanique :** la distance à la dorsale la plus proche de la plaque, sur la demi-vitesse d'expansion moyenne de la plaque ; 200 Ma au plus, et sur une plaque sans dorsale.
-9. **Les sutures anciennes :** chaque continent découpé en 1 à 8 cratons par la même croissance, un par 2 % de la surface ; une suture entre deux cratons, d'un âge tiré de 100 à 1 000 Ma.
-10. **Les distances :** une propagation du germe le plus proche, celle du niveau 0, depuis le point de frontière entre deux cellules ; lissées sur deux texels.
-11. **Le soulèvement indicatif,** en mm/an, d'après le type, la polarité, la convergence et la distance :
-    - subduction : fosse sur la plaque plongeante ; cordillère de 150 à 400 km, ou arc insulaire, sur l'autre ;
-    - collision : chaîne sur les deux plaques, bassin d'avant-pays devant ;
-    - rift : graben entre deux épaulements ; ailleurs, 0.
-12. **La roche, par classe :** croûte océanique ; volcanique, sur les arcs ; plissée jeune, là où le soulèvement passe 1 mm/an ; sédiments, avant-pays, rifts et plates-formes ; plissée ancienne, à moins de 150 km d'une suture ; socle, en taches tirées par un bruit.
+1. **The grid:** the cube of the planet map, 6 × N², N the power of two that gives texels of 20 km about. For the planet, 512².
+2. **Costs:** gradient fBm of noise, from 2 000 to 60 km, in exp(3 fBm): half to twice the median at one standard deviation.
+3. **The plates:** 12 to 20 germs, each the furthest from the others among 24 drawn. Competitive growth at noise cost, speeds of 0,4 to 2,5: plates of 0,3 to 17 % of the surface, irregular contours, never arcs of large circle.
+4. **Continental or Oceanic:** plates in a drawn order, continental as long as their share remains under a target of 30 to 40 %.
+5. **Motions:** an Euler pole drawn on the sphere; 40 to 100 mm/an to 90° of the pole for an oceanic plate, 10 to 40 for a continental plate.
+6. **Boundaries:** any cell adjacent to another plate. The normal between the cells of the two plates on 4 pas; the relative velocity (ω_a − ω_b) × p, projected on the normal, averaged along the border on about 100 km, on both sides.
+   - **transformer** if the normal component is less than 40 % of the relative speed;
+   - **convergent:** subduction ocean subcontinent, ocean under ocean, collision of two continents;
+   - **divergent:** ridge if one side is oceanic, rift between two continents.
+7. **Polarity, a choice per pair of plates:** the oceanic under the continental; of two oceanic, the oldest crust; of two continents, the one that advances most into the other.
+8. **Ocean floor age:** the distance to the nearest plate ridge, at half-average plate expansion speed; 200 Ma at most, and on a plate without a ridge.
+9. **The ancient sutures:** each continent cut into 1 to 8 cratons by the same growth, one by 2 % of the surface; a suture between two cratons, of an age drawn from 100 to 1 000 Ma.
+10. **Distances:** a propagation of the nearest germ, that of the 0 level, from the boundary point between two cells; smoothed on two texels.
+11. **The indicative elevation,** in mm/an, according to type, polarity, convergence and distance:
+    - subduction: pit on the plunging plate; mountain range of 150 to 400 km, or island arc, on the other;
+    - collision: chain on both plates, foreland basin in front;
+    - rift: grave between two shoulders; elsewhere, 0.
+12. **Rock, by class:** oceanic crust; volcanic, on arcs; young pleated, where the rise passes 1 mm/an; sediments, forelands, rifts and platforms; old pleated, less than 150 km from a suture; basement, in spots drawn by a noise.
 
-**Trois propagations en parallèle,** chacune sur son fil : les cratons et leurs sutures, les dorsales, les frontières. Le reste, cellule par cellule sur tous les fils.
+**Three parallel propagations,** each on its own thread: the cratons and their sutures, the dorsals, the borders. The rest, cell by cell on all wires.
 
-#### Le stockage, `Tectonics.hlsli`
+#### Storage, `Tectonics.hlsli`
 
-**Un tableau de deux cubes RGBA16F, mipmappés, `t18` :**
-- **cube 0 :** distance à la frontière la plus proche de la plaque (km), positive sur une plaque continentale, négative sur une océanique, qui ne passe par 0 qu'aux marges ; convergence à travers elle (mm/an), négative quand les plaques s'écartent ; soulèvement (mm/an) ; âge du fond océanique (Ma).
-- **cube 1 :** distance à la suture la plus proche (km) ; son âge (Ma) ; deux classes, lues sans filtre par `Gather` au mip 0 : la roche, plus 8 sur un continent ; la plaque, plus 32 fois le type de la frontière la plus proche, plus 256 si la plaque plonge sous elle.
+**An array of two cubes RGBA16F, half-maps, `t18`:**
+- **cube 0:** distance to the nearest plate boundary (km), positive on a continental plate, negative on an oceanic one, which passes through 0 only at the margins; convergence through it (mm/an), negative when the plates diverge; elevation (mm/an); age of the ocean floor (Ma).
+- **cube 1:** distance to the nearest suture (km); its age (Ma); two classes, read without filter by `Gather` to mip 0: the rock, plus 8 on a continent; the plate, plus 32 times the type of the nearest boundary, plus 256 if the plate sinks under it.
 
-**Le signe par la croûte, pas par la polarité :** une distance signée par la polarité sauterait de −d à +d entre deux frontières, et tout filtre y inventerait un faux zéro. Signée par la croûte, elle est continue partout ; la polarité passe dans les classes.
+**The sign by the crust, not by polarity:** a distance signed by polarity would jump from −d to +d between two boundaries, and any filter would invent a false zero there. Signed by the crust, it is continuous everywhere; the polarity passes through the classes.
 
-**La résolution, 512² pour la planète :** 25 km au centre d'une face, 11 km aux coins, 20 km en moyenne.
-- **Ce qu'elle porte :** des formes de plus de deux texels, 40 km ; les grandes formes en font plus de 50.
-- **Les arêtes vives viennent des profils analytiques de l'étape 2,** posés sur des distances lisses, qui s'interpolent à une fraction de texel près.
-- **1 024² ne servirait pas :** quatre fois la mémoire et le temps, pour des échelles que le bruit fait mieux. Il ne tiendrait plus le budget d'un système entier.
+**The resolution, 512² for the planet:** 25 km at the center of a face, 11 km at the corners, 20 km on average.
+- **What she wears:** shapes of more than two texels, 40 km; large shapes make it more of 50.
+- **The sharp edges come from analytical profiles of the 2 step,** laid on smooth distances, which interpolate to a fraction of texel close.
+- **1 024² would not work:** four times the memory and time, for scales that the noise does better. It would no longer hold the budget of an entire system.
 
-#### Les vues de diagnostic
+#### Diagnostic views
 
-**Par `MYPLANETENGINE_VIEW`, par nom en mode batch, ou en fin de place d'une ligne de test.** Sans lumière, ni air, ni nuages ; elles se lisent de l'orbite à 500 km.
+**By `MYPLANETENGINE_VIEW`, by name in batch mode, or at the end of a test line.** Without light, air, or clouds; they are read from orbit at 500 km.
 
-| Nom | Ce qu'elle montre |
+| Name | What it shows |
 |---|---|
-| `plates` | chaque plaque sa couleur, assombrie sur les océans ; leurs frontières en noir |
-| `boundaries` | le type de la frontière la plus proche sur 250 km : rouge, subduction sous un continent ; orange, sous un océan ; magenta, collision ; cyan, dorsale ; jaune, rift ; vert, transformante. Deux fois plus sombre sur la plaque qui plonge ; les sutures en brun |
-| `boundarydist` | la distance signée jusqu'à 3 000 km, orange sur les continents, bleue sur les océans ; une ligne tous les 250 km |
-| `crustage` | l'âge du fond, rouge aux dorsales à violet à 200 Ma ; sur les continents, les sutures, claires à 100 Ma, sombres à 1 000 Ma |
-| `rocktype` | croûte océanique bleu nuit, volcanique rouge, plissée jeune brune, sédiments sable, plissée ancienne olive, socle rose |
-| `uplift` | le soulèvement, orange jusqu'à +6 mm/an, bleu jusqu'à −6 |
+|  `plates`  | each plate its colour, darkened on the oceans; their borders in black |
+|  `boundaries`  | the type of the nearest boundary on 250 km: red, subduction under a continent; orange, under an ocean; magenta, collision; cyan, ridge; yellow, rift; green, transforming. Twice darker on the sinking plate; brown sutures |
+|  `boundarydist`  | distance signed up to 3 000 km, orange on continents, blue on oceans; a line every 250 km |
+|  `crustage`  | the age of the bottom, red to dorsals to purple at 200 Ma; on continents, sutures, light at 100 Ma, dark at 1 000 Ma |
+|  `rocktype`  | oceanic crust night blue, volcanic red, young brown pleated, sediments sand, old olive pleated, pink base |
+|  `uplift`  | the rise, orange up to +6 mm/an, blue up to −6 |
 
-**À juger en vol :** `tools/tests/2026-10-31-tectonique.txt`, chaque vue de l'orbite puis à 500 km sur un trait marquant.
+**To be judged in flight:** `tools/tests/2026-10-31-tectonique.txt`, each view of the orbit then to 500 km on a marked line.
 
-#### Les mesures
+#### Measures
 
-- **Le temps :** 0,93 à 0,99 s au démarrage, au titre « tectonique … ms » ; 0,89 à 1,0 s hors du moteur. Mesuré avec d'autres sessions sur la machine.
-- **La mémoire :** 32 Mo sur le GPU, plus 32 Mo de tampon d'envoi, rendus au démarrage. Un pic de 190 Mo sur le CPU pendant le calcul, rendus après.
-- **Le déterminisme :** deux calculs, le même fichier au bit près.
-- **Le rendu du jeu :** identique au bit près sur les six vues de contrôle, de l'orbite au sol.
-- **Les plaques, sur trois graines :** 15, 15 et 19 plaques, de 0,3 à 17 % de la surface ; 31, 35 et 38 % de croûte continentale.
-  - **Contre Bird 2003 :** la plus grande plaque terrestre, le Pacifique, fait environ 20 % ; les nôtres plafonnent à 17 %.
-  - **Il manque les microplaques :** Bird en compte des dizaines sous 1 %, l'instantané n'en a que 2 ou 3.
-- **Les frontières, graine 0, en part des cellules de frontière :** subduction sous un continent 41 %, sous un océan 4 %, collision 1 %, dorsales 23 %, rifts 1 %, transformantes 29 %.
+- **Time:** 0,93 to 0,99 s at startup, at the title “tectonic … ms”; 0,89 to 1,0 s off engine. Measured with other sessions on the machine.
+- **Memory:** 32 MB on the GPU, plus 32 MB of send buffer, rendered at startup. A peak of 190 MB on the CPU during calculation, rendered after.
+- **Determinism:** two calculations, the same file bit by bit.
+- **Game rendering:** bit-to-bit identical across all six control views, from orbit to ground.
+- **The plates, on three seeds:** 15, 15 and 19 plates, from 0,3 to 17 % of surface; 31, 35 and 38 % of continental crust.
+  - **Against Bird 2003:** the largest earth plate, the Pacific, is about 20 %; ours are capped at 17 %.
+  - **The microplates are missing:** Bird counts tens under 1 %, the snapshot has only 2 or 3.
+- **Boundaries, seed 0, in part of border cells:** subduction under a continent 41 %, under an ocean 4 %, collision 1 %, ridges 23 %, rifts 1 %, transforming 29 %.
 
-#### Le budget d'un système solaire
+#### The budget of a solar system
 
-**Le temps et la mémoire suivent la surface :** la grille garde des texels de 20 km, sa taille suit le rayon.
+**Time and memory follow the surface:** the grid keeps the texels of 20 km, its size follows the radius.
 
-| Corps | Grille | Mémoire GPU | Temps |
+| Corps | Grid | Memory GPU | Time |
 |---|---|---|---|
-| Taille de la Terre ou de Vénus | 512² | 32 Mo | 1 s |
-| Taille de Mars, Mercure, Ganymède, Titan | 256² | 8 Mo | 0,23 s |
-| Taille de la Lune, Io, Europe | 128² | 2 Mo | 0,07 s |
+| Size of Earth or Venus | 512² | 32 MB | 1 s |
+| Mars, Mercury, Ganymede, Titan | 256² | 8 MB | 0,23 s |
+| Moon size, Io, Europe | 128² | 2 MB | 0,07 s |
 
-- **Le budget visé :** 150 Mo et 2 s pour tout le système. Un système comme le nôtre, sans les géantes : deux grandes planètes, cinq corps moyens, cinq petits ; 114 Mo, 3,5 s de calcul à la suite, moins de 1,5 s estimées en calculant les corps en parallèle.
-- **Au-delà :** le cache sur disque par graine, 32 Mo par planète de la taille de la Terre.
-- **Pas encore fait :** la liste des corps du système ; l'étape 1 n'en calcule qu'un.
+- **Target budget:** 150 MB and 2 s for the whole system. A system like ours, without the giants: two large planets, five medium bodies, five small; 114 MB, 3,5 s of calculation in the following, less 1,5 s estimated by calculating the bodies in parallel.
+- **Beyond:** disk cache per seed, 32 MB per planet of the size of the Earth.
+- **Not yet done:** the list of bodies in the system; step 1 calculates only one.
 
-#### Ce qui reste incertain
+#### What remains uncertain
 
-- **Les plaques sont entières :** toute continentale ou toute océanique. Pas de marge passive ; chaque côte est une frontière de plaques. La recherche pose des continents indépendants des plaques, `recherche-relief.md`, 6.2, étape 1 : à décider avant l'étape 2.
-- **Leurs formes :** irrégulières mais souvent rondes ; les petites plaques en taches, jamais allongées.
-- **Quelques traits transformants isolés** coupent encore des subductions, sur une ou deux cellules.
-- **Les classes sont au texel :** vues de près, à 500 km, leurs limites marchent par 20 km. Les champs, eux, sont lisses.
-- **L'âge est plat, à 200 Ma,** sur une plaque océanique sans dorsale.
-- **Le temps** a été mesuré sur une machine chargée ; à refaire au repos.
+- **The plates are whole:** all continental or oceanic. No passive margin; each coast is a plate boundary. The research poses continents independent of plates, `recherche-relief.md`, 6.2, step 1: to be decided before step 2.
+- **Their shapes:** irregular but often round; small spots, never elongated.
+- **Some isolated transforming traits** still cut subductions, on one or two cells.
+- **The classes are at texel:** seen closely, at 500 km, their limits run by 20 km. The fields, however, are smooth.
+- **Age is flat, at 200 Ma,** on an oceanic plate without a ridge.
+- **Time** was measured on a loaded machine; to be repeated at rest.

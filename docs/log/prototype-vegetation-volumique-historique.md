@@ -1,16 +1,16 @@
-# Historique du prototype de végétation volumique
+# History of the volume vegetation prototype
 
-**2026-10-26 : filtrage des volumes.** L'état présent est dans `prototype-vegetation-volumique.md`.
+**2026-10-26: volume filtering.** The present state is in `prototype-vegetation-volumique.md`.
 
-**L'essai écarté :** additionner les surfaces de feuilles dans chaque parent, puis appliquer une loi de Poisson isotrope.
-- Les feuilles déjà cachées contribuaient encore comme si elles étaient toutes visibles.
-- Le couvert grossissait avec la simplification.
-- L'audit CPU compare 60 projections orthographiques du même modèle.
-- Il intègre la couverture attendue des rayons ; il ne mesure aucun temps GPU.
+**The rejected test:** add the leaf surfaces in each parent, then apply an isotropic Poisson law.
+- The already hidden leaves contributed as if they were all visible.
+- The cover grew with simplification.
+- The CPU audit compares 60 orthographic projections of the same model.
+- It integrates the expected coverage of the rays; it does not measure any GPU time.
 
-**Rapport moyen d'aire projetée, hiérarchie issue du 128³ :**
+**Average ratio of projected area, hierarchy from 128³:**
 
-| Modèle | Niveau | Somme des surfaces | Transmission des enfants |
+| Model | Level | Sum of surfaces | Transmission of children |
 |---|---:|---:|---:|
 | Sapin | 64³ | 1,10 | 1,04 |
 | Sapin | 32³ | 1,22 | 1,06 |
@@ -21,38 +21,38 @@
 | Jacaranda | 16³ | 1,24 | 1,06 |
 | Jacaranda | 8³ | 1,43 | 1,09 |
 
-**Le choix :** filtrer la transmission de deux enfants le long du rayon, puis moyenner les quatre colonnes et les extinctions des trois axes.
-- Le niveau de base reste inchangé.
-- La couverture moyenne s'améliore, sans coefficient propre à une vue.
-- Le pire rapport d'aire, sur tous les niveaux et angles, descend de 2,77 à 1,61.
-- La moyenne isotrope reste imparfaite selon l'angle.
-- Au niveau 32³, le jacaranda vu du dessus passe de 0,991 à 0,917.
-- Sur le sapin au niveau 8³, l'intersection/union douce passe de 0,477 à 0,453, malgré une erreur absolue moyenne réduite de 0,0649 à 0,0576.
+**Choice:** filter the transmission of two children along the radius, then average the four columns and extinctions of the three axes.
+- The base level remains unchanged.
+- Average coverage improves, without a coefficient specific to a view.
+- The worst area ratio, on all levels and angles, goes down from 2,77 to 1,61.
+- The isotropic mean remains imperfect depending on the angle.
+- At the level 32³, the jacaranda seen from above changes from 0,991 to 0,917.
+- On the fir tree at 8³ level, the soft intersection/union goes from 0,477 to 0,453, despite a reduced absolute mean error from 0,0649 to 0,0576.
 
-**Les premières captures fonctionnelles :**
-- Les trois modes et le masque binaire fonctionnent.
-- Les statistiques de pipeline vérifient les 2 518 432 triangles de 16 sapins.
-- Ces captures ont été faites pendant le banc de qualité initial.
-- Leurs temps GPU sont écartés de la comparaison finale.
+**The first functional captures:**
+- All three modes and binary mask work.
+- Pipeline statistics check the 2 518 432 triangles of 16 firs.
+- These captures were made during the initial quality benchmark.
+- Their GPU times are excluded from the final comparison.
 
-**L'interpolation des pieds, remplacée :**
-- Le premier prototype interpolait les quatre sommets d'une maille.
-- Le maillage dessine deux triangles ; les surfaces ne coïncident pas exactement.
-- L'audit sur les deux lieux trouve moins de 0,008 pixel d'écart dans les cas de 16 arbres.
-- L'erreur en mètres croît avec la taille de la maille au loin.
-- La version retenue rencontre directement le triangle suivant la droite de l'ancrage planétaire.
-- Un premier correctif trouvait 0,097 mm sur huit cas, mais omettait les arbres seuls sur une frontière de maille.
-- Le test strict des coordonnées du triangle rejetait alors certains pieds à quelques millionièmes de la frontière.
-- Les campagnes `FoliageFinal64`, `FoliageFinal128` et `FoliageFinalStress64` sont invalidées ; les masques d'arbres seuls étaient vides.
-- Le correctif retenu rencontre les deux triangles et les mailles voisines, sans déplacer l'ancre.
-- Les captures de régression couvrent deux modèles, deux lieux, un arbre ou seize, en couleur et en masque.
-- Le banc refuse désormais toute référence vide, avant ses statistiques et ses planches.
-- Les grands écarts de projection de l'audit initial à 1 024 arbres très proches incluent des pieds hors écran et presque au plan caméra ; ils ne mesurent pas un défaut visible.
+**Interpolation of feet, replaced:**
+- The first prototype interpolated the four vertices of a grid cell.
+- The mesh draws two triangles; the surfaces do not coincide exactly.
+- The audit on both locations finds less 0,008 pixel gap in cases of 16 trees.
+- The error in meters increases with the size of the grid cell in the distance.
+- The selected version meets directly the triangle following the line of the planetary anchor.
+- A first fix found 0,097 mm in eight cases, but omitted the trees alone on a border of grid cell.
+- The strict test of triangle coordinates then rejected some feet to a few millionths of the boundary.
+- Campaigns `FoliageFinal64`, `FoliageFinal128` and `FoliageFinalStress64` are invalidated; tree masks alone were empty.
+- The selected patch meets the two triangles and the neighboring grid cells, without moving the anchor.
+- Regression captures cover two models, two locations, one tree or sixteen, in color and mask.
+- The benchmark now refuses any empty reference, before its statistics and boards.
+- The large projection deviations from the initial audit to 1 024 very close shafts include feet off screen and almost at camera plane; they do not measure a visible defect.
 
-**Reproduction :** `tools/foliage/audit.py` et `tools/foliage/filtre_transmission.py` ; les fichiers intermédiaires restent sous `x64/FoliageAssetsAudit/`.
+**Reproduction:** `tools/foliage/audit.py` and `tools/foliage/filtre_transmission.py`; intermediate files remain under `x64/FoliageAssetsAudit/`.
 
-**2026-10-27 : revue avant la campagne finale.**
-- La première marche volumique appliquait une longueur complète au dernier pas, même s'il dépassait la boîte.
-- Le dernier segment est borné à la longueur réellement traversée avant les mesures finales.
-- La profondeur est cumulée au milieu du segment, comme la matière échantillonnée, au lieu de son début.
-- Les résultats de la première campagne restent exploratoires ; ils ne remplacent pas les mesures finales du code corrigé.
+**2026-10-27: review before the final campaign.**
+- The first volume step applied a full length to the last step, even if it was over the box.
+- The last segment is limited to the length actually crossed before final measurements.
+- The depth is accumulated in the middle of the segment, like the sampled material, instead of its beginning.
+- The results of the first campaign remain exploratory; they do not replace the final measurements of the corrected code.

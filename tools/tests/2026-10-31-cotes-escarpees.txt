@@ -1,17 +1,17 @@
-# Les côtes escarpées (docs/spec-relief-tectonique.md) : des reliefs qui tombent dans la mer, trouvés avec tools/hydro/cp.py sur la graine 0. Le relief ne fait pas encore de falaise taillée par les vagues : ce sont les rivages les plus raides qu'il donne, jusqu'à 47° sur 300 m. Puis quelques vues du climat et du volcanisme, intégrés sur la branche integration. Altitudes au-dessus de la mer ; N coupe les nuages.
-Côte active : 3 700 m à moins de 5 km du rivage, depuis 4 km au large | 250 8.54005 -103.23344 -8 146 | 48.84 -148.04
-La même côte, son rivage le plus raide, 47° sur 300 m, depuis 700 m | 60 8.78450 -103.26910 -10 352 | -45.53 -93.66
-Côte active : un massif de 3 000 m qui plonge dans la mer, depuis 4 km | 250 -23.01696 158.00809 -8 45 | -49.20 95.50
-Le même, son versant le plus raide, 45°, depuis 700 m | 60 -23.17203 157.90432 -10 212 | 24.57 -173.94
-Côte active : 2 300 m à moins de 5 km du rivage | 250 -3.34285 169.01181 -8 135 | 33.02 125.33
-Son rivage le plus raide, 44°, depuis 700 m | 60 -3.22014 169.25837 -10 64 | -23.39 116.24
-Côte froide à 52° sud : un versant enneigé de 2 300 m dans la mer | 250 -51.89165 -40.94037 -8 221 | -4.01 -8.31
-Côte active et sa baie, 2 100 m au-dessus | 250 -8.11021 131.04460 -8 49 | -37.94 79.62
-Volcanisme : stratovolcan insulaire depuis 30 km, profil concave | 1500 11.41 -51.42 3 0 | 11 -5
-Volcanisme : un atoll depuis 25 km, lagon, platier, passes | 25000 5.593 -115.057 90 0 | 5 -75
-Climat : versant au vent, 2 900 mm, forêt sous les nuages | 1360 -12.375 112.125 4 294 | -5 125
-Climat : versant sous le vent, 61 mm, le désert de l'ombre pluviométrique | 1850 -11.825 110.867 4 114 | -5 100
-Volcanisme : cordillère volcanique depuis 30 km, sommet vers 7,3 km | 7028 -6.77 124.354 4 0 | -6 170
-Volcanisme : caldeira d'un arc insulaire depuis 10 km | 6140 9.25 -50.04 25 0 | 9 -10
-Climat : désert côtier sur courant froid, la mer plus froide, plus verte | 3000 18.25 37.75 25 300 | 18 55
-Climat : orbite, la pluie de l'année | 10000000 -0.5 -18.225 90 0 precipitation | 10 -5
+# The steep coasts (docs/spec-relief-tectonique.md): reliefs that fall into the sea, found with tools/hydro/cp.py on the seed 0. The relief does not yet make a cliff cut by the waves: these are the steepest shores it gives, up to 47° on 300 m. Then some views of climate and volcanism, integrated on the integration branch. Altitudes above sea level; N cuts through clouds.
+Active coast: 3 700 m less than 5 km from shore, from 4 km off | 250 8.54005 -103.23344 -8 146 | 48.84 -148.04
+The same coast, its steepest shore, 47° on 300 m, from 700 m | 60 8.78450 -103.26910 -10 352 | -45.53 -93.66
+Active coast: a mass of 3 000 m that plunges into the sea, from 4 km | 250 -23.01696 158.00809 -8 45 | -49.20 95.50
+The same, its steepest slope, 45°, since 700 m | 60 -23.17203 157.90432 -10 212 | 24.57 -173.94
+Active coast: 2 300 m less than 5 km from shore | 250 -3.34285 169.01181 -8 135 | 33.02 125.33
+Its steepest shore, 44°, from 700 m | 60 -3.22014 169.25837 -10 64 | -23.39 116.24
+Cold coast at 52° south: a snowy slope of 2 300 m in the sea | 250 -51.89165 -40.94037 -8 221 | -4.01 -8.31
+Active coast and its bay, 2 100 m above sea level | 250 -8.11021 131.04460 -8 49 | -37.94 79.62
+Volcanism: island stratovolcano from 30 km, concave profile | 1500 11.41 -51.42 3 0 | 11 -5
+Volcanism: an atoll from 25 km, lagoon, plateau, passes | 25000 5.593 -115.057 90 0 | 5 -75
+Climate: slope windward, 2 900 mm, forest under clouds | 1360 -12.375 112.125 4 294 | -5 125
+Climate: slope leeward, 61 mm, desert rain shadow | 1850 -11.825 110.867 4 114 | -5 100
+Volcanism: volcanic range from 30 km, summit to 7,3 km | 7028 -6.77 124.354 4 0 | -6 170
+Volcanism: caldera of an island arc from 10 km | 6140 9.25 -50.04 25 0 | 9 -10
+Climate: coastal desert on cold current, the sea cooler, greener | 3000 18.25 37.75 25 300 | 18 55
+Climate: orbit, rainfall of the year | 10000000 -0.5 -18.225 90 0 precipitation | 10 -5

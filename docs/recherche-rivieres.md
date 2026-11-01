@@ -1,415 +1,415 @@
-# Recherche : rivières, fleuves et lacs de montagne
+# Search: rivers, rivers and mountain lakes
 
-Statut : recherche du 2026-10-24. Elle mesure ce que complexplanet fait déjà et propose un plan. **Étape 1 faite le 2026-10-25,** tag `piste/carte-planete` : la carte de la planète, ses cuvettes et son réseau, mesurés (`journal-planete.md`, la carte de la planète ; `tools/banc_carte.py`). Le reste n'est pas décidé. **Les spikes du 26 et 27 octobre sont mis de côté :** maquette Dendry, bassins construits avec leurs rivières, réseau global sur complexplanet ; tag `piste/rivieres-spikes`, doc dans `log/recherche-rivieres-historique.md`. La recherche continue sur la branche `erosion-niveaux`. La mer, et les lacs vus depuis l'eau, sont dans `recherche-mer.md` ; les côtes, dans `recherche-cotes.md`.
+Status: search for 2026-10-24. It measures what complexplanet is already doing and proposes a plan. **Step 1 made the 2026-10-25,** tag `piste/carte-planete`: the map of the planet, its bowls and its network, measured (`journal-planete.md`, the map of the planet; `tools/banc_carte.py`). The rest is not decided. **The spikes of 26 and 27 October are set aside:** Dendry model, basins built with their rivers, global network on complexplanet; tag `piste/rivieres-spikes`, doc in `log/recherche-rivieres-historique.md`. Research continues on the branch `erosion-niveaux`. The sea, and the lakes seen from the water, are in `recherche-mer.md`; the coasts, in `recherche-cotes.md`.
 
-## 1. Conclusion et plan
+## 1. Conclusion and plan
 
-**En bref :**
-- **complexplanet a des rivières, sans eau.** Son groupe « river positions » creuse des vallées larges de 15 à 45 km et profondes de 50 à 230 m.
-- **Ce sont des courbes de niveau de bruit.** Des boucles fermées, sans source ni embouchure, dont le fond monte et descend. Pour les montrer en eau, l'auteur de libnoise remontait le niveau de la mer de 650 à 1 111 m selon l'image.
-- **Les remplir ne donne pas des rivières.** L'eau monterait les pentes : 6 à 7 creux par 100 km de fond. Les fonds couvrent un tiers des terres ; rivières et ruisseaux en couvrent 0,6 % sur Terre.
-- **Le relief n'est pas drainé.** À l'échelle des continents, 41 % des terres sont dans des cuvettes fermées, profondes de 260 m en médiane. Sur Terre, les bassins sans issue font un cinquième des terres, surtout arides.
-- **Aucun calcul par point ne donne le niveau d'un lac ni le chemin vers la mer.** Il faut une passe non locale.
-- **La plus petite qui suffit : une carte hydrologique de complexplanet,** sur une grille fixe de la planète, calculée au démarrage. C'est celle que `recherche-mer.md` propose pour les lacs : une passe pour les deux.
-- **Elle ne touche pas à complexplanet.** Elle donne lacs, réseau et débits du relief tel qu'il est. Son réseau emprunte les vallées de complexplanet jusqu'à deux fois plus que le hasard.
-- **La règle de la côte s'étend.** La côte est là où l'altitude croise le niveau de l'eau : 0 pour la mer, le niveau de son lac ou de sa rivière ailleurs. Même `SpreadStep`, même règle à toute distance.
-- **Les lits de rivière sont une surcouche.** Sous 13,5 m de large, ajout de détail. Au-delà, et pour les gorges, remplacement, sur piste.
-- **Les lacs de montagne viennent en dernier.** Nos montagnes ont des cuvettes, mais trop et au hasard : 11 % de la surface à 30 m. Les vrais lacs de cirque se groupent près de l'ancienne limite des glaciers, au pied d'une paroi.
+**In brief:**
+- **complexplanet has rivers, without water.** His river positions group carves wide valleys from 15 to 45 km and deep from 50 to 230 m.
+- **These are level curves of noise.** Closed loops, without source or mouth, whose bottom goes up and down. To show them in water, the author of libnoise raised the sea level from 650 to 1 111 m according to the image.
+- **Filling them does not give rivers.** The water would climb the slopes: 6 to 7 hollow by 100 km deep. Funds cover one third of the land; rivers and streams cover 0,6 % of the land on Earth.
+- **The relief is not drained.** At the continental scale, 41% of land is in closed basin, with a median depth of 260 m. On Earth, dead end basins make up one fifth of the land, mostly arid.
+- **No point calculation gives the level of a lake or the path to the sea.** A non-local pass is required.
+- **The smallest that is enough: a hydrological map of complexplanet,** on a fixed grid of the planet, calculated at startup. This is the one that `recherche-mer.md` proposes for the lakes: a pass for both.
+- **It does not affect complexplanet.** It gives lakes, network and flows of the relief as it is. Its network borrows the valleys of complexplanet up to twice as much as random.
+- **The coast rule extends.** The coast is where the altitude crosses the water level: 0 for the sea, the level of its lake or river elsewhere. Same `SpreadStep`, same rule at any distance.
+- **Riverbeds are a topcoat.** Under 13,5 m wide, detail addition. Beyond, and for the grooves, replacement, on experiment.
+- **Mountain lakes come last.** Our mountains have bowls, but too many and random: 11 % of the surface at 30 m. The real circus lakes are grouped near the former glacier boundary, at the foot of a wall.
 
-**Le plan :**
+**The plan:**
 
-| Étape | Contenu | Nature | Mesure de réussite |
+| Stage | Contents | Nature | Measure of success |
 |---|---|---|---|
-| 0 | Le banc hors moteur : complexplanet porté sur CPU, remplissage des cuvettes, réseau. Fait pour cette recherche | outil, le moteur ne change pas | il reproduit les chiffres de la section 2 |
-| 1 | La carte hydrologique : complexplanet sur 6 × 1 024² cellules au démarrage, remplissage par priorité, réseau, bilan d'eau. Trois vues de diagnostic : vallées, cuvettes, réseau | rendu seul ; rien ne s'affiche en vol | mêmes cuvettes que le banc 0 sur ses fenêtres ; part constante au banc de descente ; part des lacs après bilan d'eau, pour décider des mers intérieures |
-| 2 | Les lacs : une eau plate au niveau de son lac, le modèle d'eau de la mer | surface d'eau, hors des trois familles, comme la mer | part des terres en lacs et tailles contre HydroLAKES ; aucune fuite au bord d'un lac ; banc de qualité inchangé sur terre |
-| 3 | Les rivières de loin : un ruban d'eau en part du pixel sur le réseau lissé et méandré ; les corridors verts | rendu seul | surface des rivières 0,3 à 0,6 % des terres ; longueur d'onde des méandres près de 12 largeurs ; reflet vu d'avion |
-| 4 | L'hydrologie fine près de la caméra : tuiles de 600 m puis 75 m sur la grille de la planète, bornées par la carte grossière. Ruisseaux et petits lacs | rendu seul et surface d'eau | densité de drainage de 2 à 5 km/km² ; aucun saut au passage d'un niveau à l'autre, au banc de tremblement |
-| 5 | Les lits : chenal creusé sous le niveau de l'eau, berges, gorges | surcouche : ajout de détail sous 13,5 m de large, remplacement au-delà. Spec, branche, tag `piste/rivieres-lits`, réglage `RIVER_BED` = 0 | profondeur creusée, p99 ; part du réseau en gorge ; bancs de qualité et de tremblement |
-| 6 | L'eau qui coule : sens et vitesse, écume, rapides, cascades, couleur, berges mouillées, glace | rendu seul | photos par type de lit ; part d'écume constante en descente |
-| 7 | Cirques et lacs de moraine | surcouche : remplacement, sur piste | tailles des cirques contre Barr 2019 ; bande d'altitude des lacs |
+| 0 | The benchmark off engine: complexplanet ported on CPU, filling the cuvettes, network. Made for this research | tool, the motor does not change | it reproduces the figures from section 2 |
+| 1 | The hydrological map: complexplanet on 6 × 1 024² cells at startup, filling by priority, network, water balance. Three diagnostic views: valleys, cuvettes, network | rendered alone; nothing displayed in flight | same cuvettes as the benchmark 0 on its windows; constant share to the benchmark of descent; share of lakes after water balance, to decide inland seas |
+| 2 | Lakes: a flat water at the level of its lake, the model of sea water | surface water, out of the three families, like the sea | share of land in lakes and sizes against HydroLAKES; no leakage at lake edge; quality benchmark unchanged on land |
+| 3 | Rivers from afar: a water strip from the pixel on the smooth and meandering network; green corridors | left alone | river surface 0,3 to 0,6 % of land; wavelength of meanders near 12 latitudes; reflection seen from aircraft |
+| 4 | Fine hydrology near the camera: tiles of 600 m then 75 m on the planet grid, bounded by the coarse map. Streams and small lakes | rendered alone and water surface | drainage density from 2 to 5 km/km²; no jump at the passage from one level to another, to jitter benchmark |
+| 5 | Beds: channel dug under the water level, banks, gorges | topcoat: detail added below 13,5 m wide, replacement beyond. Spec, industry, tag `piste/rivieres-lits`, adjustment `RIVER_BED` = 0 | depth of excavation, p99; share of network in gorge; quality benchmarks and jitter |
+| 6 | Water flowing: direction and speed, foam, rapids, cascades, color, wet banks, ice | left alone | photos by bed type; constant foam share in descent |
+| 7 | Circums and moraine lakes | overlay: replacement, on experiment | Circus sizes vs Barr 2019; Lakes elevation band |
 
-**L'étape 1 est petite et mesurable.**
-- **Ce qu'elle touche :** une passe de calcul au démarrage, comme les tuiles générées ; un remplissage sur CPU de 6,3 millions de cellules ; trois vues `MYPLANETENGINE_VIEW`.
-- **Ce qu'elle mesure :** les mêmes nombres que le banc 0, sur les mêmes fenêtres.
-- **Ce qu'elle tranche :** combien de lacs et de mers intérieures ce relief porte, avant d'en dessiner un seul.
+**The step 1 is small and measurable.**
+- **What it touches:** a pass of calculation at start, like the tiles generated; a fill on CPU of 6,3 million cells; three views `MYPLANETENGINE_VIEW`.
+- **What it measures:** the same numbers as the benchmark 0, on the same windows.
+- **What it cuts:** how many lakes and inland seas this relief carries, before drawing one only.
 
-**À décider avant l'étape 2 : les mers intérieures.**
-- **Mesuré sur la carte, le 2026-10-25 :** chaque cuvette remplie, 43 % des terres sont sous l'eau, 231 m de fond en médiane. Les intérieurs des continents font trois cuvettes de 58, 28 et 10 millions de km² ; 95 % des terres s'y jettent. Sans bilan d'eau, pas de lac à dessiner.
-- **Les grandes cuvettes de complexplanet sont profondes.** Rouvrir celles de moins de 20 m n'en vide presque aucune : 12 à 21 % des terres restent sous l'eau, à 4,8 km de maille.
-- **Le bilan d'eau les assèche en climat sec :** des salars, comme le Grand Bassin américain.
-- **En climat humide, elles restent pleines :** de grands lacs, comme les Grands Lacs ou la Caspienne.
-- **Trois choix :** les garder ; les vider par une brèche creusée, un remplacement ; les montrer en marais. La vue de l'étape 1 permet de juger.
+**To be decided before step 2: inland seas.**
+- **Measured on the map, the 2026-10-25:** each filled bowl, 43 % of land is under water, 231 m of bottom median. The interiors of the continents make three bowls of 58, 28 and 10 million km²; 95 % of the land flows into them. Without a water balance, no lake to draw.
+- **The large complexplanet bowls are deep.** Reopen those of less than 20 m almost no empty: 12 to 21 % of the land remains under water, at 4,8 km of grid cell.
+- **Water balance dries them in dry climates:** salt marshes, such as the Great American Basin.
+- **In humid climates, they remain full:** large lakes, such as the Great Lakes or the Caspian Sea.
+- **Three choices:** keep them; empty them by a breach dug, a replacement; show them in swamp. The view of the step 1 allows to judge.
 
-**Ne pas toucher à `RIVER_DEPTH`.** Les vallées de complexplanet restent la source de vérité. Elles accueilleront une part du réseau et des chapelets de lacs. Les retirer serait un remplacement, avec sa piste.
+**Do not touch `RIVER_DEPTH`.** The valleys of complexplanet remain the source of truth. They will host a part of the network and the rosaries of lakes. Removing them would be a replacement, with its experiment.
 
-## 2. L'audit : les rivières de complexplanet
+## 2. The audit: complexplanet rivers
 
-![Les vallées de complexplanet et ce que l'eau y ferait](images/rivieres-complexplanet.jpg)
+![The valleys of complexplanet and what water would do there](images/rivieres-complexplanet.jpg)
 
-*a : le creusement des rivières sur les terres. b : les cuvettes fermées à l'échelle des continents. c : une plaine de 600 km, ses vallées en sombre, le réseau calculé à 4,8 km en cyan, une vallée en vert. d : le profil en long du fond de cette vallée. e : la même plaine, chaque cuvette remplie. f : 12 km de montagne à 30 m, chaque cuvette remplie.*
+*a: the rivers' digging on land. b: the continental scale closed basins. c: a plain of 600 km, its valleys in dark, the network calculated at 4,8 km in cyan, a valley in green. d: the profile along the bottom of this valley. e: the same plain, each basin filled. f: 12 km of mountain at 30 m, each basin filled.*
 
-### Ce que dit le code
+### What the Code Says
 
-`RiverPositions` et la fin de `ComplexPlanetElevation`, dans `ComplexPlanet.hlsli` :
-- **Deux familles de vallées :** deux RidgedMulti d'une seule octave, aux fréquences 18,75 et 43,25 sur la sphère unité. Leurs mailles font 340 km et 147 km.
-- **Une RidgedMulti d'une octave vaut (1 − |n|)² × 1,25 − 1.** Elle culmine là où le bruit n passe par 0. La courbe la retourne : ses crêtes deviennent des fonds.
-- **Une turbulence les tord :** fréquence 9,25, amplitude 1/57,75 du rayon, soit 110 km, six octaves. La plus fine fait 21 km de longueur d'onde. Rien ne serpente plus court.
-- **La profondeur :** `RIVER_DEPTH` vaut 0,0234 unité, soit 192 m. Le fond des grandes vallées descend de 192 m sur ses bords à 227 m au centre ; celui des petites, de 48 à 66 m.
-- **Où elles creusent :** un `Select` sur l'altitude. Pleine force à 1 024 m ; moitié au niveau de la mer et à 2 048 m ; rien sous −1 024 m ni au-dessus de 3 072 m.
-- **Donc :** elles creusent aussi le plateau continental, et pas les hautes montagnes.
-- **Le reste des terres** baisse d'une dizaine de mètres au plus.
+`RiverPositions` and the end of `ComplexPlanetElevation`, in `ComplexPlanet.hlsli`:
+- **Two valley families:** two RidgedMulti of one octave, at frequencies 18,75 and 43,25 on the unit sphere. Their grid cells are 340 km and 147 km.
+- **A RidgedMulti of one octave is (1 − |n|)² × 1,25 − 1.** It culminates where the noise n passes through 0. The curve turns it over: its peaks become bottoms.
+- **Turbulence twists them:** frequency 9,25, amplitude 1/57,75 of the radius, or 110 km, six octaves. The finest is 21 km wavelength. Nothing winds shorter.
+- **The depth:** `RIVER_DEPTH` is 0,0234 unit, or 192 m. The bottom of the large valleys descends from 192 m on its edges to 227 m in the center; that of the small ones, from 48 to 66 m.
+- **Where they dig:** a `Select` on the altitude. Full force at 1 024 m; half at sea level and at 2 048 m; nothing below −1 024 m or above 3 072 m.
+- **So:** they also dig the continental shelf, and not the high mountains.
+- **The rest of the land** drops by ten meters at most.
 
-**Ce qu'en montrait libnoise :** la page de l'exemple montre des « river valleys ». Pour les voir en eau, chaque vue rapprochée remonte le niveau de la mer : 850 m, 650 m, 1 111 m, « to flood the river valleys ».
+**What libnoise showed:** The example page shows river valleys. To see them in water, each close-up view rises to sea level: 850 m, 650 m, 1 111 m, “to flood the river valleys”.
 
-**SpaceEngine a fait pareil en 2013 :** des « pseudo-rivières » qui ne coulent pas des hauteurs à la mer, forment des boucles « comme des vaisseaux sanguins », et n'ont d'eau qu'au niveau de la mer. Elles ne sont belles que près des côtes.
+**SpaceEngine did the same in 2013:** "pseudo-rivers" that do not flow from the heights to the sea, form loops "like blood vessels", and have water only at sea level. They are beautiful only near the coasts.
 
-### Les mesures
+### Measures
 
-**La méthode :** complexplanet porté en numpy depuis le HLSL, constantes comprises, au filtrage d'octaves d'une maille de la taille de la cellule. Trois fenêtres de 600 km à 1,2 km : une plaine, une côte, une montagne. La planète entière à 0,5°. Deux fenêtres de montagne de 12 km à 30 m, une de plaine de 30 km à 100 m.
+**The method:** complexplanet ported to numpy from the HLSL, constants included, to filter octaves of a grid cell of the cell size. Three windows from 600 km to 1,2 km: a plain, a coast, a mountain. The whole planet at 0,5°. Two mountain windows of 12 km to 30 m, one plain window of 30 km to 100 m.
 
-| Grandeur | Grandes vallées | Petites vallées |
+| Size | Great Valleys | Small valleys |
 |---|---|---|
-| Largeur du fond | 37 à 46 km | 14 à 17 km |
-| Largeur jusqu'au haut des flancs | 54 à 69 km | |
-| Profondeur médiane du fond, en plaine | 169 à 182 m | 45 à 47 m |
-| Pente des flancs, p99 | 2 % | 2 % |
-| Longueur par 1 000 km² de terres | 2,8 à 4,4 km | 8 à 12 km |
-| Écart moyen le long d'une droite | 360 à 570 km | 130 à 190 km |
-| Part des terres en fond de vallée | 19 % | 14 % |
-| En montagne, médiane à 4 km | absentes | absentes |
+| Width of the bottom | 37 to 46 km | 14 to 17 km |
+| Width to top of sidewalls | 54 to 69 km |  |
+| Median depth of bottom, flat | 169 to 182 m | 45 to 47 m |
+| Slope of the sides, p99 | 2 % | 2 % |
+| Length per 1 000 km² of land | 2,8 to 4,4 km | 8 to 12 km |
+| Average deviation along a line | 360 to 570 km | 130 to 190 km |
+| Share of land in valley bottom | 19 % | 14 % |
+| In mountains, median at 4 km | absent | absent |
 
-- **42 % des terres** sont abaissées de plus de 10 m.
+- **42 % of land** is lowered by more than 10 m.
 
-### Ce que ça veut dire
+### What it means
 
-- **Des vallées, pas des rivières.** 15 à 45 km de fond, c'est l'échelle d'une plaine alluviale ou du fossé rhénan, pas d'un chenal.
-- **Presque invisibles au sol.** Des flancs à 2 % : 180 m de descente sur 9 km.
-- **Des boucles.** Là où un bruit vaut 0 sur une sphère, la courbe est toujours fermée. Sur les terres, une vallée ne s'arrête qu'à la côte.
-- **Aucune confluence.** Les deux familles se croisent en X. Aucune ne se jette dans l'autre en Y.
-- **Aucun sens d'écoulement.** Le fond est le relief moins une profondeur : il suit les bosses du relief. Le long des fonds de grandes vallées, lissés sur 5 km :
-  - 6 à 7 creux par 100 km ;
-  - la montée totale vaut 0,6 à 1,2 fois la descente ;
-  - 20 à 61 % de la longueur est dans une cuvette fermée ;
-  - la vallée de la figure d monte de 210 à 460 m sur 300 km.
-- **La mer par hasard.** Là où une boucle croise une côte, le creusement passe sous 0 et la mer entre, en ria. Dans la fenêtre côtière, 2,4 % des terres deviennent mer ainsi.
-- **Les vallées de montagne ont la même forme.** `MountainBaseDef` et `HillyTerrain` creusent les leurs par une RidgedMulti d'une octave à 367 : un labyrinthe de boucles de 17 km de maille, fermées aussi.
+- **Valleys, not rivers.** 15 to 45 km deep, this is the scale of an alluvial plain or the Rhine ditch, not a channel.
+- **Almost invisible on the ground.** From the flanks to 2 %: 180 m of descent on 9 km.
+- **Loops.** Where a noise is equal to 0 on a sphere, the curve is always closed. On land, a valley stops only at the coast.
+- **No confluence.** The two families cross in X. Neither flows into the other in Y.
+- **No flow direction.** The bottom is the relief less a depth: it follows the bumps of the relief. Along the bottoms of large valleys, smoothed on 5 km:
+  - 6 to 7 hollow by 100 km;
+  - the total climb is 0,6 to 1,2 times the descent;
+  - 20 to 61 % of length is in a closed bowl;
+  - the valley of the figure d rises from 210 to 460 m on 300 km.
+- **The sea by chance.** Where a loop crosses a coast, the excavation passes under 0 and the sea enters, in ria. In the coastal window, 2,4 % of the land becomes sea as well.
+- **Mountain valleys have the same shape.** `MountainBaseDef` and `HillyTerrain` dig their own by a RidgedMulti of one octave at 367: a labyrinth of loops of 17 km of grid cell, closed too.
 
-### Ce que montrerait l'eau, selon le niveau
+### What the water would show, depending on the level
 
-1. **Au niveau de la mer, aujourd'hui :** les vallées côtières deviennent des rias ; le reste est sec. Une mer intérieure sous 0, coupée de l'océan à 55 km de maille, couvre 3,6 % des terres. Elle est dessinée comme la mer.
-2. **Un ruban à hauteur fixe au-dessus de chaque fond :** un tiers des terres sous l'eau, en rubans de 15 à 45 km, cinquante fois la surface des rivières terrestres. L'eau monte et descend avec le fond.
-3. **Chaque cuvette remplie jusqu'à son seuil :** des chapelets de lacs, 37 à 39 % des fonds de grandes vallées.
-   - Sur toute la fenêtre : 19 à 26 % des terres à 1,2 km, 15 à 22 % à 4,8 km.
-   - Sur la planète, à 55 km : 41 %, des cuvettes profondes de 263 m en médiane.
-   - Rouvrir les cuvettes de moins de 20 m n'en vide presque rien : il en reste 12 à 21 %.
-4. **En montagne, à 30 m :** 9 à 11 % de la surface en lacs.
-   - 500 à 730 lacs de plus d'un hectare par 1 000 km².
-   - Profonds de 21 à 24 m en médiane.
-   - Leurs tailles suivent N(>A) ∝ A^−0,7.
-5. **En plaine, à 100 m :** 12 % de mares de 3 m de fond en médiane, entre les bosses des Billow.
+1. **At sea level, today:** coastal valleys become rias; the rest is dry. An inland sea below 0, cut off from the ocean at 55 km from grid cell, covers 3,6 % of the land. It is drawn like the sea.
+2. **A fixed-height ribbon above each bottom:** one third of the land underwater, in ribbons of 15 to 45 km, fifty times the surface of terrestrial rivers. The water rises and falls with the bottom.
+3. **Each bowl filled to its threshold:** Lakes rosaries, 37 to 39 % of large valley bottoms.
+   - Over the entire window: 19 to 26 % of land at 1,2 km, 15 to 22 % at 4,8 km.
+   - On the planet, at 55 km: 41 %, deep basin of 263 m in median.
+   - Reopening the cuvettes of less than 20 m empties almost nothing: there remains 12 to 21 %.
+4. **In mountains, at 30 m:** 9 to 11 % of lake area.
+   - 500 to 730 lakes of more than one hectare per 1 000 km².
+   - Depth of 21 to 24 m in median.
+   - Their sizes follow N(>A) ∝ A^−0,7.
+5. **In plain water, at 100 m:** 12 % of pools of 3 m of median depth, between the Billow bumps.
 
-### La carte de drainage calculée sur complexplanet
+### The drainage map calculated on complexplanet
 
-Un réseau calculé à 4,8 km, comparé au relief à 1,2 km de la même fenêtre :
-- **Il trouve les vallées.** En plaine et sur la côte, 42 à 63 % du réseau drainant plus de 200 km² y passe, pour 31 % de la surface.
-- **Il traverse beaucoup de lacs :** 41 à 82 % de sa longueur.
-- **Le relief plus fin le gêne peu en plaine.** La cellule de 1,2 km la plus basse dépasse le niveau de l'eau de plus de 5 m sur 0,04 % du réseau en plaine, 1 % en montagne, 4 % sur la côte. Au p99 : 0,5 m, 1,8 m, 18 m.
-- **En montagne, son niveau flotte.** Il passe 480 m au-dessus des fonds de vallée fins, en médiane. La carte grossière donne le chemin et le débit, pas le niveau de l'eau : il faut l'affiner près de la caméra.
+A network calculated at 4,8 km, compared to the relief at 1,2 km of the same window:
+- **He finds the valleys.** In the plains and on the coast, 42 to 63 % of the drainage network draining more than 200 km² passes through it, for 31 % of the surface.
+- **It crosses many lakes:** 41 to 82 % of its length.
+- **The finer relief does not disturb it much in plains.** The lowest 1,2 km cell exceeds the water level by more than 5 m on 0,04 % of the network in plains, 1 % in mountains, 4 % on the coast. On p99: 0,5 m, 1,8 m, 18 m.
+- **In mountains, its level floats.** It passes 480 m above the fine valley floors, in the middle. The rough map shows the path and flow, not the water level: you have to fine-tune it near the camera.
 
-### Les limites de la mesure
+### Limits of the measure
 
-- **Des minorants :** la mer et le bord de chaque fenêtre servent d'exutoires. Une cuvette plus grande que la fenêtre s'y vide.
-- **Des ordres de grandeur :** quelques fenêtres, pas une statistique de la planète.
-- **Cette planète a 58 % de terres,** contre 29 % pour la Terre.
-- **À vérifier dans le moteur :** une vue de diagnostic des vallées. La part des terres en fond de grande vallée, 19 %, doit rester la même de 1 500 km au sol.
-- **Les scripts** sont dans `tools/hydro/` ; la carte du moteur se vérifie et se mesure par `tools/banc_carte.py`.
+- **Minors:** the sea and the edge of each window serve as outlets. A bowl larger than the window empties there.
+- **Orders of magnitude:** a few windows, not a statistic of the planet.
+- **This planet has 58 % of land,** compared to 29 % for Earth.
+- **To check in the engine:** a diagnostic view of the valleys. The share of land in the bottom of the great valley, 19 %, must remain the same as 1 500 km at the ground.
+- **Scripts** are in `tools/hydro/`; the engine card is checked and measured by `tools/banc_carte.py`.
 
-### Où regarder en vol
+### Where to watch in flight
 
-Au format de `tools/tests` : altitude, latitude, longitude, inclinaison, cap.
+In the format `tools/tests`: altitude, latitude, longitude, inclination, heading.
 
-| Lieu | Position |
+| Location | Position |
 |---|---|
-| Fond de grande vallée en plaine, 347 m | `20000 28.87168 -148.68863 60 0` |
-| Cuvette de vallée, un lac s'il était rempli, 222 m | `20000 28.75533 -144.96030 60 0` |
-| Vallée qui rejoint la mer, en ria | `15000 21.44456 -107.64384 60 0` |
-| Cuvettes de montagne, 3 600 m | `6000 38.52929 169.97278 50 0` |
+| Background of large valley in plain, 347 m |  `20000 28.87168 -148.68863 60 0`  |
+| Valley bowl, a lake if it was filled, 222 m |  `20000 28.75533 -144.96030 60 0`  |
+| Valley that joins the sea, in ria |  `15000 21.44456 -107.64384 60 0`  |
+| Mountain bowls, 3 600 m |  `6000 38.52929 169.97278 50 0`  |
 
-## 3. Rivières et lacs réels : types et tailles
+## 3. Real rivers and lakes: types and sizes
 
-### Le réseau
+### The network
 
-- **La longueur est dans les ruisseaux, la surface dans les rivières.** L'essentiel de la longueur est en cours d'ordre 1 ; l'essentiel de la surface, en ordres 5 à 9 (Downing 2012).
-- **La loi de Hack :** la longueur du cours principal croît comme l'aire drainée à la puissance 0,5 à 0,6. L = 1,4 A^0,6, en miles.
-- **La densité de drainage :** 2 à 5 km de cours par km² en général ; 2 à 12 du semi-aride à l'humide.
-- **Où naît un cours :** au-delà d'une aire drainée critique, qui varie avec la pente, la roche et le climat (Schneider 2017).
-- **complexplanet en a 0,011 à 0,016 km/km² :** cent à quatre cents fois moins, et seulement de grands cours.
+- **Length is in streams, surface in rivers.** The essential length is in order 1; the essential area is in orders 5 to 9 (Downing 2012).
+- **Hack's Law:** The length of the main course grows as the drained area at the power 0,5 to 0,6. L = 1,4 A^0,6, in thousands.
+- **The drainage density:** 2 to 5 km of course per km² in general; 2 to 12 from semi-arid to humid.
+- **Where a course is born:** beyond a critical drained area, which varies with slope, rock and climate (Schneider 2017).
+- **complexplanet has 0,011 to 0,016 km/km²:** one hundred to four hundred times less, and only large courses.
 
-### Largeur, profondeur, vitesse
+### Width, depth, speed
 
-- **La géométrie hydraulique** (Leopold et Maddock 1953) : largeur, profondeur et vitesse en puissances du débit Q.
-  - W ∝ Q^b, D ∝ Q^f, V ∝ Q^m, avec b + f + m = 1.
-  - Valeurs usuelles vers l'aval : b ≈ 0,5, f ≈ 0,4, m ≈ 0,1.
-- **Une loi mondiale :** W ≈ 7,2 Q^0,5, en m et m³/s (Moody et Troutman 2002, vérifiée par Frasson 2019 sur les fleuves de plus de 90 m).
-  - 50 m pour 50 m³/s, 230 m pour 1 000 m³/s, 1,6 km pour 50 000 m³/s.
-  - Écart typique de −35 % à +81 %.
-- **La surface :** rivières et ruisseaux couvrent 0,58 % des terres non englacées (Allen et Pavelsky 2018) ; 0,3 à 0,56 % selon Downing 2012.
-- **La pente baisse vers l'aval.** Au-delà de 70 cm/km, ce sont surtout des cours de moins de 100 m (Frasson 2019).
+- **Hydraulic geometry** (Leopold and Maddock 1953): width, depth and speed in powers of flow Q.
+  - W ∝ Q^b, D ∝ Q^f, V ∝ Q^m, with b + f + m = 1.
+  - Usual values downstream: b ≈ 0,5, f ≈ 0,4, m ≈ 0,1.
+- **A world law:** W ≈ 7,2 Q^0,5, in m and m³/s (Moody and Troutman 2002, verified by Frasson 2019 on rivers of more than 90 m).
+  - 50 m for 50 m³/s, 230 m for 1 000 m³/s, 1,6 km for 50 000 m³/s.
+  - Typical deviation from −35 % to +81 %.
+- **Area:** rivers and streams cover 0,58% of the unglacial land (Allen and Pavelsky 2018); 0,3 to 0,56% according to Downing 2012.
+- **The slope drops downwards.** Beyond 70 cm/km, these are mostly courses of less than 100 m (Frasson 2019).
 
-### Les formes du lit
+### The shapes of the bed
 
-- **Méandres :**
-  - longueur d'onde de 12,7 largeurs en médiane, 9 en mode (Frasson 2019) ; 11 chez Leopold et Wolman 1960 ;
-  - le rapport baisse avec la largeur : 21 sous 100 m, 8,4 au-delà de 300 m ;
-  - rayon de courbure de 2 à 3 largeurs ;
-  - sinuosité moyenne de 1,25 à 1,5, très asymétrique.
-- **Tresses :** pente forte pour le débit, sédiments grossiers abondants, débit variable. Torrents glaciaires, cônes de déjection.
-  - Seuil de Leopold et Wolman 1957 : S = 0,06 Q^−0,44, Q en pieds³/s, soit environ 0,012 Q^−0,44 en m³/s. Au-dessus, des tresses.
-- **Le lit selon la pente** (Montgomery et Buffington 1997) : cascades au-dessus d'environ 6,5 % ; marches et vasques dès 3 % environ ; lit plat, puis seuils et mouilles plus bas ; dunes de sable aux pentes les plus faibles.
-- **Cascades :** là où le profil casse. Roche dure, vallée suspendue d'un ancien glacier, faille.
-  - Des chutes naissent aussi seules, en série, sur un lit uniforme (Scheingross 2019).
+- **Meanders:**
+  - wavelength of 12,7 widths in median, 9 in mode (Frasson 2019); 11 at Leopold and Wolman 1960;
+  - The ratio decreases with width: 21 below 100 m, 8,4 beyond 300 m;
+  - radius of curvature from 2 to 3 widths;
+  - mean sinuosity of 1,25 to 1,5, very asymmetrical.
+- **Braids:** steep slope for flow, abundant coarse sediments, variable flow. Glacial streams, ejection cones.
+  - Leopold and Wolman threshold 1957: S = 0,06 Q^−0,44, Q in pieds³/s, or about 0,012 Q^−0,44 in m³/s. Above, braids.
+- **Slope-dependent bed** (Montgomery and Buffington 1997): cascades above about 6,5 %; steps and basins from about 3 %; flat bed, then lower thresholds and wetlands; sand dunes at the lower slopes.
+- **cascades:** where the profile breaks. Hard rock, valley suspended from an ancient glacier, fault.
+  - Falling falls are also born alone, in series, on a uniform bed (Scheingross 2019).
 
-### Les lacs
+### Lakes
 
-- **Combien :**
-  - 117 millions de plus de 0,2 ha, 5 millions de km², 3,7 % des terres non englacées (Verpoorter 2014) ;
-  - 1,4 million de plus de 10 ha, 2,67 millions de km², environ 1,8 % (HydroLAKES).
-- **Les tailles :** les grands et moyens lacs font l'essentiel de la surface (Verpoorter 2014).
-- **Où :** surtout sur les terres jadis couvertes de glaciers, boucliers canadien et scandinave.
-- **Les bassins sans issue :** un cinquième des terres, en climat aride et semi-aride (Wang 2018). Leurs lacs sont salés ou à sec.
-- **Les types :** glaciaires, en cirque, derrière une moraine, dans une auge ; tectoniques, dans un rift ; fluviaux, en bras mort ; volcaniques ; barrés par un éboulement ; karstiques.
+- **How many:**
+  - 117 million more than 0,2 ha, 5 million km², 3,7 % of non-iceland land (Verpoorter 2014);
+  - 1,4 million more than 10 ha, 2,67 million km², about 1,8 % (HydroLAKES).
+- **Sizes:** large and medium lakes make up the bulk of the surface (Verpoorter 2014).
+- **Where:** mainly on the lands once covered by glaciers, Canadian and Scandinavian shields.
+- **No-exit basins:** one fifth of the land, in arid and semi-arid climate (Wang 2018). Their lakes are salty or dry.
+- **Types:** glacial, in a circle, behind a moraine, in a trough; tectonic, in a rift; river, dead arm; volcanic; barred by a landslide; karstic.
 
-### Les lacs de montagne
+### Mountain Lakes
 
-- **Le lac de cirque :** un cirque est un creux en fauteuil, à paroi raide et fond surcreusé (Barr et Spagnolo 2015). Le fond garde souvent un lac.
-  - **Tailles :** sur 2 208 cirques de Grande-Bretagne et d'Irlande, longueur 774 ± 426 m, largeur 786 ± 365 m, profondeur 283 ± 108 m, en loi log-normale (Barr 2019).
-  - **Le lac** occupe une partie du fond : de quelques hectares à quelques dizaines.
-  - **L'altitude :** les fonds de cirque se groupent près de la ligne d'équilibre des glaciers passés. Ils servent à la reconstruire.
-- **Le lac de moraine :** retenu par l'arc morainique au front d'un glacier. Souvent turquoise.
-- **Le chapelet :** des lacs en escalier le long d'une auge glaciaire, entre des verrous rocheux.
-- **Les lacs glaciaires grandissent :** +53 % en nombre et +51 % en surface de 1990 à 2018 (Shugar 2020).
-- **Ce que nos montagnes ont :** des cuvettes de bruit, 11 % de la surface, partout, à toute altitude, sans paroi en fauteuil au-dessus. Les vrais lacs de cirque sont rares, dans une bande d'altitude, au pied d'une paroi.
+- **The circus lake:** a circus is a chair-like hollow with a steep wall and a hollowed-out bottom (Barr and Spagnolo 2015). The bottom often keeps a lake.
+  - **Sizes:** on 2 208 circuses of Great Britain and Ireland, length 774 ± 426 m, width 786 ± 365 m, depth 283 ± 108 m, in log-normal law (Barr 2019).
+  - **The lake** occupies a part of the bottom: from a few hectares to a few dozen.
+  - **Altitude:** Circus bottoms are grouped near the balance line of past glaciers. They are used to rebuild it.
+- **Moraine lake:** held by the moraine arc at the front of a glacier. Often turquoise.
+- **The rosary:** lakes in stairs along a glacier, between rocky locks.
+- **Glacial lakes are growing:** +53 % in number and +51 % in surface from 1990 to 2018 (Shugar 2020).
+- **What our mountains have:** noise, 11 % of the surface, everywhere, at any altitude, without a chair wall above. True circus lakes are rare, in a band of altitude, at the foot of a wall.
 
-### Les couleurs
+### The colors
 
-- **31 % des lacs sont bleus, 69 % verts à bruns,** sur 85 360 lacs (Yang 2022). Les bleus sont profonds et froids, en climat humide, gelés l'hiver.
-- **Turquoise laiteux :** la farine glaciaire, des grains de roche très fins, reste en suspension (NASA Earth Observatory). Elle fait les deux tiers de l'atténuation de la lumière dans les lacs de glacier (Rose 2014).
-- **Bleu sombre, presque noir :** un lac de montagne profond et clair, sans farine.
-- **Brun :** matière organique dissoute, tourbières et forêts boréales ; sédiments en plaine.
-- **Une échelle de mesure :** Forel-Ule, 21 teintes du bleu au brun. Un jeu de données mondial existe pour les lacs, de 2000 à 2018.
-- **Les rivières :** beiges et limoneuses en plaine, laiteuses sous les glaciers, transparentes en torrent de roche.
+- **31 % of lakes are blue, 69 % green to brown,** on 85 360 lakes (Yang 2022). Blue is deep and cold, in humid climate, frozen in winter.
+- **Turquoise milky:** glacial flour, very fine rock grains, remains suspended (NASA Earth Observatory). It makes up two thirds of the light attenuation in glacier lakes (Rose 2014).
+- **Dark blue, almost black:** a deep and clear mountain lake, without flour.
+- **Brown:** dissolved organic matter, peatlands and boreal forests; plain sediments.
+- **A scale of measurement:** Forel-Ule, 21 shades from blue to brown. A global dataset exists for lakes, from 2000 to 2018.
+- **Rivers:** beige and muddy in the plain, milky under glaciers, transparent in rock torrent.
 
-## 4. Les construire dans notre moteur : options comparées
+## 4. Building them in our engine: options compared
 
-### La question clé
+### The key question
 
-**L'altitude est un bruit évalué point par point, sans passe globale.**
-- **Ce qu'un point ne peut pas savoir :** le niveau d'un lac dépend du seuil le plus bas de tout son bassin, parfois à des centaines de kilomètres. Le sens d'une rivière dépend de tout l'aval jusqu'à la mer.
-- **Donc :** aucune méthode purement locale ne donne, sur le relief de complexplanet, des rivières qui descendent et des lacs plats.
-- **Les méthodes locales qui y arrivent fabriquent le relief autour de l'eau.** Elles remplacent complexplanet.
+**Altitude is a noise evaluated point by point, without global pass.**
+- **What a point cannot know:** The level of a lake depends on the lowest threshold of its entire basin, sometimes hundreds of kilometers away. The direction of a river depends on the whole downstream to the sea.
+- **So:** no purely local method gives, on the complexplanet relief, rivers that descend and flat lakes.
+- **The local methods that get there make the relief around the water.** They replace complexplanet.
 
-### Les options
+### The options
 
-| Option | Descend toujours | Lacs plats | Nos règles | Famille, `geometrie.md` | Verdict |
+| Option | Always get down | Flat lakes | Our rules and regulations | Family, `geometrie.md`  | Verdict |
 |---|---|---|---|---|---|
-| A. Remplir les vallées de complexplanet à un niveau tiré du point | non : 6 à 7 creux par 100 km | non | universelle et sur la grille ; l'eau monte | surface d'eau | écartée pour les rivières |
-| B. Niveau tiré des minima voisins, sans passe | non | non : le seuil est loin | coûteux ; plat par cellule seulement, marches aux bords | surface d'eau | écartée |
-| C. Carte hydrologique grossière de complexplanet, au démarrage | oui, par construction | oui, un niveau par lac | grille fixe, indépendante de la caméra : même résultat à toute distance, aucun saut | lacs : surface d'eau ; lits : ajout de détail ou remplacement | retenue, le socle |
-| D. Tuiles hydrologiques fines près de la caméra, bornées par C | oui | oui | déterministe par tuile ; le passage d'un niveau à l'autre sous le pixel | idem | retenue, étape 4 |
-| E. Réseau d'abord, relief autour : Derzapf 2011, Génevaux 2013, Dendry 2019, Fischer 2022, Davis 2026 | oui | oui | local pour Dendry ; le relief suit l'eau | remplacement lourd | piste lointaine |
-| F. Érosion de toute la planète : stream power, érosion hydraulique sur GPU | oui, relief drainé | peu de cuvettes | passe globale lourde ; relief nouveau | remplacement total | voie géométrie |
-| G. Filtre d'érosion, `piste/erosion-filtre` | non : ses lignes s'interrompent | non | local et universel | remplacement, déjà classé | ravines seulement |
+| A. Fill the valleys of complexplanet at a level drawn from the point | no: 6 to 7 hollow by 100 km | no | universal and on the grid; water rises | surface of water | for rivers |
+| B. Level drawn from neighbouring minima, without pass | no | no: the threshold is far | expensive; flat per cell only, steps at edges | surface of water | Dismissed |
+| C. Coarse hydrological map of complexplanet, at startup | yes, by construction | yes, one level per lake | fixed grid, independent of the camera: same result at any distance, no jumps | Lakes: water surface; beds: detail addition or replacement | retention, the base |
+| D. Thin hydrological tiles near the camera, bounded by C | yes | yes | deterministic per tile; the transition from one level to another under the pixel | Same | Retention, step 4 |
+| E. Network first, relief around: Derzapf 2011, Génevaux 2013, Dendry 2019, Fischer 2022, Davis 2026 | yes | yes | local for Dendry; the relief follows the water | heavy replacement | experiment distant |
+| F. Erosion of the whole planet: stream power, hydraulic erosion on GPU | yes, drained relief | few cuvettes | heavy overall pass; new relief | Total replacement | Geometry |
+| Mr. Erosion Filter, `piste/erosion-filtre`  | no: its lines are interrupted | no | local and universal | replacement, already closed | ravines only |
 
-**Les options en détail :**
-- **A, remplir les vallées :** c'est ce que faisait libnoise. Les mesures de la section 2 l'écartent : l'eau monterait, les rubans seraient géants, les boucles n'auraient pas de sens.
-- **B, minima locaux :** un point qui voudrait trouver son seuil devrait évaluer le relief sur des dizaines de kilomètres. Ancré sur des cellules, le niveau serait plat par cellule et ferait des marches entre elles.
-- **C, la carte grossière :** la seule qui garde complexplanet tel quel.
-  - complexplanet sur un cube fixe de la planète, 6 × 1 024² d'abord, environ 10 km ; 2 048² si la mesure le demande.
-  - Remplissage par priorité (Barnes 2014), en n log n.
-  - Bilan d'eau par Fill-Spill-Merge (Barnes 2021) : 4 millions de cellules en 8,7 s.
-  - Sens, aire drainée et débit de chaque cellule.
-- **D, les tuiles fines :** la carte grossière donne chemin et débit ; le niveau de l'eau vient du relief fin.
-  - Des tuiles de 600 m puis 75 m, calculées à la demande autour de la caméra, chacune bornée par la carte grossière : la rivière entre et sort par des points fixés à l'avance.
-  - Le contenu d'une tuile ne dépend que de sa place sur la planète.
-  - C'est l'idée de Derzapf 2011, sur une planète, et de Davis 2026, par plaque.
-- **E, le réseau d'abord :** la famille la plus riche.
-  - Kelley 1988, cité par Fischer 2022, puis Derzapf 2011 sur une planète : le réseau d'abord, par déplacement du point milieu contraint, le relief ensuite. Derzapf construit des planètes entières en quelques secondes et raffine sur GPU en vol.
-  - Prusinkiewicz et Hammel 1993 : montagne et rivière dans un même processus.
-  - Génevaux 2013 : un graphe de drainage, puis des primitives de relief le long des rivières.
-  - Dendry, Gaillard 2019 : une fonction évaluée point par point, la distance à un arbre construit à la volée. Des réseaux cohérents, mais le relief doit suivre.
-  - Fischer 2022 : lacs et rivières d'abord, le relief « poussé » autour.
-  - Davis 2026 : réseaux tracés par plaque tectonique, mis en cache, hauteurs ajustées pour que chaque segment descende.
-  - Red Blob Games, TerraFirmaCraft : des arbres de rivières sur une carte ou une région finie ; un monde sans fin se découpe en régions.
-  - **Chez nous :** tout cela remplace la forme de complexplanet à grande échelle. À garder pour une décision de la voie géométrie.
-- **F, l'érosion globale :** Cordonnier 2016 et Schott 2023 par la loi du stream power, Tzathas 2024 par ses solutions analytiques, Mei 2007 sur GPU. Le relief devient drainé. C'est un nouveau relief.
-- **G, le filtre d'érosion :** son auteur le dit : ses lignes de drainage peuvent s'arrêter à mi-pente. Il dessine des ravines, pas un réseau.
+**The options in detail:**
+- **A, fill the valleys:** that's what libnoise did. The measurements of the section 2 dismiss it: the water would rise, the ribbons would be giant, the loops would have no meaning.
+- **B, local minima:** a point that would like to find its threshold would have to evaluate the relief over tens of kilometers. Anchored on cells, the level would be flat per cell and would make steps between them.
+- **C, the rough map:** the only one that keeps complexplanet as it is.
+  - complexplanet on a fixed cube of the planet, 6 × 1 024² first, about 10 km; 2 048² if the measurement requires it.
+  - Priority filling (Barnes 2014), in n log n.
+  - Water balance by Fill-Spill-Merge (Barnes 2021): 4 million cells in 8,7 s.
+  - Direction, drained area and flow of each cell.
+- **D, fine tiles:** the coarse map gives path and flow; the water level comes from the fine relief.
+  - Tiles of 600 m then 75 m, calculated on demand around the camera, each bounded by the rough map: the river enters and exits by points fixed in advance.
+  - The content of a tile depends only on its place on the planet.
+  - This is the idea of Derzapf 2011, on a planet, and Davis 2026, per plate.
+- **E, the network first:** the richest family.
+  - Kelley 1988, cited by Fischer 2022, then Derzapf 2011 on a planet: the network first, by displacement of the constrained center point, the relief then. Derzapf builds entire planets in seconds and refines on GPU in flight.
+  - Prusinkiewicz and Hammel 1993: mountain and river in one process.
+  - Génevaux 2013: a drainage graph, then primitives of relief along the rivers.
+  - Dendry, Gaillard 2019: a function evaluated point by point, the distance to a tree built on the fly. Coherent networks, but relief must follow.
+  - Fischer 2022: lakes and rivers first, the relief "pushed" around.
+  - Davis 2026: networks plotted by plate tectonics, cached, heights adjusted so that each segment descends.
+  - Red Blob Games, TerraFirmaCraft: river trees on a map or a finite region; an endless world is cut into regions.
+  - **At our house:** all this replaces the form of complexplanet on a large scale. To keep for a decision of the geometry path.
+- **F, the global erosion:** Cordonnier 2016 and Schott 2023 by the stream power law, Tzathas 2024 by his analytical solutions, Mei 2007 on GPU. The relief becomes drained. It is a new relief.
+- **G, the erosion filter:** its author says it: its drainage lines can stop halfway down the slope. He draws ravines, not a network.
 
-### Les règles qui en découlent
+### The rules that follow
 
-1. **La côte généralisée.** La côte est là où l'altitude croise le niveau de l'eau. La mer a 0 ; un lac a son niveau ; une rivière, le niveau de son cours. La part d'eau du pixel suit `SpreadStep`, comme la mer.
-2. **Un niveau par lac, constant.** La carte porte l'identifiant du lac. Sa zone, élargie d'une cellule, porte un seul niveau. La rive est là où le relief fin croise ce niveau : îles et baies viennent seules.
-3. **Le bilan d'eau, tiré de notre climat.**
-   - Le ruissellement : la pluie, de 100 à 3 000 mm/an par notre humidité, moins l'évaporation, tirée de la température.
-   - Une cuvette se remplit jusqu'à ce que l'évaporation du lac égale l'apport de son bassin, au plus jusqu'à son seuil. Pleine, elle déborde dans la suivante.
-   - En climat sec : lacs salés partiels, ou cuvettes sèches.
-4. **La largeur par le débit :** W ≈ 7,2 Q^0,5, Q le ruissellement fois l'aire drainée. Pas de largeur choisie à la main.
-5. **Le cours lissé et méandré sur la grille de la planète.** Le chemin des cellules lissé, puis des méandres de longueur d'onde près de 12 largeurs, d'amplitude variable le long du cours.
-6. **Aucun cours ne naît d'un trait.** Un ruisseau apparaît au-delà de l'aire critique et s'élargit sur quelques largeurs (`principes.md` : aucune structure ne s'arrête net).
-7. **Un niveau plus fin n'apparaît que sous le pixel.** Une tuile fine déplace le cours de moins d'un pixel là où elle prend le relais. La même règle que les octaves filtrées par maille.
+1. **Generalized coast.** The coast is where the altitude crosses the water level. The sea has 0; a lake has its level; a river, the level of its course. The water share of the pixel follows `SpreadStep`, like the sea.
+2. **One level per lake, constant.** The map bears the lake's identification. Its area, enlarged by one cell, bears a single level. The shore is where the fine relief crosses this level: islands and bays come alone.
+3. **The water balance, drawn from our climate.**
+   - Runoff: rain, from 100 to 3 000 mm/an by our humidity, less evaporation, drawn from temperature.
+   - A basin fills up until the evaporation from the lake equals the contribution from its basin, at most up to its threshold. Full, it overflows into the next.
+   - In dry climate: partial salt lakes, or dry basin.
+4. **Width by flow:** W ≈ 7,2 Q^0,5, Q runoff times the drained area. No width chosen at the main.
+5. **The smooth and meandering course on the grid of the planet.** The path of cells smoothed, then meanders of wavelength near 12 widths, of varying amplitude along the course.
+6. **No course is born from a stroke.** A stream appears beyond the critical area and widens over some widths (`principes.md`: no structure stops clearly).
+7. **A thinner layer appears only below the pixel.** A thin tile moves the course by less than a pixel where it takes over. The same rule as the octaves filtered by grid cell.
 
-### Les familles, dans les termes de `geometrie.md`
+### Families, in terms of `geometrie.md`
 
-- **La surface d'un lac ou d'une rivière :** de la géométrie, mais pas celle du terrain. Le maillage monte à `max(e, niveau)`, comme il monte à `max(e, 0)` pour la mer. À inscrire avec la mer, hors des trois familles, comme le propose `recherche-mer.md`.
-- **Un lit de moins de 13,5 m de large :** ajout de détail.
-- **Un lit plus large, une gorge, une brèche :** remplacement. Spec, branche, tag `piste/…`, réglage d'arrêt.
-- **Un cirque :** remplacement.
+- **The surface of a lake or river:** the geometry, but not the terrain. The mesh goes up to `max(e, niveau)`, as it goes up to `max(e, 0)` for the sea. To be registered with the sea, out of the three families, as proposed by `recherche-mer.md`.
+- **A bed less than 13,5 m wide:** detail addition.
+- **A wider bed, a gorge, a breach:** replacement. Spec, branch, tag `piste/…`, stop setting.
+- **A circus:** replacement.
 
-### Le coût
+### The cost
 
-- **La carte :** 6,3 millions de points de complexplanet, filtrés à 10 km : de l'ordre de quelques images du maillage, une seule fois. Le remplissage sur CPU : quelques secondes, à mesurer. Ensuite en cache.
-- **La mémoire :** niveau en flottant, sens, aire drainée et identifiant de lac : de l'ordre de 50 à 80 Mo à 1 024² par face.
-- **Les tuiles fines :** 600 m sur 500 km de rayon, ou 75 m sur 50 km : quelques millions de cellules chacune.
-- **Le rendu :** une lecture de texture par sommet et par pixel.
+- **The map:** 6,3 million points of complexplanet, filtered to 10 km: of the order of a few images of the mesh, once. Filling on CPU: a few seconds, to be measured. Then in cache.
+- **Memory:** floating level, direction, drained area and lake identifier: in the order of 50 to 80 MB to 1 024² per face.
+- **Thin tiles:** 600 m on 500 km radius, or 75 m on 50 km: a few million cells each.
+- **Rendering:** a texture reading per vertex and per pixel.
 
-## 5. Le rendu de l'eau intérieure
+## 5. The rendering of the inner water
 
-### Ce qui se partage avec la mer
+### What is shared with the sea
 
-`recherche-mer.md` en donne le modèle ; les lacs le prennent tel quel.
-- **Le reflet :** Fresnel, ciel reflété, soleil par Cox-Munk. Pour un lac abrité, les variances de l'eau couverte d'un film : un reflet plus net.
-- **Les vagues de lac :** le fetch est la taille du lac, que donne la carte. 5 m/s sur 5 km font 0,18 m.
-- **La couleur :** par profondeur et type d'eau, le fond visible en eau peu profonde, l'échelle de Forel-Ule.
-- **L'écume :** une part du pixel.
-- **Les reflets du relief :** en espace écran.
+`recherche-mer.md` gives the model; the lakes take it as it is.
+- **The reflection:** Fresnel, reflected sky, sun by Cox-Munk. For a sheltered lake, the variations of water covered with a film: a sharper reflection.
+- **Lake waves:** the fetch is the size of the lake, which gives the map. 5 m/s on 5 km make 0,18 m.
+- **Colour:** by depth and type of water, the visible bottom in shallow water, the scale of Forel-Ule.
+- **foam:** a part of the pixel.
+- **Relief reflections:** in screen space.
 
-### Ce qui est propre aux eaux courantes
+### What is specific to running water
 
-- **Le sens et la vitesse :** la tangente du cours, mêlée à la pente du niveau de l'eau. Une vitesse de 0,5 à 3 m/s, qui croît lentement avec le débit, comme Q^0,1.
-- **La surface qui coule :**
-  - de près, des cartes de flux à deux phases (Vlachos 2010) ;
-  - sur de grands réseaux, l'advection de Yu 2009, reprise dans Proland ;
-  - de loin, la pente des rides perdue par le pixel devient rugosité du reflet, comme pour la mer.
-- **Le lit selon la pente** (section 3) : seuils et mouilles lisses ; lit plat ridé ; marches et vasques, écume en taches ; cascades, eau blanche.
-  - **Les rapides :** une part d'écume qui croît avec la pente et le débit. Uncharted 4 les fait par particules d'onde.
-- **Les cascades :** là où le niveau tombe de plus que la largeur sur une courte distance, ou franchit une paroi rocheuse.
-  - De près : une nappe verticale, texture qui défile, embruns au pied.
-  - De loin : un trait blanc en part du pixel.
-- **La couleur, tirée du climat et du lieu :**
-  - laiteuse et turquoise sous les glaciers, près de la limite des neiges ;
-  - beige dans les grands cours de plaine ;
-  - transparente dans les torrents de roche ;
-  - brune en forêt humide et en tourbière.
-- **Les berges mouillées :** une bande au-dessus de l'eau, plus large quand le débit croît. Albédo plus sombre selon la porosité, surface plus lisse (Lagarde 2013). Bancs de galets dans les tresses.
-- **Les corridors verts :** l'humidité relevée le long du réseau. La végétation des rives se voit d'orbite dans les déserts, comme le Nil. `BiomeColor` existe déjà.
-- **La glace :** sous −2 °C, la règle de la neige, les lacs et les cours lents gèlent sous la neige. Les torrents rapides restent ouverts.
-- **De loin :** un cours plus étroit que le pixel en est une part, sa largeur sur la taille du pixel. Il brille en trait quand le soleil s'y reflète.
+- **The direction and speed:** the tangent of the course, mixed with the slope of the water level. A speed from 0,5 to 3 m/s, which slowly increases with the flow, like Q^0,1.
+- **The surface that flows:**
+  - closely, two-phase flow charts (Vlachos 2010);
+  - on large networks, the advection of Yu 2009, taken up in Proland;
+  - from afar, the slope of the wrinkles lost by the pixel becomes roughness of the reflection, as for the sea.
+- **The bed according to the slope** (section 3): smooth thresholds and wets; flat bed wrinkled; steps and sinks, foam in spots; cascades, white water.
+  - **Rapids:** a part of foam that grows with the slope and flow. Uncharted 4 makes them by wave particles.
+- **The cascades:** where the level drops more than the width over a short distance, or crosses a rock face.
+  - Close up: a vertical layer, texture that slides, sprays on the foot.
+  - From afar: a white line on the pixel.
+- **The color, drawn from the climate and the place:**
+  - milky and turquoise under the glaciers, near the snow line;
+  - beige in large plain courtyards;
+  - transparent in rock torrents;
+  - brune in wet forest and bog.
+- **Wet banks:** a strip above the water, wider as the flow increases. Darker albedo according to porosity, smoother surface (Lagarde 2013). benchmarks of pebbles in the braids.
+- **Green corridors:** moisture measured along the network. The vegetation of the banks is seen from orbit in deserts, like the Nile. `BiomeColor` already exists.
+- **Ice:** under −2 °C, the snow rule, lakes and slow streams freeze under the snow. Fast torrents remain open.
+- **From far:** a course narrower than the pixel is a part of it, its width on the pixel size. It shines in line when the sun is reflected on it.
 
-### Les références de rendu
+### Rendering references
 
-- **Peytavie 2019, *Procedural Riverscapes* :** lits creusés selon la classification de Rosgen, surface animée par un arbre de flux, écume et débris. La référence pour les étapes 5 et 6.
-- **Hendrickx 2010 :** réseaux de rivières en courbes de Bézier et cartes de normales qui défilent.
-- **Lightspeed, GDC 2023 :** hauteur, vitesse et écume de l'eau calculées, maillage d'eau adaptatif.
+- **Peytavie 2019, *Procedural Riverscapes*:** beds dug according to Rosgen classification, surface animated by a flow tree, foam and debris. The reference for the steps 5 and 6.
+- **Hendrickx 2010:** river networks in Bezier curves and maps of normals that scroll.
+- **Lightspeed, GDC 2023:** Water Height, Speed and Foaming Calculated, Adaptive Water mesh.
 
-## 6. Mesurer contre le réel
+## 6. Measuring against the real
 
-### Les données
+### The data
 
-À télécharger dans `../donnees-terre`, avec accord :
-- **HydroLAKES et HydroRIVERS** (HydroSHEDS) : lacs de plus de 10 ha, réseau mondial avec débits.
-- **GRWL** (Allen et Pavelsky 2018) : largeurs des rivières de plus de 30 m.
-- **GRIN** (Schneider 2017) : densité de drainage mondiale à 7,5′.
-- **La base de Frasson 2019 :** largeur, pente, méandres, sinuosité, débit.
-- **Le jeu Forel-Ule des lacs,** 2000 à 2018.
+To download in `../donnees-terre`, with agreement:
+- **HydroLAKES and HydroRIVERS** (HydroSHEDS): lakes over 10 ha, global network with flows.
+- **GRWL** (Allen and Pavelsky 2018): river widths of more than 30 m.
+- **GRIN** (Schneider 2017): global drainage density at 7,5′.
+- **Frasson 2019 base:** width, slope, meanders, sinuosity, flow.
+- **The game Trout-Ule of the lakes,** 2000 to 2018.
 
-### Ce qu'on compare
+### What we compare
 
-- **Le réseau :**
-  - densité de drainage par climat, contre GRIN ;
-  - exposant de Hack, 0,5 à 0,6, sur nos cours principaux ;
-  - part des terres sans issue, près de 20 % (Wang 2018) ; 41 % aujourd'hui à 55 km.
-- **Les rivières :**
-  - surface totale, 0,3 à 0,6 % des terres ;
-  - distribution des largeurs contre GRWL ;
-  - méandres : longueur d'onde sur largeur de 9 à 13, sinuosité contre la base de Frasson.
-- **Les lacs :**
-  - part des terres, 1,8 % au-dessus de 10 ha, 3,7 % au-dessus de 0,2 ha ;
-  - nombre par classe de taille contre HydroLAKES ;
-  - en montagne : densité, tailles et bande d'altitude contre les lacs des Alpes et des Pyrénées dans HydroLAKES.
-- **Les couleurs :** indice Forel-Ule ; 31 % de lacs bleus.
+- **The network:**
+  - drainage density by climate, against GRIN;
+  - Hack exhibitor, 0,5 to 0,6, on our main courses;
+  - share of land without exit, near 20 % (Wang 2018); 41 % today at 55 km.
+- **Rivers:**
+  - Total area, 0,3 to 0,6 % of land;
+  - distribution of widths against GRWL;
+  - meanders: wavelength over width of 9 to 13, sinuosity against Frasson base.
+- **Lakes:**
+  - share of land, 1,8 % above 10 ha, 3,7 % above 0,2 ha;
+  - number per size class against HydroLAKES;
+  - in mountains: density, sizes and altitude band against the lakes of the Alps and Pyrenees in HydroLAKES.
+- **Colours:** Forel-Ule index; 31 % of blue lakes.
 
-### Les photos
+### The photos
 
-**Un jeu par type, dans `../references` :** lac de cirque, lac de moraine turquoise, rivière en tresses, méandres vus d'avion, torrent à marches et vasques, cascade, fleuve d'orbite au reflet du soleil. Comparées avec les mesures de `tools/realisme.py`.
+**A game by type, in `../references`:** Circus lake, turquoise moraine lake, braided river, meanders seen from an airplane, torrent with steps and basins, cascade, orbit river reflecting the sun. Compared with the measurements of `tools/realisme.py`.
 
-### Les bancs du moteur
+### The benchmarks of the engine
 
-- **Banc de descente :** la part d'eau intérieure constante de 1 500 km au sol, par une vue de diagnostic.
-- **Banc de qualité :** aucune régression sur terre.
-- **Banc de tremblement :** rives et rubans immobiles.
-- **Banc de la carte, `tools/banc_carte.py` :** l'altitude de la carte contre le portage numpy, sa surface remplie contre un Priority-Flood écrit à part, ses écoulements jusqu'à la mer ; lacs, réseau, loi de Hack.
+- **benchmark descent:** the constant indoor water share of 1 500 km to the ground, by a diagnostic view.
+- **quality benchmark:** no regression on earth.
+- **benchmark of jitter:** banks and ribbons immobile.
+- **benchmark of the map, `tools/banc_carte.py`:** the elevation of the map against the port numpy, its filled surface against a Priority-Flood written apart, its flows to the sea; lakes, network, Hack law.
 
 ## 7. Sources
 
-**complexplanet et les moteurs :**
-- libnoise, l'exemple complexplanet, niveaux de mer remontés « to flood the river valleys » : https://libnoise.sourceforge.net/examples/complexplanet/index.html
-- SpaceEngine, les pseudo-rivières, 2013 : https://spaceengine.org/news/blog131222/
-- Outerra, rivières par données vectorielles : https://forum.outerra.com/index.php?topic=99.0 ; mise à jour, largeur et lit modulés : https://www.avsim.com/forums/topic/540892-outerra-major-update-17109830-82118/
-- Microsoft Flight Simulator, masques d'eau tirés d'OpenStreetMap, constat de la communauté : https://forums.flightsimulator.com/t/how-does-the-sim-determine-quantity-of-water-in-rivers/701889
-- Star Citizen, Genesis ou Planet Tech v5, rivières tirées de la géologie et de l'érosion, sans détail technique publié : https://www.gamestar.de/videos/jeder-planet-ein-spektakel-star-citizen-macht-mit-genesis-einen-weiteren-schritt-richtung-fotorealismus,138406.html
-- No Man's Sky, Worlds Part II, lacs et océans, pas de rivières documentées : https://www.gematsu.com/2025/01/no-mans-sky-worlds-part-ii-update-now-available
-- Proland, le greffon rivières : https://proland.inrialpes.fr/doc/proland-4.0/river/html/index.html
+**complexplanet and engines:**
+- libnoise, the complexplanet example, sea levels risen "to flood the river valleys": https://libnoise.sourceforge.net/examples/complexplanet/index.html
+- SpaceEngine, pseudo-rivers, 2013: https://spaceengine.org/news/blog131222/
+- Outerra, rivers by vector data: https://forum.outerra.com/index.php?topic=99.0; update, width and bed modulated: https://www.avsim.com/forums/topic/540892-outerra-major-update-17109830-82118/
+- Microsoft Flight Simulator, water masks from OpenStreetMap, community report: https://forums.flightsimulator.com/t/how-does-the-sim-determine-quantity-of-water-in-rivers/701889
+- Star Citizen, Genesis or Planet Tech v5, rivers drawn from geology and erosion, no technical detail published: https://www.gamestar.de/videos/jeder-planet-ein-spektakel-star-citizen-macht-mit-genesis-einen-weiteren-schritt-richtung-fotorealismus,138406.html
+- No Man's Sky, Worlds Part II, lakes and oceans, no rivers documented: https://www.gematsu.com/2025/01/no-mans-sky-worlds-part-ii-update-now-available
+- Proland, the rivers plug: https://proland.inrialpes.fr/doc/proland-4.0/river/html/index.html
 
-**Hydrologie réelle :**
-- Allen et Pavelsky 2018, *Global extent of rivers and streams*, Science : https://www.sciencenews.org/article/earth-rivers-cover-44-percent-more-land-we-thought ; GRWL : https://gee-community-catalog.org/projects/grwl/
+**Actual hydrology:**
+- Allen and Pavelsky 2018, *Global extent of rivers and streams*, Science: https://www.sciencenews.org/article/earth-rivers-cover-44-percent-more-land-we-thought; GRWL: https://gee-community-catalog.org/projects/grwl/
 - Downing et al. 2012, *Global abundance and size distribution of streams and rivers*, Inland Waters : https://utrecht-main-test.atmire.com/items/da859c45-f6a9-4acd-a82f-49fac6463ff8
 - Frasson et al. 2019, *Global relationships between river width, slope, catchment area, meander wavelength, sinuosity, and discharge*, GRL : https://research-information.bris.ac.uk/en/publications/global-relationships-between-river-width-slope-catchment-area-mea/ ; base : https://zenodo.org/record/2579160
-- Moody et Troutman 2002, *Characterization of the spatial variability of channel morphology*, ESPL : https://doi.org/10.1002/esp.403
-- Leopold et Maddock 1953, *The hydraulic geometry of stream channels*, USGS PP 252 : https://pubs.usgs.gov/publication/pp252
-- Leopold et Wolman 1957, *River channel patterns: braided, meandering, and straight*, USGS PP 282-B : https://pubs.usgs.gov/publication/pp282B
-- Leopold et Wolman 1960, *River meanders*, GSA Bulletin : https://pubs.usgs.gov/publication/70185557
-- Hack 1957, USGS PP 294-B : https://pubs.usgs.gov/pp/0294b/report.pdf ; la loi de Hack : https://en.wikipedia.org/wiki/Hack%27s_law
-- Montgomery et Buffington 1997, *Channel-reach morphology in mountain drainage basins*, GSA Bulletin : https://fs.usda.gov/rm/boise/publications/watershed/rmrs_1997_montomeryr001.pdf
-- Densité de drainage, valeurs usuelles : https://www.netmaptools.org/Pages/NetMapHelp/drainage_density.htm
-- Schneider et al. 2017, réseau mondial et densité de drainage, GRL : https://hal.sorbonne-universite.fr/hal-01496152 ; GRIN : https://www.metis.upmc.fr/en/node/375
-- Scheingross, Lamb et Fuller 2019, *Self-formed bedrock waterfalls*, Nature : https://resolver.caltech.edu/CaltechAUTHORS:20181121-090230516
-- Verpoorter et al. 2014, inventaire mondial des lacs, GRL : https://hal.archives-ouvertes.fr/hal-01066344
-- Messager et al. 2016, HydroLAKES, Nature Communications : https://www.hydrosheds.org/hydrolakes
-- Wang et al. 2018, bassins endoréiques, Nature Geoscience : https://www.sciencedaily.com/releases/2018/11/181130153841.htm
-- Barr et Spagnolo 2015, *Glacial cirques as palaeoenvironmental indicators*, Earth-Science Reviews : https://e-space.mmu.ac.uk/619051/
-- Barr et al. 2019, *The dynamics of mountain erosion: cirque growth slows as landscapes age*, ESPL : https://eprints.whiterose.ac.uk/147552/
+- Moody and Troutman 2002, *Characterization of the spatial variability of channel morphology*, ESPL: https://doi.org/10.1002/esp.403
+- Leopold and Maddock 1953, *The hydraulic geometry of stream channels*, USGS PP 252: https://pubs.usgs.gov/publication/pp252
+- Leopold and Wolman 1957, *River channel patterns: braided, meandering, and straight*, USGS PP 282-B: https://pubs.usgs.gov/publication/pp282B
+- Leopold and Wolman 1960, *River meanders*, GSA Bulletin: https://pubs.usgs.gov/publication/70185557
+- Hack 1957, USGS PP 294-B: https://pubs.usgs.gov/pp/0294b/report.pdf; the law of Hack: https://en.wikipedia.org/wiki/Hack%27s_law
+- Montgomery and Buffington 1997, *Channel-reach morphology in mountain drainage basins*, GSA Bulletin: https://fs.usda.gov/rm/boise/publications/watershed/rmrs_1997_montomeryr001.pdf
+- Drainage density, usual values: https://www.netmaptools.org/Pages/NetMapHelp/drainage_density.htm
+- Schneider et al. 2017, global network and drainage density, GRL: https://hal.sorbonne-universite.fr/hal-01496152; GRIN: https://www.metis.upmc.fr/en/node/375
+- Scheingross, Lamb et Fuller 2019, *Self-formed bedrock waterfalls*, Nature: https://resolver.caltech.edu/CaltechAUTHORS:20181121-090230516
+- Verpoorter et al. 2014, World Lakes Inventory, GRL: https://hal.archives-ouvertes.fr/hal-01066344
+- Messager et al. 2016, HydroLAKES, Nature Communications: https://www.hydrosheds.org/hydrolakes
+- Wang et al. 2018, endoreic basins, Nature Geoscience: https://www.sciencedaily.com/releases/2018/11/181130153841.htm
+- Barr et Spagnolo 2015, *Glacial cirques as palaeoenvironmental indicators*, Earth-Science Reviews: https://e-space.mmu.ac.uk/619051/
+- Barr et al. 2019, *The dynamics of mountain erosion: cirque growth slows as landscapes age*, ESPL: https://eprints.whiterose.ac.uk/147552/
 - Shugar et al. 2020, *Rapid worldwide growth of glacial lakes since 1990*, Nature Climate Change : https://eprints.whiterose.ac.uk/168562
 - Yang et al. 2022, *The Color of Earth's Lakes*, GRL : https://news.agu.org/press-release/climate-change-is-making-lakes-less-blue/
-- Rose et al. 2014, farine glaciaire et atténuation de la lumière, JGR : https://researchcommons.waikato.ac.nz/bitstream/10289/8942/1/2014%20rose%20hamilton%20williamson%20mcbride%20fischer%20olson%20saros%20allan%20cabrol%20Journal%20of%20Geophysical%20Research.pdf
+- Rose et al. 2014, glacial flour and light attenuation, JGR: https://researchcommons.waikato.ac.nz/bitstream/10289/8942/1/2014%20rose%20hamilton%20williamson%20mcbride%20fischer%20olson%20saros%20allan%20cabrol%20Journal%20of%20Geophysical%20Research.pdf
 - NASA Earth Observatory, *How glaciers turn lakes turquoise* : https://www.earthobservatory.nasa.gov/images/145055/how-glaciers-turn-lakes-turquoise
-- Indice Forel-Ule des eaux intérieures, 2000 à 2018 : https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7835379/ ; Pitarch et al. 2019 : https://ore.exeter.ac.uk/repository/handle/10871/38277
+- Forel-Ule Index of Inland Waters, 2000 to 2018: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7835379/; Pitarch et al. 2019 : https://ore.exeter.ac.uk/repository/handle/10871/38277
 
-**Hydrologie procédurale et algorithmes :**
-- Prusinkiewicz et Hammel 1993, *A fractal model of mountains with rivers* : https://algorithmicbotany.org/papers/mountains.gi93.html
-- Derzapf, Ganster, Guthe et Klein 2011, *River networks for instant procedural planets*, CGF : https://diglib.eg.org/handle/10.1111/v30i7pp2031-2040 ; page des auteurs : https://www.mathematik.uni-marburg.de/~derzapf/public/2011/index.html
+**Procedural hydrology and algorithms:**
+- Prusinkiewicz and Hammel 1993, *A fractal model of mountains with rivers*: https://algorithmicbotany.org/papers/mountains.gi93.html
+- Derzapf, Ganster, Guthe and Klein 2011, *River networks for instant procedural planets*, CGF: https://diglib.eg.org/handle/10.1111/v30i7pp2031-2040; authors' page: https://www.mathematik.uni-marburg.de/~derzapf/public/2011/index.html
 - Génevaux et al. 2013, *Terrain generation using procedural models based on hydrology*, SIGGRAPH : https://doi.org/10.1145/2461912.2461996
 - Cordonnier et al. 2016, *Large scale terrain generation from tectonic uplift and fluvial erosion*, CGF : https://hal.archives-ouvertes.fr/hal-01262376
-- Schott et al. 2023, *Large-scale terrain authoring through interactive erosion simulation*, ACM TOG : https://history.siggraph.org/learning/large-scale-terrain-authoring-through-interactive-erosion-simulation-by-schott-paris-fournier-guerin-and-galin ; code : https://github.com/H-Schott/StreamPowerErosion
+- Schott et al. 2023, *Large-scale terrain authoring through interactive erosion simulation*, ACM TOG: https://history.siggraph.org/learning/large-scale-terrain-authoring-through-interactive-erosion-simulation-by-schott-paris-fournier-guerin-and-galin; code: https://github.com/H-Schott/StreamPowerErosion
 - Tzathas et al. 2024, *Physically-based analytical erosion for fast terrain generation*, CGF : https://diglib.eg.org/handle/10.1111/cgf15033
-- Mei, Decaudin et Hu 2007, *Fast hydraulic erosion simulation and visualization on GPU* : https://hgpu.org/?p=2256 ; Jákó et Tóth 2011 : https://diglib.eg.org/handle/10.2312/EG2011.short.057-060
+- Mei, Decaudin and Hu 2007, *Fast hydraulic erosion simulation and visualization on GPU*: https://hgpu.org/?p=2256; Jákó and Tóth 2011: https://diglib.eg.org/handle/10.2312/EG2011.short.057-060
 - Galin et al. 2019, *A review of digital terrain modeling*, CGF : https://cs.purdue.edu/cgvlab/www/publications/Galin19CGF
 - Gaillard et al. 2019, *Dendry: a procedural model for dendritic patterns*, I3D : https://cs.purdue.edu/cgvlab/www/publications/Gaillard19I3D
 - Peytavie et al. 2019, *Procedural riverscapes*, CGF : https://diglib.eg.org/handle/10.1111/cgf13814
-- Fischer, Boeckers et Zachmann 2022, *Procedural generation of landscapes with water bodies using artificial drainage basins*, CGI : https://cgvr.cs.uni-bremen.de/papers/cgi22/CGI22.pdf
+- Fischer, Boeckers et Zachmann 2022, *Procedural generation of landscapes with water bodies using artificial drainage basins*, CGI: https://cgvr.cs.uni-bremen.de/papers/cgi22/CGI22.pdf
 - Davis 2026, *Plate-local river generation*, arXiv : https://arxiv.org/abs/2610.00301
-- Red Blob Games, *Procedural river drainage basins* : https://www.redblobgames.com/x/1723-procedural-river-growing/
+- Red Blob Games, *Procedural river drainage basins*: https://www.redblobgames.com/x/1723-procedural-river-growing/
 - O'Leary, *Generating fantasy maps* : https://mewo2.com/notes/terrain
 - TerraFirmaCraft, *Why are rivers so complicated?* : https://gist.github.com/alcatrazEscapee/8bd54572c8d3fe070d1ed92704dd6aed
 - Johansen 2026, *Fast and gorgeous erosion filter* : https://blog.runevision.com/2026/03/fast-and-gorgeous-erosion-filter.html
-- Barnes, Lehman et Mulla 2014, *Priority-Flood* : https://arxiv.org/pdf/1511.04463
-- Planchon et Darboux 2001, remplissage des dépressions : https://horizon.documentation.ird.fr/exl-doc/pleins_textes/divers20-05/010031925.pdf
-- Lindsay 2016, brèche sélective : https://doi.org/10.1002/hyp.10648
-- Barnes, Callaghan et Wickert 2021, *Fill-Spill-Merge*, ESurf : https://esurf.copernicus.org/articles/9/105/2021/
+- Barnes, Lehman and Mulla 2014, *Priority-Flood*: https://arxiv.org/pdf/1511.04463
+- Planchon and Darboux 2001, filling of depressions: https://horizon.documentation.ird.fr/exl-doc/pleins_textes/divers20-05/010031925.pdf
+- Lindsay 2016, selective breach: https://doi.org/10.1002/hyp.10648
+- Barnes, Callaghan and Wickert 2021, *Fill-Spill-Merge*, ESurf: https://esurf.copernicus.org/articles/9/105/2021/
 
-**Rendu :**
+**Render:**
 - Vlachos 2010, *Water flow in Portal 2* : https://www.advances.realtimerendering.com/s2010/Vlachos-Waterflow(SIGGRAPH%202010%20Advanced%20RealTime%20Rendering%20Course).pdf
-- Yu, Neyret, Bruneton et Holzschuch 2009, *Scalable real-time animation of rivers* : https://artis.inrialpes.fr/Publications/2009/YNBH09/
-- Hendrickx, Smelik et Bidarra 2010, *Real-time rendering of river networks* : https://publications.tno.nl/publication/17006495/cJodKI/hendrickx-2010-realtime.pdf
-- Uncharted 4, rapides par particules d'onde, cité par : https://github.com/acskyline/wave-particles-with-interactive-vortices
-- Lightspeed Studios, GDC 2023, eau de monde ouvert : https://gdcvault.com/play/1028915/Advanced-Graphics-Summit-Open-World
+- Yu, Neyret, Bruneton and Holzschuch 2009, *Scalable real-time animation of rivers*: https://artis.inrialpes.fr/Publications/2009/YNBH09/
+- Hendrickx, Smelik and Bidarra 2010, Real-time rendering of river networks: https://publications.tno.nl/publication/17006495/cJodKI/hendrickx-2010-realtime.pdf
+- Uncharted 4, rapids by wave particles, quoted by: https://github.com/acskyline/wave-particles-with-interactive-vortices
+- Lightspeed Studios, GDC 2023, water open world: https://gdcvault.com/play/1028915/Advanced-Graphics-Summit-Open-World
 - Lagarde 2013, *Water drop 3a: physically based wet surfaces* : https://seblagarde.wordpress.com/2013/03/19/water-drop-3a-physically-based-wet-surfaces/

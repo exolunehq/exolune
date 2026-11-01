@@ -1,13 +1,13 @@
-# POC nuage : référence figée, 26 octobre 2026
+# POC cloud: fixed reference, 26 October 2026
 
-**Validée en vol par l'utilisateur :** position, forme et contours stables à l'approche ; aspect jugé satisfaisant. La suite demandée est le mouvement avec le temps et des franges moins solides.
+**Validated in flight by the user:** position, shape and contours stable on approach; appearance considered satisfactory. The requested follow-up is movement with time and less solid fringes.
 
-**Référence conservée localement :** `x64/NuagePocReference/`, exécutable et shaders de la version validée. Le premier build était dans `x64/NuagePoc/`, sous le nom `MyPlanetEngine.exe`. Branche de travail `codex/nuage-poc`, sans commit ni push demandés.
+**Reference stored locally:** `x64/NuagePocReference/`, executable and shaders of the valid version. The first build was in `x64/NuagePoc/`, under the name `MyPlanetEngine.exe`. `codex/nuage-poc` working branch, no commit or push requested.
 
-**Réglages initiaux :** centre à 4 000 m, 0,5 N, 161,5 E ; quatre lobes, tuile 3D fixe à 4,096 et 1,024 km ; extinction au plus 24 /km, fondu du corps de 0 à 0,18, fond diffus de 0,18. Pleine résolution, pas d'au plus 12 m, 384 pas maximum, six points vers le soleil. Sans animation, cascade, damier, jitter, historique ou halo.
+**Initial settings:** center at 4 000 m, 0,5 N, 161,5 E; four lobes, tile 3D fixed at 4,096 and 1,024 km; extinction at most 24 /km, body fade of 0 to 0,18, diffuse background of 0,18. Full resolution, no more than 12 m, 384 no more than maximum, six points to the sun. No animation, cascade, checkerboard, jitter, history or halo.
 
-**Contrôles sans fenêtre :** cinq captures à 1 280 × 720 (loin, approche, bord, intérieur et opacité). Huit images d'opacité avec caméra fixe et maillage mobile : différence moyenne 0,0000355 sur 255, maximale 1 sur 255. Ce contrôle ne démontrait pas le vol réel ; l'utilisateur a ensuite validé celui-ci.
+**Windowless controls:** five captures at 1 280 × 720 (away, approach, edge, inside and opacity). Eight opacity images with fixed camera and mobile mesh: average difference 0,0000355 on 255, maximum 1 on 255. This check did not demonstrate the actual flight; the user then validated it.
 
-**Itérations :** l'ensemble des passages plein écran doit utiliser le même format de shader ; DXC pour le sommet plein écran, l'atmosphère, les tons et le halo. Un mélange DXBC/DXIL avait empêché la création du pipeline pendant la mise au point ; corrigé avant livraison.
+**Iterations:** All full-screen passages must use the same shader format; DXC for full-screen vertex, atmosphere, tones and halo. A DXBC/DXIL mixture prevented pipeline creation during development; fixed before delivery.
 
-**Suite actuelle :** `poc-nuage-stable.md`.
+**Current follow-up:** `poc-nuage-stable.md`.

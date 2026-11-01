@@ -1,34 +1,34 @@
-# Campagne de végétation des 26 et 27 octobre 2026
+# Vegetation campaign, October 26 and 27, 2026
 
-**Lecture :** `docs/prototype-vegetation-volumique.md` donne le jugement et les limites.
+**Reading:** `docs/log/prototype-vegetation-volumique.md` gives the assessment and limitations.
 
-**Résultats finaux :**
-- `comparaison64.json` et `comparaison128.json` : six vues, deux modèles, trois tailles d'écran.
-- `stress64.json` : 64, 256 et 1 024 instances demandées, deux modèles, deux représentations.
-- `manifeste-final.json` : caméras, ancre et lumière de la comparaison finale.
-- `provenance64.json`, `provenance128.json` et `provenance-stress64.json` : empreintes de l'exécutable, des shaders, des données et des bancs.
-- `pieds.json` : douze cas de placement, sur deux lieux, à deux distances, pour 1, 16 et 1 024 instances demandées.
-- `qualite.json` : contrôle avant/après sur les mêmes 24 lieux, prototype désactivé.
-- `contexte.json` : matériel et protocole.
+**Final results:**
+- `comparaison64.json` and `comparaison128.json`: six views, two models, three screen sizes.
+- `stress64.json`: 64, 256 and 1,024 requested instances, two models, two representations.
+- `manifeste-final.json`: cameras, anchor and lighting for the final comparison.
+- `provenance64.json`, `provenance128.json` and `provenance-stress64.json`: hashes of the executable, shaders, data and benchmarks.
+- `pieds.json`: twelve placement cases, at two locations and two distances, for 1, 16 and 1,024 requested instances.
+- `qualite.json`: before/after check at the same 24 locations, with the prototype disabled.
+- `contexte.json`: hardware and protocol.
 
-**Exploration :**
-- `comparaison-initiale64.json` : vingt vues distinctes et quatre mouvements, avant les derniers correctifs.
-- `binaire-initial.json` : empreintes des shaders et de l'exécutable de cette exploration.
-- Les anciennes séries GPU restent dans `x64/FoliageComparaison64/rapport.json` ; l'export exploratoire conserve leurs statistiques.
-- Les campagnes intermédiaires `FoliageFinal*` sont invalidées et exclues.
+**Exploration:**
+- `comparaison-initiale64.json`: twenty distinct views and four movements, before the final fixes.
+- `binaire-initial.json`: shader and executable hashes for this exploration.
+- Earlier GPU series remain in `x64/FoliageComparaison64/rapport.json`; the exploratory export retains their statistics.
+- Intermediate `FoliageFinal*` campaigns are invalidated and excluded.
 
-**Données locales :**
-- `x64/FoliageValide64/` et `x64/FoliageValide128/` gardent les captures couleur, les masques, les mesures brutes et les planches.
-- `x64/FoliageValideStress64/` garde les essais de charge.
-- `x64/FoliageValidePieds/` garde les lectures GPU du placement.
-- `x64/QualiteAvant/` et `x64/QualiteValideApres/` gardent les deux bancs de qualité complets.
-- Ces sorties volumineuses sont ignorées par git ; les scripts permettent de les régénérer.
+**Local data:**
+- `x64/FoliageValide64/` and `x64/FoliageValide128/` retain color captures, masks, raw measurements and contact sheets.
+- `x64/FoliageValideStress64/` retains load tests.
+- `x64/FoliageValidePieds/` retains placement GPU readbacks.
+- `x64/QualiteAvant/` and `x64/QualiteValideApres/` retain the two complete quality benchmarks.
+- These large outputs are ignored by git; scripts can regenerate them.
 
-**Interprétation :**
-- Les séries contiennent des images consécutives, pas des répétitions indépendantes.
-- Le temps de dessin exclut le placement, le terrain et l'atmosphère.
-- Les petites durées proches de zéro atteignent la résolution des horodatages GPU.
-- Le nombre demandé ne signifie pas autant d'arbres visibles ; des pieds peuvent être hors de la zone couverte par le terrain.
-- `triangles_par_instance` est le nombre de triangles du modèle source ; les deux proxies dessinent chacun deux triangles de support par instance.
-- La mémoire de représentation décrit des formats non compressés, sans extrapolation à des imposteurs optimisés.
-- La référence historique du banc de qualité n'est pas modifiée ; ses écarts déjà présents sont distingués des changements de ce prototype.
+**Interpretation:**
+- Series contain consecutive frames, not independent repetitions.
+- Drawing time excludes placement, terrain and atmosphere.
+- Small durations near zero reach GPU timestamp resolution.
+- Requested count does not mean that many visible trees; bases may lie outside the terrain's coverage.
+- `triangles_par_instance` is the source model's triangle count; each of the two proxies draws two support triangles per instance.
+- Representation memory describes uncompressed formats, without extrapolating to optimized impostors.
+- The historical quality benchmark baseline is unchanged; its preexisting deviations are distinguished from this prototype's changes.

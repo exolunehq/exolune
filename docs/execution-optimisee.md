@@ -1,38 +1,38 @@
-# Exécution optimisée
+# Optimized execution
 
-**Lancer :** `powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance_optimise.ps1`.
+**Launch:** `powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance_optimise.ps1`.
 
-- Le lanceur prépare `x64/Optimise/MyPlanetEngine.exe`, ses shaders et `MyPlanetEngine.ini` ; un double-clic sur cet exécutable reprend ensuite le profil.
-- `-Build` reconstruit le natif Release x64 et les shaders par le lanceur Planète ; `-NoLaunch` prépare les fichiers sans ouvrir de fenêtre.
-- Les assets restent dans le dépôt et les scans à leur emplacement configuré ; cet exécutable ne se déplace pas seul.
+- The launcher prepares `x64/Optimise/MyPlanetEngine.exe`, its shaders and `MyPlanetEngine.ini`; double-clicking this executable then reuses the profile.
+- `-Build` rebuilds the Release x64 native code and shaders through the Planet launcher; `-NoLaunch` prepares the files without opening a window.
+- Assets remain in the repository and scans at their configured location; this executable is not standalone.
 
-**Affichage :**
+**Display:**
 
-- Plein écran sans bordure sur le moniteur principal, à sa résolution native au démarrage.
-- VSync désactivée dans ce profil ; cadence non limitée au rafraîchissement par l'application, sous réserve du compositeur et du pilote.
-- Le flag DXGI de présentation libre est utilisé seulement si le système le supporte ; compatibilité VRR selon le pilote et l'écran.
-- Alt+Entrée alterne plein écran et fenêtre ; Échap revient en fenêtre, puis ferme l'application au second appui.
-- F1–F12 gardent les douze vues végétales ; la palette de boutons apparaît en mode fenêtre.
-- Le passage en fenêtre conserve la résolution interne et étire l'image ; pas de réallocation des volumes, des cibles HDR et du HiZ pendant le vol.
-- `-Fenetre` démarre en fenêtre ; `-VSync` active la synchronisation ; `-Resolution '1280 720'` garde le coût du720p même en plein écran. Choisir le même rapport largeur/hauteur que l'écran pour éviter l'étirement.
-- Le profil indique ces choix dans `[Affichage]` ; `Resolution=auto` choisit le moniteur pour le plein écran,1280×720 pour les captures sans fenêtre.
-- Les variables `MYPLANETENGINE_FULLSCREEN`, `MYPLANETENGINE_VSYNC` et `MYPLANETENGINE_RESOLUTION` prennent le pas sur le fichier ; les bancs restent invisibles.
+- Borderless full screen on the primary monitor, at its native resolution at startup.
+- VSync disabled in this profile; the application does not limit frame rate to refresh rate, subject to the compositor and driver.
+- The DXGI unrestricted-presentation flag is used only if the system supports it; VRR compatibility depends on the driver and display.
+- Alt+Enter switches between full screen and windowed mode; Esc returns to a window, then closes the application on the second press.
+- F1–F12 retain the twelve vegetation views; the button palette appears in windowed mode.
+- Switching to a window preserves internal resolution and stretches the image; no volume, HDR target or HiZ reallocation during flight.
+- `-Fenetre` starts in a window; `-VSync` enables synchronization; `-Resolution '1280 720'` keeps the cost of 720p even in full screen. Choose the same aspect ratio as the display to avoid stretching.
+- The profile records these choices in `[Affichage]`; `Resolution=auto` selects the monitor resolution for full screen, 1280×720 for windowless captures.
+- `MYPLANETENGINE_FULLSCREEN`, `MYPLANETENGINE_VSYNC` and `MYPLANETENGINE_RESOLUTION` override the file; benchmarks remain invisible.
 
-**Rendu et compilation :**
+**Rendering and compilation:**
 
-- GPU haute performance demandé à DXGI ; nom réellement retenu, résolution et VSync inscrits dans le titre.
-- Release x64 : `/O2`, fonctions en ligne, préférence vitesse, optimisation globale et édition de liens LTCG ; aucune approximation flottante nouvelle.
-- Végétation de jeu, catalogue climatique, HiZ et profondeur matérielle ; nuages Planète avec ombres et mer FFT.
-- Densité, portée et seuils LOD conservés ; qualité Éco des nuages comme dans le vol précédent.
-- La météo démarre en pause pour les comparaisons ; Espace la reprend et V alterne×1/×5.
+- A high-performance GPU is requested from DXGI; the selected GPU name, resolution and VSync appear in the title.
+- Release x64: `/O2`, function inlining, speed preference, whole-program optimization and LTCG linking; no new floating-point approximations.
+- Game vegetation, climate catalog, HiZ and hardware mesh depth; Planet clouds with shadows and FFT sea.
+- Density, range and LOD thresholds preserved; Eco cloud quality as in the previous flight.
+- Weather starts paused for comparisons; Space resumes it and V switches between ×1/×5.
 
-**Coût et limites :**
+**Cost and limits:**
 
-- 1920×1080 comporte2,25 fois plus de pixels que1280×720 ; les FPS à résolution native peuvent baisser malgré la présentation libre.
-- Le profil ne promet ni FPS minimal ni occupation de tous les cœurs ; les passes de nuages, de terrain et de placement gardent leur coût.
-- Le moteur attend encore la fin GPU de chaque image ; les allocateurs, constantes et lectures CPU partagés exigent des ressources par image avant d'autoriser plusieurs images en vol.
-- Aucun réglage global de Windows ou du pilote n'est modifié.
+- 1920×1080 has 2.25 times as many pixels as 1280×720; FPS at native resolution can fall despite unrestricted presentation.
+- The profile promises neither a minimum FPS nor use of every CPU core; cloud, terrain and placement passes retain their cost.
+- The engine still waits for GPU completion after every frame; shared allocators, constants and CPU reads require per-frame resources before allowing multiple frames in flight.
+- No global Windows or driver settings are changed.
 
-**Références :** [DXGI, présentation et VRR](https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/variable-refresh-rate-displays), [préférence GPU haute performance](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_6/ne-dxgi1_6-dxgi_gpu_preference).
+**References:** [DXGI, presentation and VRR](https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/variable-refresh-rate-displays), [high-performance GPU preference](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_6/ne-dxgi1_6-dxgi_gpu_preference).
 
-**Contrôles du28 octobre :** trois vues720p comparées, un pixel différent au total ; deux vues1080p en forêt et sur la mer, sans fenêtre ni dépassement végétal. Plein écran natif et retour en fenêtre observés ; aucun gain global de FPS chiffré.
+**October 28 checks:** three 720p views compared, one differing pixel in total; two 1080p views over forest and sea, without a window or vegetation overflow. Native full screen and return to windowed mode observed; no quantified overall FPS gain.

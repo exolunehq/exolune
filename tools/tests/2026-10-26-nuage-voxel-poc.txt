@@ -1,11 +1,11 @@
-# Mode retiré le 2026-10-30, au tag `jalon/29-avant-ouverture` et `piste/nuages-orbite-spike` : le POC voxel. Par tools\lance.ps1 -Parcours, ces lieux montrent les nuages du jeu ; touches et options ci-dessous, celles d'alors.
-# C : voxel/procédural ; Espace : pause météo ; B : silhouette ; V : météo x5.
-# Même formation et mêmes vues que le POC validé. F1–F8 ou palette Tests.
-Loin, avancer vers le nuage | 4000 0.5 161.44 0 90 | -15 175
-Approche, comparer avec C | 4000 0.5 161.47 0 90 | -15 175
-Près du contour | 4000 0.5 161.483 0 90 | -15 175
-Entrée dans le volume | 4000 0.5 161.49 0 90 | -15 175
-Au centre, poursuivre pour sortir | 4000 0.5 161.5 0 90 | -15 175
-Autre face, regard vers l'ouest | 4000 0.5 161.53 0 270 | -15 175
-Au-dessus, descendre | 6500 0.5 161.46 25 90 | -15 175
-Sous le nuage | 2900 0.5 161.48 -25 90 | -15 175
+# Mode removed the 2026-10-30, the tag `jalon/29-avant-ouverture` and `piste/nuages-orbite-spike`: the POC voxel. By tools\lance.ps1 -Route, these places show the clouds of the game; buttons and options below, those of then.
+# C: voxel/procédural; Space: weather break; B: silhouette; V: weather x5.
+# Same training and same views as the POC validated. F1–F8 or Tests palette.
+Far away, moving towards the cloud | 4000 0.5 161.44 0 90 | -15 175
+Approach, compare with C | 4000 0.5 161.47 0 90 | -15 175
+Close to the contour | 4000 0.5 161.483 0 90 | -15 175
+Entry into the volume | 4000 0.5 161.49 0 90 | -15 175
+In the center, continue to exit | 4000 0.5 161.5 0 90 | -15 175
+Other face, look to the west | 4000 0.5 161.53 0 270 | -15 175
+Above, down | 6500 0.5 161.46 25 90 | -15 175
+Under the cloud | 2900 0.5 161.48 -25 90 | -15 175

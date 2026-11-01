@@ -1,99 +1,99 @@
-# Pistes : rendre le glissement invisible
+# experiments: make the slide invisible
 
-Statut : pistes ouvertes le 2026-10-21, après la clôture du POC des sommets fixes (`spec-sommets-fixes.md`). Le concept est maintenu : un maillage qui glisse avec la caméra et s'adapte à chaque image.
+Status: experiments opened the 2026-10-21, after the closure of the POC of the fixed summits (`spec-sommets-fixes.md`). The concept is maintained: a mesh that slides with the camera and adapts to each frame.
 
-## Le constat
+## The finding
 
-**Les sommets ne tremblent pas : ils sont exacts.** Chacun porte la vraie élévation de son point de la planète, une valeur absolue.
+**The summits do not shake: they are accurate.** Each carries the true elevation of its point of the planet, an absolute value.
 
-- **Ce qui tremble, c'est la reconstruction entre les sommets.** Un pixel tombe presque toujours entre des sommets. Il voit le triangle, pas le relief.
-- **Le triangle dépend de l'endroit où sont les sommets.** Quand le maillage glisse, le même point de la planète est reconstruit autrement à chaque image.
-- **Conséquence :** on ne supprime pas le tremblement en changeant les échantillons. On le supprime en changeant la façon de reconstruire entre eux.
+- **What shakes is the reconstruction between the summits.** A pixel almost always falls between vertices. He sees the triangle, not the relief.
+- **The triangle depends on where the vertices are.** When the mesh slides, the same point of the planet is reconstructed differently at each frame.
+- **Consequence:** jitter is not removed by changing samples. We remove it by changing the way of rebuilding between them.
 
-## Le principe mathématique
+## The mathematical principle
 
-**Théorème de Shannon :** un signal dont les longueurs d'onde dépassent deux mailles est entièrement déterminé par ses échantillons, où qu'ils tombent. Reconstruit avec le noyau idéal, il ne dépend plus de la position de la grille.
+**Shannon's Theorem:** A signal whose wavelengths exceed two grid cells is entirely determined by its samples, wherever they fall. Rebuilt with the ideal core, it no longer depends on the position of the grid.
 
-- **Le glissement est donc invisible en théorie,** à deux conditions : un relief filtré sous la limite des deux mailles, ce que fait déjà le filtrage des octaves, et une reconstruction proche de l'idéale.
-- **Le triangle est la plus mauvaise reconstruction possible :** une interpolation linéaire, le noyau en tente.
-- **Erreur du triangle,** pour une onde d'amplitude A et de longueur n mailles : au milieu d'une maille, la hauteur reconstruite vaut A·cos(π/n) au lieu de A. Le tremblement vaut donc A·(1 − cos(π/n)), environ 5·A/n².
-- **Erreur de la pente,** qui fait l'éclairage : elle est bien plus forte que celle de la hauteur. C'est pourquoi le tremblement se voit surtout dans la lumière.
+- **The slip is therefore invisible in theory,** under two conditions: a filtered relief below the limit of the two grid cells, which is already done by the octave filtering, and a reconstruction close to the ideal.
+- **The triangle is the worst possible reconstruction:** a linear interpolation, the core in tent.
+- **Triangle error,** for a wave of amplitude A and length n grid cells: in the middle of a grid cell, the reconstructed height is A·cos(π/n) instead of A. The jitter is therefore equal to A·(1 − cos(π/n)), approximately 5·A/n².
+- **Error of the slope,** which makes the lighting: it is much stronger than that of the height. That is why the jitter is seen especially in the light.
 
-## Les chiffres
+## The figures
 
-Variation de la pente reconstruite en un point fixe quand la grille glisse, en part de la vraie pente ; entre parenthèses, la part de la pente restituée en moyenne. Calcul numérique sur une sinusoïde de n mailles de longueur d'onde.
+Variation of the slope reconstructed at a fixed point when the grid slides, as part of the real slope; in parentheses, the part of the slope restored as average. Numerical calculation on a sinusoid of n grid cells wavelength.
 
-| n mailles | Normale actuelle | B-spline lissante | Spline cardinale |
+| n grid cells | Current normal | B-spline smoothing | Cardinal spline |
 |---|---|---|---|
 | 2 | 0 % (×0,00) | 17 % (×0,17) | 51 % (×0,50) |
 | 3 | 10 % (×0,28) | 6,5 % (×0,47) | 13 % (×0,94) |
 | 4 | 9,3 % (×0,52) | 2,9 % (×0,66) | 4,4 % (×0,99) |
 | 8 | 3,4 % (×0,85) | 0,4 % (×0,90) | 0,4 % (×1,00) |
 
-- **La normale actuelle** est calculée sur les sommets voisins, puis interpolée sur le triangle. Elle efface presque les ondes de 2 à 3 mailles, c'est pourquoi elles y tremblent peu.
-- **La spline cardinale** passe par les sommets et restitue toute la pente, y compris celle des ondes de 2 à 3 mailles, qui tremble alors fortement.
-- **La B-spline lissante,** sans préfiltre, tremble moins que la normale actuelle dès 3 mailles, tout en restant plus nette.
-- **Pour la hauteur,** l'écart est plus grand encore : à 4 mailles, 0,9 % de variation pour la B-spline lissante contre 15 % pour le triangle.
-- **Correction :** la première version de ce tableau donnait l'erreur maximale, qui mêle le biais stable au tremblement. Elle prédisait à tort que la spline cardinale serait la meilleure. Le banc l'a démentie, voir `spec-normales-spline.md`.
+- **The current normal** is calculated on the neighboring vertices, then interpolated on the triangle. It almost erases the waves from 2 to 3 grid cells, which is why they shake little.
+- **The cardinal spline** passes through the vertexes and returns the entire slope, including that of the waves from 2 to 3 grid cells, which then shakes strongly.
+- **The smoothing B-spline,** without prefilter, shakes less than the current normal from 3 grid cells, while remaining sharper.
+- **For height,** the difference is even greater: at 4 grid cells, 0,9 % variation for the smoothing B-spline versus 15 % for the triangle.
+- **Correction:** the first version of this table gave the maximum error, which mixes the stable bias with the jitter. It wrongly predicted that the cardinal spline would be the best. The benchmark denied it, see `spec-normales-spline.md`.
 
-**Conséquence : aucune reconstruction ne stabilise les ondes de 2 à 3 mailles.** Seule la coupure du relief avant elles les supprime.
+**Consequence: no reconstruction stabilizes the waves from 2 to 3 grid cells.** Only cutting the relief before them removes them.
 
-## Les pistes, dans l'ordre proposé
+## The experiments, in the proposed order
 
-### 1. Normales par pixel, reconstruites en spline
+### 1. Normals per pixel, reconstructed in spline
 
-**C'est la « formule » : la meilleure reconstruction pour le coût le plus bas.** Elle vise l'éclairage, qui porte l'essentiel du tremblement.
+**This is the “formula”: the best reconstruction for the lowest cost.** It targets the lighting, which carries the essentials of the jitter.
 
-- **Une passe de calcul après le terrain** applique le préfiltre aux positions des sommets, ligne par ligne puis colonne par colonne. Aucun bruit n'est réévalué.
-- **Chaque pixel reçoit ses coordonnées dans la grille du maillage,** interpolées depuis les sommets. Il lit les 4 × 4 sommets voisins et en tire la surface spline, puis sa normale par les deux dérivées.
-- **Résultat au banc,** avec la B-spline lissante : 12 à 16 % de tremblement en moins. Détails dans `spec-normales-spline.md`.
-- **Coût attendu :** 16 lectures et quelques multiplications par pixel, sans bruit. Bien moins cher qu'une évaluation du relief par pixel.
-- **La difficulté : le paramétrage du maillage.**
-  - La face est une grille régulière : rien à signaler.
-  - Les anneaux sont réguliers dans leurs coordonnées, numéro d'anneau et position sur l'anneau, mais cassés aux coins des carrés.
-  - Entre la face et le premier anneau, les deux grilles ne se prolongent pas.
-  - Premier jet : revenir à la normale actuelle, en fondu, à deux mailles des coins et du bord de la face.
-- **Mesure :** le banc de tremblement sans lissage temporel, sur les vues de montagne et de plaine, puis le jugement en vol.
+- **A pass of calculation after the field** applies the prefilter to the vertices positions, row by row and column by column. No noise is revalued.
+- **Each pixel receives its coordinates in the grid of the mesh,** interpolated from the vertices. It reads the 4 × 4 neighboring vertices and draws the spline surface, then its normal by the two derivatives.
+- **Resultate at benchmark,** with smoothing B-spline: 12 to 16 % of jitter less. Details in `spec-normales-spline.md`.
+- **Expected cost:** 16 readings and a few multiplications per pixel, without noise. Much cheaper than a relief evaluation per pixel.
+- **The difficulty: setting the mesh.**
+  - The face is a regular grid: nothing to report.
+  - The rings are regular in their coordinates, ring number and position on the ring, but broken at the corners of the squares.
+  - Between the face and the first ring, the two grids do not extend.
+  - First shot: return to the current normal, in fading, two grid cells of the corners and the edge of the face.
+- **Measure:** the benchmark of jitter without temporal smoothing, on mountain and plain views, then flight judgment.
 
-### 2. Relief par pixel, reconstruit en spline
+### 2. Relief per pixel, reconstructed in spline
 
-**La même surface spline, appliquée aussi à la géométrie :** les silhouettes et la profondeur.
+**The same spline surface, also applied to geometry:** silhouettes and depth.
 
-- **Le pixel corrige sa profondeur** par une ou deux itérations de Newton entre le rayon de vue et la surface spline. L'écart au triangle est petit, de l'ordre de l'erreur du tableau.
-- **Les silhouettes :** le maillage doit être légèrement gonflé pour que la surface spline ne dépasse jamais du triangle.
-- **À ne faire que si,** après la piste 1, le tremblement des silhouettes reste visible.
+- **The pixel corrects its depth** by one or two Newton iterations between the viewing radius and the spline surface. The deviation to the triangle is small, of the order of the error of the table.
+- **The silhouettes:** the mesh must be slightly inflated so that the spline surface never protrudes from the triangle.
+- **To do only if,** after the experiment 1, the jitter of the silhouettes remains visible.
 
-### 3. Régler la bande du relief
+### 3. Adjust the relief band
 
-**Les ondes de 2 à 3 mailles tremblent quelle que soit la reconstruction.**
+**The waves of 2 to 3 grid cells shake regardless of reconstruction.**
 
-- **Aujourd'hui,** une octave est entière jusqu'à 4 mailles et s'éteint à 2 mailles.
-- **Réglage `MESH_BAND_LIMIT` :** la longueur d'onde la plus courte gardée, en mailles.
-- **Mesuré au banc, avec la spline :** une coupure à 4 mailles divise le scintillement par deux.
-- **Jugé en vol :** la forme mute davantage à l'approche, car chaque détail naît plus près. Coupure laissée à 2 mailles. Scintillement et mutation s'échangent : le banc doit mesurer les deux.
+- **Today,** an octave is whole up to 4 grid cells and extinguishes at 2 grid cells.
+- **`MESH_BAND_LIMIT` setting:** the shortest wavelength kept, in grid cells.
+- **Measured at benchmark, with spline:** a cut at 4 grid cells divides the flicker by two.
+- **Judged in flight:** the form mutes more as you approach, because every detail is born closer. Cut left at 2 grid cells. flicker and mutation exchange: the benchmark must measure both.
 
-### 4. Réécriture : des anneaux circulaires
+### 4. Rewriting: circular rings
 
-**Des cercles qui grandissent en progression géométrique,** à la place des carrés.
+**Circles that grow in geometric progression,** instead of squares.
 
-- **Un paramétrage lisse partout :** plus de coins, donc la spline s'applique sans exception hors du centre.
-- **Le zoom sans rééchantillonnage :** dans ces coordonnées, changer d'altitude est une translation le long des anneaux. Avec une échelle choisie par crans du facteur de croissance, environ 1 %, l'anneau k tombe exactement sur l'anneau k + 1.
-- **La translation horizontale rééchantillonne toujours :** aucune grille n'est à la fois invariante par zoom et par translation.
+- **Smooth setting everywhere:** no more corners, so the spline applies without exception out of the center.
+- **Zoom without re-sampling:** in these coordinates, changing altitude is a translation along the rings. With a scale chosen by increments of the growth factor, about 1 %, the ring k falls exactly on the ring k + 1.
+- **Horizontal translation always resamples:** no grid is both zoom and translation invariant.
 
-### 5. Réécriture lourde : le relief calculé par pixel
+### 5. Heavy rewrite: relief calculated per pixel
 
-**L'idée limite : chaque pixel évalue le relief à son propre point,** par lancer de rayon affiné depuis le maillage.
+**The limit idea: each pixel evaluates the relief at its own point,** by a fine-tuned ray throw from the mesh.
 
-- **Le glissement disparaît par construction :** l'échantillon est le pixel, et le filtrage à la taille du pixel rend le reste invisible avec le lissage temporel.
-- **Le coût est le verrou :** environ un million de pixels contre cent mille sommets, et plusieurs évaluations du bruit complet par pixel. Soit 30 à 40 fois le calcul actuel.
-- **Préalable :** un bruit bien moins cher que complexplanet. Une piste de recherche en soi.
+- **Slip disappears by construction:** the sample is the pixel, and filtering to pixel size makes the rest invisible with temporal smoothing.
+- **The cost is the lock:** about one million pixels versus one hundred thousand vertexes, and several evaluations of the full noise per pixel. Or 30 to 40 times the current calculation.
+- **Prerequisite:** a noise much cheaper than complexplanet. A experiment of research in itself.
 
-## Déjà écartées
+## Already discarded
 
-- **L'aimantation par crans,** tag `piste/aimantation-crans` : des sauts visibles à chaque cran.
-- **Les sommets fixes,** tag `piste/sommets-fixes-etape3` : stables, mais un coût variable qui saccade le vol.
-- **Une mémoire du relief en espace planète,** lissée d'image en image : contraire au calcul intégral à chaque image.
+- **The magnetization by rows,** tag `piste/aimantation-crans`: jumps visible at each row.
+- **Fixed summits,** tag `piste/sommets-fixes-etape3`: stable, but a variable cost that sacks the flight.
+- **A memory of the relief in planet space,** smoothed from frame to frame: contrary to the integral calculation at each frame.
 
-## Proposition
+## Proposal
 
-**Commencer par la piste 1,** sur le seul plan glissant, mesurée au banc avant et après. C'est elle qui promet le plus de gain pour le moins de changements, sans toucher au calcul du relief.
+**Start with the experiment 1,** on the only sliding plane, measured at benchmark before and after. It is the one that promises the most gain for the least changes, without touching the relief calculation.

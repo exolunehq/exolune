@@ -1,44 +1,44 @@
-# Spike voxel planétaire : historique
+# Planetary Spike voxel: History
 
-**Arrêt, 27 octobre 2026 :** la V3 prévue est interrompue avant implémentation shader et compilation. Les préparatifs natifs sont sauvegardés, puis les sources et le lanceur remis à la V2. Le [nouveau cadrage](spike-nuages-reference.md) part de références techniques publiées.
+**Stop, 27 October 2026:** the planned V3 is interrupted before shader implementation and compilation. Native preparations are saved, then the sources and launcher are returned to V2. The [new scoping](spike-nuages-reference.md) is based on published technical references.
 
-**V1, 26 octobre 2026**
+**V1, 26 October 2026**
 
-- Une texture 128³ répétée sur six faces de 127 × 127 cellules, soit 96 774 grands bancs.
-- Positions et calculs de densité en double à chaque point de vue et de soleil.
-- Binaire `x64/NuageVoxelPlanete/MyPlanetEngineVoxelPlanete.exe`, SHA-256 `EA23375D6CA7975B23B471462AB6EBD3D27383E284F41D331290BE66E089EE68`.
-- Deux captures initiales conformes au démarrage : `x64/VoxelPlanetStartup/`.
-- Leurs titres indiquaient 74,89 ms de rendu GPU à 8 000 km et 58,67 ms en approche ; mesures ponctuelles, sans séparation terrain/nuages.
-- Retour utilisateur : environ 10 FPS dans les deux modes C ; blocs répétés empêchant de juger le lointain.
-- C changeait la source de densité, avec le même parcours et le même éclairage dans les deux modes.
-- Décision : déplacer les calculs planétaires hors des boucles, ajouter une coupure réelle des nuages et mesurer la passe, puis remplacer les grands blocs uniformes par une population plus fine et une couverture régionale.
+- A 128³ texture repeated on six faces of 127 × 127 cells, i.e. 96 774 large benchmarks.
+- Positions and density calculations in double precision precision at each viewpoint and sun.
+- Binary `x64/NuageVoxelPlanete/MyPlanetEngineVoxelPlanete.exe`, SHA-256 `EA23375D6CA7975B23B471462AB6EBD3D27383E284F41D331290BE66E089EE68`.
+- Two initial captures compliant with boot: `x64/VoxelPlanetStartup/`.
+- Their titles indicated 74,89 ms of rendering GPU to 8 000 km and 58,67 ms in approach; spot measurements, without separation terrain/nuages.
+- User feedback: about 10 FPS in both C modes; repeated blocks preventing judging the distant.
+- C changed the density source, with the same path and the same lighting in both modes.
+- Decision: move planetary calculations out of loops, add a real cloud cut-off and pass measurement, then replace the large uniform blocks with a thinner population and regional coverage.
 
-**V2, contrôle numérique limité**
+**V2, limited digital control**
 
-- Ancrage numérique météo de 32 km par intervalle, avec entrée et références de cellules calculées en double.
-- Les boucles utilisent des décalages locaux float ; les positions planétaires complètes ne passent pas en float pour la densité.
-- Contrôle CPU ponctuel sur 2 000 paires de points de coquille : erreur maximale d'altitude 3,92 cm, de coordonnée locale 5,61 cm, zéro différence d'identité de cellule.
-- Ce contrôle vérifie l'arithmétique ; il ne remplace pas les images ni une validation de stabilité en vol.
-- Rapport `x64/VoxelPlanetV2Startup/local-precision.json`.
+- Digital weather anchor of 32 km per interval, with input and cell references calculated in double precision precision.
+- Loops use float local offsets; full planetary positions do not float for density.
+- CPU point control on 2 000 shell point pairs: maximum error of altitude 3,92 cm, local coordinate 5,61 cm, zero cell identity difference.
+- This check checks arithmetic; it does not replace images or flight stability validation.
+- Report `x64/VoxelPlanetV2Startup/local-precision.json`.
 
-**V2, première optimisation sans placement large**
+**V2, first optimization without wide placement**
 
-- Deux captures statiques : orbite 10,36 ms/frame dont 6,11 ms nuages+air ; approche 6,69 ms/frame dont 3,99 ms nuages+air.
-- Contrôle orbite sans nuages : 9,12 ms/frame, dont 0,73 ms pour l'air. Ne pas soustraire les temps de frame entre captures pour isoler une passe ; les timestamps 6–7 mesurent directement cette passe.
-- Rapport `x64/VoxelPlanetV2Startup/startup.json`.
-- Les centres ne bougeaient encore que faiblement dans leurs cellules ; les rangées restaient visibles.
-- Décision : décaler largement les centres, sommer le voisinage 3×3 et autoriser les recouvrements. Ce placement plus riche augmente le coût par rapport à cette première optimisation.
+- Two static captures: orbit 10,36 ms/frame of which 6,11 ms clouds+air; approach 6,69 ms/frame of which 3,99 ms clouds+air.
+- Cloudless orbit control: 9,12 ms/frame, including 0,73 ms for air. Do not subtract frame times between captures to isolate a pass; the 6–7 timestamps directly measure that pass.
+- Report `x64/VoxelPlanetV2Startup/startup.json`.
+- The centers still moved only faint in their cells; the rows remained visible.
+- Decision: shift the centers largely, sum the neighborhood 3×3 and allow for overlaps. This richer placement increases the cost compared to this first optimization.
 
-**V2, placement large et retour utilisateur du 27 octobre 2026**
+**V2, wide placement and user feedback of the 27 October 2026**
 
-- Six faces de 1 023 × 1 023 cellules fixes ; une seule famille de densité partagée.
-- Décalage des centres jusqu'à ±2,1 unités locales, rotation libre, dimensions variables et somme des neuf voisins.
-- Deux bruits de couverture régionale déterminent la présence ; les silhouettes restent celles des quatre lobes du POC.
-- Binaire `x64/NuageVoxelPlaneteV2/MyPlanetEngineVoxelPlaneteV2.exe` ; EXE `4F02017258B14A9B793EF85C74F3E70BECA3B61A51CDEFDE457F1B1698495C4F`, shader `C9F77F3303FB6FC471B1689A5E79BE2D8C1CE0A9094FEAD1E8104A8996E4C6F3`.
-- Captures `x64/VoxelPlanetV2Placement/` : approche 13,66 ms/frame dont 11,34 ms nuages+air ; orbite 26,97 ms/frame dont 24,23 ms nuages+air.
-- Deux vues statiques en 720p ; aucune validation de stabilité en vol.
-- Retour utilisateur : vue de dessus acceptable, bandes horizontales et scintillement vus de côté ; répétition d'une même famille, coût encore élevé, avantage voxel non démontré.
-- Le parcours visait `24 m / max(vitesse radiale, 0,05)` ; il pouvait atteindre 480 m avant le plafond de 512 pas, qui augmentait encore le pas des trajets longs.
-- Cette règle sous-échantillonne les structures latérales par rapport aux 37,8 m du volume local 128³.
-- Décision : remplacer cette règle, sauter les supports vides, introduire un LOD de parcours et de lumière, puis trois profils communs au bake et au calcul direct.
-- La palette V2 est conservée sous `tools/tests/2026-10-26-nuage-voxel-planete.txt` ; la V3 utilise une nouvelle palette.
+- Six faces of 1 023 × 1 023 fixed cells; a single family of shared density.
+- Center shift up to ±2,1 local units, free rotation, variable dimensions and sum of nine neighbors.
+- Two noise functions of regional coverage determine the presence; the silhouettes remain those of the four lobes of the POC.
+- Binary `x64/NuageVoxelPlaneteV2/MyPlanetEngineVoxelPlaneteV2.exe`; EXE `4F02017258B14A9B793EF85C74F3E70BECA3B61A51CDEFDE457F1B1698495C4F`, shader `C9F77F3303FB6FC471B1689A5E79BE2D8C1CE0A9094FEAD1E8104A8996E4C6F3`.
+- Captures `x64/VoxelPlanetV2Placement/`: approach 13,66 ms/frame of which 11,34 ms clouds+air; orbit 26,97 ms/frame of which 24,23 ms clouds+air.
+- Two static views in 720p; no flight stability validation.
+- User feedback: acceptable top view, horizontal stripes and flicker seen from the side; repetition of the same family, cost still high, voxel benefit not demonstrated.
+- The course aimed at `24 m / max(vitesse radiale, 0,05)`; it could reach 480 m before the ceiling of 512 step, which further increased the pace of long journeys.
+- This rule subsample the lateral structures relative to the 37,8 m of the local volume 128³.
+- Decision: replace this rule, skip the empty supports, introduce a LOD of path and light, then three profiles common to bake and direct calculation.
+- The V2 palette is kept as `tools/tests/2026-10-26-nuage-voxel-planete.txt`; the V3 uses a new palette.

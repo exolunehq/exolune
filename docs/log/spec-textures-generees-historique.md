@@ -1,75 +1,75 @@
-# Historique des textures générées
+# History of generated textures
 
-**Les sections dépassées de `../spec-textures-generees.md`,** sorties le 2026-10-30. L'état présent y est.
+**The outdated sections of `../spec-textures-generees.md`,** released the 2026-10-30. The present state is there.
 
-## Les autres pistes tirées de la comparaison, ce qu'elles sont devenues
+## The other experiments drawn from the comparison, what they have become
 
-- **Les cailloux et pierres semés :** les objets de proximité, `../spec-objets-proximite.md`.
-- **Les ombres portées du relief :** l'horizon par sommet, `../recherche-ombres-relief.md`.
-- **La brume :** la brume de la couche limite, `../recherche-profondeur-atmospherique.md`.
-- **Les brins d'herbe :** jamais faits, `spec-herbe.md` ; des touffes de brins générés à la place, parmi les objets de proximité.
-- **La mer près du rivage :** la mer FFT, `../spec-mer-fft-spike.md` ; les plages, `../recherche-cotes.md`.
-- **La profondeur de champ :** pas faite.
+- **The gravel and stones sown:** the objects of proximity, `../spec-objets-proximite.md`.
+- **The shadows cast by the relief:** the horizon by vertex, `../recherche-ombres-relief.md`.
+- **The mist:** the mist of the boundary layer, `../recherche-profondeur-atmospherique.md`.
+- **The grass spikes:** never made, `spec-herbe.md`; tufts of spikes generated instead, among nearby objects.
+- **Sea near the shore:** the sea FFT, `../spec-mer-fft-spike.md`; beaches, `../recherche-cotes.md`.
+- **Depth of field:** not made.
 
-Le texte d'origine :
+The original text:
 
-### Les autres pistes tirées de la comparaison
+### Other experiments taken from comparison
 
-**Hors de la voie B, mais nécessaires pour approcher la cible :**
+**Outside of path B, but necessary to approach the target:**
 
-- **Les cailloux et pierres semés en géométrie,** étape E. C'est ce qui pèse le plus dans le premier plan de la cible, après les rides.
-- **Les ombres portées du relief.** Le moteur n'en a pas : les vallées restent éclairées. Deux pistes : une carte d'ombre en cascades, ou un lancer de rayon sur le relief.
-- **La brume.** La perspective aérienne de Hillaire est en place, mais la cible montre un air plus chargé. Il faut régler la densité des aérosols et ajouter une brume de vallée en hauteur. Réglage rapide.
-- **Les brins d'herbe et les arbustes secs,** en géométrie : `spec-herbe.md`, jamais faite.
-- **La mer près du rivage :** dégradé de couleur avec la profondeur, vagues et écume. Une piste à part entière.
-- **La profondeur de champ,** en dernier, si elle sert encore.
+- **The pebbles and stones sown in geometry,** step E. This is what weighs the most in the target's foreground, after wrinkles.
+- **The shadows cast by the relief.** The engine does not have one: the valleys remain lit. Two experiments: a shadow card in cascades, or a ray throw on the relief.
+- **The fog.** Hillaire's aerial perspective is in place, but the target shows a more charged air. The density of aerosols must be adjusted and a valley mist must be added at height. Quick adjustment.
+- **The grass and dry shrubs,** in geometry: `spec-herbe.md`, never made.
+- **Sea near the shore:** color gradient with depth, waves and foam. A experiment in its own right.
+- **The depth of field,** last, if it still serves.
 
-## Étape 2 : les tours de la roche générée
+## Step 2: the towers of the generated rock
 
-Avant la photo de paroi, `jalon/15-roche-photo`.
+Before the wall picture, `jalon/15-roche-photo`.
 
-- **Six tours de banc sur la roche :**
-  - **Écailles :** un second niveau de facettes de 40 cm cernait chaque facette d'une ombre. Retiré.
-  - **Ardoises :** toutes les limites de strates étaient creusées et assombries. Désormais, une couche sur trois seulement recule, et peu.
-  - **Cratères :** les pierres des éboulis étaient des disques, tranchés net quand ils débordaient de leur cellule. Refaites en fragments anguleux, chacun sa cellule de Voronoï rétrécie, posés sur de la poussière.
-  - **Barres noires :** les crevasses étaient trop sombres. Adoucies.
-- **État :** la roche se lit en dalles et en fissures discrètes, mais elle reste plate. Le relief réel, en géométrie, avec des ombres de contact, devient le levier principal.
+- **Six turns of benchmark on the rock:**
+  - **Scales:** a second level of facets of 40 cm surrounded each facet with a shadow. I withdraw.
+  - **Slate:** all the boundaries of strata were dug and darkened. Now, only one layer in three is receding, and little.
+  - **Craters:** the stones of the scree were disks, cut net when they overflowed their cell. Remade into angular fragments, each with its shrinking Voronoi cell, placed on dust.
+  - **Black bars:** the crevices were too dark. Soften up.
+- **Condition:** the rock is read in slabs and discrete cracks, but it remains flat. The real relief, in geometry, with contact shadows, becomes the main lever.
 
-## La structure de la roche au-delà de 8 m
+## The structure of the rock beyond 8 m
 
-**Retirée le 2026-10-24,** avec les familles de roche et la parallaxe, `jalon/16-une-roche` : la roche est une seule photo, sans tuile dessinée de 64 m.
+**Removed the 2026-10-24,** with rock families and parallax, `jalon/16-une-roche`: the rock is a single photo, without tile drawn from 64 m.
 
-Statut : fait le 2026-10-21 ; à juger en vol.
+Status: made the 2026-10-21; to be judged in flight.
 
-**Le constat :** la tuile de roche se répète tous les 8 m. Vue de 15 à 50 m, la paroi reste un quadrillage uniforme de bancs et de diaclases, sans corniches, couloirs ni contreforts.
+**The finding:** the rock tile repeats all 8 m. Viewed from 15 to 50 m, the wall remains a uniform grid of beds and diaclases, without cornices, corridors or spurs.
 
-**Le principe : une troisième tuile pour la roche, de 64 m en 1024 texels, 6 cm par texel.** C'est le pendant du niveau fin, à l'autre bout de l'échelle.
+**The principle: a third tile for the rock, from 64 m in 1024 texels, 6 cm by texel.** It is the counterpart of the fine level, at the other end of the scale.
 
-- **Les grands bancs :** des couches de 2 m groupées en bancs de 2 à 8 m. Chaque banc avance ou recule de ±0,5 m et finit en corniche arrondie. Les bancs tendres reculent sous les durs.
-- **Les grandes fractures :** tous les 4 à 16 m selon le banc. Quatre sur dix sont des couloirs de 0,3 à 1,2 m de large et de 0,6 m de profondeur, qui découpent des contreforts.
-- **Les couleurs :** une teinte par banc, et des rideaux de vernis de quelques mètres de large qui coulent le long de la paroi.
-- **Même lecture :** pavage aléatoire, cellules de 32 m, 64 m les divisent ; projection biplanaire, strates tournées vers la verticale. Couleur et occlusion multipliées, pentes et hauteurs ajoutées, moyenne conservée.
-- **Le maillage porte ce relief** là où ses mailles le permettent, comme celui des autres tuiles.
-- **La caméra :** ce relief atteint ±1 m. La hauteur sous la caméra est donc lue après la passe de relief, et non plus avant.
+- **The large beds:** layers of 2 m grouped in beds from 2 to 8 m. Each bed advances or retreats by ±0,5 m and ends in a rounded cornice. The soft beds retreat under the hard ones.
+- **Large fractures:** all 4 to 16 m according to the benchmark. Four out of ten are corridors of 0,3 to 1,2 m wide and 0,6 m deep, which cut out foothills.
+- **The colors:** a shade by benchmark, and curtains of varnish a few meters wide that flow along the wall.
+- **Same reading:** random paving, cells of 32 m, 64 m divide them; biplanar projection, strata turned to the vertical. Multiplied color and occlusion, slopes and heights added, average retained.
+- **The mesh carries this relief** where its grid cells allows it, like that of other tiles.
+- **The camera:** this relief reaches ±1 m. The height under the camera is therefore read after the relief pass, and no longer before.
 
-**La mesure :** vues à 50 m, 15 m et 1,5 m sur pente raide, avant et après ; le banc de tremblement ; le coût.
+**Measurement:** views at 50 m, 15 m and 1,5 m on steep slope, before and after; the benchmark of jitter; the cost.
 
-**Critère :** de 15 à 50 m, une paroi structurée et non plus un quadrillage, sans tremblement en plus, pour moins de 0,3 ms.
+**Criterion:** from 15 to 50 m, a structured wall and no longer a grid, without jitter in addition, for less than 0,3 ms.
 
-**Résultats :**
+**Results:**
 
-- **De 15 à 50 m,** les parois montrent des corniches, des bancs en retrait, des couloirs : le quadrillage a disparu.
-- **De près,** les corniches découpent leur silhouette, et l'herbe tient sur les bancs en retrait.
-- **Coût :** +0,10 à 0,22 ms sur la roche.
-- **Tremblement, roche à 3 m, avec et sans lissage temporel :**
+- **From 15 to 50 m,** the walls show cornices, benchmarks recessed, corridors: the grid has disappeared.
+- **At close sight,** the cornices cut out their silhouette, and the grass stands on the benchmarks retreating.
+- **Cost:** +0,10 to 0,22 ms on rock.
+- **jitter, rock at 3 m, with and without temporal smoothing:**
 
-| Variante | Roche à 3 m | Sol sec à 1,3 m |
+| Variant | Rock at 3 m | Dry soil at 1,3 m |
 |---|---|---|
-| Avant la tuile de 64 m | 0,05 / 0,27 | 0,06 / 0,39 |
-| Tuile de 64 m, bancs en marches | 0,12 / 0,58 | 0,08 / 0,51 |
-| Bancs raccordés en rampes de 0,6 m, retenu | 0,10 / 0,52 | 0,08 / 0,51 |
-| Sans relief dans le maillage | 0,04 / 0,25 | 0,05 / 0,35 |
+| Before the tile of 64 m | 0,05 / 0,27 | 0,06 / 0,39 |
+| Tile of 64 m, benchmarks in steps | 0,12 / 0,58 | 0,08 / 0,51 |
+| benchmarks connected in ramps of 0,6 m, retained | 0,10 / 0,52 | 0,08 / 0,51 |
+| Without relief in the mesh | 0,04 / 0,25 | 0,05 / 0,35 |
 
-- **D'où vient le tremblement :** du relief de ±1 m que porte le maillage. Filtrer à 16 mailles au lieu de 8 ne gagne que 0,02 ; porter le relief jusqu'aux mailles de 8 m ne change rien.
-- **Il reste faible :** 0,10 sur 255 en moyenne, sous le 0,17 du filtrage à 2 mailles écarté plus tôt. Il se concentre aux bordures entre roche et herbe. À juger en vol.
-- **La caméra** lit maintenant la hauteur du sol après la passe de relief : plus de marge fixe de 30 cm.
+- **Where does the jitter come from:** from the relief of ±1 m that the mesh carries. Filtering to 16 grid cells instead of 8 only gains 0,02; bringing the relief to the grid cells of 8 m does not change anything.
+- **It remains low:** 0,10 on 255 on average, below the 0,17 of the filtering at 2 grid cells dismissed earlier. It concentrates on the edges between rock and grass. To be judged in flight.
+- **The camera** now reads the ground height after the relief pass: no fixed margin of 30 cm.

@@ -1,82 +1,82 @@
-# Log de la documentation
+# Log of documentation
 
-**Ce qui n'est plus d'actualité, pour mémoire.** Rien ici ne décrit l'état présent : pour lui, voir `../README.md`.
+**This is no longer relevant, for the record.** Nothing here describes the present state: for it, see `../README.md`.
 
-## Ce qui y va
+## What goes there
 
-- **Une spec close, remplacée ou désactivée,** entière, déplacée par `git mv` ; ses renvois, dans le code et les docs, pointent vers `docs/log/`.
-- **Les sections dépassées d'une spec vivante :** essais, mesures intermédiaires, options écartées. Elles vont dans `<spec>-historique.md`, et la spec garde un lien.
-- **Une piste mise de côté hors de `main` :** sa doc, prise dans son tag, quand elle n'existe nulle part ailleurs.
+- **A closed, replaced or disabled,** entire spec, moved by `git mv`; its references, in code and docs, point to `docs/log/`.
+- **Expired sections of a live spec:** tests, intermediate measurements, options rejected. They go into `<spec>-historique.md`, and the spec keeps a link.
+- **A experiment set aside out of `main`:** its doc, taken in its tag, when it does not exist anywhere else.
 
-## Ce qu'il contient
+## What it contains
 
-**Les origines**
+**The origins of**
 
-| Fichier | Pourquoi ici |
+| File | Why here |
 |---|---|
-| `general_spec.md` | La spec d'origine, au maillage radial ; remplacée par `../concept.md`. |
-| `concept-historique.md` | L'état des sources avant le portage de complexplanet, et la prochaine étape d'alors ; le portage est fait depuis le jalon 01. |
-| `spec-rendu.md` | Le plan de rendu d'origine, étapes A à E ; faites ou remplacées par les specs suivantes. |
-| `spec-champ-de-vision.md` | Le champ de vision et les performances, faits : jalons 02 et 03. Ses dix vues de référence servent encore de mesure. |
-| `spec-stabilite.md` | L'enquête sur le tremblement ; ses règles sont dans `../principes.md`. |
-| `spec-sommets-fixes.md` | La piste des sommets fixes, close. |
-| `pistes-glissement.md` | Pistes contre le tremblement du maillage glissant, après les sommets fixes. |
+|  `general_spec.md`  | The original spec, at mesh radial; replaced by `../concept.md`. |
+|  `concept-historique.md`  | The state of the sources before complexplanet's port, and the next step from then; the port is made from the milestone 01. |
+|  `spec-rendu.md`  | The original rendering plan, steps A to E; made or replaced by the following specs. |
+|  `spec-champ-de-vision.md`  | Field of view and performance, facts: milestones 02 and 03. Its ten reference views still serve as a measure. |
+|  `spec-stabilite.md`  | The investigation of the jitter; its rules are in `../principes.md`. |
+|  `spec-sommets-fixes.md`  | The experiment of fixed summits, close. |
+|  `pistes-glissement.md`  | experiments against the jitter of the mesh sliding, after fixed tops. |
 
-**Le terrain et ses matériaux**
+**The terrain and its materials**
 
-| Fichier | Pourquoi ici |
+| File | Why here |
 |---|---|
-| `etat-de-l-art-details.md` | Recherche du 2026-10-21 sur les détails de surface ; ses voies ont été suivies ou écartées. |
-| `spec-herbe.md` | Les brins d'herbe en géométrie, proposés le 2026-10-21, jamais faits ; des touffes de brins générés à la place, parmi les objets de proximité. |
-| `spec-hybride-scans.md` | L'essai des scans photo, tag `piste/essai-hybride-scans` ; ses conclusions sont intégrées. |
-| `spec-textures-generees-historique.md` | Les pistes tirées de la comparaison et ce qu'elles sont devenues ; les tours de la roche générée et sa structure de 64 m, retirée le 2026-10-24. |
-| `spec-relief-reel.md` | Le relief des matériaux porté par le maillage : désactivé le 2026-10-23, retiré du code le 2026-10-30, tag `piste/parois-gradins` ; voie géométrie (`../geometrie.md`). |
-| `spec-parois.md` | Les parois en gradins : désactivées le 2026-10-23, retirées du code le 2026-10-30, tag `piste/parois-gradins`. |
-| `spec-normales-spline-historique.md` | Le préfiltre de la spline cardinale et `SPLINE_SHARPENING`, retirés le 2026-10-30, tag `jalon/09-normales-spline`. |
-| `spec-rendu-lointain-historique.md` | Deux correctifs de la passe de relief des matériaux, retirée le 2026-10-30. |
-| `spec-parois-minerales-historique.md` | Les options de la voie rendu, les bandes cassées et leurs correctifs, retirés le 2026-10-24 ; le filtre d'érosion, tag `piste/erosion-filtre`. |
-| `spec-relief-tectonique-historique.md` | Les versions remplacées de la carte et des cordons du 2026-10-31, leurs mesures et leurs défauts. |
-| `spec-parallaxe.md` | La parallaxe du relief de la roche : retirée le 2026-10-24, le relief qu'elle lisait ne s'affiche plus. |
-| `roche-regionale.md` | La roche régionale par pixel, mise de côté le 2026-10-24 avant « une seule roche », tag `piste/roche-regionale` ; ses mesures. |
+|  `etat-de-l-art-details.md`  | Search for 2026-10-21 on surface details; its paths have been followed or discarded. |
+|  `spec-herbe.md`  | The grass strands in geometry, proposed the 2026-10-21, never made; the tufts of strands generated instead, among the nearby objects. |
+|  `spec-hybride-scans.md`  | Photo scans, tag `piste/essai-hybride-scans` ; its conclusions are integrated. |
+|  `spec-textures-generees-historique.md`  | The experiments drawn from the comparison and what they became; the towers of the rock generated and its structure of 64 m, removed the 2026-10-24. |
+|  `spec-relief-reel.md`  | The relief of materials carried by the mesh: disabled the 2026-10-23, removed from the code the 2026-10-30, tag `piste/parois-gradins` ; geometry track (`../geometrie.md`). |
+|  `spec-parois.md`  | The walls in grades: disabled the 2026-10-23, removed from the code the 2026-10-30, tag `piste/parois-gradins`. |
+|  `spec-normales-spline-historique.md`  | The cardinal spline prefilter and `SPLINE_SHARPENING`, removed the 2026-10-30, tag `jalon/09-normales-spline`. |
+|  `spec-rendu-lointain-historique.md`  | Two fixes of the relief pass of materials, removed the 2026-10-30. |
+|  `spec-parois-minerales-historique.md`  | Render path options, broken strips and their patches, removed the 2026-10-24; erosion filter, tag `piste/erosion-filtre`. |
+|  `spec-relief-tectonique-historique.md`  | The replaced versions of the board and cords of the 2026-10-31, their measurements and their defects. |
+|  `spec-parallaxe.md`  | The parallax of the rock relief: removed the 2026-10-24, the relief that she read no longer displays. |
+|  `roche-regionale.md`  | The regional rock per pixel, set aside the 2026-10-24 before "single rock", tag `piste/roche-regionale` ; its measures. |
 
-**La lumière, la mer et les rivières**
+**Light, sea and rivers**
 
-| Fichier | Pourquoi ici |
+| File | Why here |
 |---|---|
-| `recherche-rayons-historique.md` | La hauteur d'ombre sur une grille polaire, étape 1 des rayons : remplacée le 2026-10-24 par la marche des ombres portées. |
-| `recherche-mer-historique.md` | Premier noyau de mer en pixels, remplacé sur la piste FFT ; conservé comme témoin. |
-| `spec-mer-fft-spike-historique.md` | Mesures du prototype FFT du 2026-10-26 et de son intégration à main ; qualité, stabilité, reflet et coût. |
-| `recherche-cotes-historique.md` | Le plan de l'étape 1 des plages, avant de la faire sur la branche `plages`. |
-| `recherche-rivieres-historique.md` | Les spikes rivières des 26 et 27 octobre, tag `piste/rivieres-spikes`, hors de `main` : état final, essais remplacés, journal, règles et surcouches de la branche. |
+|  `recherche-rayons-historique.md`  | The height of shadow on a polar grid, step 1 of rays: replaced the 2026-10-24 by the step of cast shadows. |
+|  `recherche-mer-historique.md`  | First pixel sea core, replaced on the experiment FFT; kept as a reference. |
+|  `spec-mer-fft-spike-historique.md`  | Measurements of the prototype FFT of the 2026-10-26 and its integration with main; quality, stability, reflection and cost. |
+|  `recherche-cotes-historique.md`  | The plan of the stage 1 of the beaches, before doing it on the branch `plages`. |
+|  `recherche-rivieres-historique.md`  | The spikes rivers of 26 and 27 October, tag `piste/rivieres-spikes`, outside `main` : final state, replaced tests, log, rules and branch overlays. |
 
-**Les nuages**
+**The clouds**
 
-| Fichier | Pourquoi ici |
+| File | Why here |
 |---|---|
-| `recherche-nuages-historique.md` | La couche 2D et l'ancien volume en cascades des 24 et 25 octobre, tag `piste/nuages`, et sa stabilité ; remplacés par les nuages du jeu. |
-| `poc-nuage-stable.md` | POC d'un nuage stable et animé par une météo partagée ; clos. |
-| `poc-nuage-stable-historique.md` | Référence figée validée le 26 octobre 2026, avant le mouvement météo partagé. |
-| `poc-nuage-voxel.md` | POC d'un volume voxelisé local ; clos. |
-| `spike-nuages-voxel-planete.md` | Plan de V3 interrompu avant compilation ; nouveau spike à fonder sur des références publiées. |
-| `spike-nuages-voxel-planete-historique.md` | Premier placement régulier trop répétitif, retour de performance et essais intermédiaires du spike voxel. |
-| `spike-nuages-reference.md` | Référence locale guidée par Frostbite : bruits, profils, extinction, provenance ; recette reprise par les nuages du jeu. |
-| `spike-nuages-reference-historique.md` | Spikes Wicked V1 à V5, essai de répartition météo A et mesures intermédiaires ; Formes A et B insuffisantes en vol, Courants C conservé, notice courante pour la référence locale Frostbite. |
-| `spike-nuages-cirrus.md` | Cumulus, nappe et cirrus dans une scène locale commune ; familles reprises par les nuages du jeu. |
-| `spike-nuages-cirrus-historique.md` | Premier essai isolé de cirrus ; fibres trop larges et enveloppe qui coupe les ondulations, remplacé par une scène commune des trois familles. |
-| `spike-nuages-region.md` | Formations régionales sur une carte météo étendue ; remplacées par la météo sur la sphère entière. |
-| `spike-nuages-orbite.md` | Cirrus plus rares et première quadrature orbitale ; quadrature reprise par les nuages du jeu. |
-| `spike-nuages-lumiere.md` | Compensation diffuse sans rayon ajouté, écartée en vol ; éclairage précédent rétabli avant fusion de main. |
-| `spec-nuages-historique.md` | L'ancien `spike-nuages-planete.md`, devenu `../spec-nuages.md` le 2026-10-30 : son lancement et ses variantes, le témoin figé, l'isolation et les mesures du spike et de l'intégration ; tags `piste/nuages-planete-spike`, `jalon/26-nuages-main`. |
+|  `recherche-nuages-historique.md`  | The layer 2D and the old volume in cascades of the 24 and 25 October, tag `piste/nuages`, and its stability; replaced by the clouds of the game. |
+|  `poc-nuage-stable.md`  | POC of a stable cloud and animated by a shared weather; closed. |
+|  `poc-nuage-stable-historique.md`  | Fixed reference validated on 26 October 2026, before the shared weather movement. |
+|  `poc-nuage-voxel.md`  | POC of a local voxelized volume; closed. |
+|  `spike-nuages-voxel-planete.md`  | V3 plan interrupted before compilation; new spike to be based on published references. |
+|  `spike-nuages-voxel-planete-historique.md`  | First regular placement too repetitive, performance feedback and intermediate tests of the spike voxel. |
+|  `spike-nuages-reference.md`  | Frostbite-guided local reference: noise functions, profiles, extinction, origin; recipe taken from the game clouds. |
+|  `spike-nuages-reference-historique.md`  | Spikes Wicked V1 to V5, weather distribution test A and intermediate measurements; Forms A and B insufficient in flight, Currents C retained, current notice for local reference Frostbite. |
+|  `spike-nuages-cirrus.md`  | Cumulus, layer and cirrus in a common local scene; families taken up by the clouds of the game. |
+|  `spike-nuages-cirrus-historique.md`  | First isolated attempt of cirrus; fibers too wide and envelope that cuts the waves, replaced by a common scene of the three families. |
+|  `spike-nuages-region.md`  | Regional formations on an extended weather map; replaced by weather on the entire sphere. |
+|  `spike-nuages-orbite.md`  | Rarer cirrus and first orbital quadrature; quadrature taken over by the clouds of the game. |
+|  `spike-nuages-lumiere.md`  | Diffuse compensation without added radius, spread in flight; previous lighting restored before fusion of main. |
+|  `spec-nuages-historique.md`  | The old man `spike-nuages-planete.md`, becomes `../spec-nuages.md` the 2026-10-30: its launch and its variants, the frozen witness, the isolation and the measures of the spike and the integration; tags `piste/nuages-planete-spike`, `jalon/26-nuages-main`. |
 
-**La végétation et l'optimisation**
+**Vegetation and optimization**
 
-| Fichier | Pourquoi ici |
+| File | Why here |
 |---|---|
-| `recherche-vegetation-historique.md` | Les plantes générées v1 à v3, leurs formes, leur coût et leur aspect ; retirées du code le 2026-10-30, tags `piste/vegetation`, `-v2` et `-v3`. |
-| `prototype-vegetation-volumique.md` | Le prototype comparé des modèles détaillés, volumes et imposteurs multivues, clos, son code retiré le 2026-10-30 ; ses mesures restent la référence de comparaison. |
-| `prototype-vegetation-volumique-historique.md` | Premiers volumes écartés, défaut de couverture et choix du filtrage par transmission ; mesures intermédiaires du prototype. |
-| `vegetation-planetaire-historique.md` | Premiers vols, saturation des files, modèles écartés et itérations comparatives des bouquets, normales et visibilités du feuillage ; les comparatifs du jalon 24 ; les modes, modèles et lanceur retirés le 2026-10-30. |
-| `arbustes-climatiques-historique.md` | Première collection trop apparentée, sélection de familles remplacée et mise au point des sous-plages GPU ; le vol de jugement d'alors. |
-| `vegetation-hiz-historique.md` | Les témoins du HiZ, profondeur historique et modes intercalés, retirés le 2026-10-30 ; la comparaison intercalée et son vol. |
-| `optimisation-vegetation-historique.md` | Essais de compaction et de déplacement des calculs des imposteurs ; limites des mesures sur GPU partagé ; le vol de comparaison, retiré le 2026-10-30. |
-| `optimisation-historique.md` | L'analyse de départ de chaque round de `../optimisation.md` : le coût de chaque part, mesuré par variantes. |
+|  `recherche-vegetation-historique.md`  | Plants generated v1 to v3, their shapes, cost and appearance; removed from code the 2026-10-30, tags `piste/vegetation`, `-v2` and `-v3`. |
+|  `prototype-vegetation-volumique.md`  | The prototype compared of detailed models, volumes and impostors multiviews, closed, its code removed the 2026-10-30; its measurements remain the reference of comparison. |
+|  `prototype-vegetation-volumique-historique.md`  | First volumes removed, lack of coverage and choice of transmission filtering; intermediate measurements of the prototype. |
+|  `vegetation-planetaire-historique.md`  | First flights, saturation of lines, models spread and comparative iterations of the bouquets, normal and visibility of foliage; the comparatives of the milestone 24; the modes, models and launcher removed the 2026-10-30. |
+|  `arbustes-climatiques-historique.md`  | First collection too related, selection of families replaced and development of sub-range GPU; the flight of judgment of then. |
+|  `vegetation-hiz-historique.md`  | The witnesses of the HiZ, historical depth and interlaced modes, removed the 2026-10-30; the interlaced comparison and its flight. |
+|  `optimisation-vegetation-historique.md`  | Compacting and displacement tests of the impostors calculations; limits of measurements on GPU shared; the flight of comparison, removed the 2026-10-30. |
+|  `optimisation-historique.md`  | The initial analysis of each round of `../optimisation.md` : the cost of each part, measured by variants. |

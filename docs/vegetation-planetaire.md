@@ -1,145 +1,145 @@
-# Végétation détaillée sur la planète
+# Detailed vegetation on the planet
 
-**Statut : version validée en l'état par l'utilisateur le 2026-10-27.**
-- Suite de `log/prototype-vegetation-volumique.md`.
+**Status: version validated in the state by the user the 2026-10-27.**
+- Sequel to `log/prototype-vegetation-volumique.md`.
 - Base `piste/vegetation-planetaire-base`.
-- Intégration sur `main`, jalon `jalon/24-vegetation-detaillee-main` ; aucun push demandé.
-- Le seuil du banc qualité reste non satisfait ; les écarts sont conservés dans `log/vegetation-planetaire-historique.md` et `arbustes-climatiques.md`.
-- Suite différée : `optimisation-vegetation.md`, à aspect, densité et portée conservés.
-- Les premiers essais ont été jugés directement en vol ; la demande suivante autorise des itérations comparatives hors écran.
-- Les mesures du prototype isolé ne valident pas les performances de cette version planétaire.
-- L'historique des premiers vols et corrections est dans `log/vegetation-planetaire-historique.md`.
-- Le catalogue de douze arbustes, `arbustes-climatiques.md`, est requis : sans lui, aucune plante. Ses résultats et limites de qualité y sont consignés.
-- **Le seul feuillage du moteur depuis le 2026-10-30 :** actif par défaut, ses réglages en dur. Les autres modes, les modèles `photo` et `stylized` et leurs lanceurs sont retirés ; ils sont décrits dans `log/vegetation-planetaire-historique.md`, tag `piste/vegetation-relais-fondu`.
+- Integration on `main`, milestone `jalon/24-vegetation-detaillee-main`; no push requested.
+- The threshold of the benchmark quality remains unmet; the deviations are retained in `log/vegetation-planetaire-historique.md` and `arbustes-climatiques.md`.
+- Delayed sequence: `optimisation-vegetation.md`, with aspect, density and range retained.
+- The first tests were judged directly in flight; the subsequent application allows off-screen comparative iterations.
+- The measurements of the isolated prototype do not validate the performance of this planetary version.
+- The history of the first flights and corrections is in `log/vegetation-planetaire-historique.md`.
+- The catalog of twelve shrubs, `arbustes-climatiques.md`, is required: without it, no plant. Its results and quality limits are recorded there.
+- **The only engine leaf since the 2026-10-30:** active by default, its settings hard. The other modes, the `photo` and `stylized` models and their launchers are removed; they are described in `log/vegetation-planetaire-historique.md`, tag `piste/vegetation-relais-fondu`.
 
-**Le raccord :**
-- Le placement existant garde la grille planétaire, les graines, les espèces, le climat et les hauteurs.
-- Les modèles de jeu : conifère et feuillu avec branches ramifiées et feuillage découpé.
-- La taille du modèle suit la hauteur de chaque instance ; sa largeur suit la couronne prévue par le peuplement.
-- Les arbustes gardent leurs instances, tailles sources et règles de présence ; le catalogue climatique remplace l'arbuste unique par douze architectures.
-- Le terrain et la règle de présence ne changent pas.
-- La fenêtre de placement compte 512 tuiles par octave, contre 184 pour les plantes générées.
-- Les plantes sortent à 5–8 pixels, contre 14–21 pour les plantes générées ; la canopée utilise la même règle de retrait.
-- La canopée conserve les plantes qui ne sont pas dessinées individuellement, jusqu'à l'orbite.
+**The connection:**
+- The existing placement keeps the planetary grid, seeds, species, climate and heights.
+- game models: coniferous and deciduous with branched branches and cut foliage.
+- The size of the model follows the height of each instance; its width follows the crown provided by the population.
+- Shrubs retain their instances, source sizes and rules of presence; the climate catalogue replaces the single shrub with twelve architectures.
+- The terrain and the presence rule do not change.
+- The placement window counts 512 tiles per octave, against 184 for generated plants.
+- Plants come out at 5–8 pixels, against 14–21 for generated plants; the canopy uses the same drawing rule.
+- The canopy retains plants that are not drawn individually, up to orbit.
 
-**Les représentations :**
-- Imposteurs multivues au loin ; maillage détaillé de près.
-- La représentation se choisit par plante, avec un fondu au relais (`PlanetFoliageMeshShare`, `PlanetFoliageLod.hlsli`) :
-  - entre 0,8 et 1,25 fois le seuil de la plante, elle est dans les deux files, imposteur et maillage ;
-  - chaque pixel tire l'une ou l'autre selon la part du maillage, par un tramage qui change à chaque image : l'œil le fond, sans grain fixe ; le lanceur de vol coupe l'antialiasing temporel, la touche T le rétablit ;
-  - la touche H coupe le fondu en vol et revient à une seule représentation par plante, pour comparer ; en caméra libre seulement, car dans les vues du vaisseau H tourne la tête.
-- Le choix dépend de la hauteur et de la largeur d'une couronne cylindrique projetée, à sa profondeur proche.
-- Le seuil propre à chaque graine est compris entre 96 et 128 pixels.
-- Sans fondu, le passage est un saut net de forme et de lumière ; il était la règle du 2026-10-27 au 2026-10-29.
-- La classification et les appels de dessin indirects restent sur GPU, par espèce et représentation.
+**Representations:**
+- impostors multiviews in the distance; mesh detailed close up.
+- The representation is chosen per plant, with a relay fade (`PlanetFoliageMeshShare`, `PlanetFoliageLod.hlsli`):
+  - between 0,8 and 1,25 times the threshold of the plant, it is in the two rows, impostor and mesh;
+  - each pixel shoots one or the other according to the part of the mesh, by a traming that changes at each frame: the eye the background, without fixed grain; the launcher of flight cuts the temporal antialiasing, the key T restores it;
+  - the key H cuts the fade in flight and returns to a single representation per plant, to compare; in free camera only, because in the views of the ship H turns the head.
+- The choice depends on the height and width of a projected cylindrical crown, at its near depth.
+- The threshold specific to each seed is between 96 and 128 pixels.
+- Without fading, the passage is a clear jump of form and light; it was the rule of the 2026-10-27 to the 2026-10-29.
+- The classification and indirect drawing calls remain on GPU, by species and representation.
 
-**Les files et la stabilité :**
-- Les tuiles candidates ont un indice fixe ; un calcul de sommes préfixes conserve leur ordre pendant la compaction.
-- Les plantes produites par tuile sont compactées dans le même ordre vers les listes proche et lointaine.
-- Les limites gardent ainsi un sous-ensemble déterministe, même à caméra immobile ; l'ordre d'arrivée des vagues GPU ne choisit plus les arbres.
-- Chaque liste source accepte 262 144 plantes.
-- Chaque file du renderer accepte 524 288 instances, soit l'union maximale des deux listes sources.
-- Six files regroupent les trois espèces et leurs deux représentations ; leur buffer réserve désormais 192 Mio.
-- La bande de relais peut copier une plante dans les deux représentations ; elle ne peut pas saturer une file aval à elle seule.
-- Les dépassements des tuiles et des listes de plantes restent signalés.
-- Une saturation peut encore réduire le couvert géométrique attendu par la canopée ; le choix reste stable, et la limite reste visible.
-- Le stockage temporaire des tuiles et des instances augmente la mémoire ; ce prototype privilégie la stabilité à la compacité.
+**Queues and stability:**
+- The candidate tiles have a fixed index; a prefix sum calculation keeps their order during compaction.
+- Plants produced by tile are compacted in the same order to the near and distant lists.
+- The limits thus keep a deterministic subset, even with a camera still; the order of arrival of the waves GPU no longer chooses the trees.
+- Each source list accepts 262 144 plants.
+- Each row of the renderer accepts 524 288 instances, which is the maximum union of the two source lists.
+- Six rows group the three species and their two representations; their buffer now reserves 192 MiB.
+- The relay strip can copy a plant in both representations; it cannot saturate a downstream queue alone.
+- Overruns of tiles and plant lists remain marked.
+- Saturation can further reduce the geometric cover expected by the canopy; the choice remains stable, and the limit remains visible.
+- Temporary storage of tiles and instances increases memory; this prototype prioritizes stability over compactness.
 
-**Les imposteurs optimisés :**
-- Le rectangle est calculé en projection perspective, à partir des quatre plans de vues échantillonnés.
-- Le shader lit d'abord la couleur et rejette la transparence avant les normales, profondeurs et visibilités.
-- Il est limité à l'ancien carré, avec une marge d'un pixel ; le passage du plan proche garde une couverture conservatrice.
-- Deux textures `Texture2DArray` RGBA16F par espèce portent la couleur linéaire et la normale/profondeur.
-- Toutes les composantes sont prémultipliées par la couverture avant de construire les mipmaps.
-- Le filtrage bilinéaire et le mélange entre mipmaps sont réalisés par le matériel ; les quatre vues angulaires restent mélangées dans le shader.
-- Le heap réserve sept SRV par modèle, jusqu'à quatorze modèles : deux pour l'imposteur, trois pour les matériaux du maillage et deux pour les visibilités précalculées.
-- Les imposteurs utilisent un seuil alpha fixe de 0,5 ; leurs mipmaps conservent approximativement la couverture par vue.
-- Un soutien de silhouette pondéré par les quatre vues protège le noyau opaque ; couleur, normale et profondeur gardent les poids d'origine.
-- Les très petits mipmaps quantifient encore la couverture ; la silhouette entre vues reste une approximation.
-- La population, les distances et les seuils restent ceux du vol précédent ; les imposteurs reprennent les modèles sélectionnés.
-- Compilation et revue statique uniquement ; aucun gain de temps GPU n'est encore mesuré.
+**The impostors optimized:**
+- The rectangle is calculated in perspective projection, from the four sampled view planes.
+- The shader reads color first and rejects transparency before normals, depths and visibilities.
+- It is limited to the old square, with a margin of one pixel; the passage of the close-up keeps a conservative cover.
+- Two textures `Texture2DArray` RGBA16F per species carry the linear color and the normale/profondeur.
+- All components are pre-multiplied by the cover before building the mipmaps.
+- Bilinear filtering and blending between mipmaps is done by hardware; the four angular views remain mixed in the shader.
+- The heap reserves seven SRV per model, up to fourteen models: two for the impostor, three for the materials of the mesh, and two for the pre-calculated visibilities.
+- The impostors uses a fixed alpha threshold of 0,5; their mipmaps retains roughly the coverage per view.
+- A silhouette support weighted by the four views protects the opaque core; color, normal and depth keep the original weights.
+- The very small mipmaps still quantify the cover; the silhouette between views remains an approximation.
+- The population, distances and thresholds remain those of the previous flight; the impostors take over the selected models.
+- Compilation and static review only; no GPU time savings are measured yet.
 
-**Les modèles de jeu :**
-- La cible est un rendu réaliste de jeu AAA, avec des feuilles et rameaux lisibles dans les bouquets et des silhouettes irrégulières.
-- Les modèles à bouquets pleins ont été rejetés par l'utilisateur ; leur essai est consigné dans `log/vegetation-planetaire-historique.md`.
-- Dossiers `assets/foliage/game_fir` et `assets/foliage/game_broadleaf` ; sources et reproduction dans `assets/foliage/README.md`.
-- Pin d'evolveduk, 5 627 triangles ; feuillu Rakshi Games Tree10_1, 3 308 triangles, feuillage détaillé porté par les cartes alpha.
-- Arbuste Searsia Lucida f de Poly Haven, 7 232 triangles, branches opaques et feuilles découpées : la source des feuilles et de l'écorce des arbustes climatiques ; crédits dans `../assets/foliage/game_shrub_origins.md`.
-- Normales et rugosité du pin importées ; normales Unity du feuillu converties, rugosité constante faute de carte source exploitable.
-- La qualité recherchée reste à juger en vol ; ces comptes ne constituent ni une validation AAA ni une mesure des FPS.
-- Les imposteurs et les volumes sont reconstruits à partir du maillage sélectionné ; les volumes ne servent plus que hors ligne, au précalcul de la lumière.
+**Game models:**
+- The target is a realistic AAA game rendering, with leaves and branches readable in bouquets and irregular silhouettes.
+- Full-bucket models were rejected by the user; their test is recorded in `log/vegetation-planetaire-historique.md`.
+- Files `assets/foliage/game_fir` and `assets/foliage/game_broadleaf`; sources and reproduction in `assets/foliage/README.md`.
+- Pine from evolveduk, 5 627 triangles; leafy Rakshi Games Tree10_1, 3 308 triangles, detailed foliage carried by alpha cards.
+- Poly Haven Searsia Lucida f shrub, 7 232 triangles, opaque branches and cut leaves: the source of leaves and bark of climatic shrubs; credits in `../assets/foliage/game_shrub_origins.md`.
+- Normals and roughness of the pine imported; normals Unity of the hardwood converted, roughness constant lack of exploitable source card.
+- The quality is to be judged in flight; these accounts are neither a validation AAA nor a measure of FPS.
+- The impostors and volumes are rebuilt from the selected mesh; volumes are only used offline, for light precalculation.
 
-**Les textures des maillages proches :**
-- Une couche par matériau dans trois tableaux de textures : couleur sRGB, normales et masques UNORM.
-- Filtrage matériel anisotrope ×8 avec UV répétées.
-- Construction des mipmaps en couleur linéaire, pondération par l'alpha, normales renormalisées et couverture réglée au seuil de 0,5.
-- Les couleurs sont propagées dans les texels transparents pour éviter les bordures sombres.
-- Les atlas bruts ne vont plus au GPU : leur lecture bilinéaire de repli est retirée le 2026-10-30.
+**Textures of the meshes nearby:**
+- One layer per material in three texture tables: sRGB color, normals and masks UNORM.
+- Material filtering anisotropic ×8 with repeated UV.
+- Construction of mipmaps in linear color, alpha weighting, renormalized normals and coverage set to the threshold of 0,5.
+- Colors are spread in the transparent texels to avoid dark borders.
+- Raw atlases no longer go to the GPU: their bilinear folding reading is removed the 2026-10-30.
 
-**La lumière et les pieds :**
-- Les textures des modèles gardent leur couleur ; soleil, ciel, ombre du relief et couvert environnant participent à la lumière.
-- Le maillage proche peut charger `material.bin` : atlas de normales OpenGL, occlusion ambiante, rugosité et transmission.
-- Ces cartes ajoutent le détail de l'écorce et des feuilles, une réponse spéculaire modérée et un contrejour foliaire borné.
-- Les proxies gardent une normale moyenne ; le détail des cartes de normales n'y est pas reproduit. Les imposteurs s'éclairent sur la dispersion de leurs feuilles (L'éclairage des imposteurs).
-- Le maillage proche prolonge le bas du tronc sous le pied, sans modifier la couronne.
-- Les proxies gardent leurs bornes ; leur base peut différer pendant le relais.
-- Les empreintes alpha réelles ne correspondent pas exactement au disque théorique de chaque couronne.
-- La conservation du couvert et de la lumière à l'approche reste à juger.
-- Pas de vent ni d'ombres portées précises des arbres ; la normale moyenne du volume reste une approximation.
+**Light and feet:**
+- The textures of the models retain their color; sun, sky, shadow of the relief and surrounding cover participate in the light.
+- The near mesh can load `material.bin`: OpenGL normals atlas, ambient occlusion, roughness and transmission.
+- These maps add detail of bark and leaves, moderate spectral response and limited foliar backlight.
+- The proxies keep an average normal; the detail of the normal maps is not reproduced. The impostors light up on the dispersion of their leaves (The lighting of the impostors).
+- The close mesh extends the bottom of the trunk under the foot, without modifying the crown.
+- Proxies keep their bounds; their base may differ during the relay.
+- The actual alpha fingerprints do not exactly match the theoretical disk of each crown.
+- The preservation of cover and light at approach remains to be judged.
+- No wind or precise shadows cast by trees; the average normal volume remains an approximation.
 
-**Le volume du feuillage :**
-- Les variantes dérivées sont reconstruites par `tools/foliage/volume_assets.py`, puis son option `--normals`.
-- Les feuilles d'origine sont réparties autour des rameaux porteurs ; les branches, atlas, pivots et bornes sont conservés.
-- Les feuillus passent de 3 308 à 7 010 triangles ; les arbustes de 7 232 à 13 406. Le pin reste identique.
-- Le nombre d'instances, les graines, les tailles, les seuils de relais et la portée restent inchangés.
-- Les normales foliaires sont orientées par bouquets locaux ; aucune enveloppe opaque n'est ajoutée.
-- Une variation de teinte stable par graine est bornée à 6 % ; elle s'efface avec la force d'auto-ombrage.
-- Le volume alpha 64³ fournit hors ligne seize rayons de ciel et six visibilités axiales du soleil par sommet.
-- Le moteur interpole ces données, puis atténue séparément le ciel et le soleil ; il ne lance aucun rayon d'ombre supplémentaire par image.
-- Les imposteurs portent les mêmes visibilités dans deux textures RGBA8 ; leur filtrage suit la couverture alpha.
-- Les six directions restent une approximation de l'auto-ombrage ; les arbres voisins n'y projettent pas d'ombre précise.
-- La force de l'auto-ombrage vaut 0,65, en dur : `VolumeStrength`, `PlanetFoliage.cpp`.
-- Un sidecar absent utilise des données neutres dimensionnées pour tous les sommets ; un branchement HLSL ne garantit pas l'absence de lecture spéculative.
-- Les couverts des arbres et des arbustes se composent par union pour l'éclairage du sol et des objets ; leur addition produisait parfois une lumière négative.
-- Les critères artistiques et les étapes comparées sont dans `log/vegetation-planetaire-historique.md`.
+**The volume of foliage:**
+- The derived variants are rebuilt by `tools/foliage/volume_assets.py`, then its option `--normals`.
+- The original leaves are spread around the supporting branches; branches, atlases, pivots and bounds are preserved.
+- Hardwood trees change from 3 308 to 7 010 triangles; shrubs from 7 232 to 13 406. The pine remains identical.
+- The number of instances, seeds, sizes, relay thresholds, and scope remain unchanged.
+- Foliary normals are oriented by local bouquets; no opaque envelope is added.
+- A stable variation in colour per seed is limited to 6 %; it fades with the strength of self-shading.
+- The alpha volume 64³ provides offline sixteen sky rays and six axial sun visibilities per vertex.
+- The engine interpolates this data, then separately dims the sky and sun; it does not cast any additional shadow rays per frame.
+- The impostorss carry the same visibilities in two RGBA8 textures; their filtering follows the alpha coverage.
+- The six directions remain an approximation of self-shading; neighboring trees do not cast a precise shadow there.
+- The strength of the self-shading is worth 0,65, hard: `VolumeStrength`, `PlanetFoliage.cpp`.
+- An absent sidecar uses neutral data sized for all vertices; a HLSL branch does not guarantee the absence of speculative reading.
+- The covering of trees and shrubs is composed by union for the lighting of the soil and objects; their addition sometimes produced a negative light.
+- The artistic criteria and the steps compared are in `log/vegetation-planetaire-historique.md`.
 
-**L'éclairage des imposteurs (2026-10-29) :**
-- **Le défaut vu en vol :** au relais, un arbre sombre s'éclairait en devenant maillage. Antérieur à l'optimisation : `242d0f7` et le round 8 donnent la même image immobile.
-- **La cause, la normale :** l'imposteur mélange quatre vues cuites et ses mips. La moyenne des normales de feuilles différentes, renormalisée, tourne vers la caméra. L'imposteur s'éclairait comme une carte face à l'œil : sombre en contre-jour et sous un soleil haut devant, clair soleil dans le dos.
-- **Ce qui n'y est pour rien,** testé un terme à la fois : spéculaire, occlusion, cartes de normales, transmission, visibilités précalculées, couvert de la canopée.
-- **La correction de la lumière :** la longueur de la normale moyenne est la cohérence k des feuilles. Le direct, le contre-jour et le terme sol/ciel prennent l'espérance sur ces feuilles : E[max(0, x)] = E[x]/2 + E|x|/2 ; E[x] suit la normale moyenne, E|x| va de 1/2, feuilles dispersées, à |x|, une seule feuille.
-- **Où :** `OutputVolume`, et `Light` pour les pins sans visibilités précalculées, sous `PLANET_FOLIAGE_IMPOSTOR`. Les shaders des maillages compilent au bit près comme avant.
-- **La correction de la couleur :** `tools/foliage/bake.py` moyennait ses quatre sous-échantillons en sRGB ; il les moyenne en linéaire. Luminance des imposteurs : feuillu +8,6 %, pin +1,9 %, arbustes +1 %.
-- **Recuits** par `python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs_v2 <modèles>`, la liste complète dans `lancement.md` : normales, alpha et entêtes identiques au bit près. Les `.bin` ne sont pas versionnés ; ceux d'avant sont dans `x64/vegetation_eclairage/imposteurs_avant/`.
-- **La mesure :** luminance des mêmes plantes, maillage contre imposteur seul. Au sol, plantes de plus de 300 pixels, 4 lieux, 5 soleils et un lieu sous les cumulus. Au relais, à 25 m du sol, le quart le plus lointain des maillages.
+**The lighting of the impostors (2026-10-29):**
+- **The defect seen in flight:** at the relay, a dark tree lit up by becoming mesh. Pre-optimization: `242d0f7` and the 8 round give the same still image.
+- **The cause, the normal:** the impostor mixes four cooked views and its mips. The average of the normals of different sheets, renormalized, turns to the camera. The impostor lit up like a card facing the eye: dark in backlight and under a high sun in front, clear sun in the back.
+- **What is not for nothing,** tested one term at a time: specular, occlusion, normal maps, transmission, pre-calculated visibilities, covered by the canopy.
+- **Light correction:** the length of the mean normal is the consistency k of the leaves. The direct, the backlight and the term sol/ciel take the hope on these leaves: E[max(0, x)] = E[x]/2 + E|x|/2; E[x] follows the normal mean, E|x| goes from 1/2, scattered leaves, to |x|, a single leaf.
+- **Where:** `OutputVolume`, and `Light` for pins without pre-calculated visibilities, under `PLANET_FOLIAGE_IMPOSTOR`. The shaders of the meshes compile to the bit as before.
+- **Color correction:** `tools/foliage/bake.py` averaged its four sub-sample in sRGB; it averages them linearly. luminance of impostors: hardwood +8,6 %, pine +1,9 %, shrubs +1 %.
+- **Recurated** by `python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs_v2 <modèles>`, the complete list in `lancement.md`: normal, alpha and bit-identical headers. The `.bin` are not versioned; the previous ones are in `x64/vegetation_eclairage/imposteurs_avant/`.
+- **Measurement:** luminance of the same plants, mesh against impostor alone. On the ground, plants more 300 pixels, 4 places, 5 suns and a place under the cumulus. At the relay, at 25 m from the ground, the farthest quarter of the meshes.
 
-| Rapport maillage / imposteur | avant | couleur seule | couleur et lumière |
+| Report mesh / impostor | Before | Colour only | color and light |
 |---|---|---|---|
-| Au sol, image entière | 0,82 à 1,30 ; 13 % en moyenne | 0,79 à 1,24 ; 11 % | 0,87 à 1,15 ; 7 % |
-| Au sol, couronnes | 0,89 à 1,47 ; 18 % | 0,80 à 1,33 ; 12 % | 0,88 à 1,21 ; 9 % |
-| Au relais | 0,86 à 2,05 ; 21 % | 0,77 à 1,90 ; 16 % | 0,86 à 1,74 ; 13 % |
+| On the ground, whole image | 0,82 to 1,30; 13 % on average | 0,79 to 1,24; 11 % | 0,87 to 1,15; 7 % |
+| On the ground, crowns | 0,89 to 1,47; 18 % | 0,80 to 1,33; 12 % | 0,88 to 1,21; 9 % |
+| On the relay | 0,86 to 2,05; 21 % | 0,77 to 1,90; 16 % | 0,86 to 1,74; 13 % |
 
-- **Ce qui reste :** le maillage reste plus clair de 4 à 26 % sous un soleil haut devant ou rasant, plus sombre de 10 à 14 % soleil dans le dos. Le pire au relais, 1,74, est la lisière en contre-jour, où un grand arbre proche domine la mesure. Cause non trouvée.
-- **Le coût :** quelques opérations par pixel d'imposteur, non mesuré au banc.
-- **En vol :** `tools/tests/2026-10-29-imposteurs-eclairage.txt`, à juger. Images et mesures : `x64/vegetation_eclairage/`.
+- **What remains:** the mesh remains lighter from 4 to 26 % under a high front or rasing sun, darker from 10 to 14 % sun in the back. The worst at the relay, 1,74, is the backlit edge, where a large nearby tree dominates the measure. Cause not found.
+- **Cost:** few operations per pixel of impostor, not measured at benchmark.
+- **In flight:** `tools/tests/2026-10-29-imposteurs-eclairage.txt`, to be judged. Images and measurements: `x64/vegetation_eclairage/`.
 
-**Les comparatifs du jalon 24 :**
-- Huit vues hors écran sur quatre biomes et deux soleils ; l'optimisation seule donne un dessin médian de 9,34 à 7,43 ms, huit images identiques bit à bit.
-- Le banc de qualité échoue sur 3 p95 sur 59 ; la version est acceptée en l'état avec ces écarts connus.
-- Le détail, le banc des forêts retiré et les rapports : `log/vegetation-planetaire-historique.md`.
+**Comparisons of the milestone 24:**
+- Eight off-screen views on four biomes and two suns; optimization alone gives a median drawing of 9,34 to 7,43 ms, eight identical images bit by bit.
+- The quality benchmark fails on 3 p95 on 59; the version is accepted as is with these known deviations.
+- The detail, the benchmark of the forests removed and the reports: `log/vegetation-planetaire-historique.md`.
 
-**Lancement :**
-- Le jeu se lance comme le dit `lancement.md` ; le feuillage y est actif par défaut.
-- Le catalogue se trouve seul : `MYPLANETENGINE_FOLIAGE_ASSETS` ; sinon le premier construit au-dessus de l'exécutable, celui du dépôt, puis `plantes/climate_shrubs_v2`, publié à côté des dépôts par `tools\plantes.ps1` et trouvé par tous les worktrees, comme les scans.
-- Sans catalogue, aucune végétation, ni dessinée ni en canopée : la planète nue, et le titre dit « végétation absente » avec la raison. La canopée seule tient lieu des plantes non dessinées ; partout, vue de sous ses cimes, elle faisait un rideau strié (`journal-planete.md`, 2026-10-31). `MYPLANETENGINE_NO_PLANTS` garde la canopée partout, pour le banc de végétation.
-- La palette `tools/tests/2026-10-27-arbustes-climatiques.txt` donne douze vues, par boutons ou F1 à F12 : deux par groupe climatique.
-- Le titre indique les FPS, les temps GPU, les comptes de maillages et d'imposteurs par espèce et les dépassements.
+**Launch:**
+- The game starts as `lancement.md` says; foliage is active by default.
+- The catalog is found alone: `MYPLANETENGINE_FOLIAGE_ASSETS`; otherwise the first one built above the executable, the repository one, then `plantes/climate_shrubs_v2`, published next to the repositories by `tools\plantes.ps1` and found by all worktrees, like scans.
+- Without catalog, no vegetation, neither drawn nor in canopy: the naked planet, and the title says "absent vegetation" with reason. The canopy alone replaces the undrawn plants; everywhere, seen from under its crowns, it made a striated curtain (`journal-planete.md`, 2026-10-31). `MYPLANETENGINE_NO_PLANTS` keeps the canopy everywhere, for the benchmark vegetation.
+- The `tools/tests/2026-10-27-arbustes-climatiques.txt` palette gives twelve views, by buttons or F1 to F12: two per climate group.
+- The title indicates the FPS, the GPU times, the meshes and impostors counts by species and the overruns.
 
-**À observer pendant le vol :**
-- La lisibilité des feuilles, des branches, des percées et des silhouettes pendant l'approche.
-- Les changements de lumière ou de couvert pendant le relais.
-- Les pieds, les silhouettes et la stabilité quand la caméra bouge.
-- Le coût dans les forêts denses, en vue rasante et au sol.
-- Tout dépassement de capacité indiqué par le titre.
+**To be observed during flight:**
+- The readability of leaves, branches, breakouts and silhouettes during approach.
+- Changes in light or cover during the relay.
+- The feet, the silhouettes and the stability when the camera moves.
+- The cost in dense forests, in raised view and on the ground.
+- Any capacity overrun indicated by the title.
 
-**Code :** `PlanetFoliage.cpp/.h`, `PlanetFoliage*.hlsl`, `PlanetPlantPlacement.cpp/.h`, `PlanetPlant*.hlsl`, `PlantPlacement.hlsli`, `Vegetation.hlsli`, `FoliageHiZ.cpp/.h`, `D3DApp.cpp`.
+**Code:** `PlanetFoliage.cpp/.h`, `PlanetFoliage*.hlsl`, `PlanetPlantPlacement.cpp/.h`, `PlanetPlant*.hlsl`, `PlantPlacement.hlsli`, `Vegetation.hlsli`, `FoliageHiZ.cpp/.h`, `D3DApp.cpp`.

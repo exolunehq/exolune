@@ -1,383 +1,383 @@
-# Spécification : les objets de proximité
+# Specification: proximity objects
 
-Statut : en place, `jalon/19-detail-sol`. Piste ouverte le 2026-10-24, tag `piste/objets-proximite`. Étape 3 faite le 2026-10-25 : un champ de pierrosité décide où il y a des débris ; des cailloux plus petits, moins nombreux.
+Status: in place, `jalon/19-detail-sol`. experiment opened the 2026-10-24, tag `piste/objets-proximite`. Step 3 made the 2026-10-25: a field of stonyness decides where there are debris; smaller pebbles, less numerous.
 
-**En bref :**
-- **Le détail du sol, pas la roche :** ce qu'on voit debout à ses pieds, des cailloux et des touffes posés sur le sol ; jamais la roche en place ni son relief, qui relèvent de la géométrie.
-- **Des débris seulement dans les régions caillouteuses :** un champ de pierrosité de 0,5 à 32 km, sur la grille de la planète, plus haut sur les éboulis, le sol nu sec et les pentes. Aucun débris sur 74 % des prairies, 70 % des sables et sols nus, 11 % des éboulis.
-- **Une recette par sol, là où il est caillouteux :**
-  - sable et sol nu : surtout de petits cailloux de 3 à 6 cm, moins de 6 à 12 cm, de rares plus gros ; le gravier plus fin est la texture du sol ; quelques touffes sèches ;
-  - herbe : des touffes partout, caillouteuse ou non ; des rochers à demi enfouis, rares, par taches ;
-  - éboulis : leurs pierres ;
-  - des blocs amassés seulement au pied des vraies parois, plus au fond de chaque ravine.
-- **Calée sur deux photos prises debout,** comptées sur une tache de premier plan ; les lois publiées en garde-fou.
-- **Chaque objet a sa place fixe sur la planète :** une cellule de la grille cartésienne de la planète, jamais le maillage glissant ni l'ancre de 64 m.
-- **La caméra décide seulement s'il se voit :** il sort du sol quand il couvre 6 pixels, entier à 9 ; jamais là où le maillage ne peut pas porter son pied.
-- **Par taches et par amas, jamais semés partout :** les rochers par taches, les cailloux et les touffes par amas plus doux.
-- **Les pentes suivent la gravité :** rien au-delà de l'angle de repos, les plus gros d'abord.
-- **Son pied est sur le sol exact,** complexplanet sans filtrage, enfoui dans un sol meuble, à peine assis sur la roche. L'écart au sol du maillage, mesuré, reste sous l'enfouissement.
-- **Mesuré :** sur le sable caillouteux, 5,2, 1,0, 0,14 et 0,008 cailloux par m² de 3 à 50 cm, le bas de la photo, qui en a 16, 6 et 0,5 ; dans l'herbe, 9 touffes par m² sur 34 % du sol, la photo 6 à 15 sur 30 à 60 % ; aucun objet flottant ; aucun surgissement.
+**In brief:**
+- **The detail of the ground, not the rock:** what we see standing at his feet, pebbles and tufts placed on the ground; never the bedrock or its relief, which fall under geometry.
+- **Debris only in the rocky regions:** a stone field of 0,5 to 32 km, on the planet grid, higher on the scree, dry bare ground and slopes. No debris on 74 % of grasslands, 70 % of sands and bare soils, 11 % of scree.
+- **A recipe per soil, where it is stony:**
+  - sand and bare soil: mostly small pebbles of 3 to 6 cm, less of 6 to 12 cm, few larger; the finer gravel is the texture of the soil; some tufts dry;
+  - grass: tufts everywhere, pebble or not; rocks half buried, rare, by spots;
+  - scree: their stones;
+  - blocks accumulated only at the foot of the real walls, more at the bottom of each ravine.
+- **Called on two photos taken standing,** counted on a spot of the foreground; laws published in safeguard.
+- **Every object has its fixed place on the planet:** a cell of the planet's Cartesian grid, never the mesh sliding nor the 64 anchor m.
+- **The camera only decides if it sees itself:** it comes out of the ground when it covers 6 pixels, whole to 9; never where the mesh can not carry its foot.
+- **By spots and clusters, never sown everywhere:** rocks by spots, pebbles and tufts by softer clusters.
+- **Slopes follow gravity:** nothing beyond the angle of repose, the larger ones first.
+- **His foot is on the exact ground,** complexplanet without filtering, buried in loose ground, barely sitting on the rock. The ground clearance of the mesh, measured, remains under the burial.
+- **Measured:** on the gravelly sand, 5,2, 1,0, 0,14 and 0,008 pebbles per m² from 3 to 50 cm, the bottom of the photo, which has 16, 6 and 0,5; in the grass, 9 tufts per m² on 34 % of the ground, the photo 6 to 15 on 30 to 60 %; no floating objects; no rising.
 
-## Le détail du sol et les roches : la ligne
+## The detail of the ground and rocks: the line
 
-**Cette piste fait le détail du sol :** des objets posés, détachés, à l'échelle d'une photo prise debout.
-- **Les cailloux et les graviers,** partout où le sol en porte : sable, sol nu, éboulis, herbe.
-- **Les touffes d'herbe,** partout dans l'herbe ; quelques touffes sèches sur le sable et le sol nu.
-- **Les roches moyennes et grosses, seulement là où elles s'accumulent vraiment :** les éboulis, le pied des vraies parois, des rochers à demi enfouis dans l'herbe par endroits.
-- **Posés ou enfouis selon le sol :** à demi dans la terre, le sable ou les fines d'un éboulis ; à peine assis sur la roche.
+**This experiment makes the detail of the floor:** objects placed, detached, on the scale of a photo taken standing.
+- **Pebbles and gravel,** wherever the soil allows: sand, bare ground, scree, grass.
+- **Grass tufts,** all over the grass; some dry tufts on sand and bare ground.
+- **The medium and large rocks, only where they really accumulate:** the scree, the foot of the real walls, rocks half buried in the grass in places.
+- **Laid or buried depending on the ground:** half in the earth, sand or fines of a scree; barely sitting on the rock.
 
-**Les roches en place sont la piste de la géométrie** (`recherche-geometrie-proximite.md`, sur sa branche) : la roche nue, ses parois, ses saillies, ses blocs qui en dépassent. Un bloc à demi enfoui dans une paroi est du relief, pas un objet ; posé comme un objet, il se lit comme une mauvaise intégration.
+**The rocks in place are the experiment of geometry** (`recherche-geometrie-proximite.md`, on its branch): the bare rock, its walls, its protrusions, its blocks that exceed it. A block half buried in a wall is relief, not an object; placed as an object, it reads as a bad integration.
 
-## Ce que fait l'industrie
+## What the industry is doing
 
-Recherche du 2026-10-24, sources primaires.
+Search for 2026-10-24, primary sources.
 
-- **Horizon Zero Dawn, placement procédural sur GPU** ([van Muijden, GDC 2017](https://www.guerrilla-games.com/media/News/Files/GDC2017_VanMuijden_GPUBasedProceduralPlacementInHorizonZeroDawn.pdf)) :
-  - le monde est construit autour du joueur, à la volée, par des passes de calcul ;
-  - chaque type d'objet a une carte de densité, calculée par un graphe de règles sur les données du terrain ;
-  - la densité est comparée à un motif de seuils fixe, posé sur le monde : le placement est déterministe et localement stable, changer une densité ne déplace que les objets voisins ;
-  - chaque type a son rayon de placement autour du joueur.
-- **Ghost of Tsushima, l'herbe procédurale** ([Wohllaib, GDC 2021](https://gdcvault.com/play/1027214/Advanced-Graphics-Summit-Procedural-Grass)) : chaque brin est généré sur GPU, avec son aspect et son animation propres, des hectares d'herbe dans des limites de mémoire et de temps tenues.
-- **Far Cry 5** ([Carrier, GDC 2018](https://gdcvault.com/play/1025557/Procedural-World-Generation-of-Far)) : biomes, végétation et rochers de falaise générés par des outils Houdini, mais hors ligne, à la construction du monde. Pas transposable à une planète entière.
-- **Unreal Engine 5, PCG** ([modes de génération](https://dev.epicgames.com/documentation/en-us/unreal-engine/using-pcg-generation-modes-in-unreal-engine), [génération hiérarchique à l'exécution](https://dev.epicgames.com/documentation/unreal-engine/runtime-hierarchical-generation)) :
-  - le domaine est découpé en grilles, une taille de cellule par classe d'objets : grande pour les arbres et les rochers, petite pour l'herbe et les pierres ;
-  - à l'exécution, les cellules sont générées dans un rayon propre à chaque taille de grille, autour de la caméra.
-- **DirectX 12, dessin indirect** ([Microsoft](https://learn.microsoft.com/en-us/windows/win32/direct3d12/indirect-drawing-and-gpu-culling-)) : une passe de calcul trie les instances et écrit les arguments du dessin ; `ExecuteIndirect` les lit, le compte venant du GPU.
-- **Les fondus sans pop :** le fondu tramé est le défaut du feuillage d'Unreal, avec ses défauts connus, une marche de pop en fin de fondu ([UE-40065](https://issues.unrealengine.com/issue/UE-40065)) et le coût de dessiner les deux niveaux ; Cesium fait monter un seuil de tramage dans le temps ([Cesium](https://cesium.com/blog/2022/10/20/smoother-lod-transitions-in-cesium-for-unreal/)).
-- **Grille et tirage** ([Red Blob Games](https://redblobgames.com/x/1830-jittered-grid), [Bridson 2007](https://www.cs.ubc.ca/~rbridson/docs/bridson-siggraph07-poissondisk.pdf)) : la grille décalée au hasard est le substitut bon marché du tirage de Poisson, avec un peu plus d'amas et de trous ; le tirage de Poisson est global et séquentiel, impossible sur une planète sans fin.
+- **Horizon Zero Dawn, procedural placement on GPU** ([van Muijden, GDC 2017](https://www.guerrilla-games.com/media/News/Files/GDC2017_VanMuijden_GPUBasedProceduralPlacementInHorizonZeroDawn.pdf)):
+  - the world is built around the player, on the fly, by calculating passes;
+  - each type of object has a density map, calculated by a rule graph on the field data;
+  - density is compared to a fixed threshold pattern, placed on the world: the placement is deterministic and locally stable, changing a density only moves neighboring objects;
+  - each type has its radius of placement around the player.
+- **Ghost of Tsushima, the procedural grass** ([Wohllaib, GDC 2021](https://gdcvault.com/play/1027214/Advanced-Graphics-Summit-Procedural-Grass)): each strand is generated on GPU, with its own look and animation, hectares of grass within memory and time limits.
+- **Far Cry 5** ([Carrier, GDC 2018](https://gdcvault.com/play/1025557/Procedural-World-Generation-of-Far)): biomes, vegetation and cliff rocks generated by Houdini tools, but offline, to build the world. Not transposable to a whole planet.
+- **Unreal Engine 5, PCG** ([generation modes](https://dev.epicgames.com/documentation/en-us/unreal-engine/using-pcg-generation-modes-in-unreal-engine), [hierarchical generation to execution](https://dev.epicgames.com/documentation/unreal-engine/runtime-hierarchical-generation)):
+  - the field is cut into grids, a cell size per class of objects: large for trees and rocks, small for grass and stones;
+  - at execution, cells are generated in a radius proper to each grid size, around the camera.
+- **DirectX 12, indirect drawing** ([Microsoft](https://learn.microsoft.com/en-us/windows/win32/direct3d12/indirect-drawing-and-gpu-culling-)): a calculation pass sorts the instances and writes the drawing arguments; `ExecuteIndirect` reads them, the count comes from GPU.
+- **Popless fade:** the tramed fade is the defect of Unreal foliage, with its known defects, a pop step at the end of fade ([UE-40065](https://issues.unrealengine.com/issue/UE-40065)) and the cost of drawing the two levels; Cesium raises a threshold of traming in time ([Cesium](https://cesium.com/blog/2022/10/20/smoother-lod-transitions-in-cesium-for-unreal/)).
+- **Grid and Draw** ([Red Blob Games](https://redblobgames.com/x/1830-jittered-grid), [Bridson 2007](https://www.cs.ubc.ca/~rbridson/docs/bridson-siggraph07-poissondisk.pdf)): the randomly offset grid is the cheap substitute for the Poisson draw, with a little more clusters and holes; the Poisson draw is global and sequential, impossible on an endless planet.
 
-**Les débris réels, leurs tailles et leurs pentes :**
-- **Les tailles des champs de pierres** ([Golombek et Rapp 1997](https://doi.org/10.1029/96JE03319), [Golombek et al. 2003](https://ntrs.nasa.gov/citations/20030111177), [InSight 2021](https://authors.library.caltech.edu/records/d1t32-akr32)) :
-  - sur les sites Viking et sur des sites terrestres de toutes origines, la part du sol couverte par les pierres de largeur D ou plus suit une exponentielle, k exp(−q D) ;
-  - k est l'abondance, la part couverte par toutes les pierres ; q = 1,79 + 0,152 / k ;
-  - les sites mesurés vont de quelques pour cent à quelques dizaines de pour cent ; InSight retrouve la loi en 2021.
-- **La fragmentation** ([Turcotte 1986](https://doi.org/10.1029/JB091iB02p01921)) : les fragments de roche suivent souvent une loi de puissance du nombre selon la taille, sur un large domaine d'échelles. Beaucoup de petits, peu de gros.
-- **Les talus et éboulis** ([Kirkby et Statham 1975](https://doi.org/10.1086/628097), [éboulis, synthèse](https://en.wikipedia.org/wiki/Scree), [JNCC, mouvements de masse](https://data.jncc.gov.uk/data/c9bdfe0b-ca6f-4a90-87a6-d03f64e8124c/gcr-v33-mass-movements-c4.pdf)) :
-  - un talus sec se tient à son angle de repos, de 33 à 37° environ ; au-delà, rien de meuble ne tient ;
-  - le tri par la chute : les plus gros fragments vont le plus loin, au pied, où la pente s'adoucit ;
-  - les débris s'accumulent au pied des parois qui les fournissent.
-- **Les fragments de roche des sols** ([Poesen et Lavee 1994](https://doi.org/10.1016/0341-8162(94)90050-7), [versants semi-arides d'Espagne](https://bibliotecadigital.ipb.pt/entities/publication/db20b92a-6dc6-440f-851a-fa51859fdec0)) :
-  - leur couverture et leur taille sont le résultat de processus, tri et érosion sélective des fines, pas un tirage uniforme ;
-  - sur les versants semi-arides, la couverture croît avec la pente, les fines partant les premières.
-- **Les blocs dans les chenaux** ([Shobe, Tucker et Anderson 2016](https://doi.org/10.1002/2016GL069262)) : les gros blocs des torrents de montagne viennent des versants voisins et s'amassent au fond des chenaux.
-- **Les regs** ([Wood, Graham et Wells 2005](https://www.resolutionmineeis.us/sites/default/files/references/wood-graham-wells-2005.pdf)) : un pavage désertique couvre plus de 65 % du sol de clastes, surtout des graviers ; il forme une mosaïque d'unités distinctes par la taille, la couverture et le tri. Les graviers sont la texture du sol nu ; nos objets, de 6 cm et plus, y restent rares.
-- **Les semis de pierres sont agrégés, pas aléatoires** ([Hickory Run, GSA 2010](https://gsa.confex.com/gsa/2010AM/webprogram/Paper178867.html), [Mars, plaines du nord](https://ri.cmu.edu/?p=9666), [Ryugu et Itokawa](https://cosmochemistry-papers.com/2025/06/13/statistical-evaluation-of-boulder-spatial-patterns-on-asteroids-and-application-to-eros-itokawa-and-ryugu/)) : 12 000 blocs d'un champ de Pennsylvanie forment des amas et des alignements de 3 à 7 m ; sur Mars, des degrés d'agrégation variés ; sur les astéroïdes, les petits blocs sont groupés. Les éboulements d'une falaise de Catalogne aussi.
-- **Les photos de `docs/images/cible-*.jpg`, à l'œil, sans échelle connue :** le désert porte des pierres de quelques centimètres à quelques décimètres, éparses, quelques pour cent du sol ; au pied des badlands, des blocs épars sur la prairie ; les canyons de basalte, des talus de blocs sous les falaises.
+**Actual debris, sizes and slopes:**
+- **The sizes of the stone fields** ([Golombek and Rapp 1997](https://doi.org/10.1029/96JE03319), [Golombek et al. 2003](https://ntrs.nasa.gov/citations/20030111177), [InSight 2021](https://authors.library.caltech.edu/records/d1t32-akr32)):
+  - on Viking sites and on terrestrial sites of all origins, the proportion of soil covered by stones of width D or greater follows an exponential, k exp(−q D);
+  - k is the abundance, the share covered by all stones; q = 1,79 + 0,152 / k;
+  - the sites measured go from a few percent to a few tens of percent; InSight finds the law in 2021.
+- **Fragmentation** ([Turcotte 1986](https://doi.org/10.1029/JB091iB02p01921)): rock fragments often follow a law of power of number according to size, over a wide range of scales. Many small, few big.
+- **Slopes and scree** ([Kirkby and Statham 1975](https://doi.org/10.1086/628097), [scree, summary](https://en.wikipedia.org/wiki/Scree), [JNCC, mass movements](https://data.jncc.gov.uk/data/c9bdfe0b-ca6f-4a90-87a6-d03f64e8124c/gcr-v33-mass-movements-c4.pdf)):
+  - a dry slope stands at its angle of repose, from 33 to 37° approximately; beyond this, nothing movable stands;
+  - sorting by drop: the largest fragments go farther, at the foot, where the slope softens;
+  - debris accumulates at the foot of the walls that supply it.
+- **Rock fragments from soils** ([Poesen and Lavee 1994](https://doi.org/10.1016/0341-8162(94)90050-7), [semi-arid slopes of Spain](https://bibliotecadigital.ipb.pt/entities/publication/db20b92a-6dc6-440f-851a-fa51859fdec0)):
+  - their coverage and size are the result of process, sorting and selective erosion of the fines, not uniform drawing;
+  - on semi-arid slopes, the cover increases with the slope, the thin ones leaving first.
+- **Blocks in the channels** ([Shobe, Tucker and Anderson 2016](https://doi.org/10.1002/2016GL069262)): large blocks of mountain streams come from nearby slopes and accumulate at the bottom of the channels.
+- **Regs** ([Wood, Graham and Wells 2005](https://www.resolutionmineeis.us/sites/default/files/references/wood-graham-wells-2005.pdf)): a desert paving covers more than 65 % of the soil with clasts, mainly gravel; it forms a mosaic of units distinct by size, cover and sorting. Gravel is the texture of bare ground; our objects, 6 cm and more, remain rare.
+- **The stone seedlings are aggregated, not random** ([Hickory Run, GSA 2010](https://gsa.confex.com/gsa/2010AM/webprogram/Paper178867.html), [March, Northern Plains](https://ri.cmu.edu/?p=9666), [Ryugu and Itokawa](https://cosmochemistry-papers.com/2025/06/13/statistical-evaluation-of-boulder-spatial-patterns-on-asteroids-and-application-to-eros-itokawa-and-ryugu/)): 12 000 blocks in a Pennsylvania field form clusters and alignments of 3 to 7 m; on Mars, varying degrees of aggregation; on asteroids, small blocks are grouped. The landslides of a cliff in Catalonia too.
+- **The photos of `docs/images/cible-*.jpg`, to the eye, without known scale:** the desert carries stones of a few centimeters to a few decimeters, scattered, a few percent of the ground; at the foot of the badlands, scattered blocks on the prairie; the canyons of basalt, slopes of blocks under the cliffs.
 
-**Ce qu'on en retient :**
-- **le placement est une fonction pure de la cellule,** évaluée sur GPU, sans état : HZD, PCG ;
-- **une grille par classe de tailles,** chacune avec son rayon : PCG ;
-- **une densité lue sur le terrain,** comparée à un tirage fixe : HZD ;
-- **un dessin indirect dont le GPU écrit le compte :** DX12 ;
-- **un fondu qui ne dépend que de la distance,** sans bruit temporel.
+**What we learned:**
+- **the placement is a pure function of the cell,** evaluated on GPU, without state: HZD, PCG;
+- **one grid per size class,** each with its radius: PCG;
+- **a density read on the field,** compared to a fixed draw: HZD;
+- **an indirect drawing of which the GPU writes the account:** DX12;
+- **a fade that depends only on the distance,** without noise temporal.
 
-## Les règles
+## The rules
 
-**Une place fixe, sur la grille de la planète** (`principes.md`, tout motif se calcule sur la grille de la planète).
-- **La grille :** le quadrillage cartésien du repère de la planète. Là où la plus grande composante de la verticale est selon l'axe a, les objets viennent de la grille des deux autres axes, projetée selon a sur la sphère : pas de couture qui bouge, une cellule couvre s² / |up.a| du sol.
-- **Une octave de tailles par niveau de grille et par classe :** l'octave k porte des objets de 2^k à 2^(k+1) m, décalés au hasard dans leur cellule. Les cailloux, de 3 cm à 2 m, un candidat par cellule de 4 × 2^k m ; les touffes, de 12 à 50 cm, plus denses, un par cellule de 2 × 2^k m.
-- **Tout vient du hachage de la cellule :** place, taille, forme, rotation, teinte, tirage. Rien du maillage, rien de la caméra.
-- **Les calculs en double précision** pour la place sur la sphère ; sommes et produits seulement, le GPU n'a pas de division en double.
+**A fixed place, on the planet grid** (`principes.md`, any pattern is calculated on the planet grid).
+- **The grid:** the Cartesian grid of the planet's reference frame. Where the largest component of the vertical is according to the axis a, the objects come from the grid of the other two axes, projected according to a on the sphere: no moving seam, a cell covers s² / |up.a| of the ground.
+- **One octave of sizes per grid level and per class:** octave k carries objects from 2^k to 2^(k+1) m, randomly displaced in their cell. The pebbles, from 3 cm to 2 m, one candidate per cell of 4 × 2^k m; the tufts, from 12 to 50 cm, more dense, one per cell of 2 × 2^k m.
+- **Everything comes from the hash of the cell:** place, size, shape, rotation, hue, drawing. Nothing of the mesh, nothing of the camera.
+- **Double precision calculations** for the square on the sphere; sums and products only, the GPU does not have double division.
 
-**Une recette par sol, à l'échelle d'une photo prise debout.**
-- **Les parts des sols, lues à sa place** par `GroundMaterials`, filtrées à sa cellule, comme les pixels les superposent : herbe, sable, sol nu, éboulis, roche, sable de plage, neige. Rien sur la roche nue ni sous la neige.
-- **Les débris d'abord, s'il y en a** (`OBJECT_STONY`) : le champ de pierrosité, un bruit de gradient de la planète de 0,5 à 32 km, d'écart type 0,29, propre aux débris ; relevé de 0,22 fois ce qui retire au sol ses fines ou lui apporte des débris : trois fois la part d'éboulis, le sol nu d'autant plus que l'air est sec, la tangente de la pente. Des débris au-delà de 0,27, entièrement au-delà de 0,42, par la règle des limites. Les touffes n'en dépendent pas.
-- **Le gravier sous 3 cm est la texture du sol :** la tuile fine porte les longueurs d'onde sous 3 cm, le scan de sable et gravier celles de 3 à 50 cm. Les objets commencent à 3 cm.
-- **Sable et sol nu, plage comprise :**
-  - des cailloux, 2 % du sol à 3 cm, la part s'effaçant au-delà de 8 cm (`PEBBLES`) : surtout de petits, cinq fois moins à chaque octave au-dessus, de rares galets, presque pas de blocs ;
-  - quelques touffes sèches, 1 % du sol par octave (`TUFT_COVER`).
-- **Herbe :**
-  - des touffes partout, 20 % du sol par octave de 12 à 50 cm (`TUFT_COVER`) ;
-  - des rochers à demi enfouis, par taches, la loi de Golombek et Rapp à l'abondance 0,03 (`GRASS_ROCKS`), le bas des sites mesurés.
-- **Éboulis :** leurs pierres, la loi de Golombek et Rapp à 0,05 (`DEBRIS_ABUNDANCE`).
-- **Les éboulements, au pied des vraies parois seulement :** où le sol s'adoucit sous 10 à 20° (`OBJECT_GATHER`) sous une pente moyenne de plus de 35 à 45° sur les 16 m au-dessus (`OBJECT_LANDFORM`), la loi à 0,25. Plus au fond de chaque creux : une ravine n'est pas un éboulement.
-- **Les crêtes et les hauts de falaise,** courbure négative sur 16 m (`OBJECT_CREST`) : 10 % des pierres d'éboulis et d'éboulement.
-- **Par taches et par amas,** un champ du bruit de gradient de la planète, de 8 à 64 m, de moyenne 1 : les rochers par taches, nulles sur 58 % du sol (`OBJECT_PATCHES`) ; les cailloux et les touffes par amas, de 0,4 à 1,6 fois leur moyenne (`OBJECT_CLUMPS`). Ils changent le nombre, pas les tailles.
-- **L'angle de repos** (`OBJECT_REPOSE`) : rien au-delà de 38° pour la plus petite octave, un degré de moins à chaque octave, comme le tri d'un talus ; la part s'efface sur 3°.
-- **Le candidat est gardé** si son tirage est sous la probabilité qui donne cette part.
-- **Le sol à sa place est le sol exact :** complexplanet sans filtrage, sa pente sur 1 m. Jamais celle du maillage, qui glisse : un objet au seuil apparaîtrait et disparaîtrait.
+**A recipe per floor, on the scale of a photo taken standing.**
+- **The soil portions, read in its place** by `GroundMaterials`, filtered to its cell, as the pixels superimpose them: grass, sand, bare soil, scree, rock, beach sand, snow. Nothing on the bare rock or under the snow.
+- **The debris first, if there is any** (`OBJECT_STONY`): the field of stonyness, a noise gradient of the planet of 0,5 to 32 km, of 0,29 type of deviation, specific to the debris; 0,22 times what removes the ground its fines or brings him debris: three times the part of scree, the bare ground especially as the air is dry, the tangent of the slope. Debris beyond 0,27, entirely beyond 0,42, by the limit rule. The tufts do not depend on it.
+- **The gravel under 3 cm is the texture of the soil:** the fine tile bears the wavelengths under 3 cm, the sand and gravel scan those of 3 to 50 cm. Items start at 3 cm.
+- **Sand and bare ground, including beach:**
+  - pebbles, 2 % of the soil at 3 cm, the share fading beyond 8 cm (`PEBBLES`): mostly small, five times less every octave above, rare pebbles, almost no blocks;
+  - some dry tufts, 1 % of the ground per octave (`TUFT_COVER`).
+- **Grass:**
+  - tufts everywhere, 20 % of the ground per octave from 12 to 50 cm (`TUFT_COVER`);
+  - of rocks to half buried, by spots, the law of Golombek and Rapp to abundance 0,03 (`GRASS_ROCKS`), the bottom of the sites measured.
+- **scree:** their stones, the law of Golombek and Rapp to 0,05 (`DEBRIS_ABUNDANCE`).
+- **Slides, at the foot of the real walls only:** where the soil softens under 10 to 20° (`OBJECT_GATHER`) under an average slope of more than 35 to 45° on the 16 m above (`OBJECT_LANDFORM`), the law at 0,25. More at the bottom of each hollow: a ravine is not a landslide.
+- **Ridges and cliff tops,** negative curvature on 16 m (`OBJECT_CREST`): 10 % of scree and landslide stones.
+- **By spots and clusters,** a field of noise of gradient of the planet, from 8 to 64 m, of average 1: rocks by spots, zero on 58 % of the ground (`OBJECT_PATCHES`); pebbles and tufts by cluster, from 0,4 to 1,6 times their average (`OBJECT_CLUMPS`). They change the number, not the sizes.
+- **The angle of repose** (`OBJECT_REPOSE`): nothing beyond 38° for the smallest octave, one degree less at each octave, like the sorting of a slope; the part is erased on 3°.
+- **The candidate is kept** if his draw is below the probability that gives this share.
+- **The ground in its place is the exact ground:** complexplanet without filtering, its slope on 1 m. Never the mesh, which slides: an object at the threshold would appear and disappear.
 
-**La caméra décide seulement s'il se voit.**
-- **Par sa taille à l'écran :** il sort du sol à 6 pixels, entier à 9 (`OBJECT_PIXELS`). La même règle que les octaves des bruits, qui s'effacent selon le pixel.
-- **Par le maillage sous lui :** il n'apparaît que là où les mailles font moins d'une fois et demie sa largeur, entier sous une fois (`OBJECT_CELLS`). Plus grossier, le maillage dessine le sol trop loin du sol exact.
-- **Le fondu est une croissance :** l'objet grandit depuis son pied, enfoui ; il sort du sol. Pas de tramage, pas de transparence, rien qui dépende de l'image précédente.
+**The camera only decides if it sees itself.**
+- **By its size on the screen:** it comes out of the ground at 6 pixels, whole at 9 (`OBJECT_PIXELS`). The same rule as the octaves of the noise functions, which are erased according to the pixel.
+- **By the mesh below it:** it appears only where the grid cells are less than one and a half times its width, whole under one time (`OBJECT_CELLS`). More coarse, the mesh draws the ground too far from the exact ground.
+- **The melt is a growth:** the object grows from its foot, buried; it comes out of the ground. No dithering, no transparency, nothing that depends on the previous image.
 
-**Son pied est sur le sol exact, enfoui selon le sol** (`OBJECT_BURIAL`).
-- **Dans un sol meuble,** terre, sable, herbe, fines d'un éboulis : 40 % de sa hauteur. Une touffe, son pied.
-- **Sur la roche,** à peine assis : 8 %.
-- **Jamais moins de 3 mm,** plus que l'écart mesuré au sol du maillage près de la caméra, à hauteur d'homme.
+**His foot is on the exact ground, buried according to the ground** (`OBJECT_BURIAL`).
+- **In loose soil,** earth, sand, grass, fines of a scree: 40 % of its height. A tuft, his foot.
+- **On the rock,** barely sitting: 8 %.
+- **Never less than 3 mm,** more than the mesh's ground clearance measured near the camera, at man's height.
 
-## Le flottement : le pied sur le sol exact
+## Floating: the foot on the exact ground
 
-**Le problème :** le sol est dessiné par le maillage glissant, dont les sommets échantillonnent complexplanet, filtré à leur maille. Entre ses sommets, le sol dessiné s'écarte du sol exact ; l'écart change quand le maillage glisse.
+**The problem:** the ground is drawn by the mesh sliding, whose vertices sample complexplanet, filtered to their grid cell. Between its vertices, the drawn ground deviates from the exact ground; the gap changes when the mesh slides.
 
-**Les deux choix :**
-- **la hauteur du maillage sous l'objet :** écart nul, mais l'objet monte et descend à chaque image avec le maillage. Refusé : c'est le glissement qu'on veut éviter ;
-- **le sol exact, plus un enfouissement :** retenu. L'objet ne bouge jamais ; il faut que l'écart reste sous l'enfouissement, ce que le banc mesure.
+**Both options:**
+- **the height of the mesh under the object:** zero deviation, but the object rises and falls at each frame with the mesh. Refused: this is the slip we want to avoid;
+- **exact ground, plus a burial:** retained. The object never moves; the gap must remain under the burial, which the benchmark measures.
 
-**Pourquoi le sol exact tient.** Sous des mailles de 3,4 m, le maillage porte toutes les octaves de complexplanet ; sous 2 m, l'arrondi des crêtes est celui de `CREASE_MIN_CELL` ; sous 4 m, la grille du bruit est en double précision. Le sol exact est donc la limite du maillage quand ses mailles rétrécissent : l'écart n'est que l'erreur d'interpolation entre sommets, de l'ordre de maille² × courbure / 8.
+**Why the exact floor holds.** Under grid cells of 3,4 m, the mesh carries all the octaves of complexplanet; under 2 m, the rounding of the peaks is that of `CREASE_MIN_CELL`; under 4 m, the grid of the noise is in double precision precision. The exact ground is therefore the limit of the mesh when its grid cells shrink: the difference is only the error of interpolation between vertices, of the order of mesh² × curvature / 8.
 
-**Le plancher : la précision de complexplanet.** Près du sol, l'écart ne baisse plus avec la maille : moyen 3,3 mm à 1,5 m comme à 6 m, avec des mailles quatre fois plus fines ou plus grosses. Déplacer le point de 1 mm change l'altitude calculée jusqu'à 16 mm à 2,6 km d'altitude, 1,2 mm à 1 km : l'arrondi des flottants dans la somme des octaves. Ce bruit est celui du maillage lui-même ; il reste sous 2 pixels.
+**The floor: complexplanet precision.** Near the ground, the gap does not decrease anymore with the grid cell: average 3,3 mm at 1,5 m as at 6 m, with grid cells four times thinner or larger. Moving the point from 1 mm changes the calculated altitude up to 16 mm to 2,6 km altitude, 1,2 mm to 1 km: rounding of floats in the sum of octaves. This noise is the mesh itself; it remains under 2 pixels.
 
-**Ce qui l'a borné :** des blocs de 2 m vus de 200 m, dans des mailles de 4 m, flottaient de 84 cm. D'où la règle des mailles : un objet n'apparaît que si le maillage sous lui est assez fin pour porter son pied.
+**What bounded it:** blocks of 2 m seen from 200 m, in grid cells of 4 m, floated from 84 cm. Hence the rule of grid cells: an object appears only if the mesh below it is thin enough to carry its foot.
 
-## Le plan
+## The plan
 
-1. **Des cailloux, pierres et blocs posés :** fait, ci-dessous. Choisis d'abord : statiques, sans vent, ils prolongent des matériaux qui existent, et `GroundMaterials` donne leurs parts partout. Les éboulis d'abord, puis le pied des pentes et les sols caillouteux, avec la loi des tailles et l'angle de repos.
-2. **Les ombres portées :** sans elles, une pierre au soleil reste posée sur le sol plutôt que dedans. Une carte d'ombre de proximité servira aussi l'herbe et les arbres.
-3. **Tous les terrains :** les blocs sous la neige, qui en dépassent selon leur taille ; les champs de blocs loin des pentes, des chaos de granite, qui demandent une donnée de géologie. Le sol nu et les déserts sont faits. Une source de débris de plus, le même système.
-4. **Les touffes d'herbe :** commencées à l'étape 2, la même grille et la même règle de pixels, des brins générés ; reste le vent.
-5. **Les brins :** une octave de plus vers le bas, générés sur GPU comme dans Ghost of Tsushima.
-6. **Les arbres :** commencés le 2026-10-25, `recherche-vegetation.md` : trois espèces selon le climat, une classe de plus sur la même grille, de 0,5 à 64 m ; au-delà de leur portée, la canopée dans la matière du sol, ce que les objets dessinent retiré.
+1. **Laid pebbles, stones and blocks:** made, below. Choose first: static, windless, they extend materials that exist, and `GroundMaterials` gives their share everywhere. The scree first, then the foot of the slopes and rocky soils, with the law of sizes and the angle of rest.
+2. **The cast shadows:** without them, a stone in the sun remains on the ground rather than in it. A near-field shadow map will also serve grass and trees.
+3. **All terrains:** blocks under the snow, which exceed according to their size; block fields far from the slopes, granite chaos, which require a geological data. Bare ground and deserts are made. One more source of debris, the same system.
+4. **The tufts grass:** started at the step 2, the same grid and the same pixel rule, strands generated; remains the wind.
+5. **The strands:** one octave down, generated on GPU as in Ghost of Tsushima.
+6. **Trees:** started the 2026-10-25, `recherche-vegetation.md`: three species according to the climate, one more class on the same grid, from 0,5 to 64 m; beyond their scope, the canopy in the matter of the soil, what the objects draw removed.
 
-**Ce qui reste ouvert :**
-- **un cache par cellule,** si le coût monte avec les classes : aujourd'hui tout est recalculé à chaque image ;
-- **des niveaux de détail des formes :** une seule forme de 1 280 triangles, dessinée en 0,01 à 0,08 ms ;
-- **le plancher de précision de complexplanet,** à signaler au bruit : de 1 mm à 1,6 cm selon l'altitude.
+**What remains open:**
+- **a cache per cell,** if the cost increases with classes: today everything is recalculated at each frame;
+- **detail levels of shapes:** a single shape of 1 280 triangles, drawn in 0,01 to 0,08 ms;
+- **the complexplanet precision floor,** to be reported to the noise: from 1 mm to 1,6 cm depending on the altitude.
 
-## Étape 1 : mesures
+## Step 1: measurements
 
-**Le banc :** `tools/banc_objets.py`, sur trois lieux au soleil « 10 70 » : des éboulis (1,09° N, 110,67° E), une pente de roche (14,96° S, 119,99° E), une paroi (0,23° S, 118,42° E). Les mesures du flottement viennent du moteur lui-même : chaque objet placé compare son pied au triangle du maillage sous lui, et la barre de titre en donne le bilan. Tests en vol : `tools/tests/2026-10-24-objets.txt`.
+**The benchmark:** `tools/banc_objets.py`, on three sunny places "10 70": scree (1,09° N, 110,67° E), a rock slope (14,96° S, 119,99° E), a wall (0,23° S, 118,42° E). Float measurements come from the engine itself: each object placed compares its foot to the triangle of the mesh below it, and the title bar gives the balance. Flight tests: `tools/tests/2026-10-24-objets.txt`.
 
-**Le flottement, le long d'une approche de 200 à 1,5 m :**
+**Floating, along an approach from 200 to 1,5 m:**
 
-| Lieu | Objets | Écart moyen | Sol sous un pied, au plus | Part de l'enfouissement, au plus | Flottent | À l'écran, au plus |
+| Location | Objects | Average variance | Floor under one foot, at most | Share of landfill, at most | Floating | On screen, at most |
 |---|---|---|---|---|---|---|
-| Éboulis | 0 à 415 | 3,3 mm près du sol, 32 mm à 100 m | 46 mm | 87 % | 0 | 1,75 px |
-| Roche | 0 à 805 | 2,7 mm, 39 mm à 100 m | 114 mm | 24 % | 0 | 0,52 px |
-| Paroi | 0 à 399 | 0,3 mm, 42 mm à 100 m | 127 mm | 30 % | 0 | 0,60 px |
+| scree | 0 to 415 | 3,3 mm near the ground, 32 mm to 100 m | 46 mm | 87 % | 0 | 1,75 px |
+| Rock | 0 to 805 | 2,7 mm, 39 mm to 100 m | 114 mm | 24 % | 0 | 0,52 px |
+| Paroi | 0 to 399 | 0,3 mm, 42 mm to 100 m | 127 mm | 30 % | 0 | 0,60 px |
 
-- **Aucun objet ne flotte,** à aucune hauteur ; le sol monte au plus de 30 % de la hauteur visible d'un objet.
-- **Sans la règle des mailles,** sur la paroi : à 200 m, des blocs de 2 m dans des mailles de 4 m, 84 cm sous un pied, 3 objets sur 6 flottent, 2,9 px ; à 100 m, un flotte.
-- **Le pixel et demi des éboulis près du sol** est le plancher de précision de complexplanet, pas l'interpolation : à 1,5 m comme à 6 m, l'écart moyen reste de 3,3 à 3,8 mm avec des mailles quatre fois plus fines ou plus grosses.
+- **No object floats,** at no height; ground rises to no more than 30% of the visible height of an object.
+- **Without the rule of grid cells,** on the wall: at 200 m, blocks of 2 m in grid cells of 4 m, 84 cm under a foot, 3 objects on 6 float, 2,9 px; at 100 m, a float.
+- **The pixel and a half of the scree near the ground** is the complexplanet precision floor, not the interpolation: at 1,5 m as at 6 m, the average deviation remains from 3,3 to 3,8 mm with grid cells four times thinner or larger.
 
-**Le pop, le long d'une descente de 40 à 3 m par pas de 1,5 %, 174 pas :** le moteur liste les objets de chaque image, nommés par leur graine ; un objet qui arrive loin des bords de l'écran est mesuré à son arrivée.
+**The pop, along a descent from 40 to 3 m by step of 1,5 %, 174 step:** the engine lists the objects in each frame, named by their seed; an object that arrives far from the edges of the screen is measured at its arrival.
 
-| Lieu | Arrivées | Largeur à l'arrivée, médiane / au plus | Référence : objets entiers dès 7,5 px |
+| Location | Arrivals | Width at arrival, median / maximum | Reference: whole objects from 7,5 px |
 |---|---|---|---|
-| Éboulis | 684 | 0,00 / 0,05 px | 8,6 / 12,0 px |
-| Roche | 421 | 0,00 / 0,04 px | 7,5 / 10,3 px |
+| scree | 684 | 0,00 / 0,05 px | 8,6 / 12,0 px |
+| Rock | 421 | 0,00 / 0,04 px | 7,5 / 10,3 px |
 | Paroi | 565 | 0,00 / 0,06 px | 8,5 / 15,6 px |
 
-- **Un objet grandit au plus de 0,75 px d'un pas à l'autre ;** 2,5 px sur la paroi, un bloc proche qui grandit en se rapprochant.
+- **An object grows at most 0,75 px from one step to the next;** 2,5 px on the wall, a near block that grows as it gets closer.
 
-**Le tremblement,** `tools/banc_tremblement.py`, avant et après, avec et sans lissage temporel :
+**The jitter,** `tools/banc_tremblement.py`, before and after, with and without time smoothing:
 
-| Vue | Avant | Avec les objets |
+| View | Before | With the objects |
 |---|---|---|
-| Éboulis à 1,6 m | 3,59 / 8,64 | 3,49 / 8,39 |
-| Éboulis à 10 m | 0,64 / 2,71 | 0,61 / 2,63 |
-| Roche à 3 m | 0,04 / 0,23 | 0,04 / 0,23 |
-| Paroi à 12 m | 0,02 / 0,19 | 0,02 / 0,18 |
-| Blocs à 3 m | 0,03 / 0,24 | 0,02 / 0,23 |
+| scree to 1,6 m | 3,59 / 8,64 | 3,49 / 8,39 |
+| scree to 10 m | 0,64 / 2,71 | 0,61 / 2,63 |
+| Rock at 3 m | 0,04 / 0,23 | 0,04 / 0,23 |
+| Wall at 12 m | 0,02 / 0,19 | 0,02 / 0,18 |
+| Blocks at 3 m | 0,03 / 0,24 | 0,02 / 0,23 |
 
-- **Jamais plus qu'avant,** un peu moins là où les pierres couvrent le sol qui tremble : elles ne bougent pas.
+- **Never more than before,** a little less where the stones cover the shaking ground: they do not move.
 
-**Le banc de qualité,** 30 lieux, graine 1, contre `tools/banc_qualite_reference.json` :
-- **la roche gagne :** trous d'échelle au p95 de −0,8 à −2,7 dB de 12 à 800 m, répétition −0,1 de 50 à 800 m ;
-- **son détail fin rapporté au moyen baisse à 12 m,** −4,6 dB en médiane, dont −1,0 dB du nettoyage de la roche avant cette piste : les blocs ajoutent du contraste aux échelles moyennes ;
-- **les autres matériaux bougent de moins de 0,4 dB ;** le seul p95 au-delà de 10 %, le trou du sable à 3 km, +0,4 dB, est à une hauteur où aucun objet ne se dessine : le bruit du banc.
+**The quality benchmark,** 30 places, seed 1, against `tools/banc_qualite_reference.json`:
+- **the rock wins:** scale holes at p95 from −0,8 to −2,7 dB from 12 to 800 m, repeat −0,1 from 50 to 800 m;
+- **fine detail relative to the average decreases to 12 m,** −4,6 dB in median, including −1,0 dB from rock cleaning before this experiment: blocks add contrast to the average scales;
+- **the other materials move less than 0,4 dB;** the only p95 beyond 10 %, the sand hole at 3 km, +0,4 dB, is at a height where no object is drawn: the noise of the benchmark.
 
-**Le coût,** GPU au repos, RTX 4070 Ti, neuf vues de trois lieux, de 3 à 60 m :
-- **placement :** 0,31 à 0,43 ms, pour 50 à 800 objets gardés sur 400 à 3 200 candidats évalués ; le calcul du terrain prend 2,1 à 5,0 ms ;
-- **dessin :** 0,01 à 0,08 ms, une seule forme de 1 280 triangles ;
-- **sous la charge des autres instances,** les temps gonflent tous : placement de 0,6 à 4,9 ms, pour un calcul du terrain de 6 à 20 ms.
+**The cost,** GPU at rest, RTX 4070 Ti, nine views of three locations, from 3 to 60 m:
+- **placement:** 0,31 to 0,43 ms, for 50 to 800 objects kept on 400 to 3 200 evaluated candidates; the calculation of the field takes 2,1 to 5,0 ms;
+- **drawing:** 0,01 to 0,08 ms, a single shape of 1 280 triangles;
+- **under the load of other instances,** the times all inflate: placement of 0,6 to 4,9 ms, for a calculation of the terrain of 6 to 20 ms.
 
-**Le chemin vers ce coût,** en part du calcul du terrain, les mêmes objets à chaque fois :
-- **une passe unique,** une cellule par fil : 40 à 80 %. Les candidats vus sont épars parmi les cellules : chaque vague déroulait le sol exact pour quelques fils seulement ;
-- **la vue tirée du maillage, à une marge près,** au lieu de toute hauteur du niveau de la mer aux sommets : 17 à 30 % ;
-- **deux passes,** une légère sur les cellules, une lourde sur la liste compacte des candidats, lancée en indirect : 7 à 15 %.
+**The path to this cost,** part of the calculation of the terrain, the same objects every time:
+- **one single pass,** one cell per wire: 40 to 80 %. The candidates seen are scattered among the cells: each wave rolled the exact ground for a few wires only;
+- **the view taken from mesh, to a margin,** instead of any sea level height at the summits: 17 to 30 %;
+- **two passes,** one light on the cells, one heavy on the compact list of candidates, launched indirectly: 7 to 15 %.
 
-## Étape 1 bis : des cailloux, leurs tailles et leurs pentes
+## Step 1 bis: Pebbles, their sizes and slopes
 
-Le 2026-10-24, après le vol de l'utilisateur : « beaucoup sur des pentes abruptes, alors qu'ils ne tiendraient pas » ; « beaucoup de rochers de taille moyenne » ; « à demi enfouis dans des parois rocheuses, ça fait simplement mauvaise intégration ».
+The 2026-10-24, after the user's flight: "a lot on steep slopes, when they would not hold"; "a lot of medium-sized rocks"; "half buried in rock walls, it just makes poor integration".
 
-**Le banc :** `tools/banc_objets.py recensement`. Sur 23 lieux, ceux de roche, d'éboulis, de sol nu et de sable du banc de qualité et les nôtres, le moteur enregistre chaque cellule des fenêtres, gardée ou non, sans l'avis de la caméra (`MYPLANETENGINE_OBJECT_CENSUS`) : son sol, sa pente, la pente au-dessus, les parts des matériaux, la largeur de l'objet. 22 400 m² pour l'octave la plus fine, 6 km² pour la plus grosse.
+**The benchmark:** `tools/banc_objets.py recensement`. On 23 places, those of rock, scree, bare ground and sand of the quality benchmark and ours, the engine records each cell of the windows, guarded or not, without the notice of the camera (`MYPLANETENGINE_OBJECT_CENSUS`): its ground, its slope, the slope above, the shares of materials, the width of the object. 22 400 m² for the thinnest octave, 6 km² for the thickest.
 
-**Ce qui a changé :**
-- **les blocs à demi enfouis dans la roche nue sont retirés :** c'est du relief, la piste de la géométrie ;
-- **une source de débris de plus, le pied des pentes ;** une autre, le sol nu et le désert caillouteux ;
-- **les tailles suivent Golombek et Rapp,** au lieu d'une même part par octave ;
-- **l'angle de repos selon la taille ;**
-- **l'enfouissement selon le sol ;**
-- **la lumière que le sol renvoie** sur les flancs et le dessous des pierres, `GROUND_ALBEDO` : sans elle, leurs faces à l'ombre étaient noires.
+**What has changed:**
+- **the blocks half buried in the bare rock are removed:** it is relief, the experiment of geometry;
+- **one more source of debris, the foot of the slopes;** another, the bare ground and the stony desert;
+- **the sizes follow Golombek and Rapp,** instead of one part per octave;
+- **the angle of rest according to the size;**
+- **burial according to the soil;**
+- **the light that the ground reflects** on the sides and underneath the stones, `GROUND_ALBEDO`: without it, their faces in the shadow were black.
 
-**Par pente, tout le sol,** objets par m² et part du sol couverte :
+**Per slope, all ground,** objects per m² and part of ground covered:
 
-| Pente | Part du sol | Avant | Après | Dont 50 cm à 2 m, avant / après |
+| Slope | Share of land | Before | After | Of which 50 cm to 2 m, before / after |
 |---|---|---|---|---|
-| 0 à 10° | 53 % | 0,001 ; 0,02 % | 1,09 ; 1,59 % | 65 / 9 % |
-| 10 à 20° | 13 % | 1,23 ; 1,82 % | 1,20 ; 1,80 % | 18 / 12 % |
-| 20 à 30° | 11 % | 1,10 ; 2,96 % | 1,06 ; 2,20 % | 35 / 22 % |
-| 30 à 35° | 5 % | 4,57 ; 8,32 % | 2,95 ; 4,80 % | 28 / 14 % |
-| 35 à 40° | 4 % | 4,74 ; 9,85 % | 0,76 ; 0,65 % | 30 / 0 % |
-| 40 à 50° | 7 % | 3,11 ; 9,35 % | 0 | 38 / 0 % |
-| 50 à 90° | 8 % | 2,42 ; 11,24 % | 0 | 45 / 0 % |
+| 0 to 10° | 53 % | 0,001 ; 0,02 % | 1,09 ; 1,59 % | 65 / 9 % |
+| 10 to 20° | 13 % | 1,23 ; 1,82 % | 1,20 ; 1,80 % | 18 / 12 % |
+| 20 to 30° | 11 % | 1,10 ; 2,96 % | 1,06 ; 2,20 % | 35 / 22 % |
+| 30 to 35° | 5 % | 4,57 ; 8,32 % | 2,95 ; 4,80 % | 28 / 14 % |
+| 35 to 40° | 4 % | 4,74 ; 9,85 % | 0,76 ; 0,65 % | 30 / 0 % |
+| 40 to 50° | 7 % | 3,11 ; 9,35 % | 0 | 38 / 0 % |
+| 50 to 90° | 8 % | 2,42 ; 11,24 % | 0 | 45 / 0 % |
 
-- **Avant, la couverture montait avec la pente,** jusqu'à 11 % sur les parois, des blocs pour près de moitié. **Après, plus rien au-delà de 40°,** le maximum sur les talus de 30 à 35°.
+- **Before, the cover went up with the slope,** up to 11 % on the walls, blocks for almost half. **After that, nothing beyond 40°,** the maximum on the slopes of 30 to 35°.
 
-**Au pied des pentes,** le sol de moins de 20° selon la pente moyenne des 24 m au-dessus : sous plus de 40°, avant 0,42 objet par m² et 1,7 % du sol, **après 6,4 par m² et 15 %, dont 29 % de blocs.** Ailleurs sur le sol doux, 1,6 %.
+**At the foot of slopes,** the soil of less than 20° according to the average slope of the 24 m above: under more than 40°, before 0,42 object per m² and 1,7 % of the soil, **after 6,4 per m² and 15 %, of which 29 % of blocks.** Elsewhere on soft ground, 1,6 %.
 
-**Par taille, sur les éboulis,** part de plus de 0,5 :
+**By size, on the scree,** share of more than 0,5:
 
-| Largeur | Avant, par m² ; couvert | Après, par m² ; couvert | Golombek et Rapp à l'abondance des lieux |
+| Width | Front, per m²; covered | After, per m²; covered | Golombek and Rapp to the abundance of places |
 |---|---|---|---|
-| 6 à 12 cm | 6,3 ; 3,65 % | 2,1 ; 1,20 % | 1,93 % |
-| 12 à 25 cm | 1,67 ; 3,85 % | 0,69 ; 1,61 % | 2,93 % |
-| 25 à 50 cm | 0,42 ; 3,87 % | 0,18 ; 1,69 % | 3,33 % |
-| 50 cm à 1 m | 0,107 ; 3,90 % | 0,028 ; 1,01 % | 2,24 % |
-| 1 à 2 m | 0,001 ; 0,20 % | 0,002 ; 0,27 % | 0,74 % |
+| 6 to 12 cm | 6,3 ; 3,65 % | 2,1 ; 1,20 % | 1,93 % |
+| 12 to 25 cm | 1,67 ; 3,85 % | 0,69 ; 1,61 % | 2,93 % |
+| 25 to 50 cm | 0,42 ; 3,87 % | 0,18 ; 1,69 % | 3,33 % |
+| 50 cm to 1 m | 0,107 ; 3,90 % | 0,028 ; 1,01 % | 2,24 % |
+| 1 to 2 m | 0,001 ; 0,20 % | 0,002 ; 0,27 % | 0,74 % |
 
-- **Avant, les tailles moyennes, de 25 cm à 1 m, couvraient 7,8 % des éboulis,** plus que la loi ; après, 2,7 %. Par nombre, les petits cailloux dominent : 2,1 par m² contre 0,03 pour les pierres de plus de 50 cm.
-- **L'écart à la loi est l'angle de repos :** les éboulis montent jusqu'à 40°, où seuls les petits tiennent.
+- **Before, average sizes, from 25 cm to 1 m, covered 7,8 % of scree,** more than the law; after, 2,7 %. By number, small pebbles dominate: 2,1 per m² against 0,03 for stones of more than 50 cm.
+- **The deviation from the law is the angle of repose:** the scree go up to 40°, where only the small ones hold.
 
-**Sur le sol nu et le désert,** part de plus de 0,5 : rien avant ; après 1,5 objet par m², 3 % du sol, à la loi près pour chaque octave.
+**On bare ground and desert,** starts from more than 0,5: nothing before; after 1,5 object per m², 3 % of the ground, to the law just for each octave.
 
-**Le flottement, la même approche de 200 à 1,5 m :** aucun objet ne flotte ; le sol descend au plus de 73 % de l'enfouissement, 1,3 px à l'écran.
+**Floating, the same approach from 200 to 1,5 m:** no object floats; the ground descends at most 73 % of burial, 1,3 px on screen.
 
-**Le tremblement,** trois des vues de test, avant les objets puis avec, avec et sans lissage : talus 0,05 / 0,34 puis 0,04 / 0,31 ; reg 0,02 / 0,21 puis 0,02 / 0,20 ; éboulis 0,18 / 1,17 puis 0,16 / 1,07.
+**The jitter,** three of the test views, before the objects then with, with and without smoothing: slope 0,05 / 0,34 then 0,04 / 0,31; reg 0,02 / 0,21 then 0,02 / 0,20; scree 0,18 / 1,17 then 0,16 / 1,07.
 
-**Le pop et l'apparition ne changent pas :** la règle des pixels et celle des mailles sont les mêmes.
+**Pop and appearance do not change:** Pixel rule and grid cells rule are the same.
 
-**Le coût :** un sol exact de plus par candidat, la pente au-dessus. Sous la charge des autres instances, le placement prend 13 à 24 % du calcul du terrain, contre 7 à 27 % avant dans les mêmes conditions ; le dessin, 0,06 à 0,6 ms, le plus sur un reg semé de petits cailloux : une forme de 1 280 triangles pour quelques pixels, les niveaux de détail des formes deviennent utiles.
+**The cost:** one exact floor more per candidate, the slope above. Under the load of other instances, the placement takes 13 to 24 % of the calculation of the terrain, against 7 to 27 % before in the same conditions; the drawing, 0,06 to 0,6 ms, the most on a reg sown small pebbles: a form of 1 280 triangles for a few pixels, the levels of detail of the forms become useful.
 
-## Étape 1 ter : la forme du sol et les taches
+## Step 1 ter: soil shape and spots
 
-Le 2026-10-24, en vol : « beaucoup trop de manière uniforme » ; « en bas des ravines, logique qu'il y ait pas mal de grosses pierres ; mais dans les pentes même, petites » ; « en haut des falaises, ce n'est pas logique ; de façon sporadique » ; « les plaines, tu en as mis partout ; les petits cailloux plus courants, les moyens un peu moins, les rochers beaucoup moins ».
+The 2026-10-24, in flight: "too much uniformly"; "at the bottom of the ravines, logical that there are a lot of big stones; but in the slopes, even small"; "at the top of the cliffs, it is not logical; sporadically"; "the plains, you put them everywhere; small pebbles more common, the medium a little less, the rocks much less".
 
-**Le banc** ajoute au recensement la forme du sol, la courbure mesurée par le moteur, et les taches : dans des cellules de 20 m, la part des cellules qui tient la moitié des pierres de 25 cm et plus, 50 % pour un semis uniforme, et l'indice de dispersion, 1 pour un semis au hasard. `--avant` mesure une autre version sur les mêmes cellules.
+**benchmark** adds to the census the soil shape, the curve measured by the engine, and the spots: in cells of 20 m, the share of cells that hold half of the stones of 25 cm and more, 50 % for a uniform sowing, and the dispersion index, 1 for a random sowing. `--avant` measures another version on the same cells.
 
-**Par forme du sol,** objets par m² ; part couverte ; part des 50 cm et plus, avant puis après :
+**By ground shape,** objects per m²; covered part; share of 50 cm and more, before and after:
 
-| Forme | Part du sol | Avant | Après |
+| Forme | Share of land | Before | After |
 |---|---|---|---|
-| Creux, courbure de plus de 0,008 /m | 20 % | 0,82 ; 1,65 % ; 18 % | 0,37 ; 1,09 % ; 40 % |
-| Plat | 56 % | 1,14 ; 1,63 % ; 10 % | 0,23 ; 0,19 % ; 1 % |
-| Bombé, crêtes | 24 % | 0,78 ; 1,27 % ; 15 % | 0,06 ; 0,06 % ; 4 % |
-| Pied de pente, sous plus de 40° | 0,1 % | 6,4 ; 15,3 % ; 29 % | 0,18 ; 2,4 % ; 64 % |
+| Hollow, curvature of more than 0,008 /m | 20 % | 0,82 ; 1,65 % ; 18 % | 0,37 ; 1,09 % ; 40 % |
+| Flat | 56 % | 1,14 ; 1,63 % ; 10 % | 0,23 ; 0,19 % ; 1 % |
+| Bombed, ridges | 24 % | 0,78 ; 1,27 % ; 15 % | 0,06 ; 0,06 % ; 4 % |
+| Foot of slope, under more than 40° | 0,1 % | 6,4 ; 15,3 % ; 29 % | 0,18 ; 2,4 % ; 64 % |
 
-- **Les creux, 18 fois plus couverts que les crêtes,** contre 1,3 fois avant ; les blocs y font 40 % de la couverture, 64 % au pied des pentes.
-- **Les plaines, 0,19 % du sol,** des cailloux par taches, presque aucun bloc.
+- **The lows, 18 times more covered than the ridges,** against 1,3 times before; the blocks make 40 % of the cover, 64 % at the foot of the slopes.
+- **The plains, 0,19 % of the ground,** pebbles by spots, almost no block.
 
-**Par pente,** objets par m² ; part couverte ; part des 50 cm et plus :
+**By slope,** objects per m²; covered part; share of 50 cm and more:
 
-| Pente | Avant | Après |
+| Slope | Before | After |
 |---|---|---|
-| 0 à 10° | 1,09 ; 1,59 % ; 9 % | 0,16 ; 0,25 % ; 31 % |
-| 10 à 20° | 1,20 ; 1,80 % ; 12 % | 0,56 ; 1,20 % ; 33 % |
-| 20 à 30° | 1,06 ; 2,20 % ; 22 % | 0,11 ; 0,14 % ; 8 % |
-| 30 à 35° | 2,95 ; 4,80 % ; 14 % | 0,56 ; 0,68 % ; 4 % |
-| 35 à 40° | 0,76 ; 0,65 % ; 0 % | 0,22 ; 0,17 % ; 0 % |
-| au-delà | 0 | 0 |
+| 0 to 10° | 1,09 ; 1,59 % ; 9 % | 0,16 ; 0,25 % ; 31 % |
+| 10 to 20° | 1,20 ; 1,80 % ; 12 % | 0,56 ; 1,20 % ; 33 % |
+| 20 to 30° | 1,06 ; 2,20 % ; 22 % | 0,11 ; 0,14 % ; 8 % |
+| 30 to 35° | 2,95 ; 4,80 % ; 14 % | 0,56 ; 0,68 % ; 4 % |
+| 35 to 40° | 0,76 ; 0,65 % ; 0 % | 0,22 ; 0,17 % ; 0 % |
+| beyond | 0 | 0 |
 
-- **Dans les pentes, de petites pierres :** 4 à 8 % de blocs de 20 à 35°. Les blocs restent où le sol s'adoucit.
+- **In the slopes, small stones:** 4 to 8 % of blocks from 20 to 35°. The blocks remain where the soil softens.
 
-**Par taille,** objets par m², de 6 cm à 1 m :
-- **tout le sol :** avant 0,72 ; 0,22 ; 0,047 ; 0,005 ; après 0,165 ; 0,023 ; 0,010 ; 0,002. Les blocs de 1 à 2 m, sous 0,001 par m² dans les deux ;
-- **la loi est plus raide là où les débris passent,** plaines et pentes, où les blocs font 1 à 8 % de la couverture contre 9 à 22 % avant ;
-- **les blocs restent là où les débris s'amassent,** si bien que sur tout le sol leur part ne baisse pas autant que leur nombre : 0,005 → 0,002 par m² de 50 cm à 1 m ;
-- **les graviers sont la texture du sol,** sous 6 cm ; les objets n'en prennent que le haut.
+**By size,** items per m², from 6 cm to 1 m:
+- **all ground:** before 0,72; 0,22; 0,047; 0,005; after 0,165; 0,023; 0,010; 0,002. Blocks of 1 to 2 m, under 0,001 per sq.m in both;
+- **the law is steeper where debris passes,** plains and slopes, where blocks make 1 to 8 % of cover against 9 to 22 % before;
+- **blocks remain where debris accumulates,** so that on the whole floor their share does not decrease as much as their number: 0,005 → 0,002 per m² from 50 cm to 1 m;
+- **the gravel is the texture of the ground,** under 6 cm; the objects take only the top.
 
-**Les taches,** pierres de 25 cm et plus : avant, la moitié dans 25 % des cellules de 20 m, indice de dispersion 13 ; après, la moitié dans 9 %, indice 39. Sur le sol doux, de 38 % à 11 %. Agrégé comme les relevés publiés, sans valeur publiée à notre échelle pour caler mieux.
+**Spots,** stones of 25 cm and more: before, half in 25 % of cells of 20 m, dispersion index 13; after, half in 9 %, index 39. On soft ground, from 38 % to 11 %. Aggregated as published surveys, without published value on our scale to fit better.
 
-**Le flottement,** la même approche : aucun objet ne flotte, 1,1 px au plus.
+**Floating,** the same approach: no object floats, 1,1 px at most.
 
-**Le tremblement,** trois vues de test, sans objets puis avec, avec et sans lissage : ravine 0,03 / 0,19 puis 0,02 / 0,18 ; plaine 0,02 / 0,14 puis 0,02 / 0,14 ; éboulis 0,12 / 0,76 puis 0,12 / 0,73.
+**The jitter,** three test views, without objects then with, with and without smoothing: ravine 0,03 / 0,19 then 0,02 / 0,18; plain 0,02 / 0,14 then 0,02 / 0,14; scree 0,12 / 0,76 then 0,12 / 0,73.
 
-**Le coût :** quatre sols exacts de plus par candidat, la forme du sol, mais les taches écartent dès la première passe 58 % des cellules. Sous la charge des autres instances, sur trois vues de test : placement 1,5 à 1,7 ms, 14 à 17 % du calcul du terrain, contre 1,3 ms et 12 à 14 % pour la version précédente ; dessin 0,02 à 0,3 ms.
+**The cost:** four exact floors more per candidate, the shape of the floor, but the spots discard from the first pass 58 % of cells. Under the load of the other instances, on three test views: placement 1,5 to 1,7 ms, 14 to 17 % of the field calculation, against 1,3 ms and 12 to 14 % for the previous version; drawing 0,02 to 0,3 ms.
 
-## Étape 2 : le détail du sol, une recette par sol
+## Step 2: the detail of the floor, one recipe per floor
 
-Le 2026-10-25, en vol, deux photos à l'appui (`images/cible-sol-sable-cailloux.jpg`, `images/cible-sol-herbe-rochers.jpg`) : « plus rendu des roches sur un thème éboulis que réellement des détails du sol » ; « des cailloux au bas de chaque ravin, comme s'il y avait des éboulements systématiques » ; « posés au milieu de nulle part ».
+The 2026-10-25, in flight, two photos to support (`images/cible-sol-sable-cailloux.jpg`, `images/cible-sol-herbe-rochers.jpg`): "more rendering of rocks on a scree theme than actually details of the ground"; "pebbles at the bottom of each ravine, as if there were systematic landslides"; "laid in the middle of nowhere".
 
-**Ce qui a changé :**
-- **une recette par sol,** au lieu de trois sources de débris : cailloux et graviers sur le sable et le sol nu ; touffes et rochers dans l'herbe ; pierres des éboulis ;
-- **les touffes d'herbe,** une classe nouvelle sur la même grille : quatre formes de 40 brins générées au démarrage ; la couleur de l'herbe du sol à leur place, `ClimateColor`, partagée avec les pixels, plus sombre au pied, plus pâle à la pointe ; un second dessin indirect ;
-- **une octave de 1,5 à 3 cm,** et un enfouissement minimal de 3 mm au lieu de 1 cm, qui enterrait les graviers ;
-- **plus de creux qui amassent :** les éboulements au pied des seules pentes de plus de 35 à 45° ;
-- **des amas plus doux que les taches** pour les cailloux et les touffes : un sable semé partout, plus ou moins.
+**What has changed:**
+- **one recipe per soil,** instead of three sources of debris: pebbles and gravel on sand and bare soil; tufts and rocks in grass; stones of scree;
+- **the tufts grass,** a new class on the same grid: four shapes of 40 strands generated at start; the color of the grass on the ground in their place, `ClimateColor`, shared with pixels, darker at the base, paler at the tip; a second indirect drawing;
+- **an octave of 1,5 to 3 cm,** and a minimum burial of 3 mm instead of 1 cm, which buried gravel;
+- **more hollows that accumulate:** landslides at the foot of the only slopes of more than 35 to 45°;
+- **the clusters softer than the spots** for the pebbles and the tufts: a sand sown everywhere, more or less.
 
-**Compter les photos :**
-- **Le sable,** 1 376 × 768 pixels. Un appareil supposé à 1,6 m et 70° de champ, soit une focale de 983 pixels ; l'horizon de la mer à 268 pixels donne 6,7° d'inclinaison. La tache de premier plan, x de 400 à 1 000, y de 600 à 768, va de 3,1 à 4,7 m de l'appareil : environ 2,3 × 1,6 m, 3,7 m², 3,2 à 4,8 mm par pixel. Comptés à l'œil sur l'image agrandie : 12 cailloux de 8 cm et plus, 35 de 4 à 8 cm, environ 150 de 1,5 à 4 cm, ceux-là sous-comptés, 3 à 8 pixels de large.
-- **Soit, par m² et par octave :** 30 et plus de 1,5 à 3 cm, 16 de 3 à 6 cm, 6 de 6 à 12 cm, 0,5 de 12 à 25 cm ; 6 à 8 % du sol couvert.
-- **L'herbe,** un panorama de 884 × 316 pixels, sans horizon proche : l'échelle vient des touffes, 20 à 40 cm. Au premier plan, 6 à 15 touffes par m², 30 à 60 % du sol ; dans la tache rocheuse, environ 2 rochers de 20 cm à 1 m par m², 15 à 20 % du sol ; ailleurs, rares ; du gravier entre eux.
-- **Une photo est un lieu, pas une moyenne :** le moteur compte sur 23 lieux, ses amas vont de 0,4 à 1,6 fois la moyenne, ses taches de rochers de 0 à 3,8 fois. La cible : le facteur 2.
-- **Les lois publiées en garde-fou :** la part du sol à peu près égale à chaque octave des fragments de roche des sols, Turcotte, Poesen et Lavee ; Golombek et Rapp pour les rochers et les éboulis.
+**Count photos:**
+- **The sand,** 1 376 × 768 pixels. A camera supposed to 1,6 m and 70° field, or a focal length of 983 pixels; the horizon of the sea at 268 pixels gives 6,7° inclination. The foreground spot, x from 400 to 1 000, y from 600 to 768, ranges from 3,1 to 4,7 m of the device: approximately 2,3 × 1,6 m, 3,7 m², 3,2 to 4,8 mm per pixel. Counted to the eye on the enlarged image: 12 pebbles of 8 cm and more, 35 of 4 to 8 cm, about 150 of 1,5 to 4 cm, those undercounted, 3 to 8 pixels wide.
+- **Is, per m² and per octave:** 30 and more of 1,5 to 3 cm, 16 of 3 to 6 cm, 6 of 6 to 12 cm, 0,5 of 12 to 25 cm; 6 to 8 % of land covered.
+- **The grass,** a panorama of 884 × 316 pixels, without near horizon: the scale comes from tufts, 20 to 40 cm. In the foreground, 6 to 15 tufts per m², 30 to 60 % of the soil; in the rocky spot, about 2 rocks of 20 cm to 1 m per m², 15 to 20 % of the soil; elsewhere, rare; some gravel between them.
+- **A photo is a place, not an average:** the engine counts on 23 places, its clusters range from 0,4 to 1,6 times the average, its rock spots from 0 to 3,8 times. The target: the 2 factor.
+- **The laws published in safeguard:** the share of the soil about equal to each octave of the rock fragments of the soils, Turcotte, Poesen and Lavee; Golombek and Rapp for rocks and scree.
 
-**Le banc,** `tools/banc_objets.py recensement`, par m², sur le sol dont la part dépasse 0,5 :
+**The benchmark,** `tools/banc_objets.py recensement`, per m², on the land whose share exceeds 0,5:
 
-| largeur | sable et sol nu | herbe | éboulis | photo du sable |
+| width | sand and bare soil | Grass | scree | photo of sand |
 |---|---|---|---|---|
-| 1,5 à 3 cm | 54 | 8,6 | 40 | 30 et plus |
-| 3 à 6 cm | 12 | 5,3 | 7,2 | 16 |
-| 6 à 12 cm | 2,6 | 2,1 | 1,5 | 6 |
-| 12 à 25 cm | 0,45 | 0,45 | 0,23 | 0,5 |
-| 25 à 50 cm | 0,05 | 0,19 | 0,03 | 0 |
-| 50 cm à 1 m | 0,002 | 0,02 | 0,002 | 0 |
+| 1,5 to 3 cm | 54 | 8,6 | 40 | 30 and more |
+| 3 to 6 cm | 12 | 5,3 | 7,2 | 16 |
+| 6 to 12 cm | 2,6 | 2,1 | 1,5 | 6 |
+| 12 to 25 cm | 0,45 | 0,45 | 0,23 | 0,5 |
+| 25 to 50 cm | 0,05 | 0,19 | 0,03 | 0 |
+| 50 cm to 1 m | 0,002 | 0,02 | 0,002 | 0 |
 
-- **Le sable et le sol nu :** 6,7 % du sol couvert, la photo 6 à 8 %. Le facteur 2 partout, sauf de 6 à 12 cm, 2,6 contre 6 : la photo a un peu plus de cailloux vers 10 cm que la loi, qui garde la même part à chaque octave. Un seul lieu ne justifie pas une loi à bosse.
-- **L'herbe :** 9,0 touffes par m² sur 34 % du sol, la photo 6 à 15 sur 30 à 60 % ; rochers de 20 cm à 1 m dans les taches, 1,1 par m², la photo 2 dans une tache rocheuse.
-- **Les creux :** 2,8 % du sol couvert, dont 10 % de 50 cm et plus, contre 40 % à l'étape 1 ter ; le plat 6,6 %, des cailloux ; le pied des vraies pentes 3,7 %, dont 44 % de blocs.
-- **Les pentes :** rien au-delà de 40°, comme avant.
+- **Sand and bare soil:** 6,7 % of the covered soil, photo 6 to 8 %. The factor 2 everywhere, except from 6 to 12 cm, 2,6 against 6: the photo has a little more pebbles towards 10 cm than the law, which keeps the same part at each octave. One place alone does not justify a bumpy law.
+- **Grass:** 9,0 tufts per m² on 34 % of the ground, photo 6 to 15 on 30 to 60 %; rocks from 20 cm to 1 m in spots, 1,1 per m², photo 2 in a rocky spot.
+- **The hollows:** 2,8 % of the covered soil, of which 10 % of 50 cm and more, against 40 % at the stage 1 ter; the flat 6,6 %, of pebbles; the foot of the real slopes 3,7 %, of which 44 % of blocks.
+- **The slopes:** nothing beyond 40°, as before.
 
-**À hauteur d'homme,** `tools/banc_objets.py photos` : 1,7 m, regard devant, le soleil haut sur chaque lieu, quatre vues trouvées par le recensement, les mêmes que les tests en vol. Planche : `journal/2026-10-25-objets-sol.jpg`, les photos à gauche.
-- **Ce qui rapproche :** le sable semé de cailloux épars et de touffes sèches ; l'herbe hérissée de touffes ; une tache de rochers dans l'herbe ; plus de blocs au fond des ravines.
-- **Ce qui reste loin :**
-  - la couleur des cailloux et des rochers, celle de la roche du lieu, parfois bien plus claire que sur les photos ;
-  - les touffes vertes et fines d'un climat humide, où la photo a de l'herbe sèche et dorée, haute et dense ;
-  - à 720 pixels de haut, un gravier de 1,5 cm ne sort du sol qu'à moins de 2 m : au-delà, le gravier est la texture du sol ;
-  - pas d'ombres portées : l'étape des ombres de proximité.
+**Man-height,** `tools/banc_objets.py photos`: 1,7 m, look forward, sun high on each location, four views found by census, the same as flight tests. Board: `journal/2026-10-25-objets-sol.jpg`, photos on the left.
+- **What brings you closer:** the sand sown with scattered pebbles and dry tufts; the grass heirloom of tufts; a spot of rocks in the grass; more blocks at the bottom of the ravines.
+- **What remains far away:**
+  - the color of the pebbles and rocks, that of the rock of the place, sometimes much lighter than in the photos;
+  - the tufts green and fine of a humid climate, where the photo has dry and golden grass, high and dense;
+  - at 720 pixels high, a gravel of 1,5 cm rises from the ground only at less than 2 m: beyond that, the gravel is the texture of the ground;
+  - no cast shadows: the stage of proximity shadows.
 
-**Le flottement :** l'approche de 200 à 1,5 m, sur les éboulis, au pied d'une paroi, et sur le sable, l'herbe et le sol nu des vues : aucun objet ne flotte ; le sol descend sous un pied de 25 % de l'enfouissement au plus, 0,4 px à l'écran. À hauteur d'homme, sur le sable, 1 mm au plus : les graviers enfouis de 3 mm tiennent. Les touffes, plantées par leur pied, ne sont pas mesurées.
+**The floating:** the approach of 200 to 1,5 m, on the scree, at the foot of a wall, and on the sand, grass and bare ground views: no object floats; the ground descends under a foot of 25 % of burial at most, 0,4 px on the screen. At man's height, on the sand, 1 mm at most: the gravel buried of 3 mm hold. The tufts, planted by their foot, are not measured.
 
-**Le pop :** la descente de 40 à 3 m sur les cinq mêmes lieux, cailloux et touffes : 8 800 arrivées, à 0,07 px au plus ; entiers, ils arriveraient à 7,5 à 15,6 px. La plus forte croissance d'une étape, 2,1 px, est celle d'une touffe dans l'herbe.
+**The pop:** the descent of 40 to 3 m on the five same places, pebbles and tufts: 8 800 arrived, at 0,07 px at most; whole, they would arrive at 7,5 to 15,6 px. The strongest growth of a step, 2,1 px, is that of a tuft in grass.
 
-**Le tremblement,** deux des vues, sans objets puis avec, avec et sans lissage : crête herbeuse 0,01 / 0,07 puis 0,01 / 0,05 ; sable 0,04 / 0,26 puis 0,03 / 0,25.
+**The jitter,** two of the views, without objects then with, with and without smoothing: grassy ridge 0,01 / 0,07 then 0,01 / 0,05; sand 0,04 / 0,26 then 0,03 / 0,25.
 
-**Le coût :** sous la charge de trois autres instances, sur les quatre vues et une prairie : placement 0,4 à 0,75 ms, 14 à 28 % du calcul du terrain ; dessin 0,04 à 0,23 ms, jusqu'à 3 700 touffes et 1 500 pierres. Les touffes, deux octaves, n'ajoutent que deux tranches de la grille ; la forme du sol n'est lue que pour les cailloux.
+**The cost:** under the load of three other instances, on all four views and one meadow: placement 0,4 to 0,75 ms, 14 to 28 % of land calculation; drawing 0,04 to 0,23 ms, up to 3 700 tufts and 1 500 stones. The tufts, two octaves, add only two slices of the grid; the ground shape is read only for the pebbles.
 
-## Étape 3 : où il y a des cailloux, et lesquels
+## Step 3: where there are pebbles, and which ones
 
-Le 2026-10-25, en vol : « globalement, il y a trop de cailloux partout. De taille un peu trop grande » ; « c'est vraiment du gravier qui va se trouver couramment. Les cailloux plus gros vont se trouver moins couramment » ; « de grandes zones de prairies, il n'y aura que de l'herbe, ou encore de grandes zones de sable ». La photo du sable lui paraît elle-même plus dense qu'un sol ordinaire.
+The 2026-10-25, in flight: “globally, there are too many pebbles everywhere. Size a little too large "; "it is really gravel that will be found commonly. The larger stones will be less commonly found"; "large areas of grassland, there will be only grass, or large areas of sand". The picture of sand itself seems to him more dense than ordinary soil.
 
-**Ce qui décidait la présence, avant :**
-- **la part de chaque sol à la place de l'objet,** lue par `GroundMaterials` : tout sable, tout sol nu portait des cailloux, toute herbe des rochers ;
-- **des taches de 8 à 64 m,** nulles sur 58 % du sol, pour les rochers, et des amas de 0,4 à 1,6 fois la moyenne pour les cailloux ;
-- **aucun champ régional :** rien de complexplanet, sauf la pente et la forme du sol ; d'où des cailloux partout, à peine moins par endroits.
+**What determined the presence, before:**
+- **the share of each soil in place of the object,** read by `GroundMaterials`: all sand, all bare soil carried pebbles, all grass rocks;
+- **spots of 8 to 64 m,** zero on 58 % of soil, for rocks, and clusters of 0,4 to 1,6 times the average for pebbles;
+- **no regional field:** nothing complexplanet, except the slope and the shape of the soil; hence pebbles everywhere, barely less in places.
 
-**Après, un champ de pierrosité propre aux débris** (`OBJECT_STONY`) :
-- **un bruit de gradient de la planète, de 0,5 à 32 km,** d'écart type 0,29, le même pour toute caméra ; ses octaves fines découpent les bords des régions ;
-- **relevé par ce qui retire au sol ses fines ou lui apporte des débris :** trois fois la part d'éboulis, le sol nu d'autant plus que l'air est sec, la tangente de la pente ; 0,22 fois leur somme ;
-- **seuillé par la règle des limites,** `SpreadStep` : des débris au-delà de 0,27, entièrement au-delà de 0,42 ;
-- **il décide si des débris existent,** les taches et les amas décident où, dedans ; les touffes n'en dépendent pas ;
-- **dans la première passe,** au plus haut que les sols peuvent le relever : les régions sans débris ne coûtent pas de sol exact.
+**After, a field of stony debris** (`OBJECT_STONY`):
+- **a noise gradient of the planet, from 0,5 to 32 km,** of 0,29 type deviation, the same for any camera; its thin octaves cut the edges of the regions;
+- **raised by what removes the ground its fines or brings him debris:** three times the share of scree, the bare ground all the more as the air is dry, the tangent of the slope; 0,22 times their sum;
+- **threshold by the limit rule,** `SpreadStep`: debris beyond 0,27, entirely beyond 0,42;
+- **it decides if debris exists,** spots and clusters decide where, in; the tufts do not depend on it;
+- **in the first pass,** as high as the soils can lift it: regions without debris do not cost exact soil.
 
-**Les tailles, décalées vers le bas :**
-- **le gravier sous 3 cm est la texture :** la tuile fine porte les longueurs d'onde sous 3 cm, le scan de sable et gravier celles de 3 à 50 cm. L'octave de 1,5 à 3 cm est retirée ;
-- **les cailloux du sable et du sol nu,** 2 % du sol à 3 cm, la part s'effaçant au-delà de 8 cm : cinq fois moins de cailloux à chaque octave au-dessus ;
-- **les rochers de l'herbe,** la loi de Golombek et Rapp à 0,03, le bas des sites mesurés, au lieu de 0,08.
+**Sizes, offset down:**
+- **the gravel under 3 cm is the texture:** the fine tile bears the wavelengths under 3 cm, the sand and gravel scan those of 3 to 50 cm. The octave of 1,5 to 3 cm is removed;
+- **sand and bare ground pebbles,** 2 % of the ground at 3 cm, the share fading beyond 8 cm: five times less pebbles at every octave above;
+- **grass rocks,** the law of Golombek and Rapp at 0,03, the bottom of the measured sites, instead of 0,08.
 
-**Le banc,** `tools/banc_objets.py recensement` :
-- **la part du sol sans débris,** sur les terres de 120 points tirés sur la planète, 67 lieux : 68 % de tout le sol, 74 % des prairies, 70 % des sables et sols nus, 11 % des éboulis ;
-- **là où il y en a,** par m², sur le sol dont la part dépasse 0,5 :
+**The benchmark,** `tools/banc_objets.py recensement`:
+- **the share of debris-free soil,** on the lands of 120 points drawn on the planet, 67 places: 68 % of all soil, 74 % of grasslands, 70 % of sands and bare soils, 11 % of scree;
+- **where applicable,** per m² on the ground where the share exceeds 0,5:
 
-| largeur | sable et sol nu | herbe | éboulis | photo du sable |
+| width | sand and bare soil | Grass | scree | photo of sand |
 |---|---|---|---|---|
-| 3 à 6 cm | 5,2 | 0,25 | 0,84 | 16 |
-| 6 à 12 cm | 1,0 | 0,53 | 0,65 | 6 |
-| 12 à 25 cm | 0,14 | 0,16 | 0,12 | 0,5 |
-| 25 à 50 cm | 0,008 | 0,019 | 0,020 | 0 |
-| 50 cm à 1 m | 0,0001 | 0,002 | 0,001 | 0 |
+| 3 to 6 cm | 5,2 | 0,25 | 0,84 | 16 |
+| 6 to 12 cm | 1,0 | 0,53 | 0,65 | 6 |
+| 12 to 25 cm | 0,14 | 0,16 | 0,12 | 0,5 |
+| 25 to 50 cm | 0,008 | 0,019 | 0,020 | 0 |
+| 50 cm to 1 m | 0,0001 | 0,002 | 0,001 | 0 |
 
-- **Au regard des photos :** le sable caillouteux au tiers de la photo pour les petits cailloux, au sixième de 6 à 12 cm, au quart de 12 à 25 cm, 1,7 % du sol couvert contre 6 à 8 % ; le bas de la photo, voulu. Les rochers de l'herbe, 0,22 par m² de 20 cm à 1 m dans les taches, contre 2 sur la photo d'une crête rocheuse.
-- **Au regard des lois publiées :** les fragments des sols ont une part à peu près égale à chaque octave, un pavage désertique couvre jusqu'à 65 % du sol ; nos sols caillouteux, 1,7 %, sont au plus bas de ce que l'on mesure, comme demandé.
-- **Sur tout le sol,** débris absents compris : de 0 à 10°, 2,2 objets par m² et 0,6 % du sol, contre 71 et 7,3 % à l'étape 2.
-- **Les creux :** 6 % de blocs de 50 cm et plus ; le pied des vraies pentes, 58 %.
+- **In view of the photos:** the rocky sand at the third of the photo for small pebbles, at the sixth of 6 to 12 cm, at the quarter of 12 to 25 cm, 1,7 % of the ground covered against 6 to 8 %; the bottom of the photo, wanted. The rocks of grass, 0,22 per m² from 20 cm to 1 m in spots, against 2 on the photo of a rocky ridge.
+- **In view of published laws:** soil fragments have a share about equal to every octave, a desert paving covers up to 65 % of the soil; our rocky soils, 1,7 %, are at the lowest of what is measured, as requested.
+- **On all ground,** missing debris including: from 0 to 10°, 2,2 objects per m² and 0,6 % of ground, compared to 71 and 7,3 % at step 2.
+- **The hollows:** 6 % of blocks of 50 cm and more; the foot of the real slopes, 58 %.
 
-**À hauteur d'homme,** `tools/banc_objets.py photos`, six vues trouvées par le recensement, les mêmes que les tests en vol : sable caillouteux, sable sans débris près de la côte, herbe et rochers, prairie sèche sans débris, sol nu caillouteux, pente d'éboulis. Planche : `journal/2026-10-25-objets-pierrosite.jpg`, les photos à gauche.
+**At man's height,** `tools/banc_objets.py photos`, six views found by the census, the same as the flight tests: rocky sand, sand without debris near the coast, grass and rocks, dry grassland without debris, bare rocky ground, slope of scree. Board: `journal/2026-10-25-objets-pierrosite.jpg`, photos on the left.
 
-**Le flottement :** l'approche de 200 à 1,5 m, sur les éboulis, au pied d'une paroi, et sur le sable, l'herbe et le sol nu caillouteux des vues : aucun objet ne flotte ; le sol descend sous un pied de 11 % de l'enfouissement au plus, 0,85 px à l'écran.
+**The floating:** the approach of 200 to 1,5 m, on the scree, at the foot of a wall, and on the sand, grass and bare rocky ground of the views: no object floats; the ground descends under a foot of 11 % of burial at most, 0,85 px on the screen.
 
-**Le pop :** la descente de 40 à 3 m sur les cinq mêmes lieux : 8 450 arrivées, à 0,06 px au plus ; entiers, ils arriveraient à 7,5 à 15,6 px. Le tremblement du sable caillouteux, sans objets puis avec, avec et sans lissage : 0,02 / 0,16 puis 0,02 / 0,13.
+**The pop:** the descent of 40 to 3 m on the five same places: 8 450 arrived, at 0,06 px at most; whole, they would arrive at 7,5 to 15,6 px. The jitter of the rocky sand, without objects then with, with and without smoothing: 0,02 / 0,16 then 0,02 / 0,13.
 
-**Le coût :** sous forte charge de deux autres instances, le calcul du terrain à 20 à 32 ms : placement 1,5 à 4,6 ms, 6 à 19 % de ce calcul, contre 14 à 28 % à l'étape 2 ; dessin 0,06 à 0,15 ms. Le champ de pierrosité écarte les régions sans débris dès la première passe.
+**The cost:** under heavy load of two other instances, the calculation of the terrain at 20 to 32 ms: placement 1,5 to 4,6 ms, 6 to 19 % of this calculation, against 14 to 28 % at the 2 step; drawing 0,06 to 0,15 ms. The stone field removes debris-free areas from the first pass.

@@ -1,282 +1,282 @@
-# Les nuages du jeu
+# The clouds of the game
 
-**Les nuages du jeu, de l'orbite au sol, sur toute la planète.** Un volume en deux couches, tiré d'une carte météo planétaire calculée au démarrage sur le climat, et de deux bruits 3D fixés sur la planète, que le vent porte vers l'est. Ils ombrent le sol et la mer, et la verrière du vaisseau les traverse.
+**The clouds of the game, from orbit to ground, across the planet.** A two-layer volume, drawn from a planetary weather map calculated at start on the climate, and two noise functions 3D fixed on the planet, which the wind carries to the east. They shade the land and the sea, and the ship's canopy glass crosses them.
 
-**État, 2026-10-31 :** le seul chemin, actif par défaut, sans variable (commit `3663177`). La lumière de l'air leur est rendue le 2026-10-30. Depuis le 2026-10-31, leur carte météo est tirée du climat, tag `piste/nuages-climat` : à juger en vol, `tools/tests/2026-10-31-nuages-climat.txt`. Le même jour, leur lumière, leur eau et leur pixel sont refaits pour la vue d'orbite, tag `piste/orbite-rendu` (`spec-rendu-orbite.md`) : à juger en vol, `tools/tests/2026-10-31-orbite-rendu.txt`.
+**State, 2026-10-31:** the only path, active by default, without variable (commit `3663177`). The light of the air is rendered to them the 2026-10-30. Since the 2026-10-31, their weather map is drawn from the climate, tag `piste/nuages-climat`: to judge in flight, `tools/tests/2026-10-31-nuages-climat.txt`. On the same day, their light, water and pixel are redone for the orbit view, tag `piste/orbite-rendu` (`spec-rendu-orbite.md`): to be judged in flight, `tools/tests/2026-10-31-orbite-rendu.txt`.
 
-- **Le code :** `MyPlanetEngine/Clouds.hlsli`, `CloudsTemporal.hlsli`, `AtmospherePass.hlsl` et ses trois enveloppes `CloudTrace.hlsl`, `CloudTraceHalf.hlsl`, `CloudResolve.hlsl` ; `D3DApp.cpp` et `.h` ; la carte météo, `Climate::Weather` dans `Climate.cpp` ; pour la verrière, `ShipWeather.hlsl`, `Ship.cpp`.
-- **Les données :** `assets/clouds`, trois volumes de bruit et leur `manifest.json` ; la carte météo se calcule au démarrage.
-- **L'origine :** les nuages volumétriques de Wicked Engine, adaptés (MIT, `NOTICE`) ; les bruits et les profils de Frostbite ; la carte sur la sphère. Les spikes qui y ont mené sont au log (`log/README.md`, les nuages) ; l'histoire de cette spec, dans `log/spec-nuages-historique.md`.
-- **L'essayer :** `tools/lance.ps1 -Parcours tools/tests/2026-10-27-nuages-planete.txt` ; pour la lumière de l'air, `tools/tests/2026-10-30-lumiere.txt` (`lancement.md`).
+- **The code:** `MyPlanetEngine/Clouds.hlsli`, `CloudsTemporal.hlsli`, `AtmospherePass.hlsl` and its three envelopes `CloudTrace.hlsl`, `CloudTraceHalf.hlsl`, `CloudResolve.hlsl`; `D3DApp.cpp` and `.h`; the weather map, `Climate::Weather` in `Climate.cpp`; for the canopy glass, `ShipWeather.hlsl`, `Ship.cpp`.
+- **Data:** `assets/clouds`, three volumes of noise and their `manifest.json`; the weather map is calculated at startup.
+- **The origin:** Wicked Engine volumetric clouds, adapted (MIT, `NOTICE`); Frostbite noise functions and profiles; the map on the sphere. The spikes that led to it are in the log (`log/README.md`, the clouds); the history of this spec, in `log/spec-nuages-historique.md`.
+- **Try it:** `tools/lance.ps1 -Parcours tools/tests/2026-10-27-nuages-planete.txt`; for air light, `tools/tests/2026-10-30-lumiere.txt` (`lancement.md`).
 
-## Le modèle
+## The model
 
-**Deux couches, dans une coquille de 2 à 13 km d'altitude.**
-- **Les nuages bas,** de 2 à 8 km : cumulus et nappes.
-- **Les cirrus,** de 9 à 13 km : une enveloppe de 0,35 à 0,6 km de demi-épaisseur, centrée vers 11 km et ondulée.
-- **Le rayon de la planète :** 6 378 km.
+**Two layers, in a shell of 2 to 13 km altitude.**
+- **Low clouds,** from 2 to 8 km: cumulus and sheets.
+- **The cirrus,** from 9 to 13 km: an envelope of 0,35 to 0,6 km of half thickness, centered towards 11 km and wavy.
+- **The radius of the planet:** 6 378 km.
 
-**La carte météo couvre la sphère entière,** en 1 024 × 512 ; U la longitude, V la colatitude, nord en haut. Elle se calcule au démarrage sur le climat (la section suivante).
-- **R :** la part du ciel couverte par les nuages bas, jusqu'à 0,28 ; au-dessus, leur épaisseur, jusqu'à 0,9 ; sous 0,03, pas de nuage.
-- **G :** leur famille, 0 la nappe, 1 le cumulus ; entre les deux, les nuages épais des fronts.
-- **B :** les cirrus, 0,286 au plus : enclumes, courant-jet, boucliers des fronts chauds.
-- **Elle est lue au mip 0,** environ 39 km à l'équateur, en B-spline cubique : la part couverte la seuille d'une fonction raide, et l'interpolation bilinéaire y dessinait des carrés de 80 à 160 km. Elle porte ses formes jusqu'à 80 km. Ses mips 2 et plus gardent le maximum de R et de B, pour prouver le vide ; sa marge couvre les deux texels du filtre.
+**The weather map covers the entire sphere,** in 1 024 × 512; U the longitude, V the latitude, north at the top. It is calculated at startup on climate (next section).
+- **R:** the portion of the sky covered by low clouds, up to 0,28; above, their thickness, up to 0,9; below 0,03, no clouds.
+- **G:** their family, 0 the table, 1 the cumulus; between the two, the thick clouds of the fronts.
+- **B:** cirrus, 0,286 at most: anvils, jet currents, shields of hot fronts.
+- **It is read at the mip 0,** about 39 km at the equator, in cubic B-spline: the part covered the sheet of a steep function, and the bilinear interpolation drew squares from 80 to 160 km. It carries its shapes up to 80 km. Its mips 2 and more keep the maximum of R and B, to prove the vacuum; its margin covers the two texels of the filter.
 
-## La carte météo, tirée du climat
+## The weather map, drawn from the climate
 
-**Une climatologie des nuages et un instant de sa météo, calculés au démarrage par graine** (`Climate::Weather`), après la carte du climat (`spec-climat.md`), sur ses champs et les grandes formes du relief. Chaque texel se calcule seul ; la même graine donne la même carte, au bit près.
+**A climatology of clouds and a moment of its weather, calculated at startup by seed** (`Climate::Weather`), after the climate map (`spec-climat.md`), on its fields and the large relief forms. Each texel is calculated alone; the same seed gives the same card, bit close.
 
-**R est la part du ciel couverte, vue d'en haut.**
-- **Sous une fraction c de 0,92,** R vient d'une table mesurée sur les trois volumes, colonne de 6 km, sous la loi du rendu : la forme de 32 km et son octave de 128 km seuillées, l'eau indépendante de R hors l'épaisseur :
+**R is the cloudy part of the sky, seen from above.**
+- **Under a fraction c of 0,92,** R comes from a table measured on the three volumes, column of 6 km, under the law of rendering: the form of 32 km and its octave of 128 km threshold, water independent of R out of thickness:
 
 | R | 0,08 | 0,10 | 0,12 | 0,14 | 0,16 | 0,18 | 0,20 | 0,22 | 0,24 | 0,26 | 0,28 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| opacité | 0,06 | 0,13 | 0,21 | 0,32 | 0,44 | 0,55 | 0,66 | 0,75 | 0,82 | 0,88 | 0,92 |
+| opacity | 0,06 | 0,13 | 0,21 | 0,32 | 0,44 | 0,55 | 0,66 | 0,75 | 0,82 | 0,88 | 0,92 |
 
-- **Au-dessus,** les masses : R = 0,28 + 0,62 e, e l'épaisseur, que le rendu lit pour l'eau du nuage, `0,25 + 0,75 e`. Une nappe à e = 0 garde 8 % de trous.
-- **L'épaisseur par classe :** nappes 0 à 0,2 en cellules de 120 km ; stratus polaires 0,1 à 0,25 ; bancs au vent 0,3 à 0,5 ; boucliers 0,35 à 0,6 ; bras des spirales 0,45 à 0,7 ; têtes des dépressions 0,8 à 1 ; fronts 0,75 à 1 sur l'axe, 0,5 au bout, 0,35 sur les flancs ; cœurs convectifs 0,85 à 1.
-- **Sa structure :** des variations gauchies de 80 et 250 km ; e tombe à 0 sur les 40 à 80 km du bord d'une masse, gauchi, pour que les bords s'effilochent.
-- **Sous 0,03,** R = 0 : le ciel est vide.
+- **Above,** the masses: R = 0,28 + 0,62 e, e the thickness, that the rendering reads for the cloud water, `0,25 + 0,75 e`. A layer with e = 0 keeps 8 % of holes.
+- **Thickness by class:** 0 to 0,2 sheets in 120 km cells; polar strata 0,1 to 0,25; cloud banks windward 0,3 to 0,5; shields 0,35 to 0,6; spiral arms 0,45 to 0,7; depression heads 0,8 to 1; fronts 0,75 to 1 on the axis, 0,5 at the end, 0,35 on the sides; convective cores 0,85 to 1.
+- **Its structure:** left-handed variations of 80 and 250 km; e falls at 0 on the 40 to 80 km of the edge of a mass, left-handed, so that the edges fray.
+- **Under 0,03,** R = 0: the sky is empty.
 
-**Le ciel est clair par défaut,** comme sur la photo de la Terre, bimodale : sur des blocs de 150 km, 43 % clairs, 34 % mêlés, 23 % couverts, 37 % de blanc en tout. La carte ne met de nuage que là où une forme en fait.
+**Sky is clear by default,** as in Earth photo, bimodal: on blocks of 150 km, 43 % clear, 34 % mixed, 23 % cloudy, 37 % white overall. The map only puts clouds where a shape does.
 
-**Deux classes de nuages :**
-- **Les masses organisées,** dessinées par la carte, opaques, aux bords nets : bras et têtes des dépressions, fronts froids, boucliers chauds, amas de la ZCIT et de la convection humide, nappes de stratocumulus, stratus polaires, bancs au vent.
-  - Les couches se réalisent en surface, pas en transparence : opaque où une texture n < c, n de 500 à 800 km rendu uniforme sur l'aire par sa fonction de répartition.
-- **Les champs de petits nuages,** laissés au grain d'environ 30 km du shader : une fraction partielle, 0,5 au plus, sans seuillage, dans quatre régimes seulement, chacun éteint à 0 sur ses bords. Les cellules ouvertes derrière les fronts, les bords défaits des nappes, les cumulus d'alizé en aval des nappes, les cumulus des terres humides et chaudes.
+**Two classes of clouds:**
+- **The organized masses,** drawn by the map, opaque, with clear edges: arms and heads of depressions, cold fronts, hot shields, clusters of ZCIT and wet convection, stratocumulus sheets, polar strata, cloud banks windward.
+  - The layers are made in surface, not in transparency: opaque where a texture n < c, n of 500 to 800 km made uniform on the area by its distribution function.
+- **The fields of small clouds,** left at the grain of about 30 km of the shader: a partial fraction, 0,5 at most, without seiling, in four regimes only, each extinguished at 0 on its edges. The open cells behind the fronts, the broken edges of the sheets, the cumulus of alizé downstream of the sheets, the cumulus of the wet and warm lands.
 
-| Nuage | Où | Fraction, famille |
+| Cloud | Where | Fraction, family |
 |---|---|---|
-| La ZCIT | la ligne du maximum de pluie entre ±25°, lissée sur 2 000 km ; demi-largeur 4°, gauchie | des amas de 0,46 à 0,68, seuillés ; épais, cumulus |
-| La convection humide | au-dessus de 1 500 à 2 400 mm et de 20 à 25 °C, la terre surtout | jusqu'à 0,7, seuillée ; cumulus |
-| Les nappes de stratocumulus | au-dessus des remontées froides lissées sur 500 km, portées sur 1 600 km sous le vent, plus fortes sur une mer fraîche | 0,9 au cœur, seuillées en déchirures ; défaites sous le vent en champs de 0,3 à 0,5 ; nappe |
-| Les cumulus d'alizé | en aval des nappes, sous les alizés, éteints sur 1 250 km | 0,1 à 0,25 ; cumulus |
-| Les stratus polaires | sous −8 à −18 °C sur la mer, −6 à −18 °C sur la terre | 0,3, seuillés ; nappe |
-| Les bancs au vent | où le vent monte la pente des grandes formes lissée sur 120 km, de 0,02 à 0,12 m/s | 0,82, seuillés ; mixte |
-| Les cumulus des terres | au-dessus de 1 000 à 1 600 mm et de 15 à 22 °C | 0,2 à 0,3 ; cumulus |
-| Les dépressions | 8 à 10 en anneau entre 45 et 62° S ; 6 à 8 entre 38 et 62° N, sur la mer, à 2 500 km au moins | voir ci-dessous ; opaques, mixtes |
+| The ZCIT | the maximum rainfall line between ±25°, smoothed on 2 000 km; half width 4°, left-handed | clusters of 0,46 to 0,68, threshold; thick, cumulus |
+| Wet convection | above 1 500 to 2 400 mm and 20 to 25 °C, mainly earth | up to 0,7, threshold; cumulus |
+| The layers of stratocumulus | above smoothed cold rises on 500 km, carried on 1 600 km leeward, stronger on a cool sea | 0,9 at heart, threshold in tears; defeats leeward in fields of 0,3 to 0,5; layer |
+| The cumulus of alizé | downstream of the sheets, under trade winds, extinct on 1 250 km | 0,1 to 0,25; cumulus |
+| Polar strata | under −8 to −18 °C on sea, −6 to −18 °C on land | 0,3, threshold; layer |
+| The cloud banks windward | where the wind climbs the slope of the smoothed large shapes on 120 km, from 0,02 to 0,12 m/s | 0,82, threshold; mixed |
+| The cumulus of the land | above 1 000 to 1 600 mm and 15 to 22 °C | 0,2 to 0,3; cumulus |
+| Depressions | 8 to 10 in a ring between 45 and 62° S; 6 to 8 between 38 and 62° N, on the sea, at least 2 500 km | see below; opaque, mixed |
 
-**Une dépression,** à son échelle de 1 500 à 2 200 km et à son stade, d'une onde à une occlusion, en miroir au sud :
-- **la spirale :** 2 ou 3 bras logarithmiques de 1 à 1,75 tour, larges de 0,2 à 0,3 fois l'échelle ; la tête pleine quand elle s'occlut ;
-- **la fente sèche :** l'intervalle entre les bras, plus étroit qu'eux, dégagé ;
-- **le front froid :** une polyligne sur la sphère, de 2 500 à 5 000 km, qui part au sud-est du centre, balaie vers le sud-sud-ouest puis l'ouest et atteint 25 à 31° ; large de 600 km près du centre, 220 km au bout, 30 % de plus au sud ;
-- **côté froid du front,** une allée claire de 130 à 280 km ; **côté chaud,** le secteur chaud, éclairci ;
-- **le bouclier chaud,** d'environ 1 350 × 1 000 km à l'est et vers le pôle, des cirrus sur son bord avant ;
-- **le secteur froid,** sur la mer, des cellules ouvertes de 0,35 à 0,5 derrière le front, éteintes avant la dorsale, à mi-chemin de la dépression précédente.
+**A depression,** at its scale of 1 500 to 2 200 km and at its stage, from a wave to an occlusion, mirrored to the south:
+- **spiral:** 2 or 3 logarithmic arms from 1 to 1,75 turn, wide from 0,2 to 0,3 times the scale; full head when it occluses;
+- **dry slit:** the interval between the arms, narrower than them, clear;
+- **the cold front:** a polyline on the sphere, from 2 500 to 5 000 km, which starts south-east of the center, sweeps south-south-west then west and reaches 25 to 31°; wide of 600 km near the center, 220 km at the end, 30 % more south;
+- **cold side of the front,** a clear lane from 130 to 280 km; **hot side,** the hot area, cleared;
+- **the hot shield,** about 1 350 × 1 000 km east and towards the pole, cirrus on its front edge;
+- **the cold area,** on the sea, open cells of 0,35 to 0,5 behind the front, extinct before the ridge, halfway to the previous depression.
 
-- **Le ciel se dégage tout à fait,** sans plancher : sous les anticyclones, sur les dorsales entre les dépressions, dans les secteurs chauds, sur les déserts chauds, sous 250 mm et au-dessus de 5 à 10 °C, dans les fentes sèches et les allées des fronts ; sous le vent des reliefs, où l'air descend de 0,015 à 0,1 m/s.
-- **Les cirrus :** les enclumes de la ZCIT, les boucliers chauds, des traînées du courant-jet vers 31°.
-- **La combinaison :** un maximum lissé d'ordre 4, jamais une somme ; la famille vient de la forme la plus forte, en mélange doux.
-- **Le budget,** graines 0 et 1 :
-  - fraction opaque moyenne 0,37 et 0,35, pour 37 % de blanc sur la photo d'Apollo ;
-  - ciel clair, opacité sous 0,05, sur 52 et 53 % de l'aire ; couvert, au-dessus de 0,9, sur 32 et 30 % ; mêlé sur 16 et 17 % ;
-  - par bande, la fraction opaque de la Terre à ±0,1 : 0,4 de 0 à 10°, 0,2 à 0,25 de 10 à 30°, 0,5 à 0,65 de 40 à 70° ; sauf 30-40° S, à 0,21-0,24 pour 0,35, et 50-60° N de la graine 1, à 0,48 pour 0,6 ;
-  - cirrus au-dessus de 0,03 sur 6 à 7 %.
-- **Le temps :** 150 à 170 ms au titre, machine chargée par d'autres rendus.
-- **La mesure :** `python tools/meteo_couverture.py <graine>` lit `meteo-<graine>.bin`, imprime ces chiffres et leurs cibles, et écrit une image de l'opacité vue d'en haut, `meteo-<graine>.png`.
-- **Le moteur écrit la carte** à côté de l'exécutable, `meteo-<graine>.bin`, son mip 0 après un en-tête `EXOMETEO`, la graine, la largeur et la hauteur ; et ses dépressions, `meteo-<graine>.txt`, latitude, longitude, échelle et stade, pour les vues de test.
+- **The sky clears up completely,** without floor: under anticyclones, on ridges between depressions, in hot areas, on hot deserts, under 250 mm and above 5 to 10 °C, in dry slits and fronts alleys; leeward of reliefs, where air descends from 0,015 to 0,1 m/s.
+- **The cirrus:** the anvils of the ZCIT, the hot shields, the trails of the jet current towards 31°.
+- **The combination:** a smoothed order maximum 4, never a sum; the family comes from the strongest form, in soft mix.
+- **The budget,** seeds 0 and 1:
+  - average opaque fraction 0,37 and 0,35, for 37 % of white on the Apollo photo;
+  - clear sky, opacity under 0,05, on 52 and 53 % of area; cloudy, above 0,9, on 32 and 30 %; mixed on 16 and 17 %;
+  - by band, the opaque fraction of the Earth at ±0,1: 0,4 from 0 to 10°, 0,2 to 0,25 from 10 to 30°, 0,5 to 0,65 from 40 to 70°; except 30-40° S, at 0,21-0,24 for 0,35, and 50-60° N of the seed 1, at 0,48 for 0,6;
+  - cirrus above 0,03 on 6 to 7 %.
+- **Time:** 150 to 170 ms at title, machine loaded by other renderings.
+- **Measure:** `python tools/meteo_couverture.py <graine>` reads `meteo-<graine>.bin`, prints these numbers and their targets, and writes an image of the opacity seen from above, `meteo-<graine>.png`.
+- **The engine writes the map** next to the executable, `meteo-<graine>.bin`, its mip 0 after a `EXOMETEO` header, the seed, width and height; and its depressions, `meteo-<graine>.txt`, latitude, longitude, scale and stage, for test views.
 
-**La densité des nuages bas :**
-- **La forme,** un bruit de Perlin-Worley de 128³ texels sur 32 km, et **l'érosion,** un bruit de Worley de 32³ sur 4 km. Tous deux sont fixés sur la planète.
-- **Le profil vertical,** une table de 64² par famille et par hauteur dans la couche, donne la densité et la force de l'érosion.
-- **La couverture seuille la forme,** à la façon de Frostbite : `remap(forme, 1 − R, 1) × R × profil`. L'érosion est ensuite retranchée au bord.
-- **Puis la densité se divise par R :** R dit la part du ciel couverte, pas l'eau dans le nuage. La forme, le support et l'érosion ne changent pas.
-- **L'eau dans le nuage suit l'épaisseur que la carte porte,** convention partagée avec le climat : `e = saturate((R − 0,28) / 0,62)`, nulle sous 0,28, et la densité multipliée par `0,25 + 0,75 e`, de 20 à 80 /km. Les cumulus épars et les nappes, environ 0,1 à 0,2 g/m³ d'eau, ont τ de 10 à 25 ; les cœurs des fronts et de la convection, 0,5 g/m³, τ de 80 et plus. Avec l'eau d'un cœur de front partout, une nappe d'1 km avait τ ≈ 60 : sa réflectance saturait, plate et sans texture vue d'orbite basse.
-- **Une octave de la forme à 128 km,** le même volume relu à quatre fois son échelle, axes permutés pour que les deux pavages ne s'alignent pas, s'ajoute à la forme, centrée sur sa moyenne mesurée, 0,889 ; sa variance sous le texel s'ajoute à la loi au pixel. Sans elle, à couverture partielle, l'érosion de 4 km plaçait seule les cumulus : un semis uniforme de mêmes tailles, vu d'orbite basse. Avec elle, ils se groupent en amas et en allées, et les bords des nappes s'effilochent.
+**Low cloud density:**
+- **The shape,** a Perlin-Worley noise of 128³ texels over 32 km, and **the erosion,** a Worley noise of 32³ over 4 km. Both are fixed on the planet.
+- **The vertical profile,** a table of 64² per family and per height in the layer, gives the density and strength of erosion.
+- **The cover is a form of shame,** in the Frostbite style: `remap(forme, 1 − R, 1) × R × profil`. Erosion is then cut off at the edge.
+- **Then the density is divided by R:** R says the portion of the sky covered, not the water in the cloud. The shape, support and erosion do not change.
+- **Water in the cloud follows the thickness that the map bears,** convention shared with the climate: `e = saturate((R − 0,28) / 0,62)`, zero under 0,28, and density multiplied by `0,25 + 0,75 e`, from 20 to 80 /km. The scattered cumulus and clouds, about 0,1 to 0,2 g/m³ of water, have τ from 10 to 25; the fronts and convection cores, 0,5 g/m³, τ from 80 and more. With water from a front heart everywhere, a layer of 1 km had τ ≈ 60: its reflectance saturated, flat and textureless view from low orbit.
+- **An octave of the form at 128 km,** the same volume read four times its scale, axes permuted so that the two pavement do not align, is added to the form, centered on its measured average, 0,889; its variance under the texel is added to the pixel law. Without it, with partial coverage, the erosion of 4 km placed the cumulus alone: a uniform seed of the same sizes, seen from low orbit. With it, they are grouped in clusters and alleys, and the edges of the layers fray.
 
-**La statistique au pixel** (`CloudLowDensity`) : un échantillon lit la forme et l'érosion au mip de l'empreinte du pixel, et leur loi sous elle, pas leur seule moyenne.
-- **L'écart type de chaque bruit sous chaque texel,** de chaque mip, se calcule au chargement depuis le mip 0, dans le canal B des deux volumes (`D3DApp::UploadCloudVolume`) ; le fichier sur disque ne change pas.
-- **La marge sur l'érosion,** `U = clamp(X − (1 − R), 0, R) p − D g`, X la forme, D l'érosion, p et g le profil, est prise gaussienne : moyenne et variance depuis les deux moments du seuil et l'écart type de D.
-- **La part couverte** `f = Φ(mU / sU)` ; **la densité dans le nuage** `E[U⁺] / f / (1 − g μD) / R`, bornée à [0, 1] ; sous 1e-4, la part est nulle.
-- **Les échelles plus fines que les texels,** que les bruits ne portent pas, ajoutent leur variance à toute distance : 0,0124 pour la forme, 0,033 pour l'érosion, la variance de l'octave la plus fine, celle des blocs du mip 1, les octaves suivantes de moitié. De près, un bord devient une frange de part couverte partielle, comme un bord turbulent vu au pixel. Contrôle : `tools/nuages_statistique.py`.
-- **Les cirrus,** minces, gardent leur densité moyenne.
+**Statistics per pixel** (`CloudLowDensity`): a sample reads the shape and erosion at the mip of the pixel footprint, and their law under it, not their single average.
+- **The standard deviation of each noise under each texel,** of each mip, is calculated when loading from the 0 mip, in channel B of both volumes (`D3DApp::UploadCloudVolume`); the file on disk does not change.
+- **The margin on erosion,** `U = clamp(X − (1 − R), 0, R) p − D g`, X the shape, D the erosion, p and g the profile, is taken Gaussian: mean and variance from the two moments of the threshold and the standard deviation of D.
+- **The covered part** `f = Φ(mU / sU)`; **the density in the cloud** `E[U⁺] / f / (1 − g μD) / R`, limited to [0, 1]; under 1e-4, the part is zero.
+- **The scales thinner than the texels,** that the noise functions do not carry, add their variance at any distance: 0,0124 for the shape, 0,033 for erosion, the variance of the thinnest octave, that of the blocks of the mip 1, the following octaves of half. Close up, an edge becomes a fringe of partial cover, like a turbulent edge seen at pixel. Control: `tools/nuages_statistique.py`.
+- **The thin cirrus clouds** keep their average density.
 
-**La densité des cirrus :** des fibres, canal G du volume de forme, sur 64 km vers l'est et 16 km vers le nord, cisaillées. Elles sont multipliées par B, par l'enveloppe et par 0,018.
-- **Leur repère est fixe :** le même est et le même nord sur toute la planète (`CLOUD_CIRRUS_*`).
+**Density of cirrus:** fibers, channel G of the volume form, on 64 km to the east and 16 km to the north, sheared. They are multiplied by B, by the envelope and by 0,018.
+- **Their reference frame is fixed:** the same east and the same north on the whole planet (`CLOUD_CIRRUS_*`).
 
-**La précision :**
-- **En double :** la caméra, la vue et les distances, depuis une ancre posée sur une grille de 32 km.
-- **En float,** seulement le reste local : aucune coordonnée absolue n'entre dans une lecture de bruit.
+**Precision:**
+- **in double precision:** the camera, the view and the distances, from an anchor placed on a grid of 32 km.
+- **In float,** only the local remainder: no absolute coordinates enter into a noise reading.
 
-**La lumière, à chaque pas dans un nuage :**
-- **L'extinction :** 80 /km par unité de densité, albédo 1 ; 0,5 g/m³ d'eau à 10 µm de rayon effectif.
-- **Vers le soleil :** six pas, de 125 m à 4 km, 7,875 km en tout, la couche basse entière ; Beer sur la densité traversée.
-- **La phase simple :** Henyey-Greenstein, g = 0,85, celle des gouttes (Bohren et Huffman).
-- **Le soleil et le ciel** viennent des tables de l'atmosphère, à l'altitude du pas : `SunTransmittance`, `MultiScattering`, `SkyIrradiance`.
-- **La diffusion multiple,** isotrope : `σ W (S_soleil μ + E_ciel) / (1 + b τs) / 4π` par km, la transmission diffuse d'une couche vers le soleil, sommée le long de la vue, puis multipliée par `F = 1 − exp(−k τ / μ̄)` ; W = 3,40, b = 0,040, k = 0,061, calés sur des couches de Monte-Carlo (`tools/calage_orbite.py nuages`).
-  - **μ :** une nappe reçoit le soleil comme un sol, `dot(haut, soleil)` ; un cumulus comme une boule, 0,5 sur sa face éclairée : `max(dot, 0,5 × famille, 0,05)`.
-  - **τ, l'épaisseur du nuage là où il existe :** la plus grande de deux. La colonne verticale au point vu, douze tranches de 0,5 km de la couche basse ou huit des cirrus, en densité dans le nuage, sans la part couverte, lue à environ 1 km (mip ≥ 2 de la forme, ≥ 3 de l'érosion) : la diffusion multiple étale la lumière sur quelques libres parcours de transport, 1 / (σ (1 − g)) ≈ 170 m. Et l'épaisseur que la marche a traversée. Pour une couche plane, c'est son épaisseur : la grandeur du calage. Le bord d'un nuage, vu rasant ou éclairé de dos, a la colonne de tout le nuage.
-- **Le détail et ses raisons :** `spec-rendu-orbite.md`.
+**Light, at every step in a cloud:**
+- **Extinction:** 80 /km per unit density, water albedo 1; 0,5 g/m³ at 10 µm of effective radius.
+- **To the sun:** six steps, from 125 m to 4 km, 7,875 km in all, the entire lower layer; Beer on the density crossed.
+- **The simple phase:** Henyey-Greenstein, g = 0,85, that of the drops (Bohren and Huffman).
+- **The sun and the sky** come from the atmosphere tables, at the altitude of the step: `SunTransmittance`, `MultiScattering`, `SkyIrradiance`.
+- **The multiple scattering,** isotropic: `σ W (S_soleil μ + E_ciel) / (1 + b τs) / 4π` per km, diffuse transmission of a layer towards the sun, summed along the view, then multiplied by `F = 1 − exp(−k τ / μ̄)`; W = 3,40, b = 0,040, k = 0,061, calibrated on Monte Carlo layers (`tools/calage_orbite.py nuages`).
+  - **μ:** a layer receives the sun like a floor, `dot(haut, soleil)`; a cumulus like a ball, 0,5 on its illuminated face: `max(dot, 0,5 × famille, 0,05)`.
+  - **τ, the thickness of the cloud where it exists:** the greater of two. The vertical column at the point of view, twelve strips of 0,5 km of the low layer or eight of the cirrus, in density in the cloud, without the covered part, read at about 1 km (mip ≥ 2 of the form, ≥ 3 of the erosion): the multiple scattering spreads the light on some free transport paths, 1 / (σ (1 − g)) ≈ 170 m. And the thickness that the walk has crossed. For a flat layer, it is its thickness: the size of the caling. The edge of a cloud, seen from the side or from behind, has the column of the entire cloud.
+- **The detail and its reasons:** `spec-rendu-orbite.md`.
 
-**La marche, en colonnes :** dans le pixel, les nuages d'une couche se superposent au maximum ; la colonne nuageuse est la plus large part rencontrée, fc, et seule une part de 2 % plus large l'élargit. Quand le rayon a quitté l'empreinte du pixel, la colonne se ferme et se compose aux précédentes comme une couche : recouvrement aléatoire au-delà. La transmittance du pixel est `1 − fc (1 − Tc)`.
+**The walk, in columns:** in the pixel, the clouds of a layer superimpose to the maximum; the cloudy column is the widest part encountered, fc, and only a part of 2 % wider expands it. When the ray has left the pixel footprint, the column closes and composes to the previous ones like a layer: random overlap beyond. The transmittance of the pixel is `1 − fc (1 − Tc)`.
 
-**La marche :**
-- **Les segments** de chaque couche sont triés le long du rayon, arrêtés au terrain et au sol de la planète.
-- **Le pas :** la moitié de l'empreinte du pixel, 48 m au moins, 240 m d'altitude au plus.
-- **Le vide se saute :** dans une cellule de la carte vide aux mips 3 à 7, jusqu'à 80 % de la distance à ses bords sphériques, 50 km au plus.
-- **Un pas éclairé ne dépasse pas une épaisseur optique de 1** tant que la colonne est transparente ; opaque, elle reprend le pas géométrique.
-- **La marche s'arrête** quand la transmission du pixel tombe sous 0,003.
-- **La qualité Référence,** touche C : pas de 24 m, 160 m d'altitude par pas.
+**The march:**
+- **The segments** of each layer are sorted along the radius, stopped at the ground and the ground of the planet.
+- **Pitch:** half of the pixel footprint, 48 m at least, 240 m of height at most.
+- **The void jumps:** in an empty map cell at mips 3 to 7, up to 80 % of the distance to its spherical edges, 50 km at most.
+- **An illuminated step does not exceed an optical thickness of 1** as long as the column is transparent; opaque, it takes the geometric step.
+- **The walk stops** when the pixel transmission drops below 0,003.
+- **Quality Reference,** key C: not 24 m, 160 m of altitude by step.
 
-**La quadrature lointaine, retirée le 2026-10-31 :** la statistique au pixel la remplace (`log/spec-nuages-historique.md`).
+**The distant quadrature, removed the 2026-10-31:** the pixel statistic replaces it (`log/spec-nuages-historique.md`).
 
-**L'ombre au sol :**
-- **Une trace par pixel de surface éclairée,** du point vers le soleil, à travers les deux couches, sur la même densité au même temps.
-- **Le pas :** 250 m au moins, 256 échantillons au plus par segment.
-- **Elle n'atténue que la part solaire :** `scène − min(part solaire, scène) × (1 − T)`. Une transmission de 1 laisse l'image exacte.
-- **La part solaire** est la seconde cible de la scène (`sunPart`, t17). Terrain, mer, objets et végétation y écrivent la lumière directe du soleil, avec les mêmes rejets alpha que la couleur.
+**The shadow on the ground:**
+- **One trace per pixel of illuminated surface,** from the point to the sun, through both layers, on the same density at the same time.
+- **Pitch:** 250 m at least, 256 samples at most per segment.
+- **It only attenuates the solar part:** `scène − min(part solaire, scène) × (1 − T)`. A 1 transmission leaves the exact image.
+- **The solar part** is the second target of the scene (`sunPart`, t17). Land, sea, objects and vegetation write in direct sunlight, with the same alpha emissions as the color.
 
-## Les passes
+## The Passes
 
-**Une passe plein écran suit la scène,** dans l'image composite (`D3DApp::Draw`, étape 3). Elle lit l'image HDR, sa distance en alpha, et la part solaire.
+**A full screen pass follows the scene,** in the composite image (`D3DApp::Draw`, step 3). It reads the image HDR, its distance in alpha, and the solar share.
 
-**La passe temporelle, par défaut** (`CloudsTemporal.hlsli` ; `optimisation.md`, rounds 1, 7 et 8) :
-- **La trace, `PSCloudTrace` :** un pixel par tuile 4 × 4 et par image, dans l'ordre de Bayer ; tout pixel a sa trace en 16 images. Elle écrit lumière, transmittance, distance, son écart type, ombre et poids lointain.
-- **La demi-trace, `PSCloudTraceHalf`,** sous 14 km d'altitude seulement : un pixel par carré 2 × 2, là où l'historique d'un pixel du carré a glissé.
-- **La résolution, `PSCloudResolve`,** en pleine résolution. Elle prend la trace fraîche ; à défaut, l'historique reprojeté, les nuages dans le repère de la météo, leur ombre sur le sol ; à défaut, les carrés de la demi-trace ; à défaut, elle trace le pixel. Elle compose l'air et écrit l'historique suivant.
-- **Un pixel se retrace** au-delà d'1 pixel de dérive, d'1° de rotation de la direction de vue par image, ou de 20 % de changement de distance.
-- **L'historique repart** à un saut de la caméra, au changement de qualité, à l'allumage des nuages, et quand le soleil tourne de plus d'1°.
+**The default time pass** (`CloudsTemporal.hlsli`; `optimisation.md`, rounds 1, 7 and 8):
+- **The trace, `PSCloudTrace`:** one pixel per tile 4 × 4 and per frame, in Bayer order; each pixel has its trace in 16 frames. It writes light, transmittance, distance, sound standard deviation, shadow and distant weight.
+- **The half-track, `PSCloudTraceHalf`,** under 14 km altitude only: one pixel per square 2 × 2, where the history of one pixel of the square has slipped.
+- **The resolution, `PSCloudResolve`,** at full resolution. It takes the fresh trace; failing, the reprojected history, the clouds in the reference frame of the weather, their shadow on the ground; failing, the squares of the half-trace; failing, it draws the pixel. She composes the air and writes the following history.
+- **A pixel traces** beyond 1 pixel drift, 1° rotation of view direction per frame, or 20 % distance change.
+- **The history starts again** at a jump of the camera, the change of quality, the lighting of clouds, and when the sun turns more than 1°.
 
-**La passe unique, `PSMain`** (`AtmospherePass.hlsl`) : chaque pixel tracé, à chaque image.
-- **Elle sert** avec `MYPLANETENGINE_CLOUD_FULL=1` ou `-PassePleine` du lanceur, et toujours pour les vues `weather` et `cloudshadow`.
+**The single pass, `PSMain`** (`AtmospherePass.hlsl`): every pixel traced, at every frame.
+- **It serves** with `MYPLANETENGINE_CLOUD_FULL=1` or `-PassePleine` of the launcher, and always for the `weather` and `cloudshadow` views.
 
-**La composition, `CloudComposite` :**
-- **L'air :** 12 pas vers une surface, 24 vers le ciel, en simple précision depuis l'altitude de la caméra.
-- **Le nuage s'insère à sa distance pondérée :** il coupe en deux le seul pas où il tombe. L'air reste continu quand cette distance change.
-- **Derrière :** la surface, son ombre retirée ; ou, sur le ciel, le disque solaire.
+**The composition, `CloudComposite`:**
+- **Air:** 12 not towards a surface, 24 towards the sky, in simple precision from the camera's altitude.
+- **The cloud fits into its weighted distance:** it cuts in half the only step where it falls. The air remains continuous when this distance changes.
+- **Behind:** the surface, its shadow removed; or, in the sky, the solar disc.
 
-**Le temps GPU,** horodatages 18 à 19 : « nuages+air » au titre, colonne `atmosphere` de `tools/banc_perf.py`. La trace seule, horodatages 18 à 20, colonne `nuages_trace`.
+**The weather GPU,** time stamps 18 to 19: "clouds+air" in the title, column `atmosphere` of `tools/banc_perf.py`. The trace alone, timestamps 18 to 20, column `nuages_trace`.
 
-## Le b1, `CloudFrame`
+## The b1, `CloudFrame`
 
-**304 octets, identiques en C++ (`D3DApp.h`) et en HLSL (`Clouds.hlsli`),** tenus d'accord par un `static_assert`. `D3DApp::Update` le remplit.
+**304 bytes, identical in C++ (`D3DApp.h`) and in HLSL (`Clouds.hlsli`),** held together by a `static_assert`. `D3DApp::Update` fills it.
 
-| Champ | Contenu |
+| Champ | Contents |
 |---|---|
-| `cloudCameraKm` | la caméra dans le repère de la planète, km, double ; w : 1 avec les nuages, touche N |
-| `cloudForward`, `cloudRightTan`, `cloudUpTan` | les axes de la vue, roulis du vaisseau compris ; w : les tangentes du champ |
-| `cloudWind` | xy : sinus et cosinus de l'angle du vent ; z : 1 en qualité Référence |
-| `cloudSun` | la direction du soleil |
-| `cloudPrevQ[3]`, `cloudPrevGround[3]` | la caméra précédente, pour la reprojection, dans le repère de la météo puis du sol |
-| `cloudTemporal` | xy : le pixel tracé de la tuile ; z : 1 si l'historique vaut ; w : réservé |
+|  `cloudCameraKm`  | the camera in the planet reference frame, km, double; w: 1 with clouds, key N |
+|  `cloudForward`, `cloudRightTan`, `cloudUpTan`  | the axes of view, including the rolling of the ship; w: the tangents of the field |
+|  `cloudWind`  | xy: sinus and cosinus of the wind angle; z: 1 in quality Reference |
+|  `cloudSun`  | the direction of the sun |
+|  `cloudPrevQ[3]`, `cloudPrevGround[3]`  | the previous camera, for reprojection, in the reference frame of the weather then the ground |
+|  `cloudTemporal`  | xy: the pixel plotted from the tile; z: 1 if history is true; w: reserved |
 
-## Les ressources
+## Resources
 
-| Registre | Ressource | Format, taille |
+| Register | Resource | Format, size |
 |---|---|---|
-| b1 | `CloudFrame` | 304 octets, tampon d'envoi |
-| t17 | la part solaire de la scène | RGBA16F, plein écran |
-| t24 | la forme et les fibres, `shape128` ; B : l'écart type de la forme sous le texel, calculé au chargement | RGBA8, 128³, 8 mips |
-| t25 | l'érosion, `detail32` ; B : son écart type sous le texel, calculé au chargement | RGBA8, 32³, 6 mips |
-| t26 | les profils, `weather64` | RGBA8, 64³, 7 mips |
-| t27 | la carte météo, calculée au démarrage (`Climate::Weather`) | RGBA8, 1 024 × 512, 11 mips |
-| s2, s3 | les bruits, en répétition ; la carte | linéaires |
-| t44, t45 | les tuiles fraîches, un texel par 4 × 4 | RGBA16F ; RGBA32F |
-| t46 à t48 | l'historique lu : lumière, données, écart type et dérive | RGBA16F ; RGBA32F ; RG16F, plein écran |
-| t49, t50 | la demi-trace, un texel par 2 × 2 | RGBA16F ; RGBA32F |
+| b1 |  `CloudFrame`  | 304 bytes, sending buffer |
+| t17 | the solar part of the scene | RGBA16F, full screen |
+| t24 | shape and fibers, `shape128` ; B: the standard deviation of the shape under the texel, calculated at loading | RGBA8, 128³, 8 mips |
+| t25 | erosion, `detail32` B = its standard deviation below the texel, calculated at loading | RGBA8, 32³, 6 mips |
+| t26 | profiles, `weather64`  | RGBA8, 64³, 7 mips |
+| t27 | weather map, calculated at startup (`Climate::Weather`) | RGBA8, 1 024 × 512, 11 mips |
+| s2, s3 | the noise functions, in repetition; the map | Linear |
+| t44, t45 | fresh tiles, a texel by 4 × 4 | RGBA16F ; RGBA32F |
+| t46 to t48 | read history: light, data, standard deviation and drift | RGBA16F; RGBA32F; RG16F, full screen |
+| t49, t50 | half-track, a texel by 2 × 2 | RGBA16F ; RGBA32F |
 
-- **Deux historiques,** l'un lu, l'autre écrit, s'échangent à chaque image.
-- **Les images temporelles ne sont pas créées** avec `MYPLANETENGINE_CLOUD_FULL=1`.
+- **Two historicals,** one read, the other written, exchange each frame.
+- **Temporary images are not created** with `MYPLANETENGINE_CLOUD_FULL=1`.
 
-## L'air autour des nuages
+## The air around the clouds
 
-**Depuis le 2026-10-30, l'air de la composition est de nouveau celui de la passe d'atmosphère d'avant les nuages** (`CloudAirPiece`, `IntegrateScattering`, `Atmosphere.hlsli`). En place, à juger en vol :
-- **Les rayons de soleil :** l'ombre du relief dans l'air, par la hauteur d'ombre de chaque sommet (`recherche-rayons.md`).
-- **La brume sur le sol régional,** le long de la vue : la couche limite suit le sol de la carte de la planète (`recherche-profondeur-atmospherique.md`, 3.5).
-- **Le disque solaire,** derrière les nuages et l'air, quand la vue ne rencontre pas la planète. Il montre la part du pixel qu'il couvre.
-- **Avant ce jour,** la composition des nuages les omettait : son air était celui d'un sol au niveau de la mer, sans relief.
+**Since the 2026-10-30, the air of the composition is again that of the atmosphere pass before the clouds** (`CloudAirPiece`, `IntegrateScattering`, `Atmosphere.hlsli`). In place, to be judged in flight:
+- **Sun rays:** the shadow of the relief in the air, by the shadow height of each vertex (`recherche-rayons.md`).
+- **The fog on the regional ground,** along the view: the boundary layer follows the ground of the planet map (`recherche-profondeur-atmospherique.md`, 3.5).
+- **The solar disc,** behind the clouds and air, when the view does not meet the planet. It shows the portion of the pixel it covers.
+- **Before this day,** the composition of the clouds omitted them: its air was that of a ground at sea level, without relief.
 
-**Le halo de l'objectif et le lissage temporel ne dépendent plus des nuages** (`lancement.md`) :
-- **le halo** est coupé par défaut ; `MYPLANETENGINE_GLARE` l'active (`recherche-halo.md`) ;
-- **le TAA** est coupé au démarrage ; la touche T le rétablit, `MYPLANETENGINE_TAA` dès le démarrage.
+**The lens halo and temporal smoothing no longer depend on clouds** (`lancement.md`):
+- **halo** is off by default; `MYPLANETENGINE_GLARE` activates it (`recherche-halo.md`);
+- **the TAA** is cut off at startup; the T key restores it, `MYPLANETENGINE_TAA` at startup.
 
-## La météo et la verrière
+## Weather and canopy glass
 
-- **Une seule horloge :** la météo tourne vers l'est autour de l'axe de la planète, 12 m/s à l'équateur (`kWeatherWindSpeed`). Les formes ne se déforment pas. À l'instant 0, la carte est posée sur la géographie.
-- **Elle démarre en pause, à l'instant 0.** Espace la relance en caméra libre ; V passe de ×1 à ×5.
-- **La palette de tests suit le vent :** chaque test retrouve ses nuages quand la météo a tourné.
-- **La verrière lit les mêmes nuages,** au même temps, à la place du vaisseau : `ShipWeather.hlsl` inclut `Clouds.hlsli`. Elle se mouille dans un nuage, prend la pluie sous sa base.
-- **Sa température** vient de la carte du climat, au niveau de la mer moins 6,5 °C/km (`spec-climat.md`). Voir `spec-vaisseau.md`.
+- **One clock:** weather turns eastward around the axis of the planet, 12 m/s at the equator (`kWeatherWindSpeed`). The shapes do not deform. At the moment 0, the map is laid on the geography.
+- **It starts in pause, at the moment 0.** Space the free camera replay; V goes from ×1 to ×5.
+- **The test palette follows the wind:** each test finds its clouds when the weather has turned.
+- **canopy glass reads the same clouds,** at the same time, instead of the ship: `ShipWeather.hlsl` includes `Clouds.hlsli`. It gets wet in a cloud, takes rain under its base.
+- **The temperature** comes from the climate map, at sea level minus 6,5 °C/km (`spec-climat.md`). See `spec-vaisseau.md`.
 
-## Les vues de diagnostic
+## Diagnostic views
 
-**Par `MYPLANETENGINE_VIEW`,** au lancement direct de l'exe : le lanceur efface les variables.
+**By `MYPLANETENGINE_VIEW`,** at direct launch of the exe: the launcher deletes the variables.
 
-| Vue | Ce qu'elle montre | Passe |
+| View | What it shows | Passe |
 |---|---|---|
-| `clouds` | l'opacité des nuages, 1 − transmittance | les deux |
-| `weather` | la carte météo à plat : bleu à orangé la couverture par famille, magenta les cirrus | unique |
-| `cloudshadow` | la transmission vers le soleil sur toute surface tournée vers lui ; blanc, aucune ombre | unique |
-| `ground` | la vue du sol, sous la silhouette des nuages ; touche B | les deux |
+|  `clouds`  | opacity of clouds, 1 − transmittance | both |
+|  `weather`  | the flat weather map: blue to orange the coverage by family, magenta the cirrus | single |
+|  `cloudshadow`  | transmission to the sun on any surface facing it; white, no shadow | single |
+|  `ground`  | the view of the ground, under the clouds silhouette; key B | both |
 
-- **Les autres vues du terrain sont des mesures :** ni nuages ni air par-dessus.
+- **Other views of the terrain are measurements:** no clouds or air above.
 
-## Les variables et les touches
+## Variables and keys
 
-| Variable | Effet |
+| Variable | Effect |
 |---|---|
-| `MYPLANETENGINE_NO_CLOUDS` | sans nuages, comme N |
-| `MYPLANETENGINE_CLOUD_FULL=1` | la passe unique |
-| `MYPLANETENGINE_WEATHER_TIME` | l'instant de la météo, en secondes |
+|  `MYPLANETENGINE_NO_CLOUDS`  | cloudless, like N |
+|  `MYPLANETENGINE_CLOUD_FULL=1`  | single pass |
+|  `MYPLANETENGINE_WEATHER_TIME`  | the time of the weather, in seconds |
 
-| Touche | Effet |
+| Touche | Effect |
 |---|---|
-| N | les nuages, oui ou non |
-| C | la qualité, Éco ou Référence |
-| B | la vue du sol sous leur silhouette |
-| Espace | la météo reprend ou s'arrête, en caméra libre |
-| V | la météo ×1 ou ×5 |
-| O, P | le soleil tourne |
+| N | clouds, yes or no |
+| C | quality, Eco or Reference |
+| B | the view of the ground under their silhouette |
+| Space | the weather resumes or stops, in free camera |
+| V | weather ×1 or ×5 |
+| O, P | the sun is turning |
 
-- **Le titre** dit la qualité, l'état des nuages, l'instant et la vitesse de la météo, et le temps « nuages+air ».
-- **Les bancs posent leurs variables eux-mêmes,** et ne tournent que sur demande : `tools/banc_perf.py` (`--full`, `--weather`, `--motion`) ; `tools/banc_composition_surfaces.py`, qui vérifie qu'une transmission de 1 laisse les surfaces intactes.
+- **The title** says the quality, the state of the clouds, the time and speed of the weather, and the time "clouds + air".
+- **benchmarkss pose their variables themselves,** and run only on demand: `tools/banc_perf.py` (`--full`, `--weather`, `--motion`); `tools/banc_composition_surfaces.py`, which checks that a transmission from 1 leaves the surfaces intact.
 
-## Les données et leur provenance
+## Data and its origin
 
-**Trois textures figées dans `assets/clouds`,** 10,9 Mo : RGBA8 sans en-tête, mips à la suite, x le plus rapide. L'exe les trouve au-dessus de lui, comme le vaisseau ; s'il en manque une, il s'arrête avec un message. La carte météo n'est plus un asset : elle se calcule au démarrage.
+**Three textures frozen in `assets/clouds`,** 10,9 MB: RGBA8 without header, mips in the following, x the fastest. The exe finds them above it, like the ship; if it misses one, it stops with a message. The weather map is no longer an asset: it is calculated at startup.
 
-| Fichier | Rôle | Fait par |
+| File | Role | Done by |
 |---|---|---|
-| `shape128` | R : la forme ; G : les fibres des cirrus | R : TileableVolumeNoise de Hillaire (MIT), commit `1f879a26` ; G : fibres générées |
-| `detail32` | R : l'érosion | TileableVolumeNoise |
-| `weather64` | RG : les profils par famille et hauteur | profils écrits à la main |
+|  `shape128`  | R: the shape; G: the cirrus fibers | R : TileableVolumeNoise de Hillaire (MIT), commit `1f879a26` ; G : generated fibers |
+|  `detail32`  | R: erosion | TileableVolumeNoise |
+|  `weather64`  | RG: profiles by family and height | profiles written at the main |
 
-- **`manifest.json` fait foi :** empreintes SHA-256, rôle et source de chaque texture.
-- **L'ancienne carte,** des champs de bruit sans lien avec la géographie, et son générateur sont retirés le 2026-10-31 : `log/spec-nuages-historique.md`.
-- **Les trois volumes ne se régénèrent plus dans ce dépôt.** Leur chaîne, générateurs et sources, de `third_party/FrostbiteNoise` à `assets/frostbite-orbit`, est au tag `jalon/26-nuages-main`.
-- **Les licences :** `NOTICE`, parties 1 et 2 ; `LICENSES/MIT-TileableVolumeNoise.txt` ; `third_party/WickedEngine/LICENSE.txt`.
+- **`manifest.json` is authoritative:** SHA-256 footprints, role and source of each texture.
+- **The old map,** of the fields of noise without link with geography, and its generator are removed the 2026-10-31: `log/spec-nuages-historique.md`.
+- **The three volumes no longer regenerate in this repository.** Their chain, generators and sources, from `third_party/FrostbiteNoise` to `assets/frostbite-orbit`, is `jalon/26-nuages-main`.
+- **Licenses:** `NOTICE`, parts 1 and 2; `LICENSES/MIT-TileableVolumeNoise.txt`; `third_party/WickedEngine/LICENSE.txt`.
 
-## Les défauts connus
+## Known defects
 
-**La passe temporelle, en mouvement :** trois défauts vus en vol le 2026-10-28, mis de côté pour finir les rounds de performance.
-- **Le round 6 les corrige au banc :** chaque trace fraîche vérifie l'historique. Mais il coûte 4 à 6 ms de plus en vol lent, en altitude et près des cumulus. Il est au tag `piste/optimisation-r6-nuages-mouvement`, à reprendre par une variante moins chère.
-- **Le bruit à haute vitesse :** en altitude, en vol rapide, un grain sur les nuages. Cause supposée : trois grains mêlés, celui des pixels frais à un rayon lointain, des pixels retracés à quatre, et de l'historique adouci. La quadrature lointaine retirée le 2026-10-31 en ôte les deux premiers : à revoir en vol.
-- **Le ghosting en plongée depuis l'orbite :** en approchant très vite d'une formation, des traînées de sa taille ou plus, qui s'effacent en 2 à 3 s à l'arrêt. Cause supposée : la moyenne lointaine garde ses rayons alors que l'empreinte rétrécit. La distance gardée est fausse, et la dérive, calculée depuis elle, ne le voit pas (`optimisation.md`, round 1).
-- **Les traînées en approche d'un cumulus :** près du sol, en avançant vers un cumulus puis en reculant, des traînées en damier 4 × 4 autour de sa silhouette, pendant quelques images. Cause supposée : le bord avance sur le ciel sans dérive mesurable ; l'historique est gardé alors que la trace fraîche le contredit.
+**The time pass, in motion:** three defects seen in flight the 2026-10-28, set aside to finish the performance rounds.
+- **The 6 round corrects them to benchmark:** every fresh trace checks the history. But it costs 4 to 6 ms more in slow flight, at altitude and near cumulus. It is the tag `piste/optimisation-r6-nuages-mouvement`, to take over by a variant cheaper.
+- **The noise at high speed:** in altitude, in fast flight, a grain on the clouds. Suppose cause: three grains mixed, that of fresh pixels at a far radius, pixels traced at four, and softened history. The distant quadrature removed the 2026-10-31 removes the first two: to be reviewed in flight.
+- **Ghosting in orbit dive:** by approaching very quickly a formation, trails of its size or more, which disappear in 2 to 3 s at rest. Suppose cause: the distant mean keeps its radii while the footprint shrinks. The distance kept is wrong, and the drift, calculated from it, does not see it (`optimisation.md`, round 1).
+- **Trails approaching a cumulus:** near the ground, moving towards a cumulus then retreating, checkered trails 4 × 4 around its silhouette, for a few images. Suppose cause: the edge moves forward in the sky without measurable drift; the history is kept while the fresh trace contradicts it.
 
-**Le coût :**
-- **Au-delà de ×5 en orbite,** la passe coûte la passe unique, 10 à 38 ms : chaque nuage est vu sous un angle qui tourne trop vite.
-- **Au-dessus de la mer,** les rayons rasants marchent la couche basse sans rien prouver de vide : 4,6 ms au round 1.
+**The cost:**
+- **Beyond ×5 in orbit,** the pass costs the single pass, 10 to 38 ms: each cloud is seen at an angle that rotates too fast.
+- **Above the sea,** the racing rays walk the low layer without proving anything of emptiness: 4,6 ms to round 1.
 
-**Les limites du modèle :**
-- **La carte** a un texel d'environ 39 km à l'équateur : pas de variation régionale plus fine.
-- **La géographie n'est juste qu'à l'instant 0 :** l'horloge tourne la carte d'un bloc vers l'est, 43 km par heure à ×1 ; au fil des heures, les déserts et les nappes se décalent de leurs côtes.
-- **Les dépressions sont des gabarits,** d'une forme commune à leur échelle et leur stade près ; elles ne naissent ni ne meurent.
-- **Les cirrus** gardent un repère fixe, pas un vent local.
-- **Les formes ne vivent pas :** la météo tourne d'un bloc, sans formation ni dissipation.
-- **Ni cumulonimbus, ni pluie visible, ni brouillard au sol.**
-- **Pas d'ombre des nuages dans l'air,** seulement au sol.
+**Limitations of the model:**
+- **The map** has a texel of about 39 km at the equator: no finer regional variation.
+- **Geography is just right now 0:** the clock turns the map one block east, 43 km per hour to ×1; over the hours, deserts and swamps shift from their coasts.
+- **Depressions are templates,** of a common form at their scale and stage near; they do not be born or die.
+- **Cirrus** keep a fixed reference frame, not a local wind.
+- **Forms do not live:** weather turns a block, without formation or dissipation.
+- **No cumulonimbus, no visible rain, no fog on the ground.**
+- **No cloud shadow in the air,** only on the ground.
 
-## La suite
+## Next steps
 
-- **Les trois défauts en mouvement,** par une vérification de l'historique moins chère que celle du round 6.
-- **Les transmittances vers le soleil précalculées,** pour l'ombre et la lumière.
-- **Une météo qui vit :** la ZCIT et les nappes fixées sur la planète, les dépressions qui suivent les rails ; la direction des cirrus, les cumulonimbus.
+- **The three defects in motion,** by a history check less expensive than the round 6.
+- **Precalculated transmittances to the sun,** for shadow and light.
+- **A weather that lives:** the ZCIT and the blankets fixed on the planet, the depressions that follow the rails; the direction of cirrus, cumulonimbus.
 
-## Les références
+## The references
 
-- **[Frostbite 2016](https://media.contentapi.ea.com/content/dam/eacom/frostbite/files/s2016-pbs-frostbite-sky-clouds-new.pdf),** Hillaire, §5.3.1 : la carte météo pour la couverture et le type ; les profils de densité et d'érosion séparés des bruits 3D. §5.9 : les ombres des nuages en texture de transmittance, sur une planète plate ; ici, tracées sur le globe.
-- **[Epic, Volumetric Clouds](https://dev.epicgames.com/documentation/unreal-engine/volumetric-clouds?application_version=4.27) :** des parcours secondaires pour le passage du sol à l'espace ; des cartes d'ombre plus rapides pour les surfaces.
-- **[NASA, Earth's Clouds on the Move](https://science.nasa.gov/earth/earth-observatory/earths-clouds-on-the-move-154443/) :** la convergence tropicale et les systèmes des moyennes latitudes ; ici, des tendances douces, pas des anneaux.
-- **Wicked Engine,** `volumetricCloudsHF.hlsli` et `volumetricCloud_renderCS.hlsl`, commit `5433f0a6` : la base du shader.
-- **L'état de l'art et le plan d'origine :** `recherche-nuages.md`.
+- **[Frostbite 2016](https://media.contentapi.ea.com/content/dam/eacom/frostbite/files/s2016-pbs-frostbite-sky-clouds-new.pdf),** Hillaire, §5.3.1: weather map for cover and type; density and erosion profiles separated from the noise functions 3D. §5.9: cloud shadows in transmittance texture, on a flat planet; here, traced on the globe.
+- **[Epic, Volumetric Clouds](https://dev.epicgames.com/documentation/unreal-engine/volumetric-clouds?application_version=4.27):** secondary paths for ground-to-space transition; faster shadow maps for surfaces.
+- **[NASA, Earth's Clouds on the Move](https://science.nasa.gov/earth/earth-observatory/earths-clouds-on-the-move-154443/):** tropical convergence and mid-latitude systems; here, soft trends, not rings.
+- **Wicked Engine,** `volumetricCloudsHF.hlsli` and `volumetricCloud_renderCS.hlsl`, commit `5433f0a6`: the shader base.
+- **The state of the art and the original plan:** `recherche-nuages.md`.

@@ -1,280 +1,280 @@
-# Recherche : la géométrie de proximité, corniches et relief au mètre
+# Search: proximity geometry, cornices and relief by the meter
 
-Statut : recherche du 2026-10-24 ; état de l'art et plan, rien de décidé. Prépare une spec. Fait suite à `log/spec-relief-reel.md`, `log/spec-parois.md` et `log/spec-parallaxe.md`. La géométrie reste à complexplanet (`geometrie.md`) : ce qui est proposé ici est un ajout de détail, sous 13,5 m.
+Status: search for the 2026-10-24; state of the art and plan, nothing decided. Prepares a spec. Following on from `log/spec-relief-reel.md`, `log/spec-parois.md` and `log/spec-parallaxe.md`. The geometry remains at complexplanet (`geometrie.md`): what is proposed here is an addition of detail, under 13,5 m.
 
-## 1. La conclusion et le plan
+## 1. The conclusion and the plan
 
-**En bref :**
-- **Un relief ne peut arriver sans se voir que s'il arrive petit à l'écran.** Les moteurs qui ajoutent du relief sans saut le font naître à quelques pixels : triangles de largeur constante à l'écran dans Battlefield 3, découpe à un pas fixé en pixels dans Nanite.
-- **Chez nous, il naît à 56 à 100 pixels.** Le maillage ne porte une forme qu'à partir de 8 mailles, et une maille fait 7 à 13 pixels. D'où la corniche qui surgit dans les derniers mètres.
-- **Notre maillage ne peut pas la porter plus tôt :** ses sommets glissent, et un relief plus court que 8 mailles tremble (mesuré, `log/spec-relief-reel.md`).
-- **La voie recommandée : amplifier les mailles proches.** Chaque maille proche est redécoupée en 8 × 8, en nombre constant. Seul le détail, bon marché, y est évalué ; complexplanet ne l'est pas davantage. Le relief y naît à 8 sous-mailles, soit 7 à 13 pixels.
-- **La forme d'abord :** une corniche n'est pas une ligne de niveau. C'est un banc dur qui avance au-dessus d'un banc tendre creusé, inégal le long de lui-même, coupé par les diaclases et les ravines, enterré sous ses éboulis. La section 4 en donne le champ, lié à la colonne stratigraphique.
-- **Famille de surcouche :** ajout de détail, les bancs de 1 à 13 m, de moyenne nulle. Les gradins des formations de 20 à 60 m restent un remplacement, sur `piste/parois-gradins`.
+**In brief:**
+- **A relief can only happen without being seen if it happens small on the screen.** Engines that add relief without jumping make it come into being at a few pixels: constant width triangles on the screen in Battlefield 3, pixel-fixed cut-outs in Nanite.
+- **In our case, it is born at 56 to 100 pixels.** The mesh bears a shape only from 8 to grid cells, and a grid cell bears 7 to 13 pixels. Hence the cornice that arises in the last meters.
+- **Our mesh cannot wear it earlier:** its tops slide, and a relief shorter than 8 grid cells shakes (measured, `log/spec-relief-reel.md`).
+- **The recommended way: amplify the nearby grid cells.** Each nearby grid cell is re-cut into 8 × 8, in constant numbers. Only the cheap detail is evaluated there; complexplanet is not evaluated either. The relief is born at 8 under-grid cells, or 7 to 13 pixels.
+- **The shape first:** a cornice is not a level line. It is a hard bed that advances above a soft bed dug, uneven along itself, cut by diaclases and ravines, buried under its scree. The section 4 gives the field, linked to the stratigraphic column.
+- **Overlay family:** detail addition, the beds from 1 to 13 m, of zero average. The seats of the formations of 20 to 60 m remain a replacement, on `piste/parois-gradins`.
 
-**Écartés :**
-- **Le quadtree à sommets fixes, CDLOD :** stable, mais coût variable ; POC clos, 34 % d'images à-coups.
-- **Les arbres binaires concurrents, CBT :** un état gardé d'une image à l'autre, contraire au calcul intégral à chaque image.
-- **La parallaxe seule :** pas de silhouette, 0,8 à 1 ms.
-- **Les corniches dessinées dans la lumière seule :** l'effet feutre.
+**Dismissed:**
+- **The fixed-vertices quadtree, CDLOD:** stable, but variable cost; POC closed, 34 % of snapshots.
+- **Competing binary trees, CBT:** a state kept from one frame to another, contrary to integral calculation at each frame.
+- **Parallax only:** no silhouette, 0,8 to 1 ms.
+- **The cornices drawn in light alone:** the felt effect.
 
-**Le plan, par étapes :**
-1. **Le banc d'arrivée, sans toucher au rendu.**
-   - La même vue, caméra fixe, rendue avec un maillage de plus en plus fin : `MYPLANETENGINE_FACE_FACTOR` de 2 à 0,125, par huitièmes d'octave, 33 rendus en un lancement `MYPLANETENGINE_BATCH`.
-   - Mesures : le changement d'un rendu au suivant, son pic et son total, sur six parois.
-   - Témoins : le build du tag `piste/parois-gradins`, où relief des matériaux et gradins étaient actifs et surgissaient ; et celui du dernier tag qui les garde dans le code, `jalon/28-vaisseau-habitacle`, avec `MATERIAL_RELIEF` = 1 et `WALL_RELIEF` = 1 ; ils sont retirés depuis le 2026-10-30. Le banc doit les détecter nettement ; sinon il n'est pas assez sensible.
-   - Fait quand : la référence d'aujourd'hui et les deux témoins sont chiffrés, et les seuils de la section 5 fixés. Un script Python, aucun changement du moteur.
-2. **Le champ de corniche, en vue de diagnostic.**
-   - `MYPLANETENGINE_VIEW` = `ledge` : le recul en gris, sans géométrie.
-   - Jugé à côté des photos `cible-*.jpg` et mesuré par les segments droits du banc de qualité.
-   - Fait quand : aucune corniche ne traverse une paroi d'un trait, et l'utilisateur valide les formes.
-3. **Les mailles amplifiées, sans relief.**
-   - Un tirage instancié d'une grille de 9 × 9 sommets par maille proche, calculée dans le vertex shader, sur le triangle actuel. Rien en mémoire.
-   - Une plage fixe de mailles autour du nadir, la face et les premiers anneaux : un coût constant. Le maillage glissant ne dessine plus ces mailles.
-   - Au bord de la plage, le relief s'éteint et les sous-sommets restent sur l'arête de la maille voisine : pas de fente.
-   - Deux réglages du coût : l'étendue de la plage, et la découpe, 8 × 8 ou 4 × 4. Toute la face en 8 × 8 ferait 3 millions de sommets.
-   - Fait quand : image identique à 1/255 près, coût mesuré à 3, 30 et 300 m.
-4. **Le relief vertical des corniches** dans les mailles amplifiées, filtré à 8 sous-mailles ; la lumière porte le reste, comme le faisait `Texture.carried` du relief des matériaux, retiré.
-   - Inscrit dans `geometrie.md` ; arrêt par un réglage, `CORNICE_RELIEF` = 0 ; plancher de la caméra relevé de l'amplitude maximale.
-   - Bancs d'arrivée, de tremblement, de qualité et de descente.
-5. **Le recul le long de la paroi et les surplombs :** le déplacement suit la normale lissée de la paroi, et s'éteint là où il replierait la surface.
-6. **Les ombres :** ombres de contact à l'écran sous les lèvres ; de loin, l'assombrissement moyen des creux, tiré du même champ.
-7. **Seulement si le tremblement dépasse les critères :** une grille de proximité fixée sur la planète, en anneaux emboîtés et fondus, à la manière des geometry clipmaps. Le détail y est pris en des points fixes et ne tremble plus du tout.
+**The plan, by stages:**
+1. **The benchmark arrival, without touching the rendering.**
+   - The same view, fixed camera, rendered with a mesh increasingly thin: `MYPLANETENGINE_FACE_FACTOR` from 2 to 0,125, by octaves, 33 rendered in a `MYPLANETENGINE_BATCH` launch.
+   - Measurements: the change from one rendering to the next, its peak and its total, on six walls.
+   - Witnesses: the build of the tag `piste/parois-gradins`, where relief of materials and grades were active and appeared; and the last tag that keeps them in the code, `jalon/28-vaisseau-habitacle`, with `MATERIAL_RELIEF` = 1 and `WALL_RELIEF` = 1; they are removed since the 2026-10-30. The benchmark must detect them clearly; otherwise it is not sensitive enough.
+   - Done when: the today's reference and the two witnesses are encrypted, and the thresholds of the section 5 set. A Python script, no engine changes.
+2. **The cornice field, for diagnosis.**
+   - `MYPLANETENGINE_VIEW` = `ledge`: the retreat in gray, without geometry.
+   - Judged by the photos `cible-*.jpg` and measured by the right segments of the quality benchmark.
+   - Done when: no cornice crosses a wall of a line, and the user validates the shapes.
+3. **The grid cells amplified, without relief.**
+   - An instanced draw of a grid of 9 × 9 vertices by grid cell near, calculated in the vertex shader, on the current triangle. Nothing in memory.
+   - A fixed range of grid cells around the nadir, the face and the first rings: a constant cost. The mesh slider no longer draws these grid cellss.
+   - At the edge of the beach, the relief is extinguished and the sub-summits remain on the ridge of the neighboring grid cell: no slit.
+   - Two cost settings: the range width, and the cut, 8 × 8 or 4 × 4. All the face in 8 × 8 would make 3 millions of vertices.
+   - Made when: image identical to 1/255 near, cost measured at 3, 30 and 300 m.
+4. **The vertical relief of the cornices** in the amplified grid cells, filtered to 8 sub-grid cells; light carries the rest, as did `Texture.carried` of the relief of the materials, removed.
+   - Entered in `geometrie.md`; shut down by a setting, `CORNICE_RELIEF` = 0; camera floor raised from maximum amplitude.
+   - Arrival, jitter, Quality and Downhill benchmarks.
+5. **Retreat along the wall and overhangs:** the movement follows the smoothed normal of the wall, and extinguishes where it would fold the surface.
+6. **The shadows:** contact shadows on the screen under the lips; from afar, the average darkening of the hollows, taken from the same field.
+7. **Only if the jitter exceeds the criteria:** a proximity grid fixed on the planet, in nested and blended rings, in the manner of geometry clipmaps. The detail is captured in fixed points and does not shake at all.
 
-## 2. Pourquoi nos essais ont échoué
+## 2. Why our trials failed
 
-**Trois problèmes distincts, mêlés dans chaque essai :** la forme, le filtrage et l'arrivée avec la stabilité. Le plan les sépare et mesure chacun.
+**Three distinct problems, mixed in each test:** shape, filtering and arrival with stability. The plan separates them and measures each.
 
-### Le relief des matériaux dans le maillage, désactivé le 2026-10-23, retiré le 2026-10-30
+### The relief of materials in the mesh, disabled the 2026-10-23, removed the 2026-10-30
 
-- **Il tremblait.** Un relief pris aux sommets qui glissent est rééchantillonné à chaque image. L'erreur du triangle vaut environ 5·A/n² pour une onde de n mailles (`log/pistes-glissement.md`).
-  - Filtré à 2 mailles : 0,17 avec lissage, contre 0,04 sans relief.
-  - Filtré à 8 mailles : 0,06. Encore +50 %.
-- **Des décisions non linéaires prises par sommet** faisaient sauter le relief d'un voisin à l'autre : mélange par la hauteur, projection à la puissance 8, neige décidée sur le relief. D'où lames et aiguilles.
-- **Il surgissait.** Filtré à 8 mailles, il ne porte que les ondes de plus de 8 mailles.
-  - Sur la face, une maille vaut l'altitude / 48 ; la plus courte onde portée, l'altitude / 6.
-  - Une forme de 2 m de longueur d'onde naît donc vers 12 m d'altitude : c'est la corniche vue de 11 à 5 m.
-  - À l'écran, 8 mailles font 56 à 100 pixels. Elle arrive grande.
-- **L'état de l'art fait l'inverse :** CDLOD, clipmaps et Nanite prennent le détail en des points fixes du terrain, et le font naître à quelques pixels.
+- **He was shaking.** A relief taken at the sliding vertices is re-sampled at each frame. The triangle error is about 5·A/n² for a wave of n grid cells (`log/pistes-glissement.md`).
+  - Filtered to 2 grid cells: 0,17 with smoothing, against 0,04 without relief.
+  - Filtered to 8 grid cells: 0,06. Again +50 %.
+- **Non-linear decisions taken by vertex** made the relief jump from one neighbor to another: mixing by height, projection to the power 8, snow decided on the relief. Hence blades and needles.
+- **He was coming up.** Filtered to 8 grid cells, it only carries the waves of more than 8 grid cells.
+  - On the face, a grid cell is equal to altitude / 48; the shortest wave-bearing, altitude / 6.
+  - A shape of 2 m wavelength is therefore born towards 12 m altitude: this is the cornice seen from 11 to 5 m.
+  - On the screen, 8 grid cells make 56 to 100 pixels. It comes big.
+- **The state of the art is the opposite:** CDLOD, clipmaps and Nanite take the detail in fixed points of the terrain, and make it come to a few pixels.
 
-### Les parois en gradins, désactivées le 2026-10-23, retirées le 2026-10-30
+### The walls in steps, disabled on 2026-10-23, removed on 2026-10-30
 
-- **Le gradin est une fonction non linéaire de `s`,** l'altitude moins le décalage des strates. Prise sur l'altitude interpolée entre sommets qui glissent, elle amplifie leur erreur de la pente de la falaise, trois fois celle de la paroi.
-  - Gradins nets : 2,5 fois plus de tremblement. Arrondis sur 16 mailles : presque invisibles.
-- **Une paroi n'a que deux ou trois sommets en hauteur :** le déplacement horizontal à la manière d'Outerra repliait la surface, en trous noirs et dents de scie.
-- **Le bruit des ravines s'étirait depuis l'ancre** (`WallRelief`), qui saute de 64 m : le motif se redécoupait en vol. `principes.md` en garde la règle.
-- **L'échelle :** des bancs de 10 à 60 m, au-dessus de 13,5 m. C'est un remplacement de complexplanet, pas un ajout de détail.
+- **The gradient is a non-linear function of `s`,** the altitude minus the offset of strata. Taken on the altitude interpolated between summits that slide, it amplifies their error of the slope of the cliff, three times that of the wall.
+  - Net stands: 2,5 times more than jitter. Rounded on 16 grid cells: almost invisible.
+- **A wall has only two or three vertices in height:** horizontal displacement in Outerra's way folded the surface, into black holes and saw tooth.
+- **The noise of the ravines stretched from the anchor** (`WallRelief`), which jumps from 64 m: the pattern was re-cut in flight. `principes.md` keeps the rule.
+- **The scale:** from beds of 10 to 60 m, above 13,5 m. This is a replacement for complexplanet, not an addition of detail.
 
-### Les corniches dans la lumière, retirées le 2026-10-24
+### The cornices in the light, removed the 2026-10-24
 
-- **La forme :** une fonction de `s` seule dessine des lignes de niveau. Chaque contremarche devient un trait sur toute la face, de force égale. C'est la règle « aucune structure d'un trait uniforme » enfreinte.
-- **Le filtrage :** une contremarche plus fine que le pixel, dessinée en normale, donne un trait de largeur constante à l'écran, à toute distance : le feutre.
-  - De loin, une marche ne doit pas se voir comme un trait mais comme une statistique : pente moyenne, rugosité, part ombrée. C'est le principe de LEAN et de LEADR, qui filtrent le relief en lumière sans le perdre.
-- **L'effacement par la taille du pixel :** les marches s'effaçaient selon `ds`, le pas de `s` d'un pixel au suivant. Elles apparaissaient et disparaissaient avec la distance, contre la règle « un bruit ne s'efface jamais selon la taille du pixel ».
-- **La parallaxe était la bonne technique de transition :** la corniche avait sa profondeur dès 11 m. Mais elle coûtait 0,8 à 1 ms et dessinait la même mauvaise forme.
+- **Shape:** a `s` function alone draws level lines. Each counterstep becomes a stroke on the whole face, of equal strength. This is the rule "no structure of a uniform stroke" broken.
+- **Filtering:** a counterstep thinner than the pixel, drawn in normal, gives a constant stroke width to the screen, at any distance: the felt.
+  - From afar, a walk should not be seen as a line but as a statistic: average slope, roughness, shaded part. This is the principle of LEAN and LEADR, which filter relief into light without losing it.
+- **Erasing by pixel size:** steps were erased according to `ds`, the step of `s` from one pixel to the next. They appeared and disappeared with distance, against the rule "a noise never fades according to the size of the pixel".
+- **The parallax was the right transition technique:** the cornice had its depth as early as 11 m. But it cost 0,8 to 1 ms and drew the same bad shape.
 
-### Notre concept a un nom dans la littérature
+### Our concept has a name in literature
 
-- **Le persistent grid mapping,** Livny et al. 2008 : une grille attachée à la caméra, projetée sur le sol, déplacée en hauteur par le terrain. C'est notre face glissante.
-- **Son défaut connu :** les sommets glissent, sommets et crêtes scintillent.
-- **Les remèdes publiés,** Houska 2020 : répartir les sommets pour choisir le bon niveau de filtrage, chercher les arêtes près de la caméra, la cohérence d'une image à l'autre. Ils réduisent le défaut sans le supprimer.
-- **Notre propre calcul le confirmait :** aucune reconstruction ne stabilise les ondes de 2 à 3 mailles ; seul le filtrage les retire.
+- **Persistent grid mapping,** Livny et al. 2008: a grid attached to the camera, projected on the ground, moved in height by the ground. It's our slippery slope.
+- **Its known defect:** the tops slide, tops and crests sparkle.
+- **The remedies published,** Houska 2020: spread the vertexes to choose the right level of filtering, look for edges near the camera, consistency from one frame to another. They reduce the defect without removing it.
+- **Our own calculation confirmed this:** no reconstruction stabilizes the waves from 2 to 3 grid cells; only filtering removes them.
 
-## 3. Les techniques comparées
+## 3. Comparative techniques
 
-### La continuité du niveau de détail
+### Continuity of level of detail
 
 - **CDLOD,** Strugar 2010.
-  - Un quadtree de grilles fixes. Chaque sommet se fond dans le niveau plus grossier sur les derniers 15 à 30 % de sa plage, selon sa propre distance.
-  - Le relief est lu en des points fixes : aucun glissement.
-  - Notre POC, `piste/sommets-fixes-etape3` : sans fente ni couture, mais coût variable, calcul 4 à 5 fois plus cher près du sol, 34 % d'images à-coups.
-- **Geometry clipmaps,** Losasso et Hoppe 2004 ; sur GPU, Asirvatham et Hoppe 2005.
-  - Des grilles emboîtées de taille fixe, centrées sur l'observateur, chacune calée sur son propre pas.
-  - Une bande de transition au bord de chaque niveau fond la géométrie vers le niveau plus grossier.
-  - Coût constant par construction.
-  - Près du sol, Losasso et Hoppe synthétisent les niveaux plus fins par un bruit fractal : c'est exactement un ajout de détail.
-  - Notre essai « par crans » calait toute la face par paliers, sans fondu : les paliers se voyaient.
-- **Tessellation matérielle.**
-  - Battlefield 3 : déplacement par le champ de hauteur en DX11 ; le facteur garde une largeur de triangle constante à l'écran.
-  - Ghost of Tsushima : un terrain tessellé dynamiquement ; les rochers des falaises sont des modèles à part. Ghost of Yōtei : un système de tessellation du terrain, pour le détail et la neige déformable.
-  - Le piège connu : un facteur fractionnaire fait glisser les nouveaux sommets, et le déplacement amplifie ce glissement. Un facteur entier fait sauter. Les remèdes : facteurs fixes ou fondu des sommets, déplacement filtré au pas de la découpe.
-- **Far Cry 5 :** un pipeline GPU de choix du détail, de tri et de couture du champ de hauteur, qui accueille des falaises générées et de la géométrie de déplacement. Les falaises viennent d'outils Houdini. Les détails ne sont pas publics.
-- **Nanite tessellation,** Unreal 5.4 ; Karis, « Nanite + Reyes », 2026.
-  - Les patchs sont découpés jusqu'à un pas en pixels ; le déplacement est évalué à chaque sommet découpé.
-  - La mesure d'erreur du choix de détail ignore le déplacement ; il est scalaire, borné par une plage donnée.
-  - Les discontinuités franches étirent les triangles au-delà de 64 pixels et déchirent la surface.
-  - Rien de publié sur la stabilité temporelle.
-- **Virtual Heightfield Mesh,** Unreal : un quadtree lu dans une texture virtuelle de hauteur, avec une taille cible à l'écran. Expérimental, fait pour des données précalculées.
-- **Arbres binaires concurrents,** Dupuy et al. 2020 ; Benyoub et Dupuy 2024 ; Unity 2021.
-  - Une bisection adaptative sur GPU, découpée selon la longueur des arêtes à l'écran. Mise à jour en moins de 0,1 ms ; échelle planétaire, en double précision.
-  - Unity : 256 triangles par feuille, des triangles jusqu'à 1,5 cm, du micro-déplacement des matériaux.
-  - Un seul niveau de découpe par image : l'arbre est gardé d'une image à l'autre. Les sauts ne sont pas traités.
-- **Mesh shaders,** DirectX 12 : des groupes de triangles générés sur le GPU sans tampon stocké. Une autre façon d'amplifier les mailles proches ; suppose un GPU DirectX 12 Ultimate.
-- **Star Citizen :** parallaxe sur le terrain, fondu des objets dans le sol par la profondeur, détail réglé en polygones par pixel. Rochers et falaises sont des objets placés.
-- **Outerra :** un déplacement fractal horizontal sur les pentes, selon la pente filtrée, de 19 à 76 m. L'auteur écrit qu'il ne fait pas encore de vraies parois de falaise ni de canyon.
+  - A quadtree of fixed grids. Each vertex blends into the coarser level on the last 15 to 30 % of its range, according to its own distance.
+  - The relief is read in fixed points: no slipping.
+  - Our POC, `piste/sommets-fixes-etape3`: no slit or seam, but variable cost, calculation 4 to 5 times more expensive near the ground, 34 % of images at-shocks.
+- **Geometry clipmaps,** Losasso and Hoppe 2004; on GPU, Asirvatham and Hoppe 2005.
+  - Nested grids of fixed size, centered on the observer, each set on its own pitch.
+  - A transition strip at the edge of each layer blends the geometry to the coarser layer.
+  - Constant cost per construction.
+  - Close to the ground, Losasso and Hoppe synthesize the finer levels by a noise fractal: it is exactly an addition of detail.
+  - Our test “by notches” caled the whole face by steps, without fade: the steps were visible.
+- **Hardware tessellation.**
+  - Battlefield 3: moving through the height field in DX11; the factor keeps a constant triangle width on the screen.
+  - Ghost of Tsushima: dynamic terrain tessellation; the rocks of the cliffs are models in their own right. Ghost of Yōtei: a terrain tessellation system, for detail and deformable snow.
+  - The known trap: a fractional factor slides the new vertices, and the displacement amplifies this slip. An entire factor blows up. Remedies: fixed factors or vertices blending, filtered movement at the cut step.
+- **Far Cry 5:** a GPU pipeline for detail selection, sorting, and height field sewing, which hosts generated cliffs and moving geometry. The cliffs come from Houdini tools. Details are not public.
+- **Nanite tessellation,** Unreal 5.4; Karis, “Nanite + Reyes”, 2026.
+  - Patches are cut down to one pixel step; the displacement is evaluated at each cut vertices.
+  - The error measurement of the detail choice ignores displacement; it is scalar, bounded by a given range.
+  - The straight discontinuities stretch the triangles beyond 64 pixels and tear the surface.
+  - Nothing published on temporal stability.
+- **Virtual Heightfield Mesh,** Unreal: a quadtree read in a virtual height texture, with a target size on the screen. Experimental, made for pre-calculated data.
+- **Competing binary trees,** Dupuy et al. 2020; Benyoub and Dupuy 2024; Unity 2021.
+  - An adaptive bisection on GPU, cut according to the length of the edges on the screen. Update in less than 0,1 ms; planetary scale, double precision.
+  - Unity: 256 triangles per sheet, triangles up to 1,5 cm, micro-displacement of materials.
+  - Only one cut level per frame: the tree is kept from one frame to the next. Jumps are not processed.
+- **Mesh shaders,** DirectX 12: triangle groups generated on the GPU without stored buffer. Another way to amplify the grid cells nearby; assumes a GPU DirectX 12 Ultimate.
+- **Star Citizen:** parallax on the ground, objects fade into the ground by depth, detail set in polygons per pixel. Rocks and cliffs are placed objects.
+- **Outerra:** a horizontal fractal shift on the slopes, depending on the filtered slope, from 19 to 76 m. The author writes that he does not yet make real cliff walls or canyon.
 
-| Technique | Naissance du détail | Stabilité | Coût | Avec notre face glissante |
+| Technical | Birth of the retail | Stability | Cost | With our sliding face |
 |---|---|---|---|---|
-| CDLOD | fondu continu par sommet | points fixes | variable avec le nombre de carreaux | POC clos : à-coups |
-| Geometry clipmaps | fondu dans une bande par niveau | points fixes | constant | possible en couche de proximité ; couture à faire |
-| Tessellation matérielle | facteur continu ou fondu | glisse si fractionnaire | modéré | possible, facteur fixe près de la caméra |
-| Nanite tessellation | découpe au pas en pixels | non publiée | élevé, GPU | l'idée seule : découper au pixel, déplacer peu cher |
-| Arbres binaires concurrents | découpe par pixels, un niveau par image | points fixes, sauts non traités | < 0,1 ms de mise à jour | état gardé : contraire au concept |
-| Mailles amplifiées, proposé | 8 sous-mailles, 7 à 13 px | glisse avec la base, filtré | constant | direct : une grille par maille |
-| Grille fixe de proximité, repli | fondu par distance | points fixes | constant | couture avec le maillage glissant |
+| CDLOD | Continuous melting by vertex | fixed points | variable with the number of tiles | POC closed: at-shocks |
+| Geometry clipmaps | faded in one band per level | fixed points | constant | possible in proximity layer; sewing to be done |
+| Hardware tessellation | continuous or melted factor | slide if fractional | moderate | possible, fixed factor near camera |
+| Nanite tessellation | pixel pitch cut | Not published | high, GPU | the idea alone: cut to pixel, move cheap |
+| Concurrent binary trees | pixel cut-out, one level per frame | fixed points, unprocessed jumps | < 0,1 ms update time | maintained: contrary to concept |
+| grid cells amplified, proposed | 8 sub-grid cells, 7 to 13 px | slides with base, filtered | constant | direct: a grid by grid cell |
+| Fixed proximity grid, folding | faded by distance | fixed points | constant | sewing with sliding mesh |
 
-### Déplacement vertical ou vectoriel
+### Vertical or vector movement
 
-- **Un champ de hauteur n'a pas de surplomb.** Sur une paroi de pente m, un recul horizontal r équivaut à une hauteur r·m : un banc dur peut avancer, mais pas surplomber. Nos gradins faisaient ainsi.
-- **Le déplacement le long d'une normale lissée,** sur 32 mailles au moins comme `RELIEF_NORMAL_CELLS` du relief des matériaux, retiré, fait des surplombs par rapport à la verticale, sans repli :
-  - tant que le recul reste sous le rayon de courbure de la surface lissée ;
-  - et tant que la paroi a assez de sommets en hauteur. Le maillage actuel n'en a que deux ou trois ; amplifié 8 fois, il en a 16 à 24.
-  - Il s'éteint donc aux arêtes entre paroi et plateau, là où la courbure est forte.
-- **Le déplacement triplanaire,** Weiss et al. 2020 : de la géométrie extrudée le long des pentes raides par tessellation, surplombs et blocs compris, sans triangulation explicite.
-- **Les jeux livrés posent des objets :** rochers de falaise de Ghost of Tsushima, falaises procédurales de Far Cry 5, placement GPU d'Horizon Zero Dawn. C'est notre option des rochers semés, `log/spec-parois.md`, à garder pour plus tard.
-- **Les outils hors ligne :** `Stratify` de Gaea casse les strates en plaques indépendantes, et non en terrasses.
-- **Les matériaux restent décidés sur le terrain seul** (`principes.md`), jamais sur la part portée par le maillage.
+- **A height field does not have a overhang.** On a slope wall m, a horizontal retreat r is equivalent to a height r·m: a hard bed can advance, but not overhang. Our stands did so.
+- **The movement along a smoothed normal,** on 32 grid cells at least as `RELIEF_NORMAL_CELLS` of the relief of materials, removed, makes overhangs with respect to the vertical, without folding:
+  - as long as the recoil remains below the radius of curvature of the smoothed surface;
+  - and as long as the wall has enough vertices in height. The current mesh has only two or three; amplified 8 times, it has 16 to 24.
+  - It extinguishes at the edges between wall and plateau, where the curvature is strong.
+- **The displacement triplanar,** Weiss et al. 2020: Extruded geometry along steep slopes by tessellation, including overhangs and blocks, without explicit triangulation.
+- **Inclusive games pose items:** Ghost of Tsushima Cliff Rocks, Far Cry 5 Procedural Cliffs, Horizon Zero Dawn GPU Placement. This is our option of the sown rocks, `log/spec-parois.md`, to keep for later.
+- **Offline tools:** Gaea's `Stratify` breaks the strata into independent plates, not terraces.
+- **The materials remain decided on the field only** (`principes.md`), never on the share carried by the mesh.
 
-## 4. Des corniches naturelles
+## 4. Natural cornices
 
-### Ce que dit la géomorphologie
+### What geomorphology says
 
-- **Les bancs durs tiennent en falaise, les bancs tendres en pente.** Grès et calcaires font les falaises ; les argiles, des pentes (NPS, Grand Canyon).
-- **Le tendre creuse sous le dur :** il recule plus vite et sape le banc au-dessus. La lèvre avance en surplomb, puis tombe par blocs bornés par les diaclases (grès de Wingate).
-- **Une falaise à banc dur recule au pas de son socle tendre,** et ses débris arment la pente en dessous (Ward et Anderson ; Howard).
-- **Au pied, les éboulis :** un talus à l'angle d'éboulis, 34° chez nous, le `WALL_REPOSE` des gradins retirés. Il enterre le bas de la paroi et ses corniches.
-- **Le long d'elle-même, une corniche varie :**
-  - son avancée suit l'épaisseur du banc dur et le contraste de dureté, qui changent : les lentilles ;
-  - les ravines la coupent en V ;
-  - les diaclases la découpent en blocs, dont certains manquent, avec leur cicatrice ;
-  - les replats portent débris et végétation.
+- **The hard beds hold on cliffs, the soft beds on slopes.** Sandstones and limestones make the cliffs; clays, slopes (NPS, Grand Canyon).
+- **The soft digs under the hard:** it retreats faster and undermines the benchmark above. The lip advances overhanging, then falls by blocks bounded by diaclases (Wingate sandstone).
+- **A hard bed cliff retreats at the pace of its soft base,** and its debris reinforces the slope below (Ward and Anderson; Howard).
+- **At the foot, the scree:** a slope at the angle of scree, 34° at our place, the `WALL_REPOSE` of the withdrawn stands. It buries the bottom of the wall and its cornices.
+- **Along itself, a cornice varies:**
+  - its advance follows the thickness of the hard bed and the contrast of hardness, which change: the lenses;
+  - the ravines cut it in a V;
+  - the diaclases cut it into blocks, some of which are missing, with their scar;
+  - The replants carry debris and vegetation.
 
-### Les approches procédurales
+### Procedural approaches
 
-- **Paris et al. 2019 :** une résistance de la roche ρ(p) fonction de l'altitude, donc en strates, déformée par plis et failles. L'érosion retire de la surface `f_D·(1 − ρ)` : la roche tendre recule, la dure avance. D'où falaises stratifiées et surplombs. Hors ligne, environ un million de requêtes par seconde.
-- **Paris et al. 2020 :** des parois en blocs implicites bornés par les fractures.
-- **Peytavie et al. 2009 :** des tas de pierres, donc des éboulis, par pavage apériodique.
-- **Cordonnier et al. 2018 :** des couches profondes soulevées et érodées ; des strates plissées sur les falaises.
-- **Jones et al. 2010 :** l'altération par courbure : alvéoles dans les creux, arrondi des bosses.
+- **Paris et al. 2019:** a rock resistance ρ(p) function of altitude, therefore in strata, deformed by folds and faults. Erosion removes from the surface `f_D·(1 − ρ)`: soft rock retreats, hard rock advances. Hence layered cliffs and overhangs. Offline, about one million requests per second.
+- **Paris et al. 2020:** implicitly block walls bounded by fractures.
+- **Peytavie et al. 2009:** piles of stones, therefore scree, by periodic paving.
+- **Cordonnier et al. 2018:** deep layers raised and eroded; strata pleated on the cliffs.
+- **Jones et al. 2010:** alteration by curvature: alveoli in the hollows, rounded bumps.
 
-### Notre champ de corniche
+### Our cornice field
 
-**Un recul R(p), le long de la normale lissée de la paroi,** fixé sur la grille de la planète, jamais relatif à l'ancre.
+**A backlash R(p), along the smoothed normal of the wall,** fixed on the planet grid, never relative to the anchor.
 
-- **La strate :** `s` = altitude lissée − `StrataShift`, comme les couleurs. Lissée sur quelques mailles, comme l'altitude des gradins, pour ne pas amplifier le tremblement de la base.
-- **La dureté ρ(s) :** les bancs durs et tendres de la colonne, ceux de `PlaneDrop`. Les corniches tombent donc sur les bandes de couleur.
-- **Le profil d'un banc :**
-  - le dur avance en face presque verticale, sa lèvre arrondie sur 10 à 50 cm ;
-  - le tendre recule en creux concave, le plus profond au tiers haut, sous la lèvre ;
-  - moyenne nulle sur chaque banc : la paroi moyenne reste celle de complexplanet, et le relief garde sa hauteur moyenne.
-- **La présence le long de la paroi,** un facteur w(p) entre 0 et 1, produit de :
-  - les lentilles, `BedLenses`, déjà en place ;
-  - un bruit le long des couches, de 8 à 64 m : la corniche forte ici, effacée là ;
-  - des blocs de diaclases, un Voronoi dans le plan de la paroi, de 2 à 8 m : certains blocs tombés ;
-  - les ravines : des bandes verticales où w tombe à 0, en V ;
-  - l'enterrement sous les éboulis, au pied de la paroi.
-- **L'amplitude :** une part de l'épaisseur du banc dur, 0,2 à 0,4, plafonnée à 2 ou 3 m. Nulle sur les pentes plus douces que l'angle d'éboulis.
-- **L'échelle :** les bancs de 1 à 13 m. Les formations de 20 à 60 m restent couleur, ou remplacement sur leur piste.
-- **La couleur suit le même champ :** creux plus sombres, coulures de vernis sous les lèvres, débris sur les replats.
-- **Les règles d'irrégularité,** vérifiables :
-  - aucune corniche ne garde la même avancée sur plus de 5 à 10 fois son épaisseur ;
-  - elle s'amincit sur quelques fois sa largeur, jamais net ;
-  - aucune ne traverse une paroi d'un trait.
-- **De loin, le même champ en statistique :** pente moyenne nulle, sa variance en rugosité, sa part ombrée en assombrissement. Jamais un trait, jamais effacée selon le pixel.
+- **The stratum:** `s` = smoothed altitude − `StrataShift`, like the colors. Smoothed on some grid cells, like the height of the stands, not to amplify the jitter of the base.
+- **Hardness ρ(s):** the hard and soft beds of the column, those of `PlaneDrop`. So the cornices fall on the color strips.
+- **The profile of a benchmark:**
+  - the hard one advances in almost vertical face, its lip rounded on 10 to 50 cm;
+  - tender retreats into concave hollow, the deepest in the upper third, under the lip;
+  - zero average on each benchmark: the average wall remains that of complexplanet, and the relief keeps its average height.
+- **The presence along the wall,** a factor w(p) between 0 and 1, product of:
+  - the lenses, `BedLenses`, already in place;
+  - a noise along the layers, from 8 to 64 m: the strong cornice here, erased there;
+  - blocks of diaclases, a Voronoi in the wall plane, from 2 to 8 m: some fallen blocks;
+  - ravines: vertical stripes where w falls to 0, in V;
+  - the burial under the scree, at the foot of the wall.
+- **Amplitude:** a portion of the thickness of the hard bed, 0,2 to 0,4, capped at 2 or 3 m. Zero on slopes softer than the angle of scree.
+- **The scale:** the beds from 1 to 13 m. The formations of 20 to 60 m remain color, or replacement on their experiment.
+- **Colour follows the same field:** darker hollows, varnish runs under the lips, debris on the replat.
+- **The rules of irregularity,** verifiable:
+  - no cornice keeps the same advance on more than 5 to 10 times its thickness;
+  - it thins on a few times its width, never net;
+  - none of them crosses a wall with a stroke.
+- **From far, the same field in statistics:** mean slope zero, its variance in roughness, its shaded part in darkening. Never a stroke, never erased by pixel.
 
-## 5. Comment mesurer
+## 5. How to measure
 
-### Ce que font les autres
+### What others do
 
-- **Peu de protocoles publiés :** les articles sur Nanite et les arbres binaires concurrents ne chiffrent pas la stabilité temporelle.
-- **Les outils publics :**
-  - ꟻLIP, NVIDIA 2020 : la différence perçue en basculant entre deux images ;
-  - ColorVideoVDP, Mantiuk et al. 2024 : la visibilité de défauts qui varient dans le temps ;
-  - Schwarz et Stamminger 2009 : un prédicteur des sauts de détail, validé par une étude d'utilisateurs.
-- **La pratique courante :** figer le niveau de détail, le balayer à caméra fixe, comparer les images. C'est le principe du banc d'arrivée.
+- **Few published protocols:** articles on Nanite and competing binary trees do not cipher temporal stability.
+- **Public tools:**
+  - ꟻLIP, NVIDIA 2020: the difference perceived when switching between two images;
+  - ColorVideoVDP, Mantiuk et al. 2024: the visibility of defects that vary over time;
+  - Schwarz and Stamminger 2009: a predictor of detail jumps, validated by a user study.
+- **The common practice:** freeze the level of detail, scan it with a fixed camera, compare images. This is the principle of the benchmark arrival.
 
-### Nos bancs
+### No benchmarks
 
-1. **Le banc d'arrivée, nouveau.**
-   - Caméra fixe ; `MYPLANETENGINE_FACE_FACTOR` = 2 × 2^(−k/8), k de 0 à 32 : quatre octaves de maillage.
-   - Pour chaque pas, le changement relatif de la lumière du sol, après un flou de 8 pixels, comme la mutation du banc de qualité.
-   - **Le saut :** le plus grand pas sur le pas médian. **La mutation :** la somme des pas. Et une carte de chaleur.
-2. **Le banc de tremblement,** avec et sans lissage, sur six positions :
-   - corniche, `2182.0 31.16045 8.58814 1.9 -17.1` et `2181.5 31.16051 8.58812 2.3 -11.8` ;
-   - paroi très raide, `1391.1 -11.04542 50.06777 2.6 55.3` ;
-   - roche rouge, `586.6 -25.21899 135.73187 -0.2 92.0` ;
-   - montagne à 45°, `3756.3 -39.55694 12.77814 -13.1 -141.1` ;
-   - paroi du papier peint, `2828.4 -0.03727 118.14886 -9.7 176.8` ;
-   - paroi rasante, `1758.2 0.00182 118.14986 -10.9 81.8`.
-   - Les climats ont changé le 2026-10-24, pas le relief : vérifier que ces parois sont toujours de la roche.
-3. **Le banc de qualité :** mutation, segments droits, trous d'échelle, étalement.
-4. **Le banc de descente :** l'altitude moyenne et la part de roche, de 800 à 8 km.
-5. **La forme contre les photos,** nouveau dans le banc de qualité :
-   - sur les crops de paroi à 30, 100 et 300 m, la longueur des segments sombres presque horizontaux, les creux, rapportée à la hauteur de la paroi ;
-   - la même mesure sur `cible-falaise-alcoves.jpg`, `cible-gres-zion.jpg`, `cible-basalte.jpg`.
-6. **Le coût,** calcul et rendu, à 3, 30 et 300 m.
-7. **Le vol :** `MYPLANETENGINE_FLIGHT` le long d'une paroi, pour les à-coups, et un fichier `tools/tests/<date>.txt` d'approches à 300, 100, 30, 10 et 3 m sur cinq parois.
+1. **The benchmark of arrival, new.**
+   - Fixed camera; `MYPLANETENGINE_FACE_FACTOR` = 2 × 2^(−k/8), k from 0 to 32: four octaves of mesh.
+   - For each step, the relative change of the ground light, after a blur of 8 pixels, as the mutation of the quality benchmark.
+   - **The jump:** the largest step on the middle step. **The mutation:** the sum of the steps. And a heat map.
+2. **The benchmark of jitter,** with and without smoothing, on six positions:
+   - cornice, `2182.0 31.16045 8.58814 1.9 -17.1` and `2181.5 31.16051 8.58812 2.3 -11.8`;
+   - Very steep wall, `1391.1 -11.04542 50.06777 2.6 55.3`;
+   - red rock, `586.6 -25.21899 135.73187 -0.2 92.0`;
+   - mountain at 45°, `3756.3 -39.55694 12.77814 -13.1 -141.1`;
+   - wall of wallpaper, `2828.4 -0.03727 118.14886 -9.7 176.8`;
+   - wall level, `1758.2 0.00182 118.14986 -10.9 81.8`.
+   - Climates have changed the 2026-10-24, not the relief: check that these walls are still rock.
+3. **The quality benchmark:** mutation, straight segments, scale holes, spreading.
+4. **The benchmark of descent:** the average altitude and the part of rock, from 800 to 8 km.
+5. **The shape against the photos,** new in the quality benchmark:
+   - on wall crops at 30, 100 and 300 m, the length of the dark almost horizontal segments, the hollows, in relation to the wall height;
+   - the same measure on `cible-falaise-alcoves.jpg`, `cible-gres-zion.jpg`, `cible-basalte.jpg`.
+6. **The cost,** calculation and rendering, at 3, 30 and 300 m.
+7. **Flight:** `MYPLANETENGINE_FLIGHT` along one wall, for the bumps, and a `tools/tests/<date>.txt` file of approaches to 300, 100, 30, 10 and 3 m on five walls.
 
-### Les critères proposés
+### Proposed criteria
 
-- **Aucune apparition visible :**
-  - au banc d'arrivée, aucun pas plus de 2 fois le pas médian de la référence, sur les six parois ;
-  - mutation totale au plus +10 % sur la référence ;
-  - les deux témoins doivent dépasser ces seuils. Sinon le banc n'est pas assez sensible, et on le revoit avant de juger.
-- **Un scintillement pas au-dessus d'aujourd'hui :** au plus +5 % avec lissage, le bruit de mesure, et +10 % sans, sur les six positions.
-- **L'aspect :** aucun p95 du banc de qualité dégradé de plus de 10 % (`AGENTS.md`) ; segments droits des vues de roche au plus ceux de la référence.
-- **La cohérence :** altitude moyenne en descente à 1 % près, part de roche à 0,5 point près.
-- **Les formes :** la distribution des longueurs de creux dans celle des photos ; aucun creux continu sur plus de la moitié de la largeur d'une paroi.
-- **Le coût :** moins de 1 ms en tout près du sol.
-- **En vol :** l'utilisateur juge les corniches « dessinées correctement », sans mutation au dernier moment, belles à toutes les approches.
+- **No visible appearance:**
+  - at the finish benchmark, no step more than 2 times the median pitch of the reference, on the six walls;
+  - Total mutation not more than +10 % on the reference;
+  - both witnesses must exceed these thresholds. Otherwise the benchmark is not sensitive enough, and we review it before judging.
+- **A flicker not above today:** at most +5 % with smoothing, the noise measurement, and +10 % without, on all six positions.
+- **Appearance:** no p95 of quality benchmark degraded by more than 10 % (`AGENTS.md`); straight segments of rock views at most those of reference.
+- **Consistency:** average altitude in descent to 1 % near, rock share to 0,5 point near.
+- **The shapes:** the distribution of the lengths of the hollows in the photos; no continuous hollow on more than half the width of a wall.
+- **Cost:** less than 1 ms at all near the ground.
+- **In flight:** the user judges the cornices "drawn correctly", without mutation at the last moment, beautiful at all approaches.
 
 ## 6. Sources
 
-**Continuité du niveau de détail**
-- Strugar 2010, CDLOD, article et code : https://github.com/fstrugar/CDLOD
-- Losasso et Hoppe 2004, Geometry clipmaps : https://hhoppe.com/proj/geomclipmap/
-- Asirvatham et Hoppe 2005, GPU Gems 2, chapitre 2 : https://developer.nvidia.com/gpugems/gpugems2/part-i-geometric-complexity/chapter-2-terrain-rendering-using-gpu-based-geometry
+**Continuity of level of detail**
+- Strugar 2010, CDLOD, article and code: https://github.com/fstrugar/CDLOD
+- Losasso and Hoppe 2004, Geometry clipmaps: https://hhoppe.com/proj/geomclipmap/
+- Asirvatham and Hoppe 2005, GPU Gems 2, Chapter 2: https://developer.nvidia.com/gpugems/gpugems2/part-i-geometric-complexity/chapter-2-terrain-rendering-using-gpu-based-geometry
 - Livny et al. 2008, persistent grid mapping : https://link.springer.com/article/10.1007/s00371-007-0180-1
 - Houska 2020, Improved Persistent Grid Mapping : https://www.cg.tuwien.ac.at/research/publications/2020/houska-2020-IPGM/
 - Dupuy et al. 2020, Concurrent Binary Trees : https://diglib.eg.org/handle/10.1145/3406186
-- Benyoub et Dupuy 2024, CBT for Large-Scale Game Components : https://arxiv.org/abs/2407.02215
-- Deliot et al., Unity, SIGGRAPH 2021, tessellation du terrain par CBT : https://www.advances.realtimerendering.com/s2021/Siggraph21%20Terrain%20Tessellation.pdf
+- Benyoub and Dupuy 2024, CBT for Large-Scale Game Components: https://arxiv.org/abs/2407.02215
+- Deliot et al., Unity, SIGGRAPH 2021, terrain tessellation by CBT: https://www.advances.realtimerendering.com/s2021/Siggraph21%20Terrain%20Tessellation.pdf
 - Microsoft, mesh shaders : https://microsoft.github.io/DirectX-Specs/d3d/MeshShader.html
 
-**Moteurs et jeux**
+**Engines and games**
 - Widmark 2012, Terrain in Battlefield 3 : https://media.contentapi.ea.com/content/dam/eacom/frostbite/files/gdc12-terrain-in-battlefield3.pdf
 - Moore 2018, Terrain Rendering in Far Cry 5 : https://gdcvault.com/play/1025261/Terrain-Rendering-in-Far-Cry
 - Carrier 2018, Procedural World Generation of Far Cry 5 : https://gdcvault.com/play/1025557/Procedural-World-Generation-of-Far
 - Pohlmann 2021, Samurai Landscapes, Ghost of Tsushima : https://gdcvault.com/play/1027352/Samurai-Landscapes-Building-and-Rendering
-- PlayStation Blog, les effets de Ghost of Tsushima, terrain tessellé et rochers de falaise : https://blog.playstation.com/?p=345372
-- PlayStation Blog 2025, Ghost of Yōtei, tessellation du terrain : https://blog.playstation.com/?p=411201
+- PlayStation Blog, Ghost of Tsushima effects, tesselated terrain and cliff rocks: https://blog.playstation.com/?p=345372
+- PlayStation Blog 2025, Ghost of Yōtei, terrain tessellation: https://blog.playstation.com/?p=411201
 - van Muijden 2017, placement GPU d'Horizon Zero Dawn : https://www.guerrilla-games.com/media/News/Files/GDC2017_VanMuijden_GPUBasedProceduralPlacementInHorizonZeroDawn.pdf
 - Karis 2026, Nanite + Reyes : https://graphicrants.blogspot.com/2026/02/nanite-reyes.html
-- Epic, Nanite et les landscapes : https://dev.epicgames.com/documentation/unreal-engine/using-nanite-with-landscapes-in-unreal-engine
+- Epic, Nanite and the landscapes: https://dev.epicgames.com/documentation/unreal-engine/using-nanite-with-landscapes-in-unreal-engine
 - Epic, Virtual Heightfield Mesh : https://dev.epicgames.com/documentation/unreal-engine/API/Plugins/VirtualHeightfieldMesh/UVirtualHeightfieldMeshComponent
-- Star Citizen, entretien avec Sean Tracy sur la parallaxe : https://gamersnexus.net/gg/2636-citizencon-parallax-occlusion-mapping-sean-tracy-interview
-- Star Citizen, Planet Tech v5 : https://starcitizen.tools/Planet_Tech_v5
-- Kemen 2009, Outerra, Horizontal fractal displacement : https://www.gamedeveloper.com/programming/horizontal-fractal-displacement
-- Brevet US 10229536, déplacement et glissement des sommets en tessellation fractionnaire : https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/10229536
+- Star Citizen, interview with Sean Tracy on parallax: https://gamersnexus.net/gg/2636-citizencon-parallax-occlusion-mapping-sean-tracy-interview
+- Star Citizen, Planet Tech v5: https://starcitizen.tools/Planet_Tech_v5
+- Kemen 2009, Outland, Horizontal fractal displacement: https://www.gamedeveloper.com/programming/horizontal-fractal-displacement
+- US Patent 10229536, fractional tessellation vertices movement and sliding: https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/10229536
 
-**Falaises, déplacement vectoriel, filtrage**
-- Weiss, Bayer et Westermann 2020, Triplanar Displacement Mapping : https://diglib.eg.org/handle/10.2312/egs20201016
+**Cliffs, vector shift, filtering**
+- Weiss, Bayer and Westermann 2020, Triplanar Displacement Mapping: https://diglib.eg.org/handle/10.2312/egs20201016
 - Paris et al. 2019, Terrain Amplification with Implicit 3D Features : https://hal.archives-ouvertes.fr/hal-02273097
-- Paris et al. 2020, parois en blocs implicites : https://hal.archives-ouvertes.fr/hal-02926218
-- Peytavie et al. 2009, tas de pierres : https://diglib.eg.org/handle/10.2312/CGF.v28i7pp1801-1809
+- Paris et al. 2020, implied block walls: https://hal.archives-ouvertes.fr/hal-02926218
+- Peytavie et al. 2009, pile of stones: https://diglib.eg.org/handle/10.2312/CGF.v28i7pp1801-1809
 - Cordonnier et al. 2018, Sculpting Mountains : https://hal.archives-ouvertes.fr/hal-01517343
-- Jones et al. 2010, altération des roches par courbure : https://scholarsarchive.byu.edu/facpub/110
+- Jones et al. 2010, alteration of rocks by curvature: https://scholarsarchive.byu.edu/facpub/110
 - Gaea, Stratify : https://docs.quadspinner.com/Reference/Erosion/Stratify.html
 - Dupuy et al. 2013, LEADR mapping : https://perso.liris.cnrs.fr/victor.ostromoukhov/publications/pdf/SAsia2013-LEADR.pdf
-- Bend Studio, ombres de contact à l'écran : https://www.bendstudio.com/blog/inside-bend-screen-space-shadows/
+- Bend Studio, contact shadows on screen: https://www.bendstudio.com/blog/inside-bend-screen-space-shadows/
 
-**Géomorphologie**
-- NPS, la géologie du Grand Canyon : https://www.nps.gov/grca/planyourvisit/upload/life_geology.pdf
-- Ward et Anderson, recul des falaises à banc dur : https://www.colorado.edu/program/hydrosciences/2018/08/23/retreat-rates-and-controls-form-hard-capped-cliffs-plateau-country
-- Howard 2004, pentes du plateau du Colorado sous banc dur : https://gsa.confex.com/gsa/2004AM/webprogram/Paper75355.html
-- Grès de Wingate, sapement et chutes par diaclases, source secondaire : https://moabhappenings.com/Archives/Geology202402-WingateSandstone.htm
+**Geomorphology**
+- NPS, the geology of the Grand Canyon: https://www.nps.gov/grca/planyourvisit/upload/life_geology.pdf
+- Ward and Anderson, retreat from the cliffs at bed hard: https://www.colorado.edu/program/hydrosciences/2018/08/23/retreat-rates-and-controls-form-hard-capped-cliffs-plateau-country
+- Howard 2004, slopes of Colorado plateau under hard bed: https://gsa.confex.com/gsa/2004AM/webprogram/Paper75355.html
+- Wingate Sandstone, sapping and diaclase falls, secondary source: https://moabhappenings.com/Archives/Geology202402-WingateSandstone.htm
 
-**Mesure**
+**Measure**
 - Andersson et al. 2020, ꟻLIP : https://research.nvidia.com/labs/rtr/publication/andersson2020flip
 - Mantiuk et al. 2024, ColorVideoVDP : https://arxiv.org/abs/2401.11485
-- Schwarz et Stamminger 2009, prédire les sauts de détail : https://cris.fau.de/publications/118172384
+- Schwarz and Stamminger 2009, predict detail jumps: https://cris.fau.de/publications/118172384

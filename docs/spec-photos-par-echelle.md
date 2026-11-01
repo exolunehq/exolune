@@ -1,92 +1,92 @@
-# Spécification : des photos réelles, recomposées par nos bruits, à toutes les échelles
+# Specification: real photos, recomposed by our noise functions, at all scales
 
-Statut : étapes 1 et 2 faites ; l'étape 3, les motifs vus d'avion, devient une source des bandes de 10 m à 1 km de `spec-texturage-universel.md`. Complète `log/etat-de-l-art-details.md` (voie C) et `log/spec-hybride-scans.md` : l'essai des scans, puis le sable photo.
+Status: steps 1 and 2 done; step 3, the patterns seen from plane, becomes a source of bands from 10 m to 1 km of `spec-texturage-universel.md`. Complete `log/etat-de-l-art-details.md` (track C) and `log/spec-hybride-scans.md`: the scans test, then the photo sand.
 
-## L'idée
+## The idea
 
-**Garder le procédural pour le « quoi et où », prendre au réel le « à quoi ça ressemble ».** Nos bruits de climat, de géologie et de relief décident de ce qu'il y a à chaque endroit ; des photos réelles donnent l'apparence de chaque chose, recomposée à la volée par ces mêmes bruits.
+**Keep the procedural for the “what and where”, take the real “what it looks like”.** Our noise functions of climate, geology and relief decide what is in each place; real photos give the appearance of every thing, recomposed on the fly by these same noise functions.
 
-- **On ne recopie jamais une photo telle quelle à grande échelle :** elle recopierait la Terre, avec des côtes et des reliefs qui ne coïncident pas avec notre terrain.
-- **On en tire ce qui se transpose :** des statistiques, couleur moyenne et variance, ou des textures sans position, qui se pavent et se recolorent.
-- **La règle universelle s'applique** (`principes.md`) : une apparence tirée d'une photo est une moyenne par endroit, et un pixel montre la moyenne de ce qu'il couvre.
+- **We never copy a photo as it is on a large scale:** it would copy the Earth, with coasts and reliefs that do not coincide with our terrain.
+- **We get what transposes:** statistics, average color and variance, or textures without position, which pave and recolor.
+- **The universal rule applies** (`principes.md`): an appearance taken from a photo is an average per place, and a pixel shows the average of what it covers.
 
-## Ce que dit l'état de l'art
+## What the state of the art says
 
-- **Mêler des copies d'une photo sans perdre son contraste :** pavage aléatoire avec mélange qui préserve l'histogramme. [Heitz et Neyret 2018](https://eheitzresearch.wordpress.com/722-2/), [Burley 2019](https://jcgt.org/published/0008/04/02/), [hex-tiling 2022](https://jcgt.org/published/0011/03/05/). Nous avons déjà un pavage proche, en triangles.
-- **Recolorer une photo à la volée selon des statistiques cibles,** le cœur de l'idée : [Lutz et Gilet 2026](https://www.lirmm.fr/nicolas-lutz/publications/lg26/preprint.pdf), environ 1 ms. Chez nous, les cibles viennent du climat et de la géologie.
-- **Mêler plusieurs photos selon un bruit :** [Laplacian blending, Wronski 2025](https://arxiv.org/abs/2502.13945), environ 0,1 ms.
-- **Semer des éléments découpés dans les photos,** rochers ou fissures : [texture bombing](https://developer.nvidia.com/gpugems/gpugems/part-iii-materials/chapter-20-texture-bombing).
-- **Synthétiser du relief à partir de vrais modèles d'élévation :** [Zhou et al. 2007](https://faculty.cc.gatech.edu/~turk/my_papers/terrain_synth_tvcg.pdf). Demande un précalcul et une mémoire du terrain.
-- **À écarter pour nous :** la synthèse de texture complète et le neuronal, trop lents ou à état, alors que tout est recalculé à chaque image.
-- **Ce que font les autres :** [Star Citizen](https://starcitizen.tools/Planet_Tech_v5) répartit ses matériaux par température, humidité et géologie, comme nous, sans publier sa méthode.
+- **Blend copies of a photo without losing contrast:** random paving with blending that preserves the histogram. [Heitz and Neyret 2018](https://eheitzresearch.wordpress.com/722-2/), [Burley 2019](https://jcgt.org/published/0008/04/02/), [hex-tiling 2022](https://jcgt.org/published/0011/03/05/). We already have a nearby paving, in triangles.
+- **Recolor a photo on the fly according to target statistics,** the core of the idea: [Lutz and Gilet 2026](https://www.lirmm.fr/nicolas-lutz/publications/lg26/preprint.pdf), about 1 ms. In our case, the targets come from climate and geology.
+- **Mix multiple photos according to a noise:** [Laplacian blending, Wronski 2025](https://arxiv.org/abs/2502.13945), about 0,1 ms.
+- **Seed elements cut out in the photos,** rocks or cracks: [texture bombing](https://developer.nvidia.com/gpugems/gpugems/part-iii-materials/chapter-20-texture-bombing).
+- **Synthesize relief from real elevation models:** [Zhou et al. 2007](https://faculty.cc.gatech.edu/~turk/my_papers/terrain_synth_tvcg.pdf). Requests a precalculation and a memory of the field.
+- **To discard for us:** the synthesis of full texture and neuronal, too slow or state, while everything is recalculated at each frame.
+- **What others do:** [Star Citizen](https://starcitizen.tools/Planet_Tech_v5) distributes its materials by temperature, humidity and geology, like us, without publishing its method.
 
-## Les pistes, par échelle
+## The experiments, by scale
 
-| Échelle | Ce qu'on prend aux photos | Source | Faisabilité |
+| Scale | What we take in the photos | Source | Feasibility |
 |---|---|---|---|
-| Orbite à 10 km | palette de couleurs et variance par biome | mosaïque satellite, [Blue Marble de la NASA](https://visibleearth.nasa.gov/collection/1484/blue-marble), domaine public | facile : un petit tableau, pas d'image dans le moteur |
-| 10 km à 100 m | motifs vus d'avion : champs, forêts, dunes, éboulis, lits asséchés | photos aériennes libres de droits, rares | moyenne : mêmes outils que de près, mais il faut les photos |
-| 100 m au sol | la matière de près : roche, sable, sol | scans CC0, Poly Haven et ambientCG | sable photo fait ; la roche reste procédurale, `log/spec-hybride-scans.md` |
-| Relief | morceaux de vrais reliefs | modèles d'élévation | possible, mais contre le concept « recalculé à chaque image » ; piste lointaine |
+| Orbite at 10 km | color palette and variance by biome | satellite mosaic, [Blue Marble by NASA](https://visibleearth.nasa.gov/collection/1484/blue-marble), public domain | easy: a small table, no image in the engine |
+| 10 km to 100 m | Plane viewed motifs: fields, forests, dunes, scree, dry beds | Royalty Free Aerial Photos, Rare | medium: same tools as close up, but you need the photos |
+| 100 m to ground | material close up: rock, sand, soil | scans CC0, Poly Haven and ambientCG | sand photo done; the rock remains procedural, `log/spec-hybride-scans.md`  |
+| Terrain | pieces of real reliefs | models of elevation | possible, but against the concept of "recalculated at each frame"; experiment distant |
 
-## Étape 1 : la palette par biome tirée de Blue Marble
+## Step 1: the biome palette from Blue Marble
 
-**Le principe.** Aujourd'hui, la couleur du sol vient de quelques teintes choisies à la main : désert, steppe, prairie, forêt, toundra. Elles deviennent les vraies couleurs de la Terre, rangées par climat.
+**The principle.** Today, the color of the ground comes from a few shades chosen at the main: desert, steppe, meadow, forest, tundra. They become the true colors of the Earth, sorted by climate.
 
-1. **Hors du moteur, une fois :** `tools/palette_biomes.py` lit la mosaïque Blue Marble et deux cartes climatiques de la Terre, température moyenne et précipitations annuelles. Les données restent hors du dépôt, dans `../donnees-terre/`, avec leurs licences.
-2. **Il range chaque pixel de terre** dans une case température × humidité, et mesure la couleur moyenne et sa dispersion de chaque case, en lumière linéaire. Les glaces permanentes sont exclues, la neige a son propre traitement.
-3. **L'humidité de nos bruits** se relie aux précipitations par une échelle logarithmique : 100 mm par an pour 0, 3 000 mm pour 1. À calibrer pour que nos seuils de désert, de steppe et de forêt tombent sur les mêmes précipitations que sur Terre.
-4. **Le tableau entre dans le moteur comme un fichier de code généré,** `BiomePalette.hlsli`, quelques Ko. Aucune image n'est chargée.
-5. **Le pixel lit sa couleur** dans le tableau, par interpolation, à sa température et à son humidité. La dispersion de la case règle l'amplitude de la variation de clarté locale.
+1. **Once off the engine:** `tools/palette_biomes.py` reads the Blue Marble mosaic and two Earth climate maps, average temperature and annual rainfall. The data remains outside the repository, in `../donnees-terre/`, with their licenses.
+2. **It places each pixel of earth** in a temperature box × humidity, and measures the average color and its dispersion of each box, in linear light. Permanent ice is excluded, snow has its own treatment.
+3. **The humidity of our noise functions** is related to precipitation by a logarithmic scale: 100 mm per year for 0, 3 000 mm for 1. To be calibrated so that our thresholds of desert, steppe and forest fall on the same precipitation as on Earth.
+4. **The array enters the engine as a generated code file,** `BiomePalette.hlsli`, a few KB. No images are loaded.
+5. **The pixel reads its color** in the table, by interpolation, at its temperature and humidity. The scattering of the box regulates the amplitude of the local clarity variation.
 
-**La mesure :** le banc d'orbite et des vues à 5, 56 et 300 km, à côté de vues de la Terre aux mêmes latitudes ; le banc de descente, pour vérifier que la couleur ne mute pas.
+**The measurement:** the benchmark of orbit and views at 5, 56 and 300 km, next to views of the Earth at the same latitudes; the benchmark of descent, to check that the color does not change.
 
-**Critère :** des couleurs vues d'orbite reconnaissables comme terrestres, sans changer la répartition des matériaux.
+**Criterion:** colors seen from orbit recognizable as terrestrial, without changing the distribution of materials.
 
-### Résultats de l'étape 1
+### Results of the stage 1
 
-- **Les données :**
-  - Blue Marble de janvier et de juillet 2004, NASA, domaine public ; chaque hémisphère est pris dans son été, son mois le moins enneigé, puisque la neige est dessinée à part ;
-  - normales TerraClimate 1991-2020 à 1°, CC0. Le service NASA NEO, prévu d'abord, a fermé en septembre 2026.
-- **Blue Marble n'est pas une mesure de réflectance :** ses couleurs sont rehaussées. Elles sont ramenées à l'albédo par canal, `albédo = a · valeur^g`, calé sur deux repères mesurés par satellite : le Sahara libyen, (0,45 ; 0,35 ; 0,22), et l'Amazonie, (0,03 ; 0,06 ; 0,025).
-- **Le tableau :** 23 températures de −20 à 35 °C et 11 humidités. 202 cases sur 253 sont remplies par la Terre ; les autres, des climats que la Terre n'a pas, prennent la moyenne de leurs voisines.
-- **Repères, albédo rouge, vert, bleu :**
+- **Data:**
+  - Blue Marble of January and July 2004, NASA, public domain; each hemisphere is taken in its summer, its least snowy month, since snow is drawn separately;
+  - TerraClimate normals 1991-2020 to 1°, CC0. The service NASA NEO, planned first, closed in September 2026.
+- **Blue Marble is not a reflectance measure:** its colors are enhanced. They are reduced to the channel albedo, `albédo = a · valeur^g`, calibrated on two reference frames measured by satellite: the Libyan Sahara, (0,45; 0,35; 0,22), and the Amazon, (0,03; 0,06; 0,025).
+- **The table:** 23 temperatures from −20 to 35 °C and 11 humidities. 202 boxes on 253 are filled by Earth; the others, of climates that Earth does not have, take the average of their neighbors.
+- **reference frames, red, green, blue albedo:**
   - Sahara 0,42 ; 0,34 ; 0,22 ;
   - steppe 0,20 ; 0,18 ; 0,12 ;
-  - Europe 0,08 ; 0,10 ; 0,06 ;
-  - Amazonie 0,04 ; 0,07 ; 0,03.
-- **Dans le moteur :** `BiomeColor`, trois lectures sur l'étalement de la température dans le pixel, d'après la règle universelle. La variation locale de clarté porte la moitié de la dispersion mesurée.
-- **Ce qui change à l'écran :**
-  - les déserts gardent presque leur couleur, déjà proche ;
-  - les régions humides tempérées deviennent moins vertes, plus olive et brunes. À 20 °C et 550 mm, la Terre est une savane sèche, pas une prairie verte ; notre planète était plus verte que son climat.
-- **Coût :** aucun mesurable.
-- **Calibrages à revoir en vol :** l'échelle entre humidité et précipitations, 100 à 3 000 mm, et la part de dispersion donnée au bruit local.
+  - Europe 0,08; 0,10; 0,06;
+  - Amazon 0,04; 0,07; 0,03.
+- **In the engine:** `BiomeColor`, three readings on the spread of temperature in the pixel, according to the universal rule. The local variation in brightness bears half of the measured dispersion.
+- **What changes on the screen:**
+  - deserts almost keep their color, already close;
+  - the temperate wetlands become less green, more olive and brown. At 20 °C and 550 mm, Earth is a dry savannah, not a green meadow; our planet was greener than its climate.
+- **Cost:** none measurable.
+- **Calibrations to be reviewed in flight:** the scale between humidity and precipitation, 100 to 3 000 mm, and the dispersion part given to the local noise.
 
-## Étape 2 : les sols photo, de près
+## Step 2: photo floors, close up
 
-Lancée le 2026-10-22, d'après l'essai `log/spec-hybride-scans.md` : les sols meubles passent à l'hybride, la roche reste procédurale.
+Launched the 2026-10-22, after the `log/spec-hybride-scans.md` test: the loose soils go to hybrid, the rock remains procedural.
 
-- **Le scan de sable et gravier remplace la tuile générée du sable,** sur la bande de 3 cm à 50 cm. Un passe-haut le coupe au-dessus pour éviter le camouflage répété.
-- **Il reste un facteur de moyenne 1 :** la teinte vient de la palette du biome, l'étape 1. C'est la recoloration statistique, à son premier degré.
-- **Fusionnée le 2026-10-23,** commit `7bf38a9`.
+- **Sand and Gravel scan replaces the tile generated from sand,** on the strip from 3 cm to 50 cm. A high pass cut it over to avoid repeated camouflage.
+- **There is still one average factor 1:** the shade comes from the biome palette, the 1 stage. This is statistical recoloring, at its first degree.
+- **Merged the 2026-10-23,** commit `7bf38a9`.
 
-## Étape 3 : les motifs vus d'avion, de 100 m à 4 km
+## Step 3: patterns seen from plane, from 100 m to 4 km
 
-**Le constat :** entre le pixel et la maille, à 1 à 50 km d'altitude, le sol n'a que la couleur de son biome et le grain de l'éclairage. Rien ne dessine les dunes, les champs, les forêts en taches, les lacs de la taïga, les réseaux d'oueds.
+**The observation:** between the pixel and the grid cell, at 1 to 50 km altitude, the ground has only the color of its biome and the grain of the lighting. Nothing draws the dunes, the fields, the spotted forests, the lakes of the taiga, the networks of wades.
 
-**Le principe :**
-- **Une tuile par paysage,** environ 4 km en 1024 px, soit 4 m par pixel, découpée dans une image satellite libre de droits à un endroit typique de la Terre : erg, reg, savane, bocage et cultures, forêt tempérée, taïga à lacs, toundra, steppe, forêt tropicale, réseau d'oueds.
-- **Rendue raccordable hors du moteur,** puis pavée au hasard comme les autres tuiles, sans répétition visible.
-- **Un facteur de moyenne 1 sur la couleur du biome :** la tuile donne le motif, la palette donne la teinte. Les paysages se mêlent par leurs poids, tirés du climat et du relief, avec les limites élargies selon la règle universelle.
-- **Elle s'efface d'elle-même de loin,** par ses mipmaps, quand un pixel couvre la tuile entière.
-- **Les grandes tuiles ne divisent pas l'ancre de 64 m :** leurs coordonnées sont prises sur la planète entière, en simple précision. L'erreur, un demi-mètre, reste sous le pixel de la tuile.
+**The principle:**
+- **One tile per landscape,** approximately 4 km in 1024 px, or 4 m per pixel, cut out of a royalty-free satellite image of a typical Earth location: erg, reg, savannah, bushland and crops, temperate forest, lake taiga, tundra, steppe, rainforest, wading network.
+- **Made connectable out of the engine,** then paved randomly like the other tiles, without visible repetition.
+- **A 1 average factor on the biome color:** the tile gives the pattern, the palette gives the shade. The landscapes mix by their weights, drawn from the climate and the relief, with the limits expanded according to the universal rule.
+- **It erases itself from far away,** by its mipmaps, when a pixel covers the entire tile.
+- **The large tiles do not divide the anchor of 64 m:** their coordinates are taken on the whole planet, in simple precision. The error, half a meter, remains under the pixel of the tile.
 
-**Le chargement :** le même que les sols photo, par WIC, au démarrage, désormais sur la branche principale.
+**Loading:** the same as photo floors, by WIC, at startup, now on the main branch.
 
-**La mesure :** le banc d'orbite et des vues à 2, 10 et 50 km, à côté des mêmes paysages réels ; le banc de descente lumineux, pour vérifier que la couleur moyenne ne bouge pas.
+**Measurement:** the orbit benchmark and views at 2, 10 and 50 km, next to the same real landscapes; the luminous descent benchmark, to check that the average color does not move.
 
-## Étapes suivantes, à décider
+## Next steps to be decided
 
-2. **La recoloration statistique de près,** après l'essai hybride : chaque scan prend la moyenne et la variance de sa région.
-3. **Le mélange de plusieurs scans** selon un bruit.
-4. **Les motifs vus d'avion,** si l'on trouve des photos aériennes libres.
+2. **Statistical recoloring close up,** after hybrid test: each scan takes the mean and variance of its region.
+3. **Mixing multiple scans** according to a noise.
+4. **The motifs seen from airplane,** if we find free aerial photos.

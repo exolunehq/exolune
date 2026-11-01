@@ -1,36 +1,36 @@
-# Historique du concept
+# History of the concept
 
-**Les sections dépassées de `../concept.md`,** sorties le 2026-10-30. Elles datent d'avant le jalon 01, quand complexplanet n'était pas encore porté. Les branches qu'elles citent, `complex-planet`, `debug-zoom-planet` et `unity-tw-portage`, sont des branches distantes de 2025, hors de `main`.
+**The outdated sections of `../concept.md`,** released the 2026-10-30. They date back to before the milestone 01, when complexplanet was not yet ported. The branches they cite, `complex-planet`, `debug-zoom-planet` and `unity-tw-portage`, are distant branches of 2025, out of `main`.
 
-## Les couches de bruit : état des sources
+## The layers of noise: source status
 
-**Verdict : les couches complexplanet ne sont pas dans les sources.** Seules les briques de base et le premier sous-groupe sont portés.
+**Verdict: complexplanet layers are not in the sources.** Only the basic bricks and the first subgroup are carried.
 
-**L'original** est `complexplanet.cpp` de libnoise : 1 996 lignes de C++.
+**The original** is `complexplanet.cpp` from libnoise: 1 996 C++ lines.
 
-- 12 groupes et 26 sous-groupes : continents, type de terrain, montagnes, collines, plaines, badlands, rivières, quatre groupes de mise à l'échelle, planète finale.
-- 23 générateurs, 52 modificateurs, 18 combinateurs, 9 sélecteurs et 26 caches.
-- Générateurs : 11 RidgedMulti, 6 Perlin, 3 Billow, 1 Voronoi, 2 constantes.
+- 12 groups and 26 subgroups: continents, terrain type, mountains, hills, plains, badlands, rivers, four scale groups, final planet.
+- 23 generators, 52 modifiers, 18 combinators, 9 selectors and 26 caches.
+- Generators: 11 RidgedMulti, 6 Perlin, 3 Billow, 1 Voronoi, 2 constants.
 
-**Dans les branches du repo :**
+**In the repo branches:**
 
-| Fichier | Branches | Contenu | État |
+| File | Branches | Contents | Status |
 |---|---|---|---|
-| `Engine/Shaders/TerrainCompute.hlsl` | `complex-planet`, `debug-zoom-planet`, `unity-tw-portage` | Bruit de gradient libnoise avec ses constantes, Perlin, Billow, RidgedMulti | Briques de base faites. Voronoi absent. |
-| `Engine/Shaders/ComplexPlanetHLSL.hlsl` | mêmes branches | Graphe complexplanet | Seul le sous-groupe « continents de base » est fait, puis un TODO. Turbulence écrite mais non branchée. |
-| `Legacy/ComplexPlanet.cpp` | `debug-zoom-planet`, `unity-tw-portage` | Graphe décrit en C++ | Partiel : continents, type de terrain, base des montagnes, début des collines. Turbulence neutralisée. Des valeurs s'écartent de l'original : les collines utilisent un Perlin à 1211 au lieu d'un Billow à 1663 et d'un RidgedMulti à 367,5. |
-| `Legacy/CudaKernels/NoiseKernels.cu` | `unity-tw-portage` | Perlin et Simplex 3D, fBm, ridge, billow, sélecteurs | Autre famille de bruits : portage du shader Unity de 2012, pas de libnoise. |
+|  `Engine/Shaders/TerrainCompute.hlsl`  |  `complex-planet`, `debug-zoom-planet`, `unity-tw-portage`  | noise of libnoise gradient with its constants, Perlin, Billow, RidgedMulti | Basic bricks made. Voronoi absent. |
+|  `Engine/Shaders/ComplexPlanetHLSL.hlsl`  | Same branches | Graph complex planet | Only the subgroup "basic continents" is made, then a TODO. Turbulence written but not plugged. |
+|  `Legacy/ComplexPlanet.cpp`  |  `debug-zoom-planet`, `unity-tw-portage`  | Graph described in C++ | Partial: continents, terrain type, base of mountains, beginning of hills. Turbulence neutralized. Some values deviate from the original: the hills use a Perlin at 1211 instead of a Billow at 1663 and a RidgedMulti at 367,5. |
+|  `Legacy/CudaKernels/NoiseKernels.cu`  |  `unity-tw-portage`  | Perlin and Simplex 3D, fBm, ridge, billow, selectors | Another family of noise functions: port from the Unity shader of 2012, no libnoise. |
 
-**Reste à faire :** porter le graphe complet en HLSL à partir de l'original.
+**Remains to be done:** port the full graph to HLSL from the original.
 
-**Attention à la licence.** `complexplanet.cpp` est sous GPL v2, libnoise sous LGPL. Porter le graphe tel quel fait du moteur une œuvre dérivée GPL s'il est distribué.
+**Attention to the license.** `complexplanet.cpp` is under GPL v2, libnoise under LGPL. Porting the graph as such makes the engine a derivative work GPL if distributed.
 
-## Prochaine étape proposée
+## Proposed next step
 
-Un prototype minimal pour valider le concept avant d'investir dans le bruit :
+A minimum prototype to validate the concept before investing in the noise:
 
-1. Une face de 256 × 256 centrée sous la caméra, de taille k × altitude.
-2. Un bruit simple, par exemple les continents déjà portés.
-3. Une caméra libre de l'orbite au sol, avec l'altitude affichée.
+1. One face of 256 × 256 centered under the camera, size k × altitude.
+2. A simple noise, for example the continents already carried.
+3. A free camera from orbit to the ground, with altitude displayed.
 
-But : voir de nos yeux le glissement du relief et le problème de l'horizon, puis choisir les remèdes.
+Aim: see with our eyes the sliding of the relief and the problem of the horizon, then choose the remedies.
