@@ -6,6 +6,7 @@
 #include <xaudio2.h>
 #include <atomic>
 #include <cstdint>
+#include "WorldAudio.h"
 
 // What the ship sounds like this frame, filled in D3DApp::UpdateShip (docs/recherche-son.md).
 struct ShipSound {
@@ -27,6 +28,11 @@ public:
     bool Initialize(); // false: no sound device, the app goes on silent
     void Shutdown();
     void Update(const ShipSound&);
+    void UpdateWorld(const WorldSound& s, float dt) { mWorld.Update(s, dt); }
+    void Footstep(FootSurface s, float strength = 1.0f) { mWorld.Step(s, strength); }
+    void Footstep(const FootContact& c, float strength = 1.0f) { mWorld.Step(c, strength); }
+    void ResetWorld() { mWorld.Reset(); }
+    void SetMix(float master, float footsteps, float ambience, float ship);
 
 private:
     static constexpr UINT Rate = 48000, Blocks = 16, BlockFrames = 4096;
@@ -59,4 +65,7 @@ private:
     UINT mGustCount = 0;
     Svf mRumbleFilter, mRoar[2], mWindBand[2], mWindLow, mHull[2], mEngineHull[2], mHumFilter;
     Jet mJets[3]; // roll, strafe, lift
+    WorldAudio mWorld;
+    std::atomic<float> mMasterGain{1.0f}, mShipGain{1.0f};
+    float mMasterLevel = 1.0f;
 };

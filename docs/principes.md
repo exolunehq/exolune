@@ -24,6 +24,89 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 
 ## The established rules
 
+**Hydrological consistency is checked on the composed terrain** (`spec-eaux-interieures.md`, revision requirements).
+- A cut-only operation can still manufacture a false side trench; bound residual bank detail against its draining bed and verify the composed section.
+- Preserve existing hollows without raising them to an independently chosen river stage.
+- A monotone coarse graph and a sea-labelled cell do not prove a connected outlet through the final terrain.
+- Wet extent comes from the bed, banks and water stage together; width variation or a decorative path cannot repair missing drainage.
+- Filter physical wet coverage after the water/terrain intersection; averaging an unbounded profile before clipping is not equivalent.
+- These requirements expose current failures; they are not a claim that the first water implementation satisfies them.
+- Terrain construction and erosion must share compatible spatial support and history. A young edifice cannot inherit an old substrate's cut automatically; a closed bowl needs a resolved spillway before it can drain outward.
+
+**Valley detail cannot manufacture a second, deeper drainage system** (`spec-erosion.md`).
+- Carry positive spurs on the cut envelope; existing hollows already belong to the terrain being intersected.
+- Keep the composed terrain between the original ground and its valley envelope, without an independent winning-link stage clamp.
+- The liquid channel belongs within the valley floor; preserve that floor through its terminal segment.
+- A shoulder join must not leave a barrier above the draining floor; let its rounding vanish on the physical floor.
+- Bound the water pass's excavation by the compact channel depth; a missing outlet cannot justify an unlimited second cut.
+- A coarse incision amount is not a valid local cap until its reference terrain and the rendered terrain agree.
+
+**Inland water and its bed share continuous drainage envelopes** (`spec-eaux-interieures.md`).
+- A positive altitude is not proof of inland water. Classify water from wet presence and depth, independently of ocean coverage.
+- Interpolate water stage and depth premultiplied by wet presence; dry terrain must not contaminate either quantity.
+- Water and terrain shading use the same reconstruction resolution. A coarse dry vertex cannot veto water resolved by the fine grid.
+- A dry grid sample is not proof that a channel is absent between samples; retain a physical candidate bound for contour refinement.
+- Every pixel in a derivative quad must evaluate the same field before its derivatives are used for coverage.
+- Exactly zero water depth remains dry; symmetric threshold smoothing must not turn a drainage-stage plane into reflective water.
+- Refining a wet contour does not change the sampling bandwidth of land materials, normals or the mesh silhouette.
+- Use the same links, discharge and stage as erosion; no independent decorative river paths.
+- Pair the lower envelopes of the section with and without its channel cut; their difference bounds additional bed excavation.
+- Never apply one winning link's stage to another link's bed.
+- Terminal basins share a constant stored stage; reconstruct distinct stages continuously where coarse catchments meet.
+- Keep level basin interiors and document the connecting bands as an approximation until spillways are resolved.
+- Positive water depth controls rendering, vegetation and terrestrial habitat; a dry plane at its drainage stage is land.
+- Keep the pre-erosion form independent of visible water.
+
+**Grounded movement and environmental audio read the rendered world** (`spec-marche-ambiances.md`).
+- Walking contact uses shared relief and a bounded local footprint; no second terrain model.
+- Separate disembarkation recovery from movement contact; refuse invalid landings visibly.
+- Step sounds follow actual grounded distance, not held input or time alone.
+- Contact sounds use exposed textured coating areas, including residual soil; snow and beach cover the substrate acoustically.
+- Distinct materials use distinct recorded contacts; pitch and filtering only vary or damp those contacts.
+- Rain does not prove standing water and must not substitute mud or splashes for a ground material.
+- Habitat, surfaces and weather use existing material, vegetation, climate and cloud fields.
+- Real-time audio uses bounded voices and queues, without allocation, disk access or blocking.
+- Resident recordings carry redistribution rights and reproducible provenance.
+- Outdoor sound fades with distance from its habitat and atmospheric density.
+
+
+**The camera's near plane does not follow its height above the ground** (`spec-vaisseau.md`).
+- A nearby wall can coexist with a distant nadir; use the same 5 cm near plane for every view.
+- Keep reversed Z for depth precision; clipping must not substitute for collision or modify terrain.
+- A radial height clamp does not establish safe wall contact; proper contact must test the travelled segment for each body.
+
+**Flight contact checks the swept body before accepting its motion** (`spec-vaisseau.md`).
+- Query shared relief at the moving body's position; a previous nadir height or another camera's height is not collision evidence.
+- Bound every intermediate attitude; a centre's final displacement alone does not bound its rotational arc.
+- Test the complete chord and radius against the terrain envelope; reparameterize contact fractions after clipping the query interval.
+- Use the analytic sea sphere to stop a planet-crossing chord before leaving its tangent hemisphere; do not clamp an invalid projection into a plausible local path.
+- Separate placement recovery from movement; an existing shallow overlap must allow escape and tangential movement.
+- Bound GPU storage and read back contact results; an exhausted sampling budget must not authorize an untested remainder or create a fictitious wall.
+- State the sampled field's resolution and limits; a continuous sweep over triangles is not a proof of unsampled terrain or rendered crest stability.
+
+**The coastal metric measures the scale of wave erosion, including at ria cusps** (`spec-erosion.md`).
+- A long noise wavelength does not make the derivative of its absolute value smooth.
+- Filter both the coastal spectrum and its crease derivative at the existing physical erosion scale.
+- Refining the rendering mesh must not sharpen this parameter field or move an entire cliff-height contour.
+- Keep the full terrain as the erosion input; the broad metric controls reach, not replacement terrain.
+- Verify the gradient against independent height differences, then test cusp crossings and several coastal families.
+
+**A coastal talus joins the cliff it supports without a reverse slope** (`spec-erosion.md`).
+- With fixed coastal parameters, increasing the original ground height must not lower the supported profile.
+- Locate the talus contact on the cliff face at its prescribed height; extend the apron seaward from that contact.
+- Preserve the original terrain as an upper bound and the abrasion profile as a lower bound.
+- Verify the profile over ranges of cliff height, face width, talus height and coastal gradient, then check several regions.
+
+**A mesh filter averages a fixed physical profile locally** (`spec-erosion.md`).
+- Coarse reference depth must not rescale a valley's coordinates or its unbounded banks.
+- A resolved planar flank stays in place as the sampling footprint changes.
+- Keep the physical floor mask independent of the mesh; round only the sampled profile.
+- Verify fixed world positions at several mesh spacings, including zero reference depth.
+- Averaging a profile does not prove conservation of the incision after clipping against arbitrary terrain.
+- Compose the physical cliff, talus and min/max intersections before averaging the incision.
+- Mesh size changes a symmetric normalized sampling support, never the physical cliff width.
+- Conservation of a local section with frozen parameters does not establish conservation of the complete 2D terrain.
+
 **Out-of-real-time rendering follows the movie clock, never the time of the calculation** (`lancement.md`, the cinematic mode).
 - **A common step to everything that advances:** sea, plants, glass and histories; poses and the weather moment come from the course.
 - **Safety does not draw the route:** the generator keeps a free band around the flight; any engine clamp is logged.
@@ -63,6 +146,11 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - **A pattern placed on a shape has a zero average:** it draws, it does not mount the shape. The flows of a volcano, laid on top of his building, drew a ring where they begin; their tongues are above him, the ground between them below (`spec-volcanisme.md`).
 - **Nothing thinner than the 0 level blocks any of its watercourses** (4 stage).
 
+**A directional terrain pattern must budget the spatial variation of its direction.**
+- Amplitude divided by wavelength is insufficient when the orientation changes across a ridge or a valley junction.
+- Rock strength changes the admissible slope; it never exempts a pattern from turning and fork bounds.
+- If this envelope suppresses useful detail, fix the direction field at the pattern's scale before increasing the amplitude (`spec-erosion.md`).
+
 **The climate comes from geography, the noise details it** (`spec-climat.md`, from the 2026-10-31).
 - **Rain and temperature are calculated at startup,** on the large forms: the winds of the three cells, the water vapor carried from the seas, the rain windward of the reliefs. Never an imposed band of latitude: deserts fall where traffic and relief leave them.
 - **The climate map bears what exceeds two of its cells, 100 km;** a gradient noise does the rest, and what the pixel does not show expands the limits drawn on humidity.
@@ -70,6 +158,8 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - **Clouds also come from climate:** their weather map is calculated at startup on its fields and the relief, convection, subsidence, cold currents, depression tracks, slopes windward (`spec-nuages.md`). No cloud field taken from a noise without link with geography.
 
 **From far as close, the same planet** (`spec-rendu-lointain.md`).
+- Reconstruct fine-grid altitude and slope from one differentiable height surface. Independently interpolated normals cannot repair derivative jumps in bilinear heights (`spec-normales-spline.md`).
+- A shading reconstruction smooths sampling-scale transitions; it does not certify mesh silhouettes or hydrological shape. State its support, fallback and limits.
 - **A pixel shows the average of what it covers.** Any boundary between materials widens from what the pixel cannot show from its inputs: `SpreadStep`, `SlopeShares`, `RockShares`.
 - **A noise never fades depending on the pixel size.** It remains the same at all distances; only its invisible part expands the limits.
 - **The relief keeps its average height at any distance,** regardless of the octave filtering.

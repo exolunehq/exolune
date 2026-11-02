@@ -13,8 +13,9 @@
 ## Implemented systems
 
 **Terrain and materials**
+- **`spec-erosion.md`:** global drainage, glacial troughs and directional gullies; composed coastal incision filtering, cliff-talus and metric corrections under review; green scar, coastal input sensitivity and distant repetition unresolved.
 - **`spec-rendu-lointain.md`:** the same planet from orbit to ground, the universal boundary rule.
-- **`spec-normales-spline.md`:** per-pixel B-spline normals.
+- **`spec-normales-spline.md`:** per-pixel B-spline normals; coherent fine-grid height and slope reconstruction under mountain flight review.
 - **`spec-textures-generees.md`:** material tiles generated at startup and their tiling; rock has used a photo since 2026-10-24.
 - **`spec-texturage-universel.md`:** each material's detail scale, from texel to kilometer, and the quality benchmark that checks it; step 3 in progress.
 - **`spec-photos-par-echelle.md`:** real photos recomposed by our noise functions; biome palette and photo ground materials done, patterns seen from an aircraft taken over by universal texturing.
@@ -32,6 +33,7 @@
 - **The game's air is rendered through cloud compositing** (`spec-nuages.md`): rays and regional-ground mist rendered there since 2026-10-30, awaiting in-flight review; the halo is disabled by default.
 
 **Sea, clouds and vegetation**
+- **`spec-eaux-interieures.md`:** rivers and terminal lakes; reported side trenches, coastal contours and river contours accepted; earlier river visibility sufficient for this stage. Coarse routing, volcanic integration, ribbon widths and full approach stability remain open.
 - **`spec-mer-fft-spike.md`:** FFT sea, normals and persistent foam, integrated into main; physical limitations and connection to planetary wind documented.
 - **`spec-nuages.md`:** the game's clouds, from orbit to ground: model, passes, resources, data and provenance, known defects; their shadow on land and sea; their weather map derived from climate since 2026-10-31.
 - **`recherche-vegetation.md`:** trees, shrubs and forests from orbit to undergrowth; state of the art; climate, placement and ground canopy implemented; generated plants v1 to v3, removed on 2026-10-30, archived in the log.
@@ -41,7 +43,8 @@
 - **`optimisation-vegetation.md`:** vegetation culling and GPU timings, preserving appearance, density and distance; memory optimization remains.
 
 **Ship and execution**
-- **`spec-vaisseau.md`:** the player's ship, cockpit, mouse and keyboard flight, and weather on the canopy glass.
+- **`spec-marche-ambiances.md`:** instant disembarkation, terrain walking and contextual audio; textured contact layers, six recorded footstep materials and bounded XAudio2 mixing.
+- **`spec-vaisseau.md`:** the player's ship, cockpit, controls and canopy weather; common near plane and bounded swept terrain contact, with sampling limits and flight review pending.
 - **`recherche-eau-verriere.md`:** water on the canopy glass, drops, rivulets and film in flight; state of the art; simulated drops and trails implemented, awaiting in-flight review.
 - **`recherche-son.md`:** ship sound, engine, stabilizers and wind; state of the art, procedural synthesis on XAudio2 selected and implemented, awaiting in-flight review.
 - **`execution-optimisee.md`:** Release executable with a local profile, borderless full screen, startup resolution and optional unrestricted presentation.

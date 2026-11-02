@@ -73,9 +73,10 @@ float MeshCell(float2 xy)
 
 // The elevation the mesh draws at the face-plane point xy: the triangle over it, as the index buffer splits the cells
 // (D3DApp.cpp), interpolated; max(e, 0) as its vertices are placed. False off the mesh, or by a culled vertex.
-bool MeshElevationAt(float2 xy, out float elevation, out float horizon, out float3 normal)
+bool MeshElevationAt(float2 xy, out float elevation, out float horizon, out float3 normal, out float waterLevel)
 {
     elevation = 0.0;
+    waterLevel = 0.0;
     horizon = 0.0;
     normal = float3(0.0, 0.0, 1.0);
     const uint n = (uint)faceParams.w;
@@ -136,12 +137,19 @@ bool MeshElevationAt(float2 xy, out float elevation, out float horizon, out floa
         if ((asuint(v.pos.x) & 0x7fffffffu) > 0x7f800000u) // culled: NaN
             return false;
         elevation += bary[k] * max(v.elevation, 0.0);
+        waterLevel += bary[k] * v.water.w;
         horizon += bary[k] * v.horizon;
         corners[k] = v.pos;
     }
     normal = normalize(cross(corners[1] - corners[0], corners[2] - corners[0]));
     normal *= normal.z < 0.0 ? -1.0 : 1.0; // up, roughly: the face's z
     return true;
+}
+
+bool MeshElevationAt(float2 xy, out float elevation, out float horizon, out float3 normal)
+{
+    float waterLevel;
+    return MeshElevationAt(xy, elevation, horizon, normal, waterLevel);
 }
 
 // The exact ground, the mesh's own function as its cells shrink under 2 m: every octave, the creases as rounded as at
@@ -361,14 +369,15 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
     counters.InterlockedAdd(COUNT_EVALUATED * 4, 1u);
     const float3 up = k.up, t1 = normalize(Axis(k.b) - up * dot(up, Axis(k.b))), t2 = cross(up, t1);
     const double3 u = k.p * INV_R;
-    const float e0 = ExactElevation(u), e1 = ExactElevation(u + (double3)t1 * INV_R), e2 = ExactElevation(u + (double3)t2 * INV_R);
+    const float e0 = ExactElevation(u), waterLevel = gWaterLevel;
+    const float e1 = ExactElevation(u + (double3)t1 * INV_R), e2 = ExactElevation(u + (double3)t2 * INV_R);
     ObjectInstance r = (ObjectInstance)0; // the census's record: see tools/banc_objets.py
     r.pos.z = k.chance * 1.47 * k.d * k.d; // the cell's ground (m^2)
     r.size = k.size;
     r.burial = (float)((record.x & 0xFFFFu) / 4); // the slice
     r.elevation = e0;
     r.axisY = up;
-    if (e0 <= 0.0) // the sea
+    if (e0 <= 0.0 || e0 < waterLevel - 0.02) // dry floodplains at the drainage stage remain land
     {
         if (census)
             instances[id.x] = r;

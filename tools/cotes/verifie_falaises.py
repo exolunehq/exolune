@@ -42,7 +42,7 @@ def direction(lat, lon):
 
 def evaluate(points, cell=10.0, inputs=False):
     """Evaluate actual full relief before/after waves, and check every point against its own Hc."""
-    coast, profile = cp.erosion_coast, cp.erosion_cliff_profile
+    coast, mean = cp.erosion_coast, cp.erosion_cliff_mean
     captured, geometry = [], []
 
     def no_waves(*args):
@@ -51,29 +51,31 @@ def evaluate(points, cell=10.0, inputs=False):
 
     def contour(*args):
         geometry.append(args)
-        return profile(*args)
+        return mean(*args)
 
     cp.erosion_coast = no_waves
     try:
         before = cp.elevation(cp.Ctx(cell), points)
     finally:
         cp.erosion_coast = coast
-    cp.erosion_cliff_profile = contour
+    cp.erosion_cliff_mean = contour
     try:
         after = cp.elevation(cp.Ctx(cell), points)
     finally:
-        cp.erosion_cliff_profile = profile
+        cp.erosion_cliff_mean = mean
     args = captured[0]
     hc = np.full(len(points), cp.EROSION_CLIFF_HEIGHT[0])
     delta = np.zeros(len(points))
+    footprint = np.zeros(len(points))
     selected = ((args[4] > 0.3) & (args[5] > 1e-3) & (np.abs(args[2]) < cp.EROSION_CLIFF_REACH[2])
                 & (args[2] / args[-1] < cp.EROSION_CLIFF_REACH[2]))
     if geometry:
         hc[selected], delta[selected] = geometry[0][1:3]
+        footprint[selected] = geometry[0][6]
     lowering = before - after
     assert np.min(lowering) >= -1e-6, np.min(lowering)
     assert np.max(lowering - hc) <= -cp.EROSION_CLIFF_PLATFORM[0] + 1e-5, np.max(lowering - hc)
-    high = args[1] >= hc + delta
+    high = args[1] - footprint >= hc + delta
     assert np.max(np.abs(lowering[high]), initial=0.0) < 1e-5
     return (before, after, hc, delta, args) if inputs else (before, after, hc, delta)
 

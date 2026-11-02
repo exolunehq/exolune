@@ -2,6 +2,12 @@
 
 Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it.
 
+**Walking, 2026-11-01:** a 0.5 m contact sampling of `ReliefElevation`, not a geometry overlay. No terrain vertex or generation setting changes; `spec-marche-ambiances.md` documents the height-field approximation and its limits.
+
+**Flight contact, 2026-11-01:** a bounded triangulated sampling of the same relief and water stage, not a geometry overlay. No rendered vertex or terrain setting changes; `spec-vaisseau.md` describes the swept-body envelopes and sampling limits.
+
+**Water contours, 2026-11-01:** a pixel evaluation of the same relief near unresolved water boundaries, not a geometry overlay. It changes water classification, stage and optics; mesh positions, depth, normals and silhouettes retain their existing sampling. The separate composed coastal incision filter is classified below; `spec-eaux-interieures.md` describes the rendering limits.
+
 ## The rule
 
 **The Exolune tectonic relief is the source of geometry truth,** since the 2026-10-31 (`spec-relief-tectonique.md`).
@@ -30,7 +36,14 @@ Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it
 
 | Surcouche | Family | Scale | Amplitude | Where | Arrêt | Status |
 |---|---|---|---|---|---|---|
+| Bounded valley/detail composition | Replacement within erosion | existing valley and detail scales | cut envelope bounds new excavation; compact water cut remains at most 20 m | existing drainage profiles, including their terminal segments | terrain call with `valleys = false`; water alone: `EROSION_WATER = 0` | 2026-11-01 first correction; no new settings; coarse routing and volcanic integration remain open; `spec-eaux-interieures.md` |
+| Inland channels and lake surfaces | Replacement within erosion | discharge-sized channels; terminal catchments | quartic channel depth capped at 20 m; lake fill to the existing water-balance stage | existing erosion network | `EROSION_WATER = 0` | 2026-11-01 first implementation; `spec-eaux-interieures.md`; flight review pending |
+| Global erosion and directional gullies | Replacement | network valleys; detail wavelengths from 11 km to 100 m | drained valley profiles; gully replacement constrained by the shared turning envelope | incised terrain, glacier-shaped troughs, river slopes and coasts | terrain call with `valleys = false`; gullies alone: `EROSION_GULLY_SHARE = 0` | Erosion branch, `spec-erosion.md`; 2026-11-01 blade correction awaiting flight review; conservative budget strongly attenuates rock gullies |
 | Octaves filtered by grid cell | Filtering | under 2 grid cells, `MESH_BAND_LIMIT`  | octave replaced by its average | everywhere | none, it's sampling | in place |
+| Connected coastal talus | Replacement within coastal erosion | nominal 35-degree apron at the physical cliff contact; 900 m patch field | existing cap of 22% of cliff height, never above the original terrain | wave-eroded rocky coasts | `EROSION_CLIFF_SCREE.y = 0` for talus alone | 2026-11-01 correction of the symmetric mound's artificial moat; `spec-erosion.md`; flight review pending |
+| Coastal metric at physical scale | Filtering within coastal erosion | existing 9 km wave-erosion scale, for octaves and ria crease derivatives | controls the existing height contour and reach; does not change the source terrain | wave-eroded rocky coasts | part of `EROSION_CLIFF_SLOPE_KM`; no new setting | 2026-11-01 correction of cusp-driven walls; six CPU terrain witnesses pass; flight review pending |
+| Composed coastal incision mean | Filtering within coastal erosion | symmetric radius `cellMetres * G`, fixed physical face `0.1 Hc` | never above original ground; lowering bounded by `Hc + 1 m` | wave-eroded rocky coasts | zero radius recovers the same physical section | 2026-11-01; exact local piecewise mean with frozen parameters; full 2D conservation and flight stability remain unproven |
+| Valley cross-section mean | Filtering | radius of one mesh cell, minimum 2 m | local convex-profile correction bounded by half the wall slope times the radius; planar banks unchanged | network valleys | no new switch; part of the erosion profile | 2026-11-01 working correction; replaces depth-derived dilation; `spec-erosion.md` |
 | Maximum frequencies of terrain type and turbulence | Filtering | between ~100 km and ~6 km | 0,13/255 on screen; ribs of a few meters | everywhere |  `NO_LIMIT`  | removed the 2026-10-31 with the old relief |
 | Rounded crests | Filtering | 2 grid cells, never under grid cells of 2 m | hollows and ridges of the billow and ridged multifractal, and chains of tectonic relief | everywhere |  `CREASE_ROUNDING` = 0 | in place |
 | Expanded profiles | Filtering | 2 grid cells | pits, axial valleys, grabens, hollows of the transformants, cordons of the flat coasts: wider, shallower or less high, their average kept | everywhere | none, it's sampling | in place since the 2026-10-31 |
@@ -53,7 +66,7 @@ Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it
 **Water surface of spike FFT:** specific overlay, four cascades, amplitude of spectrum JONSWAP and swell; peaks under the sea, dampened by depth and filtered by the grid cell. The relief background is preserved. Displacement and normal share their derivatives; see [spec-mer-fft-spike.md](spec-mer-fft-spike.md). The first kernel remains in mer-animee.
 
 **Are not top layers:**
-- **The fine grid:** the same function, sampled four times finer, for normal pixels.
+- **The fine grid:** the same function, sampled four times finer, for pixel heights and normals. Since 2026-11-01, one cubic height reconstruction supplies both; this is shading, with no displaced mesh or refined silhouette (`spec-normales-spline.md`).
 - **The grid of the noise in pairs of floats, in flight:** the same function; the splitting of each octave on the grid into two floats, 48 bits, instead of a double, on the vertices that slide (`Noise.hlsli`, `optimisation.md`, round 8). The point is the same at 2·10⁻⁸ m; only the last bit of a height can change. The vertex under the camera remains in double precision; at a standstill, all the mesh also.
 - **The planet map:** the same function on a cube fixed on the planet, 6 × 1 024², calculated at startup after the tectonic map (`PlanetMap.hlsli`). Data for mist and water: it does not move any vertices.
 - **The tectonic map:** it is part of the relief, it is not a superlayer.

@@ -5,7 +5,7 @@
 #include "Relief.hlsli"
 #include "Terrain.hlsli"
 
-RWStructuredBuffer<float4> outFine : register(u0); // xyz: position relative to the camera, face-local; w: elevation
+RWStructuredBuffer<FineSample> outFine : register(u0); // position/elevation and the same evaluation's inland water
 
 [numthreads(64, 1, 1)]
 void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
@@ -25,16 +25,21 @@ void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupI
     if (!MaybeVisible(RelativePosition(d, r2, L, R, camAltitude, 0.0),
                       RelativePosition(d, r2, L, R, camAltitude, MAX_TERRAIN_HEIGHT), 0.0, 6.0 * cellSize * ringParams.w))
     {
-        outFine[id] = asfloat(0x7fc00000u).xxxx; // NaN: off screen
+        FineSample missing = (FineSample)0;
+        missing.terrain = asfloat(0x7fc00000u).xxxx; // NaN: off screen
+        outFine[id] = missing;
         return;
     }
     // The mesh is the previous frame's (D3DApp::Draw, camPlane.z): a point computed then has the same terrain.
-    if (camPlane.z > 0.0 && (asuint(outFine[id].x) & 0x7fffffffu) <= 0x7f800000u)
+    if (camPlane.z > 0.0 && (asuint(outFine[id].terrain.x) & 0x7fffffffu) <= 0x7f800000u)
         return;
     gMaxFrequency = L / (MESH_BAND_LIMIT * cellSize);
     gCreaseMaxFrequency = L / (MESH_BAND_LIMIT * max(cellSize, CREASE_MIN_CELL));
     gExactLattice = cellSize < EXACT_LATTICE_MAX_CELL;
     float3 dir, pos;
     const float elevation = TerrainAt(xy, R, camAltitude, dir, pos);
-    outFine[id] = float4(pos, elevation);
+    FineSample sample;
+    sample.terrain = float4(pos, elevation);
+    sample.inland = float4(InlandSample(gWaterLevel, elevation), gWaterDistance);
+    outFine[id] = sample;
 }

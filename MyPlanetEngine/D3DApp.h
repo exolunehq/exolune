@@ -18,6 +18,8 @@
 #include "Settings.h"
 #include "Tectonics.h"
 #include "Climate.h"
+#include "WalkController.h"
+#include "FlightContact.h"
 class Ocean;
 namespace Tectonics { struct Map; }
 
@@ -79,10 +81,10 @@ protected:
 
     // Test views, to judge a change in flight (D3DAppTests.cpp): with MYPLANETENGINE_TESTS set to a UTF-8 text file,
     // one test per line, "label | altitude latitude longitude pitchDown heading [view] [| sunLatitude sunLongitude]" (#
-    // starts a comment; view, a diagnostic view's name, MYPLANETENGINE_VIEW's), a "Tests" palette beside the render
+    // starts a comment; view is a diagnostic name or "marche" for grounded walking), a "Tests" palette beside the render
     // window has a button for each, and F1 to F12 do the same: the camera goes there, in the test's view or the game's,
     // the temporal smoothing starts afresh, the test's label shows in the title, and the focus comes back to fly.
-    struct TestView { std::wstring label; double altitude, latitude, longitude, pitchDown, heading, sunLatitude, sunLongitude; bool sun; float windSpeed,windDirection,swellHeight;bool wind; float view; };
+    struct TestView { std::wstring label; double altitude, latitude, longitude, pitchDown, heading, sunLatitude, sunLongitude; bool sun; float windSpeed,windDirection,swellHeight;bool wind; float view; bool walk; };
     std::vector<TestView> mTests;
     HWND mTestsWnd = nullptr;
     std::wstring mTestLabel;
@@ -129,6 +131,9 @@ protected:
         XMFLOAT4X4 reprojectShip; // the ship's pixels: face-local point -> previous frame's clip space, following the ship
         XMFLOAT4 shipSphere;      // xyz: the ship's centre, face-local from the camera (m); w: its radius, 0 without the ship
         XMFLOAT4X4 shipSunShadow; // face-local point -> the ship's map towards the sun, for its shadow on the ground
+        XMUINT4 coordinateInfo;   // lengths of two ASCII lines; zero hides the screenshot overlay
+        XMUINT4 coordinateText[8]; // two rows of 64 bytes, packed little-endian
+        XMFLOAT4 reliefGradients[256]; // immutable table, shared with Noise.hlsli
     };
 
     // The clouds' frame, b1 (Clouds.hlsli): the camera and the view in the planet frame (km), in double precision.
@@ -156,6 +161,8 @@ protected:
         float volcanic; // the fresh volcanic ground (Planet.hlsli)
         float horizon; // toward the sun, for the terrain's cast shadow (Horizon.hlsl)
         float shadow;  // the column's shadow height, for the air (Horizon.hlsl)
+        XMFLOAT4 water; // downstream velocity (planet frame), water stage (m)
+        float waterDistance; // Planet.hlsli: contour candidate distance
     };
 
     static constexpr double PlanetRadius = 6378000.0;
@@ -177,6 +184,7 @@ protected:
     // snow and rock came and went on the way down (docs/journal-planete.md, 2026-10-24).
     static const UINT FineSubdivision = 4;
     static const UINT FineVertexCount = (FaceCells * FineSubdivision + 1) * (FaceCells * FineSubdivision + 1);
+    static const UINT FineSampleBytes = 8 * sizeof(float); // Planet.hlsli: float4 terrain + float4 inland water
     static constexpr double FineMinCell = 13.5 / 4.0;
 
     HINSTANCE mhAppInst = nullptr;
@@ -492,7 +500,7 @@ protected:
     // or from behind; Tab goes from the cockpit to the chase view, then to the free camera.
     // MYPLANETENGINE_VAISSEAU=cockpit, poursuite or libre chooses the first view (the benches start free);
     // MYPLANETENGINE_VERRIERE=pluie, nuage or givre forces the glass's weather, for the captures. See UpdateShip.
-    enum class View { Free, Cockpit, Chase, Bare }; // Bare: flown from the pilot's eye, the ship hidden, for the widest view
+    enum class View { Free, Cockpit, Chase, Bare, Walk }; // Walk leaves the stationary ship at its saved pose
     View mView = View::Free;
     Ship mShip;
     Audio mAudio; // the ship's engine, thrusters and wind, set in UpdateShip
@@ -502,6 +510,7 @@ protected:
     double mThrottle = 0.0;        // the gas, the wheel's notches in the ship's views: 0 stopped to 30 (UpdateShip)
     double mHeadYaw = 0.0, mHeadPitch = 0.0; // free look with the right button (rad): the pilot's head, the chase's orbit
     bool mHud = false;      // U: the head-up display on the canopy, off at start
+    bool mCoordinates = true; // I: camera coordinates in the final image, independent of the cockpit HUD
     bool mHeadFree = false; // H: the mouse turns the head until H again; the head then stays where it was left
     bool mHeadKept = false; // the head stays put while the mouse flies, after H or the right button; R brings it back to rest
     Vec3d mHeadSway = {}, mHeadSwayRate = {}; // the eye pushed by the accelerations, ship axes (right, up, forward), m
@@ -516,6 +525,52 @@ protected:
     bool mMouseHeld = false;       // cursor hidden and kept in the window
     bool mMouseFree = false;       // M: the cursor left to Windows in the ship's views, the window still in front
     double mClock = 0.0;
+    View mWalkReturnView = View::Cockpit;
+    Walker mWalker;
+    WalkTerrain mWalkTerrain;
+    Vec3d mWalkFoot = {}, mWalkVelocity = {}, mWalkPatchCentre = {}, mWalkPatchX = {}, mWalkPatchY = {};
+    Vec3d mWalkReturnPos = {}, mWalkReturnForward = {}, mWalkReturnUp = {};
+    bool mWalkProbePending = false, mWalkPatchValid = false, mStartWalking = false;
+    bool mWalkJump = false, mWalkBob = true, mAudioMuted = false, mAudioReady = false;
+    double mWalkNoticeUntil = 0.0;
+    ComPtr<ID3D12PipelineState> mWalkGroundPSO, mWorldSoundPSO;
+    ComPtr<ID3D12RootSignature> mWorldSoundRoot;
+    ComPtr<ID3D12Resource> mWalkPoints, mWalkGround, mWalkReadback, mWorldSound, mWorldReadback;
+    XMFLOAT4 mHabitat[5] = {}; // habitat/weather, then six foot-contact areas and wetness
+    FootContact CurrentFootContact() const;
+    bool mWorldPending = false, mWorldValid = false;
+    D3D12_GPU_DESCRIPTOR_HANDLE mWorldTectonics = {}, mWorldPlanet = {}, mWorldClouds = {}, mWorldMaterials = {};
+    Vec3d mWorldProbePos = {};
+    double mWorldNextProbe = 0.0;
+    void InitializeWorld(D3D12_GPU_DESCRIPTOR_HANDLE tectonics, D3D12_GPU_DESCRIPTOR_HANDLE planet,
+        D3D12_GPU_DESCRIPTOR_HANDLE clouds, D3D12_GPU_DESCRIPTOR_HANDLE materials);
+    void QueueWalkGround();
+    void ReadWalkGround();
+    void ToggleWalking();
+    void UpdateWalking(float dt);
+    void QueueWorldSound();
+    void ReadWorldSound();
+    void UpdateWorldSound(float dt);
+    void ToggleAudio();
+    void EmitFootstep(float strength);
+    // Flight movement is accepted only after its terrain corridor has passed through the normal frame fence.
+    struct FlightPose { Vec3d camera,forward,up,ship,shipForward,shipUp; };
+    FlightPose FlightPoseNow() const;
+    void SetFlightPose(const FlightPose& pose);
+    void InitializeFlightContact();
+    void ResetFlightContact();
+    void ReadFlightContact();
+    void PrepareFlightContact(const FlightPose& before);
+    void QueueFlightContact();
+    ComPtr<ID3D12PipelineState> mFlightContactPSO;
+    ComPtr<ID3D12Resource> mFlightPoints[2],mFlightContacts[2],mFlightReadback[2];
+    FlightContact::Probe mFlightProbes[2];
+    FlightContact::Span mFlightSpans[2];
+    FlightPose mFlightBefore,mFlightAfter;
+    View mFlightView=View::Free;
+    bool mFlightActive[2]={false,false},mFlightPending=false,mFlightQueued=false,mFlightRecovery=true;
+    Vec3d mFlightSlideNormal={},mFlightSlideOrigin={};
+    unsigned mFlightSlideBody=0;
     void UpdateShip(float dt);
     void UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, const Vec3d& faceZ);
     void PlaceShipAtCamera();

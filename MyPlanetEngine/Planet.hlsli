@@ -30,6 +30,9 @@ cbuffer Frame : register(b0)
     float4x4 reprojectShip; // the ship's pixels: face-local point -> previous frame's clip space, following the ship
     float4   shipSphere;    // xyz: the ship's centre, face-local from the camera (m); w: its radius, 0 without the ship
     float4x4 shipSunShadow; // face-local point -> the ship's map towards the sun, for its shadow on the ground
+    uint4    coordinateInfo; // lengths of the two screenshot-coordinate lines; zero disables the overlay
+    uint4    coordinateText[8]; // two rows of 64 ASCII bytes, packed little-endian
+    float4   reliefGradients[256]; // immutable noise table; pixel contours use the same literals as compute
 };
 
 struct FaceVertex
@@ -41,7 +44,24 @@ struct FaceVertex
     float  volcanic;  // the fresh volcanic ground, 0 to 1: bare lava, scoria and ash (Volcanoes.hlsli, gVolcanic)
     float  horizon;   // the terrain's horizon toward the sun (rad), for its cast shadow (Horizon.hlsl)
     float  shadow;    // its column's shadow height (m above the sea), for the sun's shafts in the air (Horizon.hlsl)
+    float4 water;     // xyz: downstream velocity, planet frame; w: water stage above sea level
+    float waterDistance; // conservative candidate distance for contour refinement
 };
+
+// One shared sample layout for the fine terrain and its normals. Water quantities are premultiplied by wet presence:
+// dry mountain heights must never become lake stages, and a coarse dry vertex must not veto fine water.
+struct FineSample
+{
+    float4 terrain; // xyz: position or normal; w: raw bed elevation
+    float4 inland;  // wet presence, presence * stage/depth, candidate distance
+};
+
+float3 InlandSample(float stage, float elevation)
+{
+    const float depth = max(stage - elevation, 0.0);
+    const float wet = stage > 0.0 && depth > 0.0 ? 1.0 : 0.0;
+    return float3(wet, wet * stage, wet * depth);
+}
 
 struct PSInput
 {
@@ -60,6 +80,8 @@ struct PSInput
     float3 shore     : TEXCOORD8; // the beach's normal, across SHORE_BASELINE at least (VertexShader.hlsl)
     float2 seaParam : TEXCOORD12;
     float seaHeight : TEXCOORD13;
+    float4 water : TEXCOORD14; // drainage stage and downstream velocity, shared with terrain
+    float4 inland : TEXCOORD15; // premultiplied stage/depth and candidate distance, at shading resolution
     float  horizon   : TEXCOORD11; // the terrain's horizon toward the sun (rad): the shadow it casts (Shadows.hlsli)
 };
 

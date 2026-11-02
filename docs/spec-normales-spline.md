@@ -2,6 +2,19 @@
 
 Status: experiment 1 of `log/pistes-glissement.md`, measured at benchmark the 2026-10-21, tag `jalon/09-normales-spline`. Modest gain, kept with the smoothing B-spline; the relief cut-off is the essential. The cardinal spline prefilter, removed the 2026-10-30, is in `log/spec-normales-spline-historique.md`.
 
+**Fine-grid surface, 2026-11-01**
+- The fine grid now reconstructs altitude with the same positive cubic B-spline basis used on the mesh.
+- Its normal differentiates that height surface, including the spherical chart's Jacobian; height and slope share one reconstruction.
+- The 4 by 4 support rounds sampling-scale height transitions without overshooting the contributing heights; constant and affine height fields retain their values.
+- This replaces bilinear heights and independently interpolated centred-difference normals; the former slope jumped at fine-cell boundaries.
+- The existing fade over eight face cells is retained; missing outer samples fall back to the valid central four samples. All buffer addresses are clamped.
+- Water retains its existing premultiplied sampling and physical pixel contour refinement.
+- The change adds height-buffer reads and arithmetic, with no extra terrain evaluation, buffer, compute pass, mesh change or generation setting.
+- Release x64 passes; the reported pose has paired native 120-frame approach recordings. A second mountain range, a closer valley and two water witnesses retain their forms.
+- Flight review: `tools/tests/2026-11-01-montagnes-distance.txt`; move sideways and approach through F1-F6. Broad temporal acceptance remains pending.
+- The reconstruction attenuates grid-scale variation; it cannot restore missing sub-grid geometry, repair silhouettes or remove prescribed erosion patterns.
+- Earlier reconstruction and exact local capture paths are in [the history](log/spec-normales-spline-historique.md#2026-11-01-fine-grid-reconstruction).
+
 ## The purpose
 
 **A lighting that no longer depends on the position of the vertices.** The vertices of the sliding plane are accurate; it is the reconstruction between them that shakes, especially that of the slope.

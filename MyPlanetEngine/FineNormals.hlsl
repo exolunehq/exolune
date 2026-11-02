@@ -2,8 +2,8 @@
 // as the vertex shader takes the mesh's. A neighbour off screen or off the grid is the point itself.
 #include "Planet.hlsli"
 
-StructuredBuffer<float4> fine : register(t0);       // FineTerrain.hlsl's output
-RWStructuredBuffer<float4> outNormals : register(u0); // xyz: unit normal, face-local, 0 off screen; w: elevation (m)
+StructuredBuffer<FineSample> fine : register(t0); // FineTerrain.hlsl's output
+RWStructuredBuffer<FineSample> outNormals : register(u0); // normal/elevation; preserve premultiplied water samples
 
 bool Culled(float3 p) // NaN position, which the compiler cannot drop
 {
@@ -14,7 +14,7 @@ float3 FinePosition(int2 c, int n, float3 self)
 {
     if (any(c < 0) || any(c > n))
         return self;
-    const float3 p = fine[c.y * (n + 1) + c.x].xyz;
+    const float3 p = fine[c.y * (n + 1) + c.x].terrain.xyz;
     return Culled(p) ? self : p;
 }
 
@@ -25,10 +25,10 @@ void CSMain(uint3 threadId : SV_DispatchThreadID)
     const int n = (int)(faceParams.w * ringParams.w);
     if (id >= (uint)((n + 1) * (n + 1)))
         return;
-    const float3 self = fine[id].xyz;
+    const float3 self = fine[id].terrain.xyz;
     if (Culled(self))
     {
-        outNormals[id] = 0.0;
+        outNormals[id] = (FineSample)0;
         return;
     }
     const int2 c = int2(id % (n + 1), id / (n + 1));
@@ -38,5 +38,8 @@ void CSMain(uint3 threadId : SV_DispatchThreadID)
     normal = length2 > 0.0 ? normal * rsqrt(length2) : float3(0.0, 0.0, 1.0);
     if (normal.z < 0.0) // face-local z points up, away from the planet's centre
         normal = -normal;
-    outNormals[id] = float4(normal, fine[id].w);
+    FineSample sample;
+    sample.terrain = float4(normal, fine[id].terrain.w);
+    sample.inland = fine[id].inland;
+    outNormals[id] = sample;
 }

@@ -2,6 +2,192 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-02 · Erosion review checkpoint**
+- **Branch:** `codex/erosion-eaux-contours-2026-11-02`; tag `piste/erosion-eaux-contours-2026-11-02`.
+- **Saved state:** inland rivers and lakes, bounded valley composition, coastal filtering, water contour refinement and coherent mountain shading.
+- **Integrated dependencies:** coordinate HUD, swept flight contacts, walking and contextual audio with credited recordings.
+- **Accepted:** reported side trenches, coastal contours and river contours; earlier river visibility is sufficient for this stage.
+- **Open:** mountain flight acceptance, repeated incisions, channel shape, detailed outlet connectivity, volcanic integration and orbital GPU cost.
+- **Validation:** Release x64 passes; previous targeted checks and native flight reproductions are recorded below. No new performance/quality benchmark.
+- **History:** checkpoint based on public ancestry; preserve the separately advanced remote erosion documentation branch.
+- **Stop:** work ends at this checkpoint; it does not mark the remaining erosion revision complete.
+
+**2026-11-01 · Coherent mountain height and slope reconstruction**
+- **Review:** the user accepts coastal contours and river contours; earlier river visibility is sufficient for this stage. Mountain transitions remain reported from orbit.
+- **Cause addressed:** bilinear fine-grid heights have slope jumps at cell borders; independently interpolated normals describe another reconstruction.
+- **Change:** one positive cubic B-spline height surface and its analytic normal on the spherical chart; retain the existing fade and invalid-sample fallback.
+- **Cost:** additional height reads and arithmetic; no extra terrain evaluation, pass, buffer or generation setting. The previous pixel contour-query cost remains open.
+- **Terrain and water:** mesh geometry and drainage are unchanged; existing water reconstruction and physical contour queries are retained.
+- **Checks:** Release x64, paired native 120-frame motion reproductions and four additional mountain/water captures; transitions soften and broad forms remain. No performance/quality benchmark.
+- **Review route:** `tools/tests/2026-11-01-montagnes-distance.txt`, F1-F6 for mountain approach; F7-F12 preserve water witnesses.
+- **Limits:** global temporal stability, silhouettes, repeated incisions, channel shape and outlet connectivity remain open.
+- **Status:** uncommitted correction awaiting flight review; no tag or publication.
+
+**2026-11-01 · Resolve water contours and preserve coastal sections**
+- **Cause:** dry grid samples could miss a narrow river; interpolated wetness exposed the sliding grid. Coastal filtering also widened the physical cliff landward.
+- **Water:** retain contour candidates in dry samples; evaluate the shared terrain near unresolved boundaries at half the pixel footprint, with the existing 2 m floor.
+- **Classification:** derivative lanes evaluate together; zero-depth floodplains remain dry. Refined water supplies stage, depth and flow without changing land-material bandwidth or mesh geometry.
+- **Coast:** compose the fixed physical cliff and connected talus before averaging their incision over a symmetric footprint.
+- **Settings:** no new terrain parameter, map or simulation; the physical coastal face remains `0.1 Hc`.
+- **Storage:** +4 bytes per mesh vertex and fine sample relative to the preceding water reconstruction; fine samples now use 32 bytes. The immutable shared gradient table adds 4 KiB to frame constants.
+- **Shaders:** terrain VS and PS use matching DXC compilation; noise gradients retain their values and no wave-operation support is required.
+- **Cost:** extra terrain evaluations near contours noticeably increase orbital GPU rendering time; optimization remains open. Live title observations are not controlled benchmarks.
+- **Checks:** Release x64, contour algebra, independent coastal quadrature, talus sections and shader-interface validation pass.
+- **Review:** two native 120-frame approach sequences reduce the broad bank steps and orbital fringe; interactive F7/F8 retain no side trenches. The lake and mountain witnesses remain visible.
+- **Limits:** a real river gap, regular paths, subpixel coverage, upstream valley filtering and silhouette stability remain unresolved; broader flight acceptance is pending.
+- **Route:** `tools/tests/2026-11-01-eau-orbite.txt`, clouds hidden; observations and rejected prototypes are in `log/spec-erosion-historique.md`.
+- **Status:** uncommitted work; no tag, publication or performance/quality benchmark.
+
+**2026-11-01 · Swept flight contact**
+- **Cause:** the previous frame's nadir height could let the camera or ship enter a steep wall, then lift it radially onto the plateau.
+- **Change:** GPU triangle sweeps of each proposed displacement; first contact, tangent sliding and separate recovery after placement.
+- **Envelopes:** camera radius 0.25 m; fixed hull sphere about 8.851 m, covering every attitude; cockpit eye stays attached when translation stops.
+- **Long paths:** intersect the whole chord with the terrain envelope, keep its near-side contact interval, and retain an analytic sea stop with globally remapped fractions.
+- **Settings:** contact sampling 0.5 m for the camera, about 0.59 m for the hull; up to 33 by 8,193 vertices; 2 mm contact separation and 1 m tangent retention.
+- **Cost:** GPU sampling and reduction, at most 8,224 readback bytes for two bodies; existing frame fence, one-frame translation latency, no additional wait.
+- **Idle:** a validated stationary sphere needs no new probe; chase still tests a moving eye around a stopped hull.
+- **Checks:** shared production algebra passes CPU fixtures, including 52 oblique shell cases and inward/outward/tangent overlap rules; packed-model maximum radius 5.710 m about its declared centre, inside `Ship::Radius = 6.7 m`.
+- **Review:** `tools/tests/2026-11-01-contacts-vol.txt`; Release x64 and interactive startup pass. Placement recovery, free-camera switch and orbital view exercised; continuous approach/retreat remains open. Six contact buttons are also in the water/orbit review route.
+- **Limits:** sampled contact geometry, conservative hull, coarser exceptional long paths; automated captures do not exercise this solver; crest shimmer remains unisolated.
+- **Terrain:** no geometry or generation setting changes; no commit, tag, publication or performance/quality benchmark.
+
+**2026-11-01 · Water reconstruction and orbital coast classification**
+- **Cause:** positive interpolated dry-land heights selected the inland-water shader over whole coastal mesh triangles; coarse dry vertices also suppressed fine water.
+- **Change:** separate ocean/inland coverages; premultiply wet stage and depth by presence; carry the same quantities through the existing fine grid.
+- **Settings and geometry:** unchanged; no additional terrain evaluation or resource binding.
+- **Storage:** fine samples grow from 16 to 28 bytes in the two buffers, +13.54 MiB at the existing resolution.
+- **Review:** `tools/tests/2026-11-01-eau-orbite.txt`; same-pose native capture removes the reported orbital diamonds. River water is present at both reported 18 km and 14 km views; serrated banks and interrupted reaches remain. Continuous flight, path shape, width law and sub-footprint wet-area conservation remain open.
+- **Status:** uncommitted work; no tag, publication or performance/quality benchmark.
+
+**2026-11-01 · Clear-sky erosion review**
+- **Request:** hide clouds while inspecting erosion and rivers, including at high altitude.
+- **Review:** eighteen flight views; six new views target three rivers at 4,678–4,915 m, with overview and close approach pairs.
+- **Launch:** `tools/lance.ps1 -SansNuages`; N restores cloud visibility during flight. The ordinary game default remains unchanged.
+- **Terrain:** no generation, geometry or climate setting changes; no milestone tag or publication.
+
+**2026-11-01 · Valley and channel composition**
+- **Change:** stop negative residual detail from excavating below a valley; bound the later water cut by its compact depth.
+- **Coupling:** the fluvial floor includes the channel width and keeps its mask at terminal nodes; the shoulder join vanishes on the floor so shallow cuts reach their stage.
+- **Settings:** unchanged; the C1 positive-part rounding reuses `EROSION_SMOOTH = 60 m`.
+- **Data and runtime:** no new map, simulation or terrain query; pre-erosion terrain and drainage inputs retain their definitions.
+- **Rejected prototype:** an absolute coarse-incision cap exposed mismatched support heights and erased river witnesses; it is not integrated.
+- **Review:** `tools/tests/2026-11-01-composition.txt`; routing, volcanic integration, width regularity and distant visibility remain open.
+- **Status:** uncommitted work, no milestone tag or publication; no performance/quality benchmark run.
+
+**2026-11-01 · Match foot contacts to exposed ground**
+- **Report:** weak footstep quality and contacts that did not match the visible material.
+- **Change:** six real banks for soil, grass, loose gravel, hard rock, sand and snow; six takes per bank, no immediate repeat.
+- **Selection:** textured material heights at 0.12 m; shared coating order, normalized base shares and at most two contact voices.
+- **Settings:** second material threshold 15%; equal-power layer gains; pitch ±1.5%; rain dampens the same material.
+- **Preparation:** 55 Hz high-pass, 16 kHz low-pass; bank RMS targets soil 0.09, grass 0.055, gravel/rock 0.10, sand 0.065, snow 0.095; peak ceiling 0.72.
+- **Scheduling:** probe each walking frame; flight retains the 10 Hz limit; no new GPU wait.
+- **Assets:** 42 PCM16 files, 2,283,646 bytes; CC0 and CC BY 3.0 credits in `assets/audio/README.md`; birds unchanged.
+- **Review:** dominant-material label and `tools/tests/2026-11-01-pas.txt`; isolated auditions under `x64/WalkingChecks`.
+- **Checks:** Release x64 and targeted controller, coating, wet/dry and mixed-contact PCM checks pass; listening remains with the user.
+- **Terrain:** no geometry or generation setting change; 0.12 m is only the acoustic sampling footprint.
+- **Status:** uncommitted correction, no milestone tag or publication; no performance/quality benchmark run.
+
+**2026-11-01 · Rivers and terminal lakes**
+- **Change:** visible water shares the erosion network; terminal lake stages propagate through their catchments.
+- **Settings:** `EROSION_WATER = 1`; `EROSION_RIVER_SHAPE = (2.4, 0.35, 0.3, 20)` for half-width and depth versus discharge.
+- **Section:** compact quartic, local box mean at the existing 2 m minimum; discharge fades from 0.05 to 0.5 m³/s.
+- **Lake reconstruction:** `EROSION_LAKE_TRANSITION = 2000 m` half-width; constant interiors, continuous transitions between coarse basin stages.
+- **Rendering:** two 64-second ripple phases; 1–4 m wavelengths, slope scale 0.11; wet threshold 2 cm, minimum shore transition 5 cm.
+- **Optics:** shared water attenuation with type 0.85; reflection variance `(0.002, 0.003)` plus `0.0005 × speed`, speed capped at 4 m/s.
+- **Storage:** `EXOEROS3`; 12 to 24 MiB for erosion, no extra runtime simulation.
+- **Return:** `EROSION_WATER = 0`; the pre-erosion form and original drainage solve remain unchanged.
+- **Checks:** Release x64, profile quadrature, network invariants, tributary overlap and terrain approach checks.
+- **Review:** `tools/tests/2026-11-01-rivieres-lacs.txt`; limitations in `spec-eaux-interieures.md`.
+- **Status:** uncommitted work, no milestone tag or publication; no performance/quality benchmark run.
+
+**2026-11-01 · Walking and contextual sound**
+- **Change:** instant ground placement and saved-ship return; direct FPS look, walk, run, crouch, jump and terrain contact.
+- **Settings:** eye 1.68/1.05 m; pace 1.5/3.6/0.75 m/s; gravity 9.81 m/s²; 45-degree ascent limit; 0.5 m contact grid.
+- **Sound:** world-driven wind, leaves, rain, surf and fauna; grounded-distance foot contacts; independent category gains.
+- **Assets:** 1.24 MB of redistributed CC0 recordings, loaded once; remaining continuous layers synthesized.
+- **Terrain:** unchanged; no new map or relief setting.
+- **Checks:** Release x64 and focused controller/PCM regressions pass; forest, desert, snow, coastal plain, ship return, mute and submerged-placement refusal visually checked.
+- **Input:** F10 remains a route key; Windows menu activation no longer captures it or suspends the game loop.
+- **Review:** `tools/tests/2026-11-01-marche.txt`; full listening and movement review remain with the user.
+- **Limits:** height-field footprint, no object collisions or swimming; sand and snow use filtered gravel.
+- **Status:** uncommitted work, no milestone tag or publication; no performance/quality benchmark run.
+
+
+## 2026-11-01 · Keep nearby cliffs inside the camera projection
+
+- **Change:** use the existing cockpit near plane, 5 cm, in every view; retain reversed Z and the 1e9 m far plane.
+- **Cause:** deriving the free-camera near plane from nadir clearance removed nearby walls when the ground below was distant.
+- **Terrain:** unchanged; no material, erosion or smoothing adjustment.
+- **Checks:** Release x64 builds; numerical depth checks and paired native close-wall captures pass.
+- **Flight:** F12 in `tools/tests/2026-11-01-metrique-cotiere.txt`; F5 retains the user's separate collision report.
+- **Open:** previous-nadir radial clamping is not swept wall collision; distant crest shimmer remains unisolated.
+- **Status:** uncommitted correction; no tag or publication.
+
+## 2026-11-01 · Measure coastal erosion at its physical scale
+
+- **Report:** pose `254.1 34.983719 88.511430 43.46 -106.41`, seed 0; straight cliff wall with thin needles.
+- **Cause:** metre-wide cusps in the coastal noise derivative moved the entire cliff-height contour; one 10 m crossing changed Hc from 56.89 to 258.82 m.
+- **Rule:** filter both coastal octaves and their crease derivatives at the wave-erosion scale, not only at the rendering mesh scale.
+- **Scope:** shared `ReliefCoastGradient` and its CPU counterpart; uncut source terrain and maps remain unchanged.
+- **Settings:** no numerical change; reuse the existing `EROSION_CLIFF_SLOPE_KM = 9`; no new query or noise octave.
+- **Checks:** 576 finite-difference derivatives over three seeds; six fixed terrain windows; resolved mesh invariance, bounded cuts and unchanged flat coast.
+- **Evidence:** the reported cusp's maximum 1 m step changes from 172.67 to 0.176 m; its 1-to-4 m mesh difference is below 0.187 m.
+- **Other coasts:** three witness windows still contain cuts over 10 m; the earlier cold talus location was also an invalid cut and now remains original ground.
+- **Build:** Release x64 passes; valley-filter and talus-profile checks pass.
+- **Flight:** `tools/tests/2026-11-01-metrique-cotiere.txt`; the second reported camera is lifted above the restored terrain.
+- **Native review:** the reported wall and needles disappear; the southern witness loses its visible inland pits; a wider view still shows an overly straight incision and a serrated bank.
+- **Status:** uncommitted correction awaiting flight review; no tag, push or performance/quality benchmark.
+- **Separate investigation:** a rendering/collision agent found an altitude-dependent near plane and confirmed that the current radial height clamp is not swept wall collision; see `spec-vaisseau.md`.
+
+## 2026-11-01 · Connect coastal talus to the cliff face
+
+- **Report:** pose `28.7 -47.008952 -32.993928 62.67 -50.35`, seed 0; false groove beneath a coastal cliff.
+- **Cause:** a symmetric talus mound fell again towards the wall; snow exposed its two artificial ridges.
+- **Rule:** solve the talus contact on the cliff face, then extend its apron seaward; a supported section must not reverse slope towards its wall.
+- **Scope:** the shared coastal profile in HLSL and the CPU port; coordinates occur only in regression cases and the flight route.
+- **Settings:** unchanged; no new terrain query, map, noise octave or material adjustment.
+- **Checks:** 384 sections, independent contact oracle, four coastal windows; no reverse slope, no uplift above source terrain, flat coast unchanged.
+- **Evidence:** the reported section's 7.39 m back slope is removed; matching native captures show the false groove and snow ribbons disappear.
+- **Build:** Release x64 passes; previous blade and valley-filter regressions pass.
+- **Flight:** `tools/tests/2026-11-01-pieds-falaises.txt`, close and wider views, other coasts, mountain and blade witnesses.
+- **Status:** uncommitted correction awaiting flight review; no tag, publication or performance/quality benchmark.
+- **Still open:** coastal sensitivity to filtered input heights, the earlier unlocated green scar, useful gully strength and distant repetition.
+
+## 2026-11-01 · Coordinates inside review screenshots
+
+- **Request:** recover an exact camera pose from an ordinary screenshot; the window title was truncated.
+- **Change:** a two-line overlay in the final image gives latitude, longitude, sea-level altitude, pitch, heading and seed.
+- **Controls:** visible by default in interactive flight; I toggles it; automated renders omit it unless `MYPLANETENGINE_COORDINATES=1`.
+- **Rendering:** after tone mapping, outside temporal history; text wraps at small resolutions and remains visible in full screen.
+- **Terrain:** unchanged by this display feature; no new asset, font dependency or simulation.
+- **Checks:** Release x64 builds; native captures at 1280x720 and 320x180 contain readable coordinates; an automated capture without the override omits them.
+- **Status:** uncommitted review aid on the erosion branch; no publication or milestone tag.
+
+## 2026-11-01 · Stabilize valley profiles during approach
+
+- **Cause:** profile dilation divided by a near-zero coarse reference depth, moving entire valley banks as mesh spacing changed.
+- **Change:** local analytic mean of the fixed fluvial/glacial section; physical floor masks remain fixed.
+- **Settings:** unchanged; the minimum radius reuses `CREASE_MIN_CELL = 2 m`.
+- **Evidence:** fixed snowy 4 km window, maximum 1-to-4 m mesh change 220.85 to 1.06 m; 1-to-16 m change 417.73 to 9.55 m.
+- **Checks:** 240 independent profile-integral samples, three terrain windows, previous profile/curve checks and four blade regressions pass; Release x64 builds.
+- **Flight:** `tools/tests/2026-11-01-mutations.txt`; the two native snowy captures retain their main cliff shape.
+- **Open:** exact green-scar position missing; a separate coastal remap amplifies input-height filtering, unchanged here. Distant repetition and useful gully amplitude remain open.
+- **Status:** uncommitted working correction; no milestone tag, publication or performance/quality benchmark.
+- **History:** previous closure checks and the rejected area-preserving dilation are in `log/spec-erosion-historique.md`.
+
+## 2026-11-01 · Resume erosion in Exolune: rock-gully blades
+
+- **Working branch:** the existing `claude/erosion-globale-b42982`, copied from its public-history replay at `7187c1b` into the Exolune clone.
+- **Cause:** rock gullies used a nominal wave slope while ignoring rapid changes of direction and forks.
+- **Change:** one conservative envelope for soil and rock; their admissible slopes remain different.
+- **Settings:** unchanged; the terrain before erosion and the valley profiles are unchanged.
+- **Build:** Release x64 through `tools/lance.ps1 -Build -NoLaunch`, exit 0; existing warnings in unrelated shader modules.
+- **Checks:** four close CPU regression windows; one-metre steps below 1.64 m, previously up to 514.73 m; resolved mesh independence and unchanged parent terrain.
+- **Tradeoff:** the conservative envelope nearly removes rock-gully replacement in these windows; useful amplitude needs a coherent direction field at the octave's scale.
+- **Flight:** `tools/tests/2026-11-01-lames.txt`, four close regressions and eight wider witnesses.
+- **Visual checks:** four native color captures and one relief diagnostic; nearby slopes are continuous, distant serrations and regular drainage remain. Windows activation failed; the engine capture path was used.
+- **Status:** uncommitted working correction; no milestone tag or publication; global geometry, useful gully strength and distant repetition remain under review.
+
 ## 2026-10-31 · Off-real-time cinematic path
 
 - **The `MYPLANETENGINE_CINE` mode:** independent poses of the ship and the camera, cockpit of the game, not fixed, without audio or controls; the history survives the movement, except the change of view.

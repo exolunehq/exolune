@@ -255,9 +255,9 @@ void PlacePlantTile(uint4 record, uint tileIndex)
         // placement's dearest step: a tenth of the plants need it.
         const float3 centre = FaceLocal((float3)(k.p - cam)) + float3(camPlane.xy, R + faceParams.z);
         const float2 xy = R * centre.xy / centre.z;
-        float drawn, unusedHorizon;
+        float drawn, unusedHorizon, waterLevel;
         float3 unusedNormal;
-        if (!MeshElevationAt(xy, drawn, unusedHorizon, unusedNormal))
+        if (!MeshElevationAt(xy, drawn, unusedHorizon, unusedNormal, waterLevel))
             continue;
         float e = drawn;
         float3 pos = FaceLocal((float3)(k.p + (double3)(k.up * e) - cam));
@@ -268,9 +268,13 @@ void PlacePlantTile(uint4 record, uint tileIndex)
             const uint3 plantKey = groundKey | uint3(0u, 0u, 1u << 11 | i << 12);
             float3 exact;
             if (!GroundCached(plantKey, exact))
-                exact = ExactElevation(k.p * INV_R);
+            {
+                const float height = ExactElevation(k.p * INV_R);
+                exact = float3(height, gWaterLevel, 0.0); // cache the same water decision as the ground query
+            }
             KeepGround(plantKey, exact);
             e = lerp(drawn, exact.x, smoothstep(PLANT_LOD_PIXELS.y, PLANT_LOD_PIXELS.x, span));
+            waterLevel = lerp(waterLevel, exact.y, smoothstep(PLANT_LOD_PIXELS.y, PLANT_LOD_PIXELS.x, span));
             pos = FaceLocal((float3)(k.p + (double3)(k.up * e) - cam));
             span = k.size / (length(pos) * pixelAngle);
         }
@@ -280,7 +284,8 @@ void PlacePlantTile(uint4 record, uint tileIndex)
                                       : PlantFade(k.size, length(pos), pixelAngle, meshCell);
         // Drawn whole or not at all, never growing: from its own threshold of the fade, so that the plants drawn are the
         // fade's share of them, as the ground's canopy counts them (PlantsDrawn), the rest standing in it at their height.
-        if (fade <= (float(k.looks.y & 0xFFu) + 0.5) / 256.0 || e <= 0.0 || !MaybeVisible(pos, pos, 0.0, k.size))
+        if (fade <= (float(k.looks.y & 0xFFu) + 0.5) / 256.0 || e <= 0.0 || e < waterLevel - 0.02
+            || !MaybeVisible(pos, pos, 0.0, k.size))
             continue;
         // Its foot in the ground, 3 % of its height; its trunk goes on below, to 0.15 of its whole height, whatever its
         // fade (PlanetFoliageMeshVertex.hlsl), and to a quarter of the mesh's cell there: deeper than the gap to the ground the mesh

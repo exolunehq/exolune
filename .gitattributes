@@ -10,6 +10,7 @@
 *.vsx binary
 *.glb binary
 *.blend binary
+*.wav binary
 
 ###############################################################################
 # Set default behavior for command prompt diff.

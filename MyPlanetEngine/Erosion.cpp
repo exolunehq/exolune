@@ -313,6 +313,20 @@ namespace Erosion
             level[c] = steady + t * t * (3.0 - 2.0 * t) * (filled[c] - steady);
         }
 
+        // A terminal lake's stage belongs to its whole catchment, including dry banks. The actual terrain determines
+        // its detailed shoreline. The existing receiver order propagates the same stage upstream without a new solve.
+        std::vector<double> terminalStage(cells, 0.0);
+        std::vector<uint32_t> terminalBasin(cells, 0u);
+        for (uint32_t c : order) {
+            if (receiver[c] != None) {
+                terminalStage[c] = terminalStage[receiver[c]];
+                terminalBasin[c] = terminalBasin[receiver[c]];
+            } else if (!sea[c] && lakeLevel[c] > kNoOutlet) {
+                terminalStage[c] = lakeLevel[c];
+                terminalBasin[c] = region[c] + 1u;
+            }
+        }
+
         // 5. The ice: under the glacial maximum's equilibrium line, the summer temperature there after the precipitation
         // (Ohmura, Kasser and Funk 1992: P = 645 + 296 T + 9 T^2, mm and C), the year's 8 C colder. Each cell's balance, then
         // downstream along the network: the ice that comes in, plus its own balance where it has ice.
@@ -328,7 +342,7 @@ namespace Erosion
         }
 
         // 6. The texels (Erosion.h).
-        map.texels.assign(size_t(cells) * 2, 0u);
+        map.texels.assign(size_t(cells) * 4, 0u);
         double land = 0.0, lakes = 0.0, iced = 0.0;
         for (uint32_t c = 0; c < cells; ++c) {
             const bool lake = !sea[c] && lakeLevel[c] > kNoOutlet;
@@ -348,6 +362,8 @@ namespace Erosion
             if (ice[c] > 0.0) bits |= uint32_t(std::min(std::max(std::lround(1.0 + 6.0 * (std::log2(ice[c]) - 10.0)), 1l), 255l)) << 24;
             map.texels[2 * size_t(c)] = Level16(level[c]) | Level16(ground) << 16;
             map.texels[2 * size_t(c) + 1] |= bits;
+            map.texels[2 * size_t(cells + c)] = Level16(terminalStage[c]);
+            map.texels[2 * size_t(cells + c) + 1] = terminalBasin[c];
             if (!sea[c]) land += area[c], lakes += lake ? area[c] : 0.0, iced += ice[c] > 0.0 ? area[c] : 0.0;
         }
         map.lakeShare = float(lakes / land), map.iceShare = float(iced / land);
@@ -355,7 +371,7 @@ namespace Erosion
         return map;
     }
 
-    const char kMagic[8] = { 'E', 'X', 'O', 'E', 'R', 'O', 'S', '2' };
+    const char kMagic[8] = { 'E', 'X', 'O', 'E', 'R', 'O', 'S', '3' };
 
     bool Save(const Map& map, uint32_t seed, uint64_t key, const std::wstring& path)
     {
@@ -381,7 +397,7 @@ namespace Erosion
                && fread(&stored, 8, 1, f) == 1 && stored == key;
         if (ok) {
             map.size = header[1];
-            map.texels.resize(size_t(6) * map.size * map.size * 2);
+            map.texels.resize(size_t(6) * map.size * map.size * 4);
             ok = fread(map.texels.data(), 4, map.texels.size(), f) == map.texels.size();
         }
         fclose(f);

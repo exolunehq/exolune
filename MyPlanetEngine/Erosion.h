@@ -1,7 +1,7 @@
 // Erosion.h - the erosion's level 0 (docs/spec-erosion.md): on the tectonic map's cube, once per body at startup, the
 // drainage to the sea, the lakes by their water balance, the discharge, the water's level by the stream power's steady
-// state, the glaciers' ice flux. The relief carves its valleys around this network (Erosion.hlsli); its water will be drawn
-// from the same data. Exolune's own code, from the papers cited in the spec.
+// state, the glaciers' ice flux. Relief and inland water share this network (Erosion.hlsli).
+// Exolune's own code, from the papers cited in the spec.
 #pragma once
 #include <cstdint>
 #include <string>
@@ -22,7 +22,9 @@ namespace Erosion
     struct Map
     {
         uint32_t size = 0;            // cells per face side, the tectonic map's
-        std::vector<uint32_t> texels; // two words per cell, face by face, row by row
+        // First six slices: the two network words above. Next six: terminal lake stage (Level16) and basin ID.
+        // ID zero drains to the ocean; a lake's stage is constant across its complete catchment.
+        std::vector<uint32_t> texels;
         double ms = 0.0;              // the computation's time
         float lakeShare = 0.0f, iceShare = 0.0f; // shares of the land under a terminal lake, under ice
     };

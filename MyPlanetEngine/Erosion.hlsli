@@ -99,6 +99,10 @@ struct ErosionValley
     float glacier;    // 1 in a glacial trough, fading away from it
     float incision;   // the links' valley depth at their node (m), fading away from them: continuous
     float deposit;    // the deposits' surface (m), deltas and fans; far below the ground away from them
+    float lakeLevel;  // terminal lake stage across its catchment; zero for ocean drainage
+    float channelBed, channelSurface; // lower envelopes of the same section, with and without its channel cut
+    float channelDistance; // distance from the physical liquid channel; independent of mesh sampling
+    float3 flow;      // downstream surface velocity in the planet frame (m/s)
 };
 
 // The gullies' inputs to the detail (ReliefDetail).
@@ -198,42 +202,79 @@ float2 ErosionCurveDistance(float3 a, float3 b, float3 c, out float3 nearest)
     return float2(length(nearest), at);
 }
 
-// One link's valley at distance d (m) from its axis: the water's level z, the discharge q (m3/s), the ice flux, the slope
-// of the level along the link, the walls' slope; widened to `wide` (m), two mesh cells, its depth less in proportion.
-// Returns the surface and the floor's share; rise: the surface's slope away from the axis.
-float2 ErosionProfile(float d, float z, float q, float ice, float slope, float walls, float depth, float wide, float widest,
+// Box mean of max(x,0)^2 minus its point value, and the derivative of that difference.
+// This form avoids subtracting large cubic primitives when the footprint is small.
+float2 ErosionBoxSquareExcess(float x, float radius)
+{
+    const float tail = max(radius - abs(x), 0.0);
+    const float cap = tail * tail * tail / (6.0 * radius);
+    return float2(x >= 0.0 ? radius * radius / 3.0 - cap : cap, tail * tail / (2.0 * radius));
+}
+
+float2 ErosionRiverSize(float q)
+{
+    return float2(max(1.0, EROSION_RIVER_SHAPE.x * sqrt(q)),
+                  clamp(EROSION_RIVER_SHAPE.y * pow(q, EROSION_RIVER_SHAPE.z), 0.15, EROSION_RIVER_SHAPE.w)
+                  * smoothstep(0.05, 0.5, q));
+}
+
+// Local mean of a compact quartic channel, depth*(1-(d/width)^2)^2. Both the bed and its bank slope vanish at
+// the physical edge; averaging keeps its excavated section when the mesh cannot resolve the whole width.
+float2 ErosionRiverCut(float d, float q, float radius)
+{
+    const float2 size = ErosionRiverSize(q);
+    const float2 x = clamp(float2(d - radius, d + radius) / size.x, -1.0, 1.0);
+    const float2 x2 = x * x;
+    const float2 primitive = x * (1.0 + x2 * (-2.0 / 3.0 + x2 * 0.2));
+    const float2 edge = (1.0 - x2) * (1.0 - x2);
+    return EROSION_WATER * size.y * float2(size.x * (primitive.y - primitive.x), edge.y - edge.x) / (2.0 * radius);
+}
+
+float ErosionRiverProfile(float d, float z, float q, float walls, float radius)
+{
+    const float width = ErosionRiverSize(q).x;
+    const float2 bank = float2(d - width, -d - width);
+    const float2 tail = max(radius - abs(bank), 0.0);
+    const float rise = walls * (max(d - width, 0.0) + dot(tail, tail) / (4.0 * radius));
+    return z + rise - ErosionRiverCut(d, q, radius).x;
+}
+
+// One link's physical cross-section at distance d (m), averaged over a footprint of width `wide`.
+// Water level z, discharge q (m3/s), ice flux and along-link slope determine the profile, independently of mesh size.
+// Returns the surface and physical floor share; rise is the filtered slope away from the axis.
+float2 ErosionProfile(float d, float z, float q, float ice, float slope, float walls, float wide, float widest,
                       out float glacier, out float rise)
 {
     // The fluvial floor, wider on a gentle river; never wider than `widest`, so that it ends before the links read change.
-    const float floorWidth = min(EROSION_FLOOR.x * sqrt(q) * clamp(EROSION_FLOOR.y / max(slope, 1e-6), 1.0, EROSION_FLOOR.z), widest);
+    const float floodplain = EROSION_FLOOR.x * sqrt(q) * clamp(EROSION_FLOOR.y / max(slope, 1e-6), 1.0, EROSION_FLOOR.z);
+    // The liquid channel belongs inside its valley. A narrower floor forced the later water pass to excavate banks.
+    const float floorWidth = min(max(floodplain, ErosionRiverSize(q).x), widest);
     // A parabolic U above its drained floor (Hirano & Aniya 1988), extended by its tangent at the wall slope.
     // Subtracting an overdepth before clamping to water would flatten the whole U into a kilometre-wide ribbon.
     glacier = saturate(log2(max(ice, 1.0)) - EROSION_GLACIER.w);
     const float trough = clamp(EROSION_GLACIER.x * pow(max(ice, 1.0) / 1e8, EROSION_GLACIER.y), 150.0, 1500.0);
     const float curvature = EROSION_GLACIER.z / trough;
     const float shoulder = EROSION_GLACIER_WALLS / (2.0 * curvature);
-    // Find where this blended profile meets its parent, through the three quadratic/linear intervals.
-    // The old estimate used trough + depth/walls even for a shallow U, leaving it narrower than two mesh cells.
-    const float A = glacier * curvature, B = (1.0 - glacier) * walls, G = glacier * EROSION_GLACIER_WALLS;
-    const float D = max(depth, 0.0), first = sqrt(D / max(A, 1e-20));
-    const float rhs = D + B * floorWidth;
-    const float middle = floorWidth < shoulder ? 2.0 * rhs / max(B + sqrt(B * B + 4.0 * A * rhs), 1e-20)
-                                               : D / max(G, 1e-20) + 0.5 * shoulder;
-    float top = first <= min(floorWidth, shoulder) ? first
-              : middle <= max(floorWidth, shoulder) ? middle
-              : (rhs + 0.5 * G * shoulder) / max(B + G, 1e-20);
-    if (glacier == 0.0) top = floorWidth + D / walls;
-    // Dilation horizontally and reciprocal contraction vertically preserve the incision's cross-sectional area.
-    const float stretch = max(1.0, wide / max(top, 1.0));
-    const float x = d / stretch, lift = depth * (1.0 - 1.0 / stretch);
-    const float fluvial = walls * max(x - floorWidth, 0.0);
-    const float u = min(x, shoulder);
-    const float glacial = curvature * u * u + EROSION_GLACIER_WALLS * max(x - shoulder, 0.0);
-    const float surface = z + lift + lerp(fluvial, glacial, glacier) / stretch;
-    rise = lerp(x > floorWidth ? walls : 0.0, 2.0 * curvature * u, glacier) / (stretch * stretch);
+    // Average the physical cross-section over the mesh footprint. Never scale its coordinate by network depth:
+    // depth can be zero while the detailed terrain stands hundreds of metres above that coarse reference.
+    // A depth-derived dilation then moved even distant planar banks when the mesh changed by a few metres.
+    // The finest terrain shares the same physical rounding as the other crests.
+    const float radius = max(0.5 * wide, CREASE_MIN_CELL);
+    const float2 bank = float2(d - floorWidth, -d - floorWidth);
+    const float2 tail = max(radius - abs(bank), 0.0);
+    const float fluvial = walls * (max(d - floorWidth, 0.0) + dot(tail, tail) / (4.0 * radius));
+    const float fluvialRise = walls * (saturate(0.5 + 0.5 * bank.x / radius) - saturate(0.5 + 0.5 * bank.y / radius));
+    const float u = min(d, shoulder);
+    const float2 right = ErosionBoxSquareExcess(d - shoulder, radius);
+    const float2 left = ErosionBoxSquareExcess(-d - shoulder, radius);
+    const float glacial = curvature * u * u + EROSION_GLACIER_WALLS * max(d - shoulder, 0.0)
+                        + curvature * max(radius * radius / 3.0 - right.x - left.x, 0.0);
+    const float glacialRise = 2.0 * curvature * u - curvature * (right.y - left.y);
+    const float surface = z + lerp(fluvial, glacial, glacier);
+    rise = lerp(fluvialRise, glacialRise, glacier);
     // The floor, where the detail fades: the river's; the trough's middle, where the gullies of its two walls would meet.
-    const float flat = lerp(1.0 - smoothstep(floorWidth, floorWidth + max(floorWidth, 200.0), x),
-                            1.0 - smoothstep(0.25 * trough, 0.7 * trough, x), glacier);
+    const float flat = lerp(1.0 - smoothstep(floorWidth, floorWidth + max(floorWidth, 200.0), d),
+                            1.0 - smoothstep(0.25 * trough, 0.7 * trough, d), glacier);
     return float2(surface, flat);
 }
 
@@ -255,6 +296,24 @@ ErosionValley ErosionValleys(double3 p, float cellKm, float walls)
     const int2 origin = (int2)floor(x) - 1;
     ErosionValley v;
     v.surface = 1e9, v.gradient = 0.0, v.floorShare = 0.0, v.level = 0.0, v.glacier = 0.0, v.incision = 0.0, v.deposit = -1e9;
+    // A nearest-cell terminal stage creates vertical water walls wherever fine relief crosses a coarse divide.
+    // Reconstruct it continuously in a fixed physical band. Equal-stage interiors stay exactly level;
+    // connections between different basins are a stage transition, not a resolved hydraulic spillway.
+    v.lakeLevel = 0.0;
+    const float band = min(EROSION_LAKE_TRANSITION / cellM, 0.5);
+    const float2 blend = smoothstep(0.5 - band, 0.5 + band, frac(x));
+    [unroll] for (int lakeTap = 0; lakeTap < 4; ++lakeTap)
+    {
+        const int2 offset = int2(lakeTap & 1, lakeTap >> 1);
+        const uint c = ErosionCell(face, (int2)floor(x) + offset, n);
+        const uint2 basin = erosionMap.Load(int4(c % n, c / n % n, c / (n * n) + 6u, 0));
+        const float2 weight = lerp(1.0 - blend, blend, (float2)offset);
+        if (EROSION_WATER > 0.0 && basin.y != 0u)
+            v.lakeLevel += weight.x * weight.y * max(0.0, (float)(basin.x & 0xffffu) * 0.25 - 8192.0);
+    }
+    v.flow = 0.0;
+    v.channelBed = 1e9, v.channelSurface = 1e9;
+    v.channelDistance = 1e9;
     float guideSurface = 1e9;
     const float wide = 2000.0 * cellKm;
     // Positions relative to the point, in floats: a node less the point's float, exact between neighbours (Sterbenz), less
@@ -341,7 +400,7 @@ ErosionValley ErosionValleys(double3 p, float cellKm, float walls)
                                    + t * t * (outlet ? dr.ground : groundDown);
                 const float depth = max(ground - z, 0.0);
                 float glacier, rise;
-                const float2 s = ErosionProfile(d, z, q, ice, waterSlope, walls, depth, wide, 0.15 * cellM, glacier, rise);
+                const float2 s = ErosionProfile(d, z, q, ice, waterSlope, walls, wide, 0.15 * cellM, glacier, rise);
                 // Past three quarters of the reach the valley rises out of every ground: the links read change there.
                 const float beyond = smoothstep(0.35, 0.5, d / cellM);
                 const float candidate = s.x + 1e4 * beyond;
@@ -355,12 +414,26 @@ ErosionValley ErosionValleys(double3 p, float cellKm, float walls)
                     v.surface = candidate;
                     v.level = z;
                 }
+                const float channel = ErosionRiverProfile(d, z, q, walls, max(0.5 * wide, CREASE_MIN_CELL)) + 1e4 * beyond;
+                [branch] if (EROSION_WATER > 0.0 && q > 0.05 && z > 0.0)
+                    v.channelDistance = min(v.channelDistance, d - ErosionRiverSize(q).x + 1e4 * beyond);
+                [branch] if (EROSION_WATER > 0.0 && q > 0.05)
+                    v.channelSurface = min(v.channelSurface, channel + ErosionRiverCut(d, q, max(0.5 * wide, CREASE_MIN_CELL)).x);
+                [branch] if (EROSION_WATER > 0.0 && q > 0.05 && channel < v.channelBed)
+                {
+                    v.channelBed = channel;
+                    const float2 channelSize = ErosionRiverSize(q);
+                    const float speed = min(q / max((16.0 / 15.0) * channelSize.x * channelSize.y, 1e-3), 4.0);
+                    v.flow = tangent / max(length(tangent), 1e-12) * speed;
+                }
                 // What the detail reads, continuous where the lowest or the nearest link changes: each link's, fading
                 // from its axis to before the links read change, the largest.
                 const float near = 1.0 - smoothstep(0.1, 0.35, d / cellM);
                 v.incision = max(v.incision, depth * near);
                 v.glacier = max(v.glacier, glacier * near);
-                v.floorShare = max(v.floorShare, outlet ? 0.0 : s.y * (1.0 - beyond));
+                // Keep the floor through the terminal segment. Dropping it at an outlet reintroduced the residual
+                // terrain across the water and created a dam just before the coarse sea/lake node.
+                v.floorShare = max(v.floorShare, s.y * (1.0 - beyond));
             }
             if (head) break;
         }
@@ -372,15 +445,32 @@ ErosionValley ErosionValleys(double3 p, float cellKm, float walls)
 float ErosionCut(float coarse, float surface, float k)
 {
     const float depth = max(coarse - surface, 0.0);
-    return coarse - depth * smoothstep(0.0, k, depth);
+    // At k=0 the cut reaches its profile, including when depth is zero. Avoid a degenerate smoothstep.
+    const float t = depth / max(max(k, depth), 1e-20);
+    return coarse - depth * t * t * (3.0 - 2.0 * t);
 }
 
 float ErosionCarve(float h, float coarse, ErosionValley v, float k)
 {
-    // Carry the detail on the walls, fade it on the floor, then intersect that envelope with the full ground.
-    // Gating its removal by coarse incision alone could raise a deep hollow by hundreds of metres over a narrow rim.
-    const float surface = v.surface + (h - coarse) * (1.0 - v.floorShare);
-    return ErosionCut(h, surface, k);
+    // Existing hollows already belong to h. Adding their negative residual to the cut a second time dug side trenches
+    // below the draining floor while leaving a perched river in the middle. Only positive spurs decorate the envelope;
+    // this C1 positive part uses the existing join scale, and h remains the upper bound, including in a deep hollow.
+    const float detail = h - coarse, tail = max(k - abs(detail), 0.0);
+    const float spurs = max(detail, 0.0) + tail * tail / (4.0 * k);
+    const float surface = v.surface + spurs * (1.0 - v.floorShare);
+    // The profile remains the lower bound of any new excavation. Existing hollows survive through h; no separate
+    // winning-link stage is imposed after the union, which would introduce steps where tributaries compete.
+    // Soften the shoulders, not the draining floor. A 60 m join on a shallow floor left a barrier above its stage;
+    // the compact liquid channel then could not reach it without an unbounded second excavation.
+    return ErosionCut(h, surface, k * (1.0 - v.floorShare));
+}
+
+// Adding water may dig the compact channel, never a second unbounded V valley through the finished terrain.
+// The paired envelopes bound its depth even where different tributaries win them. An unresolved or misrouted
+// channel may remain dry; opening it requires coherent drainage, not an unlimited final geometry clamp.
+float ErosionChannelCut(float h, float bed, float surface)
+{
+    return min(max(h - bed, 0.0), max(surface - bed, 0.0));
 }
 
 // The only wind reading for wave erosion: the climate's mean surface wind, in its own east/north basis.
@@ -397,14 +487,92 @@ float3 ErosionWaveWind(float3 d)
 }
 
 // Remap the full ground through its coastal contour. The platform is linear in the original height (Trenhaile 1987),
-// and the deeper sea floor stays unchanged. The face's lowering is bounded by Hc minus the foot, even on a coarse mesh:
-// widening the height interval can never turn a mountain into a platform. No horizontal profile places this face.
+// and the deeper sea floor stays unchanged. Delta is the physical face width in height coordinates, never a mesh width.
+// The final incision is averaged separately, after its intersection with the original ground and the talus.
 float ErosionCliffProfile(float h, float hc, float delta, float depth)
 {
     const float platform = EROSION_CLIFF_PLATFORM.x - depth * (1.0 - min(h / hc, 1.0));
     const float face = 1.0 - smoothstep(hc, hc + delta, h);
     const float cut = min(max(h - platform, 0.0), (hc - EROSION_CLIFF_PLATFORM.x) * face);
     return h - cut;
+}
+
+// Attach a talus to the face at its prescribed height above the platform. A symmetric mound centred on hc fell
+// again on the landward side, excavating a moat behind its crest. The supported profile must rise towards the wall.
+float ErosionCliffContact(float hc, float delta, float talus)
+{
+    const float height = hc - EROSION_CLIFF_PLATFORM.x;
+    // On the face, height above the foot is delta*t + height*smoothstep(t). Solve for the talus contact.
+    // The quadratic gives an upper bound below t=0.5; four Newton steps converge on this monotone convex interval.
+    float t = 2.0 * talus / (delta + sqrt(delta * delta + 4.0 * height * talus));
+    [unroll] for (int i = 0; i < 4; ++i)
+        t -= (delta * t + height * t * t * (3.0 - 2.0 * t) - talus) / (delta + 6.0 * height * t * (1.0 - t));
+    return t;
+}
+
+float ErosionCliffScree(float h, float hc, float delta, float talus, float gradient)
+{
+    const float contact = hc + delta * ErosionCliffContact(hc, delta, talus);
+    // The excess over the existing platform rises seaward-to-landward. Past contact, the cliff takes over.
+    return max(talus - EROSION_CLIFF_SCREE.x * max(contact - h, 0.0) / gradient, 0.0);
+}
+
+// Mean contributions on u in [-1,1], h(u)=h+radius*u. Local intervals avoid subtracting large primitives at small radii.
+float ErosionCliffLinearMean(float2 interval, float centre, float change)
+{
+    interval = clamp(interval, -1.0, 1.0);
+    [branch] if (interval.y <= interval.x) return 0.0;
+    const float2 values = centre + change * interval, positive = max(values, 0.0);
+    // Clip the line against zero before integrating it; a sign crossing leaves a triangle, not a trapezoid.
+    const float share = min(values.x, values.y) < 0.0
+                      ? max(positive.x, positive.y) / max(abs(values.y - values.x), 1e-20) : 1.0;
+    return 0.25 * (interval.y - interval.x) * (positive.x + positive.y) * saturate(share);
+}
+
+float ErosionCliffFaceMean(float2 interval, float t, float radius, float height)
+{
+    interval = clamp(interval, -1.0, 1.0);
+    [branch] if (interval.y <= interval.x) return 0.0;
+    const float middle = 0.5 * (interval.x + interval.y), halfWidth = 0.5 * (interval.y - interval.x);
+    const float2 samples = saturate(t + radius * (middle + halfWidth * float2(-0.57735026919, 0.57735026919)));
+    const float2 cut = 1.0 - samples * samples * (3.0 - 2.0 * samples);
+    // Two Gauss nodes integrate the cubic exactly on this physical piece, even when it is narrower than a cell.
+    return 0.5 * halfWidth * height * (cut.x + cut.y);
+}
+
+float ErosionCliffMean(float h, float hc, float delta, float depth, float talus, float gradient, float radius)
+{
+    const float foot = EROSION_CLIFF_PLATFORM.x, height = hc - foot, platformSlope = 1.0 - depth / hc;
+    const float bottom = (foot - depth) / platformSlope;
+    [branch] if (h + radius <= bottom || h - radius >= hc + delta) return h;
+    [branch] if (radius <= 0.0)
+    {
+        const float platform = foot - depth * (1.0 - min(h / hc, 1.0));
+        return min(h, max(ErosionCliffProfile(h, hc, delta, depth),
+                          platform + ErosionCliffScree(h, hc, delta, talus, gradient)));
+    }
+    const float contactT = ErosionCliffContact(hc, delta, talus), contact = hc + delta * contactT;
+    const float slope = EROSION_CLIFF_SCREE.x / gradient, toe = contact - talus / slope;
+    // Below the foot, the platform cut is linear. Where the apron takes over it is another positive-part line.
+    float cut = ErosionCliffLinearMean((float2(bottom, min(toe, hc)) - h) / radius,
+                                      platformSlope * (h - bottom), platformSlope * radius);
+    cut += ErosionCliffLinearMean((float2(max(bottom, toe), hc) - h) / radius,
+                                  height - talus + slope * delta * contactT + (platformSlope - slope) * (h - hc),
+                                  (platformSlope - slope) * radius);
+    const float t = (h - hc) / delta, r = radius / delta;
+    float start = contactT;
+    [branch] if (slope < 1.0 + 6.0 * height * contactT * (1.0 - contactT) / delta)
+    {
+        // The known contact root factors out of face-minus-apron. Its other root is quadratic on [0,contactT].
+        const float q = delta * (1.0 - slope) + height * contactT * (3.0 - 2.0 * contactT);
+        const float b = height * (3.0 - 2.0 * contactT);
+        start = q >= 0.0 ? 0.0 : clamp(-2.0 * q / (b + sqrt(max(b * b + 8.0 * height * q, 0.0))), 0.0, contactT);
+    }
+    cut += ErosionCliffFaceMean((float2(0.0, start) - t) / r, t, r, height);
+    cut += ErosionCliffLinearMean((float2(start, contactT) - t) / r,
+                                  height + delta * contactT - talus + (1.0 - slope) * (h - contact), (1.0 - slope) * radius);
+    cut += ErosionCliffFaceMean((float2(contactT, 1.0) - t) / r, t, r, height);
+    return h - clamp(cut, 0.0, height);
 }
 
 // A gradient noise on the precise planet lattice. No float position multiplied by the planet's radius places a cliff.
@@ -478,20 +646,18 @@ float ErosionCoast(RlPoint p, float h, float shoreKm, float coastSlope, float ro
                               * max(0.2, 1.0 + EROSION_CLIFF_RETREAT.w * variation));
     const float band = ErosionCliffBand(shoreKm, retreat, relief, coastSlope);
     [branch] if (band == 0.0) return h;
-    // Keep the coastal gradient as a floor in hollows. The same broad slope controls the contour and its mesh widening.
+    // Keep the coastal gradient as a floor in hollows. It sets the physical contour and converts the sampling footprint.
     const float g = max(ErosionCoastSlope(formsGradient, d, detailSlope), max(coastSlope * shoreMetric * 0.001, 1e-6));
     const float hc = clamp(1000.0 * retreat * g, EROSION_CLIFF_HEIGHT.x, EROSION_CLIFF_HEIGHT.y);
-    const float delta = max(EROSION_CLIFF_FACE * hc, 2000.0 * cellKm * g);
+    const float delta = EROSION_CLIFF_FACE * hc, footprint = 1000.0 * cellKm * g;
     const float depth = min(1000.0 * retreat * EROSION_CLIFF_PLATFORM.y, EROSION_CLIFF_PLATFORM.z);
-    float surface = ErosionCliffProfile(h, hc, delta, depth);
-    [branch] if (surface == h) return h; // Neither a talus nor a preserved remnant can lower an unchanged point.
-    // Rockfall at 35 degrees on the coastal slope, expressed through height below the contour. It cannot raise the
-    // original ground. Valley floors may breach this contour: they are inlets, not mountains to extrapolate upward.
+    const float bottom = (EROSION_CLIFF_PLATFORM.x - depth) / (1.0 - depth / hc);
+    [branch] if (h + footprint <= bottom || h - footprint >= hc + delta) return h;
+    // Rockfall at nominally 35 degrees on the coastal slope, attached to the face at its talus height. It cannot
+    // raise the original ground. Valley floors may breach this contour and remain inlets.
     const float patch = smoothstep(-0.2, 0.6, ErosionCliffNoise(p, 0.9, seed + 1u));
     const float talus = hc * EROSION_CLIFF_SCREE.y * patch;
-    const float scree = max(talus - EROSION_CLIFF_SCREE.x * abs(h - hc) / g, 0.0);
-    const float platform = EROSION_CLIFF_PLATFORM.x - depth * (1.0 - min(h / hc, 1.0));
-    surface = min(h, max(surface, platform + scree));
+    const float surface = ErosionCliffMean(h, hc, delta, depth, talus, g, footprint);
     // Sparse crossing bands preserve the original rock as a remnant; they never add a pillar's height. Their mask
     // broadens over two cells while its peak decreases, retaining the narrow band's area as ReliefWidth does.
     const float radius = EROSION_CLIFF_STACK.x, wide = max(radius, 2.0 * cellKm);

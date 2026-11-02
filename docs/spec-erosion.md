@@ -50,7 +50,7 @@ Statut : spec vivante, depuis le 2026-10-31, branche `erosion-globale`, piste `p
 
 **Le cache par graine :** `x64/Release/erosion-<graine>.bin`, sa clé la forme lue, la taille et tous les champs CPU du climat, la graine et la date de l’exécutable. L’ancienne clé ne couvrait pas explicitement le climat ; tout changement de ses champs invalide désormais le cache, même à exécutable et relief identiques. Le portage CPU le lit aussi.
 
-**Le relief et l'eau viennent des mêmes données (règle R5 de la recherche) :** le fond des vallées, les lacs et plus tard l'eau des fleuves se lisent tous dans cette texture.
+**Shared terrain and water data:** valley floors, river surfaces and terminal lakes read the same drainage map. The six additional terminal-stage slices and channel construction are documented in [inland water](spec-eaux-interieures.md).
 
 **Le contrat de la pile**
 - Le support tectonique et volcanique, ses plis et ses octaves de plus de 20 km ne dépendent pas du réseau qui va les creuser.
@@ -83,19 +83,25 @@ Statut : spec vivante, depuis le 2026-10-31, branche `erosion-globale`, piste `p
 - Le profil parabolique est une approximation morphologique, d’après [Hirano et Aniya, 1988](https://www.jstage.jst.go.jp/article/jgeography1889/97/2/97_2_107/_article/-char/en).
 - La loi de largeur et son calibrage restent ceux du moteur ; ils ne sont pas déduits de cet article.
 - Le surcreusement souterrain puis le plafonnement à l’eau sont retirés : ils transformaient tout le U en ruban plat.
-- La largeur se mesure à l’intersection exacte du profil avec son sol de référence.
-- Une vallée plus étroite que deux mailles s’élargit ; sa profondeur et toute sa section verticale diminuent dans le rapport inverse.
-- Cette transformation conserve l’aire creusée de la coupe ; l’ancienne formule ne contractait pas tout le profil et pouvait laisser un U sous deux mailles.
+- **Mesh filtering:** exact local box mean of the physical fluvial/glacial section, with radius `max(cellMetres, CREASE_MIN_CELL)`.
+- The 2 m minimum uses the existing physical crest rounding; there is no new setting.
+- Averaging a convex section only raises its profile, by at most `maximumWallSlope × radius / 2`; far planar banks remain fixed.
+- The filter ignores coarse reference depth and leaves the physical floor mask unchanged.
+- This is a local profile mean, not a claim of exact area conservation after clipping against arbitrary terrain.
 
 **La réunion des vallées**
 - La surface est le minimum des profils ; chacun porte déjà son propre niveau drainé.
 - Le niveau du lien géométriquement le plus proche ne borne plus la surface d’un autre lien.
 - La pente qui guide les ravines se mélange sur 60 m entre profils concurrents ; elle ne saute plus au changement de lien.
-- La surface de coupe reçoit le détail des versants, éteint progressivement sur le fond.
-- Cette surface coupe ensuite le terrain complet : `depth × smoothstep(0, 60, depth)`.
+- The cut surface carries positive spurs, fading on the floor; negative residual detail is not added to the cut a second time.
+- Its C1 positive part uses the existing 60 m join scale; original hollows survive through intersection with the full terrain.
+- New excavation cannot go below the valley envelope; this prevents artificial side trenches beside a perched channel.
+- The cut is `depth × smoothstep(0, 60 × (1 - floorShare), depth)` on the shoulders; at full floor share it reaches the profile without a degenerate smoothstep.
 - Le creusement ne relève jamais un creux ; l’extinction commandée par le seul support grossier pouvait dresser un rebord de plusieurs centaines de mètres.
 - Un creux initial sous le profil reste présent ; son remplissage relève des dépôts ou des lacs, pas de cette coupe.
 - Aux recouvrements, un point de l’ancien axe peut appartenir au versant d’une vallée plus basse ; son sol suit ce profil, pas un niveau d’eau pris indépendamment.
+- The fluvial floor includes the liquid channel width, subject to the existing reach bound, and does not drop its floor mask at terminal nodes.
+- Channel cutting after terrain finishing is bounded by its compact depth; it cannot re-excavate an unbounded V profile.
 
 **Le relief support reste indépendant de sa finition**
 - Les deux octaves de plus de 20 km sont calculées avant l’activation des ravines.
@@ -126,24 +132,38 @@ Statut : spec vivante, depuis le 2026-10-31, branche `erosion-globale`, piste `p
 - **elles s'éteignent autour de leurs bifurcations,** où la somme des ondes tombe sous 0,3 : la phase y prend toutes les valeurs, le sol s'y déchirait ;
 - **les plis appartiennent au support :** les vallées les entaillent selon leur profil, sans atténuation préalable commandée par le réseau.
 
-**Deux sols, deux échelles, un mélange continu (`ReliefGullyRock`, `ReliefGullyGain`) :**
-- **Le sol et les éboulis :** `Sc = 1,25`, Roering et al. 1999 ; sous 300 m de longueur d’onde et hors des chaînes, le budget conservateur de C reste entier.
-- **Le passage à la roche :** de 300 m à 1 km, `smoothstep` physique, jamais le pas du maillage. [Grieve, Mudd et Hurst 2016](https://onlinelibrary.wiley.com/doi/10.1002/esp.3884), *How long is a hillslope?*, mesurent des médianes de versants de 98 à 228 m ; la plage 300 m–1 km est notre séparation progressive entre ces versants et les incisions de massif, pas une constante universelle tirée de l’article.
-- **La roche présente :** `r = mountains × smoothstep(600, 1400, relief) × smoothstep(0,3, 1, wavelengthKm) × (0,8 + 0,2 glacial)`. `relief` est l’amplitude en mètres passée au détail, `mountains` la part de chaînes existante ; la ligne d’équilibre renforce la roche, elle n’est plus sa seule preuve. Jamais `valley.glacier`.
-- **La résistance rocheuse :** `Sc = tan(70°)`, choix de roche forte dans le cadre de Selby 1980, conservé de D. L’arrondi fini des crêtes et leur moyenne ne changent pas.
-- **La saturation commune :** pour la pente porteuse s, la réserve de l’octave ordinaire N et celle de la bande G, `L = max(Sc − s − N, 0)`, `B = L²/Sc`, `gain = B / sqrt(B² + [share × (N + G)]²)` ; raccord C1 à réserve nulle.
-- **Sur le manteau :** N et G gardent les enveloppes conservatrices de C, gradient 26 et courbure 512 du bruit, poids et bifurcations des bandes compris ; l’arrondi physique de 2 m borne les retournements.
-- **Dans la roche large :** réserve à l’échelle de l’octave : N est amplitude × fréquence, G la pente de la sinusoïde finie, `2π × stripeScale × amplitude × fréquence`, affûtage compris. Garder les enveloppes de retournement à 2 m pour une incision kilométrique annulait ses bandes même à `Sc = tan(70°)`.
-- **La portée de ce seuil rocheux :** pente caractéristique à l’échelle de l’octave, pas plafond de toutes les pentes locales après orientation ; des parois locales dépassent 70°, comme le bruit et les profils des vallées conservés. Le manteau garde son enveloppe conservatrice point par point.
-- **Le mélange :** `share × lerp(gainSoil, gainRock, r)` remplace le seul motif ; il ne réduit pas le bruit ordinaire lorsque la réserve est épuisée. Gain et part rocheuse ne lisent pas la phase courante ; bruit et bande restent centrés séparément.
-- **Le coût :** aucune lecture voisine de relief ni nouvelle octave pour le budget ; mêmes bandes, saturation scalaire. Le coût de la pile est mesuré ci-dessous ; celui de ce seul budget n’est pas isolé.
+**One directional-pattern budget for soil and rock (`ReliefGullyRock`, `ReliefGullyGain`):**
+- The rock fraction still follows mountain relief, wavelength and glacial climate.
+- The admissible slope interpolates from `1.25` to `tan(70 degrees)` with that fraction.
+- Both materials reserve the ordinary octave and the full directional-stripe envelope.
+- The stripe envelope includes changes of direction, interpolation weights and phase forks.
+- The gain is `B / sqrt(B*B + [share*(N+G)]^2)`, with `B = max(Sc-s-N, 0)^2/Sc`.
+- Exhausting the reserve restores the ordinary octave; it does not remove the supporting terrain.
+- The former rock exception used only amplitude divided by wavelength and produced metre-wide blades.
+- This change adds no terrain lookup, octave, cache or simulation.
+- The envelope is conservative: rock gullies are almost absent in the four reproduced defect windows.
+- This is a geometry correction awaiting flight review, not a validated final gully model.
+- Recovering stronger gullies requires a direction field coherent at their own wavelength, not relaxing the turning budget.
+- The replaced budget is preserved in `log/spec-erosion-historique.md`.
+
+**Blade regression checks, 2026-11-01:**
+- `tools/hydro/verifie_lames.py` checks four 81-by-81 metre windows in two regions against public-history commit `7187c1b`.
+- Maximum neighbouring one-metre height steps fall from 39.25, 39.09, 514.73 and 48.63 m to 1.55, 0.79, 1.64 and 1.32 m.
+- No sampled slope exceeds 80 degrees after the change; maxima range from 40.82 to 59.44 degrees.
+- The terrain before erosion is bit-identical; resolved outputs at 1 m and 0.25 m are identical.
+- These are reproducible additional locations, not recovered camera coordinates from the user's screenshots.
+- They do not prove global geometry validity or settle distant network repetition.
+- Flight review: `tools/tests/2026-11-01-lames.txt`, close defects on F1-F4 and broader witnesses on F5-F12.
+- Native captures at two close poses and two wider poses show continuous nearby slopes without the large blade family reproduced by the CPU checks.
+- The distant relief diagnostic still shows serrated edges; regular large-scale drainage also remains visible. Their causes are not resolved by this correction.
+- Capture artifacts are local in `x64/erosion-continuation/`; Windows window activation failed, so inspection used the engine's native image capture.
 
 ## Les falaises côtières
 
 **L’abrasion suit un contour du sol complet, détail, vallées et dépôts inclus.**
 - **Où :** `ErosionCoast`, après les dépôts et avant les cordons, avec `valleys = true` seulement.
 - **Le rivage estimé borne la portée :** il ne place plus une paroi dans les montagnes.
-- **Le contour :** `Hc = clamp(1000 W G, 8, 400)` m ; le sol au-dessus de `Hc + δ` reste identique.
+- **Contour:** `Hc = clamp(1000 W G, 8, 400)` m; the physical incision ends at `Hc + delta`, its sampled support at `Hc + delta + footprint`.
 - **La largeur W :** 1,2 km × exposition × érodabilité, au plus 3 km ; variation de 45 % par un bruit de 2,4 km (Sunamura 1992, force sur résistance).
 - **La pente G :** norme tangentielle des grandes formes et des trois octaves du détail de plus de 9 km, avant la limitation des ravines des sols mobiles ; la pente côtière `coastSlope × shoreMetric / 1000` reste un plancher.
 - **Pourquoi 9 km :** trois fois le recul maximal ; les octaves de 50, 23,7 et 11,2 km gardent les grands versants sans laisser les petits éperons déplacer Hc.
@@ -151,15 +171,61 @@ Statut : spec vivante, depuis le 2026-10-31, branche `erosion-globale`, piste `p
 - **Le plafond de 400 m :** calibrage proche des 426 m de Conachair recensés par [NatureScot](https://www.nature.scot/landscapes-and-habitats/habitat-types/coast-and-seas/coastal-habitats/coastal-cliffs), sans maximum géologique universel.
 - **Les caps et les anses :** roche dure et abri réduisent W et le contour ; roche tendre et exposition les augmentent.
 
+**Physical coastal metric (2026-11-01):**
+- `ReliefCoastGradient` measures the coastal deformation at `EROSION_CLIFF_SLOPE_KM`, the existing 9 km erosion scale.
+- Its maximum frequency is `min(meshMaxFrequency, planetRadiusKm / slopeKm)`; its crease frequency uses the same physical ceiling.
+- Both octave weights and the derivative of `abs(noise)` use that ceiling; selecting long octaves alone leaves metre-wide cusps.
+- The full coast noise still places the shore; the broad metric controls the contour height and the inland reach only.
+- No setting, seed, map or neighbouring terrain query is added; the metric reads three contributing octaves instead of five at fine meshes.
+- `python tools/cotes/verifie_metrique_cotiere.py` compares 576 derivatives with independent height differences, across three seeds.
+- The derivative is identical from 0.25 m through 4,500 m sampling cells; maximum finite-difference error is below 6e-6 per radian.
+- Six fixed terrain windows cover the reported cusp and its surroundings, cold, tropical, southern and flat coasts.
+- The cusp's maximum 1 m height step falls from 172.67 m to 0.176 m; its 1-to-4 m mesh change is below 0.187 m.
+- Source terrain is unchanged; flat coast is bit-identical; three other windows retain cuts greater than 10 m.
+- The second reported canyon pose was inside the false excavation; its review camera is raised above the restored ground.
+- Native captures at the original pose and the raised second pose remove the false wall and its needles.
+- A wider view still shows an overly straight incision and a serrated distant bank; this correction does not establish globally clean geometry.
+- The southern coastal witness no longer shows the previous isolated inland pits in its visible area.
+- Flight route: `tools/tests/2026-11-01-metrique-cotiere.txt`; user review pending.
+- The previous mesh-scale metric and measurements are [archived](log/spec-erosion-historique.md#2026-11-01-rejected-mesh-scale-coastal-metric).
+
 **Le profil remappe la hauteur h.**
 - **Sous Hc :** `min(h, P)` ; P vaut −1 m au pied, puis descend linéairement avec h vers l’ancien rivage.
 - **Le platier :** pente nominale de 2 % sur W, dénivelé limité à 4 m (Trenhaile 1987).
 - **Sous la mer :** raccord continu à la même droite ; tout fond plus profond reste intact.
-- **La face :** raccord sur `δ = max(0,1 Hc, 2000 cellKm G)` m ; moins de deux mailles, elle s’élargit et s’incline.
+- **Face:** fixed physical width `delta = 0.1 Hc`; filter the composed incision over the symmetric height radius `footprint = 1000 cellKm G`.
 - **L’abaissement :** au plus `Hc + 1 m`, même à maille grossière ; aucun sol relevé.
-- **Les éboulis :** pente de 35°, jusqu’à 22 % de Hc, par taches de 900 m ; distance au pied exprimée par `abs(h − Hc) / G`.
+- **Talus:** nominal 35-degree apron, up to 22% of Hc, in 900 m patches; its landward end meets the cliff face at that prescribed height.
 - **Les stacks :** rares croisements de bandes de 130 m conservant le sol original ; élargis sur deux mailles, moins forts en proportion de leur surface.
 - **Les rivières :** les fonds bas peuvent percer le contour et devenir des entrées de mer.
+
+**Connected talus, `ErosionCliffScree` (2026-11-01):**
+- A symmetric mound at Hc created a second downslope face before the cliff, leaving an artificial moat.
+- Let `H = Hc - platformFoot`, and `T` be the existing talus-height setting times its patch mask.
+- Find `t` on the cliff face from `delta*t + H*(3*t*t - 2*t*t*t) = T`; the contact is `Hc + delta*t`.
+- A quadratic upper bound and four Newton steps solve this monotone interval; no terrain query or map is added.
+- The apron above the platform is `max(T - screeSlope*max(contact-h, 0)/G, 0)`.
+- Its excess rises towards the wall; beyond contact the cliff profile is already higher and takes over.
+- The resulting section is continuous and nondecreasing in h for fixed parameters; it never rises above the original ground.
+- Existing heights, patch sizes and slope settings are unchanged; the earlier symmetric profile is [archived](log/spec-erosion-historique.md#2026-11-01-rejected-symmetric-coastal-talus).
+
+**Filtering after coastal composition, 2026-11-01:**
+- `ErosionCliffMean` integrates the physical incision after the talus and min/max intersections.
+- Split at the platform, talus contact and face joins; integrate linear and cubic pieces in local coordinates.
+- No extra terrain query, map or generation setting is needed.
+- For a planar source and frozen coastal parameters, the normalized symmetric mean preserves the incision area and its centre.
+- `tools/cotes/verifie_filtre_falaises.py` checks an independent adaptive quadrature, joins, bounds, float32 precision and four terrain windows.
+- Variable masks, the marine witness and later terrain composition remain outside this local conservation guarantee.
+- The former one-sided widening and its measurements are [archived](log/spec-erosion-historique.md#2026-11-01-one-sided-coastal-filter).
+
+**Talus regression checks:**
+- `python tools/cotes/verifie_pied_falaise.py`: 384 parameter sections and an independent contact solver; maximum support error below 2e-10 m.
+- The old profile reversed slope in 288 sections; the new profile reverses none.
+- Four terrain windows cover the reported cold location, tropical and southern rocky coasts, and a flat coast; the flat coast is unchanged.
+- The new physical coastal metric rejects the former cold-location cut; the independent profile check still covers its talus failure.
+- The original camera comparison and its snow ribbons are [archived](log/spec-erosion-historique.md#2026-11-01-rejected-symmetric-coastal-talus); material rules are unchanged.
+- Flight review: `tools/tests/2026-11-01-pieds-falaises.txt`; no performance or quality benchmark was run.
+- This correction addresses the talus connection; amplification of detail filtering by the coastal remap remains a separate open issue.
 
 **Les entrées et la portée sont conservées.**
 - **La roche :** classe convertie par texel avant B-spline ; croûte océanique 1, volcanique 0,6, jeune chaîne 1, sédiments 1,6, vieille chaîne 0,45, bouclier 0,25.
@@ -193,7 +259,7 @@ Statut : spec vivante, depuis le 2026-10-31, branche `erosion-globale`, piste `p
 | `REACH` | `(1, 0.5, 8)` | marge intérieure en plus du recul et du détail, extinction, plafond intérieur et borne du proxy, km |
 | `SEA` | `(50, 0.25)` | profondeur minimale du témoin en m, transition en km ; sa distance est `RETREAT.z` |
 | `HEIGHT` | `(8, 400)` | bornes Hc, m |
-| `SLOPE_KM` | `9` | seuil des octaves qui portent la pente, km ; auparavant 0,3 |
+| `SLOPE_KM` | `9` | physical slope scale in km; detail octave cutoff and coastal metric's spectrum and crease filtering |
 | `FACE` | `0.1` | part minimale de Hc pour δ |
 | `SCREE` | `(0.7002, 0.22)` | pente de repos, part de Hc |
 | `PLATFORM` | `(-1, 0.02, 4)` | pied en m, pente nominale, dénivelé maximal en m |
@@ -220,116 +286,60 @@ Statut : spec vivante, depuis le 2026-10-31, branche `erosion-globale`, piste `p
 
 **Avec le volcanisme :** ses édifices s'ajoutent à la forme avant érosion, `ReliefElevation(p, false)`. Le niveau 0 les voit s'ils dépassent 40 km ; plus petits, les ravines les découpent comme tout relief. `ReliefDetail` gagne deux paramètres, les ravines et la somme grossière.
 
-**Avec l'eau, plus tard :** les fleuves se dessinent depuis le débit et le niveau de l'eau des liens, les lacs depuis leur niveau, les fjords et les estuaires où les vallées passent sous la mer.
+**Visible water:** rivers use link discharge and stage; terminal lakes use their water-balance level. The shared channel envelopes, basin transitions, rendering and limits are in [inland water](spec-eaux-interieures.md).
 
 ## Le portage CPU
 
 **`tools/hydro/cp.py` lit le niveau 0 du moteur,** `erosion-<graine>.bin`, et refait les vallées, les dépôts et les ravines ; les nœuds en float32, comme le shader. `EXOLUNE_EROSION` donne un autre chemin.
 
-## Vérification du 2026-11-01
+## Current verification, 2026-11-01
 
-**Référence :** `14c99ec`, le dernier état de « Érosion globale : fleuves et glaciers ».
+**Scope:** working corrections on the public-history erosion branch in `Exolune`.
+- `verifie_lames.py` compares with public replay `7187c1b`.
+- `verifie_auges.py` now uses public replay `7c9f475`; no legacy Git history is imported.
+- Earlier closure measurements and their failed quality threshold are [archived](log/spec-erosion-historique.md#2026-11-01-archive-worktree-closure).
 
-**Passage au dépôt public**
-- Cette étape est figée dans le worktree local `claude/erosion-globale-b42982`, devenu archive ; aucun push de cette branche ni de son ancienne ascendance.
-- La suite se fait dans `C:\Users\etien\Documents\repos\Exolune`, après reprise des changements sur le `main` public par la session coordinatrice.
-- `verifie_auges.py` charge encore le port de référence par `git show 14c99ec:tools/hydro/cp.py` ; ce témoin devra être adapté au nouveau clone sans y importer l’ancien historique Git.
-- Les captures, caches et rapports bruts restent dans `x64/erosion-2026-11-01` de l’archive locale, hors Git ; le présent bilan, les contrôles et le parcours de vol sont versionnés.
+**Approach mutation:** the snowy pose was recovered from the running engine during the report.
+- Pose: `4096.4 -46.85004 -33.85772 31.9 -63.4`; second view 31.4 m lower.
+- The former filter scaled the entire valley by its intersection with coarse reference ground.
+- Near zero reference depth, changing the mesh moved distant planar banks by hundreds of metres.
+- The new filter averages the physical cross-section locally; it does not scale its coordinates or its floor mask.
+- In a fixed 4 km window, changing mesh spacing from 1 to 4 m moves terrain by at most 1.06 m, previously 220.85 m.
+- At 16 m spacing, the maximum is 9.55 m, previously 417.73 m; filtered terrain still changes with resolution.
 
-**Contrôles réalisés**
+**Targeted checks:** no performance or quality benchmark was run for these working corrections.
+- `python tools/hydro/verifie_filtre_vallees.py`: 240 profile samples against independent piecewise Gaussian quadrature; maximum error below 6e-12 m.
+- Checks cover zero reference depth, unchanged distant planar banks, bounded rise and an analytic derivative.
+- Three fixed terrain windows cover the reported snowy approach, a snowy trough and a tropical trough.
+- Mesh spacing of 1 and 0.25 m gives identical heights in these windows.
+- The existing profile, curve and endpoint checks pass; the four blade regressions still pass.
+- Release x64 builds through `tools/lance.ps1 -Build -NoLaunch`.
+- Two native captures retain the snowy cliff's main form through the descent; this is a local visual check.
+- Review route: `tools/tests/2026-11-01-mutations.txt`; F1/F2 are the snowy pair.
 
-- `python tools/hydro/verifie_auges.py` : profils, courbes, quatre sols, deux fenêtres glaciaires, 200 raccords et six traces sur les graines 0 et 1.
-- Dix-huit coupes vérifient la largeur de deux mailles et la conservation de l’aire ; erreur d’intégration inférieure à 0,001 %.
-- Les courbes sont comparées à toutes les racines de leur polynôme de distance ; 500 cas, erreur maximale inférieure à 10⁻⁸ rayon.
-- Les paramètres des sources et exutoires sont vérifiés sur 804 positions ; la seule distance ne détectait pas leurs sauts de largeur.
-- Dix mille coupes aléatoires vérifient que l’effacement du détail ne relève aucun creux.
-- Sur 4 010 points répartis entre les deux graines, le support grossier est identique au bit près, érosion activée ou non.
-- Sur les 3 908 points hors incision de ce tirage, le détail avant la coupe reste également identique.
-- Les 840 traversées de frontières de faces ou de fenêtres de lecture donnent zéro saut résiduel de hauteur ; écart résiduel de pente directrice inférieur à 0,0005 m/m.
-- Les six traces couvrent 11 à 23 km chacune ; aucun résidu du détail sur les fonds creusés.
-- Les recouvrements expliquent des écarts au niveau d’eau du lien sélectionné allant jusqu’à 16,12 m ; l’eau des fleuves n’est pas rendue et son futur raccord devra suivre la surface réellement gagnante.
-- Le bruit sans érosion reste identique au bit près dans les quatre fenêtres de sol.
-- Le réseau de niveau 0 du rendu, graine 0, conserve tous ses texels au bit près face à `14c99ec` ; seule la clé de cache dépendant de l’exécutable change.
-- Les coupes résolues à 1 m et 0,25 m sont identiques.
-
-| Fenêtre de 4 km, graine 0 | Avant | Après |
-|---|---:|---:|
-| Première auge : surface à moins de 10 cm du niveau d’eau | 31,60 % | 0,47 % |
-| Seconde auge : même mesure | 33,53 % | 0,96 % |
-| Première auge : plus grande cuvette locale | 57,50 m | 23,88 m |
-| Seconde auge : plus grande cuvette locale | 65,79 m | 15,40 m |
-
-- Les cuvettes restantes de ces fenêtres sont hors du fond contrôlé ; un carré à bords ouverts ne mesure pas le drainage complet d’un bassin.
-- Les pentes maximales des quatre sols sont 30,65°, 22,58°, 47,27° et 4,61° ; le seuil du manteau est `atan(1,25) = 51,34°`.
-- La déformation angulaire est contrôlée sur 200 000 directions, deux graines : 12,87–12,91 % de jacobiens négatifs à 7 km, aucun à 2 km ; minima 0,181 et 0,231.
-- Résultats locaux dans `x64/erosion-2026-11-01/geometrie-finale.json`.
-- Release x64 compilée ; douze vues rendues sans fenêtre dans `x64/erosion-2026-11-01/apres-native`.
-- Le banc de qualité termine sur les douze lieux ; treize p95 sur les 47 comparables dépassent de plus de 10 % ceux de `14c99ec`.
-- Le critère d’acceptation reste non satisfait ; cette piste n’est pas intégrée.
-
-**Le coût en mouvement**
-- `tools/banc_perf.py`, trois vues fixées, 1920 × 1080, VSync désactivée, météo figée, moyenne de 120 images par vue.
-- Mouvement par image : `1 0 0 1 0 0.003`, mêmes trajectoires pour `14c99ec` et la pile corrigée ; une exécution à la fois.
-- Résultats dans `perf-reference/perf.json` et `perf-apres/perf.json`, sous le même dossier de validation.
-
-| Vol | Calcul terrain avant → après | GPU total avant → après |
-|---|---:|---:|
-| Auge, 3 km | 1,243 → 1,416 ms | 28,119 → 29,304 ms |
-| Vallée tropicale, 5 km | 1,177 → 1,260 ms | 19,289 → 20,928 ms |
-| Forêt, 50 m | 2,103 → 2,376 ms | 22,864 → 24,193 ms |
-
-- La correction ajoute 0,08 à 0,27 ms au calcul du terrain ; le temps GPU total augmente de 4,2 à 8,5 % sur ces vols.
-- Ces moyennes ne constituent pas une mesure de variance entre exécutions.
-
-**La référence de qualité**
-- Douze lieux communs, cinq hauteurs de 12 m à 3 km, 1920 × 1080 ; lissage temporel et halo activés, nuages masqués.
-- Commande : `tools/banc_qualite.py ... --from-sites x64/erosion-2026-11-01/sites.json --batch-suns --before tools/banc_qualite_reference.json`.
-- `14c99ec` fournit 3 254 crops et dépasse déjà 10 % sur 22 mesures p95 contre la référence historique du 2026-10-24.
-- Cette référence précède le relief tectonique ; elle est conservée, avec une seconde comparaison sur les mêmes lieux contre `14c99ec`.
-- Certains couples matériau–hauteur ont moins de vingt crops ; leurs résultats restent signalés, sans exclusion du seuil.
-- Le témoin ne fournit aucun crop de sable isolé, malgré les deux lieux visés ; les éboulis n’ont que quatre crops à 12 m, aucun aux autres hauteurs.
-- Cette couverture ne permet pas de valider toutes les familles de matériaux.
-- La mutation mesure l’image entière sous son masque gris ; contrairement aux crops, elle n’exclut pas explicitement la mer.
-- Les captures donnent une hauteur au-dessus du sol filtré ; à grande altitude, les caméras des deux maillages peuvent donc différer. Le témoin atteint 40,3 m d’écart à 3 km, contre zéro aux vues à 12 et 50 m.
-- Ces limites sont conservées dans les deux passages ; ni métrique ni référence ne sont modifiées pour passer le seuil.
-
-**Le résultat du banc**
-- Deux passages complets : 60 vues et 540 captures chacun ; 3 254 crops avant, 2 535 après.
-- Toutes les mesures finales sont finies ; aucun couple matériau–hauteur du témoin ne disparaît.
-- Les éboulis à 50 m apparaissent avec seize crops ; leurs deux p95 n’ont pas de témoin comparable.
-- Contre la référence historique, 19 dépassements sur les 47 p95 comparables, contre 22 avant ; cela ne valide pas la correction.
-- Contre `14c99ec`, les treize dépassements sont les suivants ; les faibles effectifs restent comptés.
-
-| Matériau, hauteur | Mesure p95 | Avant → après | Crops avant → après |
-|---|---|---:|---:|
-| Herbe, 200 m | Répétition | 0,090 → 0,112 | 235 → 157 |
-| Herbe, 3 km | Répétition | 0,203 → 0,234 | 171 → 183 |
-| Roche, 3 km | Trou / répétition | 2,24 → 2,71 dB / 0,144 → 0,193 | 157 → 46 |
-| Éboulis, 12 m | Répétition | 0,073 → 0,187 | 4 → 18 |
-| Neige, 800 m | Trou | 2,73 → 3,01 dB | 174 → 212 |
-| Neige, 3 km | Trou | 2,69 → 3,41 dB | 231 → 234 |
-| Sol nu, 12 m | Répétition | 0,070 → 0,103 | 16 → 104 |
-| Sol nu, 50 m | Trou / répétition | 2,20 → 5,73 dB / 0,076 → 0,216 | 46 → 96 |
-| Sol nu, 200 m | Trou / répétition | 1,01 → 2,67 dB / 0,080 → 0,217 | 40 → 103 |
-| Sol nu, 800 m | Répétition | 0,094 → 0,205 | 14 → 20 |
-
-- La mutation p95 baisse aux cinq hauteurs : 0,200 → 0,196 à 12 m ; 0,205 → 0,146 à 50 m ; 0,216 → 0,168 à 200 m ; 0,110 → 0,101 à 800 m ; 0,060 → 0,049 à 3 km.
-- Le principal trou du sol à 50 m vient du lieu −25,6°, −26,94°, devenu sol nu et neige là où le témoin montrait une paroi rocheuse.
-- Une fenêtre de 800 m autour de ce lieu, 1 681 sondes à maille de 1 m, est entièrement hors incision ; son sol est identique au bit près avec ou sans érosion.
-- Le manque de détail mesuré dans cette fenêtre appartient donc au rendu du support conservé ; la coupe n’y éteint aucun détail.
-- Les vues couleur et relief sur ce lieu et le canyon sont dans `diagnostic-reference` et `diagnostic-apres` ; les écarts par crop dans `attribution-qualite.json`, sous le même dossier de validation.
-- Rapports complets : `qualite-apres/rapport.md`, `qualite-apres/comparaison-14c99ec.md` et `audit-qualite.json`.
+**Open cases:** the green disappearing scar has no recovered exact position yet.
+- A nearby coastal witness is not that screenshot's position.
+- At `8.48997 -103.55646`, changing mesh spacing from 1 to 16 m changes height by 45.19 m.
+- The cliff remap amplifies a 3.87 m change in its input height; its width parameter is unchanged there.
+- The physical coastal metric correction does not alter this witness; the nearby captures do not reproduce the reported zigzag scar.
+- Useful gully amplitude, distant repetitive drainage and the previous quality failures remain unresolved.
 
 ## Les défauts connus
 
+- **Hydrological integration remains incomplete:** coarse paths and repeated valley profiles can dominate fine mountains and cut volcanic bowls whose outlet the coarse map does not resolve.
+- The composition correction removes a demonstrated source of false side trenches; it does not validate the distribution, age or connectivity of all incisions.
+- A cap from coarse network incision alone was rejected because its reference heights differ from the rendered support; stage and route reconciliation must come first.
+- Volcanic freshness currently quiets detail and controls bare materials; the drainage solve does not directly use it to limit incision.
+- The new flight route `tools/tests/2026-11-01-composition.txt` includes river banks, confluences, mountain ranges, two craters, an outlet, a lake and a coastal witness.
+
 - **Le retour en vol du 2026-11-01 invalide une conclusion de géométrie propre :** lames minces, aiguilles et raccords en dents de scie subsistent dans les captures ci-dessous, malgré les contrôles CPU passés sur leurs échantillons.
-- **Le seuil de qualité reste en échec :** treize p95 de texture régressent face au témoin courant ; les sols nus nouvellement visibles et la neige demandent une suite sur le rendu des matériaux.
+- **Previous quality failures remain open:** the archived closure recorded thirteen texture p95 regressions; this working correction has not rerun that benchmark.
 - **Les ravines sont désormais liées au creusement réel :** les pentes ne perdent plus leur support grossier avant la décision. Certaines crêtes non incisées perdent les bandes artificielles de la version E ; leur forme est à juger en vol.
-- **Les fonds glaciaires ne sont plus de larges aplats :** le U reste courbe, ses raccords sont continus dans les cas contrôlés. Les creux de versant subsistent. L’eau des fleuves et des lacs n’est pas encore rendue.
+- **Glacial floors:** the U remains curved, with continuous joins in the checked cases. Hillside hollows remain. Rivers and terminal lakes now have a first visible-water implementation (`spec-eaux-interieures.md`).
 - **Les vallées du niveau 0 restent régulières à grande échelle :** le U corrige le fond glaciaire ; les versants fluviaux convexes-concaves et les éperons tronqués restent à construire.
 - **Les deltas sont petits, et l'un d'eux faux :** 5 km au plus, la portée des nœuds lus ; à l'embouchure du plus grand fleuve, -7,8°, 27,2°, une langue de dépôt isolée au large, cause non trouvée, et un pan de côte aux bords droits, qui ne vient pas des dépôts. Les grands deltas demandent un champ des dépôts lu en B-spline.
 - **Les ravines peuvent se voir peu de loin :** leur amplitude est désormais bornée par le sol porteur ; les deux octaves de plus de 20 km gardent leurs crêtes orientées le long des chaînes.
-- **Le coût augmente légèrement sur les trois vols contrôlés :** mesures ci-dessus ; aucune simulation supplémentaire pendant le vol.
+- **Cost:** earlier flight measurements are archived; the current filter adds no terrain query or simulation, and its runtime cost has not been benchmarked.
 - **Les fleuves des flancs restent parallèles et droits sur 50 à 100 km,** sur les pentes régulières : la forme avant érosion filtrée à 40 km n'y a pas de relief qui les dévie.
 - **Les falaises manquent où le rivage réel s'écarte de plus de 8 km de son estimation :** la côte active à -8,11°, 131,04° n'en a pas ; le plafond borne le coût.
 - **Les falaises ne se voient qu'à quelques km :** de 30 km, le platier n'est qu'une bande turquoise ; la paroi à 23° S reste basse, 42 m.
@@ -344,8 +354,8 @@ Statut : spec vivante, depuis le 2026-10-31, branche `erosion-globale`, piste `p
 - [11:57:55, lames](images/erosion-2026-11-01/115755-lames.png) : hauteur 61,7 m, sol vers 1,9 km ; parois très minces et aiguilles, y compris en zone boisée.
 - [11:58:16, aiguilles](images/erosion-2026-11-01/115816-aiguilles.png) : hauteur 78,9 m, sol vers 3,5 km ; nombreux pics sur un rebord abrupt et raccords dentelés.
 - [11:59:12, motifs lointains](images/erosion-2026-11-01/115912-motifs-lointains.png) : hauteur 417,5 km ; vallées parallèles, espacement et courbures trop réguliers sur certaines régions.
-- La cause précise des lames et aiguilles reste à isoler ; ces images seules ne tranchent pas entre le champ de hauteur, ses directions de ravines et sa reconstruction par le maillage.
-- Priorité dans le nouveau clone : retrouver les poses, conserver une reproduction de ces cas, puis corriger les cassures avant de poursuivre la variété des grandes formes.
+- The screenshots alone do not identify the cause. Subsequent CPU probes reproduce blades in the height field and isolate the rock-gully budget exception; see the regression checks above.
+- The active continuation is in the Exolune clone on the replayed erosion branch. Review the blade and valley-filter corrections in flight; recover the green scar position before declaring the approach artifacts resolved.
 
 ## Ce que la recherche a appris
 
@@ -383,6 +393,8 @@ Branche `erosion-niveaux`, `docs/recherche-erosion-niveaux.md` :
 | 3 quinquies | Fonds raccordés à l’eau, borne rocheuse à 70° | fait dans D ; limites reprises par E |
 | 3 sexies | Ravines selon roche et échelle ; directions gauchies sur la sphère | code et contrôles CPU faits ; jugement en vol à faire |
 | 4 | U continus, gauchissement sans repli dans les contrôles, relief support conservé | étape figée ; contrôles CPU passés, géométrie invalidée en vol par les lames et aiguilles ; treize p95 en échec |
+| 4a | Shared gully slope budget and local valley-profile filtering | CPU checks and snowy approach captures pass; user flight review, green scar and coastal mutation remain open |
+| 4b | Connected talus and physical coastal metric | Profile and six terrain checks pass; native captures remove the reported false wall; wider straight incision and approach sensitivity remain open |
 | 4 bis | Versants fluviaux convexes-concaves, éperons tronqués | à faire |
 | 5 | Les grands deltas, par un champ des dépôts | à faire |
-| 6 | L'eau des fleuves et des lacs, depuis le même réseau | à faire, avec la mer |
+| 6 | Water from the same river and lake network | first implementation, 2026-11-01; flight review and limitations in `spec-eaux-interieures.md` |

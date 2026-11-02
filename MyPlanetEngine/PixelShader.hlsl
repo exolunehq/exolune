@@ -6,6 +6,8 @@
 #include "Objects.hlsli"
 #include "Vegetation.hlsli"
 #include "Sea.hlsli"
+#define RELIEF_PIXEL
+#include "Relief.hlsli"
 
 // The colours below are reflectances written in sRGB, as picked on screen: converted to linear light.
 float3 SrgbToLinear(float3 c)
@@ -227,16 +229,18 @@ Ground GroundAt(float3 q, float elevation, float3 up, float3 normal, float3 shor
     return g;
 }
 
-StructuredBuffer<float4> fineNormals : register(t7); // the fine grid's normals (FineNormals.hlsl)
+StructuredBuffer<FineSample> fineNormals : register(t7); // the fine grid's normals and water (FineNormals.hlsl)
 
-// The fine grid's normal at a pixel of the face (docs/spec-rendu-lointain.md, step 2): the true relief finer
-// than the mesh, interpolated between the four grid points around the pixel, and its elevation, which snow
-// follows. weight: how much of it to take, fading out over the face's last eight cells, 0 on the rings, off
-// screen or when the grid is off.
-float3 FineNormal(float3 chart, out float weight, out float elevation)
+// Reconstruct one cubic height surface from the fine grid, and differentiate that SAME surface for its normal.
+// Linear heights and independently interpolated normals exposed the sliding grid in distant mountains: the
+// height's slope jumped at every cell border. Positive B-spline weights keep the source height range. Water
+// retains its premultiplied four-tap reconstruction and separate physical contour query below.
+// Weight fades over the face's last eight cells; no fine grid on rings or culled samples.
+float3 FineNormal(float3 chart, out float weight, out float elevation, out float4 inland)
 {
     weight = 0.0;
     elevation = 0.0;
+    inland = 0.0;
     if (ringParams.z <= 0.0 || chart.z > 0.5)
         return 0.0;
     const float n = faceParams.w;
@@ -245,15 +249,46 @@ float3 FineNormal(float3 chart, out float weight, out float elevation)
     // Clamped both ways: at the face's border the interpolated chart dips a hair below 0, and a root
     // descriptor has no bounds check, so a read out of the buffer would bring the GPU down.
     const int2 c = clamp((int2)floor(f), 0, fineCells - 1);
-    const float2 t = f - c;
+    const float2 t = saturate(f - c);
     const uint i = c.y * (fineCells + 1) + c.x;
-    const float4 a = fineNormals[i], b = fineNormals[i + 1], d = fineNormals[i + fineCells + 1], e = fineNormals[i + fineCells + 2];
+    const FineSample sa = fineNormals[i], sb = fineNormals[i + 1], sd = fineNormals[i + fineCells + 1], se = fineNormals[i + fineCells + 2];
+    const float4 a = sa.terrain, b = sb.terrain, d = sd.terrain, e = se.terrain;
     if (dot(a.xyz, a.xyz) * dot(b.xyz, b.xyz) * dot(d.xyz, d.xyz) * dot(e.xyz, e.xyz) == 0.0) // a point off screen
         return 0.0;
+    inland = lerp(lerp(sa.inland, sb.inland, t.x), lerp(sd.inland, se.inland, t.x), t.y);
+    const float4 wu = SplineWeights(t.x), wv = SplineWeights(t.y), su = SplineSlopes(t.x), sv = SplineSlopes(t.y);
+    float height = 0.0;
+    float2 slope = 0.0;
+    bool valid = true;
+    [unroll] for (int y = 0; y < 4; ++y)
+    {
+        float row = 0.0, rowSlope = 0.0;
+        [unroll] for (int x = 0; x < 4; ++x)
+        {
+            const int2 tap = clamp(c + int2(x - 1, y - 1), 0, fineCells);
+            const float4 sample = fineNormals[tap.y * (fineCells + 1) + tap.x].terrain;
+            valid = valid && dot(sample.xyz, sample.xyz) > 0.0;
+            // Derivative weights sum to zero; subtract a nearby height before accumulating them.
+            row += wu[x] * (sample.w - a.w);
+            rowSlope += su[x] * (sample.w - a.w);
+        }
+        height += wv[y] * row;
+        slope += float2(wv[y] * rowSlope, sv[y] * row);
+    }
     const float4 mixed = lerp(lerp(a, b, t.x), lerp(d, e, t.x), t.y);
-    elevation = mixed.w;
+    elevation = valid ? a.w + height : mixed.w;
     weight = ringParams.z * saturate(min(min(chart.x, n - chart.x), min(chart.y, n - chart.y)) / 8.0);
-    return normalize(mixed.xyz);
+    if (!valid) return normalize(mixed.xyz);
+    const float fineCell = 2.0 * faceParams.x / fineCells;
+    slope /= fineCell;
+    const float2 xy = (f / fineCells * 2.0 - 1.0) * faceParams.x;
+    const float3 radial = float3(xy, faceParams.y);
+    const float radius = length(radial);
+    const float3 up = radial / radius;
+    const float stretch = (faceParams.y + elevation) / radius;
+    const float3 du = stretch * (float3(1.0, 0.0, 0.0) - up.x * up) + slope.x * up;
+    const float3 dv = stretch * (float3(0.0, 1.0, 0.0) - up.y * up) + slope.y * up;
+    return normalize(cross(du, dv));
 }
 
 Texture2D<float> shipSunMap : register(t44); // the ship's own map towards the sun (Ship.h)
@@ -316,7 +351,8 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     float splineElevation, splineWeight;
     const float3 splineNormal = SplineNormal(input.chart, input.corner, up, splineSurface, splineElevation, splineWeight);
     float fineWeight, fineElevation;
-    const float3 fineNormal = FineNormal(input.chart, fineWeight, fineElevation);
+    float4 fineInland;
+    const float3 fineNormal = FineNormal(input.chart, fineWeight, fineElevation, fineInland);
     // The fine grid lights the ground from face cells of FINE_LIGHT_MIN_CELL; the materials are decided on it further down.
     const float lightWeight = fineWeight * smoothstep(FINE_LIGHT_MIN_CELL, 2.0 * FINE_LIGHT_MIN_CELL, 2.0 * faceParams.x / faceParams.w);
     const float3 vertexNormal = normalize(lerp(normalize(lerp(normalize(input.normal), splineNormal, splineWeight)), fineNormal,
@@ -325,7 +361,68 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     const float cellSize = input.cellSize / lerp(1.0, ringParams.w, lightWeight);
     const float slopeSpread = input.slopeSpread * sqrt(max(log2(cellSize / DETAIL_MIN_WAVELENGTH), 0.0)
                                                        / max(log2(input.cellSize / DETAIL_MIN_WAVELENGTH), 1e-3));
-    const float elevation = lerp(lerp(input.elevation, splineElevation, splineWeight), fineElevation, fineWeight);
+    float elevation = lerp(lerp(input.elevation, splineElevation, splineWeight), fineElevation, fineWeight);
+    const float4 inlandSample = lerp(input.inland, fineInland, fineWeight);
+    float waterLevel = inlandSample.y / max(inlandSample.x, 1e-8);
+    float waterDepth = inlandSample.z / max(inlandSample.x, 1e-8);
+    float3 waterFlow = input.water.xyz;
+    // Independent water coverages: a dry positive vertex cannot reclassify a whole coastal triangle as a lake.
+    // Premultiplication excludes dry heights from the water stage; the fine grid supplies its own wetness.
+    const float elevationSpread = ElevationSpread(slopeSpread, cellSize);
+    float oceanCoverage = 1.0 - SpreadStep(-1.0, 1.0, elevation, elevationSpread);
+    const float shoreAA = max(abs(ddx(inlandSample.z)) + abs(ddy(inlandSample.z)), 0.05);
+    float inlandCoverage = saturate(inlandSample.x) * smoothstep(0.02, 0.02 + shoreAA, waterDepth);
+    // Grid wetness is a candidate, never the final contour. In particular a narrow river can pass between every
+    // dry sample. Refine its conservative distance band with the SAME terrain rule at pixel scale. This also
+    // prevents a moving grid's linear height approximation from drawing polygonal coastlines in orbit.
+    const float sampleCell = input.cellSize / lerp(1.0, ringParams.w, fineWeight);
+    const float pixelCell = max(0.5 * footprint, CREASE_MIN_CELL);
+    const float unresolved = smoothstep(1.0, 2.0, sampleCell / pixelCell);
+    const float heightBand = max(elevationSpread, max(abs(ddx(elevation)), abs(ddy(elevation)))
+                                  * sampleCell / max(footprint, 1e-3)) + 0.02 * sampleCell + 2.0;
+    const float coastSupport = 1.0 - smoothstep(2.0 * heightBand, 3.0 * heightBand, abs(elevation));
+    const float riverSupport = 1.0 - smoothstep(2.0 * sampleCell, 3.0 * sampleCell, abs(inlandSample.w));
+    const float mixedShore = smoothstep(0.0, 0.02, inlandSample.x) * (1.0 - smoothstep(0.98, 1.0, inlandSample.x));
+    const float refine = unresolved * max(coastSupport, max(riverSupport, mixedShore));
+    const float dryBound = max(2.0 * footprint, 20.0);
+    float preciseElevation = elevation, preciseClearance = -dryBound;
+    float preciseLevel = waterLevel, preciseDepth = waterDepth;
+    float3 preciseFlow = waterFlow;
+    // Two fine-derivative reductions broadcast any candidate across its 2x2 quad, without requiring wave ops.
+    const float candidate = refine > 0.0 ? 1.0 : 0.0;
+    const float rowCandidate = saturate(candidate + abs(ddx_fine(candidate)));
+    const float evaluateContour = rowCandidate + abs(ddy_fine(rowCandidate));
+    [branch] if (evaluateContour > 0.0)
+    {
+        gMaxFrequency = (1000.0 * PLANET_RADIUS_KM) / (MESH_BAND_LIMIT * pixelCell);
+        gCreaseMaxFrequency = gMaxFrequency;
+        gExactLattice = pixelCell < EXACT_LATTICE_MAX_CELL;
+        // Keep the cancellation-free nadir offset used by TerrainAt; no planet-sized float position.
+        const float3 offset = up.x * faceX.xyz + up.y * faceY.xyz
+                            - (dot(up.xy, up.xy) / max(1.0 + up.z, 1e-6)) * faceZ.xyz;
+        preciseElevation = ReliefElevation(nadir.xyz + (double3)offset);
+        preciseLevel = gWaterLevel;
+        preciseDepth = max(preciseLevel - preciseElevation, 0.0);
+        preciseClearance = max(gWaterClearance, -dryBound);
+        preciseFlow = gWaterFlow;
+    }
+    // Every lane of a derivative quad evaluates together, including a mixed lake shore at the end of a candidate
+    // band. A dry fallback must never participate in a derivative of the freshly evaluated water field.
+    const float oceanAA = max(abs(ddx(preciseElevation)) + abs(ddy(preciseElevation)), 0.02);
+    const float liquidAA = max(abs(ddx(preciseClearance)) + abs(ddy(preciseClearance)), 0.02);
+    const float preciseOcean = 1.0 - smoothstep(-0.5 * oceanAA, 0.5 * oceanAA, preciseElevation);
+    // A dry plane can coincide exactly with its drainage stage. Zero clearance is dry, never half water;
+    // centre-symmetric AA would flood every such floor with a 50% reflective ribbon in distant views.
+    const float preciseInland = smoothstep(0.0, 0.5 * liquidAA, preciseClearance);
+    oceanCoverage = lerp(oceanCoverage, preciseOcean, refine);
+    inlandCoverage = lerp(inlandCoverage, preciseInland, refine);
+    // The contour query decides water, not the bandwidth of land materials or their existing fine normals.
+    // Feeding its finer height to coarse snow/material decisions introduces a new high-frequency pattern in orbit.
+    const float waterBedElevation = lerp(elevation, preciseElevation, refine);
+    waterLevel = lerp(waterLevel, preciseLevel, refine);
+    waterDepth = lerp(waterDepth, preciseDepth, refine);
+    waterFlow = lerp(waterFlow, preciseFlow, refine);
+    const float sea = inlandCoverage + (1.0 - inlandCoverage) * oceanCoverage;
     // The point the materials and the fine detail are looked up at: on the spline surface, where the view ray
     // meets it, one Newton step from the triangle; on the triangle where the spline does not apply.
     float3 surfacePos = input.pos;
@@ -343,7 +440,7 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
         if (dot(normal, up) < 0.0)
             normal = -normal;
     }
-    else if (DETAIL_SLOPE > 0.0 && elevation >= 0.0) // the sea stays flat
+    else if (DETAIL_SLOPE > 0.0 && sea < 1.0) // the dry fraction keeps terrain detail; water has its own ripples
     {
         const float3 planetSlope = DetailSlope(q, cellSize, footprint);
         detail = float3(dot(planetSlope, faceX.xyz), dot(planetSlope, faceY.xyz), dot(planetSlope, faceZ.xyz));
@@ -351,10 +448,6 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
         normal = normalize(vertexNormal - detail);
     }
 
-    // The sea's share of the pixel: the heights spread within it, and the coast is where they cross 0
-    // (docs/spec-rendu-lointain.md). The ground is drawn wherever some of the pixel is land.
-    const float elevationSpread = ElevationSpread(slopeSpread, cellSize);
-    const float sea = 1.0 - SpreadStep(-1.0, 1.0, elevation, elevationSpread);
     // North, the planet's y axis, in the face frame.
     const float3 north = float3(faceX.y, faceY.y, faceZ.y);
     const float sinLat = dot(up, north);
@@ -408,9 +501,23 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
 
     // The sea's surface (Sea.hlsli): the water's own normal, its waves on the vertical, never the coast's.
     SeaSurface water = (SeaSurface)0;
-    if (sea > 0.0) // the water's colour from the climate map's temperature, its cold currents greener
+    if (oceanCoverage > 0.0 && inlandCoverage < 1.0)
         water = SeaSurfaceAt(input.pos, dpdx, dpdy, q, log2(footprint), up, ClimateAt(materialSampler, PlanetDirection(up), footprint).y,
-                             0.0, elevation, elevationSpread, sunShare,input.seaParam,seaDx,seaDy,input.seaHeight);
+                             0.0, waterBedElevation, elevationSpread, sunShare,input.seaParam,seaDx,seaDy,input.seaHeight);
+    if (inlandCoverage > 0.0)
+    {
+        const SeaSurface river = InlandWaterAt(input.pos, q, log2(footprint), up, waterLevel, waterDepth, waterFlow, sunShare);
+        const float blend = inlandCoverage / max(sea, 1e-8);
+        water.radiance = lerp(water.radiance, river.radiance, blend);
+        water.sunRadiance = lerp(water.sunRadiance, river.sunRadiance, blend);
+        water.foam = lerp(water.foam, river.foam, blend);
+        water.glint = lerp(water.glint, river.glint, blend);
+        water.wind = lerp(water.wind, river.wind, blend);
+        water.moving = lerp(water.moving, river.moving, blend);
+        water.foamFresh = lerp(water.foamFresh, river.foamFresh, blend);
+        water.foamOld = lerp(water.foamOld, river.foamOld, blend);
+        water.crest = lerp(water.crest, river.crest, blend);
+    }
 
     // Diagnostic views (tools/banc_descente.py): each pixel white with the probability of the weight shown,
     // unlit, so that the share of white pixels is that weight's mean, at any distance. The sea's views are measures

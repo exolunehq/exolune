@@ -10,6 +10,11 @@
 
 ## What it contains
 
+- **`spec-normales-spline-historique.md`:** retired cardinal prefilter and the replaced fine-grid height/normal interpolation; current reconstruction in `../spec-normales-spline.md`.
+- **`spec-marche-ambiances-historique.md`:** replaced prototype contact recordings and material selector; current rules in `../spec-marche-ambiances.md`.
+- **`spec-vaisseau-historique.md`:** the replaced clearance-dependent near plane and nadir-only interactive contact; current projection and sweep limits in `../spec-vaisseau.md`.
+- **`spec-erosion-historique.md`:** superseded erosion profiles and checks, including the rock-only slope budget, valley dilation, coastal talus and metric, signed-detail composition, rejected incision cap and archive-worktree closure; current rules in `../spec-erosion.md` and `../spec-eaux-interieures.md`.
+
 **The origins of**
 
 | File | Why here |

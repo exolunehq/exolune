@@ -89,7 +89,7 @@ Status: chosen the 2026-10-21; first version made, the face only.
 
 - **A grid 4 times thinner than the face of the mesh,** 768 × 768 grid cells, recalculated at each frame by complexplanet, filtered to its own grid cell as the mesh is to its own.
 - **Two pass calculation:** the heights of the fine grid, then its normals.
-- **The pixel takes the fine normal,** interpolated between four points, instead of the mesh. It fades on the last eight grid cells of the edge of the face.
+- **The pixel reconstructs the fine height with a positive 4 by 4 cubic B-spline and derives its normal from that surface,** instead of independently interpolating linear heights and normals. It fades on the last eight face cells; see `spec-normales-spline.md` for the 2026-11-01 correction and its limits.
 - **The grain of the lighting and the dispersion of slopes** are adjusted on the grid cell fine: the invented grain starts only below it.
 - **Up to 160 m from the ground for material decisions:** active from grid cells face of 3,4 m, `FineMinCell`, fully to 6,8 m, or 320 m high. Lower, the mesh carries the thinnest octave of the relief, 13,5 m, on its 4 grid cells. It stopped first at 20 m from grid cell, towards 1 km: see the correction of the 2026-10-24 below.
 - **Up to 1 km for light:** it illuminates the ground only from grid cells of 20 m, `FINE_LIGHT_MIN_CELL` front. Lower, normal spline and grain, more stable, and textures fill the grid cells.

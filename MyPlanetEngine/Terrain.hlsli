@@ -28,7 +28,7 @@ float TerrainAt(float2 xy, float R, float camAltitude, out float3 d, out float3 
     // Point = nadir (double) + offset from the nadir, without cancellation: d.z - 1 = -r2 / (L * (R + L)).
     const float3 offset = d.x * faceX.xyz + d.y * faceY.xyz - (r2 / (L * (R + L))) * faceZ.xyz;
     const float e = ReliefElevation(nadir.xyz + (double3)offset);
-    pos = RelativePosition(d, r2, L, R, camAltitude, max(e, 0.0)); // flat sea surface
+    pos = RelativePosition(d, r2, L, R, camAltitude, max(e, gWaterLevel));
     return e;
 }
 

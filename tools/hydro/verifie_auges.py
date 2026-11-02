@@ -1,7 +1,7 @@
 """Contrôle des auges et raccords, sans fenêtre ; depuis la racine du worktree.
 
 python tools/hydro/verifie_auges.py --out x64/erosion-2026-11-01/geometrie.json
-La référence est le dernier état Claude, 14c99ec ; mêmes caches pour les deux versions.
+The reference is the public-history replay, 7c9f475; both versions use the same caches.
 """
 import argparse
 import json
@@ -73,7 +73,8 @@ def profiles(old):
             if name == 'apres':
                 assert np.all(np.diff(z)>=-1e-8), 'le U remonte puis redescend transversalement'
                 assert z.min()>=1500., 'le profil passe sous son fond drainé'
-                assert abs(z[0]-1500.)<1e-8
+                curvature = cp.EROSION_GLACIER[2]/np.clip(cp.EROSION_GLACIER[0]*(ice/1e8)**cp.EROSION_GLACIER[1],150.,1500.)
+                assert abs(z[0]-1500.-curvature*cp.CREASE_MIN_CELL**2/3.)<1e-8
                 assert np.max(abs(np.gradient(s,.25)[2:-2]-r[2:-2]))<1e-4
                 assert row[name+'_largeur_plate_m']<50., 'le fond est encore un large aplat'
         rows.append(row)
@@ -122,23 +123,13 @@ def curves():
 
 
 def filtering():
-    """Le filtre conserve l'aire creusée et résout le profil sur deux mailles, même pour un U peu profond."""
-    rows = []
-    d = np.linspace(0.,40000.,40001)
-    for ice in (0.,6e6,1e8):
-        for depth in (100.,1000.):
-            reference_area = None
-            for width in (2.,2000.,10000.):
-                s,_,_,_ = cp._erosion_profile(d,0.,100.,ice,.01,.65,depth,width,4000.)
-                area = float(2.*np.trapezoid(np.maximum(depth-s,0.),d))
-                reference_area = area if reference_area is None else reference_area
-                error = abs(area/reference_area-1.)
-                actual_width = float(d[s<depth][-1])
-                assert error<.005, 'le filtrage change le volume de la vallée'
-                assert actual_width>=width-1.1, 'la vallée filtrée reste sous deux mailles'
-                rows.append(dict(glace=ice,profondeur_m=depth,largeur_min_m=width,
-                                 largeur_m=actual_width,erreur_aire_relative=error))
-    return rows
+    """Check the local mean against independent quadrature, including zero reference depth.
+
+    The former area-preserving dilation passed positive-depth sections but moved the
+    unbounded banks by hundreds of metres when reference depth approached zero.
+    """
+    from verifie_filtre_vallees import profiles as averaged_profiles
+    return averaged_profiles()
 
 
 def parent_independence():
@@ -343,8 +334,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out',default='x64/erosion-2026-11-01/geometrie.json')
     args = parser.parse_args()
-    old = reference('14c99ec')
-    report = dict(reference='14c99ec',profils=profiles(old),courbes=curves(),gauchissement=jacobians(),filtrage=filtering(),
+    old = reference('7c9f475')
+    report = dict(reference='7c9f475',profils=profiles(old),courbes=curves(),gauchissement=jacobians(),filtrage=filtering(),
                   support=parent_independence())
     report['sols'] = soils(old)
     report['auges'] = trough_windows(old)

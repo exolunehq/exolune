@@ -109,6 +109,34 @@ struct SeaSurface {
     float3 radiance;float3 sunRadiance;float foam;float glint;float2 wind;float moving;
     float foamFresh;float foamOld;float crest;
 };
+// Inland water uses the drainage stage, not ocean displacement. Two advected, cross-faded phases keep the
+// small ripples continuous when their local clock wraps; unresolved ripples remain reflection roughness.
+SeaSurface InlandWaterAt(float3 pos, float3 q, float pixel, float3 up, float level, float depth, float3 flow, float sunShare)
+{
+    SeaSurface water = (SeaSurface)0;
+    const float phase = frac(oceanTime.x / 64.0), other = frac(phase + 0.5);
+    const float blend = 0.5 - 0.5 * cos(6.2831853 * phase);
+    const float3 drift = flow + float3(0.17, 0.0, 0.11);
+    const float3 ripple = lerp(Fbm3(q - drift * (other * 64.0), 2.0, 0.0, pixel, 0.5, 731u),
+                               Fbm3(q - drift * (phase * 64.0), 2.0, 0.0, pixel, 0.5, 731u), blend);
+    float3 slope = 0.11 * float3(dot(ripple, faceX.xyz), dot(ripple, faceY.xyz), dot(ripple, faceZ.xyz));
+    slope -= dot(slope, up) * up;
+    const float3 normal = normalize(up - slope), sun = lightDir.xyz;
+    const float3 axis = normalize(waveAxisX.xyz - dot(waveAxisX.xyz, up) * up);
+    const float height = level / 1000.0, muS = dot(up, sun);
+    const float3 sunLight = SUN_ILLUMINANCE * SunTransmittance(height, muS, 0.0) * sunShare;
+    const float3 direct = sunLight * max(muS, 0.0), sky = SkyIrradiance(height, muS, 0.0);
+    const float2 roughness = float2(0.002, 0.003) + 0.0005 * min(length(flow), 4.0);
+    const WaterReflection reflection = ReflectOnWater(up, normal, -normalize(pos), sun, axis,
+                                                      roughness, roughness + 0.001, height, sunLight);
+    const float3 albedo = WaterAlbedo(-max(depth, 0.0), 0.01, 0.85);
+    water.radiance = reflection.radiance + (1.0 - reflection.fresnel) * albedo / PI * (direct + sky);
+    water.sunRadiance = reflection.sunRadiance + (1.0 - reflection.fresnel) * albedo / PI * direct;
+    water.glint = reflection.glint;
+    water.moving = 1.0 - smoothstep(0.0, 2.0, pixel);
+    return water;
+}
+
 SeaSurface SeaSurfaceAt(float3 pos,float3 dpdx,float3 dpdy,float3 q,float pixel,float3 up,float temperature,float height,
     float elevation,float spread,float sunShare,float2 rest,float2 dx,float2 dy,float waveHeight) {
     SeaSurface sea=(SeaSurface)0;

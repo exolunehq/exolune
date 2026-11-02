@@ -1,0 +1,13 @@
+# Seed 0. Sea-level altitudes. F1 reproduces the user's cliff toe; F2 shows its surroundings. I toggles coordinates.
+Cliff toe: reported close view | 28.7 -47.008952 -32.993928 62.67 -50.35 | -40 -10
+Cliff toe: wider view | 128.7 -47.008952 -32.993928 62.67 -50.35 | -40 -10
+Southern rocky coast | 117.971 -23.18981 157.86949 40 -131.078 | -20 150
+Tropical coast: inland view | 197.192 8.48997 -103.55646 40 231.1 | 10 -100
+Flat coast: unchanged witness | 49.652 16.71 -89.28 45 0 | 15 -90
+Cold range: ridges and troughs | 8530.567 -46.9 -33.8 45 0 | -40 -10
+Snowy approach: upper view | 4096.4 -46.85004 -33.85772 31.9 -63.4 | -40 -10
+Snowy approach: lower view | 4065.0 -46.85004 -33.85772 31.9 -63.4 | -40 -10
+Blade regression 1: close slope | 2170.505 -25.5689892303 -27.0977052379 12 -31.985 | -25 -25
+Blade regression 3: close slope | 3520.171 -7.3762949296 116.9875262922 12 -135.978 | -5 125
+Tropical U valley | 6973.063 -5.6 127.9 40 0 | -5 125
+Collision range: repeated patterns | 30901.875 -7.5 117.0 40 20 | -5 125

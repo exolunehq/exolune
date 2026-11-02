@@ -1,0 +1,22 @@
+# Seed 0. Sea-level camera altitudes. Six new mountain views, then the twelve composition witnesses.
+# F1-F6: three river sites at 4915, 4912 and 4678 m, each seen from above and near its bed. Target water and camera clearance checked in cp.py.
+# F1-F12 select the first twelve views. All eighteen are available in the windowed Tests palette; hold Alt to use the cursor. N toggles clouds.
+# Erosion review: tools/lance.ps1 -Parcours tools/tests/2026-11-01-rivieres-montagne.txt -Resolution fenetre -SansNuages
+Riviere a 4915 m : massif equatorial | 6715.25 -3.678786174 124.087242123 56.31 -92.2583 | 6.32 149.08
+Approche : meme riviere equatoriale | 5075.25 -3.679140115 124.078247216 38.66 -92.2577 | 6.32 149.08
+Riviere a 4912 m : massif austral | 6712.00 -48.198886293 70.658652797 56.31 140.3764 | -38.21 95.67
+Approche : meme riviere australe | 5072.00 -48.205805396 70.667249084 38.66 140.3700 | -38.21 95.67
+Riviere a 4678 m : haute vallee | 6478.00 -36.947217081 81.620189257 56.31 -122.3254 | -26.95 106.61
+Approche : meme haute vallee | 4838.00 -36.952020344 81.610690100 38.66 -122.3197 | -26.95 106.61
+Riviere : anciens fosses lateraux | 150.9 -12.406891 52.928246 26.44 -118.93 | -10 50
+Meme riviere : berges depuis 500 m | 500 -12.406891 52.928246 35 -118.93 | -10 50
+Confluence : traces encore geometriques | 3602.1 -12.486714 52.694265 25.40 103.43 | -10 50
+Riviere de plaine : eau et berges | 650 7.967792903 -84.518564462 65 0 | 10 -85
+Meme region : apparition depuis 18 km | 18045.3 7.953168 -84.525373 84 24.75 | 10 -85
+Chaine de collision : incisions | 30901.875 -7.5 117 40 20 | -5 125
+Chaine enneigee : cretes et auges | 6760.919 -25.6 -26.94 25 0 | -25 -25
+Caldeira jeune : volcanisme et drainage | 6140 9.25 -50.04 25 0 | 9 -10
+Stratovolcan : cratere et exutoires | 15000 11.68268449 -51.41928304 80 0 | 11 -5
+Embouchure signalee : raccord a la mer | 1351 -1.882499 69.597920 23.37 -15.30 | -2 70
+Lac temoin : rive et vegetation | 963.25 42.513100842 -24.531474493 20 -42.49 | 40 -20
+Falaise signalee : dents de scie | 31.5 -46.984989 -32.983334 3.29 -149.4 | -40 -10

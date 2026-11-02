@@ -775,6 +775,10 @@ def volcano_finish(ctx, p, h, fin):
 # the shader computes in floats are computed here in float32: a node moved by 1e-7 radian moves a valley by 0.6 m.
 EROSION_CACHE = os.environ.get("EXOLUNE_EROSION", os.path.join(_REPO, "x64", "Release", "erosion-{seed}.bin"))
 _erosion = {}
+_basins = {}
+EROSION_WATER = 1.0
+EROSION_RIVER_SHAPE = (2.4, 0.35, 0.3, 20.0)
+EROSION_LAKE_TRANSITION = 2000.0
 _HAS_RECEIVER, _LAKE, _SEA, _FAN_APEX, _MOUTH = 8, 1 << 12, 1 << 13, 1 << 14, 1 << 15
 _F32 = np.float32
 
@@ -787,10 +791,37 @@ def erosion_map(seed=None):
         if not os.path.exists(path):
             raise FileNotFoundError(f"{path}: run the engine once with this seed, it writes its level 0 there")
         raw = open(path, "rb").read()
-        assert raw[:8] == b"EXOEROS2", f"{path}: an older level 0, run the engine again"
+        assert raw[:8] in (b"EXOEROS2", b"EXOEROS3"), f"{path}: an older level 0, run the engine again"
         s, n = (int(x) for x in np.frombuffer(raw[8:16], np.uint32))
-        _erosion[seed] = (np.frombuffer(raw[24:], np.uint32).reshape(-1, 2), n)  # after the key, 8 bytes
+        data = np.frombuffer(raw[24:], np.uint32).reshape(-1, 2)
+        _erosion[seed] = (data[:6*n*n], n)
+        _basins[seed] = data[6*n*n:] if raw[:8] == b"EXOEROS3" else np.zeros_like(data)
     return _erosion[seed]
+
+
+def erosion_basins(seed=None):
+    seed = PLANET_SEED if seed is None else seed
+    erosion_map(seed)
+    return _basins[seed]
+
+
+def erosion_river_size(q):
+    a,b,c,d = EROSION_RIVER_SHAPE
+    return np.maximum(1.,a*np.sqrt(q)), np.clip(b*np.power(q,c),.15,d)*_smooth(.05,.5,q)
+
+
+def erosion_river_cut(d,q,radius):
+    width,depth = erosion_river_size(q)
+    lo,hi = np.clip((d-radius)/width,-1.,1.),np.clip((d+radius)/width,-1.,1.)
+    primitive = lambda x: x*(1.+x*x*(-2./3.+x*x*.2))
+    return EROSION_WATER*depth*width*(primitive(hi)-primitive(lo))/(2.*radius)
+
+
+def erosion_river_profile(d,z,q,walls,radius):
+    width,_ = erosion_river_size(q)
+    tail0,tail1 = np.maximum(radius-abs(d-width),0.),np.maximum(radius-abs(-d-width),0.)
+    rise = walls*(np.maximum(d-width,0.)+(tail0*tail0+tail1*tail1)/(4.*radius))
+    return z+rise-erosion_river_cut(d,q,radius)
 
 
 def _edirection(f, s, t):
@@ -930,33 +961,39 @@ def _curve(a, b, c):
     return np.sqrt(best), at, near
 
 
+def _erosion_box_square_excess(x, radius):
+    tail = np.maximum(radius - np.abs(x), 0.)
+    cap = tail**3 / (6. * radius)
+    return np.where(x >= 0., radius*radius/3. - cap, cap), tail*tail/(2. * radius)
+
+
 def _erosion_profile(d, z, q, ice, slope, walls, depth, wide, widest):
-    """ErosionProfile: (surface, floor share, glacier, rise)."""
+    """ErosionProfile: (surface, floor share, glacier, rise).
+
+    depth is unused, retained only for comparison with historical CPU references.
+    """
     floor = np.minimum(EROSION_FLOOR[0] * np.sqrt(q) * np.clip(EROSION_FLOOR[1] / np.maximum(slope, 1e-6), 1.0, EROSION_FLOOR[2]), widest)
+    floor = np.minimum(np.maximum(floor,erosion_river_size(q)[0]),widest)
     glacier = np.clip(np.log2(np.maximum(ice, 1.0)) - EROSION_GLACIER[3], 0.0, 1.0)
     trough = np.clip(EROSION_GLACIER[0] * (np.maximum(ice, 1.0) / 1e8) ** EROSION_GLACIER[1], 150.0, 1500.0)
     curvature = EROSION_GLACIER[2] / trough
     shoulder = EROSION_GLACIER_WALLS / (2.0 * curvature)
-    a,b,g = glacier*curvature,(1.-glacier)*walls,glacier*EROSION_GLACIER_WALLS
-    depth = np.maximum(depth,0.)
-    first = np.sqrt(depth/np.maximum(a,1e-20))
-    rhs = depth+b*floor
-    middle = np.where(floor<shoulder,2.*rhs/np.maximum(b+np.sqrt(b*b+4.*a*rhs),1e-20),
-                      depth/np.maximum(g,1e-20)+.5*shoulder)
-    top = np.where(first<=np.minimum(floor,shoulder),first,
-                   np.where(middle<=np.maximum(floor,shoulder),middle,(rhs+.5*g*shoulder)/np.maximum(b+g,1e-20)))
-    top = np.where(glacier==0.,floor+depth/walls,top)
-    stretch = np.maximum(1.0, wide / np.maximum(top, 1.0))
-    x = d / stretch
-    lift = depth * (1.0 - 1.0 / stretch)
-    fluvial = walls * np.maximum(x - floor, 0.0)
-    u = np.minimum(x, shoulder)
-    glacial = curvature * u * u + EROSION_GLACIER_WALLS * np.maximum(x - shoulder, 0.0)
-    surface = z + lift + (fluvial + (glacial - fluvial) * glacier) / stretch
-    r_f = np.where(x > floor, walls, 0.0)
-    rise = (r_f + (2.0 * curvature * u - r_f) * glacier) / (stretch * stretch)
-    flat_river = 1.0 - _smooth(floor, floor + np.maximum(floor, 200.0), x)
-    flat = flat_river + (1.0 - _smooth(0.25 * trough, 0.7 * trough, x) - flat_river) * glacier
+    # Exact local mean; network depth never scales the profile or the physical floor mask.
+    radius = np.maximum(0.5 * wide, CREASE_MIN_CELL)
+    right_bank, left_bank = d-floor, -d-floor
+    right_tail, left_tail = np.maximum(radius-abs(right_bank),0.), np.maximum(radius-abs(left_bank),0.)
+    fluvial = walls * (np.maximum(d-floor,0.)+(right_tail**2+left_tail**2)/(4.*radius))
+    r_f = walls*(np.clip(.5+.5*right_bank/radius,0.,1.)-np.clip(.5+.5*left_bank/radius,0.,1.))
+    u = np.minimum(d, shoulder)
+    right, right_derivative = _erosion_box_square_excess(d-shoulder,radius)
+    left, left_derivative = _erosion_box_square_excess(-d-shoulder,radius)
+    glacial = (curvature*u*u+EROSION_GLACIER_WALLS*np.maximum(d-shoulder,0.)
+               +curvature*np.maximum(radius*radius/3.-right-left,0.))
+    r_g = 2.*curvature*u-curvature*(right_derivative-left_derivative)
+    surface = z+fluvial+(glacial-fluvial)*glacier
+    rise = r_f+(r_g-r_f)*glacier
+    flat_river = 1.0-_smooth(floor,floor+np.maximum(floor,200.),d)
+    flat = flat_river+(1.0-_smooth(.25*trough,.7*trough,d)-flat_river)*glacier
     return surface, flat, glacier, rise
 
 
@@ -972,8 +1009,19 @@ def erosion_valleys(p, cell_km, walls, seed=None):
     radius, cell_m = R, 2.0 * R / n
     face, x = _elocate(p, n)
     origin = np.floor(x).astype(np.int64) - 1
+    lake_level = np.zeros(N)
+    band = min(EROSION_LAKE_TRANSITION/cell_m,.5)
+    blend = _smooth(.5-band,.5+band,x-np.floor(x))
+    for tap in range(4):
+        offset = np.array([tap&1,tap>>1])
+        c = _ecell(face,np.floor(x).astype(np.int64)+offset,n)
+        basin = erosion_basins(seed)[c]
+        weight = np.where(offset,blend,1.-blend).prod(axis=1)
+        lake_level += weight*np.where((basin[:,1]!=0)&(EROSION_WATER>0),np.maximum(0.,(basin[:,0]&65535)*.25-8192.),0.)
     v = dict(surface=np.full(N, 1e9), gradient=np.zeros((N, 3)), floor=np.zeros(N), level=np.zeros(N), glacier=np.zeros(N),
-             incision=np.zeros(N), deposit=np.full(N, -1e9))
+             incision=np.zeros(N), deposit=np.full(N, -1e9), channel_bed=np.full(N,1e9),channel_surface=np.full(N,1e9),
+             lake_level=lake_level,
+             flow=np.zeros((N,3)))
     guide_surface = np.full(N, 1e9)
     wide = 2000.0 * cell_km
     walls = np.broadcast_to(walls, (N,))
@@ -1059,23 +1107,42 @@ def erosion_valleys(p, cell_km, walls, seed=None):
             low = m & (s < v["surface"])
             v["surface"] = np.where(low, s, v["surface"])
             v['level'] = np.where(low,z,v['level'])
+            channel = erosion_river_profile(d,z,qt,walls,max(.5*wide,CREASE_MIN_CELL))+1e4*beyond
+            wet = m & (EROSION_WATER>0) & (qt>.05)
+            top = channel+erosion_river_cut(d,qt,max(.5*wide,CREASE_MIN_CELL))
+            v['channel_surface'] = np.where(wet,np.minimum(v['channel_surface'],top),v['channel_surface'])
+            wet_low = m & (EROSION_WATER>0) & (qt>.05) & (channel<v['channel_bed'])
+            v['channel_bed'] = np.where(wet_low,channel,v['channel_bed'])
+            width,water_depth = erosion_river_size(qt)
+            speed = np.minimum(qt/np.maximum((16./15.)*width*water_depth,1e-3),4.)
+            flow = tangent/np.maximum(np.linalg.norm(tangent,axis=1,keepdims=True),1e-12)*speed[:,None]
+            v['flow'] = np.where(wet_low[:,None],flow,v['flow'])
             near_axis = np.where(m, 1.0 - _smooth(0.1, 0.35, d / cell_m), 0.0)
             v["incision"] = np.maximum(v["incision"], depth * near_axis)
             v["glacier"] = np.maximum(v["glacier"], glacier * near_axis)
-            v["floor"] = np.where(m, np.maximum(v["floor"], np.where(outlet, 0.0, flat * (1.0 - beyond))), v["floor"])
+            v["floor"] = np.where(m, np.maximum(v["floor"], flat * (1.0 - beyond)), v["floor"])
     return v
 
 
 def erosion_cut(coarse, surface, k):
-    """ErosionCut: a bounded C1 transition, no undershoot of the drainage profile."""
+    """ErosionCut: a bounded shoulder transition; k=0 reaches the profile without a degenerate smoothstep."""
     depth = np.maximum(coarse-surface,0.)
-    return coarse-depth*_smooth(0.,k,depth)
+    t = depth/np.maximum(np.maximum(k,depth),1e-20)
+    return coarse-depth*t*t*(3.-2.*t)
 
 
 def erosion_carve(h, coarse, v, k):
-    """ErosionCarve."""
-    surface = v['surface']+(h-coarse)*(1.-v['floor'])
-    return erosion_cut(h,surface,k)
+    """ErosionCarve: retain original hollows; positive spurs cannot excavate below the valley envelope."""
+    detail = h-coarse
+    tail = np.maximum(k-abs(detail),0.)
+    spurs = np.maximum(detail,0.)+tail*tail/(4.*k)
+    surface = v['surface']+spurs*(1.-v['floor'])
+    return erosion_cut(h,surface,k*(1.-v['floor']))
+
+
+def erosion_channel_cut(h, bed, surface):
+    """ErosionChannelCut: a compact channel cannot excavate its unbounded bank envelope."""
+    return np.minimum(np.maximum(h-bed,0.),np.maximum(surface-bed,0.))
 
 
 # --- The relief (MyPlanetEngine/Relief.hlsli): the large forms from the map, the detail from the noise. ---
@@ -1214,12 +1281,10 @@ def detail(ctx, oriented, plain, oriented_octaves, top_km, octaves, relief, shar
             frequency = f / (1000.0 * R_KM)
             normal_bound = noise_gradient * relief * frequency * coefficient
             stripe_bound = stripe_scale * relief * stripe_coefficient * (2.0 / EROSION_GULLY_FORK) * (2.0 * math.pi * (frequency + 4.0 * curvature / np.maximum(steep, EROSION_GULLY[0])) + 5.625 * frequency)
-            soil_gain = _gully_gain(steep, normal_bound, stripe_bound, share, EROSION_GULLY_CRITICAL)
-            normal_rock = relief * frequency * coefficient
-            stripe_rock = 2.0 * math.pi * stripe_scale * relief * frequency * stripe_coefficient
-            rock_gain = _gully_gain(steep, normal_rock, stripe_rock, share, EROSION_GULLY_ROCK)
+            # A rock wall allows a larger slope, never an unbudgeted turn of the stripe's direction.
             rock = _gully_rock(R_KM / f, relief, sharp, gullies["glacial"])
-            limited_share = share * (soil_gain + (rock_gain - soil_gain) * rock)
+            critical = EROSION_GULLY_CRITICAL + (EROSION_GULLY_ROCK - EROSION_GULLY_CRITICAL) * rock
+            limited_share = share * _gully_gain(steep, normal_bound, stripe_bound, share, critical)
             sel = (limited_share > 0.0) | ((share > 0.0) & (R_KM / f > EROSION_CLIFF_SLOPE_KM))
             if sel.any():
                 across = np.cross(up[sel], under[sel]) / steep[sel, None]
@@ -1380,17 +1445,20 @@ def _terraces(h, step, slope, cell_km):
 
 
 def _coast_gradient(ctx, p, gain, rias, seed):
-    """ReliefCoastGradient: the noise's derivative per radian, for a physical cliff width in indented shores."""
+    """ReliefCoastGradient: filter both octaves and ria cusps at the physical wave-erosion scale."""
     mean_abs = 0.5 * (1.0 + MEAN_BILLOW[True])
     dev_abs = math.sqrt(SIGMA * SIGMA - mean_abs * mean_abs)
+    physical_frequency = R_KM / EROSION_CLIFF_SLOPE_KM
+    max_frequency = min(ctx.maxf, physical_frequency)
+    crease_frequency = min(ctx.creasef, physical_frequency)
     f, total, amp = R_KM / RELIEF_COAST_NOISE[0], np.zeros_like(p), np.ones(len(p))
     for o in range(int(RELIEF_COAST_NOISE[1])):
-        w = _weight(ctx, f)
+        w = np.clip(2.0 - 2.0 * f / max_frequency, 0.0, 1.0)
         if w <= 0.0:
             break
         c, q = _lattice(p, f, o)
         n, g = gradient_noise_d(c, q, seed + o)
-        e = CREASE_ROUNDING * f / ctx.creasef
+        e = CREASE_ROUNDING * f / crease_frequency
         dc = np.clip(n / max(e, 1e-30), -1.0, 1.0)
         share = rias if o > 0 else 0.0
         total += (amp * w * f * (1.0 + (dc * SIGMA / dev_abs - 1.0) * share))[:, None] * g
@@ -1416,6 +1484,72 @@ def erosion_cliff_profile(h, hc, delta, depth):
     face = 1.0 - _smooth(hc, hc + delta, h)
     cut = np.minimum(np.maximum(h - platform, 0.0), (hc - EROSION_CLIFF_PLATFORM[0]) * face)
     return h - cut
+
+
+def erosion_cliff_contact(hc, delta, talus):
+    """ErosionCliffContact: physical face parameter at the talus contact."""
+    height = hc - EROSION_CLIFF_PLATFORM[0]
+    t = 2.0 * talus / (delta + np.sqrt(delta*delta + 4.0*height*talus))
+    for _ in range(4):
+        t -= (delta*t + height*t*t*(3.0-2.0*t)-talus)/(delta+6.0*height*t*(1.0-t))
+    return t
+
+
+def erosion_cliff_scree(h, hc, delta, talus, gradient):
+    """ErosionCliffScree: a monotone talus attached to the face, without a landward moat."""
+    contact = hc + delta*erosion_cliff_contact(hc,delta,talus)
+    return np.maximum(talus-EROSION_CLIFF_SCREE[0]*np.maximum(contact-h,0.0)/gradient,0.0)
+
+
+def erosion_cliff_linear_mean(lo, hi, centre, change):
+    """Contribution of a positive-part line on a subinterval of the normalized [-1,1] footprint."""
+    lo, hi = np.clip(lo,-1.,1.), np.clip(hi,-1.,1.)
+    a, b = centre+change*lo, centre+change*hi
+    pa, pb = np.maximum(a,0.), np.maximum(b,0.)
+    share = np.where(np.minimum(a,b)<0.,np.maximum(pa,pb)/np.maximum(abs(b-a),1e-20),1.)
+    return .25*np.maximum(hi-lo,0.)*(pa+pb)*np.clip(share,0.,1.)
+
+
+def erosion_cliff_face_mean(lo, hi, t, radius, height):
+    """Two Gauss nodes integrate one already-bounded cubic piece exactly."""
+    lo, hi = np.clip(lo,-1.,1.), np.clip(hi,-1.,1.)
+    middle, half = .5*(lo+hi), .5*np.maximum(hi-lo,0.)
+    a = np.clip(t+radius*(middle-half*.57735026919),0.,1.)
+    b = np.clip(t+radius*(middle+half*.57735026919),0.,1.)
+    return .5*half*height*(2.-a*a*(3.-2.*a)-b*b*(3.-2.*b))
+
+
+def erosion_cliff_mean(h, hc, delta, depth, talus, gradient, radius):
+    """Box mean of the composed physical incision; fixed parameters, no one-sided mesh dilation."""
+    h,hc,delta,depth,talus,gradient,radius = np.broadcast_arrays(h,hc,delta,depth,talus,gradient,radius)
+    foot = EROSION_CLIFF_PLATFORM[0]
+    height, platform_slope = hc-foot, 1.-depth/hc
+    bottom = (foot-depth)/platform_slope
+    safe_radius = np.where(radius>0.,radius,1.)
+    contact_t = erosion_cliff_contact(hc,delta,talus)
+    contact, slope = hc+delta*contact_t, EROSION_CLIFF_SCREE[0]/gradient
+    toe = contact-talus/slope
+    cut = erosion_cliff_linear_mean((bottom-h)/safe_radius,(np.minimum(toe,hc)-h)/safe_radius,
+                                     platform_slope*(h-bottom),platform_slope*safe_radius)
+    cut += erosion_cliff_linear_mean((np.maximum(bottom,toe)-h)/safe_radius,(hc-h)/safe_radius,
+                                     height-talus+slope*delta*contact_t+(platform_slope-slope)*(h-hc),
+                                     (platform_slope-slope)*safe_radius)
+    t, r = (h-hc)/delta, safe_radius/delta
+    q = delta*(1.-slope)+height*contact_t*(3.-2.*contact_t)
+    b = height*(3.-2.*contact_t)
+    start = np.where(q>=0.,0.,np.clip(-2.*q/(b+np.sqrt(np.maximum(b*b+8.*height*q,0.))),0.,contact_t))
+    start = np.where(slope<1.+6.*height*contact_t*(1.-contact_t)/delta,start,contact_t)
+    cut += erosion_cliff_face_mean(-t/r,(start-t)/r,t,r,height)
+    cut += erosion_cliff_linear_mean((start-t)/r,(contact_t-t)/r,
+                                     height+delta*contact_t-talus+(1.-slope)*(h-contact),(1.-slope)*safe_radius)
+    cut += erosion_cliff_face_mean((contact_t-t)/r,(1.-t)/r,t,r,height)
+    surface = h-np.clip(cut,0.,height)
+    if np.any(radius<=0.):
+        platform = foot-depth*(1.-np.minimum(h/hc,1.))
+        raw = np.minimum(h,np.maximum(erosion_cliff_profile(h,hc,delta,depth),
+                                      platform+erosion_cliff_scree(h,hc,delta,talus,gradient)))
+        surface = np.where(radius<=0.,raw,surface)
+    return np.where((h+radius<=bottom)|(h-radius>=hc+delta),h,surface)
 
 
 def erosion_cliff_noise(p, km, seed):
@@ -1479,16 +1613,14 @@ def erosion_coast(p, h, shore, coast_slope, rocky, near, coast_offset, forms_gra
     band = erosion_cliff_band(sh, retreat, relief[sel], cs)
     g = np.maximum(erosion_coast_slope(fg, d, detail_slope[sel]), np.maximum(cs * metric * 0.001, 1e-6))
     hc = np.clip(1000.0 * retreat * g, EROSION_CLIFF_HEIGHT[0], EROSION_CLIFF_HEIGHT[1])
-    delta = np.maximum(EROSION_CLIFF_FACE * hc, 2000.0 * cell_km * g)
+    delta, footprint = EROSION_CLIFF_FACE * hc, 1000.0 * cell_km * g
     depth = np.minimum(1000.0 * retreat * EROSION_CLIFF_PLATFORM[1], EROSION_CLIFF_PLATFORM[2])
-    surface = erosion_cliff_profile(hs, hc, delta, depth)
-    if np.all(surface == hs):
+    bottom = (EROSION_CLIFF_PLATFORM[0]-depth)/(1.-depth/hc)
+    if np.all((hs+footprint<=bottom)|(hs-footprint>=hc+delta)):
         return out
     patch = _smooth(-0.2, 0.6, erosion_cliff_noise(ps, 0.9, seed + 1))
     talus = hc * EROSION_CLIFF_SCREE[1] * patch
-    scree = np.maximum(talus - EROSION_CLIFF_SCREE[0] * np.abs(hs - hc) / g, 0.0)
-    platform = EROSION_CLIFF_PLATFORM[0] - depth * (1.0 - np.minimum(hs / hc, 1.0))
-    surface = np.minimum(hs, np.maximum(surface, platform + scree))
+    surface = erosion_cliff_mean(hs,hc,delta,depth,talus,g,footprint)
     radius = EROSION_CLIFF_STACK[0]
     wide = max(radius, 2.0 * cell_km)
     x = erosion_cliff_noise(ps, EROSION_CLIFF_STACK[1], seed + 2) * EROSION_CLIFF_STACK[1]
@@ -1578,15 +1710,18 @@ def _relief_ground(ctx, p, valleys=True):
     relief, youth, strata = forms[:, 1] * (1.0 - quiet_v), np.clip(forms[:, 2], 0.0, 1.0), forms[:, 3]
     mountains = _smooth(300.0, 1200.0, relief)
     # The level 0's valleys, read at a point warped by a few km; the gullies' inputs.
-    v = dict(surface=np.full(len(p), 1e9), floor=np.zeros(len(p)), incision=np.zeros(len(p)), deposit=np.full(len(p), -1e9))
+    v = dict(surface=np.full(len(p), 1e9), floor=np.zeros(len(p)), incision=np.zeros(len(p)), deposit=np.full(len(p), -1e9),
+             channel_bed=np.full(len(p),1e9),channel_surface=np.full(len(p),1e9),lake_level=np.zeros(len(p)),flow=np.zeros((len(p),3)))
     gullies = None
     if valleys:
         wander = turbulence(ctx, p, R_KM / EROSION_WARP[0], EROSION_WARP[1] / (SIGMA * R_KM), 2, _rseed(9))
         v = erosion_valleys(wander, cell_km, EROSION_WALLS[0] + (EROSION_WALLS[1] - EROSION_WALLS[0]) * mountains)
         deep = h <= -500.0  # deeper, no valley nor deposit reaches
-        for key, none in (("surface", 1e9), ("floor", 0.0), ("level", 0.0), ("glacier", 0.0), ("incision", 0.0), ("deposit", -1e9)):
+        for key, none in (("surface", 1e9), ("floor", 0.0), ("level", 0.0), ("glacier", 0.0), ("incision", 0.0), ("deposit", -1e9),
+                          ("channel_bed",1e9),("channel_surface",1e9),("lake_level",0.)):
             v[key] = np.where(deep, none, v[key])
         v["gradient"] = np.where(deep[:, None], 0.0, v["gradient"])
+        v['flow'] = np.where(deep[:,None],0.,v['flow'])
         gullies = dict(carved=np.zeros_like(h),ground=h.copy(),surface=v['surface'],valley_slope=v['gradient'],incision=v['incision'],
                        slope=m["forms_gradient"] / (1000.0 * R_KM),
                        share=EROSION_GULLY_SHARE * _smooth(-20.0, 60.0, h),
@@ -1637,6 +1772,7 @@ def _relief_ground(ctx, p, valleys=True):
     rough = rough + (0.6 - rough) * np.maximum(mesas, badlands)
 
     return dict(elev=h, large=large, relief=relief, youth=youth, strata=strata,
+                channel_bed=v['channel_bed'],channel_surface=v['channel_surface'],lake_level=v['lake_level'],flow=v['flow'],
                 volcanoes=volc, volcanic=volcanic, _fin=fin, _smooth=smooth,
                 axis=sharp[:, 0], trench=sharp[:, 1], divergent=sharp[:, 2], shear=sharp[:, 3], roughness=rough,
                 _wave=(p, h, shore, coast_slope, rocky, near, shore-original_shore, m["forms_gradient"],
@@ -1690,7 +1826,15 @@ def _relief(ctx, p, valleys=True):
             h = h.copy()
             h[ids] += (candidate[ids]-h[ids]) * erosion_sea_access(level, a[3])
     h = _relief_finish(ctx, p, h, args[5], args[4], ground.pop("_smooth"), args[9], ground.pop("_fin"))
+    channel_surface,channel_bed = ground.pop('channel_surface'),ground.pop('channel_bed')
+    river_surface = np.minimum(h,channel_surface)
+    h -= erosion_channel_cut(h,channel_bed,channel_surface)
     ground["elev"], ground["norivers"] = h, h.copy()
+    lake = ground['lake_level']>np.maximum(h,river_surface)
+    ground['water_level'] = np.maximum(0.,np.maximum(ground['lake_level'],river_surface))
+    ground['flow'] = np.where((lake|(ground['water_level']<=0.))[:,None],0.,ground['flow'])
+    ground['water_depth'] = np.maximum(ground['water_level']-h,0.)
+    ground['surface'] = np.maximum(ground['water_level'],h)
     return ground
 
 

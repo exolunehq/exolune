@@ -1,0 +1,15 @@
+# Seed 0. Sea-level altitudes. Backspace switches free/ship; Tab cycles cockpit/chase/hidden ship. I shows coordinates.
+# Approach, stop, retreat, slide sideways and turn at each wall. F1/F2 may trigger hull placement recovery; use free camera and repeat the view to inspect close-wall clipping.
+# Interactive only: hidden automated captures do not run the flight-contact controller. Crest shimmer remains a separate observation.
+Cliff contact: reported approach | 96.7 -46.990030 -32.992581 12.92 70.17 | -40 -10
+Near wall: clipping and free-camera contact | 77.5 8.488890670 -103.555961023 0 -154.17278 | 10 -100
+Cold cliff: toe and lateral slide | 128.7 -47.008952 -32.993928 62.67 -50.35 | -40 -10
+Ria wall: reported coast | 254.1 34.983719 88.511430 43.46 -106.41 | 35 90
+Ria wall: lower approach above restored ground | 276.5 34.977346 88.514165 4.61 -99.01 | 35 90
+Southern rocky coast: hull and chase | 117.971 -23.18981 157.86949 40 -131.078 | -20 150
+Tropical coast: inland approach | 197.192 8.48997 -103.55646 40 231.1 | 10 -100
+Snowy slope: close approach and retreat | 4065.0 -46.85004 -33.85772 31.9 -63.4 | -40 -10
+Tropical ridge: steep slope | 3520.171 -7.3762949296 116.9875262922 12 -135.978 | -5 125
+Flat coast: low flight and tangency | 49.652 16.71 -89.28 45 0 | 15 -90
+Open sea: descent and tangential escape | 100 -20.47 -75.45 45 160 | -50 -75
+Orbit: fast descent toward the near side | 1000000 -7.75 -37.25 80 0 | -5 -20

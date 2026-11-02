@@ -1,0 +1,18 @@
+# Seed 0. Clouds hidden for erosion review. F1-F6: fine height/slope reconstruction, not a new erosion shape.
+# Move sideways, then approach and retreat: cell borders should no longer form hard steps in mountain shading.
+# F7/F8 retain the accepted side-trench views. F9-F12 retain mountain and distant river-water checks.
+# Regular incisions, uniform channels, dry gaps and unconnected outlets remain structural work.
+Montagnes signalees : orbite 1673 km | 1673620.9 -7.138614 122.604860 84.18 32.74 | -26.95 106.61
+Meme massif : approche 1000 km | 1000000 -7.138614 122.604860 84.18 32.74 | -26.95 106.61
+Meme massif : approche 300 km | 300000 -7.138614 122.604860 84.18 32.74 | -26.95 106.61
+Autre chaine : orbite 1200 km | 1200000 -25.6 -26.94 84 0 | -25 -25
+Autre chaine : vallees a 60 km | 64126.747 -25.566 -26.916 70 0 | -25 -25
+Autre chaine : cretes proches | 6760.919 -25.6 -26.94 25 0 | -25 -25
+Fosses laterales : regression vue basse | 150.9 -12.406891 52.928246 26.44 -118.93 | -10 50
+Meme riviere : regression depuis 500 m | 500 -12.406891 52.928246 35 -118.93 | -10 50
+Haute montagne : eau vue d'ensemble | 6715.25 -3.678786174 124.087242123 56.31 -92.2583 | 6.32 149.08
+Meme riviere : eau pres du lit | 5075.25 -3.679140115 124.078247216 38.66 -92.2577 | 6.32 149.08
+Riviere a 18 km : contour accepte | 18045.3 7.953168 -84.525373 84 24.75 | 10 -85
+Meme riviere a 14 km : transition | 14271 7.956553 -84.523890 84 24.75 | 10 -85
+Cotes acceptees : orbite lointaine | 4957836.7 -13.909648 124.644062 84.18 43.05 | -26.95 106.61
+Lac : rive proche | 543.25 42.510673943 -24.535069417 12 -42.49 | 40 -20

@@ -109,6 +109,12 @@ static const float EROSION_JITTER           = 0.3;
 static const float EROSION_REACH            = 0.6;
 // The fluvial floor's half-width: x sqrt(Q) (m, Q in m3/s), widened under a slope of y up to z times.
 static const float3 EROSION_FLOOR           = float3(2.0, 0.002, 15.0);
+// Inland water uses the drainage network. Hydraulic-geometry power laws; coefficients are engine calibration.
+// x: channel half-width / sqrt(Q), y: depth at Q=1 m3/s, z: depth exponent, w: maximum depth (m).
+static const float EROSION_WATER           = 1.0;
+static const float4 EROSION_RIVER_SHAPE     = float4(2.4, 0.35, 0.3, 20.0);
+// Half-width of the continuous reconstruction between distinct level-0 terminal stages (m).
+static const float EROSION_LAKE_TRANSITION = 2000.0;
 // The walls' slope, on soft ground to the young chains.
 static const float2 EROSION_WALLS           = float2(0.25, 0.65);
 // The glacial trough: transverse scale W=x (m) at an ice flux of 1e8 m3/yr, growing with its power y; curvature z/W
@@ -167,8 +173,9 @@ static const float2 EROSION_CLIFF_SEA       = float2(50.0, 0.25);
 // The coastal height contour (m), from width times slope, bounded for common sea cliffs. 400 m is a calibration below
 // Conachair's 426 m (NatureScot, Coastal cliffs); it is not a universal geological maximum.
 static const float2 EROSION_CLIFF_HEIGHT    = float2(8.0, 400.0);
-// Only detail octaves wider than this (km) set the cliff's slope: three maximum retreats, the first three octaves,
-// 50, 23.7 and 11.2 km. The full ground is remapped; smaller spurs and gullies cannot move its height contour.
+// Physical scale of the cliff's slope (km): three maximum retreats. Detail retains the first three octaves,
+// 50, 23.7 and 11.2 km; the coast's gradient also filters its octaves and rounds its ria cusps at this scale.
+// The full ground is remapped; a fine coastal fold cannot move the whole cliff's height contour.
 static const float EROSION_CLIFF_SLOPE_KM   = 9.0;
 // The face's transition interval, as a share of its height, at least the height spanned by two cells on the coast.
 static const float EROSION_CLIFF_FACE       = 0.1;

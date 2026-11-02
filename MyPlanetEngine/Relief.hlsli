@@ -25,6 +25,10 @@
 // The roughness of the last point evaluated, 0 smooth plains to 1 young mountains: the slopes the mesh hides
 // (Materials.hlsli).
 static float gRoughness = 0.0;
+static float gWaterLevel = 0.0;
+static float3 gWaterFlow = 0.0;
+static float gWaterDistance = 1e9;
+static float gWaterClearance = -1e9;
 
 // Brick k's seeds, 64 each.
 uint ReliefSeed(uint k)
@@ -243,14 +247,12 @@ float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float t
             // adds at most 2 / fork: the reserve includes weight changes and forks, not just the nominal wave slope.
             const float stripeBound = stripeScale * relief * stripeCoefficient * (2.0 / EROSION_GULLY_FORK)
                                     * (6.2831853 * (frequency + 4.0 * curvature / max(steep, EROSION_GULLY.x)) + 5.625 * frequency);
-            const float soilGain = ReliefGullyGain(steep, normalBound, stripeBound, share, EROSION_GULLY_CRITICAL);
-            // At rock scales reserve the ordinary octave's characteristic slope and the finite stripe's amplitude
-            // per period. The mantle retains the conservative pointwise turning/fork envelope above.
-            const float normalRock = relief * frequency * coefficient;
-            const float stripeRock = 6.2831853 * stripeScale * relief * frequency * stripeCoefficient;
-            const float rockGain = ReliefGullyGain(steep, normalRock, stripeRock, share, EROSION_GULLY_ROCK);
+            // Rock may sustain a steeper wall, but its stripe still turns with the parent and still has forks.
+            // Budgeting only amplitude / period on rock made kilometre waves oscillate over metres at those turns.
+            // Use the same envelope for both materials; only the admissible slope changes.
             const float rock = ReliefGullyRock(PLANET_RADIUS_KM / (float)f, relief, sharp, gullies.glacial);
-            limitedShare = share * lerp(soilGain, rockGain, rock);
+            const float critical = lerp(EROSION_GULLY_CRITICAL, EROSION_GULLY_ROCK, rock);
+            limitedShare = share * ReliefGullyGain(steep, normalBound, stripeBound, share, critical);
             // The coastal contour keeps its existing >9 km calibration, before the soil-pattern budget.
             [branch] if (limitedShare > 0.0 || (share > 0.0 && PLANET_RADIUS_KM / (float)f > EROSION_CLIFF_SLOPE_KM))
             {
@@ -440,22 +442,26 @@ float ReliefCoastNoise(RlPoint p, float gain, float rias, uint seed, out float w
     return sum / RL_SIGMA * deviations;
 }
 
-// The same coast noise's gradient per radian. Only wave erosion needs it: shoreKm is a distance proxy whose gradient
-// changes in a bay. Its magnitude sets the height contour reached by a physical wave-cut width, including inside a ria.
+// The coast's gradient at the physical erosion scale, per radian. A ria's |noise| cusp can span metres even in a
+// kilometre-wide octave. Both its spectrum and its crease derivative must be filtered before setting a cliff's height.
+// The full coast noise still places the shore; this derivative only measures the reach of wave erosion.
 float3 ReliefCoastGradient(RlPoint p, float gain, float rias, uint seed)
 {
     const float meanAbs = 0.5 * (1.0 + RL_MEAN_BILLOW_BEST), deviationAbs = sqrt(RL_SIGMA * RL_SIGMA - meanAbs * meanAbs);
+    const float physicalFrequency = PLANET_RADIUS_KM / EROSION_CLIFF_SLOPE_KM;
+    const float maxFrequency = min(gMaxFrequency, physicalFrequency);
+    const float creaseFrequency = min(gCreaseMaxFrequency, physicalFrequency);
     double f = ReliefFrequency(RELIEF_COAST_NOISE.x);
     float3 sum = 0.0;
     float amplitude = 1.0;
     [loop] for (int o = 0; o < (int)RELIEF_COAST_NOISE.y; ++o)
     {
-        const float w = RlWeight((float)f);
+        const float w = saturate(2.0 - 2.0 * (float)f / maxFrequency);
         if (w <= 0.0) break;
         const RlCell l = RlSplit(p, f);
         const float4 n = RlGradientNoiseD(l.cell, l.q + RlShift(o), seed + (uint)o);
         float dc;
-        ReliefCrease(n.x, CREASE_ROUNDING * (float)f / gCreaseMaxFrequency, dc);
+        ReliefCrease(n.x, CREASE_ROUNDING * (float)f / creaseFrequency, dc);
         sum += amplitude * w * (float)f * n.yzw * lerp(1.0, dc * RL_SIGMA / deviationAbs, o > 0 ? rias : 0.0);
         f *= 2.2;
         amplitude *= gain;
@@ -482,6 +488,8 @@ struct ReliefGround
     float height, shoreKm, coastSlope, rocky, near, offsetKm, erodibility, cellKm, relief, shoreMetric, roughness;
     float3 formsGradient, cliffSlope;
     float smoothKm, volcanicShare;
+    float channelBed, channelSurface, channelDistance, lakeLevel;
+    float3 waterFlow;
     VolcanicFinish volcanic;
 };
 
@@ -576,6 +584,8 @@ ReliefGround ReliefSampleGround(double3 position, bool valleys)
     // finer than the level 0 bars its rivers.
     ErosionValley valley = (ErosionValley)0;
     valley.surface = 1e9, valley.deposit = -1e9;
+    valley.channelBed = valley.channelSurface = 1e9;
+    valley.channelDistance = 1e9;
     RlPoint wander = p;
     [branch] if (valleys && h > -500.0) // deeper, no valley nor deposit reaches
     {
@@ -664,6 +674,10 @@ ReliefGround ReliefSampleGround(double3 position, bool valleys)
     ground.height = h, ground.shoreKm = shoreKm, ground.coastSlope = coastSlope, ground.rocky = rocky, ground.near = near;
     ground.offsetKm = shoreKm - originalShoreKm, ground.erodibility = map.erodibility, ground.cellKm = cellKm;
     ground.relief = relief, ground.shoreMetric = shoreMetric, ground.formsGradient = map.formsGradient, ground.cliffSlope = cliffSlope;
+    ground.lakeLevel = valley.lakeLevel;
+    ground.channelBed = valley.channelBed, ground.channelSurface = valley.channelSurface;
+    ground.channelDistance = valley.channelDistance;
+    ground.waterFlow = valley.flow;
     // Roughness: plains 0.1, hills 0.35, old chains 0.5, terraces and badlands 0.6, young chains 1.
     float rough = 0.1 + 0.25 * smoothstep(50.0, 400.0, relief) + 0.15 * smoothstep(400.0, 1500.0, relief);
     rough = lerp(rough, 1.0, youth * smoothstep(500.0, 1500.0, relief));
@@ -733,7 +747,24 @@ float ReliefElevation(double3 position, bool valleys)
     }
     gRoughness = ground.roughness;
     gVolcanic = ground.volcanicShare;
-    return ReliefFinish(position, h, ground.near, ground.rocky, ground.smoothKm, ground.cellKm, ground.volcanic);
+    h = ReliefFinish(position, h, ground.near, ground.rocky, ground.smoothKm, ground.cellKm, ground.volcanic);
+    // Intersect two continuous envelopes with the finished terrain: the channel with its cut, and the same section
+    // without it. Their difference is the water depth. A nearest-link stage would jump at drainage divides and
+    // flood unrelated hollows. Existing hollows below both envelopes stay dry unless their terminal lake fills them.
+    const float riverSurface = min(h, ground.channelSurface);
+    // The filtered compact cut extends by its sampling radius. Keep its wet support, while giving the exactly
+    // zero-depth dry plane a strictly dry sign outside that support (no 50% water on the floodplain).
+    const float riverClearance = min(ground.channelSurface - ground.channelBed - abs(h - ground.channelSurface),
+                                      max(1000.0 * ground.cellKm, CREASE_MIN_CELL) - ground.channelDistance);
+    h -= ErosionChannelCut(h, ground.channelBed, ground.channelSurface);
+    const bool lake = ground.lakeLevel > max(h, riverSurface);
+    gWaterLevel = max(0.0, max(riverSurface, ground.lakeLevel));
+    gWaterFlow = lake || gWaterLevel <= 0.0 ? 0.0 : ground.waterFlow;
+    gWaterClearance = max(riverSurface > 0.0 ? riverClearance : -1e9,
+                          ground.lakeLevel > 0.0 ? ground.lakeLevel - h : -1e9);
+    // Candidate support, not wetness: a river between all four dry grid samples must still be refined.
+    gWaterDistance = min(ground.channelDistance, ground.lakeLevel > 0.0 ? abs(ground.lakeLevel - h) : 1e9);
+    return h;
 }
 
 float ReliefElevation(double3 position)

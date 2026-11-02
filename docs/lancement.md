@@ -38,9 +38,10 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 - **`-Soleil '<lat> <lon>'`:** sun position, `10 -5` by default.
 - **`-Resolution '1920 1080'`** by default, full screen; `fenetre` for a 1280x720 window, where the palette is visible.
 - **`-PassePleine`:** clouds in a single pass, without their temporal pass (`optimisation.md`); for comparison.
+- **`-SansNuages`:** start with clouds hidden for terrain review; N toggles them during flight. Use this option for the current erosion review.
 - **`-Scans <dossier>`:** ground photos.
 
-**The launcher clears the session's `MYPLANETENGINE_*` variables during launch, then restores them.** It sets only `MYPLANETENGINE_TESTS`, `_SUN`, `_RESOLUTION` and `_FULLSCREEN`, `_SCANS`, and `_CLOUD_FULL` with `-PassePleine`.
+**The launcher clears the session's `MYPLANETENGINE_*` variables during launch, then restores them.** It sets only `MYPLANETENGINE_TESTS`, `_SUN`, `_RESOLUTION` and `_FULLSCREEN`, `_SCANS`, `_CLOUD_FULL` with `-PassePleine`, and `_NO_CLOUDS` with `-SansNuages`.
 
 ## Default game and benchmark variables
 
@@ -129,6 +130,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/cine/rendre.ps1 -Parco
 
 ## In-flight keys
 
+- **J / Marcher button:** instant ground placement; J again returns to the saved ship. Hold Alt or toggle M to click the upper-left buttons.
+- **Walking:** WASD/ZQSD or arrows; Shift runs, Ctrl crouches, Space jumps, H toggles bob. Y / Son button mutes audio.
+- **Walking route:** `tools/tests/2026-11-01-marche.txt`; an optional `marche` pose token places a test on current terrain.
+- **Audio:** default on; optional `MYPLANETENGINE_AUDIO="master footsteps ambience ship"`, gains in [0,1], or `[Audio] Volumes` in the local profile; `spec-marche-ambiances.md`.
+
+- **I:** screenshot coordinates, visible by default in interactive flight, in windowed and full-screen modes.
+- **The bottom-left overlay:** camera latitude/longitude in degrees, altitude above sea level in metres, pitch down, heading and planet seed; updated every frame and included in screenshots.
+- **Automated output:** coordinates are hidden by default in captures, benchmarks and cinematic renders; `MYPLANETENGINE_COORDINATES=1` includes them when explicitly needed.
 - **H:** tree impostor-to-mesh fade, enabled by default; disabled, each tree switches abruptly.
 - **T:** temporal antialiasing.
 - **O and P,** held: rotate the sun.
