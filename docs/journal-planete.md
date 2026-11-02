@@ -12,6 +12,7 @@ History of field adjustments: what changed, why, what it cost or brought, and ho
 - **The cost, 1920 × 1080:** +5 to +15 % on clouds and air, +0,1 ms from orbit, +1,2 ms at 8 km still and +3,6 ms in fast flight; no optimization removed. A proved skip of the three samples was slower, two samples saved nothing measurable.
 - **Reference:** `tools/calage_orbite.py relief`, λ = 0,20 refitted with F per point; sphere 1,9 to 8,5 against 2,5 to 9,7.
 - **Then, in a fast flight, a line at the horizon behind the clouds:** the temporal pass tested its history on the surface the ray ends on; toward the horizon the sea's distance changes by 4 % a row, and neighbours above and below were refused. It now tests the clouds' end, 0 like the sky beyond the low layer's bottom (`CloudTemporalCloudEnd`). Row step at the horizon against the single pass 0,54 → 0,08; still images identical to the level; in a fast flight, 1920 × 1080, +1 to +2 ms at 2 to 8 km, more pixels traced again rather than filled; still, within the noise.
+- **Judged in flight and accepted** by the user, its cost logged to be resumed in an optimization phase (`spec-nuages.md`, the cost).
 - **To judge in flight:** `tools/tests/2026-11-02-nuages-contraste.txt`. Tag at commit: `piste/nuages-contraste`.
 - **To go back:** `Clouds.hlsli`, `CloudsTemporal.hlsli` and `D3DApp.cpp` of `bfa6113`.
 - **Detail:** `spec-rendu-orbite.md`, contrast and shiny contours.

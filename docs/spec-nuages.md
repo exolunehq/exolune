@@ -260,6 +260,7 @@
 - **Trails approaching a cumulus:** near the ground, moving towards a cumulus then retreating, checkered trails 4 × 4 around its silhouette, for a few images. Suppose cause: the edge moves forward in the sky without measurable drift; the history is kept while the fresh trace contradicts it.
 
 **The cost:**
+- **Since 2026-11-02, the light per point and the temporal pass tested on the clouds,** against `bfa6113`, 1920 × 1080, clouds and air: still, 2,0 → 2,1 ms from orbit, 4,3 → 5,0 at 40 km, 9,8 → 11,0 at 8 km, 4,9 → 5,3 at 3,7 km, 7,8 → 8,2 at 2 km; in a fast flight, 22 → 25 to 28 ms at 40 km, 27 → 32 at 8 km, 14,8 → 17 at 3,7 km, 17,9 → 20,2 at 2 km. Accepted by the user to be resumed in an optimization phase: no optimization was removed, the cost is the three samples per lit step and the pixels traced again rather than wrongly filled (`spec-rendu-orbite.md`).
 - **Beyond ×5 in orbit,** the pass costs the single pass, 10 to 38 ms: each cloud is seen at an angle that rotates too fast.
 - **Above the sea,** the racing rays walk the low layer without proving anything of emptiness: 4,6 ms to round 1.
 
@@ -275,7 +276,7 @@
 ## Next steps
 
 - **The three defects in motion,** by a history check less expensive than the round 6.
-- **Precalculated transmittances to the sun,** for shadow and light.
+- **Precalculated transmittances to the sun,** for shadow and light: the lever for the cost of the light per point, the nine samples of each lit step read once in a volume.
 - **A weather that lives:** the ZCIT and the blankets fixed on the planet, the depressions that follow the rails; the direction of cirrus, cumulonimbus.
 
 ## The references
