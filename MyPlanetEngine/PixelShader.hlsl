@@ -6,6 +6,8 @@
 #include "Objects.hlsli"
 #include "Vegetation.hlsli"
 #include "Sea.hlsli"
+#define RELIEF_PIXEL // the coast's contour, evaluated at the pixel (PSMain); the noise's table from the frame constants
+#include "Relief.hlsli"
 
 // The colours below are reflectances written in sRGB, as picked on screen: converted to linear light.
 float3 SrgbToLinear(float3 c)
@@ -122,7 +124,7 @@ Ground GroundAt(float3 q, float elevation, float3 up, float3 normal, float3 shor
                                         elevationSpread, 0.0); // gMesh* and gStrata* set by PSMain
 
     // Vegetation (docs/recherche-vegetation.md): the plants' canopy over the open land, below.
-    Vegetation v = VegetationAt(m.temperature, m.humidity, m.coldSigma, m.amplitude, Exposure(PlanetDirection(up), elevation));
+    Vegetation v = VegetationAt(m.temperature, m.humidity, m.coldSigma, m.amplitude, Exposure(PlanetDirection(up), elevation, elevationSpread));
     v.able = PlantGround(m);
     // Where neither trees nor shrubs can grow, nor root, their fields change nothing (TreesHere, ShrubsHere): not computed.
     [branch]
@@ -229,14 +231,18 @@ Ground GroundAt(float3 q, float elevation, float3 up, float3 normal, float3 shor
 
 StructuredBuffer<float4> fineNormals : register(t7); // the fine grid's normals (FineNormals.hlsl)
 
-// The fine grid's normal at a pixel of the face (docs/spec-rendu-lointain.md, step 2): the true relief finer
-// than the mesh, interpolated between the four grid points around the pixel, and its elevation, which snow
-// follows. weight: how much of it to take, fading out over the face's last eight cells, 0 on the rings, off
-// screen or when the grid is off.
-float3 FineNormal(float3 chart, out float weight, out float elevation)
+// The fine grid's relief at a pixel of the face (docs/spec-rendu-lointain.md, step 2; docs/spec-normales-spline.md): the
+// true relief finer than the mesh, one cubic B-spline height surface over the 4 x 4 grid points around the pixel, and the
+// normal of that SAME surface. Linear heights and independently interpolated normals exposed the sliding grid in distant
+// mountains: the height's slope jumped at every cell border. Positive B-spline weights keep the source height range.
+// weight: how much of it to take, fading out over the face's last eight cells, 0 on the rings, off screen or when the
+// grid is off. uncertainty (m): how far the bilinear and the B-spline reconstructions of the same samples disagree, what
+// the grid cannot tell of the height between its samples.
+float3 FineNormal(float3 chart, out float weight, out float elevation, out float uncertainty)
 {
     weight = 0.0;
     elevation = 0.0;
+    uncertainty = 0.0;
     if (ringParams.z <= 0.0 || chart.z > 0.5)
         return 0.0;
     const float n = faceParams.w;
@@ -245,15 +251,105 @@ float3 FineNormal(float3 chart, out float weight, out float elevation)
     // Clamped both ways: at the face's border the interpolated chart dips a hair below 0, and a root
     // descriptor has no bounds check, so a read out of the buffer would bring the GPU down.
     const int2 c = clamp((int2)floor(f), 0, fineCells - 1);
-    const float2 t = f - c;
+    const float2 t = saturate(f - c);
     const uint i = c.y * (fineCells + 1) + c.x;
     const float4 a = fineNormals[i], b = fineNormals[i + 1], d = fineNormals[i + fineCells + 1], e = fineNormals[i + fineCells + 2];
     if (dot(a.xyz, a.xyz) * dot(b.xyz, b.xyz) * dot(d.xyz, d.xyz) * dot(e.xyz, e.xyz) == 0.0) // a point off screen
         return 0.0;
+    const float4 wu = SplineWeights(t.x), wv = SplineWeights(t.y), su = SplineSlopes(t.x), sv = SplineSlopes(t.y);
+    float height = 0.0;
+    float2 slope = 0.0;
+    bool valid = true;
+    [unroll] for (int y = 0; y < 4; ++y)
+    {
+        float row = 0.0, rowSlope = 0.0;
+        [unroll] for (int x = 0; x < 4; ++x)
+        {
+            const int2 tap = clamp(c + int2(x - 1, y - 1), 0, fineCells);
+            const float4 sample = fineNormals[tap.y * (fineCells + 1) + tap.x];
+            valid = valid && dot(sample.xyz, sample.xyz) > 0.0;
+            // Derivative weights sum to zero; subtract a nearby height before accumulating them.
+            row += wu[x] * (sample.w - a.w);
+            rowSlope += su[x] * (sample.w - a.w);
+        }
+        height += wv[y] * row;
+        slope += float2(wv[y] * rowSlope, sv[y] * row);
+    }
     const float4 mixed = lerp(lerp(a, b, t.x), lerp(d, e, t.x), t.y);
-    elevation = mixed.w;
+    // A point off screen among the outer twelve: the four around the pixel, as before.
+    elevation = valid ? a.w + height : mixed.w;
+    uncertainty = abs(elevation - mixed.w);
     weight = ringParams.z * saturate(min(min(chart.x, n - chart.x), min(chart.y, n - chart.y)) / 8.0);
-    return normalize(mixed.xyz);
+    if (!valid) return normalize(mixed.xyz);
+    // The surface's derivatives on the spherical chart: the face plane's point, raised to the elevation along its vertical.
+    const float fineCell = 2.0 * faceParams.x / fineCells;
+    slope /= fineCell;
+    const float2 xy = (f / fineCells * 2.0 - 1.0) * faceParams.x;
+    const float3 radial = float3(xy, faceParams.y);
+    const float radius = length(radial);
+    const float3 up = radial / radius;
+    const float stretch = (faceParams.y + elevation) / radius;
+    const float3 du = stretch * (float3(1.0, 0.0, 0.0) - up.x * up) + slope.x * up;
+    const float3 dv = stretch * (float3(0.0, 1.0, 0.0) - up.y * up) + slope.y * up;
+    return normalize(cross(du, dv));
+}
+
+StructuredBuffer<ScreenSample> screenSamples : register(t52); // the screen relief: positions, elevation, fields (ScreenRelief.hlsl)
+
+// The screen relief under the pixel (ScreenRelief.hlsl): the smoothing B-spline of its 4 x 4 nearest texels, their
+// positions, elevations and fields, the normal its derivatives' cross product. The texels follow the view: a bilinear
+// reconstruction, the tent, gave a wave of 4 texels a slope varying by 9 % with where the texels fell, and the ground
+// trembled as the camera moved; the B-spline, 3 %, 0.4 % at 8 texels (docs/log/pistes-glissement.md).
+// weight: the relief's own, 0 where one of the 16 has no ground (the limb). position: the ground's, camera-relative;
+// ground: its own fields (ScreenSample).
+float3 ScreenNormal(float2 pixel, float3 up, out float weight, out float elevation, out float3 position, out float2 ground)
+{
+    weight = 0.0;
+    elevation = 0.0;
+    position = 0.0;
+    ground = 0.0;
+    if (screenRelief.z <= 0.0)
+        return 0.0;
+    const int2 size = int2(screenRelief.xy);
+    const float2 f = pixel / screenRelief.w - 0.5;
+    const int2 c = clamp((int2)floor(f), 1, size - 3);
+    const float2 t = saturate(f - c);
+    const float4 wu = SplineWeights(t.x), wv = SplineWeights(t.y), su = SplineSlopes(t.x), sv = SplineSlopes(t.y);
+    const float3 origin = screenSamples[c.y * size.x + c.x].terrain.xyz; // positions taken relative to it: no cancellation
+    float3 du = 0.0, dv = 0.0, at = 0.0;
+    float height = 0.0;
+    float2 fields = 0.0;
+    bool valid = true;
+    [unroll] for (int y = 0; y < 4; ++y)
+    {
+        float3 row = 0.0, rowSlope = 0.0;
+        float rowHeight = 0.0;
+        float2 rowFields = 0.0;
+        [unroll] for (int x = 0; x < 4; ++x)
+        {
+            const ScreenSample s = screenSamples[(c.y + y - 1) * size.x + c.x + x - 1];
+            valid = valid && !isnan(s.terrain.x);
+            const float3 p = s.terrain.xyz - origin;
+            row += wu[x] * p;
+            rowSlope += su[x] * p;
+            rowHeight += wu[x] * s.terrain.w;
+            rowFields += wu[x] * s.ground;
+        }
+        at += wv[y] * row;
+        du += wv[y] * rowSlope;
+        dv += sv[y] * row;
+        height += wv[y] * rowHeight;
+        fields += wv[y] * rowFields;
+    }
+    if (!valid)
+        return 0.0;
+    float3 normal = normalize(cross(du, dv));
+    normal *= dot(normal, up) < 0.0 ? -1.0 : 1.0;
+    elevation = height;
+    position = origin + at;
+    ground = fields;
+    weight = screenRelief.z;
+    return normal;
 }
 
 Texture2D<float> shipSunMap : register(t44); // the ship's own map towards the sun (Ship.h)
@@ -309,23 +405,36 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     // The sun's share the relief leaves lit (Shadows.hlsli): its disc above the mesh's horizon, interpolated between the
     // vertices, its mean over the horizons the pixel spans; times what the relief finer than the mesh leaves lit.
     const float horizonSpread = sqrt((ddx(input.horizon) * ddx(input.horizon) + ddy(input.horizon) * ddy(input.horizon)) / 12.0);
-    const float sunShare = SunAboveHorizon(dot(up, lightDir.xyz), input.horizon, horizonSpread)
-                         * FinerReliefLit(dot(normalize(input.normal), lightDir.xyz), input.slopeSpread)
-                         * ShipShadowOn(input.pos);
     float3 splineSurface;
     float splineElevation, splineWeight;
     const float3 splineNormal = SplineNormal(input.chart, input.corner, up, splineSurface, splineElevation, splineWeight);
-    float fineWeight, fineElevation;
-    const float3 fineNormal = FineNormal(input.chart, fineWeight, fineElevation);
+    float fineWeight, fineElevation, fineUncertainty;
+    const float3 fineNormal = FineNormal(input.chart, fineWeight, fineElevation, fineUncertainty);
     // The fine grid lights the ground from face cells of FINE_LIGHT_MIN_CELL; the materials are decided on it further down.
     const float lightWeight = fineWeight * smoothstep(FINE_LIGHT_MIN_CELL, 2.0 * FINE_LIGHT_MIN_CELL, 2.0 * faceParams.x / faceParams.w);
-    const float3 vertexNormal = normalize(lerp(normalize(lerp(normalize(input.normal), splineNormal, splineWeight)), fineNormal,
-                                               lightWeight));
+    // The screen relief, where on, takes over from both: the true relief down to its texels, whatever the grid's cells.
+    float screenWeight, screenElevation;
+    float3 screenPosition;
+    float2 screenGround;
+    const float3 screenNormal = ScreenNormal(input.position.xy, up, screenWeight, screenElevation, screenPosition, screenGround);
+    const float3 vertexNormal = normalize(lerp(normalize(lerp(normalize(lerp(normalize(input.normal), splineNormal, splineWeight)),
+                                                              fineNormal, lightWeight)), screenNormal, screenWeight));
     // The grain starts below the lighting's cells, and fewer slopes hide within them.
-    const float cellSize = input.cellSize / lerp(1.0, ringParams.w, lightWeight);
-    const float slopeSpread = input.slopeSpread * sqrt(max(log2(cellSize / DETAIL_MIN_WAVELENGTH), 0.0)
-                                                       / max(log2(input.cellSize / DETAIL_MIN_WAVELENGTH), 1e-3));
-    const float elevation = lerp(lerp(input.elevation, splineElevation, splineWeight), fineElevation, fineWeight);
+    const float cellSize = lerp(input.cellSize / lerp(1.0, ringParams.w, lightWeight), max(footprint * screenRelief.w, CREASE_MIN_CELL),
+                                screenWeight);
+    // On the screen relief, the slopes below its texels from its own roughness: the vertices', interpolated on triangles
+    // sliding under the view, made the snow's and the rock's limits tremble with them.
+    const float slopeSpread = lerp(input.slopeSpread * sqrt(max(log2(cellSize / DETAIL_MIN_WAVELENGTH), 0.0)
+                                                            / max(log2(input.cellSize / DETAIL_MIN_WAVELENGTH), 1e-3)),
+                                   SlopeSpread(screenGround.x, cellSize), screenWeight);
+    // On the screen relief, what the relief finer than its texels leaves lit, about its own normal: the mesh's, its cells
+    // sliding under the view, made the light tremble with them.
+    const float sunShare = SunAboveHorizon(dot(up, lightDir.xyz), input.horizon, horizonSpread)
+                         * FinerReliefLit(dot(normalize(lerp(normalize(input.normal), screenNormal, screenWeight)), lightDir.xyz),
+                                          lerp(input.slopeSpread, slopeSpread, screenWeight))
+                         * ShipShadowOn(input.pos);
+    const float elevation = lerp(lerp(lerp(input.elevation, splineElevation, splineWeight), fineElevation, fineWeight), screenElevation,
+                                 screenWeight);
     // The point the materials and the fine detail are looked up at: on the spline surface, where the view ray
     // meets it, one Newton step from the triangle; on the triangle where the spline does not apply.
     float3 surfacePos = input.pos;
@@ -333,6 +442,9 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     const float along = dot(ray, splineNormal);
     if (SPLINE_SURFACE > 0.0 && splineWeight > 0.0 && abs(along) > 0.05)
         surfacePos += ray * (SPLINE_SURFACE * splineWeight * dot(splineSurface - input.pos, splineNormal) / along);
+    // On the screen relief, the ground itself: the triangle's point rose and sank by the mesh's interpolation as it slid,
+    // and every 3D noise of the materials read there changed with it.
+    surfacePos = lerp(surfacePos, screenPosition, screenWeight);
     const float3 q = detailOrigin.xyz + surfacePos.x * faceX.xyz + surfacePos.y * faceY.xyz + surfacePos.z * faceZ.xyz;
     const float3 dqdx = ddx(q), dqdy = ddy(q); // here, outside any branch
     float3 normal = vertexNormal;
@@ -343,9 +455,9 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
         if (dot(normal, up) < 0.0)
             normal = -normal;
     }
-    else if (DETAIL_SLOPE > 0.0 && elevation >= 0.0) // the sea stays flat
+    else if (DETAIL_SLOPE > 0.0 && elevation >= 0.0 && screenWeight < 1.0) // the sea stays flat; the screen relief has its own
     {
-        const float3 planetSlope = DetailSlope(q, cellSize, footprint);
+        const float3 planetSlope = (1.0 - screenWeight) * DetailSlope(q, cellSize, footprint);
         detail = float3(dot(planetSlope, faceX.xyz), dot(planetSlope, faceY.xyz), dot(planetSlope, faceZ.xyz));
         detail -= dot(detail, vertexNormal) * vertexNormal;
         normal = normalize(vertexNormal - detail);
@@ -354,7 +466,44 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     // The sea's share of the pixel: the heights spread within it, and the coast is where they cross 0
     // (docs/spec-rendu-lointain.md). The ground is drawn wherever some of the pixel is land.
     const float elevationSpread = ElevationSpread(slopeSpread, cellSize);
-    const float sea = 1.0 - SpreadStep(-1.0, 1.0, elevation, elevationSpread);
+    // The limits drawn on the heights (tree line, snow, the shore's bands) widen also by what the grid cannot place
+    // between its samples: drawn sharp on its interpolation, they followed its cells, diamonds and steps that shift as
+    // the grid slides (docs/principes.md). The coast keeps its own contour, below.
+    const float gridUncertainty = (1.0 - screenWeight) * fineWeight * fineUncertainty;
+    const float materialSpread = sqrt(elevationSpread * elevationSpread + gridUncertainty * gridUncertainty);
+    float sea = 1.0 - SpreadStep(-1.0, 1.0, elevation, elevationSpread);
+    // On the screen relief the sea's edge is its contour at the texels, antialiased across the pixel: spread over the
+    // heights of a whole cell, the coast blurred into a band where the shelf is flat.
+    const float screenSeaAA = max(abs(ddx(elevation)) + abs(ddy(elevation)), 0.02);
+    sea = lerp(sea, 1.0 - smoothstep(-0.5 * screenSeaAA, 0.5 * screenSeaAA, elevation), screenWeight);
+    // Below it, where the samples' cells are wider than the pixel, the coast is the terrain's own contour, evaluated at the
+    // pixel within a band of heights around it: the samples' interpolated heights drew polygonal coasts that moved as
+    // their grid slid. Only near the coast, and never under the screen relief, which holds the contour at its texels.
+    const float sampleCell = input.cellSize / lerp(1.0, ringParams.w, fineWeight);
+    const float pixelCell = max(0.5 * footprint, CREASE_MIN_CELL);
+    const float unresolved = smoothstep(1.0, 2.0, sampleCell / pixelCell);
+    const float heightBand = max(elevationSpread, max(abs(ddx(elevation)), abs(ddy(elevation))) * sampleCell / max(footprint, 1e-3))
+                           + 0.02 * sampleCell + 2.0;
+    const float refine = (1.0 - screenWeight) * unresolved * (1.0 - smoothstep(2.0 * heightBand, 3.0 * heightBand, abs(elevation)));
+    float coastElevation = elevation;
+    // Two fine-derivative reductions broadcast any candidate across its 2x2 quad, without requiring wave ops: every lane
+    // of a derivative quad evaluates together.
+    const float candidate = refine > 0.0 ? 1.0 : 0.0;
+    const float rowCandidate = saturate(candidate + abs(ddx_fine(candidate)));
+    [branch] if (rowCandidate + abs(ddy_fine(rowCandidate)) > 0.0)
+    {
+        gMaxFrequency = (1000.0 * PLANET_RADIUS_KM) / (MESH_BAND_LIMIT * pixelCell);
+        gCreaseMaxFrequency = gMaxFrequency;
+        gExactLattice = pixelCell < EXACT_LATTICE_MAX_CELL;
+        // The cancellation-free nadir offset TerrainAt uses; no planet-sized float position.
+        const float3 offset = up.x * faceX.xyz + up.y * faceY.xyz - (dot(up.xy, up.xy) / max(1.0 + up.z, 1e-6)) * faceZ.xyz;
+        coastElevation = ReliefElevation(nadir.xyz + (double3)offset);
+    }
+    const float coastAA = max(abs(ddx(coastElevation)) + abs(ddy(coastElevation)), 0.02);
+    sea = lerp(sea, 1.0 - smoothstep(-0.5 * coastAA, 0.5 * coastAA, coastElevation), refine);
+    // The contour decides the water, not the land's materials: its finer height fed to coarse snow and material
+    // decisions brings a new high-frequency pattern from orbit.
+    const float seaBed = lerp(elevation, coastElevation, refine);
     // North, the planet's y axis, in the face frame.
     const float3 north = float3(faceX.y, faceY.y, faceZ.y);
     const float sinLat = dot(up, north);
@@ -375,8 +524,16 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
         gHeightBlend = 1.0 - smoothstep(-2.0, 1.0, log2(footprint));
         // The strata and lenses, filtered by the pixel rather than by the mesh's cells, 13 pixels wide: their octaves
         // came in plain to see as the cells shrank, and the strata slid on the way down (docs/spec-parois-minerales.md).
-        // The geology, regional, stays the vertices' (VertexShader.hlsl).
-        const float3 geology = input.geology.xyz;
+        // The geology, regional, the vertices' (VertexShader.hlsl); on the screen relief, the same field at the same scale,
+        // the mesh's cell, but the pixel's own: interpolated on triangles sliding under the view, a rock narrower than them
+        // changed its colour as they slid.
+        float3 geology = input.geology.xyz;
+        [branch] if (screenWeight > 0.0)
+        {
+            float3 own = Geology(q, input.cellSize);
+            own.x = lerp(own.x, -0.6, screenGround.y);
+            geology = lerp(geology, own, screenWeight);
+        }
         // Computed only where the rock needs them (Materials.hlsli, PixelStrataShift). From the vertices' own elevation,
         // not the spline's, which smooths the relief differently: the column's beds would jump from one cell to the next.
         gStrataCell = footprint;
@@ -384,17 +541,20 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
         gCellSize = input.cellSize;
         // The materials are decided on the normal across DECISION_BASELINE (VertexShader.hlsl), the fine grid's far away, and
         // the textures' whole slope.
-        float3 decisionNormal = normalize(lerp(normalize(input.decision), fineNormal, fineWeight));
+        float3 decisionNormal = normalize(lerp(normalize(lerp(normalize(input.decision), fineNormal, fineWeight)), screenNormal,
+                                               screenWeight));
         if (lightDir.w < 0.5)
             decisionNormal = normalize(decisionNormal - (detail - dot(detail, decisionNormal) * decisionNormal));
         // The beach's normal, across SHORE_BASELINE (VertexShader.hlsl), the fine grid's far away once its cells span the
         // baseline: the face's cells there no longer resolve a cordon's sides, and the vertices' normal on its crest stood
         // level; finer, the grid would bring back the bumps the baseline leaves out.
         const float fineCell = 2.0 * faceParams.x / (faceParams.w * ringParams.w);
-        const float3 shoreNormal = normalize(lerp(normalize(input.shore), fineNormal,
-                                                  fineWeight * smoothstep(0.5 * SHORE_BASELINE, SHORE_BASELINE, fineCell)));
+        const float3 shoreNormal = normalize(lerp(normalize(lerp(normalize(input.shore), fineNormal,
+                                                                 fineWeight * smoothstep(0.5 * SHORE_BASELINE, SHORE_BASELINE, fineCell))),
+                                                  screenNormal, screenWeight));
         const Ground ground = GroundAt(q, elevation, up, decisionNormal, shoreNormal, sinLat, poleward, log2(footprint),
-                                       dqdx, dqdy, geology, input.geology.w, slopeSpread, elevationSpread, input.cellSize, footprint);
+                                       dqdx, dqdy, geology, lerp(input.geology.w, screenGround.y, screenWeight), slopeSpread,
+                                       materialSpread, input.cellSize, footprint);
         albedo = ground.albedo;
         cavity = ground.cavity;
         under = ground.under * (1.0 - sea);
@@ -410,7 +570,7 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     SeaSurface water = (SeaSurface)0;
     if (sea > 0.0) // the water's colour from the climate map's temperature, its cold currents greener
         water = SeaSurfaceAt(input.pos, dpdx, dpdy, q, log2(footprint), up, ClimateAt(materialSampler, PlanetDirection(up), footprint).y,
-                             0.0, elevation, elevationSpread, sunShare,input.seaParam,seaDx,seaDy,input.seaHeight);
+                             0.0, seaBed, elevationSpread, sunShare,input.seaParam,seaDx,seaDy,input.seaHeight);
 
     // Diagnostic views (tools/banc_descente.py): each pixel white with the probability of the weight shown,
     // unlit, so that the share of white pixels is that weight's mean, at any distance. The sea's views are measures

@@ -752,7 +752,7 @@ bool D3DApp::InitDirect3D() {
     // The tectonic map and its views (Tectonics.hlsli), the climate map (Climate.hlsli), the volcanoes and their index
     // (Volcanoes.hlsli): t18..t22.
     CD3DX12_DESCRIPTOR_RANGE tectonicRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 18);
-    CD3DX12_ROOT_PARAMETER params[12];
+    CD3DX12_ROOT_PARAMETER params[13];
     params[0].InitAsConstantBufferView(0);
     params[1].InitAsShaderResourceView(0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
     params[2].InitAsDescriptorTable(1, &lutRange, D3D12_SHADER_VISIBILITY_PIXEL);
@@ -765,7 +765,8 @@ bool D3DApp::InitDirect3D() {
     params[9].InitAsDescriptorTable(1,&oceanRange);
     params[10].InitAsDescriptorTable(1, &shipSunRange, D3D12_SHADER_VISIBILITY_PIXEL);
     params[11].InitAsDescriptorTable(1, &tectonicRange, D3D12_SHADER_VISIBILITY_PIXEL);
-    mRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(12, params, 3, samplers));
+    params[12].InitAsShaderResourceView(52, 0, D3D12_SHADER_VISIBILITY_PIXEL); // the screen relief
+    mRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(13, params, 3, samplers));
     // Terrain compute: frame constants, its output (UAV), the tectonic map the relief reads (Relief.hlsli).
     CD3DX12_ROOT_PARAMETER computeParams[3];
     computeParams[0].InitAsConstantBufferView(0);
@@ -957,6 +958,10 @@ bool D3DApp::InitDirect3D() {
     computeDesc.pRootSignature = mFineRootSignature.Get();
     computeDesc.CS = CD3DX12_SHADER_BYTECODE(fineNormalsCs.Get());
     Check(md3dDevice->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&mFineNormalsPSO)), "Fine normals PSO creation failed.");
+    ComPtr<ID3DBlob> screenReliefCs = LoadShader(L"ScreenRelief.cso"); // the terrain compute's signature
+    computeDesc.pRootSignature = mComputeRootSignature.Get();
+    computeDesc.CS = CD3DX12_SHADER_BYTECODE(screenReliefCs.Get());
+    Check(md3dDevice->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&mScreenReliefPSO)), "Screen relief PSO creation failed.");
     ComPtr<ID3DBlob> placementCs = LoadShader(L"ObjectPlacement.cso");
     computeDesc.pRootSignature = mObjectRootSignature.Get();
     computeDesc.CS = CD3DX12_SHADER_BYTECODE(placementCs.Get());
@@ -1001,6 +1006,12 @@ bool D3DApp::InitDirect3D() {
         D3D12_RESOURCE_STATE_GENERIC_READ);
     CD3DX12_RANGE noRead(0, 0);
     mConstantBuffer->Map(0, &noRead, reinterpret_cast<void**>(&mConstants));
+    static const XMFLOAT4 reliefGradients[256] = {
+#define RELIEF_GRADIENT(x, y, z) { float(x), float(y), float(z), 0.0f },
+#include "ReliefGradients.inl"
+#undef RELIEF_GRADIENT
+    };
+    std::memcpy(mConstants->reliefGradients, reliefGradients, sizeof(reliefGradients));
     mNadirConstantBuffer = CreateBuffer(md3dDevice.Get(), (sizeof(FrameConstants) + 255) & ~255, D3D12_HEAP_TYPE_UPLOAD,
         D3D12_RESOURCE_STATE_GENERIC_READ);
     mNadirConstantBuffer->Map(0, &noRead, reinterpret_cast<void**>(&mNadirConstants));
@@ -1017,6 +1028,8 @@ bool D3DApp::InitDirect3D() {
     mFinePositions = CreateBuffer(md3dDevice.Get(), sizeof(XMFLOAT4) * FineVertexCount, D3D12_HEAP_TYPE_DEFAULT,
         D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     mFineNormals = CreateBuffer(md3dDevice.Get(), sizeof(XMFLOAT4) * FineVertexCount, D3D12_HEAP_TYPE_DEFAULT,
+        D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    mScreenPositions = CreateBuffer(md3dDevice.Get(), ScreenSampleBytes * ScreenReliefMaxTexels, D3D12_HEAP_TYPE_DEFAULT,
         D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
     // Objects: their instances, the draw's arguments and the measures, the candidates and the second pass's dispatch,
@@ -1771,6 +1784,13 @@ void D3DApp::Draw() {
     const double faceCell = 2.0 * halfWidth / FaceCells, fineRise = std::min(std::max(faceCell / FineMinCell - 1.0, 0.0), 1.0);
     const float fineWeight = (float)(fineRise * fineRise * (3.0 - 2.0 * fineRise));
     mConstants->ringParams = { (float)ringCount, (float)RingGrowth, fineWeight, (float)FineSubdivision };
+    // The screen relief, from orbit down to where the fine grid and the per-pixel detail carry the relief to the pixel.
+    {
+        const UINT across = (mClientWidth + ScreenReliefScale - 1) / ScreenReliefScale;
+        const UINT down = std::min((mClientHeight + ScreenReliefScale - 1) / ScreenReliefScale, ScreenReliefMaxTexels / across);
+        const double rise = std::min(std::max((camAltitude - ScreenReliefLow) / (ScreenReliefHigh - ScreenReliefLow), 0.0), 1.0);
+        mConstants->screenRelief = { (float)across, (float)down, (float)(rise * rise * (3.0 - 2.0 * rise)), (float)ScreenReliefScale };
+    }
     XMStoreFloat4(&mConstants->lightDir, toLocal(mSunDir));
     XMStoreFloat4(&mConstants->camVertical, toLocal(up));
     mConstants->camVertical.w = (float)(camAltitude / 1000.0);
@@ -1872,6 +1892,23 @@ void D3DApp::Draw() {
         auto normalsToRead = CD3DX12_RESOURCE_BARRIER::Transition(mFineNormals.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
             D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         mCommandList->ResourceBarrier(1, &normalsToRead);
+    }
+    // The screen relief (ScreenRelief.hlsl): every frame, as the view's rays move with the camera.
+    {
+        const UINT texels = (UINT)mConstants->screenRelief.x * (UINT)mConstants->screenRelief.y;
+        const bool on = mConstants->screenRelief.z > 0.0f;
+        auto toWrite = CD3DX12_RESOURCE_BARRIER::Transition(mScreenPositions.Get(), D3D12_RESOURCE_STATE_COMMON,
+            D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        mCommandList->ResourceBarrier(1, &toWrite);
+        mCommandList->SetComputeRootSignature(mComputeRootSignature.Get());
+        mCommandList->SetPipelineState(mScreenReliefPSO.Get());
+        mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
+        mCommandList->SetComputeRootUnorderedAccessView(1, mScreenPositions->GetGPUVirtualAddress());
+        mCommandList->SetComputeRootDescriptorTable(2, GpuDescriptor(TectonicSrv));
+        if (on) mCommandList->Dispatch((texels + 63) / 64, 1, 1);
+        auto toRead = CD3DX12_RESOURCE_BARRIER::Transition(mScreenPositions.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        mCommandList->ResourceBarrier(1, &toRead);
     }
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 1);
     const UINT nadirIndex = (FaceCells / 2) * (FaceCells + 1) + FaceCells / 2;
@@ -1995,6 +2032,7 @@ void D3DApp::Draw() {
         mCommandList->SetGraphicsRootShaderResourceView(3, mFaceVertexBuffer->GetGPUVirtualAddress());
         mCommandList->SetGraphicsRootDescriptorTable(4, GpuDescriptor(MaterialSrv));
         mCommandList->SetGraphicsRootShaderResourceView(5, mFineNormals->GetGPUVirtualAddress());
+        mCommandList->SetGraphicsRootShaderResourceView(12, mScreenPositions->GetGPUVirtualAddress());
         mCommandList->SetGraphicsRootDescriptorTable(7, GpuDescriptor(PlanetMapSrv));
         mCommandList->SetGraphicsRootConstantBufferView(8,mOcean->ConstantsAddress());
         mCommandList->SetGraphicsRootDescriptorTable(9,GpuDescriptor(OceanSrv));

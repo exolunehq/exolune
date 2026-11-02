@@ -30,6 +30,9 @@ cbuffer Frame : register(b0)
     float4x4 reprojectShip; // the ship's pixels: face-local point -> previous frame's clip space, following the ship
     float4   shipSphere;    // xyz: the ship's centre, face-local from the camera (m); w: its radius, 0 without the ship
     float4x4 shipSunShadow; // face-local point -> the ship's map towards the sun, for its shadow on the ground
+    float4   reliefGradients[256]; // immutable noise table (Noise.hlsli); the pixel's coast contour uses the same literals as compute
+    float4   screenRelief; // the screen relief (ScreenRelief.hlsl): xy its texels across, z its weight (0: off),
+                           // w the pixels per texel side
 };
 
 struct FaceVertex
@@ -41,6 +44,16 @@ struct FaceVertex
     float  volcanic;  // the fresh volcanic ground, 0 to 1: bare lava, scoria and ash (Volcanoes.hlsli, gVolcanic)
     float  horizon;   // the terrain's horizon toward the sun (rad), for its cast shadow (Horizon.hlsl)
     float  shadow;    // its column's shadow height (m above the sea), for the sun's shafts in the air (Horizon.hlsl)
+};
+
+// The screen relief's texel (ScreenRelief.hlsl): the ground's position and elevation, and its own fields there, which the
+// vertices carried before: interpolated on triangles sliding under the view, a feature smaller than them changed its
+// shape as they slid.
+struct ScreenSample
+{
+    float4 terrain; // xyz: position relative to the camera, face-local; w: elevation (m)
+    float2 ground;  // x: roughness (gRoughness), sets the slopes hidden below the texel (SlopeSpread); y: fresh volcanic
+                    // ground (gVolcanic)
 };
 
 struct PSInput

@@ -34,7 +34,7 @@
 |  `spec-textures-generees-historique.md`  | The experiments drawn from the comparison and what they became; the towers of the rock generated and its structure of 64 m, removed the 2026-10-24. |
 |  `spec-relief-reel.md`  | The relief of materials carried by the mesh: disabled the 2026-10-23, removed from the code the 2026-10-30, tag `piste/parois-gradins` ; geometry track (`../geometrie.md`). |
 |  `spec-parois.md`  | The walls in grades: disabled the 2026-10-23, removed from the code the 2026-10-30, tag `piste/parois-gradins`. |
-|  `spec-normales-spline-historique.md`  | The cardinal spline prefilter and `SPLINE_SHARPENING`, removed the 2026-10-30, tag `jalon/09-normales-spline`. |
+|  `spec-normales-spline-historique.md`  | The cardinal spline prefilter and `SPLINE_SHARPENING`, removed the 2026-10-30, tag `jalon/09-normales-spline`; the fine-grid reconstruction's captures, 2026-11-01. |
 |  `spec-rendu-lointain-historique.md`  | Two fixes of the relief pass of materials, removed the 2026-10-30. |
 |  `spec-parois-minerales-historique.md`  | Render path options, broken strips and their patches, removed the 2026-10-24; erosion filter, tag `piste/erosion-filtre`. |
 |  `spec-relief-tectonique-historique.md`  | The replaced versions of the board and cords of the 2026-10-31, their measurements and their defects. |

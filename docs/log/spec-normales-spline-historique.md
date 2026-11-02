@@ -15,3 +15,14 @@
 - Two float4 buffers per vertex: the intermediate result and coefficients, read by the pixel shader.
 - `SPLINE_SHARPENING`, in `PlanetSettings.hlsli`: 1, the cardinal spline; 0, the smoothing B-spline; between the two, a mixture. To 0 from the benchmark: the prefilter was no longer used, its passes remained for the test.
 - Their cost, with the pixel shader: less than 0,1 ms in all; the prefilter alone, 0,02 to 0,13 ms to the profile of the round 4 (`../optimisation.md`).
+
+## 2026-11-01 fine-grid reconstruction
+
+Made on the erosion branch, `claude/erosion-montagnes`; the current state is in `../spec-normales-spline.md`.
+
+- A mountain defect remained from orbit at `1673620.9 -7.138614 122.604860 84.18 32.74`, seed 0.
+- The fine grid previously interpolated four heights bilinearly and four centred-difference normals independently. The resulting height field was continuous, but its derivative changed at each cell border.
+- The replacement takes the positive cubic B-spline mean of 16 heights and analytically differentiates it on the spherical chart; no cardinal prefilter or extra terrain query is added.
+- A nearby height is subtracted before derivative accumulation to avoid cancellation; clamped addresses and the existing invalid-sample fallback remain.
+- Paired native captures, 120 frames at 60 Hz, 1280 by 720, clouds hidden: the same broad forms, softer grid-scale mountain transitions; not a claim of complete temporal stability.
+- No performance or quality benchmark was run.

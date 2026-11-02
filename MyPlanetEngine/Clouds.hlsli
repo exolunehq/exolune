@@ -71,6 +71,10 @@ static const double CLOUD_ANCHOR_KM = 32.0l;
 static const float CLOUD_SHAPE_TEXELS_PER_KM = 4.0;
 static const float CLOUD_CIRRUS_SHAPE_TEXELS_PER_KM = 16.0;
 static const float CLOUD_DETAIL_TEXELS_PER_KM = 8.0;
+// The noises are read CLOUD_BAND_LIMIT pixels to a texel, as the relief keeps its octaves down to a few of its samples:
+// at one pixel to a texel, their features of one or two pixels stood in the mean, the coverage's threshold made each pixel
+// cloud or sky, and the grain moved with the view. Below the texel, the stored and unresolved deviations hold the rest.
+static const float CLOUD_BAND_LIMIT = 4.0;
 // Mean sigma of mip 1's 2x2x2 blocks: 0.0124 for shape, 0.0323 for erosion.
 // Each finer octave halves the variance, so their unresolved sum equals this finest resolved octave.
 static const float CLOUD_SHAPE_UNRESOLVED_SIGMA = 0.0124;
@@ -682,12 +686,12 @@ void CloudMarch(double3 originQKm, double3 viewQ, double3 sunQ,
         float altitudeKm;
         float4 weather;
         bool cirrus;
-        const float detailLod = clamp(log2(max(footprintKm * CLOUD_DETAIL_TEXELS_PER_KM, 1.0)), 0.0, 5.0);
+        const float detailLod = clamp(log2(max(CLOUD_BAND_LIMIT * footprintKm * CLOUD_DETAIL_TEXELS_PER_KM, 1.0)), 0.0, 5.0);
         const float lodAltitudeKm = CloudAltitude(pointOffsetKm, context);
         const float shapeTexelsPerKm = lodAltitudeKm >= CLOUD_CIRRUS_BOTTOM_KM
             ? CLOUD_CIRRUS_SHAPE_TEXELS_PER_KM
             : CLOUD_SHAPE_TEXELS_PER_KM;
-        const float macroLod = clamp(log2(max(footprintKm * shapeTexelsPerKm, 1.0)), 0.0, 7.0);
+        const float macroLod = clamp(log2(max(CLOUD_BAND_LIMIT * footprintKm * shapeTexelsPerKm, 1.0)), 0.0, 7.0);
         const CloudDensitySample sample = CloudDensity(pointOffsetKm, context, detailLod,
             macroLod, inCloud, altitudeKm, weather, cirrus);
         const bool columnWidened = sample.fraction > columnFraction + 0.02;

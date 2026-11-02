@@ -1,0 +1,19 @@
+# Seed 0. Distant rendering ported to main without erosion (docs/spec-rendu-lointain.md, 2026-11-02). N hides the clouds.
+# F1: high orbit; descend continuously: sharp from the start, no blur in squares, no sudden sharpening near 1,400 km.
+# F2-F4: the reported massif; move sideways: no crawling, no diamonds in the tree line or the snow. F5-F6: a second range.
+# F7-F9: orbital coasts; move sideways and approach: no polygonal coast following the grid, no flicker along the shore.
+# F10: a coast at 250 km, where the screen relief fades in and the coast is evaluated at the pixel.
+# F11-F12 and the last button: close up, unchanged from main.
+Descente : orbite 3000 km | 2978803 -7.780824 122.187982 84.18 32.79 | -26.95 106.61
+Massif signale : orbite 1673 km | 1673620.9 -7.138614 122.604860 84.18 32.74 | -26.95 106.61
+Meme massif : 1000 km | 1000000 -7.138614 122.604860 84.18 32.74 | -26.95 106.61
+Meme massif : 300 km | 300000 -7.138614 122.604860 84.18 32.74 | -26.95 106.61
+Autre chaine : orbite 1200 km | 1200000 -25.6 -26.94 84 0 | -25 -25
+Autre chaine : 60 km | 64126.747 -25.566 -26.916 70 0 | -25 -25
+Cote en orbite : stabilite en mouvement | 4957836.7 -13.909648 124.644062 84.18 43.05 | -26.95 106.61
+Cote en orbite : approcher sans bord qui scintille | 4500000 -13.747632 124.791150 84.18 43.01 | -26.95 106.61
+Autre cote : 5000 km | 5000000 34.983719 88.511430 84 0 | 35 70
+Meme cote : 250 km, contour au pixel | 250000 34.983719 88.511430 84 0 | 35 70
+Autre chaine : cretes proches | 6760.919 -25.6 -26.94 25 0 | -25 -25
+Foret et crete de pres : 500 m | 500 -12.406891 52.928246 35 -118.93 | -10 50
+Sol de pres : 150 m | 150.9 -12.406891 52.928246 26.44 -118.93 | -10 50

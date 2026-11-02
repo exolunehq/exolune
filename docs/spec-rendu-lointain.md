@@ -89,7 +89,7 @@ Status: chosen the 2026-10-21; first version made, the face only.
 
 - **A grid 4 times thinner than the face of the mesh,** 768 × 768 grid cells, recalculated at each frame by complexplanet, filtered to its own grid cell as the mesh is to its own.
 - **Two pass calculation:** the heights of the fine grid, then its normals.
-- **The pixel takes the fine normal,** interpolated between four points, instead of the mesh. It fades on the last eight grid cells of the edge of the face.
+- **The pixel reconstructs the fine height with a positive 4 by 4 cubic B-spline and derives its normal from that surface,** instead of independently interpolating linear heights and normals. It fades on the last eight face cells; see `spec-normales-spline.md` for the 2026-11-01 correction and its limits.
 - **The grain of the lighting and the dispersion of slopes** are adjusted on the grid cell fine: the invented grain starts only below it.
 - **Up to 160 m from the ground for material decisions:** active from grid cells face of 3,4 m, `FineMinCell`, fully to 6,8 m, or 320 m high. Lower, the mesh carries the thinnest octave of the relief, 13,5 m, on its 4 grid cells. It stopped first at 20 m from grid cell, towards 1 km: see the correction of the 2026-10-24 below.
 - **Up to 1 km for light:** it illuminates the ground only from grid cells of 20 m, `FINE_LIGHT_MIN_CELL` front. Lower, normal spline and grain, more stable, and textures fill the grid cells.
@@ -280,3 +280,76 @@ Status: in place the 2026-10-22, for all materials.
 **The fix:** the fine grid remains active for decisions up to the grid cells of 3,4 m, the light keeps its threshold of 20 m; snow only takes into account the slope of the terrain. Measurements are in `journal-planete.md`.
 
 **Rest:** the octave of 13,5 m and a part of that of 27 m are still missing from the fine grid above 500 m, and `SlopeSpread` does not count them; the rock still rises from 3 to 9 % on the spot between 2 and 1,2 km, from 4 to 17 % on hills. Counting these octaves with the roughness by type of terrain regulates the mountains but overflows elsewhere: you need the roughness measured, higher.
+
+## The screen relief, 2026-11-02
+
+Status: validated in flight by the user on the erosion branch, tag `piste/relief-ecran-2026-11-02`; ported to `main` without the erosion the same day. Flight route: `tools/tests/2026-11-02-rendu-lointain.txt`.
+
+**Symptom,** from orbit over a mountain range, `1673620.9 -7.138614 122.604860 84.18 32.74`:
+- the ground blurred into squares, then sharpened suddenly near 1,400 km;
+- moving sideways, the relief, the rock and snow limits and the forest crawled.
+
+**Cause: the fine grid's cells span several pixels from orbit.**
+- Lit and decided on the fine grid alone, the ground blurred into its cells.
+- Its cells slide with the camera: what lies between its samples changed as they slid.
+- The per-pixel detail took over later, its widest octave 6 km: the ground sharpened at once.
+- Fields interpolated on the mesh's sliding triangles crawled the same way: roughness, fresh volcanic ground, geology.
+
+**The change: `ScreenRelief.hlsl`, a compute pass at every frame.**
+- **One texel per 2 × 2 pixels** (`ScreenReliefScale`), at most 1920 × 1080 texels.
+- **Each texel finds its ground:** the view ray meets the sphere at sea level, then again at the elevation found there, for the parallax of summits seen aslant.
+- **The relief is filtered to 4 texels** (`SCREEN_BAND_LIMIT`), as the mesh is filtered to 2 cells (`MESH_BAND_LIMIT`).
+- **Each texel stores 24 bytes** (`ScreenSample`): camera-relative position and elevation, roughness and fresh volcanic ground.
+- **Its weight rises with camera altitude,** smoothstep from 150 to 400 km (`ScreenReliefLow`, `ScreenReliefHigh`). Below, the fine grid and the per-pixel detail carry the relief to the pixel.
+- **Nothing is kept between frames:** the texels follow the view, as the pixels do.
+
+**The pixel reads it in B-spline,** `ScreenNormal` (`PixelShader.hlsl`).
+- A smoothing cubic B-spline over the 4 × 4 nearest texels; positions taken relative to the first, without cancellation.
+- The normal is the cross product of the surface's derivatives.
+- Slope variation as the texels slide: 9 % with a bilinear tent at 4 texels, 3 % with the B-spline, 0.4 % at 8 texels (`log/pistes-glissement.md`).
+- Any texel without ground, at the limb, sets the weight to 0: the mesh and the fine grid take over.
+
+**What the screen relief drives, where its weight is on:**
+- the lighting normal, the decision normal and the shore normal;
+- the elevation and the 3D point where material noises are read;
+- the ocean's edge, its contour at the texels antialiased across the pixel;
+- the slopes hidden below the texel, from its own roughness (`SlopeSpread`), and the light the finer relief leaves (`FinerReliefLit`), about its own normal;
+- no per-pixel coast query and no invented `DetailSlope` grain under it.
+
+**Fields moved from the mesh to the texel or the pixel:**
+- **roughness and fresh volcanic ground:** read in the texel, with the relief;
+- **geology:** evaluated at the pixel, at the mesh cell's scale, `Geology(q, cellSize)`.
+
+**Other corrections in the same family:**
+- **The grid's uncertainty widens height limits:** the gap between the fine grid's bilinear and B-spline reconstructions adds to the elevation spread of the tree line, snow and shore bands. Off under the screen relief.
+- **Exposure widens with the height spread:** `sqrt(EXPOSURE_RELIEF² + 5 spread²)` (`Vegetation.hlsli`). In high ranges, bare ridges and wooded hollows cut the grid's diamonds.
+- **Volcanic cones keep their area once widened,** their edge at least two cells wide (`Volcanoes.hlsli`). From orbit, cone fields stood as two-cell discs that came and went.
+- **Cloud noises are read 4 pixels to a texel** (`CLOUD_BAND_LIMIT`, `Clouds.hlsli`). The stored and unresolved variances hold the rest.
+
+**Limits:**
+- **Shading only:** the mesh still gives geometry, depth and silhouettes (`geometrie.md`).
+- **Cost:** not measured; no benchmark was run. Between 150 and 400 km, the pixel coast query below still runs with the remaining weight.
+- **Memory:** 24 bytes per texel, about 47 MiB for the 4K maximum.
+- **Port to `main`:** the inland water fields of the erosion branch's texel are left out; `CLOUD_BAND_LIMIT` was validated before `main`'s per-point cloud light, and is checked again in flight.
+
+## The coast's contour at the pixel, 2026-11-01
+
+Status: accepted in flight by the user on the erosion branch, with the river contours; ported to `main` for the ocean alone, without inland water, on 2026-11-02.
+
+**Symptom:** from orbit, below the screen relief, the coast was polygonal and moved with the fine grid as it slid.
+
+**Cause:** the coast was where the samples' interpolated heights crossed 0. Their cells, wider than the pixel, drew it in their own segments.
+
+**The change, in `PSMain`:**
+- **Candidates:** pixels whose samples' cells are wider than the pixel (`unresolved`) and whose height lies within a band around sea level, from the sample size and the height's screen derivatives.
+- **The terrain at the pixel:** for those, the shared `ReliefElevation`, filtered at half the pixel footprint, with the 2 m physical floor (`CREASE_MIN_CELL`).
+- **Its contour, antialiased across the pixel,** replaces the spread coverage there.
+- **Every lane of a derivative quad evaluates together:** two fine-derivative reductions broadcast a candidate across its quad, without wave operations.
+- **The water only:** the contour's height sets the sea's coverage and its bed; land materials, normals, depth and silhouettes keep their sampling.
+- **Never under the screen relief,** which holds the contour at its texels.
+
+**What it needs:** the noise's gradient table in the frame constants (`reliefGradients`, `ReliefGradients.inl`, `RELIEF_PIXEL` in `Noise.hlsli`), shared bit for bit with the compute shaders; the terrain vertex and pixel shaders compiled by DXC, shader model 6.0.
+
+**Limits:**
+- **Cost:** extra terrain evaluations near the coast, highest between 150 and 400 km; not measured, no benchmark.
+- **The coast's shape:** the contour follows the terrain as it is; it does not repair the mesh's silhouette.
