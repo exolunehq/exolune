@@ -287,7 +287,8 @@
     </FxCompile>
     <FxCompile Include="PixelShader.hlsl">
       <ShaderType>Pixel</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
+      <ShaderModel>6.0</ShaderModel>
+      <AdditionalOptions>-HV 2018 %(AdditionalOptions)</AdditionalOptions>
       <EntryPointName>PSMain</EntryPointName>
       <!-- Optimised even in Debug, for the fine detail's noise loop. -->
       <DisableOptimizations>false</DisableOptimizations>
@@ -311,6 +312,12 @@
       <DisableOptimizations>false</DisableOptimizations>
     </FxCompile>
     <FxCompile Include="FineNormals.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ScreenRelief.hlsl">
       <ShaderType>Compute</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>CSMain</EntryPointName>
@@ -533,7 +540,8 @@
     </FxCompile>
     <FxCompile Include="VertexShader.hlsl">
       <ShaderType>Vertex</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
+      <ShaderModel>6.0</ShaderModel>
+      <AdditionalOptions>-HV 2018 %(AdditionalOptions)</AdditionalOptions>
       <EntryPointName>VSMain</EntryPointName>
       <!-- Optimised even in Debug, for the neighbour lookups. -->
       <DisableOptimizations>false</DisableOptimizations>

@@ -341,6 +341,7 @@ Search for 2026-10-25, primary sources except mentioned.
 
 **The peaks and the lows, `Exposure`:**
 - **The height of the ground on the regional ground,** the map of the planet at 16 km, on 300 m: −1 in the lows, +1 on the ridges and peaks.
+- **Its ramp widens with the height spread under the pixel or the cell,** `sqrt(300² + 5 spread²)` m (2026-11-02): in high ranges, it narrowed to one level line of the grid, and bare ridges and wooded hollows cut its diamonds as it slid (`spec-rendu-lointain.md`, the screen relief).
 - **A peak cools the season by 0,5 °C,** a depression warms it: the tree line 100 m lower on the bumps, like Broll.
 - **It lowers the two fields of woods by two gaps,** a hollow raises them: a wet forest keeps a fifth of its trees on a full ridge. An estimate: no published law gives this figure below the tree line.
 

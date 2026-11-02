@@ -131,6 +131,8 @@ protected:
         XMFLOAT4X4 shipSunShadow; // face-local point -> the ship's map towards the sun, for its shadow on the ground
         XMUINT4 coordinateInfo;   // lengths of two ASCII lines; zero hides the screenshot overlay
         XMUINT4 coordinateText[8]; // two rows of 64 bytes, packed little-endian
+        XMFLOAT4 reliefGradients[256]; // immutable table, shared with Noise.hlsli
+        XMFLOAT4 screenRelief;         // the screen relief's texels across, its weight, pixels per texel side
     };
 
     // The clouds' frame, b1 (Clouds.hlsli): the camera and the view in the planet frame (km), in double precision.
@@ -306,6 +308,12 @@ protected:
     ComPtr<ID3D12RootSignature> mFineRootSignature;
     ComPtr<ID3D12PipelineState> mFineTerrainPSO;
     ComPtr<ID3D12PipelineState> mFineNormalsPSO;
+    // The screen relief (ScreenRelief.hlsl): the relief under each texel of ScreenReliefScale pixels.
+    ComPtr<ID3D12Resource> mScreenPositions;
+    ComPtr<ID3D12PipelineState> mScreenReliefPSO;
+    static const UINT ScreenReliefScale = 2, ScreenReliefMaxTexels = (3840 / 2) * (2160 / 2);
+    static const UINT ScreenSampleBytes = 6 * sizeof(float); // Planet.hlsli: ScreenSample
+    static constexpr double ScreenReliefLow = 150e3, ScreenReliefHigh = 400e3; // its weight's rise, camera altitude (m)
     ComPtr<ID3D12Resource> mIndexBuffer;
     D3D12_INDEX_BUFFER_VIEW mIndexBufferView = {};
     ComPtr<ID3D12Resource> mReadbackBuffer;   // the nadir vertex, to know the ground height

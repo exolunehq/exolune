@@ -84,6 +84,7 @@ Status: spec live, since the 2026-10-31. Make the 2026-10-31 on the branch `clau
 
 **The fresh volcanic soil, `gVolcanic`, from 0 to 1:** the cone of ash and slag of a stratovolcano, the top of a shield, the flows, the cones; weighted by freshness, e^(−t/3) on a chain.
 - **The path:** it replaces the `relief` field unused from `FaceVertex`, which became `volcanic`, then `geology.w` up to the pixel.
+- **A cone's share keeps its area once widened,** its edge at least two cells wide (2026-11-02). Whole at the widened size, each cone of a field stood as a two-cell disc at any distance; from orbit, the discs came and went as the view moved (`spec-rendu-lointain.md`, the screen relief).
 - **The rock:** the basalt, the darkest of the palette (`RockColor`).
 - **Soil:** ash and slag, reflectance 0,07, on 85 % of soil; black beaches.
 

@@ -2,6 +2,21 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+## 2026-11-02 · Distant rendering on main, without the erosion
+
+- **Why:** the user prefers the geometry without the erosion, whose method is in question; the distant-rendering corrections validated in flight on `claude/erosion-montagnes` come to `main` alone. The erosion branch keeps its own work.
+- **Screen relief:** `ScreenRelief.hlsl` recomputes the true relief under each 2 × 2-pixel texel at every frame; the pixel reads it in a 4 × 4 B-spline for light, materials and the coast (`spec-rendu-lointain.md`). From tag `piste/relief-ecran-2026-11-02`, without the inland water fields.
+- **Settings:** `ScreenReliefScale` = 2 pixels; `SCREEN_BAND_LIMIT` = 4 texels; weight from `ScreenReliefLow` = 150 km to `ScreenReliefHigh` = 400 km (`D3DApp.h`, `ScreenRelief.hlsl`).
+- **Same family:** roughness and fresh volcanic ground read in the texel, geology at the pixel; the grid's reconstruction gap widens height limits; exposure widened by the height spread (factor 5); volcanic cones keep their area, edge ≥ 2 cells; `CLOUD_BAND_LIMIT` = 4 pixels per noise texel.
+- **Fine grid:** one cubic B-spline height surface and its analytic normal (`spec-normales-spline.md`, 2026-11-01).
+- **Coast:** below the screen relief, the coast's contour at the pixel, from the shared terrain, ocean only (`spec-rendu-lointain.md`, 2026-11-01). The noise's gradient table moves to `ReliefGradients.inl` and the frame constants; the terrain VS and PS compile with DXC, SM 6.0.
+- **Left out:** erosion, rivers, lakes, inland water fields and their per-pixel contours.
+- **Storage:** one 24-byte texel buffer, sized for 4K, about 47 MiB; one root SRV, `t52`; 4 KiB more frame constants.
+- **Review:** `tools/tests/2026-11-02-rendu-lointain.txt`; Release x64 builds. No performance or quality benchmark.
+- **Tag:** `piste/rendu-lointain-2026-11-02`, branch `claude/rendu-lointain`.
+- **Open:** cost near 300 km, where the screen relief fades in and the coast query runs; `CLOUD_BAND_LIMIT` with `main`'s per-point cloud light, to check in flight.
+- **To return:** raise `ScreenReliefLow` and `ScreenReliefHigh` above any camera altitude; `CLOUD_BAND_LIMIT` = 1.
+
 **2026-11-02 · Walking, controls and environmental audio**
 
 - **Integration:** walking and audio isolated on current public `main`; vegetation authoring remains on `codex/vegetation-2026-11-02`.

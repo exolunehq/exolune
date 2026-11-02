@@ -55,7 +55,8 @@ Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it
 **Water surface of spike FFT:** specific overlay, four cascades, amplitude of spectrum JONSWAP and swell; peaks under the sea, dampened by depth and filtered by the grid cell. The relief background is preserved. Displacement and normal share their derivatives; see [spec-mer-fft-spike.md](spec-mer-fft-spike.md). The first kernel remains in mer-animee.
 
 **Are not top layers:**
-- **The fine grid:** the same function, sampled four times finer, for normal pixels.
+- **The fine grid:** the same function, sampled four times finer, for pixel heights and normals. Since 2026-11-01, one cubic height reconstruction supplies both; this is shading, with no displaced mesh or refined silhouette (`spec-normales-spline.md`).
+- **The screen relief and the coast's contour at the pixel:** the same function, filtered at the screen texel or at the pixel, for light, materials and the sea's coverage, since 2026-11-02. Shading only: the mesh keeps geometry, depth and silhouettes (`spec-rendu-lointain.md`).
 - **The grid of the noise in pairs of floats, in flight:** the same function; the splitting of each octave on the grid into two floats, 48 bits, instead of a double, on the vertices that slide (`Noise.hlsli`, `optimisation.md`, round 8). The point is the same at 2·10⁻⁸ m; only the last bit of a height can change. The vertex under the camera remains in double precision; at a standstill, all the mesh also.
 - **The planet map:** the same function on a cube fixed on the planet, 6 × 1 024², calculated at startup after the tectonic map (`PlanetMap.hlsli`). Data for mist and water: it does not move any vertices.
 - **The tectonic map:** it is part of the relief, it is not a superlayer.

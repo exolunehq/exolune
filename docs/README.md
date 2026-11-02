@@ -13,8 +13,8 @@
 ## Implemented systems
 
 **Terrain and materials**
-- **`spec-rendu-lointain.md`:** the same planet from orbit to ground, the universal boundary rule.
-- **`spec-normales-spline.md`:** per-pixel B-spline normals.
+- **`spec-rendu-lointain.md`:** the same planet from orbit to ground, the universal boundary rule; the screen relief above 150 to 400 km and the coast's contour at the pixel, 2026-11-02.
+- **`spec-normales-spline.md`:** per-pixel B-spline normals; one B-spline height surface and its normal on the fine grid.
 - **`spec-textures-generees.md`:** material tiles generated at startup and their tiling; rock has used a photo since 2026-10-24.
 - **`spec-texturage-universel.md`:** each material's detail scale, from texel to kilometer, and the quality benchmark that checks it; step 3 in progress.
 - **`spec-photos-par-echelle.md`:** real photos recomposed by our noise functions; biome palette and photo ground materials done, patterns seen from an aircraft taken over by universal texturing.
