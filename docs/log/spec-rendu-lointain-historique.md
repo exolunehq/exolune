@@ -9,5 +9,5 @@
 
 Tried during the screen relief work, then rejected in flight; the current state is in `../spec-rendu-lointain.md`.
 
-- **Averaging `min(ground, profile)` of the valleys over the footprint:** parallel furrows appeared, and the ground trembled more. The patch is kept outside Git, in the session scratchpad that produced it (`vallees-empreinte.patch`).
+- **A smooth-minimum approximation of the valleys' footprint mean of `min(ground, profile)`:** furrows appeared along the divides, and the ground trembled more. Its details are in `spec-erosion-historique.md`; the exact clipped mean replaced it the same day (`../spec-erosion.md`).
 - **A statistical water coverage for lakes:** square blocks appeared, because the lake level is fixed per erosion cell. A continuous lake level must come first (`../spec-eaux-interieures.md`).

@@ -10,13 +10,21 @@ import cp
 from verifie_lames import direction
 
 
+def flat_valley(surface, floor):
+    surface = np.asarray(surface)
+    link = dict(d=np.zeros_like(surface), z=surface, floor_width=np.full_like(surface,1e6),
+                curvature=np.full_like(surface,.001), glacier=np.zeros_like(surface))
+    empty = dict(link, z=np.full_like(surface,1e9))
+    return dict(surface=surface, floor=floor, links=[link,empty], walls=.65, box_radius=2.)
+
+
 def analytic():
     rng = np.random.default_rng(714)
     n = 20000
     coarse = rng.uniform(-500.,7000.,n)
     parent = coarse+rng.uniform(-2500.,2500.,n)
     profile = coarse+rng.uniform(-4000.,3000.,n)
-    v = dict(surface=profile,floor=rng.random(n))
+    v = flat_valley(profile,rng.random(n))
     out = cp.erosion_carve(parent,coarse,v,60.)
     assert np.all(out<=parent+1e-9), 'Erosion raised existing terrain'
     assert np.all(out>=np.minimum(parent,profile)-1e-9), 'Detail excavated below the valley envelope'
@@ -25,18 +33,18 @@ def analytic():
     assert np.array_equal(out[hollow],parent[hollow]), 'A pre-existing hollow was filled or deepened'
     # A height datum must not alter an erosion process. No implicit sea-level clamp belongs to this composition.
     shift = 2000.
-    shifted = cp.erosion_carve(parent+shift,coarse+shift,dict(v,surface=profile+shift),60.)
+    shifted = cp.erosion_carve(parent+shift,coarse+shift,flat_valley(profile+shift,v["floor"]),60.)
     assert np.max(abs(shifted-out-shift))<1e-8
 
     # A shallow incision must reach the draining floor. The shoulder join formerly left a dam here.
     parent = np.array([20.,31.,31.001,39.,60.,120.])
-    v = dict(surface=np.full_like(parent,31.),floor=np.ones_like(parent))
+    v = flat_valley(np.full_like(parent,31.),np.ones_like(parent))
     floor = cp.erosion_carve(parent,np.full_like(parent,80.),v,60.)
     assert np.allclose(floor,np.minimum(parent,31.),rtol=0.,atol=1e-12)
     assert np.isfinite(cp.erosion_cut(31.,31.,0.))
     # The same join still rounds the shoulders and stays bounded while its width tends to zero.
     share = np.linspace(0.,1.,10001)
-    joined = cp.erosion_carve(39.,80.,dict(surface=31.,floor=share),60.)
+    joined = cp.erosion_carve(39.,80.,flat_valley(np.full_like(share,31.),share),60.)
     assert np.isfinite(joined).all() and np.all((joined>=31.)&(joined<=39.))
     assert np.all(np.diff(joined)<=1e-10)
     assert np.max(abs(np.diff(joined)))<.01
@@ -46,14 +54,14 @@ def analytic():
     profile = 30.+.25*np.maximum(abs(x)-100.,0.)
     floor = 1.-cp._smooth(100.,300.,abs(x))
     parent = np.full_like(x,220.)
-    v = dict(surface=profile,floor=floor)
+    v = flat_valley(profile,floor)
     section = cp.erosion_carve(parent,np.full_like(x,400.),v,60.)
     assert section.min()>=30.-1e-9
     assert np.all(np.diff(section[len(x)//2:])>=-1e-9), 'A constant residual made a reverse bank'
 
     # Different tributaries may win the envelopes. Their stage metadata must not become an independent clamp.
     s = np.minimum(20.+.3*abs(x+200.),140.+.5*abs(x-200.))
-    v = dict(surface=s,floor=np.zeros_like(x))
+    v = flat_valley(s,np.zeros_like(x))
     out = cp.erosion_carve(np.full_like(x,500.),np.full_like(x,600.),v,60.)
     assert np.max(abs(np.diff(out)))<.26, 'A tributary switch introduced a height jump'
     return dict(random_sections=n,transverse_samples=len(x))
@@ -89,7 +97,7 @@ def terrain():
     state = {}
     def record(h,coarse,v,k):
         out = original(h,coarse,v,k)
-        state.update(parent=h.copy(),carved=out.copy(),**v)
+        state.update(parent=h.copy(),coarse=coarse.copy(),carved=out.copy(),**v)
         return out
     cp.erosion_carve = record
     try:
@@ -98,8 +106,16 @@ def terrain():
             ground = cp.elevation(cp.Ctx(8.),p,extra=True)
             delta = state['parent']-state['carved']
             assert np.all(delta>=-1e-8)
-            assert np.all(delta<=np.maximum(state['parent']-state['surface'],0.)+1e-8), name
-            assert np.all(state['carved']>=np.minimum(state['parent'],state['surface'])-1e-8), name
+            detail = state['parent']-state['coarse']
+            tail = np.maximum(60.-abs(detail),0.)
+            lift = (np.maximum(detail,0.)+tail*tail/240.)*(1.-state['floor'])
+            local_ground = state['parent']-lift
+            clipped = [cp.erosion_clipped_section(link,local_ground,state['walls'],state['box_radius'])
+                       for link in state['links']]
+            bound = np.minimum(*clipped)
+            assert np.all(state['carved']>=bound-1e-8), name
+            for link, value in zip(state['links'],clipped):
+                assert np.all(value>=np.minimum(local_ground,link['z'])-1e-8), name
             assert np.isfinite(ground['surface']).all()
             rows.append(dict(name=name,samples=len(p),incised=int(np.sum(delta>1.)),
                              max_incision_m=float(delta.max()),

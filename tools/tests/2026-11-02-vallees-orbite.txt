@@ -1,0 +1,17 @@
+# Seed 0, sea-level camera altitudes. Launch with -SansNuages; N restores the clouds.
+# The fix: from far, a valley is the mean of its clipped section over the sample, not a vanishing averaged profile.
+# F1-F4: the reported massif. Descend continuously from F1: valleys present from the start, deepening smoothly, never popping in.
+# F5-F6: a second range, same check. F7-F8: mid-range, no furrows along valley rims or divides, no new trembling.
+# F9-F10: close up, unchanged. F11-F12: cliff contact, to validate in flight (interactive only; Backspace, Tab).
+Massif signale : 2 400 km | 2400000 -7.138614 122.604860 84.18 32.74 | -26.95 106.61
+Massif signale : 1 800 km | 1800000 -7.138614 122.604860 84.18 32.74 | -26.95 106.61
+Massif signale : 1 400 km | 1400000 -7.138614 122.604860 84.18 32.74 | -26.95 106.61
+Massif signale : 900 km | 900000 -7.138614 122.604860 84.18 32.74 | -26.95 106.61
+Autre chaine : 2 000 km | 2000000 -25.6 -26.94 84 0 | -25 -25
+Autre chaine : 1 000 km | 1000000 -25.6 -26.94 84 0 | -25 -25
+Auges a 60 km : rebords sans sillons | 64126.747 -25.566 -26.916 70 0 | -25 -25
+Chaine de collision a 30 km : affluents | 30900.835 -7.5 117 40 20 | -5 125
+Chaine enneigee a 3 km : inchangee | 6760.919 -25.6 -26.94 25 0 | -25 -25
+Riviere : berges depuis 500 m, inchangees | 500 -12.406891 52.928246 35 -118.93 | -10 50
+Falaise : contact en approche | 96.7 -46.990030 -32.992581 12.92 70.17 | -40 -10
+Falaise froide : pied et glissement lateral | 128.7 -47.008952 -32.993928 62.67 -50.35 | -40 -10

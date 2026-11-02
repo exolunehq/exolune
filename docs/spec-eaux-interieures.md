@@ -35,11 +35,11 @@
 | Repeated mountain scratches and summit cuts | Relief-dependent incision preserves different histories and material responses | Incision/routing revision open |
 | Crater cuts and rivers leading nowhere | Closed basins retain water or have a resolved spillway; construction history is respected | Volcanic integration open |
 | Coastal sawteeth, crest flicker and disappearing cliffs | Stable visible surface through approach and across steep slopes | Earlier projection/coastal metric corrections are limited; rendering investigation open |
-| Camera crossing a cliff | Swept contact protects camera and hull along the movement, with no ground teleport | Swept contact integrated; CPU fixtures, Release x64 and interactive startup pass; flight contact review open |
+| Camera crossing a cliff | Swept contact protects camera and hull along the movement, with no ground teleport | Swept contact integrated; CPU fixtures, Release x64 and interactive startup pass; the user found the two cliff-contact views of `2026-11-02-vallees-orbite.txt` okay, 2026-11-02 |
 | Lake shores and stage connections | Level basin interiors, coherent shorelines and explicit outlet transitions | Initial lake implementation; connection refinement open |
 | Lake level fixed per erosion cell; lake district fragmenting on approach | A continuous lake level first; then a statistical wet coverage keeps the district whole at every distance | Open; a statistical coverage on the per-cell level made square blocks and was rejected (`log/spec-rendu-lointain-historique.md`) |
 | Rivers perched on a mound | The channel follows the lowest route of the composed terrain; network and relief agree where the river is drawn | Open; part of the network placement revision |
-| Valleys appearing suddenly from orbit, 1,400 to 1,800 km | Valleys fade in continuously with distance, their mean kept, like any other relief | Open; the screen relief corrected the mountain blur and crawl, not this |
+| Valleys appearing suddenly from orbit, 1,400 to 1,800 km | Valleys fade in continuously with distance, their mean kept, like any other relief | Corrected and validated in flight, 2026-11-02: each section clipped by the ground before averaging (`spec-erosion.md`); `tools/tests/2026-11-02-vallees-orbite.txt` |
 | Cost of the transition zone near 300 km | The pixel water contour query fits the frame budget where the screen relief fades in | Open; about 20 ms reported there |
 | Root cause: a network computed on coarse relief, then pressed onto it | Paths, widths and junctions follow the rendered terrain; nothing reads as hand-drawn | Open; addressed by the network placement and connectivity revisions below |
 

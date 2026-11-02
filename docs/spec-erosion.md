@@ -83,11 +83,15 @@ Status: living spec, since 2026-10-31, branch `erosion-globale`, experiment `pis
 - The parabolic profile is a morphological approximation, after [Hirano and Aniya, 1988](https://www.jstage.jst.go.jp/article/jgeography1889/97/2/97_2_107/_article/-char/en).
 - The width law and its calibration remain those of the engine; they are not derived from this article.
 - Underground overdeepening followed by capping at water level is removed: it turned the whole U into a flat ribbon.
-- **Mesh filtering:** exact local box mean of the physical fluvial/glacial section, with radius `max(cellMetres, CREASE_MIN_CELL)`.
+- **Mesh filtering, since 2026-11-02:** the box mean of the physical fluvial/glacial section clipped by the ground, radius `max(cellMetres, CREASE_MIN_CELL)` (`ErosionClippedSection`).
+- The ground is the point's own, less its positive spurs, taken constant across the box.
+- **Why clip first:** averaged before clipping, the section's floor rose by up to `walls × radius / 2`. Once the box outgrew a narrow valley, that floor stood above the ground and the whole valley vanished; from orbit, valleys appeared between 2,000 and 1,400 km.
+- **Clipped first, the incision keeps its area at every footprint:** from far, a valley is a wider, shallower depression that fades continuously.
+- **A mixed section is clipped once,** at the crossing of the mixed fluvial/glacial profile; mixing two separately clipped shapes describes another section.
+- **Stable closed forms:** the section less its excess above the ground, each term a box mean of ramps and squares, in float32.
 - The 2 m minimum uses the existing physical crest rounding; there is no new setting.
-- Averaging a convex section only raises its profile, by at most `maximumWallSlope × radius / 2`; far planar banks remain fixed.
 - The filter ignores coarse reference depth and leaves the physical floor mask unchanged.
-- This is a local profile mean, not a claim of exact area conservation after clipping against arbitrary terrain.
+- The ground varies across a real box; the constant-ground mean is exact for one link on level ground only.
 
 **Combining valleys**
 - The surface is the minimum of the profiles; each already carries its own drained level.
@@ -95,7 +99,9 @@ Status: living spec, since 2026-10-31, branch `erosion-globale`, experiment `pis
 - The slope guiding gullies blends over 60 m between competing profiles; it no longer jumps when the link changes.
 - The cut surface carries positive spurs, fading on the floor; negative residual detail is not added to the cut a second time.
 - Its C1 positive part uses the existing 60 m join scale; original hollows survive through intersection with the full terrain.
-- New excavation cannot go below the valley envelope; this prevents artificial side trenches beside a perched channel.
+- **The cut reads the two lowest links,** each clipped at the ground, combined by their plain minimum. A smooth minimum, rejected, dug furrows along every divide.
+- The minimum of the averaged profiles, `v.surface`, still guides the gullies.
+- New excavation cannot go below the lowest clipped section mean, itself never below its link's level; this prevents artificial side trenches beside a perched channel.
 - The cut is `depth × smoothstep(0, 60 × (1 - floorShare), depth)` on the shoulders; at full floor share it reaches the profile without a degenerate smoothstep.
 - Incision never raises a hollow; suppression controlled only by the coarse support could raise a rim several hundred meters high.
 - An initial hollow below the profile remains; filling it belongs to deposits or lakes, not this cut.
@@ -293,6 +299,15 @@ Status: living spec, since 2026-10-31, branch `erosion-globale`, experiment `pis
 **`tools/hydro/cp.py` reads the engine's level 0,** `erosion-<graine>.bin`, and reconstructs valleys, deposits and gullies; nodes in float32, like the shader. `EXOLUNE_EROSION` gives another path.
 
 ## Current verification, 2026-11-01
+
+**Far valleys, 2026-11-02:** `python tools/hydro/verifie_vallees_lointaines.py`.
+- 525 sections against an independent quadrature of the clipped mixed section: maximum error 3.2e-7 m.
+- Area of the incision kept for radii from 2 m to 20 km: relative error below 4e-9.
+- Continuous in distance, radius and ground height.
+- At the 2 m minimum radius, the clipped mean equals the former result to 1e-13 m.
+- Five terrain windows: heights change by at most 0.17 mm at 1 m and 0.25 m spacing, 0.10 m at 16 m.
+- `verifie_composition.py` now bounds the cut by the lowest clipped section mean instead of the averaged envelope; it and the other existing checks pass.
+- Flight route: `tools/tests/2026-11-02-vallees-orbite.txt`; validated in flight by the user on 2026-11-02. No performance or quality benchmark was run.
 
 **Scope:** working corrections on the public-history erosion branch in `Exolune`.
 - `verifie_lames.py` compares with public replay `7187c1b`.

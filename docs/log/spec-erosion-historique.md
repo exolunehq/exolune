@@ -730,3 +730,22 @@ Historical checks before the current blade and approach corrections; these are n
 - Geometry, depth, normals and silhouettes retain their mesh/fine-grid sampling.
 - The separate coastal mean composes before filtering; the upstream valley profile still needs equivalent intersection-aware filtering.
 - Full wet-area integration below a pixel and the extra cost of contour terrain queries remain unresolved.
+
+## 2026-11-02: valley profile averaged before clipping
+
+Superseded by the clipped section mean (`../spec-erosion.md`, level 1). The former contract:
+- **Mesh filtering:** exact local box mean of the physical fluvial/glacial section, with radius `max(cellMetres, CREASE_MIN_CELL)`.
+- Averaging a convex section only raises its profile, by at most `maximumWallSlope × radius / 2`; far planar banks remain fixed.
+- This is a local profile mean, not a claim of exact area conservation after clipping against arbitrary terrain.
+- **Composition bound:** new excavation could not go below the averaged envelope; `verifie_composition.py` asserted it.
+
+**Its defect, seen from orbit on 2026-11-02:** native captures of the massif at `-7.138614 122.604860`, from 2,400 to 900 km.
+- No valley at 2,400 km; thin dendritic valleys at 2,000 km; full valleys by 1,400 km. A snowy range at `-25.6 -26.94` did the same between 1,600 and 1,200 km.
+- The averaged floor stood above the ground once the box outgrew the valley's top width.
+
+**A first correction, rejected in flight earlier on 2026-11-02:**
+- It approximated the footprint mean of `min(ground, profile)` with a quadratic smooth minimum, `lerp(a, b, w) - k w (1 - w)`, for both the union of links and the ground crossing.
+- Its rounding `k` came from slope differences times the footprint, with the large forms' gradient for the ground.
+- It dug furrows along every divide between links, parallel to the valleys, and the ground trembled more.
+- The crossing sat where the profile met the estimated ground, not the real one.
+- The patch stayed outside Git, `vallees-empreinte.patch` in the scratchpad of the session that wrote it.

@@ -967,7 +967,7 @@ def _erosion_box_square_excess(x, radius):
     return np.where(x >= 0., radius*radius/3. - cap, cap), tail*tail/(2. * radius)
 
 
-def _erosion_profile(d, z, q, ice, slope, walls, depth, wide, widest):
+def _erosion_profile(d, z, q, ice, slope, walls, depth, wide, widest, section=None):
     """ErosionProfile: (surface, floor share, glacier, rise).
 
     depth is unused, retained only for comparison with historical CPU references.
@@ -978,6 +978,8 @@ def _erosion_profile(d, z, q, ice, slope, walls, depth, wide, widest):
     trough = np.clip(EROSION_GLACIER[0] * (np.maximum(ice, 1.0) / 1e8) ** EROSION_GLACIER[1], 150.0, 1500.0)
     curvature = EROSION_GLACIER[2] / trough
     shoulder = EROSION_GLACIER_WALLS / (2.0 * curvature)
+    if section is not None:
+        section.update(floor_width=floor, curvature=curvature)
     # Exact local mean; network depth never scales the profile or the physical floor mask.
     radius = np.maximum(0.5 * wide, CREASE_MIN_CELL)
     right_bank, left_bank = d-floor, -d-floor
@@ -1022,6 +1024,11 @@ def erosion_valleys(p, cell_km, walls, seed=None):
              incision=np.zeros(N), deposit=np.full(N, -1e9), channel_bed=np.full(N,1e9),channel_surface=np.full(N,1e9),
              lake_level=lake_level,
              flow=np.zeros((N,3)))
+    v["links"] = [dict(d=np.zeros(N), z=np.full(N,1e9), floor_width=np.zeros(N),
+                       curvature=np.zeros(N), glacier=np.zeros(N)) for _ in range(2)]
+    v["walls"] = np.broadcast_to(walls, (N,))
+    v["box_radius"] = max(1000.0 * cell_km, CREASE_MIN_CELL)
+    second_candidate = np.full(N, 1e9)
     guide_surface = np.full(N, 1e9)
     wide = 2000.0 * cell_km
     walls = np.broadcast_to(walls, (N,))
@@ -1097,7 +1104,8 @@ def erosion_valleys(p, cell_km, walls, seed=None):
                                    np.where(outlet,np.abs(lv-z_up)/np.maximum(np.linalg.norm(b-a,axis=1)*radius,1e-6),water_slope))
             ground = s0 * s0 * ground_up + 2.0 * s0 * t * gr + t * t * np.where(outlet, gr, ground_down)
             depth = np.maximum(ground - z, 0.0)
-            surface, flat, glacier, rise = _erosion_profile(d, z, qt, it, water_slope, walls, depth, wide, 0.15 * cell_m)
+            section = {}
+            surface, flat, glacier, rise = _erosion_profile(d, z, qt, it, water_slope, walls, depth, wide, 0.15 * cell_m, section)
             beyond = _smooth(0.35, 0.5, d / cell_m)
             s = surface + 1e4 * beyond
             guide = np.where(m,np.clip(0.5+0.5*(guide_surface-s)/EROSION_SMOOTH,0.,1.),0.)
@@ -1105,6 +1113,11 @@ def erosion_valleys(p, cell_km, walls, seed=None):
             v['gradient'] += guide[:,None]*(gradient-v['gradient'])
             guide_surface += guide*(s-guide_surface)-EROSION_SMOOTH*guide*(1.0-guide)
             low = m & (s < v["surface"])
+            second = m & ~low & (s < second_candidate)
+            for key, value in dict(d=d, z=z+1e4*beyond, glacier=glacier, **section).items():
+                v["links"][1][key] = np.where(low, v["links"][0][key], np.where(second, value, v["links"][1][key]))
+                v["links"][0][key] = np.where(low, value, v["links"][0][key])
+            second_candidate = np.where(low, v["surface"], np.where(second, s, second_candidate))
             v["surface"] = np.where(low, s, v["surface"])
             v['level'] = np.where(low,z,v['level'])
             channel = erosion_river_profile(d,z,qt,walls,max(.5*wide,CREASE_MIN_CELL))+1e4*beyond
@@ -1131,12 +1144,63 @@ def erosion_cut(coarse, surface, k):
     return coarse-depth*t*t*(3.-2.*t)
 
 
+def _erosion_box_ramp(x, radius):
+    tail = np.maximum(radius-np.abs(x),0.)
+    return np.maximum(x,0.)+tail*tail/(4.*radius)
+
+
+def _erosion_box_positive_square(x, radius):
+    return np.maximum(x,0.)**2+_erosion_box_square_excess(x,radius)[0]
+
+
+def _erosion_section_crossing(depth, f, s, c, walls, glacier):
+    """ErosionSectionCrossing: where the mixed section rises `depth` above its level."""
+    lo, hi = np.minimum(f,s), np.maximum(f,s)
+    def rise(t):
+        return (1.-glacier)*walls*np.maximum(t-f,0.)+glacier*(c*np.minimum(t,s)**2+EROSION_GLACIER_WALLS*np.maximum(t-s,0.))
+    at = np.where(depth<=rise(lo),.5*lo,np.where(depth<=rise(hi),.5*(lo+hi),hi+1.))
+    floor, trough = at<f, at<s
+    a = np.where(trough,glacier*c,0.)
+    b = np.where(trough,0.,glacier*EROSION_GLACIER_WALLS)+np.where(floor,0.,(1.-glacier)*walls)
+    g = np.where(trough,0.,glacier*(c*s*s-EROSION_GLACIER_WALLS*s))-np.where(floor,0.,(1.-glacier)*walls*f)
+    rest = np.maximum(depth-g,0.)
+    return 2.*rest/np.maximum(b+np.sqrt(b*b+4.*a*rest),1e-20)
+
+
+def erosion_clipped_section(link, ground, walls, radius):
+    """Box mean of a physical section clipped to constant ground."""
+    d, z, f = link['d'], link['z'], link['floor_width']
+    c, glacier = link['curvature'], link['glacier']
+    depth = np.maximum(ground-z,0.)
+    c = np.maximum(c,1e-30)
+    shoulder = EROSION_GLACIER_WALLS/(2.*c)
+    u = np.minimum(d,shoulder)
+    glacial = (c*u*u+EROSION_GLACIER_WALLS*np.maximum(d-shoulder,0.)
+               +c*np.maximum(radius*radius/3.-_erosion_box_square_excess(d-shoulder,radius)[0]
+                             -_erosion_box_square_excess(-d-shoulder,radius)[0],0.))
+    fluvial = walls*(_erosion_box_ramp(d-f,radius)+_erosion_box_ramp(-d-f,radius))
+    xg = _erosion_section_crossing(depth,f,shoulder,c,walls,glacier)
+    xf = np.maximum(f,xg)
+    excess_f = walls*(_erosion_box_ramp(d-xf,radius)+_erosion_box_ramp(-d-xf,radius))
+    excess_g = 0.
+    for x in (d,-d):
+        ramp = _erosion_box_ramp(x-xg,radius)
+        excess_g += np.where(xg>=shoulder,EROSION_GLACIER_WALLS*ramp,
+                             c*(_erosion_box_positive_square(x-xg,radius)+2.*xg*ramp
+                                -_erosion_box_positive_square(x-shoulder,radius)))
+    mean = z+(fluvial-excess_f)+(glacial-excess_g-fluvial+excess_f)*glacier
+    return np.where((ground<=z)|(link['curvature']<=0.),ground,np.minimum(np.maximum(mean,z),ground))
+
+
 def erosion_carve(h, coarse, v, k):
-    """ErosionCarve: retain original hollows; positive spurs cannot excavate below the valley envelope."""
+    """Clip each link at the actual ground before applying the bounded cut."""
     detail = h-coarse
     tail = np.maximum(k-abs(detail),0.)
     spurs = np.maximum(detail,0.)+tail*tail/(4.*k)
-    surface = v['surface']+spurs*(1.-v['floor'])
+    lift = spurs*(1.-v['floor'])
+    ground = h-lift
+    surface = np.minimum(*(erosion_clipped_section(link,ground,v['walls'],v['box_radius'])
+                           for link in v['links']))+lift
     return erosion_cut(h,surface,k*(1.-v['floor']))
 
 
@@ -1720,6 +1784,8 @@ def _relief_ground(ctx, p, valleys=True):
         for key, none in (("surface", 1e9), ("floor", 0.0), ("level", 0.0), ("glacier", 0.0), ("incision", 0.0), ("deposit", -1e9),
                           ("channel_bed",1e9),("channel_surface",1e9),("lake_level",0.)):
             v[key] = np.where(deep, none, v[key])
+        for link in v["links"]:
+            link["z"] = np.where(deep, 1e9, link["z"])
         v["gradient"] = np.where(deep[:, None], 0.0, v["gradient"])
         v['flow'] = np.where(deep[:,None],0.,v['flow'])
         gullies = dict(carved=np.zeros_like(h),ground=h.copy(),surface=v['surface'],valley_slope=v['gradient'],incision=v['incision'],

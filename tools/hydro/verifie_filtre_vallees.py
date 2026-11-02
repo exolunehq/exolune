@@ -95,7 +95,11 @@ def terrain():
             # Reproduce the historical defect with its signed-detail composition. The current envelope bound can
             # mask the former dilation, so restoring only its profile is no longer a valid failing control.
             current_profile, current_carve = cp._erosion_profile, cp.erosion_carve
-            cp._erosion_profile = old_profile
+            def old_with_section(*args):
+                section = args[-1]
+                current_profile(*args[:-1], section)
+                return old_profile(*args[:-1])
+            cp._erosion_profile = old_with_section
             cp.erosion_carve = lambda h,coarse,v,k: cp.erosion_cut(h,v['surface']+(h-coarse)*(1.-v['floor']),k)
             try:
                 old_resolved = cp.elevation(cp.Ctx(1.),points)

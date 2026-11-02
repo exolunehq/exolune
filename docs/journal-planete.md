@@ -2,6 +2,18 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-02 · Valleys kept from orbit: clip, then average**
+- **Symptom:** from orbit, valleys absent at 2,400 km, then appearing between 2,000 and 1,400 km.
+- **Cause:** each valley section was averaged over the sample before the ground clipped it; once the sample outgrew the valley, its averaged floor stood above the ground and the valley vanished.
+- **Change:** the box mean of each section clipped by the point's own ground, in closed form (`ErosionClippedSection`); the two lowest links, combined by their plain minimum (`spec-erosion.md`).
+- **Settings:** none; radius and walls unchanged. Mirrored in `tools/hydro/cp.py`.
+- **Checks:** `verifie_vallees_lointaines.py`: 3.2e-7 m against quadrature, area kept to 4e-9, close range unchanged to 1e-13 m, terrain windows to 0.17 mm at 1 m; the existing checks pass, the composition bound moved to the clipped mean.
+- **Captures:** two ranges from 2,400 to 900 km; valleys present at 2,400 km as broad soft bands, sharpening continuously, identical by 900 km.
+- **Seen in passing:** a snowy range's snow still appears with descent, now between 1,600 and 1,200 km; separate defect.
+- **Review:** `tools/tests/2026-11-02-vallees-orbite.txt`; validated in flight by the user, cliff contact F11-F12 included. No performance or quality benchmark.
+- **Tag:** `piste/vallees-orbite-2026-11-02`.
+- **To return:** `ErosionCarve` back to `v.surface + lift`.
+
 **2026-11-02 · Screen relief from orbit**
 - **Symptom:** from orbit, mountains blurred into squares, crawled when the camera moved, then sharpened suddenly near 1,400 km.
 - **Cause:** from orbit the fine grid's cells span several pixels; it and the mesh's triangles slide with the view, and every field interpolated on them moved.

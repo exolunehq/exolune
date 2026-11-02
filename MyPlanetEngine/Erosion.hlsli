@@ -89,9 +89,16 @@ ErosionData ErosionRead(uint c, uint n)
     return d;
 }
 
+struct ErosionSection
+{
+    float d, z, floorWidth, curvature, glacier;
+};
+
 // The valleys around the point: the surface they carve, the share of their floor, the water's level there.
 struct ErosionValley
 {
+    ErosionSection links[2];
+    float walls, boxRadius;
     float surface;    // the valleys' surface (m), a minimum over the links; far above the ground away from them
     float3 gradient;  // its slope (m/m), along the ground
     float floorShare; // 1 on a valley's floor, where the detail fades
@@ -243,17 +250,17 @@ float ErosionRiverProfile(float d, float z, float q, float walls, float radius)
 // Water level z, discharge q (m3/s), ice flux and along-link slope determine the profile, independently of mesh size.
 // Returns the surface and physical floor share; rise is the filtered slope away from the axis.
 float2 ErosionProfile(float d, float z, float q, float ice, float slope, float walls, float wide, float widest,
-                      out float glacier, out float rise)
+                      out float glacier, out float rise, out float floorWidth, out float curvature)
 {
     // The fluvial floor, wider on a gentle river; never wider than `widest`, so that it ends before the links read change.
     const float floodplain = EROSION_FLOOR.x * sqrt(q) * clamp(EROSION_FLOOR.y / max(slope, 1e-6), 1.0, EROSION_FLOOR.z);
     // The liquid channel belongs inside its valley. A narrower floor forced the later water pass to excavate banks.
-    const float floorWidth = min(max(floodplain, ErosionRiverSize(q).x), widest);
+    floorWidth = min(max(floodplain, ErosionRiverSize(q).x), widest);
     // A parabolic U above its drained floor (Hirano & Aniya 1988), extended by its tangent at the wall slope.
     // Subtracting an overdepth before clamping to water would flatten the whole U into a kilometre-wide ribbon.
     glacier = saturate(log2(max(ice, 1.0)) - EROSION_GLACIER.w);
     const float trough = clamp(EROSION_GLACIER.x * pow(max(ice, 1.0) / 1e8, EROSION_GLACIER.y), 150.0, 1500.0);
-    const float curvature = EROSION_GLACIER.z / trough;
+    curvature = EROSION_GLACIER.z / trough;
     const float shoulder = EROSION_GLACIER_WALLS / (2.0 * curvature);
     // Average the physical cross-section over the mesh footprint. Never scale its coordinate by network depth:
     // depth can be zero while the detailed terrain stands hundreds of metres above that coarse reference.
@@ -316,6 +323,10 @@ ErosionValley ErosionValleys(double3 p, float cellKm, float walls)
     v.channelDistance = 1e9;
     float guideSurface = 1e9;
     const float wide = 2000.0 * cellKm;
+    v.walls = walls, v.boxRadius = max(0.5 * wide, CREASE_MIN_CELL);
+    v.links[0] = (ErosionSection)0, v.links[1] = (ErosionSection)0;
+    v.links[0].z = v.links[1].z = 1e9;
+    float secondCandidate = 1e9;
     // Positions relative to the point, in floats: a node less the point's float, exact between neighbours (Sterbenz), less
     // the point's rest, the one reading in doubles. Doubles run 64 times slower than floats here.
     const float3 pf = (float3)p, rest = (float3)(p - (double3)pf);
@@ -399,8 +410,8 @@ ErosionValley ErosionValleys(double3 p, float cellKm, float walls)
                 const float ground = s0 * s0 * groundUp + 2.0 * s0 * t * dr.ground
                                    + t * t * (outlet ? dr.ground : groundDown);
                 const float depth = max(ground - z, 0.0);
-                float glacier, rise;
-                const float2 s = ErosionProfile(d, z, q, ice, waterSlope, walls, wide, 0.15 * cellM, glacier, rise);
+                float glacier, rise, floorWidth, curvature;
+                const float2 s = ErosionProfile(d, z, q, ice, waterSlope, walls, wide, 0.15 * cellM, glacier, rise, floorWidth, curvature);
                 // Past three quarters of the reach the valley rises out of every ground: the links read change there.
                 const float beyond = smoothstep(0.35, 0.5, d / cellM);
                 const float candidate = s.x + 1e4 * beyond;
@@ -409,11 +420,18 @@ ErosionValley ErosionValleys(double3 p, float cellKm, float walls)
                 const float guide = saturate(0.5 + 0.5 * (guideSurface - candidate) / EROSION_SMOOTH);
                 v.gradient = lerp(v.gradient, -rise * nearestPoint / max(length(nearestPoint), 1e-12), guide);
                 guideSurface = lerp(guideSurface, candidate, guide) - EROSION_SMOOTH * guide * (1.0 - guide);
+                ErosionSection link;
+                link.d = d, link.z = z + 1e4 * beyond, link.floorWidth = floorWidth;
+                link.curvature = curvature, link.glacier = glacier;
                 [branch] if (candidate < v.surface)
                 {
+                    v.links[1] = v.links[0], secondCandidate = v.surface;
+                    v.links[0] = link;
                     v.surface = candidate;
                     v.level = z;
                 }
+                else if (candidate < secondCandidate)
+                    v.links[1] = link, secondCandidate = candidate;
                 const float channel = ErosionRiverProfile(d, z, q, walls, max(0.5 * wide, CREASE_MIN_CELL)) + 1e4 * beyond;
                 [branch] if (EROSION_WATER > 0.0 && q > 0.05 && z > 0.0)
                     v.channelDistance = min(v.channelDistance, d - ErosionRiverSize(q).x + 1e4 * beyond);
@@ -450,6 +468,69 @@ float ErosionCut(float coarse, float surface, float k)
     return coarse - depth * t * t * (3.0 - 2.0 * t);
 }
 
+float ErosionBoxRamp(float x, float radius)
+{
+    const float tail = max(radius - abs(x), 0.0);
+    return max(x, 0.0) + tail * tail / (4.0 * radius);
+}
+
+float ErosionBoxPositiveSquare(float x, float radius)
+{
+    const float positive = max(x, 0.0);
+    return positive * positive + ErosionBoxSquareExcess(x, radius).x;
+}
+
+// The distance from the axis where a link's section, fluvial and glacial mixed by its glacier share, rises `depth`
+// above its level. The section is quadratic between its floor's edge f and the trough's shoulder s; on that piece,
+// a t^2 + b t + g = depth, solved without cancellation when a vanishes.
+float ErosionSectionCrossing(float depth, float f, float s, float c, float walls, float glacier)
+{
+    const float lo = min(f, s), hi = max(f, s);
+    const float2 edges = float2(lo, hi);
+    const float2 rises = (1.0 - glacier) * walls * max(edges - f, 0.0)
+                       + glacier * (c * min(edges, s) * min(edges, s) + EROSION_GLACIER_WALLS * max(edges - s, 0.0));
+    const float at = depth <= rises.x ? 0.5 * lo : depth <= rises.y ? 0.5 * (lo + hi) : hi + 1.0;
+    const bool floor = at < f, trough = at < s;
+    const float a = trough ? glacier * c : 0.0;
+    const float b = (trough ? 0.0 : glacier * EROSION_GLACIER_WALLS) + (floor ? 0.0 : (1.0 - glacier) * walls);
+    const float g = (trough ? 0.0 : glacier * (c * s * s - EROSION_GLACIER_WALLS * s)) - (floor ? 0.0 : (1.0 - glacier) * walls * f);
+    const float rest = max(depth - g, 0.0);
+    return 2.0 * rest / max(b + sqrt(b * b + 4.0 * a * rest), 1e-20);
+}
+
+// The mean over the box of radius `radius` of a link's physical section clipped by a ground constant across it: the
+// incision a sample shows, its area kept at every footprint. Averaging the section before clipping it raised a narrow
+// valley's floor above the ground once the box outgrew it, and the whole valley vanished from far away. The clipped
+// part is the section less its excess above the ground, each term a stable box mean of ramps and squares.
+float ErosionClippedSection(ErosionSection link, float ground, float walls, float radius)
+{
+    const float depth = ground - link.z;
+    if (depth <= 0.0 || link.curvature <= 0.0) return ground;
+    const float d = link.d, f = link.floorWidth, c = link.curvature;
+    const float shoulder = EROSION_GLACIER_WALLS / (2.0 * c);
+    const float u = min(d, shoulder);
+    const float glacial = c * u * u + EROSION_GLACIER_WALLS * max(d - shoulder, 0.0)
+        + c * max(radius * radius / 3.0 - ErosionBoxSquareExcess(d - shoulder, radius).x
+                  - ErosionBoxSquareExcess(-d - shoulder, radius).x, 0.0);
+    const float fluvial = walls * (ErosionBoxRamp(d - f, radius) + ErosionBoxRamp(-d - f, radius));
+    // One crossing for the mixed section: clipping each shape at its own crossing and mixing them is another section.
+    const float x = ErosionSectionCrossing(depth, f, shoulder, c, walls, link.glacier);
+    const float xF = max(f, x);
+    const float excessF = walls * (ErosionBoxRamp(d - xF, radius) + ErosionBoxRamp(-d - xF, radius));
+    float excessG = 0.0;
+    [unroll] for (int side = 0; side < 2; ++side)
+    {
+        const float e = side == 0 ? d : -d;
+        if (x >= shoulder)
+            excessG += EROSION_GLACIER_WALLS * ErosionBoxRamp(e - x, radius);
+        else
+            excessG += c * (ErosionBoxPositiveSquare(e - x, radius)
+                + 2.0 * x * ErosionBoxRamp(e - x, radius)
+                - ErosionBoxPositiveSquare(e - shoulder, radius));
+    }
+    return clamp(link.z + lerp(fluvial - excessF, glacial - excessG, link.glacier), link.z, ground);
+}
+
 float ErosionCarve(float h, float coarse, ErosionValley v, float k)
 {
     // Existing hollows already belong to h. Adding their negative residual to the cut a second time dug side trenches
@@ -457,7 +538,9 @@ float ErosionCarve(float h, float coarse, ErosionValley v, float k)
     // this C1 positive part uses the existing join scale, and h remains the upper bound, including in a deep hollow.
     const float detail = h - coarse, tail = max(k - abs(detail), 0.0);
     const float spurs = max(detail, 0.0) + tail * tail / (4.0 * k);
-    const float surface = v.surface + spurs * (1.0 - v.floorShare);
+    const float lift = spurs * (1.0 - v.floorShare), ground = h - lift;
+    const float surface = min(ErosionClippedSection(v.links[0], ground, v.walls, v.boxRadius),
+                              ErosionClippedSection(v.links[1], ground, v.walls, v.boxRadius)) + lift;
     // The profile remains the lower bound of any new excavation. Existing hollows survive through h; no separate
     // winning-link stage is imposed after the union, which would introduce steps where tributaries compete.
     // Soften the shoulders, not the draining floor. A 60 m join on a shallow floor left a barrier above its stage;

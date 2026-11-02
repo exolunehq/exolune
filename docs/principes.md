@@ -103,6 +103,8 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Keep the physical floor mask independent of the mesh; round only the sampled profile.
 - Verify fixed world positions at several mesh spacings, including zero reference depth.
 - Averaging a profile does not prove conservation of the incision after clipping against arbitrary terrain.
+- **Clip a section by the ground before averaging it,** at the point's own ground. Averaged first, a narrow valley's floor rose above the ground once the footprint outgrew it, and the valley vanished from orbit (`spec-erosion.md`, 2026-11-02).
+- Combine clipped sections by their plain minimum; a smooth minimum's rounding digs along every divide.
 - Compose the physical cliff, talus and min/max intersections before averaging the incision.
 - Mesh size changes a symmetric normalized sampling support, never the physical cliff width.
 - Conservation of a local section with frozen parameters does not establish conservation of the complete 2D terrain.
