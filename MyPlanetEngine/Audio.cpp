@@ -1,4 +1,5 @@
 #include "Audio.h"
+#include "GpuHelpers.h"
 #include <algorithm>
 #include <cmath>
 #pragma comment(lib, "xaudio2.lib")
@@ -40,6 +41,9 @@ float Audio::Noise() {
 }
 
 bool Audio::Initialize() {
+    const std::wstring sample = FindAbove(L"assets\\audio\\step-soil-0.wav");
+    if (sample.empty()) throw std::runtime_error("Audio bank missing: assets/audio/*.wav must be above the executable.");
+    mWorld.Initialize(sample.substr(0, sample.find_last_of(L"\\/")));
     if (FAILED(XAudio2Create(&mXAudio, 0, XAUDIO2_DEFAULT_PROCESSOR))) return false;
     WAVEFORMATEX format = {};
     format.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
@@ -76,6 +80,12 @@ void Audio::Update(const ShipSound& s) {
     mLastUpdate = GetTickCount64();
 }
 
+void Audio::SetMix(float master, float footsteps, float ambience, float ship) {
+    mMasterGain = std::min(std::max(master, 0.0f), 1.0f);
+    mShipGain = std::min(std::max(ship, 0.0f), 1.0f);
+    mWorld.SetMix(footsteps, ambience);
+}
+
 // XAudio2 asks for what keeps the voice from starving: computed now, in the next blocks of the ring.
 void Audio::OnVoiceProcessingPassStart(UINT32 bytesRequired) {
     for (UINT frames = bytesRequired / (2 * sizeof(float)); frames > 0;) {
@@ -102,7 +112,9 @@ void Audio::Render(float* out, UINT frames) {
         kBurst = std::exp(-1.0f / (0.07f * 48000.0f)), kHold = Smoothing(0.04f);
     constexpr double Tau = 6.283185307179586, Dt = 1.0 / 48000.0;
     float low, band, high;
-    for (UINT i = 0; i < frames; ++i) {
+    const bool dormant = !alive && mOn < 1e-5f;
+    if (dormant) std::fill(out,out+2*frames,0.0f);
+    for (UINT i = 0; !dormant && i < frames; ++i) {
         mOn += (on - mOn) * kOn;
         mPower += (thrust - mPower) * (thrust > mPower ? kRise : kFall);
         mAir += (wind - mAir) * kAir;
@@ -179,7 +191,14 @@ void Audio::Render(float* out, UINT frames) {
 
         for (int c = 0; c < 2; ++c) {
             mHull[c].Run(other[c], HullOther + (16000.0f - HullOther) * (1.0f - mInside), 0.7f, low, band, high);
-            out[2 * i + c] = std::tanh(MasterGain * mOn * (engine[c] + low * (1.0f - 0.2f * mInside)));
+            out[2 * i + c] = MasterGain * mOn * mShipGain.load(std::memory_order_relaxed) * (engine[c] + low * (1.0f - 0.2f * mInside));
         }
+    }
+    mWorld.Render(out, frames);
+    const float master = mMasterGain.load(), smooth = Smoothing(0.025f);
+    for (UINT i = 0; i < frames; ++i) {
+        mMasterLevel += (master - mMasterLevel) * smooth;
+        out[2*i] = std::tanh(out[2*i] * mMasterLevel);
+        out[2*i+1] = std::tanh(out[2*i+1] * mMasterLevel);
     }
 }

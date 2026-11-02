@@ -1,0 +1,66 @@
+{
+  "fantozzi": {
+    "url": "https://opengameart.org/sites/default/files/Fantozzi-footsteps.7z",
+    "sha256": "415d360e0911c1c1c5355ee94023b772e6f4044f59b9b580610e7dbffd1840fd"
+  },
+  "mastered": {
+    "url": "https://opengameart.org/sites/default/files/footsteps_0.zip",
+    "sha256": "542564e7f6b3a0b89a0d08542438e030e77a46303855fe5bf1644a48185861e9"
+  },
+  "grass": {
+    "url": "https://cdn.freesound.org/previews/389/389625_4103633-hq.mp3",
+    "sha256": "8ff6b8ea11ddd0fd7a1f22e29e29474f1a223e7d32834754ac30b650568f349a"
+  },
+  "snow": {
+    "url": "https://cdn.freesound.org/previews/453/453168_6253486-hq.mp3",
+    "sha256": "23eb61a5699cb16f53ba5e9cd05ba43951eed7fc44b8d31856dfe6e0b632a599"
+  },
+  "birds": {
+    "url": "https://opengameart.org/sites/default/files/birds-isaiah658_0.ogg",
+    "sha256": "359e4e3f9da9d75aac64cede511c7e3ef8b461f9d9f8c230f8f80e44c4b3e35f"
+  },
+  "outputs": {
+    "bird0.wav": "47e8a26cd59fc09edb95fff957b3f2afb60d0e6e4f4ca319f3581219b6783c60",
+    "bird1.wav": "b6e168af67d372f124c9cb8330f35032c54329732ee2407d88173dc628e683d4",
+    "bird2.wav": "9f4cf5532b1fd0773c358db5f8a7888a266fced5c283f0225faa9626c0e7fc79",
+    "bird3.wav": "4bd6f3187b11e5d4e141a669240d4edfb9eec5fb4c13a98cbc6c8fb433047a32",
+    "bird4.wav": "8430b659b8e085a364414b88c4c4148a6c9eb1fca85b0142c92c747af6695582",
+    "bird5.wav": "f87bf23957752f6d58ca4a34b12c849eb2e2c4b17be81f412d77e075d4a62eb6",
+    "step-grass-0.wav": "c7b08b412e4db51dfd370cb8f699a7f9bf2a7522da0ed1032dede42acdc536f8",
+    "step-grass-1.wav": "fdaf04b0264cdff3ae569667c497942bc989415e5bfcda0e8c737782fc8cbf3e",
+    "step-grass-2.wav": "2c9331650894206a6052a1cba31547dfe9eb688652abf0c9cafba9f434c54fea",
+    "step-grass-3.wav": "b310ad1eb1574db666f941b7da0ae8ee5e27687c384b5dcf938044af9701efd9",
+    "step-grass-4.wav": "c3d5c3a817a5a9b1c893009f9c434b2efc33bf62f6184892b7b11b2cdac30533",
+    "step-grass-5.wav": "f5cac831b4a8459f38a97afb2bea4e3d88406b6fe92fc4fa18ceb93aa69c5234",
+    "step-gravel-0.wav": "4ba5c96e706fb47ac42c12d513602ce77930df56edecd0f1e4ea607901dcaa7b",
+    "step-gravel-1.wav": "0033e2bd55efefb51e81a4e8b2c5d4f23c6acbee9af128ee8b3bbbd5083a6d8f",
+    "step-gravel-2.wav": "dca4ea867b0761bf5c343044028d4d45defecc2a27e60c819fdc5dd7dff5daf7",
+    "step-gravel-3.wav": "bbdfdb42da9cead8cb58b3009821c6d6611132303cfb184b25e48a5cce77387e",
+    "step-gravel-4.wav": "b6e57350e680401f454cfaa193f47443543a52c93f55a4fe5241e1ae217e61dd",
+    "step-gravel-5.wav": "64b3a97e78cdc9e61268c663bac4c3295138e277871b85e12fc619eaa6171aa5",
+    "step-rock-0.wav": "2f27afab55bcde418c97b99fc2e3ecee9e6351740e26e8b706ccd54f4d58e690",
+    "step-rock-1.wav": "343a6a9e38a63b3bebb25e908c8eb2363ae61dc91a48a2d45f127d679b7cb3d4",
+    "step-rock-2.wav": "3ceb466f7e52e1fc1467f364dfe7370932c8a2677ccc09d08a6bb6b44de7c105",
+    "step-rock-3.wav": "6462d936b2a37bf55af22c4d4e5957d15020dc453dbeb0dd6ef14c7b0cffed0e",
+    "step-rock-4.wav": "d20ad7e48692e5b941e3c0feb903f3ba2c14777afd764c86adb7b345d7b7c31a",
+    "step-rock-5.wav": "f5af770d2930907c5d658f92a7ec99bae1a11f491ca7ba84b0fd6f0caae170a7",
+    "step-sand-0.wav": "18eb3e45f8878c842152db77a442183f52d4d67b7c5b153dcfda3ba84c8e0689",
+    "step-sand-1.wav": "2cc45f21e62af35bbfb6f31aaa51cda31afce16058f2b5b75df5758859fc66c6",
+    "step-sand-2.wav": "990759fee73f76bfa092b4743ca0ff94d1bced7e5b4522b83804336f155659cb",
+    "step-sand-3.wav": "0a927bb38a97b3a4a0df38a83e87e5403897374a170b7e7c3306afafa0d0254e",
+    "step-sand-4.wav": "e1d0d0b36da29abfdb9952076a1c3933257c804559f375691b3ca16040d53636",
+    "step-sand-5.wav": "1e98c90c1ac548f25bbe167903f7b8f8274e6f3b32df2ce5e9ab18709e4f15a8",
+    "step-snow-0.wav": "14777e232be7f9d5b7dc70525cc6e47de519b5460799b5318142c738c9f0e180",
+    "step-snow-1.wav": "b085e7c34ee314d78f68fd7107e4cbaba1fdd45e9e635bd058dff535dcd984cb",
+    "step-snow-2.wav": "789a43b5be7c0755a729099da1497efbeabded76cb32f03fd71ccadda6e0d0e4",
+    "step-snow-3.wav": "3f9d3949cabb72a41d30a9f30f033e633650ca81e4995bef00652813799738ac",
+    "step-snow-4.wav": "4996a97d48070416fc43478b014abef50e774ed264233d7e441081414b8c4f95",
+    "step-snow-5.wav": "b02122aa6c03d2407165c0bd71a92dd9a22d68bd1897d8b36258946bf59d7a05",
+    "step-soil-0.wav": "b7c8f9d4466e5eb943ec067da8b7bd0d9317b05c64fe66e4d354ee4aa47814af",
+    "step-soil-1.wav": "32aca8cdd4dafa9e5f2aaea1774e454eeb8ababad3db37f4b843294f473c7625",
+    "step-soil-2.wav": "80bd85ff954d13e188759944d48bcc22fc23a4dc47ec1031682a8b6a36f2afe8",
+    "step-soil-3.wav": "f39bf3ceef2c437dae40548e5c12d02e97316c325da92f6e4fe481e419d527b5",
+    "step-soil-4.wav": "0d46c5a6f1f9db4ebfd00e34203dadedbd267276ae01633b0b0b170addcb817d",
+    "step-soil-5.wav": "d54ecd53c6febafd2c21a4d6d0da25e8da8570ba73e5599d8b459ee864c19d3c"
+  }
+}

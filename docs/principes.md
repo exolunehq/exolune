@@ -24,6 +24,18 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 
 ## The established rules
 
+**Grounded movement and environmental audio read the rendered world** (`spec-marche-ambiances.md`).
+- Walking contact uses shared relief and a bounded local footprint; no second terrain model.
+- Separate disembarkation recovery from movement contact; refuse invalid landings visibly.
+- Step sounds follow actual grounded distance, not held input or time alone.
+- Contact sounds use exposed textured coating areas, including residual soil; snow and beach cover the substrate acoustically.
+- Distinct materials use distinct recorded contacts; pitch and filtering only vary or damp those contacts.
+- Rain does not prove standing water and must not substitute mud or splashes for a ground material.
+- Habitat, surfaces and weather use existing material, vegetation, climate and cloud fields.
+- Real-time audio uses bounded voices and queues, without allocation, disk access or blocking.
+- Resident recordings carry redistribution rights and reproducible provenance.
+- Outdoor sound fades with distance from its habitat and atmospheric density.
+
 **Selecting a manufactured asset selects its complete geometry profile** (`spec-vaisseau.md`).
 - Keep each selectable model's source and delivery files in its own asset directory.
 - Match the pilot eye, canopy weather surface, shadow centre, engine mouths and animation pivots to that model.

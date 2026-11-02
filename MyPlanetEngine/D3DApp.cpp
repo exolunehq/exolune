@@ -332,6 +332,7 @@ D3DApp::D3DApp(HINSTANCE hInstance, double startAltitude, double latitude, doubl
     mTaa = mSettings.view == 0.0f && mSettings.taa; // off at startup and in the diagnostic views; key T
     mDiagnosticView = mSettings.view;
     mCloudsOn = mSettings.clouds;
+    mCoordinates = mSettings.coordinates;
     mWeatherTime = mSettings.weatherTime;
     mLabel = mSettings.label;
     ReadTests();
@@ -350,6 +351,7 @@ D3DApp::D3DApp(HINSTANCE hInstance, double startAltitude, double latitude, doubl
     mView = mSettings.Automated() ? View::Free : View::Cockpit;
     if (mSettings.shipSet) {
         const wchar_t* choice = mSettings.ship.c_str();
+        mStartWalking = !wcscmp(choice, L"marche");
         mView = !wcscmp(choice, L"poursuite") ? View::Chase : !wcscmp(choice, L"libre") ? View::Free
               : !wcscmp(choice, L"sans") ? View::Bare : View::Cockpit;
     }
@@ -369,6 +371,8 @@ void D3DApp::PlaceCamera(double latitude, double longitude, double pitchDown, do
     mCamPos = up * (PlanetRadius + altitude);
     mCamForward = Normalize((north * std::cos(cap) + east * std::sin(cap)) * std::cos(pitch) - up * std::sin(pitch));
     mWaveReset = true;
+    mWorldPending = mWorldValid = mWalkProbePending = mWalkPatchValid = false;
+    mAudio.ResetWorld();
 }
 
 // The sea's waves (Sea.hlsli, docs/recherche-mer.md). Their plane rides tangent at the camera, carried along the shortest
@@ -419,7 +423,8 @@ D3DApp::~D3DApp() {
 bool D3DApp::Initialize() {
     if (!InitWindow()) return false;
     if (!InitDirect3D()) return false;
-    if (!mSettings.Automated()) mAudio.Initialize(); // offline films stay silent
+    if (!mSettings.Automated()) mAudioReady = mAudio.Initialize(); // offline films stay silent
+    mAudio.SetMix(mSettings.audioMaster,mSettings.audioFootsteps,mSettings.audioAmbience,mSettings.audioShip);
     return true;
 }
 
@@ -1194,8 +1199,10 @@ bool D3DApp::InitDirect3D() {
         mSettings.scans, scanUploads);
     if (!missing.empty()) mLabel += (mLabel.empty() ? L"" : L" | ") + (L"scans absents : " + missing);
     const CD3DX12_RESOURCE_BARRIER materialsToRead[2] = {
-        CD3DX12_RESOURCE_BARRIER::Transition(mMaterials[0].Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
-        CD3DX12_RESOURCE_BARRIER::Transition(mMaterials[1].Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) };
+        CD3DX12_RESOURCE_BARRIER::Transition(mMaterials[0].Get(), D3D12_RESOURCE_STATE_COPY_DEST,
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
+        CD3DX12_RESOURCE_BARRIER::Transition(mMaterials[1].Get(), D3D12_RESOURCE_STATE_COPY_DEST,
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE) };
     mCommandList->ResourceBarrier(2, materialsToRead);
     // The clouds' textures, found above the executable as the ship is.
     const std::wstring cloudAssets = FindAbove(L"assets\\clouds");
@@ -1206,9 +1213,9 @@ bool D3DApp::InitDirect3D() {
     UploadCloudVolume(md3dDevice.Get(), mCommandList.Get(), cloudAssets + L"\\weather64.rgba8mips", 64u, 7u, mCloudProfiles.Get(), cloudUploads, false, true);
     // Their weather map comes from the climate (CreateClimateMap).
     const CD3DX12_RESOURCE_BARRIER cloudsToRead[3] = {
-        CD3DX12_RESOURCE_BARRIER::Transition(mCloudShape.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
-        CD3DX12_RESOURCE_BARRIER::Transition(mCloudDetail.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
-        CD3DX12_RESOURCE_BARRIER::Transition(mCloudProfiles.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) };
+        CD3DX12_RESOURCE_BARRIER::Transition(mCloudShape.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
+        CD3DX12_RESOURCE_BARRIER::Transition(mCloudDetail.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
+        CD3DX12_RESOURCE_BARRIER::Transition(mCloudProfiles.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE) };
     mCommandList->ResourceBarrier(3, cloudsToRead);
     mCommandList->Close();
     ID3D12CommandList* lists[] = { mCommandList.Get() };
@@ -1226,6 +1233,7 @@ bool D3DApp::InitDirect3D() {
     CreateTectonicMap(); // the relief reads it, the planet map with it
     InitCine(GpuDescriptor(TectonicSrv));
     CreatePlanetMap();
+    InitializeWorld(GpuDescriptor(TectonicSrv),GpuDescriptor(PlanetMapSrv),GpuDescriptor(CloudSrv),GpuDescriptor(MaterialSrv));
     return true;
 }
 
@@ -1429,7 +1437,8 @@ void D3DApp::CreateTectonicMap() {
 // ship's weather reads it too. Then the clouds' weather map from it (Climate::Weather), its first mip saved beside it,
 // meteo-<seed>.bin. Their times and the climate's size on the GPU go to the title.
 void D3DApp::CreateClimateMap(const Tectonics::Map& tectonics, uint32_t seed, const std::wstring& cache) {
-    const Climate::Map climate = Climate::Build(tectonics, PlanetRadius / 1000.0);
+    mClimateCpu = Climate::Build(tectonics, PlanetRadius / 1000.0);
+    const Climate::Map& climate = mClimateCpu;
     mClimateMs = climate.ms;
     Climate::Save(climate, seed, cache);
     const auto weatherStart = std::chrono::steady_clock::now();
@@ -1557,6 +1566,9 @@ void D3DApp::Draw() {
     }
 
     if (!BeginBatchFrame() || !BeginCineFrame()) return;
+    ReadWalkGround();
+    ReadWorldSound();
+    if (mStartWalking) { mStartWalking = false; ToggleWalking(); }
 
     LARGE_INTEGER now;
     QueryPerformanceCounter(&now);
@@ -1566,10 +1578,13 @@ void D3DApp::Draw() {
     if (!mSettings.Automated() && !mWeatherPaused) mWeatherTime += elapsed * mWeatherRate;
     mClock += dt;
     if (mCine.empty()) {
-        if (mView == View::Free) UpdateCamera(dt);
+        if (mView == View::Walk) UpdateWalking(dt);
+        else if (mView == View::Free) UpdateCamera(dt);
         else UpdateShip(dt);
     }
-    const bool shipDrawn = mView != View::Free && mView != View::Bare && mShip.Ready();
+    UpdateWorldSound(dt);
+    const bool shipDrawn = mView != View::Free && mView != View::Bare && mShip.Ready()
+        && (mView != View::Walk || Length(mShipPos-mCamPos)<250.0);
 
     // The mesh reaches the horizon, plus the highest mountains that can rise above it, capped at what
     // one face plane can cover. The face is centred on the nadir, its half-width proportional to the
@@ -1624,13 +1639,39 @@ void D3DApp::Draw() {
         (float)(mCamPos.z - az * kDetailUnit), (float)kDetailUnit };
 
     // Rendering happens in the face frame with the camera at the origin: no large float coordinates.
+    // Screenshot coordinates use the actual camera, updated every frame, including while the clock is paused.
+    // Keep the text out of temporal history and the terrain; ToneMap draws it after the film curve.
+    mConstants->coordinateInfo = {};
+    mConstants->coordinateInfo.z = mSettings.Automated() ? 0u : 1u | (mView==View::Walk ? 2u : 0u)
+        | (mAudioMuted || !mAudioReady ? 4u : 0u) | (mClock<mWalkNoticeUntil ? 8u : 0u);
+    if (mView==View::Walk) {
+        const unsigned surface=CurrentFootContact().Primary();
+        mConstants->coordinateInfo.w=surface<FootContact::Count?surface+1:0;
+    }
+    if (mCoordinates) {
+        const double lon = std::atan2(up.z, up.x), toDegrees = 180.0 / XM_PI;
+        const Vec3d north = { -up.y * std::cos(lon), std::hypot(up.x, up.z), -up.y * std::sin(lon) };
+        const Vec3d east = { -std::sin(lon), 0.0, std::cos(lon) };
+        const Vec3d forward = Normalize(mCamForward);
+        const double pitch = -std::asin(std::min(std::max(Dot(forward, up), -1.0), 1.0)) * toDegrees;
+        const double heading = std::atan2(Dot(forward, east), Dot(forward, north)) * toDegrees;
+        char lines[2][64] = {};
+        snprintf(lines[0], sizeof(lines[0]), "LAT %.6f  LON %.6f  GRAINE %u",
+            std::asin(std::min(std::max(up.y, -1.0), 1.0)) * toDegrees, lon * toDegrees, mSettings.seed);
+        snprintf(lines[1], sizeof(lines[1]), "ALT MER %.1f M  TANGAGE %.2f  CAP %.2f",
+            Length(mCamPos) - PlanetRadius, pitch, heading);
+        mConstants->coordinateInfo.x = UINT(std::strlen(lines[0]));
+        mConstants->coordinateInfo.y = UINT(std::strlen(lines[1]));
+        static_assert(sizeof(lines) == sizeof(mConstants->coordinateText), "Coordinate text packing must match HLSL.");
+        std::memcpy(mConstants->coordinateText, lines, sizeof(lines));
+    }
     const float fovY = XMConvertToRadians((float)mCineFov);
     const float aspect = float(mClientWidth) / float(mClientHeight);
     // The view's up is the vertical, or the ship's: it rolls with it.
     const Vec3d viewUp = mView == View::Free ? up : mCamUp;
     const XMMATRIX view = XMMatrixLookToLH(XMVectorZero(), toLocal(mCamForward), toLocal(viewUp));
     // In the ship the near plane comes to 5 cm, for the cockpit; reversed Z keeps the far terrain's depth.
-    const float nearZ = shipDrawn ? 0.05f : (float)std::max(0.01, 0.1 * clearance);
+    const float nearZ = shipDrawn || mView == View::Walk ? 0.05f : (float)std::max(0.01, 0.1 * clearance);
     const XMMATRIX proj = XMMatrixPerspectiveFovLH(fovY, aspect, 1e9f, nearZ); // near and far swapped: reversed Z
 
     // Camera axes, as XMMatrixLookToLH builds them, for the culling in the compute shader.
@@ -1807,6 +1848,8 @@ void D3DApp::Draw() {
     QueryPerformanceCounter(&cpuMarks[1]);
     mCommandAllocator->Reset();
     mCommandList->Reset(mCommandAllocator.Get(), nullptr);
+    if (mView==View::Walk) QueueWalkGround();
+    if (!mSettings.Automated()) QueueWorldSound();
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0);
 
     const double oceanStep=!mCine.empty()?1.0/mCineFps:mSettings.Automated()?1.0/60.0:dt;
@@ -2295,7 +2338,11 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
     if (mMeshFrozen) wcscat_s(title, L" | MAILLAGE FIG\u00C9 (G)");
     if (mFaceted) wcscat_s(title, L" | facettes (R)");
     if (!mTaa) wcscat_s(title, L" | sans lissage (T)");
-    if (mView != View::Free) {
+    if (mView == View::Walk) {
+        wchar_t walk[128];
+        swprintf_s(walk,L" | marche %.2f m/s | J : vaisseau | Maj : courir | Ctrl : accroupir | H : balancement",Length(mWalkVelocity));
+        wcscat_s(title,walk);
+    } else if (mView != View::Free) {
         wchar_t ship[80];
         swprintf_s(ship, L" | %s : %s, %.0f m/s (Tab)", mShip.Profile().name, mView == View::Cockpit ? L"cockpit" : mView == View::Chase ? L"poursuite" : L"sans vaisseau", Length(mShipVelocity));
         wcscat_s(title, ship);
@@ -2404,6 +2451,17 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     if (!mCine.empty() && (msg == WM_INPUT || (msg >= WM_KEYFIRST && msg <= WM_KEYLAST) ||
         (msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST))) return DefWindowProc(hwnd, msg, wParam, lParam);
     switch (msg) {
+    case WM_LBUTTONUP: {
+        // The same pixel rectangles as ActionOverlay. Alt or M releases the raw FPS mouse to click them.
+        if (!mSettings.Automated() && !mMouseHeld) {
+            const int s=std::min(std::max(int(mClientWidth/640),1),3), x=GET_X_LPARAM(lParam), y=GET_Y_LPARAM(lParam);
+            if (y>=12*s && y<33*s) {
+                if (x>=12*s && x<114*s) { ToggleWalking(); return 0; }
+                if (x>=118*s && x<220*s) { ToggleAudio(); return 0; }
+            }
+        }
+        break;
+    }
     case WM_INPUT: { // raw mouse motion, for the ship's views
         RAWINPUT input;
         UINT size = sizeof(input);
@@ -2418,11 +2476,19 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         HoldMouse(LOWORD(wParam) != WA_INACTIVE && mView != View::Free);
         break;
     case WM_SYSKEYDOWN: // Alt held lets the cursor go, to reach the tests' palette; not the window menu's key
+        if (wParam==VK_F10 && !(lParam & (1u<<29))) {
+            if (!(lParam & (1u<<30)) && mTests.size()>9) GoToTest(9);
+            return 0;
+        }
         if (wParam==VK_RETURN && (lParam & (1u<<29)) && !(lParam & (1u<<30))) { ToggleFullscreen(); return 0; }
         if (wParam == VK_MENU) { HoldMouse(false); return 0; }
         break;
     case WM_SYSKEYUP:
+        if (wParam == VK_F10) return 0;
         if (wParam == VK_MENU) { HoldMouse(mView != View::Free && GetForegroundWindow() == hwnd); return 0; }
+        break;
+    case WM_SYSCOMMAND:
+        if ((wParam & 0xfff0u)==SC_KEYMENU) return 0; // Alt releases the mouse; F10 belongs to the route, not a modal menu
         break;
     case WM_RBUTTONDOWN:
         mLooking = true;
@@ -2444,6 +2510,7 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         }
         return 0;
     case WM_MOUSEWHEEL:
+        if (mView == View::Walk) return 0;
         if (mView != View::Free) { // the ship's gas, notch by notch; it stays where it is left
             mThrottle = std::min(std::max(mThrottle + GET_WHEEL_DELTA_WPARAM(wParam) / double(WHEEL_DELTA), 0.0), 30.0);
             return 0;
@@ -2453,6 +2520,10 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         return 0;
     case WM_KEYDOWN:
         if (lParam & (1 << 30)) break; // ignore auto-repeat
+        if (wParam == 'J') ToggleWalking();
+        if (wParam == 'Y') ToggleAudio();
+        if (wParam == VK_SPACE && mView == View::Walk) mWalkJump = true;
+        if (wParam == 'H' && mView == View::Walk) mWalkBob = !mWalkBob;
         if (wParam == 'F') mWireframe = !mWireframe;
         if (wParam == 'G') mMeshFrozen = !mMeshFrozen; // diagnostic: the mesh stops following the camera
         if (wParam == 'R' && mView == View::Free) mFaceted = !mFaceted; // compare with the faceted shading
@@ -2465,11 +2536,12 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             mHistoryValid = false;
         }
         if (wParam == VK_SPACE && mView == View::Free) mWeatherPaused = !mWeatherPaused; // the ship climbs
-        if (wParam == 'H' && mView != View::Free) { // the mouse to the head and back; the head then stays put
+        if (wParam == 'H' && mView != View::Free && mView != View::Walk) { // the mouse to the head and back; the head then stays put
             mHeadFree = !mHeadFree;
             mHeadKept = !mHeadFree;
         }
         if (wParam == 'U') mHud = !mHud; // the green head-up display
+        if (wParam == 'I') mCoordinates = !mCoordinates;
         if (wParam == 'M' && mView != View::Free) { // the cursor to Windows and back, for a screenshot
             mMouseFree = !mMouseFree;
             HoldMouse(GetForegroundWindow() == hwnd);

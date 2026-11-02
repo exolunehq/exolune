@@ -2,6 +2,7 @@
 // view is sRGB: the hardware encodes the output. See docs/recherche-tons-exposition.md and docs/log/spec-rendu.md.
 #include "Planet.hlsli"
 #include "Atmosphere.hlsli" // the atmosphere tables, t1 to t3, and the sampler
+#include "Coordinates.hlsli"
 
 Texture2D<float4> composite : register(t0); // the scene under its atmosphere; alpha: distance (km), 0 for the sky,
                                             // negative on the waves the sea shows, which move by themselves
@@ -90,5 +91,7 @@ Output PSMain(float4 position : SV_POSITION)
     const float4 g = glass.Load(int3(pixel, 0));
     const float3 shown = color * g.a + g.rgb;
     output.screen = float4(taa.y > 0.5 ? shown : FilmCurve(shown * Exposure()), 1.0);
+    output.screen.rgb = CoordinateOverlay(output.screen.rgb, pixel, int2(size));
+    output.screen.rgb = ActionOverlay(output.screen.rgb, pixel, int2(size));
     return output;
 }

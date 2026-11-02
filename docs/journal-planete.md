@@ -2,6 +2,16 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-02 · Walking, controls and environmental audio**
+
+- **Integration:** walking and audio isolated on current public `main`; vegetation authoring remains on `codex/vegetation-2026-11-02`.
+- **Controls:** J disembarks and returns; WASD/ZQSD or arrows move; Shift runs, Ctrl crouches, Space jumps, H toggles bob, Y mutes and I toggles coordinates.
+- **Contact:** a 9 by 9 relief query at 0.5 m spacing; eye heights 1.68/1.05 m; walking/running/crouching 1.5/3.6/0.75 m/s; slope limit 45 degrees.
+- **Audio:** six recorded contact materials with six takes each, six bird calls and contextual procedural ambience; four independent gains default to 1.
+- **Scope:** existing ship selection, cloud rendering, terrain and vegetation retained; no performance or quality benchmark.
+- **Review:** `tools/tests/2026-11-02-marche-main.txt`; functional controller and PCM checks in `tools/tests/check_walking.ps1`.
+- **Milestone:** `jalon/2026-11-02-marche-ambiances`; specification and limitations in `spec-marche-ambiances.md`.
+
 ## 2026-11-02 · Clouds: contrast and shiny contours
 
 - **The defect:** since the whitening, flat clouds and bright outlines on their lobes, like specular highlights.

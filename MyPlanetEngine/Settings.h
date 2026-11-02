@@ -34,11 +34,13 @@ struct Settings
     double seaTime = 0.0, seaTimeRate = 1.0;
     float oceanSpeed = 12.0f, oceanDirection = 70.0f, oceanSwell = 1.8f;
 
-    // The ship: MYPLANETENGINE_VAISSEAU=cockpit, poursuite, sans or libre, the first view, when shipSet; the glass's
+    // The ship: MYPLANETENGINE_VAISSEAU=cockpit, poursuite, sans, libre or marche, the first view, when shipSet; the glass's
     // weather forced for the captures, MYPLANETENGINE_VERRIERE=pluie, nuage or givre (1, 2, 3).
     std::wstring ship;
     bool shipSet = false;
     float glassTest = 0.0f;
+    // MYPLANETENGINE_AUDIO="master footsteps ambience ship", independent gains in [0,1]; Y mutes the master.
+    float audioMaster = 1.0f, audioFootsteps = 1.0f, audioAmbience = 1.0f, audioShip = 1.0f;
 
     // The objects: MYPLANETENGINE_OBJECT_POP, they pop whole instead of growing, the pop measure's reference;
     // MYPLANETENGINE_OBJECT_CENSUS, in batch mode, every cell's candidate recorded, nothing drawn;
@@ -74,6 +76,7 @@ struct Settings
     UINT trembleFrames = 24;
     std::wstring batchPath;
     bool batch = false; // MYPLANETENGINE_BATCH set: hidden, and quits even when no job could be read
+    bool coordinates = true; // I: screenshot coordinates; off by default in automated captures
     double batchMotion[6] = {};
 
     std::wstring cinePath, cineOut;

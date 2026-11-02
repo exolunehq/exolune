@@ -28,6 +28,7 @@ void ApplyProfile(double& altitude,double& latitude,double& longitude,double& pi
     if (!GetFullPathNameW(relative.c_str(),MAX_PATH,absolute,nullptr)) throw std::runtime_error("Invalid runtime root in MyPlanetEngine.ini.");
     const std::wstring root=absolute;
     put(L"MYPLANETENGINE_SCANS",read(L"Rendu",L"Scans",L""));
+    put(L"MYPLANETENGINE_AUDIO",read(L"Audio",L"Volumes",L"1 1 1 1"));
     put(L"MYPLANETENGINE_TESTS",root+L"\\tools\\tests\\vues.txt");
     put(L"MYPLANETENGINE_SUN",read(L"Camera",L"Soleil",L"20 120"));
     const std::wstring position=read(L"Camera",L"Position",L"");
@@ -130,6 +131,14 @@ Settings ReadSettings() {
     }
     if (GetEnvironmentVariableW(L"MYPLANETENGINE_VERRIERE", choice, 32) > 0)
         s.glassTest = !wcscmp(choice, L"pluie") ? 1.0f : !wcscmp(choice, L"nuage") ? 2.0f : !wcscmp(choice, L"givre") ? 3.0f : 0.0f;
+    wchar_t audio[128] = {};
+    if (GetEnvironmentVariableW(L"MYPLANETENGINE_AUDIO", audio, _countof(audio))) {
+        wchar_t extra;
+        if (swscanf_s(audio,L"%f %f %f %f %lc",&s.audioMaster,&s.audioFootsteps,&s.audioAmbience,&s.audioShip,&extra,1u)!=4)
+            throw std::runtime_error("MYPLANETENGINE_AUDIO expects master footsteps ambience ship, each from 0 to 1.");
+        for (float gain : {s.audioMaster,s.audioFootsteps,s.audioAmbience,s.audioShip})
+            if (!std::isfinite(gain) || gain<0 || gain>1) throw std::runtime_error("Audio gains must be finite and between 0 and 1.");
+    }
 
     wchar_t foliageAssets[MAX_PATH] = {};
     if (GetEnvironmentVariableW(L"MYPLANETENGINE_FOLIAGE_ASSETS", foliageAssets, MAX_PATH) > 0) s.foliageAssets = foliageAssets;
@@ -146,5 +155,9 @@ Settings ReadSettings() {
     if (GetEnvironmentVariableW(L"MYPLANETENGINE_SEED", map, MAX_PATH) > 0) s.seed = uint32_t(_wtoi(map));
     s.glare = GetEnvironmentVariableW(L"MYPLANETENGINE_GLARE", nullptr, 0) > 0;
     if (!s.cinePath.empty()) s.vsync = false;
+    s.coordinates = !s.Automated();
+    wchar_t coordinates[8] = {};
+    if (GetEnvironmentVariableW(L"MYPLANETENGINE_COORDINATES", coordinates, _countof(coordinates)))
+        s.coordinates = wcscmp(coordinates, L"0") != 0;
     return s;
 }

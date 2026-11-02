@@ -2,6 +2,8 @@
 
 Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it.
 
+**Walking, 2026-11-02:** contact samples the existing `ReliefElevation` at 0.5 m spacing over a local footprint. This is a controller query, not a geometry overlay. Terrain generation and vegetation geometry remain unchanged; `spec-marche-ambiances.md` describes the height-field approximation.
+
 ## The rule
 
 **The Exolune tectonic relief is the source of geometry truth,** since the 2026-10-31 (`spec-relief-tectonique.md`).

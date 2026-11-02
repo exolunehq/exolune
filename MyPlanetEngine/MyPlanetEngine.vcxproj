@@ -79,10 +79,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Audio.cpp" />
+    <ClCompile Include="WorldAudio.cpp" />
     <ClCompile Include="D3DApp.cpp" />
     <ClCompile Include="D3DAppBench.cpp" />
     <ClCompile Include="D3DAppCine.cpp" />
     <ClCompile Include="D3DAppShip.cpp" />
+    <ClCompile Include="D3DAppWalk.cpp" />
     <ClCompile Include="D3DAppTests.cpp" />
     <ClCompile Include="Glare.cpp" />
     <ClCompile Include="Scans.cpp" />
@@ -117,6 +119,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio.h" />
+    <ClInclude Include="WorldAudio.h" />
+    <ClInclude Include="FootContact.h" />
+    <ClInclude Include="WalkController.h" />
     <ClInclude Include="D3DApp.h" />
     <ClInclude Include="GpuHelpers.h" />
     <ClInclude Include="Glare.h" />
@@ -137,6 +142,10 @@
     <None Include="Relief.hlsli" />
     <None Include="Noise.hlsli" />
     <None Include="Planet.hlsli" />
+    <None Include="Coordinates.hlsli" />
+    <None Include="WorldWeather.hlsli" />
+    <None Include="SurfaceProbe.hlsli" />
+    <None Include="SurfaceWeights.hlsli" />
     <None Include="PlanetFoliageCommon.hlsli" />
     <None Include="PlanetFoliageLod.hlsli" />
     <None Include="PlanetFoliageDepth.hlsli" />
@@ -361,6 +370,16 @@
       <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel>
       <EntryPointName>CSMain</EntryPointName><DisableOptimizations>false</DisableOptimizations>
     </FxCompile>
+    <FxCompile Include="WalkGround.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>SurfaceProbe.hlsli;Relief.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="WorldSound.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>SurfaceProbe.hlsli;SurfaceWeights.hlsli;WorldWeather.hlsli;Materials.hlsli;Vegetation.hlsli;Planet.hlsli;Atmosphere.hlsli;Clouds.hlsli;Relief.hlsli;Terrain.hlsli;Mesh.hlsli;Shadows.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
     <FxCompile Include="TerrainComputePairs.hlsl">
       <ShaderType>Compute</ShaderType>
       <ShaderModel>6.0</ShaderModel>
@@ -426,7 +445,7 @@
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>CSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;Atmosphere.hlsli;Materials.hlsli;Climate.hlsli;Clouds.hlsli;Terrain.hlsli;Mesh.hlsli;Shadows.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;Atmosphere.hlsli;Materials.hlsli;Climate.hlsli;Clouds.hlsli;WorldWeather.hlsli;Terrain.hlsli;Mesh.hlsli;Shadows.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="ShipWaterMove.hlsl">
       <ShaderType>Compute</ShaderType>
@@ -498,6 +517,7 @@
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>PSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>Coordinates.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="GlareDown.hlsl">
       <ShaderType>Pixel</ShaderType>

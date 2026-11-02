@@ -10,6 +10,7 @@
 
 ## What it contains
 
+- **`spec-marche-ambiances-historique.md`:** superseded prototype footstep recordings and material selection; current controller and audio in `../spec-marche-ambiances.md`.
 - **`spec-vaisseau-historique.md`:** superseded ship assemblies, junctions, panel layouts and their inspection measurements.
 
 **The origins of**

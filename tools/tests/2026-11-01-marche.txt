@@ -1,0 +1,14 @@
+# Seed 0. J disembarks/returns. ZQSD/WASD or arrows; Shift runs, Ctrl crouches, Space jumps; H toggles bob; Y mutes.
+# A sixth pose token "marche" starts on the actual GPU ground; altitude remains the parked ship's sea-level altitude.
+Equatorial forest: steps and daytime birds | 60 -7.75 -37.25 5 0 marche | -5 -20
+Same forest at night: insects and wetland calls | 60 -7.75 -37.25 5 0 marche | 5 160
+Windward forest: leaves and cloud showers | 900 -12.375 112.125 5 294 marche | -5 125
+Rain-shadow desert: dry ground and wind | 1735 -11.825 110.867 5 114 marche | -5 100
+Continental steppe: open-ground footsteps | 450 41.75 -22.25 5 0 marche | 35 -5
+Coastal plain: sandy soil and nearby surf | 15 16.71 -89.25 5 9 marche | 30 -70
+Cold plateau: snow and exposed wind | 4770 -47.207948 75.090399 5 -122 marche | -40 70
+Woody slope: uphill limit and downhill gravity | 940 -8.44835 118.48865 5 163 marche | -20 130
+Other temperate forest: environmental transition | 525 34.75 50.75 5 0 marche | 30 70
+Open ocean: J must refuse a submerged landing | 100 -20.47 -75.45 0 160 | -50 -75
+Polar region: J refuses sea or a steep face | 8000 88 65 5 0 | 75 65
+Orbit: silent surroundings, J then instant ground if dry | 1000000 -7.75 -37.25 55 0 | -5 -20
