@@ -13,7 +13,7 @@
 - **`spec-normales-spline-historique.md`:** retired cardinal prefilter and the replaced fine-grid height/normal interpolation; current reconstruction in `../spec-normales-spline.md`.
 - **`spec-marche-ambiances-historique.md`:** replaced prototype contact recordings and material selector; current rules in `../spec-marche-ambiances.md`.
 - **`spec-vaisseau-historique.md`:** the replaced clearance-dependent near plane and nadir-only interactive contact; current projection and sweep limits in `../spec-vaisseau.md`.
-- **`spec-erosion-historique.md`:** superseded erosion profiles and checks, including the rock-only slope budget, valley dilation, coastal talus and metric, signed-detail composition, rejected incision cap and archive-worktree closure; current rules in `../spec-erosion.md` and `../spec-eaux-interieures.md`.
+- **`spec-erosion-historique.md`:** old coastal profiles, comparison of the 9 km filter and expected slope; superseded symmetric band and reach without a sea probe; singular crests, provisional climate, gullies without a slope reserve and their old measurements; C and D measurements before scale separation and spherical valley projection; removed duplicate coastal estimator from E; flattened glacial profiles and measurements from `14c99ec`; the rock-only slope budget, valley dilation, symmetric coastal talus and mesh-scale metric, signed-detail composition, rejected incision cap and archive-worktree closure, superseded on 2026-11-01; current rules in `../spec-erosion.md` and `../spec-eaux-interieures.md`.
 
 **The origins of**
 

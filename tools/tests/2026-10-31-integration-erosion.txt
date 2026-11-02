@@ -1,9 +1,9 @@
-# Fusion integration + erosion-globale : toutes les fonctions ensemble, graine 0. Altitudes approximatives au-dessus de la mer. Les captures à hauteur au sol sont dans x64/Verif/rendus ; N coupe les nuages.
-Orbite : tectonique et météo du climat | 10000000 -0.5 -18.225 90 0 | 10 -5
-Atoll : récif, passes et lagon | 25000 5.593 -115.057 90 0 | 5 -75
-Côte plate : cordons lissés et lagunes | 20000 -27.18082 -152.21264 90 0 | -20 -170
-Falaise tropicale : paroi, platier et vestige depuis la mer | 60 8.73276 -103.30263 -5 130 | 30 -80
-Falaise sud : paroi percée de gorges | 60 -3.21606 169.25336 -5 74 | -10 140
-Vallée de collision depuis 30 km : réseau, plis et contreforts | 34594 -7.5 117 40 20 | -5 125
-Forêt au sol : arbres proches et canopée lointaine | 2162.7 34.1611352 -73.72443 3 0 | 34 -73
-Bouclier volcanique : édifice lobé et caldeira | 120000 7.9 -118.3 90 0 | 8 -75
+# Merge integration + erosion-globale: all features together, seed 0. Approximate altitudes above sea level. Captures at ground height are in x64/Verif/rendus; N hides clouds.
+Orbit: tectonics and climate-derived weather | 10000000 -0.5 -18.225 90 0 | 10 -5
+Atoll: reef, passes and lagoon | 25000 5.593 -115.057 90 0 | 5 -75
+Flat coast: smoothed barriers and lagoons | 20000 -27.18082 -152.21264 90 0 | -20 -170
+Tropical cliff: wall, platform and remnant from the sea | 60 8.73276 -103.30263 -5 130 | 30 -80
+Southern cliff: wall pierced by gorges | 60 -3.21606 169.25336 -5 74 | -10 140
+Collision valley from 30 km: network, folds and buttresses | 34594 -7.5 117 40 20 | -5 125
+Forest at ground level: nearby trees and distant canopy | 2162.7 34.1611352 -73.72443 3 0 | 34 -73
+Shield volcano: lobed edifice and caldera | 120000 7.9 -118.3 90 0 | 8 -75

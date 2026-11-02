@@ -1,136 +1,136 @@
-# Spec : l'érosion globale
+# Spec: global erosion
 
-Statut : spec vivante, depuis le 2026-10-31, branche `erosion-globale`, piste `piste/erosion-globale`. Elle part de la pile tectonique (`spec-relief-tectonique.md`) ; la recherche de la branche `erosion-niveaux` n'est qu'une source (section « Ce que la recherche a appris »). Parcours courant : `tools/tests/2026-11-01-auges.txt` ; les étapes précédentes restent dans `tools/tests/2026-10-31-erosion.txt`.
+Status: living spec, since 2026-10-31, branch `erosion-globale`, experiment `piste/erosion-globale`. It starts from the tectonic stack (`spec-relief-tectonique.md`); research on branch `erosion-niveaux` is only a source (section “What the research taught us”). Current route: `tools/tests/2026-11-01-auges.txt`; previous stages remain in `tools/tests/2026-10-31-erosion.txt`.
 
-## L'objectif
+## The objective
 
-**Les fleuves et les glaciers forment un seul système, de la planète au détail de 100 m.** Les chaînes montrent des vallées transverses ramifiées, des arêtes, des contreforts et une ligne de partage continue ; les plis restent en avant-pays ; tous les fleuves atteignent la mer ou un lac.
+**Rivers and glaciers form one system, from the planet to 100 m detail.** Mountain ranges show branching transverse valleys, arêtes, buttresses and a continuous divide; folds remain in the foreland; all rivers reach the sea or a lake.
 
-## L'architecture
+## The architecture
 
-**Trois niveaux, un seul réseau.** Le niveau 0 décide où va l'eau et à quelle hauteur ; les vallées et les ravines n'en sont que le dessin, de plus en plus fin, accroché à lui.
+**Three levels, one network.** Level 0 decides where water flows and at what height; valleys and gullies only draw it, in increasing detail, attached to it.
 
-| Niveau | Échelles | Où, quand | Ce qu'il fait |
+| Level | Scales | Where, when | What it does |
 |---|---|---|---|
-| 0, le réseau | nœuds à 20 km ; formes au-dessus de 40 km | CPU, au démarrage, sur la grille de la carte tectonique ; cache par graine | drainage vers la mer, lacs par bilan d'eau, niveau de l'eau par puissance fluviale, débit, glace, cônes et deltas |
-| 1, les vallées du réseau | de 40 km à la largeur du lit | shader, par point (`Erosion.hlsli`) | chaque lien creuse sa vallée dans le sol grossier : fond au niveau de l'eau, versants à la pente de seuil, en U sous la glace ; deltas et cônes |
-| 2, les ravines | de 11 km à 100 m | shader, dans les octaves du détail (`Relief.hlsli`) | les octaves réorientées le long de la pente du relief au-dessus d'elles : chaque ravine descend vers la vallée qui la porte |
+| 0, the network | nodes at 20 km; shapes above 40 km | CPU, at startup, on the tectonic map grid; cache per seed | drainage to the sea, lakes by water balance, stream-power water level, discharge, ice, fans and deltas |
+| 1, network valleys | from 40 km to bed width | shader, per point (`Erosion.hlsli`) | each link carves its valley into coarse ground: floor at water level, slopes at the threshold gradient, U-shaped under ice; deltas and fans |
+| 2, gullies | from 11 km to 100 m | shader, within detail octaves (`Relief.hlsli`) | octaves reoriented along the slope of terrain above them: each gully descends toward its supporting valley |
 
-**Pourquoi ce partage :**
-- **Le niveau 0 est global :** un fleuve dépend de la mer et de tout l'amont. Il se calcule une fois, au démarrage, comme la carte tectonique.
-- **Les niveaux fins sont locaux et déterministes :** une érosion simulée par tuiles est chaotique et coud mal (recherche, spike B). Une vallée ne lit que les liens du niveau 0 autour d'elle ; une ravine, la pente des octaves au-dessus d'elle.
-- **Rien ne se calcule en route :** les niveaux 1 et 2 sont des fonctions du point, comme le bruit ; le niveau 0 est en mémoire dès le départ.
-- **Un arbre explicite à plusieurs niveaux, à la Dendry, est écarté :** chaque nœud fin doit connaître les liens plus grossiers autour de lui, et ainsi de suite ; par sommet, le coût croît comme 9 puissance le nombre de niveaux.
+**Why this division:**
+- **Level 0 is global:** a river depends on the sea and its entire upstream basin. It is computed once, at startup, like the tectonic map.
+- **Fine levels are local and deterministic:** simulated erosion by tiles is chaotic and joins poorly (research, spike B). A valley reads only nearby level 0 links; a gully, the slope of larger octaves.
+- **Nothing is computed along the way:** levels 1 and 2 are point functions, like noise; level 0 is in memory from the start.
+- **An explicit tree with several levels, like Dendry, is rejected:** each fine node must know nearby coarser links, and so on; per vertex, cost grows as 9 to the power of the number of levels.
 
-## Le niveau 0, `Erosion.cpp`
+## Level 0, `Erosion.cpp`
 
-**La grille :** celle de la carte tectonique, 6 × 512², environ 20 km. Le soulèvement et l'érodabilité s'y lisent sans interpolation.
+**The grid:** that of the tectonic map, 6 × 512², around 20 km. Uplift and erodibility are read without interpolation.
 
-**Les entrées :**
-- **la forme avant érosion,** `ReliefElevation(p, false)` filtrée à deux mailles, calculée au démarrage sur le GPU au centre de chaque cellule (`ErosionForm.hlsl`) ;
-- **le soulèvement U et l'érodabilité K,** tranches 3 et 4 de la carte tectonique, gardées en mémoire jusque-là ;
-- **les précipitations P et la température T,** par `ErosionClimate`, lecture bilinéaire continue de `Climate::At` sur la carte CPU gardée depuis `CreateClimateMap`.
+**Inputs:**
+- **the pre-erosion form,** `ReliefElevation(p, false)` filtered to two grid cells, computed at startup on the GPU at each cell center (`ErosionForm.hlsl`);
+- **uplift U and erodibility K,** slices 3 and 4 of the tectonic map, kept in memory until then;
+- **precipitation P and temperature T,** through `ErosionClimate`, continuous bilinear `Climate::At` read on the CPU map kept since `CreateClimateMap`.
 
-**Le calcul :**
-1. **Le drainage :** un Priority-Flood depuis la mer donne la surface comblée et l'ordre de l'eau (Barnes, Lehman et Mulla 2014). Un corps sans mer se draine vers son point le plus bas.
-2. **Les lacs par bilan d'eau :** une cuvette garde un lac terminal si l'eau qui y arrive est moindre que ce que toute sa surface évaporerait, moins la pluie sur elle ; son niveau, là où les cellules les plus basses évaporent l'apport. Les autres cuvettes débordent et se comblent : des plaines.
-3. **Le routage :** chaque cellule vers sa voisine la plus basse sur la surface comblée, un plat par l'ordre de l'inondation ; la pente vers chaque voisine pesée de ±15 %, tirée par cellule et par voisine, d'après rho8 (Fairfield et Leymarie 1991) mais également : les chemins hésitent entre les deux directions qui encadrent la pente, au lieu de lignes droites à 45°. Le ruissellement par la courbe de Schreiber, cumulé vers l'aval.
-4. **Le niveau de l'eau :** depuis la mer et les lacs, vers l'amont, la pente d'équilibre de la puissance fluviale, S = ks A^−θ, θ = 0,45 (Kirby et Whipple 2012) ; A l'aire drainée au ruissellement de référence, un bassin sec est plus raide. ks = √(30² + 150² U) / √K, U en mm/an : 30 sur les plaines, 150 à 1 mm/an, 330 à 5, l'Himalaya ; la racine, l'exposant de pente n = 2 mesuré sur les chaînes terrestres. Le niveau ne dépasse jamais la surface comblée : là où l'équilibre serait plus haut, le fleuve coule sur sa plaine.
-5. **Le recul des points d'inflexion :** l'entaille remonte à vitesse finie, K A^0,5, le long des caractéristiques de la loi (Tzathas et al. 2024). Au-delà de 1 000 km parcourus par un fleuve de 10⁵ km², moins vite pour un plus petit, le sol garde sa forme : les plateaux ne sont entaillés qu'à leurs bords.
-6. **La glace :** la ligne d'équilibre du dernier maximum glaciaire, 900 m sous l'actuelle ; l'actuelle où la température d'été vaut celle d'Ohmura, Kasser et Funk (1992) pour la précipitation, avec une correction fixe d'été de +8 °C à la moyenne annuelle. Le bilan, 0,6 m/an par 100 m, au plus 2 m/an et la précipitation ; cumulé le long du même réseau, la glace d'amont plus le bilan de la cellule là où elle en a. Un glacier là où le flux reste positif.
-7. **Les dépôts :** un cône là où un fleuve sort d'une vallée de plus de 200 m pour un sol qu'il entaille moins du quart ; un delta à l'embouchure sans glace d'un débit de plus de 300 m³/s.
+**The calculation:**
+1. **Drainage:** Priority-Flood from the sea gives the filled surface and water ordering (Barnes, Lehman and Mulla 2014). A body without a sea drains to its lowest point.
+2. **Lakes by water balance:** a depression retains a terminal lake if incoming water is less than what its entire surface would evaporate, minus rainfall on it; its level is where the lowest cells evaporate the inflow. Other depressions overflow and fill: plains.
+3. **Routing:** each cell toward its lowest neighbor on the filled surface, flats by flood order; slope toward each neighbor weighted by ±15 %, drawn per cell and neighbor, based on rho8 (Fairfield and Leymarie 1991) but equally: paths waver between the two directions bracketing the slope, instead of straight lines at 45°. Runoff from the Schreiber curve, accumulated downstream.
+4. **Water level:** from the sea and lakes upstream, stream-power equilibrium slope, S = ks A^−θ, θ = 0.45 (Kirby and Whipple 2012); A is drainage area at reference runoff, a dry basin is steeper. ks = √(30² + 150² U) / √K, U in mm/year: 30 on plains, 150 at 1 mm/year, 330 at 5, the Himalayas; the square root reflects slope exponent n = 2 measured on terrestrial ranges. Level never exceeds the filled surface: where equilibrium would be higher, the river flows on its plain.
+5. **Knickpoint retreat:** incision travels upstream at finite speed, K A^0.5, along the law's characteristics (Tzathas et al. 2024). Beyond 1 000 km traveled by a river draining 10⁵ km², slower for a smaller river, the ground retains its shape: plateaus are incised only at their edges.
+6. **Ice:** the equilibrium line of the last glacial maximum, 900 m below today's; today's line where summer temperature matches Ohmura, Kasser and Funk (1992) for the precipitation, with a fixed summer correction of +8 °C to the annual mean. Balance, 0.6 m/year per 100 m, capped at 2 m/year and precipitation; accumulated along the same network, upstream ice plus cell balance where ice is present. A glacier where flux remains positive.
+7. **Deposits:** a fan where a river leaves a valley deeper than 200 m for ground it incises by less than a quarter as much; a delta at an ice-free mouth with discharge above 300 m³/s.
 
-**Les sorties, une texture `R32G32_UINT` par face, `t23` (`Erosion.h`) :**
-- le niveau de l'eau au nœud et la surface comblée, au quart de mètre ;
-- le receveur parmi les huit voisines, les affluents parmi les huit ; les drapeaux : lac, mer, cône, embouchure ;
-- le débit et le flux de glace, en log.
-- **Le nœud de chaque cellule** est un point tiré dans la cellule par son hachage, à 0,3 cellule au plus : rien à stocker.
+**Outputs, one `R32G32_UINT` texture per face, `t23` (`Erosion.h`):**
+- water level at the node and filled surface, to a quarter meter;
+- receiver among eight neighbors, tributaries among eight; flags: lake, sea, fan, mouth;
+- discharge and ice flux, logarithmic.
+- **Each cell's node** is a point drawn within the cell by its hash, at most 0.3 cell away: nothing to store.
 
-**L’intégration avec le climat et les volcans :** `t18` porte la tectonique, `t19` ses vues, `t20` le climat, `t21` les volcans, `t22` leur index, `t23` l’érosion. La table contient six descripteurs. Le niveau 0 lit la forme avant érosion complète, édifices et finition volcanique compris. Les vallées et les dépôts précèdent l’abrasion ; les cordons suivent le rivage lissé, puis vient la finition des récifs. Le climat est calculé avant le niveau 0, qui lit sa carte CPU ; `ErosionClimate` et `ErosionWaveWind` lisent les mêmes champs côté shader et portage.
+**Integration with climate and volcanoes:** `t18` carries tectonics, `t19` its views, `t20` climate, `t21` volcanoes, `t22` their index, `t23` erosion. The table contains six descriptors. Level 0 reads the full pre-erosion form, including volcanic edifices and finishing. Valleys and deposits precede abrasion; barriers follow the smoothed shore, then reef finishing. Climate is computed before level 0, which reads its CPU map; `ErosionClimate` and `ErosionWaveWind` read the same fields in shader and port.
 
-**Le cache par graine :** `x64/Release/erosion-<graine>.bin`, sa clé la forme lue, la taille et tous les champs CPU du climat, la graine et la date de l’exécutable. L’ancienne clé ne couvrait pas explicitement le climat ; tout changement de ses champs invalide désormais le cache, même à exécutable et relief identiques. Le portage CPU le lit aussi.
+**The cache per seed:** `x64/Release/erosion-<graine>.bin`, keyed by the form read, size and all CPU climate fields, seed and executable date. The old key did not explicitly cover climate; every field change now invalidates the cache, even with identical executable and terrain. The CPU port reads it too.
 
 **Shared terrain and water data:** valley floors, river surfaces and terminal lakes read the same drainage map. The six additional terminal-stage slices and channel construction are documented in [inland water](spec-eaux-interieures.md).
 
-**Le contrat de la pile**
-- Le support tectonique et volcanique, ses plis et ses octaves de plus de 20 km ne dépendent pas du réseau qui va les creuser.
-- Le réseau fournit une seule enveloppe de vallée, avec ses paramètres de drainage.
-- L’écart entre cette enveloppe et le support décide de l’incision et guide le détail plus fin.
-- Le détail des versants entre dans l’enveloppe de coupe ; cette enveloppe coupe le terrain complet sans le relever.
-- Le fond éteint ce détail une seule fois ; mesas et plateaux ne reçoivent plus un second masque préalable.
-- Les dépôts restent une opération distincte, suivie de l’abrasion côtière et de la finition du littoral.
-- Le préfixe grossier et le détail se calculent dans la même boucle ; aucun deuxième calcul du support n’est ajouté pour les vallées.
-- Le réseau global reste calculé au démarrage et mis en cache ; aucune simulation d’érosion ne tourne pendant le vol.
+**The stack contract**
+- The tectonic and volcanic support, its folds and octaves above 20 km do not depend on the network that will incise them.
+- The network provides one valley envelope, with its drainage parameters.
+- The difference between this envelope and the support decides incision and guides finer detail.
+- Slope detail enters the cutting envelope; this envelope cuts the full terrain without raising it.
+- The floor suppresses this detail only once; mesas and plateaus no longer receive a second preliminary mask.
+- Deposits remain a separate operation, followed by coastal abrasion and shoreline finishing.
+- The coarse prefix and detail are computed in the same loop; no second support evaluation is added for valleys.
+- The global network remains computed at startup and cached; no erosion simulation runs during flight.
 
-## Le niveau 1 : les vallées du réseau, `ErosionValleys`
+## Level 1: network valleys, `ErosionValleys`
 
-**Le tracé et les raccords**
-- Chaque lien suit une courbe quadratique entre les milieux des liens voisins.
-- Quatre cordes initialisent la recherche du point proche ; quatre pas de Newton mesurent ensuite la courbe elle-même.
-- Les sources et exutoires à contrôle répété sont des segments : distance et paramètre se calculent directement, sans division par une tangente nulle.
-- Les distances se prennent dans le plan tangent à la direction unitaire ; la flèche radiale d’une corde n’est pas une berge.
-- Hauteur et sol de référence suivent la même quadratique ; leur pente est continue au milieu partagé.
-- Débit géométrique et flux de glace arithmétique suivent aussi la quadratique entre leurs valeurs partagées ; leur dérivée ne devient pas singulière aux sources.
-- Le gauchissement garde les longueurs d’onde de 40 et 20 km, avec une amplitude de 2 km.
-- À 7 km, son jacobien changeait de signe sur près de 13 % des points testés : une vallée pouvait se replier ou se dédoubler.
-- La réduction à 2 km est vérifiée sur 100 000 directions par graine ; ce contrôle numérique ne constitue pas une preuve globale d’injectivité.
+**Paths and joins**
+- Each link follows a quadratic curve between the midpoints of neighboring links.
+- Four chords initialize the closest-point search; four Newton steps then measure the curve itself.
+- Sources and outlets with repeated control points are segments: distance and parameter are computed directly, without division by a zero tangent.
+- Distances are measured in the tangent plane to the unit direction; a chord's radial sag is not a riverbank.
+- Height and reference ground follow the same quadratic; their slope is continuous at the shared midpoint.
+- Geometric discharge and arithmetic ice flux also follow the quadratic between their shared values; their derivative does not become singular at sources.
+- Warping retains wavelengths of 40 and 20 km, with amplitude 2 km.
+- At 7 km, its Jacobian changed sign on nearly 13 % of tested points: a valley could fold or duplicate.
+- The reduction to 2 km is checked on 100 000 directions per seed; this numerical check is not a global proof of injectivity.
 
-**Le profil**
-- Le fond fluvial garde sa largeur selon le débit et la pente longitudinale.
-- Le U glaciaire part du niveau drainé, avec `z + c x² / W`, `c = 0,3`.
-- `W` dépend du flux de glace, de 150 à 1 500 m.
-- La parabole rejoint sa tangente quand sa pente atteint 0,85 ; hauteur et pente sont continues.
-- Le profil parabolique est une approximation morphologique, d’après [Hirano et Aniya, 1988](https://www.jstage.jst.go.jp/article/jgeography1889/97/2/97_2_107/_article/-char/en).
-- La loi de largeur et son calibrage restent ceux du moteur ; ils ne sont pas déduits de cet article.
-- Le surcreusement souterrain puis le plafonnement à l’eau sont retirés : ils transformaient tout le U en ruban plat.
+**The profile**
+- The fluvial floor retains its width according to discharge and longitudinal slope.
+- The glacial U starts at the drained level, with `z + c x² / W`, `c = 0.3`.
+- `W` depends on ice flux, from 150 to 1 500 m.
+- The parabola joins its tangent when its slope reaches 0.85; height and slope are continuous.
+- The parabolic profile is a morphological approximation, after [Hirano and Aniya, 1988](https://www.jstage.jst.go.jp/article/jgeography1889/97/2/97_2_107/_article/-char/en).
+- The width law and its calibration remain those of the engine; they are not derived from this article.
+- Underground overdeepening followed by capping at water level is removed: it turned the whole U into a flat ribbon.
 - **Mesh filtering:** exact local box mean of the physical fluvial/glacial section, with radius `max(cellMetres, CREASE_MIN_CELL)`.
 - The 2 m minimum uses the existing physical crest rounding; there is no new setting.
 - Averaging a convex section only raises its profile, by at most `maximumWallSlope × radius / 2`; far planar banks remain fixed.
 - The filter ignores coarse reference depth and leaves the physical floor mask unchanged.
 - This is a local profile mean, not a claim of exact area conservation after clipping against arbitrary terrain.
 
-**La réunion des vallées**
-- La surface est le minimum des profils ; chacun porte déjà son propre niveau drainé.
-- Le niveau du lien géométriquement le plus proche ne borne plus la surface d’un autre lien.
-- La pente qui guide les ravines se mélange sur 60 m entre profils concurrents ; elle ne saute plus au changement de lien.
+**Combining valleys**
+- The surface is the minimum of the profiles; each already carries its own drained level.
+- The geometrically closest link's level no longer bounds another link's surface.
+- The slope guiding gullies blends over 60 m between competing profiles; it no longer jumps when the link changes.
 - The cut surface carries positive spurs, fading on the floor; negative residual detail is not added to the cut a second time.
 - Its C1 positive part uses the existing 60 m join scale; original hollows survive through intersection with the full terrain.
 - New excavation cannot go below the valley envelope; this prevents artificial side trenches beside a perched channel.
 - The cut is `depth × smoothstep(0, 60 × (1 - floorShare), depth)` on the shoulders; at full floor share it reaches the profile without a degenerate smoothstep.
-- Le creusement ne relève jamais un creux ; l’extinction commandée par le seul support grossier pouvait dresser un rebord de plusieurs centaines de mètres.
-- Un creux initial sous le profil reste présent ; son remplissage relève des dépôts ou des lacs, pas de cette coupe.
-- Aux recouvrements, un point de l’ancien axe peut appartenir au versant d’une vallée plus basse ; son sol suit ce profil, pas un niveau d’eau pris indépendamment.
+- Incision never raises a hollow; suppression controlled only by the coarse support could raise a rim several hundred meters high.
+- An initial hollow below the profile remains; filling it belongs to deposits or lakes, not this cut.
+- At overlaps, a point on the old axis may belong to the slope of a lower valley; its ground follows that profile, not an independently selected water level.
 - The fluvial floor includes the liquid channel width, subject to the existing reach bound, and does not drop its floor mask at terminal nodes.
 - Channel cutting after terrain finishing is bounded by its compact depth; it cannot re-excavate an unbounded V profile.
 
-**Le relief support reste indépendant de sa finition**
-- Les deux octaves de plus de 20 km sont calculées avant l’activation des ravines.
-- Leur hauteur décide du creusement réel, avec la forme tectonique et volcanique.
-- Le fond ne supprime pas ces octaves avant le calcul de l’entaille.
-- L’incision ne supprime plus les plis tectoniques en amont ; le réglage `EROSION_FOLD_DEPTH` est retiré.
-- Le renfort des contreforts et les ravines ne portent que sur les octaves suivantes.
-- Leur amplitude minimale reste 0,35 de la profondeur locale, bornée par l’incision du réseau.
-- Une vallée située au-dessus de ce support ne peut plus orienter ses ravines.
+**The supporting terrain stays independent of its finishing**
+- The two octaves above 20 km are computed before gullies activate.
+- Their height decides actual incision, together with the tectonic and volcanic form.
+- The floor does not suppress these octaves before incision is computed.
+- Incision no longer suppresses tectonic folds beforehand; `EROSION_FOLD_DEPTH` is removed.
+- Buttress reinforcement and gullies apply only to subsequent octaves.
+- Their minimum amplitude remains 0.35 of local depth, bounded by network incision.
+- A valley above this support can no longer orient its gullies.
 
-**Les dépôts et la portée**
-- Deltas et cônes conservent leurs profils et leurs limites de portée.
-- La requête lit les 4 × 4 nœuds voisins ; leurs influences s’éteignent avant le changement des nœuds lus.
-- La profondeur et la glace restent des maxima continus d’influences locales.
-- Les détails des anciens profils et mesures sont dans [l’historique](log/spec-erosion-historique.md).
+**Deposits and reach**
+- Deltas and fans retain their profiles and reach limits.
+- The query reads the neighboring 4 × 4 nodes; their influences fade before the set of nodes read changes.
+- Depth and ice remain continuous maxima of local influences.
+- Details of old profiles and measurements are in the [history](log/spec-erosion-historique.md).
 
-## Le niveau 2 : les ravines, dans `ReliefDetail`
+## Level 2: gullies, within `ReliefDetail`
 
-**Les octaves du détail de 11 km à 100 m changent de motif là où le sol penche :**
-- **un bruit de phase** (Tricard et al. 2019, *Procedural Phasor Noise*) : des ondes planes à travers la pente, une période par maille de l'octave, sur les 8 coins d'une maille de deux périodes, chacun sa phase ; la phase de leur somme. Ses singularités sont les confluences ;
-- **la pente qui l'oriente :** celle du support complet à plus de 20 km, ou des versants de la vallée là où elle le creuse réellement, plus celle des octaves plus larges ;
-- **un remplacement centré de l’octave ordinaire,** demandé à 85 % sur une pente de plus de 0,15, rien sous 0,02 ; sa part est réduite par le budget de pente, sans réduire le bruit porteur ;
-- **près et au-dessus de la glace,** la bande de ±300 m autour de la ligne d’équilibre du maximum glaciaire seule active les arêtes ; le flux de glace façonne les auges en U sans affûter le détail ;
-- **un profil monotone à pente finie :** pour `u = |x| / scale`, `(1+b)u − bu²` jusqu’à 1, puis sa tangente ; `b = 0,2 × glacial`, zéro l’arrête ; sa dérivée augmente d’au plus 15,1 % avant arrondi, contre une puissance singulière auparavant ;
-- **le même intervalle d’arrondi :** une parabole raccordée en valeur et pente sur `max(crease, CREASE_ROUNDING × f / gCreaseMaxFrequency)` ; aucune largeur plus fine n’est réintroduite ;
-- **la moyenne gardée :** normalisation par `E|cos| = 2/π` et `E cos² = 1/2`, puis soustraction de l’excès exact de l’arrondi sur les bandes sinusoïdales ; une série évite la soustraction de termes voisins ; le changement est exactement nul à `b = 0` ;
-- **elles s'éteignent où la pente qui les oriente se retourne :** sur les crêtes de l'octave au-dessus et de la plus large, celle des chaînes et des plis, et au rebord des vallées. Le motif des deux versants ne s'y raccorde pas : il dressait des lames en peigne le long des crêtes ;
-- **elles s'éteignent autour de leurs bifurcations,** où la somme des ondes tombe sous 0,3 : la phase y prend toutes les valeurs, le sol s'y déchirait ;
-- **les plis appartiennent au support :** les vallées les entaillent selon leur profil, sans atténuation préalable commandée par le réseau.
+**Detail octaves from 11 km to 100 m change pattern where the ground slopes:**
+- **phasor noise** (Tricard et al. 2019, *Procedural Phasor Noise*): plane waves across the slope, one period per octave grid cell, on the 8 corners of a two-period cell, each with its own phase; the phase of their sum. Its singularities are confluences;
+- **the orienting slope:** that of the full support above 20 km, or of valley slopes where the valley actually incises it, plus that of larger octaves;
+- **a centered replacement of the ordinary octave,** requested at 85 % on slopes above 0.15, nothing below 0.02; its share is reduced by the slope budget, without reducing the underlying noise;
+- **near and above the ice,** only the ±300 m band around the glacial-maximum equilibrium line activates arêtes; ice flux shapes U-shaped troughs without sharpening detail;
+- **a monotone profile with finite slope:** for `u = |x| / scale`, `(1+b)u − bu²` up to 1, then its tangent; `b = 0.2 × glacial`, zero stops it; its derivative increases by at most 15.1 % before rounding, versus a singular power before;
+- **the same rounding interval:** a parabola joined in value and slope over `max(crease, CREASE_ROUNDING × f / gCreaseMaxFrequency)`; no finer width is reintroduced;
+- **mean preserved:** normalization by `E|cos| = 2/π` and `E cos² = 1/2`, then subtraction of the exact rounding excess on sinusoidal bands; a series avoids subtracting nearby terms; change is exactly zero at `b = 0`;
+- **they fade where the orienting slope reverses:** on crests of the octave above and of the largest one, that of ranges and folds, and at valley edges. Patterns on the two slopes do not join there: they raised comb-like blades along crests;
+- **they fade around their bifurcations,** where the wave sum falls below 0.3: phase takes all values there, tearing the ground;
+- **folds belong to the support:** valleys incise them according to their profile, without preliminary attenuation controlled by the network.
 
 **One directional-pattern budget for soil and rock (`ReliefGullyRock`, `ReliefGullyGain`):**
 - The rock fraction still follows mountain relief, wavelength and glacial climate.
@@ -158,18 +158,18 @@ Statut : spec vivante, depuis le 2026-10-31, branche `erosion-globale`, piste `p
 - The distant relief diagnostic still shows serrated edges; regular large-scale drainage also remains visible. Their causes are not resolved by this correction.
 - Capture artifacts are local in `x64/erosion-continuation/`; Windows window activation failed, so inspection used the engine's native image capture.
 
-## Les falaises côtières
+## Coastal cliffs
 
-**L’abrasion suit un contour du sol complet, détail, vallées et dépôts inclus.**
-- **Où :** `ErosionCoast`, après les dépôts et avant les cordons, avec `valleys = true` seulement.
-- **Le rivage estimé borne la portée :** il ne place plus une paroi dans les montagnes.
+**Abrasion follows a full-ground contour, including detail, valleys and deposits.**
+- **Where:** `ErosionCoast`, after deposits and before coastal barriers, only with `valleys = true`.
+- **The estimated shore bounds reach:** it no longer places a wall in the mountains.
 - **Contour:** `Hc = clamp(1000 W G, 8, 400)` m; the physical incision ends at `Hc + delta`, its sampled support at `Hc + delta + footprint`.
-- **La largeur W :** 1,2 km × exposition × érodabilité, au plus 3 km ; variation de 45 % par un bruit de 2,4 km (Sunamura 1992, force sur résistance).
-- **La pente G :** norme tangentielle des grandes formes et des trois octaves du détail de plus de 9 km, avant la limitation des ravines des sols mobiles ; la pente côtière `coastSlope × shoreMetric / 1000` reste un plancher.
-- **Pourquoi 9 km :** trois fois le recul maximal ; les octaves de 50, 23,7 et 11,2 km gardent les grands versants sans laisser les petits éperons déplacer Hc.
-- **Une seule évaluation du relief :** `cliffSlope` vient du `ReliefDetail` principal et de ses trois octaves de plus de 9 km ; aucun recalcul ni lecture hors sphère pour figer Hc. Le paramètre de projection est retiré : les vallées se lisent toujours sur la sphère.
-- **Le plafond de 400 m :** calibrage proche des 426 m de Conachair recensés par [NatureScot](https://www.nature.scot/landscapes-and-habitats/habitat-types/coast-and-seas/coastal-habitats/coastal-cliffs), sans maximum géologique universel.
-- **Les caps et les anses :** roche dure et abri réduisent W et le contour ; roche tendre et exposition les augmentent.
+- **Width W:** 1.2 km × exposure × erodibility, at most 3 km; 45 % variation through 2.4 km noise (Sunamura 1992, force over resistance).
+- **Slope G:** tangent magnitude of large shapes and the three detail octaves above 9 km, before gully limiting on mobile soils; coastal slope `coastSlope × shoreMetric / 1000` remains a floor.
+- **Why 9 km:** three times maximum retreat; the 50, 23.7 and 11.2 km octaves retain large slopes without letting small spurs move Hc.
+- **One terrain evaluation:** `cliffSlope` comes from the main `ReliefDetail` and its three octaves above 9 km; no recalculation or off-sphere read to freeze Hc. The projection parameter is removed: valleys are always read on the sphere.
+- **The 400 m cap:** calibration near the 426 m Conachair cliffs listed by [NatureScot](https://www.nature.scot/landscapes-and-habitats/habitat-types/coast-and-seas/coastal-habitats/coastal-cliffs), without a universal geological maximum.
+- **Capes and coves:** hard rock and shelter reduce W and the contour; soft rock and exposure increase them.
 
 **Physical coastal metric (2026-11-01):**
 - `ReliefCoastGradient` measures the coastal deformation at `EROSION_CLIFF_SLOPE_KM`, the existing 9 km erosion scale.
@@ -189,15 +189,15 @@ Statut : spec vivante, depuis le 2026-10-31, branche `erosion-globale`, piste `p
 - Flight route: `tools/tests/2026-11-01-metrique-cotiere.txt`; user review pending.
 - The previous mesh-scale metric and measurements are [archived](log/spec-erosion-historique.md#2026-11-01-rejected-mesh-scale-coastal-metric).
 
-**Le profil remappe la hauteur h.**
-- **Sous Hc :** `min(h, P)` ; P vaut −1 m au pied, puis descend linéairement avec h vers l’ancien rivage.
-- **Le platier :** pente nominale de 2 % sur W, dénivelé limité à 4 m (Trenhaile 1987).
-- **Sous la mer :** raccord continu à la même droite ; tout fond plus profond reste intact.
+**The profile remaps height h.**
+- **Below Hc:** `min(h, P)`; P is −1 m at the foot, then descends linearly with h toward the old shore.
+- **The platform:** nominal 2 % slope over W, height difference capped at 4 m (Trenhaile 1987).
+- **Under the sea:** continuous join to the same line; deeper ground remains intact.
 - **Face:** fixed physical width `delta = 0.1 Hc`; filter the composed incision over the symmetric height radius `footprint = 1000 cellKm G`.
-- **L’abaissement :** au plus `Hc + 1 m`, même à maille grossière ; aucun sol relevé.
+- **Lowering:** at most `Hc + 1 m`, even on a coarse grid; no ground raised.
 - **Talus:** nominal 35-degree apron, up to 22% of Hc, in 900 m patches; its landward end meets the cliff face at that prescribed height.
-- **Les stacks :** rares croisements de bandes de 130 m conservant le sol original ; élargis sur deux mailles, moins forts en proportion de leur surface.
-- **Les rivières :** les fonds bas peuvent percer le contour et devenir des entrées de mer.
+- **Stacks:** rare intersections of 130 m bands preserving the original ground; widened over two grid cells, reduced in proportion to their area.
+- **Rivers:** low floors can pierce the contour and become sea inlets.
 
 **Connected talus, `ErosionCliffScree` (2026-11-01):**
 - A symmetric mound at Hc created a second downslope face before the cliff, leaving an artificial moat.
@@ -227,70 +227,70 @@ Statut : spec vivante, depuis le 2026-10-31, branche `erosion-globale`, piste `p
 - Flight review: `tools/tests/2026-11-01-pieds-falaises.txt`; no performance or quality benchmark was run.
 - This correction addresses the talus connection; amplification of detail filtering by the coastal remap remains a separate open issue.
 
-**Les entrées et la portée sont conservées.**
-- **La roche :** classe convertie par texel avant B-spline ; croûte océanique 1, volcanique 0,6, jeune chaîne 1, sédiments 1,6, vieille chaîne 0,45, bouclier 0,25.
-- **Les sédiments tendres :** facteur `1 + saturate(-forms.w)` au texel ; proxy continu du K absent de la carte GPU.
-- **Le seul vent :** `ErosionWaveWind`, son jumeau CPU `erosion_wave_wind`, cube 1 du climat, est et nord en m/s, direction de déplacement.
-- **La force relative :** 1 jusqu’à 5 m/s, linéaire vers 1,6 à 8 m/s, plafonnée ; les calmes s’éteignent continûment de 0 à 1 m/s. L’intervalle utile 1–1,6 garde la calibration précédente, sans conserver ses directions zonales.
-- **Le repère :** est `(-d.z, 0, d.x)`, nord `cross(est, d)`, comme `Climate.cpp` ; aucune inversion du vent ni direction « venant de ».
-- **L’exposition :** direction du large par le gradient des grandes formes ; houle omnidirectionnelle de 0,28.
-- **Les baies :** éteintes à −12 km de déplacement côtier, pleinement exposées à −6 km.
-- **La bande côté mer :** aucune limite intérieure au proxy brut de 8 km ; le détail peut y faire émerger la côte réelle.
-- **La bande côté terre :** `shoreKm / shoreMetric < min(W + 1 + relief / coastSlope, 8)` km ; extinction sur les 500 derniers mètres.
-- **Le déplacement du détail :** son amplitude tectonique `relief`, avant le terme des parois de vallée, divisée par la pente côtière en m/km ; une distance en km, sans nouvelle lecture.
-- **Le proxy brut :** `abs(shoreKm) < 8 km`, extinction sur 500 m des deux côtés ; limite de calcul conservée, indépendante de la maille.
-- **L’accès marin :** un témoin à 3 km, `RETREAT.z`, dans la direction du large des grandes formes déjà utilisée pour les vagues ; son sol avant érosion doit être sous −50 m.
-- **Pourquoi avant érosion :** une vallée ou une auge creusée ne doit pas ouvrir à elle seule l’accès aux vagues.
-- **Le témoin :** même relief, cordons et limitation des sommets, sans vallées, ravines d’érosion ni dépôts ; aucune lecture supplémentaire du réseau d’érosion.
-- **Le raccord :** sa présence passe continûment de 1 à 0 sur 250 m de distance côtière, convertis par la pente du témoin ; elle vaut 0 dès −50 m.
-- **La nature du test :** témoin marin conservateur, pas une mesure globale de connexité ; le seuil de −50 m est celui du contrôle de portée, pas une profondeur universelle d’abrasion.
-- **La position du témoin :** rotation à petit angle en doubles ; aucun produit d’une position planétaire en float par le rayon.
-- **Rien sur les côtes plates ni dans les baies totalement abritées.**
-- **Le coût :** sorties précoces hors bande ; les sols intacts sautent les bruits des éboulis et des vestiges ; seule une coupe potentielle lit ce second point de terrain, sans nouvelle recherche de vallées.
-- **Le branchement :** `ReliefSampleGround` sépare le sol du traitement côtier ; `ReliefFinish` garde les cordons et le plafond ; le témoin ne récursive pas et ne remplace pas la rugosité du point principal.
+**Inputs and reach are preserved.**
+- **Rock:** class converted per texel before B-spline; oceanic crust 1, volcanic 0.6, young range 1, sediments 1.6, old range 0.45, shield 0.25.
+- **Soft sediments:** factor `1 + saturate(-forms.w)` per texel; continuous proxy for K, absent from the GPU map.
+- **The sole wind:** `ErosionWaveWind`, its CPU twin `erosion_wave_wind`, climate cube 1, east and north in m/s, travel direction.
+- **Relative strength:** 1 up to 5 m/s, linear toward 1.6 at 8 m/s, capped; calms fade continuously from 0 to 1 m/s. The useful 1–1.6 interval retains the previous calibration, without retaining its zonal directions.
+- **The frame:** east `(-d.z, 0, d.x)`, north `cross(east, d)`, as in `Climate.cpp`; no wind reversal or “coming from” direction.
+- **Exposure:** offshore direction from the large-shape gradient; omnidirectional swell of 0.28.
+- **Bays:** suppressed at −12 km coastal displacement, fully exposed at −6 km.
+- **The seaward band:** no inner limit within the raw 8 km proxy; detail can raise the real coast there.
+- **The inland band:** `shoreKm / shoreMetric < min(W + 1 + relief / coastSlope, 8)` km; fades over the last 500 meters.
+- **Detail displacement:** its tectonic amplitude `relief`, before the valley-wall term, divided by coastal slope in m/km; a distance in km, without a new read.
+- **The raw proxy:** `abs(shoreKm) < 8 km`, fading over 500 m on both sides; computation limit preserved, independent of grid spacing.
+- **Sea access:** a probe at 3 km, `RETREAT.z`, in the large shapes' offshore direction already used for waves; its pre-erosion ground must be below −50 m.
+- **Why before erosion:** an incised valley or trough must not open wave access by itself.
+- **The probe:** same terrain, barriers and summit limiting, without valleys, erosion gullies or deposits; no extra erosion-network read.
+- **The transition:** its presence moves continuously from 1 to 0 over 250 m of coastal distance, converted through the probe's slope; it is 0 from −50 m upward.
+- **Nature of the test:** conservative sea probe, not a global connectivity measure; the −50 m threshold is that of the reach check, not a universal abrasion depth.
+- **Probe position:** small-angle rotation in double precision; no product of a float planetary position and the radius.
+- **Nothing on flat coasts or in fully sheltered bays.**
+- **Cost:** early exits outside the band; intact ground skips scree and remnant noise; only a potential cut reads this second terrain point, without a new valley search.
+- **The connection:** `ReliefSampleGround` separates ground from coastal processing; `ReliefFinish` keeps barriers and the cap; the probe neither recurses nor replaces the main point's roughness.
 
-**Les réglages, préfixe `EROSION_CLIFF_` dans `PlanetSettings.hlsli` :**
+**Settings, prefix `EROSION_CLIFF_` in `PlanetSettings.hlsli`:**
 
-| Réglage | Valeur | Sens |
+| Setting | Value | Meaning |
 |---|---|---|
-| `RETREAT` | `(1, 1.2, 3, 0.45)` | activation, recul unitaire et maximum en km, variation relative |
-| `NOISE` | `2.4` | longueur d’onde du recul, km |
-| `BAY` | `(-12, -6)` | extinction et pleine exposition, km de déplacement |
-| `REACH` | `(1, 0.5, 8)` | marge intérieure en plus du recul et du détail, extinction, plafond intérieur et borne du proxy, km |
-| `SEA` | `(50, 0.25)` | profondeur minimale du témoin en m, transition en km ; sa distance est `RETREAT.z` |
-| `HEIGHT` | `(8, 400)` | bornes Hc, m |
+| `RETREAT` | `(1, 1.2, 3, 0.45)` | activation, unit and maximum retreat in km, relative variation |
+| `NOISE` | `2.4` | retreat wavelength, km |
+| `BAY` | `(-12, -6)` | fading and full exposure, km of displacement |
+| `REACH` | `(1, 0.5, 8)` | inland margin beyond retreat and detail, fading, inland cap and proxy bound, km |
+| `SEA` | `(50, 0.25)` | minimum probe depth in m, transition in km; its distance is `RETREAT.z` |
+| `HEIGHT` | `(8, 400)` | Hc bounds, m |
 | `SLOPE_KM` | `9` | physical slope scale in km; detail octave cutoff and coastal metric's spectrum and crease filtering |
-| `FACE` | `0.1` | part minimale de Hc pour δ |
-| `SCREE` | `(0.7002, 0.22)` | pente de repos, part de Hc |
-| `PLATFORM` | `(-1, 0.02, 4)` | pied en m, pente nominale, dénivelé maximal en m |
-| `STACK` | `(0.065, 0.8, 1.4)` | demi-largeur et bruit en km, seuil régional |
-| `WAVES` | `(0.28, 1.6)` | houle, force relative maximale à 8 m/s |
+| `FACE` | `0.1` | minimum share of Hc for δ |
+| `SCREE` | `(0.7002, 0.22)` | repose slope, share of Hc |
+| `PLATFORM` | `(-1, 0.02, 4)` | foot in m, nominal slope, maximum height difference in m |
+| `STACK` | `(0.065, 0.8, 1.4)` | half-width and noise in km, regional threshold |
+| `WAVES` | `(0.28, 1.6)` | swell, maximum relative strength at 8 m/s |
 
-**Les contrôles actuels :** `python tools/cotes/verifie_falaises.py`, puis `python tools/hydro/verifie_cretes_climat.py --before fe22cfe9d6d96e9680ca44ef2fd5e47704467939`.
-- **Les trois coupes fixes restent mesurées :** avec les caches intégrés, le port commité ne retrouve déjà que deux faces, dont une de plus de 100 m ; la troisième face historique est absente avant le raccord. Le contrôle compare les nombres avant/après sur ce même témoin, sans changer les limites physiques.
-- **Les limites physiques restent sur le vent calculé :** abaissement au plus Hc + 1 m, aucun sol relevé, montagnes intactes, moins de 5 % de coupes enclavées et portée p99 sous 4 km.
-- **Les anciennes tables :** [historique](log/spec-erosion-historique.md).
+**Current checks:** `python tools/cotes/verifie_falaises.py`, then `python tools/hydro/verifie_cretes_climat.py --before fe22cfe9d6d96e9680ca44ef2fd5e47704467939`.
+- **The three fixed sections remain measured:** with integrated caches, the committed port already finds only two faces, one above 100 m; the third historical face is absent before the connection. The check compares before/after numbers on this same control, without changing physical limits.
+- **Physical limits remain on computed wind:** lowering at most Hc + 1 m, no ground raised, mountains intact, less than 5 % landlocked cuts and p99 reach below 4 km.
+- **Old tables:** [history](log/spec-erosion-historique.md).
 
-## Le drapeau `valleys`
+## The `valleys` flag
 
-**`ReliefElevation(p, true)` rend le relief érodé ; `(p, false)` la forme avant érosion,** sans aucun niveau, celle que le niveau 0 lit. Le niveau 0 ne lit jamais ses propres sorties.
+**`ReliefElevation(p, true)` renders eroded terrain; `(p, false)` the pre-erosion form,** without any level, the one level 0 reads. Level 0 never reads its own outputs.
 
-## Les branchements
+## Connections
 
-**Avec le climat :** `ErosionClimate` rend P en m/an, précipitations annuelles du cube 0 divisées par 1 000, et T annuelle au niveau de la mer en °C.
-- **CPU :** `CreateTectonicMap` appelle `CreateClimateMap`, qui garde `mClimateCpu`, puis vient `CreateErosionMap` et `Erosion::Build` ; aucune boucle, le climat lit toujours la forme avant érosion.
-- **GPU :** `ClimateAt` lit t20 ; les passes terrain, terrain fin, carte planétaire et placement gardent leur table t18–t23, avec le sampler linéaire s4 ; l’érosion reste t23.
-- **Le portage :** `erosion_climate` et `erosion_wave_wind` lisent `cp.climate(p)`.
-- **La ligne d’équilibre :** relation d’Ohmura, correction d’été fixe de 8 °C, gradient de 6,5 K/km et abaissement glaciaire de 900 m conservés ; pas de nouvelle formule ni de recalage de la part glaciée. La demi-amplitude calculée n’est pas utilisée ici.
-- **La limite de mesure :** la part glaciée du réseau n’est pas remesurée ici ; le portage ne reconstruit pas le niveau 0.
+**With climate:** `ErosionClimate` returns P in m/year, annual precipitation from cube 0 divided by 1 000, and annual sea-level T in °C.
+- **CPU:** `CreateTectonicMap` calls `CreateClimateMap`, which keeps `mClimateCpu`, then `CreateErosionMap` and `Erosion::Build`; no loop, climate always reads the pre-erosion form.
+- **GPU:** `ClimateAt` reads t20; terrain, fine-terrain, planet-map and placement passes keep their t18–t23 table, with linear sampler s4; erosion remains t23.
+- **The port:** `erosion_climate` and `erosion_wave_wind` read `cp.climate(p)`.
+- **The equilibrium line:** Ohmura relation, fixed summer correction of 8 °C, lapse rate of 6.5 K/km and glacial lowering of 900 m preserved; no new formula or recalibration of the glaciated share. Computed half-amplitude is not used here.
+- **Measurement limit:** the network's glaciated share is not remeasured here; the port does not rebuild level 0.
 
-**Avec le volcanisme :** ses édifices s'ajoutent à la forme avant érosion, `ReliefElevation(p, false)`. Le niveau 0 les voit s'ils dépassent 40 km ; plus petits, les ravines les découpent comme tout relief. `ReliefDetail` gagne deux paramètres, les ravines et la somme grossière.
+**With volcanism:** its edifices add to the pre-erosion form, `ReliefElevation(p, false)`. Level 0 sees them if they exceed 40 km; below that, gullies dissect them like any terrain. `ReliefDetail` gains two parameters, gullies and coarse sum.
 
 **Visible water:** rivers use link discharge and stage; terminal lakes use their water-balance level. The shared channel envelopes, basin transitions, rendering and limits are in [inland water](spec-eaux-interieures.md).
 
-## Le portage CPU
+## The CPU port
 
-**`tools/hydro/cp.py` lit le niveau 0 du moteur,** `erosion-<graine>.bin`, et refait les vallées, les dépôts et les ravines ; les nœuds en float32, comme le shader. `EXOLUNE_EROSION` donne un autre chemin.
+**`tools/hydro/cp.py` reads the engine's level 0,** `erosion-<graine>.bin`, and reconstructs valleys, deposits and gullies; nodes in float32, like the shader. `EXOLUNE_EROSION` gives another path.
 
 ## Current verification, 2026-11-01
 
@@ -324,7 +324,7 @@ Statut : spec vivante, depuis le 2026-10-31, branche `erosion-globale`, piste `p
 - The physical coastal metric correction does not alter this witness; the nearby captures do not reproduce the reported zigzag scar.
 - Useful gully amplitude, distant repetitive drainage and the previous quality failures remain unresolved.
 
-## Les défauts connus
+## Known defects
 
 - **Hydrological integration remains incomplete:** coarse paths and repeated valley profiles can dominate fine mountains and cut volcanic bowls whose outlet the coarse map does not resolve.
 - The composition correction removes a demonstrated source of false side trenches; it does not validate the distribution, age or connectivity of all incisions.
@@ -332,42 +332,42 @@ Statut : spec vivante, depuis le 2026-10-31, branche `erosion-globale`, piste `p
 - Volcanic freshness currently quiets detail and controls bare materials; the drainage solve does not directly use it to limit incision.
 - The new flight route `tools/tests/2026-11-01-composition.txt` includes river banks, confluences, mountain ranges, two craters, an outlet, a lake and a coastal witness.
 
-- **Le retour en vol du 2026-11-01 invalide une conclusion de géométrie propre :** lames minces, aiguilles et raccords en dents de scie subsistent dans les captures ci-dessous, malgré les contrôles CPU passés sur leurs échantillons.
+- **Flight feedback from 2026-11-01 invalidates a conclusion of clean geometry:** thin blades, spikes and sawtooth joins remain in the captures below, despite CPU checks passing on their samples.
 - **Previous quality failures remain open:** the archived closure recorded thirteen texture p95 regressions; this working correction has not rerun that benchmark.
-- **Les ravines sont désormais liées au creusement réel :** les pentes ne perdent plus leur support grossier avant la décision. Certaines crêtes non incisées perdent les bandes artificielles de la version E ; leur forme est à juger en vol.
+- **Gullies now follow actual incision:** slopes no longer lose their coarse support before the decision. Some unincised crests lose version E's artificial bands; their shape awaits in-flight review.
 - **Glacial floors:** the U remains curved, with continuous joins in the checked cases. Hillside hollows remain. Rivers and terminal lakes now have a first visible-water implementation (`spec-eaux-interieures.md`).
-- **Les vallées du niveau 0 restent régulières à grande échelle :** le U corrige le fond glaciaire ; les versants fluviaux convexes-concaves et les éperons tronqués restent à construire.
-- **Les deltas sont petits, et l'un d'eux faux :** 5 km au plus, la portée des nœuds lus ; à l'embouchure du plus grand fleuve, -7,8°, 27,2°, une langue de dépôt isolée au large, cause non trouvée, et un pan de côte aux bords droits, qui ne vient pas des dépôts. Les grands deltas demandent un champ des dépôts lu en B-spline.
-- **Les ravines peuvent se voir peu de loin :** leur amplitude est désormais bornée par le sol porteur ; les deux octaves de plus de 20 km gardent leurs crêtes orientées le long des chaînes.
+- **Level 0 valleys remain regular at large scales:** the U corrects the glacial floor; convex-concave fluvial slopes and truncated spurs remain to build.
+- **Deltas are small, and one is false:** at most 5 km, the reach of nodes read; at the largest river mouth, -7.8°, 27.2°, an isolated depositional tongue offshore, cause not found, and a straight-edged coastal section unrelated to deposits. Large deltas require a deposit field read in B-spline.
+- **Gullies may be barely visible from afar:** their amplitude is now bounded by the supporting ground; the two octaves above 20 km retain their crests oriented along ranges.
 - **Cost:** earlier flight measurements are archived; the current filter adds no terrain query or simulation, and its runtime cost has not been benchmarked.
-- **Les fleuves des flancs restent parallèles et droits sur 50 à 100 km,** sur les pentes régulières : la forme avant érosion filtrée à 40 km n'y a pas de relief qui les dévie.
-- **Les falaises manquent où le rivage réel s'écarte de plus de 8 km de son estimation :** la côte active à -8,11°, 131,04° n'en a pas ; le plafond borne le coût.
-- **Les falaises ne se voient qu'à quelques km :** de 30 km, le platier n'est qu'une bande turquoise ; la paroi à 23° S reste basse, 42 m.
-- **Le témoin marin relit le relief avant érosion là où une coupe est possible :** son coût GPU n'a pas été mesuré au banc, seulement dans le bruit des rendus en mouvement.
-- **Les douze vues courantes** sont à juger en vol avec `tools/tests/2026-11-01-auges.txt` ; les étapes précédentes gardent leur ancien parcours.
+- **Rivers on flanks remain parallel and straight over 50 to 100 km,** on regular slopes: the pre-erosion form filtered at 40 km has no terrain to divert them there.
+- **Cliffs are absent where the real shore lies more than 8 km from its estimate:** the active coast at -8.11°, 131.04° has none; the cap bounds cost.
+- **Cliffs are visible only within a few km:** from 30 km, the platform is only a turquoise band; the wall at 23° S remains low, 42 m.
+- **The sea probe rereads pre-erosion terrain where a cut is possible:** its GPU cost was not measured by benchmark, only within the noise of renders in motion.
+- **The twelve current views** await in-flight review with `tools/tests/2026-11-01-auges.txt`; previous stages retain their old route.
 
-**Captures de reprise fournies par l’utilisateur**
-- Les cinq originaux sont conservés sans retouche dans `images/erosion-2026-11-01/`.
-- Les hauteurs sont celles des barres de titre ; les coordonnées de caméra ne sont pas lisibles dans ces titres tronqués.
-- [11:57:24, dents de scie](images/erosion-2026-11-01/115724-dents-de-scie.png) : hauteur 40,1 m, sol vers 3,8 km ; longues rangées de pointes sur plusieurs versants.
-- [11:57:33, paroi mince](images/erosion-2026-11-01/115733-paroi-mince.png) : même hauteur ; lame de grande amplitude dressée sur le versant et peigne au loin.
-- [11:57:55, lames](images/erosion-2026-11-01/115755-lames.png) : hauteur 61,7 m, sol vers 1,9 km ; parois très minces et aiguilles, y compris en zone boisée.
-- [11:58:16, aiguilles](images/erosion-2026-11-01/115816-aiguilles.png) : hauteur 78,9 m, sol vers 3,5 km ; nombreux pics sur un rebord abrupt et raccords dentelés.
-- [11:59:12, motifs lointains](images/erosion-2026-11-01/115912-motifs-lointains.png) : hauteur 417,5 km ; vallées parallèles, espacement et courbures trop réguliers sur certaines régions.
+**Continuation captures supplied by the user**
+- The five originals are preserved without retouching in `images/erosion-2026-11-01/`.
+- Heights are those of the title bars; camera coordinates are unreadable in these truncated titles.
+- [11:57:24, sawteeth](images/erosion-2026-11-01/115724-dents-de-scie.png): height 40.1 m, ground around 3.8 km; long rows of points on several slopes.
+- [11:57:33, thin wall](images/erosion-2026-11-01/115733-paroi-mince.png): same height; high-amplitude blade rising on the slope and a comb in the distance.
+- [11:57:55, blades](images/erosion-2026-11-01/115755-lames.png): height 61.7 m, ground around 1.9 km; very thin walls and spikes, including in wooded areas.
+- [11:58:16, spikes](images/erosion-2026-11-01/115816-aiguilles.png): height 78.9 m, ground around 3.5 km; many peaks on a steep rim and jagged joins.
+- [11:59:12, distant patterns](images/erosion-2026-11-01/115912-motifs-lointains.png): height 417.5 km; parallel valleys, overly regular spacing and curves in some regions.
 - The screenshots alone do not identify the cause. Subsequent CPU probes reproduce blades in the height field and isolate the rock-gully budget exception; see the regression checks above.
 - The active continuation is in the Exolune clone on the replayed erosion branch. Review the blade and valley-filter corrections in flight; recover the green scar position before declaring the approach artifacts resolved.
 
-## Ce que la recherche a appris
+## What the research taught us
 
-Branche `erosion-niveaux`, `docs/recherche-erosion-niveaux.md` :
-- **un niveau 0 global, calculé une fois, tient** (spikes A3) : drainage complet, lacs par bilan d'eau, bassins de 1 à 9 millions de km². Repris ici, son bilan d'eau compris ;
-- **une érosion simulée par tuiles est chaotique** (spike B) : 43 m d'écart moyen entre tuiles et calcul d'un bloc, jusqu'à 2 km. Les niveaux fins sont donc une construction locale ;
-- **un tracé choisi sur des cellules de 25 km fait passer les fleuves à travers les montagnes** (constat du 2026-10-27) : 44 % de leur longueur creusée à plus de 50 m sous le sol. D'où : le sol grossier s'abaisse jusqu'à la vallée au lieu d'être coupé, la vallée a des versants, le détail s'éteint sur son fond ;
-- **ce qu'on ne reprend pas :** le soulèvement inventé à partir des hauteurs, l'érosion pas à pas, 10 minutes par graine, les tuiles calculées à l'approche.
+Branch `erosion-niveaux`, `docs/recherche-erosion-niveaux.md`:
+- **a global level 0, computed once, works** (spikes A3): full drainage, lakes by water balance, basins from 1 to 9 million km². Reused here, including its water balance;
+- **simulated erosion by tiles is chaotic** (spike B): 43 m mean difference between tiles and a single-block calculation, up to 2 km. Fine levels are therefore a local construction;
+- **paths chosen on 25 km cells send rivers through mountains** (finding of 2026-10-27): 44 % of their length carved more than 50 m below ground. Hence: coarse ground is lowered to the valley rather than cut, the valley has slopes, detail fades on its floor;
+- **what is not reused:** uplift invented from heights, stepwise erosion, 10 minutes per seed, tiles computed on approach.
 
-## Les sources
+## Sources
 
-- Selby, *A rock mass strength classification for geomorphic purposes: with tests from Antarctica and New Zealand*, Zeitschrift für Geomorphologie 24(1), 31–51, 1980 ; Augustinus, *The influence of rock mass strength on the form and evolution of deglaciated valley slopes in the English Lake District*, Scottish Journal of Geology 38(1), 15–20, 2002.
+- Selby, *A rock mass strength classification for geomorphic purposes: with tests from Antarctica and New Zealand*, Zeitschrift für Geomorphologie 24(1), 31–51, 1980; Augustinus, *The influence of rock mass strength on the form and evolution of deglaciated valley slopes in the English Lake District*, Scottish Journal of Geology 38(1), 15–20, 2002.
 - Grieve, Mudd, Hurst, *How long is a hillslope?*, Earth Surface Processes and Landforms 41(8), 1039–1054, 2016, DOI `10.1002/esp.3884`.
 - Roering, Kirchner, Dietrich, *Evidence for nonlinear, diffusive sediment transport on hillslopes and implications for landscape morphology*, Water Resources Research 35(3), 853–870, 1999, DOI `10.1029/1998WR900090`.
 - Barnes, Lehman, Mulla, *Priority-Flood: An Optimal Depression-Filling and Watershed-Labeling Algorithm*, Computers & Geosciences 62, 2014.
@@ -375,26 +375,26 @@ Branche `erosion-niveaux`, `docs/recherche-erosion-niveaux.md` :
 - Tzathas, Gailleton, Steer, Cordonnier, *Physically-based Analytical Erosion for fast Terrain Generation*, CGF 43(2), 2024.
 - Ohmura, Kasser, Funk, *Climate at the equilibrium line of glaciers*, Journal of Glaciology 38(130), 1992.
 - Tricard, Efremov, Zanni, Neyret, Martínez, Lefebvre, *Procedural Phasor Noise*, ACM TOG 38(4), 2019.
-- Fairfield, Leymarie, *Drainage networks from grid digital elevation models*, Water Resources Research 27(5), 1991 : rho8.
-- Sunamura, *Geomorphology of Rocky Coasts*, Wiley, 1992 : force des vagues et résistance de la roche ; distance cumulée paramétrée ici, sans simulation temporelle.
-- Trenhaile, *The Geomorphology of Rock Coasts*, Oxford University Press, 1987 : platiers d'abrasion à faible pente.
-- Gaillard, Guérin, Galin, Peytavie, Paris, *Dendry: A Procedural Model for Dendritic Patterns*, I3D 2019 : lu, écarté pour son coût par sommet.
+- Fairfield, Leymarie, *Drainage networks from grid digital elevation models*, Water Resources Research 27(5), 1991: rho8.
+- Sunamura, *Geomorphology of Rocky Coasts*, Wiley, 1992: wave force and rock resistance; cumulative distance parameterized here, without time simulation.
+- Trenhaile, *The Geomorphology of Rock Coasts*, Oxford University Press, 1987: low-slope abrasion platforms.
+- Gaillard, Guérin, Galin, Peytavie, Paris, *Dendry: A Procedural Model for Dendritic Patterns*, I3D 2019: read, rejected for its per-vertex cost.
 
-## Le plan par étapes
+## The staged plan
 
-| Étape | Contenu | Statut |
+| Stage | Content | Status |
 |---|---|---|
-| 1 | Le niveau 0 au démarrage, sa texture, les vallées de ses liens | fait le 2026-10-31 |
-| 2 | Les ravines, le recul des points d'inflexion, les cônes et les deltas, le portage | fait le 2026-10-31 |
-| 3 | Le coût : positions en flottants, cache par graine | fait le 2026-10-31 |
-| 3 bis | Les lames et les déchirures des ravines, la continuité de ce que lit le détail, le routage pesé, le portage à 0,6 cm | fait le 2026-10-31 |
-| 3 ter | Arêtes sans cuspide, pluie, température et vent calculés ; clé du cache climatique | fait et rendu validé par l’utilisateur le 2026-10-31 ; nouveau réseau livré |
-| 3 quater | Ravines à pente critique, moyenne nulle et bruit porteur conservé | sols validés par l’utilisateur ; arêtes reprises par E |
-| 3 quinquies | Fonds raccordés à l’eau, borne rocheuse à 70° | fait dans D ; limites reprises par E |
-| 3 sexies | Ravines selon roche et échelle ; directions gauchies sur la sphère | code et contrôles CPU faits ; jugement en vol à faire |
-| 4 | U continus, gauchissement sans repli dans les contrôles, relief support conservé | étape figée ; contrôles CPU passés, géométrie invalidée en vol par les lames et aiguilles ; treize p95 en échec |
+| 1 | Level 0 at startup, its texture, link valleys | done on 2026-10-31 |
+| 2 | Gullies, knickpoint retreat, fans and deltas, port | done on 2026-10-31 |
+| 3 | Cost: float positions, cache per seed | done on 2026-10-31 |
+| 3 bis | Gully blades and tears, continuity of detail inputs, weighted routing, port within 0.6 cm | done on 2026-10-31 |
+| 3 ter | Cusp-free arêtes, computed rainfall, temperature and wind; climate cache key | done and render approved by the user on 2026-10-31; new network delivered |
+| 3 quater | Critical-slope gullies, zero mean and underlying noise preserved | soils approved by the user; arêtes revisited in E |
+| 3 quinquies | Floors joined to water, rock bound at 70° | done in D; limitations revisited in E |
+| 3 sexies | Gullies by rock and scale; warped directions on the sphere | code and CPU checks done; flight review pending |
+| 4 | Continuous U profiles, warp without folding in checks, supporting terrain preserved | stage frozen; CPU checks passed, geometry invalidated in flight by blades and spikes; thirteen p95 failures |
 | 4a | Shared gully slope budget and local valley-profile filtering | CPU checks and snowy approach captures pass; user flight review, green scar and coastal mutation remain open |
 | 4b | Connected talus and physical coastal metric | Profile and six terrain checks pass; native captures remove the reported false wall; wider straight incision and approach sensitivity remain open |
-| 4 bis | Versants fluviaux convexes-concaves, éperons tronqués | à faire |
-| 5 | Les grands deltas, par un champ des dépôts | à faire |
+| 4 bis | Convex-concave fluvial slopes, truncated spurs | to do |
+| 5 | Large deltas, through a deposit field | to do |
 | 6 | Water from the same river and lake network | first implementation, 2026-11-01; flight review and limitations in `spec-eaux-interieures.md` |

@@ -67,7 +67,7 @@ Status: spec live, since the 2026-10-31, branch `claude/climat-0e9eb5`, tag `pis
 - **The ground temperature:** `temperature − 5 × altitude (km)`; in the month `t` of the year, plus `amplitude × sin`, summer north to the middle of the year. Snow material falls below −2 °C of annual average.
 - **Seasonal rainfall:** `summer`, its share in the warm half.
 - **No loop:** climate reads only the large shapes of the tectonic map; the eroded relief of the 0 level does not change the rain that carved it.
-- **Keep the map in memory:** `D3DApp::CreateClimateMap` throws it after sending to GPU; level 0 will keep it, like the tectonic map.
+- **Keep the map in memory:** `D3DApp::CreateClimateMap` keeps it in `mClimateCpu` after upload to the GPU; `Erosion::Build` reads it at startup, like the tectonic map.
 
 ## Consumers
 
@@ -134,4 +134,4 @@ Status: spec live, since the 2026-10-31, branch `claude/climat-0e9eb5`, tag `pis
 | 2 | Clouds on climate: the weather map calculated at startup on its fields | made the 2026-10-31, to be judged in flight; tag `piste/nuages-climat`  |
 | 3 | The wind of the sea from the map | To be done |
 | 4 | Rain under the map by the fine slope windward, instead of a part of the noise | if the flight requires it |
-| 5 | Level 0 reads rainfall and temperature: rivers and glaciers | session erosion |
+| 5 | Level 0 reads rainfall and temperature; coastal wind reads cube 1 | connection and new network run by the user on 2026-10-31; global shares of the new network not remeasured |

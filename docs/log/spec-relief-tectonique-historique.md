@@ -147,3 +147,14 @@ The plates were entire, all continental or all oceanic; each coast was a plate b
 - **The classes are at texel:** seen closely, at 500 km, their limits run by 20 km. The fields, however, are smooth.
 - **Age is flat, at 200 Ma,** on an oceanic plate without a ridge.
 - **Time** was measured on a loaded machine; to be repeated at rest.
+
+## 2026-10-31: the connection plan superseded by global erosion
+
+The previous plan is preserved here; the actual connection is described in `../spec-erosion.md`.
+
+**The connection, planned on `erosion-niveaux`:**
+1. **At startup, after the tectonic map:** `Tectonics::Map` keeps its five slices in memory until level 0; it reads U and K there without rereading the file.
+2. **On the level 0 grid,** 20 to 40 km: the pre-erosion form filtered to two of its grid cells, U and K in B-spline; analytical equilibrium (Tzathas 2024), Priority-Flood, drainage area, χ integral along the network, two or three times.
+3. **Eroded terrain replaces the large landforms,** above two of its grid cells, read in B-spline; detail fades on valley floors. `ReliefElevation(p, true)` renders it, `(p, false)` never does: level 0 never reads its own outputs.
+4. **The budget:** level 0 adds to the map's second; a cache per seed if it exceeds it.
+5. **The research scripts,** `tools/hydro/level0_*.py`, take `cp.uplift` and `cp.erodibility` instead of uplift derived from complexplanet.

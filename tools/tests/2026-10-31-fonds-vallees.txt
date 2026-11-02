@@ -1,13 +1,13 @@
-# Fonds raccordés à l’eau et seuil rocheux : jugement par l’utilisateur, graine 0. Deux limites connues : seconde fermeture grossière, arêtes encore trop atténuées. Aucun lancement automatique ; docs/spec-erosion.md.
-Première auge depuis 60 km : contour du fond et versants | 65000 -25.566 -26.916 70 0 relief | -25 -25
-Première auge depuis 6 km : fond raccordé, détail des parois | 11000 -25.566 -26.916 65 0 relief | -25 -25
-Seconde auge depuis 60 km : fermeture résiduelle à examiner | 65000 -25.486 -27.075 70 0 relief | -25 -25
-Seconde auge depuis 6 km : distinguer fond et sillons des parois | 11000 -25.486 -27.075 65 0 relief | -25 -25
-Forêt : sol de C conservé vers le nord | 2193.116 34.1611352 -73.72443 0 0 | 25 -65
-Versant enneigé : sol de C conservé vers le nord | 2083.012 -48.3497 -44.8221 0 0 | -40 -10
-Canyon : sol de C conservé | 956.370 -38.1080 166.4916 0 0 | -35 160
-Arêtes : borne rocheuse relevée mais parois encore atténuées | 3030 -46.9 -33.8 30 200 relief | -40 -10
-Témoin plat de C | 111.081 44.16 -60.08 0 0 | 35 -55
-Côte plate : témoin inchangé | 1000 16.71 -89.28 45 180 | 15 -85
-Falaise tropicale : contour marin conservé | 3000 8.54005 -103.23344 40 180 | 10 -100
-Côte froide : contour marin conservé | 3000 -51.89165 -40.94037 40 180 | -40 -10
+# Floors joined to water and rock threshold: user review, seed 0. Two known limitations: second coarse closure, arêtes still too attenuated. No automatic launch; docs/spec-erosion.md.
+First trough from 60 km: floor contour and slopes | 65000 -25.566 -26.916 70 0 relief | -25 -25
+First trough from 6 km: joined floor, wall detail | 11000 -25.566 -26.916 65 0 relief | -25 -25
+Second trough from 60 km: residual closure to examine | 65000 -25.486 -27.075 70 0 relief | -25 -25
+Second trough from 6 km: distinguish floor from wall grooves | 11000 -25.486 -27.075 65 0 relief | -25 -25
+Forest: C's ground preserved looking north | 2193.116 34.1611352 -73.72443 0 0 | 25 -65
+Snowy slope: C's ground preserved looking north | 2083.012 -48.3497 -44.8221 0 0 | -40 -10
+Canyon: C's ground preserved | 956.370 -38.1080 166.4916 0 0 | -35 160
+Arêtes: rock bound raised but walls still attenuated | 3030 -46.9 -33.8 30 200 relief | -40 -10
+C's flat control | 111.081 44.16 -60.08 0 0 | 35 -55
+Flat coast: unchanged control | 1000 16.71 -89.28 45 180 | 15 -85
+Tropical cliff: marine contour preserved | 3000 8.54005 -103.23344 40 180 | 10 -100
+Cold coast: marine contour preserved | 3000 -51.89165 -40.94037 40 180 | -40 -10
