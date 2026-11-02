@@ -96,7 +96,7 @@ void D3DApp::UpdateShip(float dt) {
     // The sound (Audio.h): the gas, rising slowly with the notches (at the 20th, 100 km/h near the ground, a third of the
     // power); the airspeed brought to sea level and the air's density, 8 km of scale height.
     const double altitude = std::max(Length(mShipPos) - PlanetRadius, 0.0);
-    mAudio.Update({ (float)std::pow(mThrottle / 30.0, 2.5), (float)roll, (float)strafe, (float)lift,
+    if (focused) mAudio.Update({ (float)std::pow(mThrottle / 30.0, 2.5), (float)roll, (float)strafe, (float)lift,
         (float)(Length(mShipVelocity) * std::exp(-altitude / 16000.0)), (float)std::exp(-altitude / 8000.0), mView != View::Chase });
 
     // The head swayed by the accelerations, a spring-mass-damper as in the flight sims: it lags behind a push and comes
@@ -184,14 +184,15 @@ void D3DApp::HoldMouse(bool hold) {
 }
 
 void D3DApp::SetView(View view) {
-    if (view != View::Free && mView == View::Free) PlaceShipAtCamera(); // the ship comes to the free camera
+    if (mView == View::Walk) { mWalkProbePending=mWalkPatchValid=false; mWalkJump=false; }
+    if (view != View::Free && view != View::Walk && mView == View::Free) PlaceShipAtCamera(); // the ship comes to the free camera
     mView = view;
     mHeadYaw = 0.0;
     mHeadPitch = view == View::Cockpit || view == View::Bare ? kHeadRest : 0.0;
     mHeadFree = mHeadKept = false;
     mCamUp = Normalize(mCamPos);
     mHistoryValid = false;
-    HoldMouse(view != View::Free && GetForegroundWindow() == mhMainWnd);
+    HoldMouse(view != View::Free && GetForegroundWindow() == mhMainWnd && !(GetAsyncKeyState(VK_MENU)&0x8000));
 }
 
 // The ship's frame for its shaders, in the face-local frame of the camera (faceX, faceY, faceZ), and its shadow on the

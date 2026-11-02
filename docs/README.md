@@ -41,6 +41,7 @@
 - **`optimisation-vegetation.md`:** vegetation culling and GPU timings, preserving appearance, density and distance; memory optimization remains.
 
 **Ship and execution**
+- **`spec-marche-ambiances.md`:** instant disembarkation, FPS walking, contextual foot contacts, environmental audio and shared keyboard/button controls.
 - **`spec-vaisseau.md`:** default fighter and preserved classic ship, model selection, cockpit, flight and canopy weather; construction history in `log/spec-vaisseau-historique.md`.
 - **`recherche-eau-verriere.md`:** water on the canopy glass, drops, rivulets and film in flight; state of the art; simulated drops and trails implemented, awaiting in-flight review.
 - **`recherche-son.md`:** ship sound, engine, stabilizers and wind; state of the art, procedural synthesis on XAudio2 selected and implemented, awaiting in-flight review.

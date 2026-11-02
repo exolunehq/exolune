@@ -25,7 +25,7 @@ void D3DApp::ReadTests() {
         std::wistringstream place(line.substr(bar + 1, sunBar == std::wstring::npos ? std::wstring::npos : sunBar - bar - 1));
         if (!(place >> t.altitude >> t.latitude >> t.longitude >> t.pitchDown >> t.heading)) continue;
         std::wstring view;
-        if (place >> view) t.view = DiagnosticView(view.c_str());
+        if (place >> view) { t.walk = view==L"marche"; t.view = DiagnosticView(view.c_str()); }
         if (sunBar != std::wstring::npos) {
             std::wistringstream sun(line.substr(sunBar + 1));
             t.sun = static_cast<bool>(sun >> t.sunLatitude >> t.sunLongitude);
@@ -72,6 +72,8 @@ void D3DApp::CreateTestsWindow() {
 // night); the smoothing starts afresh; the focus back to fly.
 void D3DApp::GoToTest(size_t index) {
     const TestView& t = mTests[index];
+    const bool walking = mView==View::Walk;
+    if (walking) SetView(mWalkReturnView);
     mGroundHeight = 0.0; // the previous place's ground is not a valid collision sample at this one
     mOceanElevation = -1000.0f;
     if (t.wind) {
@@ -82,6 +84,7 @@ void D3DApp::GoToTest(size_t index) {
     const double windLongitude = mWeatherTime * kWeatherWindSpeed / PlanetRadius * 180.0 / XM_PI;
     PlaceCamera(t.latitude, t.longitude + windLongitude, t.pitchDown, t.heading, t.altitude);
     if (mView != View::Free) PlaceShipAtCamera();
+    mStartWalking = t.walk || walking;
     mSunDir = t.sun ? LatLonToDir(t.sunLatitude, t.sunLongitude) : mStartSunDir;
     mDiagnosticView = t.view;
     mHistoryValid = false;

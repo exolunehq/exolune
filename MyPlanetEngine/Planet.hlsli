@@ -30,6 +30,8 @@ cbuffer Frame : register(b0)
     float4x4 reprojectShip; // the ship's pixels: face-local point -> previous frame's clip space, following the ship
     float4   shipSphere;    // xyz: the ship's centre, face-local from the camera (m); w: its radius, 0 without the ship
     float4x4 shipSunShadow; // face-local point -> the ship's map towards the sun, for its shadow on the ground
+    uint4    coordinateInfo; // lengths of the two screenshot-coordinate lines; zero disables the overlay
+    uint4    coordinateText[8]; // two rows of 64 ASCII bytes, packed little-endian
 };
 
 struct FaceVertex

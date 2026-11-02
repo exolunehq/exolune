@@ -13,6 +13,7 @@ TextureCubeArray<float4> shipClimate : register(t10);
 #include "Shadows.hlsli"
 #include "Ship.hlsli"
 #include "Clouds.hlsli"
+#include "WorldWeather.hlsli"
 
 RWStructuredBuffer<float4> weatherState : register(u0);
 StructuredBuffer<FaceVertex> shipTerrain : register(t50); // the mesh, after its horizon pass
@@ -38,31 +39,8 @@ void CSMain()
     const float altitudeKm = shipUp.w;
     const float3 dir = normalize((float3)cloudCameraKm.xyz);
     const float temperature = shipClimate.SampleLevel(linearClamp, float4(dir, 0.0), 0.0).y - 6.5 * altitudeKm;
-    // The density at the ship, as extinction (per km) like the clouds' own shadows, and the optical depth of the low
-    // layer over it, sampled every 750 m to its top. Showers fall from a deep cumulus (the weather's g, its share).
-    const double3 originQ = CloudWeatherBackDP(cloudCameraKm.xyz, cloudWind.xy);
-    const double3 upQ = CloudNormalizeDP(originQ);
-    const CloudContext context = CloudPrepareContext(originQ, upQ, upQ);
-    const bool cloudsOn = cloudCameraKm.w > 0.5l;
-    const float h = CloudAltitude(context.entryOffsetKm, context);
-    float altitude, depth = 0.0, density = 0.0;
-    float4 weather;
-    bool cirrus;
-    if (cloudsOn)
-    {
-        density = CloudMeanDensity(context.entryOffsetKm, context, 0.0, 0.0, false, altitude, weather, cirrus);
-        [loop] for (int i = 0; i < 8; ++i)
-        {
-            const float above = max(CLOUD_LOW_BOTTOM_KM - h, 0.0) + (i + 0.5) * 0.75;
-            depth += 80.0 * 0.75 * CloudMeanDensity(context.entryOffsetKm + context.viewQ * above, context, 2.0, 2.0,
-                                                      false, altitude, weather, cirrus);
-        }
-    }
-    const float extinction = 80.0 * density;
-    const float inCloud = saturate(extinction / 20.0);
-    const float cumulus = CloudSampleWeather(context.entryOffsetKm, context).g;
-    const float shower = cloudsOn ? smoothstep(0.6, 0.9, cumulus) * smoothstep(15.0, 60.0, depth) : 0.0;
-    const float rain = shower * (h < CLOUD_LOW_BOTTOM_KM ? 1.0 : 0.6);
+    const float3 weather = WorldWeather(cloudCameraKm.xyz);
+    const float rain=weather.x, inCloud=weather.y, extinction=weather.z;
     float4 s = weatherState[0]; // wet, rain, frost
     const float4 t = weatherState[1];
     const float cold = saturate(-temperature / 10.0);

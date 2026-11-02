@@ -130,6 +130,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/cine/rendre.ps1 -Parco
 
 ## In-flight keys
 
+- **J / Marcher button:** instant ground placement; J again returns to the saved ship. Hold Alt or toggle M to click the upper-left buttons.
+- **Walking:** WASD/ZQSD or arrows; Shift runs, Ctrl crouches, Space jumps, H toggles bob. Y / Son button mutes audio.
+- **Walking route:** `tools/tests/2026-11-02-marche-main.txt`; an optional `marche` pose token places a test on current terrain.
+- **Audio:** default on; optional `MYPLANETENGINE_AUDIO="master footsteps ambience ship"`, gains in [0,1], or `[Audio] Volumes` in the local profile; `spec-marche-ambiances.md`.
+- **I:** camera coordinates in screenshots; enabled in interactive views and disabled in automated output by default. `MYPLANETENGINE_COORDINATES=1` includes them in a capture.
+
 - **H:** tree impostor-to-mesh fade, enabled by default; disabled, each tree switches abruptly.
 - **T:** temporal antialiasing.
 - **O and P,** held: rotate the sun.

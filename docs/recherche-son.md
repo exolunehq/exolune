@@ -1,5 +1,7 @@
 # The sound of the ship
 
+**World audio and footsteps:** [spec-marche-ambiances.md](spec-marche-ambiances.md) extends the same XAudio2 output with credited CC0 / CC BY 3.0 recordings and contextual procedural layers.
+
 **The goal:** a ship that understands each other. The engine follows the required thrust, the stabilizers blow when we roll or slide, the wind rises in the atmosphere.
 
 **The condition, 2026-10-29:** in place, to be judged in flight.
