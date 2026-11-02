@@ -2,6 +2,20 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+## 2026-11-02 · Clouds: contrast and shiny contours
+
+- **The defect:** since the whitening, flat clouds and bright outlines on their lobes, like specular highlights.
+- **The cause:** the multiple scattering's build-up F was a pixel's quantity, taken at its seen point; it drew rims and dark channels where that point jumped between lobes. Under it, the source was nearly uniform: fitted on slabs, it lost nothing through a finite cloud's sides.
+- **The change:** F per point, on the cloud's chord along the sun, three samples away from it (`CLOUD_BACK_SAMPLES`); the side leak `CLOUD_MULTI_LEAK` = 0,20, on each sample's own covered part. The seen point, its column and the mean μ are removed.
+- **Then, the planes seen in flight:** grey horizontal bands at fixed heights, still while the clouds drifted. The chord's long intervals read the profile at their middle and the density in the cloud up to its 1e-4 floor of cover. Each light interval now reads its profile's mean over its height span (slices of the profile volume, computed at loading); the chord counts an interval whole from 2 % covered (`CLOUD_CHORD_COVER`).
+- **The result:** relief at low sun, p10 / p90 of opaque clouds 0,74 → 0,51 at 3 km; no rim, vein, channel or plane; orbit white kept, 196 against 199 in sRGB; near cumulus greyer under a high sun, 157 against 190.
+- **The cost, 1920 × 1080:** +5 to +15 % on clouds and air, +0,1 ms from orbit, +1,2 ms at 8 km still and +3,6 ms in fast flight; no optimization removed. A proved skip of the three samples was slower, two samples saved nothing measurable.
+- **Reference:** `tools/calage_orbite.py relief`, λ = 0,20 refitted with F per point; sphere 1,9 to 8,5 against 2,5 to 9,7.
+- **Then, in a fast flight, a line at the horizon behind the clouds:** the temporal pass tested its history on the surface the ray ends on; toward the horizon the sea's distance changes by 4 % a row, and neighbours above and below were refused. It now tests the clouds' end, 0 like the sky beyond the low layer's bottom (`CloudTemporalCloudEnd`). Row step at the horizon against the single pass 0,54 → 0,08; still images identical to the level; in a fast flight, 1920 × 1080, +1 to +2 ms at 2 to 8 km, more pixels traced again rather than filled; still, within the noise.
+- **To judge in flight:** `tools/tests/2026-11-02-nuages-contraste.txt`. Tag at commit: `piste/nuages-contraste`.
+- **To go back:** `Clouds.hlsli`, `CloudsTemporal.hlsli` and `D3DApp.cpp` of `bfa6113`.
+- **Detail:** `spec-rendu-orbite.md`, contrast and shiny contours.
+
 **2026-11-01 · Approved fighter becomes the default**
 
 - Milestone: `jalon/2026-11-01-chasseur-par-defaut`.

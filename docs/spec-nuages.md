@@ -2,7 +2,7 @@
 
 **The clouds of the game, from orbit to ground, across the planet.** A two-layer volume, drawn from a planetary weather map calculated at start on the climate, and two noise functions 3D fixed on the planet, which the wind carries to the east. They shade the land and the sea, and the ship's canopy glass crosses them.
 
-**State, 2026-10-31:** the only path, active by default, without variable (commit `3663177`). The light of the air is rendered to them the 2026-10-30. Since the 2026-10-31, their weather map is drawn from the climate, tag `piste/nuages-climat`: to judge in flight, `tools/tests/2026-10-31-nuages-climat.txt`. On the same day, their light, water and pixel are redone for the orbit view, tag `piste/orbite-rendu` (`spec-rendu-orbite.md`): to be judged in flight, `tools/tests/2026-10-31-orbite-rendu.txt`.
+**State, 2026-10-31:** the only path, active by default, without variable (commit `3663177`). The light of the air is rendered to them the 2026-10-30. Since the 2026-10-31, their weather map is drawn from the climate, tag `piste/nuages-climat`: to judge in flight, `tools/tests/2026-10-31-nuages-climat.txt`. On the same day, their light, water and pixel are redone for the orbit view, tag `piste/orbite-rendu` (`spec-rendu-orbite.md`): to be judged in flight, `tools/tests/2026-10-31-orbite-rendu.txt`. On the 2026-11-02, their multiple scattering becomes a property of each point, for contrast and against shiny contours: to be judged in flight, `tools/tests/2026-11-02-nuages-contraste.txt`.
 
 - **The code:** `MyPlanetEngine/Clouds.hlsli`, `CloudsTemporal.hlsli`, `AtmospherePass.hlsl` and its three envelopes `CloudTrace.hlsl`, `CloudTraceHalf.hlsl`, `CloudResolve.hlsl`; `D3DApp.cpp` and `.h`; the weather map, `Climate::Weather` in `Climate.cpp`; for the canopy glass, `ShipWeather.hlsl`, `Ship.cpp`.
 - **Data:** `assets/clouds`, three volumes of noise and their `manifest.json`; the weather map is calculated at startup.
@@ -79,6 +79,7 @@
 **Low cloud density:**
 - **The shape,** a Perlin-Worley noise of 128³ texels over 32 km, and **the erosion,** a Worley noise of 32³ over 4 km. Both are fixed on the planet.
 - **The vertical profile,** a table of 64² per family and per height in the layer, gives the density and strength of erosion.
+  - **A light interval reads its profile's mean over its height span,** not its middle's: slice z of the volume holds the mean over a window of z texels, computed at loading (`D3DApp::UploadCloudVolume`); the file does not change. The view's samples read slice 0, the profile itself.
 - **The cover is a form of shame,** in the Frostbite style: `remap(forme, 1 − R, 1) × R × profil`. Erosion is then cut off at the edge.
 - **Then the density is divided by R:** R says the portion of the sky covered, not the water in the cloud. The shape, support and erosion do not change.
 - **Water in the cloud follows the thickness that the map bears,** convention shared with the climate: `e = saturate((R − 0,28) / 0,62)`, zero under 0,28, and density multiplied by `0,25 + 0,75 e`, from 20 to 80 /km. The scattered cumulus and clouds, about 0,1 to 0,2 g/m³ of water, have τ from 10 to 25; the fronts and convection cores, 0,5 g/m³, τ from 80 and more. With water from a front heart everywhere, a layer of 1 km had τ ≈ 60: its reflectance saturated, flat and textureless view from low orbit.
@@ -100,12 +101,14 @@
 
 **Light, at every step in a cloud:**
 - **Extinction:** 80 /km per unit density, water albedo 1; 0,5 g/m³ at 10 µm of effective radius.
-- **To the sun:** six steps, from 125 m to 4 km, 7,875 km in all, the entire lower layer; Beer on the density crossed.
+- **To the sun:** six steps, from 125 m to 4 km, 7,875 km in all, the entire lower layer; Beer on the density crossed. **Away from it:** three steps, from 500 m to 2 km, 3,5 km, for the rest of the chord.
 - **The simple phase:** Henyey-Greenstein, g = 0,85, that of the drops (Bohren and Huffman).
 - **The sun and the sky** come from the atmosphere tables, at the altitude of the step: `SunTransmittance`, `MultiScattering`, `SkyIrradiance`.
-- **The multiple scattering,** isotropic: `σ W (S_soleil μ + E_ciel) / (1 + b τs) / 4π` per km, diffuse transmission of a layer towards the sun, summed along the view, then multiplied by `F = 1 − exp(−k τ / μ̄)`; W = 3,40, b = 0,040, k = 0,061, calibrated on Monte Carlo layers (`tools/calage_orbite.py nuages`).
+- **The multiple scattering,** isotropic, a property of each point: `σ W (S_soleil μ + E_ciel) F e^(−λ L) / (1 + b τs) / 4π` per km, diffuse transmission of a layer towards the sun, summed along the view; W = 3,40, b = 0,040, k = 0,061, calibrated on Monte Carlo layers (`tools/calage_orbite.py nuages`); λ = 0,20 on spheres (`relief`).
   - **μ:** a layer receives the sun like a floor, `dot(haut, soleil)`; a cumulus like a ball, 0,5 on its illuminated face: `max(dot, 0,5 × famille, 0,05)`.
-  - **τ, the thickness of the cloud where it exists:** the greater of two. The vertical column at the point of view, twelve strips of 0,5 km of the low layer or eight of the cirrus, in density in the cloud, without the covered part, read at about 1 km (mip ≥ 2 of the form, ≥ 3 of the erosion): the multiple scattering spreads the light on some free transport paths, 1 / (σ (1 − g)) ≈ 170 m. And the thickness that the walk has crossed. For a flat layer, it is its thickness: the size of the caling. The edge of a cloud, seen from the side or from behind, has the column of the entire cloud.
+  - **F, the build-up:** `1 − exp(−k τ)`, τ the cloud's chord along the sun through the point, the nine samples, in density in the cloud, counted whole from 2 % covered and by their share below (`CLOUD_CHORD_COVER`). For a flat layer, τ / μ: the size of the calibration.
+  - **The side leak:** `L = 80 Σ w (1 − f) f ρ Δs` on the six samples toward the sun, f their own covered part, `w = saturate(1 + mip of the step − mip of the view)`. Zero in a flat layer.
+  - **Neither the pixel's seen point nor its column enters F or the leak** (`principes.md`); the samples toward the sun keep the column's overlap for what they transmit.
 - **The detail and its reasons:** `spec-rendu-orbite.md`.
 
 **The walk, in columns:** in the pixel, the clouds of a layer superimpose to the maximum; the cloudy column is the widest part encountered, fc, and only a part of 2 % wider expands it. When the ray has left the pixel footprint, the column closes and composes to the previous ones like a layer: random overlap beyond. The transmittance of the pixel is `1 − fc (1 − Tc)`.
@@ -135,6 +138,7 @@
 - **The half-track, `PSCloudTraceHalf`,** under 14 km altitude only: one pixel per square 2 × 2, where the history of one pixel of the square has slipped.
 - **The resolution, `PSCloudResolve`,** at full resolution. It takes the fresh trace; failing, the reprojected history, the clouds in the reference frame of the weather, their shadow on the ground; failing, the squares of the half-trace; failing, it draws the pixel. She composes the air and writes the following history.
 - **A pixel traces** beyond 1 pixel drift, 1° rotation of view direction per frame, or 20 % distance change.
+- **Two rays share their clouds when their surfaces cut none of them:** the history and the fills compare the ray ends as the clouds see them, 0 like the sky where the ray has left the low layer through its bottom before the surface (`CloudTemporalCloudEnd`). Compared as surfaces, toward the horizon where the sea's distance changes by 4 % a row, they refused their neighbours above and below: in a fast flight, a line fixed on the screen across the clouds (2026-11-02).
 - **The history starts again** at a jump of the camera, the change of quality, the lighting of clouds, and when the sun turns more than 1°.
 
 **The single pass, `PSMain`** (`AtmospherePass.hlsl`): every pixel traced, at every frame.
@@ -168,7 +172,7 @@
 | t17 | the solar part of the scene | RGBA16F, full screen |
 | t24 | shape and fibers, `shape128` ; B: the standard deviation of the shape under the texel, calculated at loading | RGBA8, 128³, 8 mips |
 | t25 | erosion, `detail32` B = its standard deviation below the texel, calculated at loading | RGBA8, 32³, 6 mips |
-| t26 | profiles, `weather64`  | RGBA8, 64³, 7 mips |
+| t26 | profiles, `weather64`  | RGBA8, 64³, 7 mips; mip 0's slice z, the mean over z texels of height |
 | t27 | weather map, calculated at startup (`Climate::Weather`) | RGBA8, 1 024 × 512, 11 mips |
 | s2, s3 | the noise functions, in repetition; the map | Linear |
 | t44, t45 | fresh tiles, a texel by 4 × 4 | RGBA16F ; RGBA32F |
@@ -252,6 +256,7 @@
 - **The 6 round corrects them to benchmark:** every fresh trace checks the history. But it costs 4 to 6 ms more in slow flight, at altitude and near cumulus. It is the tag `piste/optimisation-r6-nuages-mouvement`, to take over by a variant cheaper.
 - **The noise at high speed:** in altitude, in fast flight, a grain on the clouds. Suppose cause: three grains mixed, that of fresh pixels at a far radius, pixels traced at four, and softened history. The distant quadrature removed the 2026-10-31 removes the first two: to be reviewed in flight.
 - **Ghosting in orbit dive:** by approaching very quickly a formation, trails of its size or more, which disappear in 2 to 3 s at rest. Suppose cause: the distant mean keeps its radii while the footprint shrinks. The distance kept is wrong, and the drift, calculated from it, does not see it (`optimisation.md`, round 1).
+- **A line at the horizon behind the clouds, in a fast flight:** corrected on 2026-11-02, the clouds' end (above, the passes). Measured against the single pass, flying fast toward a cumulus wall at 3,7 km: the row step at the horizon 0,54 → 0,08 in sRGB levels.
 - **Trails approaching a cumulus:** near the ground, moving towards a cumulus then retreating, checkered trails 4 × 4 around its silhouette, for a few images. Suppose cause: the edge moves forward in the sky without measurable drift; the history is kept while the fresh trace contradicts it.
 
 **The cost:**

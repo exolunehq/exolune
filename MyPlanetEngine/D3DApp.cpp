@@ -64,7 +64,7 @@ namespace
     // footprints.
     void UploadCloudVolume(ID3D12Device* device, ID3D12GraphicsCommandList* list, const std::wstring& path,
         UINT side, UINT mipLevels, ID3D12Resource* texture, std::vector<ComPtr<ID3D12Resource>>& uploads,
-        bool noiseStatistics = false)
+        bool noiseStatistics = false, bool profileWindows = false)
     {
         size_t expectedBytes = 0;
         for (UINT level = 0, width = side; level < mipLevels; ++level, width = std::max(width >> 1, 1u))
@@ -86,6 +86,31 @@ namespace
             readOffset += received;
         }
         CloseHandle(file);
+        if (profileWindows) {
+            // Mip 0's slice z holds the profiles' mean over a window of z texels of height, centred on each texel: a
+            // light sample standing for a long interval reads its whole height span, not its middle (Clouds.hlsli,
+            // CloudLowDensity). On disk the profiles do not vary along z; only mip 0 is read, the others stay as loaded.
+            const std::vector<BYTE> slice(source.begin(), source.begin() + size_t(side) * side * 4);
+            std::vector<double> v(side), sum(side);
+            for (UINT x = 0; x < side; ++x) for (UINT c = 0; c < 2; ++c) {
+                for (UINT y = 0; y < side; ++y) v[y] = slice[4 * (size_t(y) * side + x) + c];
+                sum[0] = 0.0;
+                for (UINT y = 1; y < side; ++y) sum[y] = sum[y - 1] + 0.5 * (v[y - 1] + v[y]);
+                // The integral of the piecewise-linear profile from texel 0 to t; its end values continue it.
+                const double last = double(side - 1);
+                auto integral = [&](double t) {
+                    if (t <= 0.0) return v[0] * t;
+                    if (t >= last) return sum[side - 1] + v[side - 1] * (t - last);
+                    const UINT j = UINT(t); const double f = t - j;
+                    return sum[j] + v[j] * f + 0.5 * (v[j + 1] - v[j]) * f * f;
+                };
+                for (UINT z = 0; z < side; ++z) for (UINT y = 0; y < side; ++y) {
+                    const double mean = z == 0 ? v[y] : (integral(y + 0.5 * z) - integral(y - 0.5 * z)) / z;
+                    source[4 * ((size_t(z) * side + y) * side + x) + c]
+                        = static_cast<BYTE>(std::lround(std::min(std::max(mean, 0.0), 255.0)));
+                }
+            }
+        }
         if (noiseStatistics) {
             // B: the noise's standard deviation under the texel, from mip 0's R, computed at upload.
             // Wrapping blocks of 2^L texels a side; the file on disk and its manifest are unchanged.
@@ -1178,7 +1203,7 @@ bool D3DApp::InitDirect3D() {
     std::vector<ComPtr<ID3D12Resource>> cloudUploads;
     UploadCloudVolume(md3dDevice.Get(), mCommandList.Get(), cloudAssets + L"\\shape128.rgba8mips", 128u, 8u, mCloudShape.Get(), cloudUploads, true);
     UploadCloudVolume(md3dDevice.Get(), mCommandList.Get(), cloudAssets + L"\\detail32.rgba8mips", 32u, 6u, mCloudDetail.Get(), cloudUploads, true);
-    UploadCloudVolume(md3dDevice.Get(), mCommandList.Get(), cloudAssets + L"\\weather64.rgba8mips", 64u, 7u, mCloudProfiles.Get(), cloudUploads);
+    UploadCloudVolume(md3dDevice.Get(), mCommandList.Get(), cloudAssets + L"\\weather64.rgba8mips", 64u, 7u, mCloudProfiles.Get(), cloudUploads, false, true);
     // Their weather map comes from the climate (CreateClimateMap).
     const CD3DX12_RESOURCE_BARRIER cloudsToRead[3] = {
         CD3DX12_RESOURCE_BARRIER::Transition(mCloudShape.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
