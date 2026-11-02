@@ -14,7 +14,7 @@
 
 **Terrain and materials**
 - **`spec-erosion.md`:** global drainage, glacial troughs and directional gullies; composed coastal incision filtering, cliff-talus and metric corrections under review; green scar, coastal input sensitivity and distant repetition unresolved.
-- **`spec-rendu-lointain.md`:** the same planet from orbit to ground, the universal boundary rule.
+- **`spec-rendu-lointain.md`:** the same planet from orbit to ground, the universal boundary rule; the screen relief above 150 to 400 km, validated in flight on 2026-11-02.
 - **`spec-normales-spline.md`:** per-pixel B-spline normals; coherent fine-grid height and slope reconstruction under mountain flight review.
 - **`spec-textures-generees.md`:** material tiles generated at startup and their tiling; rock has used a photo since 2026-10-24.
 - **`spec-texturage-universel.md`:** each material's detail scale, from texel to kilometer, and the quality benchmark that checks it; step 3 in progress.

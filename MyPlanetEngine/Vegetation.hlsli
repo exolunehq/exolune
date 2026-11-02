@@ -37,10 +37,20 @@ float NormalBelow(float x, float m, float s)
 
 // How exposed the ground is: its height over the regional ground, the planet map's at 16 km (PlanetMap.hlsli), over
 // EXPOSURE_RELIEF m: -1 in hollows and valleys, 1 on ridges and summits. planetUp: the vertical, planet frame.
-float Exposure(float3 planetUp, float elevation)
+// spread (m): how the heights spread within the pixel or the cell. Exposure is a limit drawn on the heights like the
+// others: in a range whose relief far exceeds EXPOSURE_RELIEF, its ramp narrowed to one level line of the grid's
+// interpolation, bare ridges and wooded hollows cut in its cells' diamonds, sliding with them. Widened by what the
+// pixel holds (SpreadStep's rule), it is the same ramp up close.
+float Exposure(float3 planetUp, float elevation, float spread)
 {
     const float regional = planetMap.SampleLevel(materialSampler, planetUp, MapLevel(planetUp, 16000.0)).x;
-    return clamp((max(elevation, 0.0) - regional) / EXPOSURE_RELIEF, -1.0, 1.0);
+    const float relief = sqrt(EXPOSURE_RELIEF * EXPOSURE_RELIEF + 5.0 * spread * spread);
+    return clamp((max(elevation, 0.0) - regional) / relief, -1.0, 1.0);
+}
+
+float Exposure(float3 planetUp, float elevation)
+{
+    return Exposure(planetUp, elevation, 0.0);
 }
 
 // The vegetation's climate at a point of the ground: its temperature (C), humidity, the temperature's spread within the

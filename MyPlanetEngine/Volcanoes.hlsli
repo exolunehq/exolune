@@ -143,7 +143,11 @@ float VolcanoCones(double2 xy, float r, Volcano v, float radius, float cellKm, i
             [branch] if (u2 < 1.0) // its crater, at least two cells wide, shallower when wider
                 cone -= 0.35 * height * (rim / rimWide) * (rim / rimWide) * (1.0 - u2 * u2) * (1.0 - u2 * u2);
             h = max(h, cone);
-            presence = max(presence, w * saturate(2.0 * t));
+            // Its share as the relief's: its area kept once widened, its edge at least two cells wide. Whole at the widened
+            // size, each cone of a field stood as a disc of two cells at any distance, its edge sharper than the samples:
+            // seen from orbit, the field's discs came and went as the view moved.
+            const float edge = max(0.3 * wide, 2.0 * cellKm);
+            presence = max(presence, w * (size / wide) * (size / wide) * saturate((wide - length(local)) / edge));
         }
     }
     // The mean: the share times a cone's mean volume, pi 0.3 E[250 s^3] km^2 m, over a cell.

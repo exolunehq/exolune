@@ -176,6 +176,11 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - **Clouds also come from climate:** their weather map is calculated at startup on its fields and the relief, convection, subsidence, cold currents, depression tracks, slopes windward (`spec-nuages.md`). No cloud field taken from a noise without link with geography.
 
 **From far as close, the same planet** (`spec-rendu-lointain.md`).
+- **A field that decides appearance is filtered at the footprint of the sample that reads it, and evaluated where it is seen, never interpolated on a sliding mesh.** A triangle slides under the view; a feature narrower than it changes shape as it slides, and the ground crawls (`spec-rendu-lointain.md`, the screen relief).
+  - Relief, roughness, fresh volcanic ground and geology are read at the screen texel or the pixel from orbit; the relief is filtered to 4 texels.
+  - Cloud noises are read 4 pixels to a texel; at one pixel to a texel, the coverage threshold made each pixel cloud or sky.
+  - A shape kept by a map keeps its area once widened to two cells; its edge is never sharper than the samples.
+  - What a grid cannot place between its samples widens the limits drawn on heights, like the pixel's own spread: the gap between its bilinear and B-spline reconstructions.
 - Reconstruct fine-grid altitude and slope from one differentiable height surface. Independently interpolated normals cannot repair derivative jumps in bilinear heights (`spec-normales-spline.md`).
 - A shading reconstruction smooths sampling-scale transitions; it does not certify mesh silhouettes or hydrological shape. State its support, fallback and limits.
 - **A pixel shows the average of what it covers.** Any boundary between materials widens from what the pixel cannot show from its inputs: `SpreadStep`, `SlopeShares`, `RockShares`.

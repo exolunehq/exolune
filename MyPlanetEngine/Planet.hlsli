@@ -33,6 +33,8 @@ cbuffer Frame : register(b0)
     uint4    coordinateInfo; // lengths of the two screenshot-coordinate lines; zero disables the overlay
     uint4    coordinateText[8]; // two rows of 64 ASCII bytes, packed little-endian
     float4   reliefGradients[256]; // immutable noise table; pixel contours use the same literals as compute
+    float4   screenRelief; // the screen relief (ScreenRelief.hlsl): xy its texels across, z its weight (0: off),
+                           // w the pixels per texel side
 };
 
 struct FaceVertex
@@ -54,6 +56,17 @@ struct FineSample
 {
     float4 terrain; // xyz: position or normal; w: raw bed elevation
     float4 inland;  // wet presence, presence * stage/depth, candidate distance
+};
+
+// The screen relief's texel (ScreenRelief.hlsl): the fine grid's sample, and the ground's own fields there, which the
+// vertices carried before: interpolated on triangles sliding under the view, a feature smaller than them changed its
+// shape as they slid.
+struct ScreenSample
+{
+    float4 terrain;
+    float4 inland;
+    float4 ground; // x: roughness (gRoughness), sets the slopes hidden below the texel (SlopeSpread); y: fresh volcanic
+                   // ground (gVolcanic)
 };
 
 float3 InlandSample(float stage, float elevation)

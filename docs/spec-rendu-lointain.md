@@ -280,3 +280,55 @@ Status: in place the 2026-10-22, for all materials.
 **The fix:** the fine grid remains active for decisions up to the grid cells of 3,4 m, the light keeps its threshold of 20 m; snow only takes into account the slope of the terrain. Measurements are in `journal-planete.md`.
 
 **Rest:** the octave of 13,5 m and a part of that of 27 m are still missing from the fine grid above 500 m, and `SlopeSpread` does not count them; the rock still rises from 3 to 9 % on the spot between 2 and 1,2 km, from 4 to 17 % on hills. Counting these octaves with the roughness by type of terrain regulates the mountains but overflows elsewhere: you need the roughness measured, higher.
+
+## The screen relief, 2026-11-02
+
+Status: implemented; validated in flight by the user on the reported massif. Flight route: `tools/tests/2026-11-02-montagnes-exposition.txt`.
+
+**Symptom,** from orbit over a mountain range, `1673620.9 -7.138614 122.604860 84.18 32.74`:
+- the ground blurred into squares, then sharpened suddenly near 1,400 km;
+- moving sideways, the relief, the rock and snow limits and the forest crawled.
+
+**Cause: the fine grid's cells span several pixels from orbit.**
+- Lit and decided on the fine grid alone, the ground blurred into its cells.
+- Its cells slide with the camera: what lies between its samples changed as they slid.
+- The per-pixel detail took over later, its widest octave 6 km: the ground sharpened at once.
+- Fields interpolated on the mesh's sliding triangles crawled the same way: roughness, fresh volcanic ground, geology.
+
+**The change: `ScreenRelief.hlsl`, a compute pass at every frame.**
+- **One texel per 2 × 2 pixels** (`ScreenReliefScale`), at most 1920 × 1080 texels.
+- **Each texel finds its ground:** the view ray meets the sphere at sea level, then again at the elevation found there, for the parallax of summits seen aslant.
+- **The relief is filtered to 4 texels** (`SCREEN_BAND_LIMIT`), as the mesh is filtered to 2 cells (`MESH_BAND_LIMIT`).
+- **Each texel stores 48 bytes** (`ScreenSample`): camera-relative position and elevation, premultiplied inland water, roughness and fresh volcanic ground.
+- **Its weight rises with camera altitude,** smoothstep from 150 to 400 km (`ScreenReliefLow`, `ScreenReliefHigh`). Below, the fine grid and the per-pixel detail carry the relief to the pixel.
+- **Nothing is kept between frames:** the texels follow the view, as the pixels do.
+
+**The pixel reads it in B-spline,** `ScreenNormal` (`PixelShader.hlsl`).
+- A smoothing cubic B-spline over the 4 × 4 nearest texels; positions taken relative to the first, without cancellation.
+- The normal is the cross product of the surface's derivatives.
+- Slope variation as the texels slide: 9 % with a bilinear tent at 4 texels, 3 % with the B-spline, 0.4 % at 8 texels (`log/pistes-glissement.md`).
+- Any texel without ground, at the limb, sets the weight to 0: the mesh and the fine grid take over.
+
+**What the screen relief drives, where its weight is on:**
+- the lighting normal, the decision normal and the shore normal;
+- the elevation, the inland water and the 3D point where material noises are read;
+- the ocean's edge, its contour at the texels antialiased across the pixel;
+- the slopes hidden below the texel, from its own roughness (`SlopeSpread`), and the light the finer relief leaves (`FinerReliefLit`), about its own normal;
+- no per-pixel water contour query and no invented `DetailSlope` grain under it.
+
+**Fields moved from the mesh to the texel or the pixel:**
+- **roughness and fresh volcanic ground:** read in the texel, with the relief;
+- **geology:** evaluated at the pixel, at the mesh cell's scale, `Geology(q, cellSize)`.
+
+**Other corrections in the same family:**
+- **The grid's uncertainty widens height limits:** the gap between the fine grid's bilinear and B-spline reconstructions adds to the elevation spread of the tree line, snow and shore bands. Off under the screen relief.
+- **Exposure widens with the height spread:** `sqrt(EXPOSURE_RELIEF² + 5 spread²)` (`Vegetation.hlsli`). In high ranges, bare ridges and wooded hollows cut the grid's diamonds.
+- **Volcanic cones keep their area once widened,** their edge at least two cells wide (`Volcanoes.hlsli`). From orbit, cone fields stood as two-cell discs that came and went.
+- **Cloud noises are read 4 pixels to a texel** (`CLOUD_BAND_LIMIT`, `Clouds.hlsli`). The stored and unresolved variances hold the rest.
+
+**Limits:**
+- **Shading only:** the mesh still gives geometry, depth and silhouettes (`geometrie.md`).
+- **Cost:** not measured; no benchmark was run. Between 150 and 400 km, the pixel water contour query still runs with the remaining weight.
+- **Memory:** 48 bytes per texel, about 95 MiB for the 4K maximum.
+- **Erosion valleys still appear suddenly** between 1,400 and 1,800 km (`spec-eaux-interieures.md`).
+- **Two rejected options** are in [the history](log/spec-rendu-lointain-historique.md#2026-11-02-rejected-options-of-the-screen-relief).

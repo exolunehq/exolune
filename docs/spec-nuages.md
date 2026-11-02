@@ -85,6 +85,7 @@
 - **An octave of the form at 128 km,** the same volume read four times its scale, axes permuted so that the two pavement do not align, is added to the form, centered on its measured average, 0,889; its variance under the texel is added to the pixel law. Without it, with partial coverage, the erosion of 4 km placed the cumulus alone: a uniform seed of the same sizes, seen from low orbit. With it, they are grouped in clusters and alleys, and the edges of the layers fray.
 
 **Statistics per pixel** (`CloudLowDensity`): a sample reads the shape and erosion at the mip of the pixel footprint, and their law under it, not their single average.
+- **The mip is read 4 pixels to a texel,** `CLOUD_BAND_LIMIT` (2026-11-02). At one pixel to a texel, features of one or two pixels stood in the mean, the coverage threshold made each pixel cloud or sky, and the grain moved with the view; the variances below hold the rest.
 - **The standard deviation of each noise under each texel,** of each mip, is calculated when loading from the 0 mip, in channel B of both volumes (`D3DApp::UploadCloudVolume`); the file on disk does not change.
 - **The margin on erosion,** `U = clamp(X − (1 − R), 0, R) p − D g`, X the shape, D the erosion, p and g the profile, is taken Gaussian: mean and variance from the two moments of the threshold and the standard deviation of D.
 - **The covered part** `f = Φ(mU / sU)`; **the density in the cloud** `E[U⁺] / f / (1 − g μD) / R`, limited to [0, 1]; under 1e-4, the part is zero.

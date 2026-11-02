@@ -9,7 +9,7 @@
 - No new simulation during flight.
 
 **Flight review: structural revision in progress**
-- The user accepted coastal contour antialiasing and river bank contours after pixel refinement; earlier river visibility is sufficient for this stage. Similar mountain artifacts remain reported at `1673620.9 -7.138614 122.604860 84.18 32.74`.
+- The user accepted coastal contour antialiasing and river bank contours after pixel refinement; earlier river visibility is sufficient for this stage. The mountain blur and crawl reported from orbit at `1673620.9 -7.138614 122.604860 84.18 32.74` are corrected by the screen relief, validated in flight on 2026-11-02 (`spec-rendu-lointain.md`).
 - Coherent fine-grid height/normal reconstruction now addresses the mountain sampling transitions; `spec-normales-spline.md` and `tools/tests/2026-11-01-montagnes-distance.txt` describe the separate flight review. Prescribed incision shapes remain open.
 - The user validated disappearance of the artificial side trenches at F7/F8 of `2026-11-01-rivieres-montagne.txt`; this is a local acceptance result, not global erosion acceptance.
 - Every release review must name the corrected defect, the expected observation and the unresolved defects; diagnostic witnesses are not advertised as completed fixes.
@@ -37,6 +37,11 @@
 | Coastal sawteeth, crest flicker and disappearing cliffs | Stable visible surface through approach and across steep slopes | Earlier projection/coastal metric corrections are limited; rendering investigation open |
 | Camera crossing a cliff | Swept contact protects camera and hull along the movement, with no ground teleport | Swept contact integrated; CPU fixtures, Release x64 and interactive startup pass; flight contact review open |
 | Lake shores and stage connections | Level basin interiors, coherent shorelines and explicit outlet transitions | Initial lake implementation; connection refinement open |
+| Lake level fixed per erosion cell; lake district fragmenting on approach | A continuous lake level first; then a statistical wet coverage keeps the district whole at every distance | Open; a statistical coverage on the per-cell level made square blocks and was rejected (`log/spec-rendu-lointain-historique.md`) |
+| Rivers perched on a mound | The channel follows the lowest route of the composed terrain; network and relief agree where the river is drawn | Open; part of the network placement revision |
+| Valleys appearing suddenly from orbit, 1,400 to 1,800 km | Valleys fade in continuously with distance, their mean kept, like any other relief | Open; the screen relief corrected the mountain blur and crawl, not this |
+| Cost of the transition zone near 300 km | The pixel water contour query fits the frame budget where the screen relief fades in | Open; about 20 ms reported there |
+| Root cause: a network computed on coarse relief, then pressed onto it | Paths, widths and junctions follow the rendered terrain; nothing reads as hand-drawn | Open; addressed by the network placement and connectivity revisions below |
 
 **First composition correction, 2026-11-01**
 - The cut envelope carries only positive terrain spurs; original hollows remain in the terrain being intersected.

@@ -2,6 +2,19 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-02 · Screen relief from orbit**
+- **Symptom:** from orbit, mountains blurred into squares, crawled when the camera moved, then sharpened suddenly near 1,400 km.
+- **Cause:** from orbit the fine grid's cells span several pixels; it and the mesh's triangles slide with the view, and every field interpolated on them moved.
+- **Change:** `ScreenRelief.hlsl` recomputes the true relief under each 2 × 2-pixel texel at every frame; the pixel reads it in a 4 × 4 B-spline for light, materials, coasts and water (`spec-rendu-lointain.md`).
+- **Settings:** `ScreenReliefScale` = 2 pixels; `SCREEN_BAND_LIMIT` = 4 texels; weight from `ScreenReliefLow` = 150 km to `ScreenReliefHigh` = 400 km (`D3DApp.h`, `ScreenRelief.hlsl`).
+- **Same family:** roughness and fresh volcanic ground read in the texel, geology at the pixel; the grid's reconstruction gap widens height limits; exposure widened by the height spread (factor 5); volcanic cones keep their area, edge ≥ 2 cells; `CLOUD_BAND_LIMIT` = 4 pixels per noise texel.
+- **Storage:** one 48-byte texel buffer, sized for 4K, about 95 MiB; one root SRV, `t52`.
+- **Review:** `tools/tests/2026-11-02-montagnes-exposition.txt`; validated in flight by the user. No performance or quality benchmark.
+- **Tag:** `piste/relief-ecran-2026-11-02`.
+- **Rejected:** the footprint mean of `min(ground, profile)` for valleys, and a statistical lake coverage (`log/spec-rendu-lointain-historique.md`).
+- **Open:** valleys still appear suddenly between 1,400 and 1,800 km; cost near 300 km.
+- **To return:** raise `ScreenReliefLow` and `ScreenReliefHigh` above any camera altitude; `CLOUD_BAND_LIMIT` = 1.
+
 **2026-11-02 · Erosion review checkpoint**
 - **Branch:** `codex/erosion-eaux-contours-2026-11-02`; tag `piste/erosion-eaux-contours-2026-11-02`.
 - **Saved state:** inland rivers and lakes, bounded valley composition, coastal filtering, water contour refinement and coherent mountain shading.
