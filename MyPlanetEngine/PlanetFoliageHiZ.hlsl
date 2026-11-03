@@ -12,7 +12,7 @@ StructuredBuffer<CullModel> models : register(t3);
 RWByteAddressBuffer visibility : register(u0);
 RWByteAddressBuffer stats : register(u1);
 cbuffer Dimensions : register(b1) { uint hiZWidth, hiZHeight, hiZMips, viewportWidth, viewportHeight; };
-static const uint CAPACITY=524288, AGGREGATE=1008;
+static const uint CAPACITY=524288, AGGREGATE=FOLIAGE_AGGREGATE_COUNTS;
 
 [numthreads(64,1,1)]
 void Clear(uint id : SV_DispatchThreadID) {
@@ -51,8 +51,7 @@ void Cull(uint3 id : SV_DispatchThreadID, uint lane : SV_GroupIndex, uint3 group
     GroupMemoryBarrierWithGroupSync();
     if (id.x<count) {
         ObjectInstance plant=queues[(species*2+1)*CAPACITY+id.x];
-        uint model=species;
-        if (species==2) model=2+2*ShrubFamily(plant)+ShrubVariant(plant.seed);
+        uint model=FoliageModel(plant);
         bool hidden=Hidden(plant,models[model]);
         uint ignored; InterlockedAdd(groupTested,1,ignored);
         if (hidden) InterlockedAdd(groupRejected,1,ignored);

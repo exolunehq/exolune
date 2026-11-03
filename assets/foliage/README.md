@@ -1,6 +1,15 @@
 # Sources and reproduction
 
-**Game catalog, found by default by the engine in `assets/foliage/climate_shrubs_v2`:**
+**Current technical prototype: `assets/foliage/game_biomes_v1`.**
+- Thirty-one models: eight tree forms, fifteen shrubs and eight ground plants.
+- Sources, credits, transformations and reproduction: [game_biomes_v1/README.md](game_biomes_v1/README.md).
+- The source library is being reconsidered against generative authoring and premium game packs; `../../docs/recherche-generation-vegetale.md`.
+- Build through `tools/plantes.ps1`; an existing baseline also allows `python tools/foliage/prepare_vegetation_jeu.py`.
+- Runtime selection, coherent communities, ground cover and wind: `../../docs/spec-diversite-vegetale.md`.
+- Generated banks use seven mesh levels and an impostor; legacy five-level banks remain compatible.
+- Near rendering and acceptance limits: `../../docs/spec-rendu-vegetation.md`.
+
+**Compatible baseline, used when the diverse catalogue has not been built:**
 - `climate_shrubs_v2`: two trees from `volume_look_normals` and twelve shrubs from six climate families.
 - Build everything in one command from the root: `tools\plantes.ps1`. It imports the game sources below, then runs `volume_assets.py`, `volume_assets.py --normals`, and `arbustes_climatiques_v2.py --preview` and `--final`.
 - The catalog and its limitations are described in `../../docs/arbustes-climatiques.md`; generated binaries remain ignored by git.

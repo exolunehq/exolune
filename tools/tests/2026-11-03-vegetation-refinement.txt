@@ -1,0 +1,13 @@
+# Close surfaces, tropical volume, temporal coverage and readable forest ground.
+Reported tropical crown: inspect front-to-back depth | 49.4 -7.749993 -37.250039 -36.10 -6.53 marche | -5 -20
+Reported distant outlines: walk and turn slowly | 35 -11.040133 49.783643 -5.04 115.64 marche | -10 60
+Close oak: rounded trunk and metric bark | 34.9 -11.040080 49.783495 12.92 54.34 marche | -10 60
+Temperate F4: readable shaded floor | 525 34.75 50.75 10 0 marche | 30 70
+Temperate F5: same forest, another heading | 525 34.75 50.75 10 80 marche | 30 70
+Backlit crown: soft coverage and transmission | 37.3 -11.039991 49.783625 -7.67 -123.35 | -20 -15
+Tropical understory: light, leaves and ground contact | 65 -7.75 -37.25 10 0 marche | -5 -20
+Tropical approach: inspect crown from the side | 100 -7.75 -37.25 20 90 | -5 -20
+Boreal control: evergreen branches and sky edge | 1140 42.002542495 65.003025314 -10 41.4837 marche | 35 80
+Desert control: sparse plants retain open-ground light | 1735 -11.825 110.867 25 114 marche | -5 100
+Approach: close curvature and successive mesh levels | 85 -11.039991 49.783625 20 -123.35 | -10 60
+Distant tropical canopy: stable impostor coverage | 168 -7.75 -37.25 20 0 | -5 -20

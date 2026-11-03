@@ -15,7 +15,8 @@ $etapes = @(
     @('tools/foliage/volume_assets.py'),
     @('tools/foliage/volume_assets.py', '--normals'),
     @('tools/foliage/arbustes_climatiques_v2.py', '--preview'),
-    @('tools/foliage/arbustes_climatiques_v2.py', '--final')
+    @('tools/foliage/arbustes_climatiques_v2.py', '--final'),
+    @('tools/foliage/prepare_vegetation_jeu.py', '--base', 'assets/foliage/climate_shrubs_v2')
 )
 foreach ($etape in $etapes) {
     Write-Host "python $($etape -join ' ')"

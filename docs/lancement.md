@@ -11,8 +11,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours to
 
 **Plant binaries are not versioned:** `assets/foliage/.gitignore` excludes them. Without them, the app flies without plants and its title says “végétation absente” (vegetation missing).
 
-- **Flight catalog:** `assets/foliage/climate_shrubs_v2`, two trees and twelve shrubs.
-- **Build it once** from the root: `tools\plantes.ps1` downloads the source models (`assets/foliage/README.md`), imports them and bakes the catalog. Python 3 is required; about 3 minutes and 750 MB. It is placed alongside the repositories, in `plantes/climate_shrubs_v2`, where every worktree finds it.
+- **Current technical prototype:** `assets/foliage/game_biomes_v1`, 31 models, local communities, ground vegetation, volumetric roots and wind; art direction remains under review (`spec-diversite-vegetale.md`).
+- **Build once** from the root: `tools\plantes.ps1` downloads pinned sources, imports and cooks the baseline and prototype. Python with numpy/Pillow/numba/UnityPy is required during development.
+- **Existing baseline:** `python tools/foliage/prepare_vegetation_jeu.py` builds only the rooted extension; `--base` selects a local baseline. No Blender dependency for this prototype.
+- **Fallback:** the old fourteen-model catalogue remains in `assets/foliage/climate_shrubs_v2` or shared `plantes/climate_shrubs_v2` beside the repositories.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\plantes.ps1
@@ -40,13 +42,14 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 - **`-ModeleVaisseau chasseur|classique`:** the approved fighter by default; `classique` loads the preserved triangular ship. Direct executable launches use `MYPLANETENGINE_MODELE_VAISSEAU`; without it, the fighter.
 - **`-PassePleine`:** clouds in a single pass, without their temporal pass (`optimisation.md`); for comparison.
 - **`-Scans <dossier>`:** ground photos.
+- **`-Plantes <catalogue>`:** explicitly select an external asset catalogue for an authoring POC; the default game catalogue is unchanged.
 
-**The launcher clears the session's `MYPLANETENGINE_*` variables during launch, then restores them.** It sets only `MYPLANETENGINE_TESTS`, `_SUN`, `_RESOLUTION` and `_FULLSCREEN`, `_SCANS`, `_MODELE_VAISSEAU`, and `_CLOUD_FULL` with `-PassePleine`.
+**The launcher clears the session's `MYPLANETENGINE_*` variables during launch, then restores them.** It sets only `MYPLANETENGINE_TESTS`, `_SUN`, `_RESOLUTION` and `_FULLSCREEN`, `_SCANS`, `_MODELE_VAISSEAU`, and `_CLOUD_FULL` with `-PassePleine`, and `_FOLIAGE_ASSETS` with an explicit `-Plantes`.
 
 ## Default game and benchmark variables
 
 - **Clouds:** always present, using their temporal pass. Weather starts paused at time 0.
-- **Temporal antialiasing:** disabled at startup; T enables it.
+- **Temporal antialiasing:** enabled at startup; T toggles it. `MYPLANETENGINE_TAA=0` disables it explicitly.
 - **Lens halo:** disabled.
 - **Override variables** for benchmarks and comparisons:
 
@@ -55,7 +58,7 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 | `MYPLANETENGINE_NO_CLOUDS` | No clouds, like the N key |
 | `MYPLANETENGINE_CLOUD_FULL=1` | Clouds in a single pass |
 | `MYPLANETENGINE_WEATHER_TIME` | Weather time, in seconds |
-| `MYPLANETENGINE_TAA` | Temporal antialiasing from startup |
+| `MYPLANETENGINE_TAA` | Temporal antialiasing; default enabled, explicit `0` disables it |
 | `MYPLANETENGINE_GLARE` | Lens halo |
 | `MYPLANETENGINE_VIEW` | Diagnostic view; terrain views are raw, without clouds or air, except `ground`, the cloud silhouette |
 | `MYPLANETENGINE_SEED` | Another seed for tectonic map and climate, to compare planets; detail noise retains its seed |

@@ -100,7 +100,7 @@ def visibility(verts, vox, lo, hi, dirs):
     return out
 
 
-def bake_light(name):
+def bake_light(name,leaf_weights=None):
     folder=DEST/name;verts,idx,atlas,lo,hi,materials=bake.load(name)
     with (folder/'volume64.bin').open('rb') as f:
         magic,n,levels,*b=struct.unpack('<8s2I6f',f.read(40))
@@ -115,6 +115,9 @@ def bake_light(name):
     light[:,0]=0.30+0.70*rays[:,6:].mean(axis=1)
     light[:,1:7]=0.20+0.80*rays[:,:6]
     light[:,7]=(verts[:,8]==SPEC[name]['leaf']).astype(np.float32)
+    if leaf_weights is not None:
+        if len(leaf_weights)!=len(verts):raise ValueError('Leaf lighting mask does not match the master')
+        light[:,7]=leaf_weights
     if name=='game_shrub':
         # Les brindilles d'origine sont en alpha mais restent des branches.
         twig_start=(4471+2064)*3; twig_end=(4471+2064+697)*3

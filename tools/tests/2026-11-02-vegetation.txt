@@ -1,0 +1,14 @@
+# Seed 0. J disembarks/returns. ZQSD/WASD or arrows walk; Shift runs. No automatic interactive launch.
+# Inspect local dominant forms, smaller companions, grounded stems, wind, and the transition from flight to ground.
+Tropical forest: tree variety and layered undergrowth | 65 -7.75 -37.25 10 0 marche | -5 -20
+Same forest from 120 m: continuous canopy and impostor relay | 168 -7.75 -37.25 20 0 | -5 -20
+Temperate forest: mixed broadleaf forms and herbs | 525 34.75 50.75 10 0 marche | 30 70
+Same temperate place from 120 m | 628 34.75 50.75 20 0 | 30 70
+Boreal grove: conifer forms, cold-compatible undergrowth | 1140 42.002542495 65.003025314 -10 41.4837 marche | 35 80
+Windward forest: wind and sheltered undergrowth | 900 -12.375 112.125 10 294 marche | -5 125
+Desert: sparse scrub, no wet meadow or flowers | 1735 -11.825 110.867 10 114 marche | -5 100
+Steppe: open ground and climate-compatible shrubs | 450 41.75 -22.25 10 0 marche | 35 -5
+Snow plateau: exposed stone and snow exclude ground herbs | 4770 -47.207948 75.090399 15 -122 marche | -40 70
+Coastal plain: bare sandy ground excludes a meadow | 15 16.71 -89.25 10 9 marche | 30 -70
+Boreal grove from 120 m: conifer relay and grounded stems | 1245 42.002542495 65.003025314 20 41.4837 | 35 80
+Orbit: vegetation retains the continuous distant canopy | 1000000 -7.75 -37.25 55 0 | -5 -20

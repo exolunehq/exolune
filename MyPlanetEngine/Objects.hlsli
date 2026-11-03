@@ -3,6 +3,7 @@
 // BuildRocks, BuildTufts). Must match D3DApp::ObjectInstance and D3DApp::ShapeVertex.
 #ifndef OBJECTS_HLSLI
 #define OBJECTS_HLSLI
+#include "FoliageCatalog.hlsli"
 
 // Frame taa.z : bit 0 masque les plantes (MYPLANETENGINE_NO_PLANTS, ou pas de catalogue) ; bit 1 le fondu
 // imposteur-maillage (touche H) ; bit 2, pas de catalogue : aucune végétation, ni dessinée ni en canopée ; bits 3 et plus :
@@ -10,7 +11,13 @@
 bool PlantsDisabled() { return (((uint)(taa.z + 0.5)) & 1u) != 0u; }
 bool FoliageFadeEnabled() { return (((uint)(taa.z + 0.5)) & 2u) != 0u; }
 bool VegetationAbsent() { return (((uint)(taa.z + 0.5)) & 4u) != 0u; }
-uint FoliageFadeFrame() { return ((uint)(taa.z + 0.5)) >> 3; }
+bool FoliageTemporalEnabled() { return (((uint)(taa.z + 0.5)) & 4096u) != 0u; }
+// A changing coverage pattern needs a temporal consumer. Keep it stationary
+// when smoothing is disabled, including native diagnostic captures.
+uint FoliageFadeFrame() { return FoliageTemporalEnabled() ? ((((uint)(taa.z + 0.5)) >> 3) & 63u) : 0u; }
+bool DiverseVegetation() { return (((uint)(taa.z + 0.5)) & 512u) != 0u; }
+bool GameVegetation() { return (((uint)(taa.z + 0.5)) & 1024u) != 0u; }
+bool GeneratedVegetationBank() { return (((uint)(taa.z + 0.5)) & 2048u) != 0u; }
 
 struct ObjectInstance
 {
@@ -57,6 +64,30 @@ uint ShrubVariant(uint seed) {
     return h & 1u;
 }
 
+// Plant-only metadata occupies the otherwise unused rock albedo: model+1, height factor, crown factor.
+// Seed and position remain the plant's identity through both representations.
+uint FoliageModel(ObjectInstance o) {
+    uint species=(o.seed>>3)&3u;
+    if (DiverseVegetation() && o.albedo.x>=1.0) return min((uint)(o.albedo.x-1.0),FOLIAGE_MAX_MODELS-1u);
+    return species==SHRUB ? 2u+2u*ShrubFamily(o)+ShrubVariant(o.seed) : species;
+}
+float PlantHeightFactor(ObjectInstance o,uint species) {
+    if (GameVegetation() && species<SHRUB) return 1.0; // tree metadata carries contact colour instead of an unused height
+    return o.albedo.y>0.0 ? o.albedo.y : species==SHRUB ? ShrubHeight(ShrubFamily(o)) : 1.0;
+}
+float PlantRootRadius(float size,float spread,uint seed) {
+    float own=1.0+0.15*(float((seed>>8)&255u)/127.5-1.0);
+    return max(0.085*size*spread*own,0.14);
+}
+uint PackPlantGroundColour(float3 colour) {
+    uint3 rgb=(uint3)round(saturate(colour)*255.0);
+    return 0x3f000000u | rgb.x | (rgb.y<<8u) | (rgb.z<<16u);
+}
+float3 PlantGroundColour(ObjectInstance o) {
+    uint rgb=asuint(o.albedo.y);
+    return float3(rgb&255u,(rgb>>8u)&255u,(rgb>>16u)&255u)/255.0;
+}
+
 // From the object vertex shader to its pixels.
 struct ObjectPixel
 {
@@ -71,6 +102,7 @@ struct ObjectPixel
     float  rise      : TEXCOORD5; // height above the ground, in shares of its height: the shade at its foot
     float3 axisX     : TEXCOORD6; // its frame, face-local
     float3 axisY     : TEXCOORD7;
+    nointerpolation float canopy : TEXCOORD8; // ordinary objects only; decoded canopy cover
 };
 
 #endif

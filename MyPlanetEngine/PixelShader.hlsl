@@ -130,7 +130,7 @@ Ground GroundAt(float3 q, float elevation, float3 up, float3 normal, float3 shor
     [branch]
     if (v.able > 0.0 && (v.trees > 0.0 || v.shrubs * v.shrubCold > 0.0))
         WoodsAt(q, pixel, v);
-    float3 color = ClimateColor(m);
+    float3 color = VegetatedGroundColor(m,v);
     color *= lerp(1.0, m.grass.color, m.grassAmount) * lerp(1.0, m.sand.color, m.sandAmount) * lerp(1.0, m.soil.color, m.soilAmount);
     // On fresh volcanic ground (Volcanoes.hlsli), the soil gives way to ash and scoria, dark grey, under their textures.
     const float3 ash = VOLCANIC_ASH * lerp(1.0, m.sand.color, m.sandAmount) * lerp(1.0, m.soil.color, m.soilAmount);
@@ -203,7 +203,7 @@ Ground GroundAt(float3 q, float elevation, float3 up, float3 normal, float3 shor
     const float3 species = float3(treesFar * v.conifer, treesFar * (1.0 - v.conifer), shrubsFar) / max(treesFar + shrubsFar, 1e-6);
 
     Ground g;
-    g.under = PlantCover(trees, shrubs);
+    g.under = GroundLightCover(v);
     g.canopy = canopySeen;
     g.nearer = hitHeight / rayAngle;
     g.canopyAlbedo = saturate(CanopyColor(m, species, v.aridity) * crowns.color);
@@ -572,6 +572,10 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
         water = SeaSurfaceAt(input.pos, dpdx, dpdy, q, log2(footprint), up, ClimateAt(materialSampler, PlanetDirection(up), footprint).y,
                              0.0, seaBed, elevationSpread, sunShare,input.seaParam,seaDx,seaDy,input.seaHeight);
 
+    // Continuous validation channels distinguish a dark material, cavity and
+    // canopy transport without painting an exposure correction over the scene.
+    if(abs(taa.y-46.0)<0.5) return float4(under,cavity,CanopyLight(under,0.0,dot(up,lightDir.xyz)).sky,1e-3);
+    if(abs(taa.y-47.0)<0.5) return float4(albedo,1e-3);
     // Diagnostic views (tools/banc_descente.py): each pixel white with the probability of the weight shown,
     // unlit, so that the share of white pixels is that weight's mean, at any distance. The sea's views are measures
     // (tools/banc_mer.py), on the sea only: the glint's, its reflectance over 4, the wind's speed over 32 m/s, its direction
@@ -620,13 +624,15 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     const float3 skyLight = SkyIrradiance(h, muS, ground) * (0.5 + 0.5 * dot(normal, up));
     // Under the plants' crowns, drawn or not, which cast no shadow: the ground's light through their gaps, toward the sun
     // and the sky, as a Boolean canopy lets it through; the canopy beyond the objects over it (docs/recherche-vegetation.md).
-    const float3 floorLight = sunLight * microShadow * pow(saturate(1.0 - under), 1.0 / max(muS, 0.1)) + skyLight * cavity * (1.0 - under);
+    const CanopyTransport canopyLight=CanopyLight(under,0.0,muS);
+    const float3 canopyBounce=SUN_ILLUMINANCE*SunTransmittance(h,muS,ground)*sunShare*canopyLight.sunScatter*float3(0.45,0.65,0.32);
+    const float3 floorLight = sunLight * microShadow * canopyLight.direct + skyLight * cavity * canopyLight.sky + canopyBounce*cavity;
     const float sideLight = 1.0 - CANOPY_SIDE_LIGHT.x * pow(1.0 - gPlantView.z, CANOPY_SIDE_LIGHT.y); // as the drawn plants seen from there
     const float3 groundRadiance = lerp(albedo * floorLight, canopyAlbedo * (sunLight + skyLight) * sideLight, canopy) / PI;
 
     // The direct solar share is kept separately for cloud shadows (AtmospherePass.hlsl). For water, include its
     // specular sun glint; the reflected sky remains in the non-solar part and is not darkened by the cloud.
-    const float3 groundSunLight = sunLight * microShadow * pow(saturate(1.0 - under), 1.0 / max(muS, 0.1));
+    const float3 groundSunLight = sunLight * microShadow * canopyLight.direct + canopyBounce*cavity;
     const float3 groundSunRadiance = lerp(albedo * groundSunLight,
         canopyAlbedo * sunLight * sideLight, canopy) / PI;
     sunOut = float4(lerp(groundSunRadiance, water.sunRadiance, sea), 0.0);

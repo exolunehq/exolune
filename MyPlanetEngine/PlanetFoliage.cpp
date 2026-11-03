@@ -200,9 +200,26 @@ std::vector<ImpostorLevel> ImpostorLightPyramid(const unsigned char* source, con
 
 void PlanetFoliage::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, const std::wstring& root, DXGI_FORMAT hdr,
                                DXGI_FORMAT sun, DXGI_FORMAT depth, D3D12_CPU_DESCRIPTOR_HANDLE impostorCpu,
-                               D3D12_GPU_DESCRIPTOR_HANDLE impostorGpu) {
+                               D3D12_GPU_DESCRIPTOR_HANDLE impostorGpu,int testLod) {
     // The models' folders: the two trees, then the shrubs in the catalogue's order, two per climate.
     std::wstring folders[MaxModels] = { L"game_fir", L"game_broadleaf" };
+    std::vector<UINT> leafMasks(MaxModels,2u); leafMasks[1]=1u;
+    std::ifstream community(root+L"/biomes.txt");
+    if (community) {
+        std::string magic,name,extra; UINT count=0;
+        if (!(community>>magic>>count) || !((magic=="FOLBIO01" && count==29u) || (magic=="FOLBIO02" && count==31u) || (magic=="FOLBIO03" && count==91u)))
+            throw std::runtime_error("Invalid biome catalogue header.");
+        mArtDirected=magic=="FOLBIO02" || magic=="FOLBIO03";mGeneratedBank=magic=="FOLBIO03";
+        mDiverse=true; mModelCount=count;
+        for (UINT id=0;id<count;++id) {
+            UINT group=0;
+            if (!(community>>name>>group>>leafMasks[id]) || group!=FoliageModelSpecies(id) || name.empty() ||
+                name.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_")!=std::string::npos)
+                throw std::runtime_error("Invalid biome model record.");
+            folders[id]=std::wstring(name.begin(),name.end()); mModelNames.push_back(name);
+        }
+        if (community>>extra) throw std::runtime_error("Unexpected biome catalogue data.");
+    } else
     {
         std::ifstream manifest(root+L"/shrubs.txt"); std::string magic, name, extra; UINT families=0, variants=0;
         if (!manifest) throw std::runtime_error("Plant catalogue missing: " + Utf8(root));
@@ -229,9 +246,35 @@ void PlanetFoliage::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* 
         list->ResourceBarrier(1,&barrier); mUploads.push_back(staging);
     };
     const UINT descriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    for (UINT modelId=0; modelId<MaxModels; ++modelId) {
-        const UINT species=modelId<2 ? modelId : 2;
-        mImpostorTables[modelId] = CD3DX12_GPU_DESCRIPTOR_HANDLE(impostorGpu, modelId * 7, descriptorSize);
+    auto detailMaps=[&](Detail& detail,const unsigned char* maps,UINT resolution,UINT materials,UINT modelId,UINT level) {
+        const size_t atlasBytes=size_t(resolution)*resolution*materials*4;
+        const auto levels=MeshPyramid(maps,maps+atlasBytes,resolution*materials,resolution,materials);
+        const UINT mipCount=UINT(levels.size()),subresources=materials*mipCount;
+        UINT64 bytes=0;
+        for (UINT channel=0;channel<3;++channel) {
+            const DXGI_FORMAT format=channel==0?DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:DXGI_FORMAT_R8G8B8A8_UNORM;
+            const auto desc=CD3DX12_RESOURCE_DESC::Tex2D(format,resolution,resolution,UINT16(materials),UINT16(mipCount));
+            const auto hp=CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+            Check(device->CreateCommittedResource(&hp,D3D12_HEAP_FLAG_NONE,&desc,D3D12_RESOURCE_STATE_COPY_DEST,nullptr,IID_PPV_ARGS(&detail.maps[channel])),"Foliage LOD texture allocation failed.");
+            std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(subresources);UINT64 uploadBytes=0;
+            device->GetCopyableFootprints(&desc,0,subresources,0,footprints.data(),nullptr,nullptr,&uploadBytes);
+            Resource staging=CreateBuffer(device,uploadBytes,D3D12_HEAP_TYPE_UPLOAD,D3D12_RESOURCE_STATE_GENERIC_READ);
+            unsigned char* mapped=nullptr;CD3DX12_RANGE none(0,0);Check(staging->Map(0,&none,reinterpret_cast<void**>(&mapped)),"Foliage LOD texture staging failed.");
+            for (UINT slice=0;slice<materials;++slice) for (UINT mip=0;mip<mipCount;++mip) {
+                const UINT sub=mip+slice*mipCount;const auto& image=levels[mip];const size_t row=size_t(image.width)*4,offset=size_t(slice)*image.width*image.height*4;
+                for (UINT y=0;y<image.height;++y) memcpy(mapped+footprints[sub].Offset+size_t(y)*footprints[sub].Footprint.RowPitch,image.maps[channel].data()+offset+size_t(y)*row,row);
+                CD3DX12_TEXTURE_COPY_LOCATION target(detail.maps[channel].Get(),sub),source(staging.Get(),footprints[sub]);list->CopyTextureRegion(&target,0,0,0,&source,nullptr);
+            }
+            staging->Unmap(0,nullptr);auto ready=CD3DX12_RESOURCE_BARRIER::Transition(detail.maps[channel].Get(),D3D12_RESOURCE_STATE_COPY_DEST,D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);list->ResourceBarrier(1,&ready);mUploads.push_back(staging);
+            D3D12_SHADER_RESOURCE_VIEW_DESC view={};view.Format=format;view.ViewDimension=D3D12_SRV_DIMENSION_TEXTURE2DARRAY;view.Shader4ComponentMapping=D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;view.Texture2DArray.MipLevels=mipCount;view.Texture2DArray.ArraySize=materials;
+            device->CreateShaderResourceView(detail.maps[channel].Get(),&view,CD3DX12_CPU_DESCRIPTOR_HANDLE(impostorCpu,(modelId*FOLIAGE_MESH_LODS+level)*7+2+channel,descriptorSize));
+            for (const auto& image:levels) bytes+=UINT64(materials)*image.width*image.height*4;
+        }
+        detail.textureSize=resolution;return bytes;
+    };
+    for (UINT modelId=0; modelId<mModelCount; ++modelId) {
+        const UINT species=FoliageModelSpecies(modelId);
+        mImpostorTables[modelId][0] = CD3DX12_GPU_DESCRIPTOR_HANDLE(impostorGpu, modelId * FOLIAGE_MESH_LODS * 7, descriptorSize);
         // Keep a valid texture table even where a model has no precomputed light.
         D3D12_SHADER_RESOURCE_VIEW_DESC nullSrv = {};
         nullSrv.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -240,10 +283,23 @@ void PlanetFoliage::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* 
         nullSrv.Texture2DArray.MipLevels = 1; nullSrv.Texture2DArray.ArraySize = 1;
         for (UINT channel = 0; channel < 7; ++channel) {
             nullSrv.Format = channel == 2 ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : channel < 2 ? DXGI_FORMAT_R16G16B16A16_FLOAT : DXGI_FORMAT_R8G8B8A8_UNORM;
-            device->CreateShaderResourceView(nullptr, &nullSrv, CD3DX12_CPU_DESCRIPTOR_HANDLE(impostorCpu, modelId * 7 + channel, descriptorSize));
+            device->CreateShaderResourceView(nullptr, &nullSrv, CD3DX12_CPU_DESCRIPTOR_HANDLE(impostorCpu, modelId * FOLIAGE_MESH_LODS * 7 + channel, descriptorSize));
         }
         nullSrv.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
         Model& model = mModel[modelId];
+        UINT shared=modelId;
+        for (UINT previous=0;previous<modelId;++previous)
+            if (folders[previous]==folders[modelId] && leafMasks[previous]==leafMasks[modelId] && FoliageModelSpecies(previous)==species) { shared=previous;break; }
+        if (shared<modelId) {
+            model=mModel[shared];model.meshBytes=0;model.proxyBytes=0;
+            const float heights[6]={.65f,.85f,.60f,.30f,1.0f,1.15f};
+            model.meshSettings.volumeParams[2]=model.proxySettings.volumeParams[2]=species==2 && modelId<14?heights[(modelId-2)/2]:1.0f;
+            for (UINT level=0;level<FOLIAGE_MESH_LODS;++level) {
+                mImpostorTables[modelId][level]=CD3DX12_GPU_DESCRIPTOR_HANDLE(impostorGpu,(modelId*FOLIAGE_MESH_LODS+level)*7,descriptorSize);
+                device->CopyDescriptorsSimple(7,CD3DX12_CPU_DESCRIPTOR_HANDLE(impostorCpu,(modelId*FOLIAGE_MESH_LODS+level)*7,descriptorSize),CD3DX12_CPU_DESCRIPTOR_HANDLE(impostorCpu,(shared*FOLIAGE_MESH_LODS+level)*7,descriptorSize),D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+            }
+            continue;
+        }
         const std::wstring folder = root + L"/" + folders[modelId] + L"/";
         const auto mesh = Read(folder + L"mesh.bin");
         if (mesh.size()<52 || memcmp(mesh.data(),"FOLMESH1",8)) throw std::runtime_error("Invalid planetary foliage mesh.");
@@ -271,11 +327,20 @@ void PlanetFoliage::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* 
         model.meshIndexCount=indices;
         Settings& ms=model.meshSettings;
         ms.width=texWidth; ms.height=texHeight; ms.materialCount=materials; ms.species=species;
+        ms.reserved=leafMasks[modelId];
         ms.crown=species==0 ? 0.3f : species==1 ? 0.45f : 1.1f;
         const float shrubHeights[6]={0.65f,0.85f,0.60f,0.30f,1.0f,1.15f};
         ms.volumeParams[0]=VolumeStrength; ms.volumeParams[1]=0.06f;
-        ms.volumeParams[2]=species==2 ? shrubHeights[(modelId-2)/2] : 1.0f;
+        ms.volumeParams[2]=species==2 && modelId<14 ? shrubHeights[(modelId-2)/2] : 1.0f;
         ms.flags = material.empty() ? 0u : 1u;
+        const std::wstring formPath=folder+L"form.bin";
+        if (GetFileAttributesW(formPath.c_str())!=INVALID_FILE_ATTRIBUTES) {
+            const auto form=Read(formPath);
+            if (form.size()!=24 || memcmp(form.data(),"FOLFORM1",8)) throw std::runtime_error("Invalid rooted plant form.");
+            memcpy(ms.rootForm,form.data()+8,16);
+            for (float f:ms.rootForm) if (!std::isfinite(f) || f<=0) throw std::runtime_error("Invalid plant form dimensions.");
+            ms.flags|=32u;
+        }
         memcpy(ms.boundsMin,mesh.data()+28,12); memcpy(ms.boundsMax,mesh.data()+40,12);
         { // the mesh, near the camera
             upload(model.meshVertices,mesh.data()+52,vertexBytes);
@@ -339,11 +404,58 @@ void PlanetFoliage::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* 
                 list->ResourceBarrier(1,&barrier); mUploads.push_back(staging);
                 D3D12_SHADER_RESOURCE_VIEW_DESC srv=nullSrv; srv.Format=format;
                 srv.Texture2DArray.MipLevels=mipCount; srv.Texture2DArray.ArraySize=materials;
-                device->CreateShaderResourceView(model.meshMaps[channel].Get(),&srv,CD3DX12_CPU_DESCRIPTOR_HANDLE(impostorCpu,modelId*7+2+channel,descriptorSize));
+                device->CreateShaderResourceView(model.meshMaps[channel].Get(),&srv,CD3DX12_CPU_DESCRIPTOR_HANDLE(impostorCpu,modelId*FOLIAGE_MESH_LODS*7+2+channel,descriptorSize));
                 for (const auto& level:levels) model.meshBytes+=UINT64(materials)*level.width*level.height*4;
             }
             model.meshView={model.meshIndices->GetGPUVirtualAddress(),UINT(indexBytes),DXGI_FORMAT_R32_UINT};
         }
+        // Geometry-only LODs share L0's textures, bounds, pivot and material mask.
+        const std::wstring lodPath=folder+L"lods.bin";
+        const bool hasLods=GetFileAttributesW(lodPath.c_str())!=INVALID_FILE_ATTRIBUTES;
+        if (hasLods) {
+            const auto data=Read(lodPath);
+            if (data.size()<16 || memcmp(data.data(),"FOLLOD02",8) || Field<UINT>(data,12)!=vertices)
+                throw std::runtime_error("Invalid foliage LOD header.");
+            model.levelCount=Field<UINT>(data,8);
+            if (model.levelCount<1 || model.levelCount>FOLIAGE_MESH_LODS || !(ms.flags&8u))
+                throw std::runtime_error("Invalid foliage LOD count or missing source lighting.");
+            size_t at=16;
+            auto take=[&](size_t bytes) {
+                if (at>data.size() || bytes>data.size()-at) throw std::runtime_error("Truncated foliage LOD data.");
+                const unsigned char* pointer=data.data()+at;at+=bytes;return pointer;
+            };
+            auto finite=[&](const unsigned char* pointer,size_t count) {
+                for (size_t i=0;i<count;++i) { float f;memcpy(&f,pointer+i*4,4);if (!std::isfinite(f)) throw std::runtime_error("Non-finite foliage LOD vertex."); }
+            };
+            const auto extra=take(size_t(vertices)*64);finite(extra,size_t(vertices)*16);
+            upload(model.extra,extra,size_t(vertices)*64);model.meshBytes+=UINT64(vertices)*64;ms.flags|=64u;
+            for (UINT level=1;level<model.levelCount;++level) {
+                const auto header=take(12);UINT nv=0,ni=0,resolution=0;memcpy(&nv,header,4);memcpy(&ni,header+4,4);memcpy(&resolution,header+8,4);
+                if (!nv || nv>2000000 || !ni || ni>16000000 || ni%3) throw std::runtime_error("Invalid foliage LOD dimensions.");
+                const auto verts=take(size_t(nv)*36),indicesData=take(size_t(ni)*4),light=take(size_t(nv)*32),extras=take(size_t(nv)*64);
+                finite(verts,size_t(nv)*9);finite(light,size_t(nv)*8);finite(extras,size_t(nv)*16);
+                std::vector<UINT> reversed(ni);memcpy(reversed.data(),indicesData,size_t(ni)*4);
+                for (UINT index:reversed) if (index>=nv) throw std::runtime_error("Foliage LOD index out of range.");
+                Detail detail;detail.indexCount=ni;
+                upload(detail.vertices,verts,size_t(nv)*36);upload(detail.indices,indicesData,size_t(ni)*4);
+                for (UINT t=0;t<ni/3/2;++t) for (UINT k=0;k<3;++k) std::swap(reversed[3*t+k],reversed[ni-3*(t+1)+k]);
+                upload(detail.reversed,reversed.data(),size_t(ni)*4);upload(detail.lighting,light,size_t(nv)*32);upload(detail.extra,extras,size_t(nv)*64);
+                detail.view={detail.indices->GetGPUVirtualAddress(),ni*4,DXGI_FORMAT_R32_UINT};
+                detail.reverseView={detail.reversed->GetGPUVirtualAddress(),ni*4,DXGI_FORMAT_R32_UINT};
+                if (resolution) {
+                    if (resolution>2048 || (resolution&(resolution-1))) throw std::runtime_error("Invalid foliage LOD texture size.");
+                    const auto maps=take(size_t(resolution)*resolution*materials*12);
+                    model.meshBytes+=detailMaps(detail,maps,resolution,materials,modelId,level);
+                }
+                model.meshBytes+=UINT64(nv)*132+UINT64(ni)*8;model.details.push_back(std::move(detail));
+            }
+            if (at!=data.size()) throw std::runtime_error("Unexpected trailing foliage LOD data.");
+        } else {
+            std::vector<float> neutral(size_t(vertices)*16,0.0f);
+            for (UINT v=0;v<vertices;++v) for (UINT k=0;k<4;++k) neutral[size_t(v)*16+k]=1;
+            upload(model.extra,neutral.data(),neutral.size()*4);model.meshBytes+=neutral.size()*4;
+        }
+        ms.lodForm[1]=float(model.levelCount|(testLod>=0?((UINT(std::min(testLod,int(model.levelCount)-1))+1u)<<8):0u));
         const auto proxy=Read(folder + L"impostor.bin");
         Settings& ps=model.proxySettings; ps=ms; ps.flags &= ~8u;
         { // the impostor, far away
@@ -424,11 +536,11 @@ void PlanetFoliage::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* 
                 list->ResourceBarrier(1, &barrier); mUploads.push_back(staging);
                 D3D12_SHADER_RESOURCE_VIEW_DESC srv = nullSrv;
                 srv.Texture2DArray.MipLevels = mipCount; srv.Texture2DArray.ArraySize = views;
-                device->CreateShaderResourceView(texture.Get(), &srv, CD3DX12_CPU_DESCRIPTOR_HANDLE(impostorCpu, modelId * 7 + channel, descriptorSize));
+                device->CreateShaderResourceView(texture.Get(), &srv, CD3DX12_CPU_DESCRIPTOR_HANDLE(impostorCpu, modelId * FOLIAGE_MESH_LODS * 7 + channel, descriptorSize));
             }
             if (finiteDepth && std::isfinite(depthMin) && std::isfinite(depthMax)) {
                 // L'erreur du filtrage est appliquee apres le melange des vues,
-                // dont l'alpha total vaut au moins 0,25.
+                // avec le minimum d'alpha partage par l'imposteur et sa borne.
                 // Hypothese prudente : au plus 64 arrondis float par filtre.
                 constexpr double u=1.0/16777216.0, gamma=(64*u)/(1-64*u);
                 const double magnitude=std::max(std::abs(depthMin),std::abs(depthMax));
@@ -481,7 +593,7 @@ void PlanetFoliage::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* 
                     list->ResourceBarrier(1,&barrier); mUploads.push_back(staging);
                     D3D12_SHADER_RESOURCE_VIEW_DESC srv=nullSrv; srv.Format=DXGI_FORMAT_R8G8B8A8_UNORM;
                     srv.Texture2DArray.MipLevels=mipCount; srv.Texture2DArray.ArraySize=views;
-                    device->CreateShaderResourceView(texture.Get(),&srv,CD3DX12_CPU_DESCRIPTOR_HANDLE(impostorCpu,modelId*7+5+channel,descriptorSize));
+                    device->CreateShaderResourceView(texture.Get(),&srv,CD3DX12_CPU_DESCRIPTOR_HANDLE(impostorCpu,modelId*FOLIAGE_MESH_LODS*7+5+channel,descriptorSize));
                 }
                 for (const auto& level:lightLevels) model.proxyBytes+=UINT64(views)*level.width*level.height*8;
                 ps.flags|=8u;
@@ -489,23 +601,38 @@ void PlanetFoliage::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* 
                 throw std::runtime_error("Cannot inspect foliage impostor lighting file.");
             for (const auto& level : pyramid) model.proxyBytes += UINT64(views) * level.width * level.height * 16;
         }
+        for (UINT level=1;level<FOLIAGE_MESH_LODS;++level) {
+            mImpostorTables[modelId][level]=CD3DX12_GPU_DESCRIPTOR_HANDLE(impostorGpu,(modelId*FOLIAGE_MESH_LODS+level)*7,descriptorSize);
+            for (UINT channel=0;channel<7;++channel) {
+                const bool ownMaps=level<model.levelCount && model.details[level-1].textureSize>0;
+                if (ownMaps && channel>=2 && channel<=4) continue;
+                device->CopyDescriptorsSimple(1,CD3DX12_CPU_DESCRIPTOR_HANDLE(impostorCpu,(modelId*FOLIAGE_MESH_LODS+level)*7+channel,descriptorSize),CD3DX12_CPU_DESCRIPTOR_HANDLE(impostorCpu,modelId*FOLIAGE_MESH_LODS*7+channel,descriptorSize),D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+            }
+        }
     }
     const UINT quadIndices[6]={0,1,2,2,1,3};
     upload(mQuadIndices,quadIndices,sizeof(quadIndices));
     mQuadView={mQuadIndices->GetGPUVirtualAddress(),sizeof(quadIndices),DXGI_FORMAT_R32_UINT};
     mQueues=CreateBuffer(device,UINT64(Queues)*QueueCapacity*64,D3D12_HEAP_TYPE_DEFAULT,D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    mMeshOrder=CreateBuffer(device,UINT64(3)*2*QueueCapacity*4,D3D12_HEAP_TYPE_DEFAULT,D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    UINT levelCounts[MaxModels];for (UINT m=0;m<MaxModels;++m) levelCounts[m]=std::max(1u,UINT(mModel[m].meshSettings.lodForm[1]));
+    upload(mLevelCounts,levelCounts,sizeof(levelCounts));
     mArguments=CreateBuffer(device,CounterBytes,D3D12_HEAP_TYPE_DEFAULT,D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT | D3D12_RESOURCE_STATE_COPY_SOURCE,D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     mReset=CreateBuffer(device,CounterBytes,D3D12_HEAP_TYPE_UPLOAD,D3D12_RESOURCE_STATE_GENERIC_READ);
     mReadback=CreateBuffer(device,CounterBytes,D3D12_HEAP_TYPE_READBACK,D3D12_RESOURCE_STATE_COPY_DEST);
     UINT* reset=nullptr; CD3DX12_RANGE none(0,0); Check(mReset->Map(0,&none,reinterpret_cast<void**>(&reset)),"Planetary foliage reset map failed.");
     std::fill(reset,reset+CounterBytes/sizeof(UINT),0u);
-    for (UINT m=0;m<MaxModels;++m) { reset[(m*2)*7+2]=mModel[m].meshIndexCount; reset[(m*2+1)*7+2]=6; }
+    for (UINT m=0;m<MaxModels;++m) {
+        for (UINT level=0;level<FOLIAGE_MESH_LODS;++level)
+            reset[(m*FOLIAGE_REPRESENTATIONS+level)*7+2]=level==0?mModel[m].meshIndexCount:level<mModel[m].levelCount?mModel[m].details[level-1].indexCount:0;
+        reset[(m*FOLIAGE_REPRESENTATIONS+FOLIAGE_MESH_LODS)*7+2]=6;
+    }
     mReset->Unmap(0,nullptr);
 
-    CD3DX12_ROOT_PARAMETER cp[7]; cp[0].InitAsConstantBufferView(0); cp[1].InitAsShaderResourceView(0);
+    CD3DX12_ROOT_PARAMETER cp[9]; cp[0].InitAsConstantBufferView(0); cp[1].InitAsShaderResourceView(0);
     cp[2].InitAsShaderResourceView(1); cp[3].InitAsShaderResourceView(2); cp[4].InitAsUnorderedAccessView(0);
-    cp[5].InitAsUnorderedAccessView(1); cp[6].InitAsConstants(2,1);
-    mClassifyRoot=CreateRootSignature(device,CD3DX12_ROOT_SIGNATURE_DESC(7,cp));
+    cp[5].InitAsUnorderedAccessView(1); cp[6].InitAsConstants(4,1);cp[7].InitAsShaderResourceView(3);cp[8].InitAsUnorderedAccessView(2);
+    mClassifyRoot=CreateRootSignature(device,CD3DX12_ROOT_SIGNATURE_DESC(9,cp));
     auto classify=LoadShader(L"PlanetFoliageClassify.cso"), finalize=LoadShader(L"PlanetFoliageFinalize.cso"), scatter=LoadShader(L"PlanetFoliageScatter.cso");
     D3D12_COMPUTE_PIPELINE_STATE_DESC c={}; c.pRootSignature=mClassifyRoot.Get(); c.CS=CD3DX12_SHADER_BYTECODE(classify.Get());
     Check(device->CreateComputePipelineState(&c,IID_PPV_ARGS(&mClassifyPso)),"Planetary foliage classifier failed.");
@@ -547,17 +674,18 @@ void PlanetFoliage::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* 
     // The draws: the frame, the plants, the mesh's vertices, the model's settings, the atmosphere's tables, the planet map,
     // the model's textures, its vertices' precomputed light, the impostors left visible by the HiZ.
     CD3DX12_DESCRIPTOR_RANGE lutRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,3,1), mapRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,29), impostorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,7,32);
-    CD3DX12_ROOT_PARAMETER gp[9]; gp[0].InitAsConstantBufferView(0); gp[1].InitAsShaderResourceView(0);
+    CD3DX12_ROOT_PARAMETER gp[11]; gp[0].InitAsConstantBufferView(0); gp[1].InitAsShaderResourceView(0);
     gp[2].InitAsShaderResourceView(30); gp[3].InitAsConstants(sizeof(Settings)/4,1);
     gp[4].InitAsDescriptorTable(1,&lutRange,D3D12_SHADER_VISIBILITY_PIXEL); gp[5].InitAsDescriptorTable(1,&mapRange,D3D12_SHADER_VISIBILITY_PIXEL);
     gp[6].InitAsDescriptorTable(1,&impostorRange,D3D12_SHADER_VISIBILITY_PIXEL);
     gp[7].InitAsShaderResourceView(39,0,D3D12_SHADER_VISIBILITY_VERTEX);
     gp[8].InitAsShaderResourceView(41,0,D3D12_SHADER_VISIBILITY_VERTEX);
+    gp[9].InitAsShaderResourceView(42,0,D3D12_SHADER_VISIBILITY_VERTEX);gp[10].InitAsShaderResourceView(43,0,D3D12_SHADER_VISIBILITY_VERTEX);
     const CD3DX12_STATIC_SAMPLER_DESC samplers[2] = {
         CD3DX12_STATIC_SAMPLER_DESC(0,D3D12_FILTER_MIN_MAG_MIP_LINEAR,D3D12_TEXTURE_ADDRESS_MODE_CLAMP,D3D12_TEXTURE_ADDRESS_MODE_CLAMP,D3D12_TEXTURE_ADDRESS_MODE_CLAMP),
         CD3DX12_STATIC_SAMPLER_DESC(1,D3D12_FILTER_ANISOTROPIC,D3D12_TEXTURE_ADDRESS_MODE_WRAP,D3D12_TEXTURE_ADDRESS_MODE_WRAP,D3D12_TEXTURE_ADDRESS_MODE_WRAP,0,8)
     };
-    mDrawRoot=CreateRootSignature(device,CD3DX12_ROOT_SIGNATURE_DESC(9,gp,2,samplers));
+    mDrawRoot=CreateRootSignature(device,CD3DX12_ROOT_SIGNATURE_DESC(11,gp,2,samplers));
     auto proxyVs=LoadShader(L"PlanetFoliageProxyVertex.cso"), proxyPs=LoadShader(L"PlanetFoliageImpostorPixel.cso");
     D3D12_GRAPHICS_PIPELINE_STATE_DESC p={}; p.pRootSignature=mDrawRoot.Get();
     p.VS=CD3DX12_SHADER_BYTECODE(proxyVs.Get()); p.PS=CD3DX12_SHADER_BYTECODE(proxyPs.Get());
@@ -582,6 +710,8 @@ void PlanetFoliage::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* 
     arg[0].ShaderResourceView.RootParameterIndex=1; arg[1].Type=D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
     D3D12_COMMAND_SIGNATURE_DESC sig={}; sig.ByteStride=ArgStride; sig.NumArgumentDescs=2; sig.pArgumentDescs=arg;
     Check(device->CreateCommandSignature(&sig,mDrawRoot.Get(),IID_PPV_ARGS(&mIndirect)),"Planetary foliage indirect signature failed.");
+    arg[0].ShaderResourceView.RootParameterIndex=9;
+    Check(device->CreateCommandSignature(&sig,mDrawRoot.Get(),IID_PPV_ARGS(&mMeshIndirect)),"Foliage mesh LOD signature failed.");
     mReady=true;
 }
 
@@ -603,17 +733,21 @@ void PlanetFoliage::Classify(ID3D12GraphicsCommandList* list, D3D12_GPU_VIRTUAL_
     list->SetComputeRootShaderResourceView(3,sourceCounters->GetGPUVirtualAddress());
     list->SetComputeRootUnorderedAccessView(4,mQueues->GetGPUVirtualAddress()); list->SetComputeRootUnorderedAccessView(5,mArguments->GetGPUVirtualAddress());
     const UINT64 address=mQueues->GetGPUVirtualAddress();
-    const UINT classifyConstants[2]={UINT(address),UINT(address>>32)};
-    list->SetComputeRoot32BitConstants(6,2,classifyConstants,0); list->Dispatch((2*SourceCapacity+63)/64,1,1);
+    const UINT64 order=mMeshOrder->GetGPUVirtualAddress();
+    const UINT classifyConstants[4]={UINT(address),UINT(address>>32),UINT(order),UINT(order>>32)};
+    list->SetComputeRootShaderResourceView(7,mLevelCounts->GetGPUVirtualAddress());
+    list->SetComputeRootUnorderedAccessView(8,mMeshOrder->GetGPUVirtualAddress());
+    list->SetComputeRoot32BitConstants(6,4,classifyConstants,0); list->Dispatch((2*SourceCapacity+63)/64,1,1);
     auto barrier=CD3DX12_RESOURCE_BARRIER::UAV(mArguments.Get()); list->ResourceBarrier(1,&barrier);
     list->SetPipelineState(mFinalizePso.Get()); list->Dispatch(1,1,1);
     list->ResourceBarrier(1,&barrier);
     list->SetPipelineState(mScatterPso.Get()); list->Dispatch((2*SourceCapacity+63)/64,1,1);
-    const D3D12_RESOURCE_BARRIER after[3]={
+    const D3D12_RESOURCE_BARRIER after[4]={
+        CD3DX12_RESOURCE_BARRIER::Transition(mMeshOrder.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
         CD3DX12_RESOURCE_BARRIER::Transition(mArguments.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,inputCount),
         CD3DX12_RESOURCE_BARRIER::Transition(mQueues.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
         CD3DX12_RESOURCE_BARRIER::Transition(sourceCounters,inputCount | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,inputCount) };
-    list->ResourceBarrier(3,after); list->CopyResource(mReadback.Get(),mArguments.Get());
+    list->ResourceBarrier(4,after); list->CopyResource(mReadback.Get(),mArguments.Get());
 }
 
 void PlanetFoliage::DrawRepresentation(ID3D12GraphicsCommandList* list, D3D12_GPU_VIRTUAL_ADDRESS frame,
@@ -626,17 +760,24 @@ void PlanetFoliage::DrawRepresentation(ID3D12GraphicsCommandList* list, D3D12_GP
     // (optimisation.md, round 3).
     for (UINT pass=0;pass<(rep ? 1u : 2u);++pass) {
     list->SetPipelineState(rep ? mProxyPso.Get() : pass ? mMeshShadePso.Get() : mMeshDepthPso.Get());
-    for (UINT modelId=0;modelId<MaxModels;++modelId) {
+    for (UINT modelId=0;modelId<mModelCount;++modelId) {
         const Model& model=mModel[modelId];
-        list->SetGraphicsRootShaderResourceView(2,model.meshVertices->GetGPUVirtualAddress());
-        list->SetGraphicsRootDescriptorTable(6,mImpostorTables[modelId]);
-        list->SetGraphicsRootShaderResourceView(7,model.meshLighting->GetGPUVirtualAddress());
-        Settings settings=rep ? model.proxySettings : model.meshSettings;
-        if (masked && rep) settings.flags|=16u;
-        list->SetGraphicsRoot32BitConstants(3,sizeof(Settings)/4,&settings,0);
-        list->IASetIndexBuffer(rep ? &mQuadView : pass ? &model.meshReversedView : &model.meshView);
-        const UINT64 offset=UINT64(modelId*2+rep)*ArgStride;
-        list->ExecuteIndirect(mIndirect.Get(),1,mArguments.Get(),offset,mArguments.Get(),offset+12);
+        for (UINT level=0;level<(rep?1u:model.levelCount);++level) {
+            const Detail* detail=(!rep && level)?&model.details[level-1]:nullptr;
+            list->SetGraphicsRootShaderResourceView(1,mQueues->GetGPUVirtualAddress()+UINT64(model.meshSettings.species*2)*QueueCapacity*64);
+            list->SetGraphicsRootShaderResourceView(2,detail?detail->vertices->GetGPUVirtualAddress():model.meshVertices->GetGPUVirtualAddress());
+            list->SetGraphicsRootDescriptorTable(6,mImpostorTables[modelId][rep?0:level]);
+            list->SetGraphicsRootShaderResourceView(7,detail?detail->lighting->GetGPUVirtualAddress():model.meshLighting->GetGPUVirtualAddress());
+            list->SetGraphicsRootShaderResourceView(9,mMeshOrder->GetGPUVirtualAddress());
+            list->SetGraphicsRootShaderResourceView(10,detail?detail->extra->GetGPUVirtualAddress():model.extra->GetGPUVirtualAddress());
+            Settings settings=rep?model.proxySettings:model.meshSettings;settings.lodForm[0]=float(level);
+            if (masked && rep) settings.flags|=16u;
+            list->SetGraphicsRoot32BitConstants(3,sizeof(Settings)/4,&settings,0);
+            const auto& view=rep?mQuadView:detail?(pass?detail->reverseView:detail->view):(pass?model.meshReversedView:model.meshView);
+            list->IASetIndexBuffer(&view);
+            const UINT64 offset=UINT64(modelId*FOLIAGE_REPRESENTATIONS+(rep?FOLIAGE_MESH_LODS:level))*ArgStride;
+            list->ExecuteIndirect(rep?mIndirect.Get():mMeshIndirect.Get(),1,mArguments.Get(),offset,mArguments.Get(),offset+12);
+        }
     }
     }
 }
@@ -647,6 +788,8 @@ void PlanetFoliage::Draw(ID3D12GraphicsCommandList* list,D3D12_GPU_VIRTUAL_ADDRE
     DrawRepresentation(list,frame,atmosphere,planetMap,1,false);
     auto writable=CD3DX12_RESOURCE_BARRIER::Transition(mQueues.Get(),D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     list->ResourceBarrier(1,&writable);
+    auto orderWritable=CD3DX12_RESOURCE_BARRIER::Transition(mMeshOrder.Get(),D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    list->ResourceBarrier(1,&orderWritable);
 }
 void PlanetFoliage::DrawOccluders(ID3D12GraphicsCommandList* list,D3D12_GPU_VIRTUAL_ADDRESS frame,
     D3D12_GPU_DESCRIPTOR_HANDLE atmosphere,D3D12_GPU_DESCRIPTOR_HANDLE planetMap) {
@@ -691,14 +834,20 @@ void PlanetFoliage::DrawRemaining(ID3D12GraphicsCommandList* list,D3D12_GPU_VIRT
     DrawRepresentation(list,frame,atmosphere,planetMap,1,true);
     auto writable=CD3DX12_RESOURCE_BARRIER::Transition(mQueues.Get(),D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     list->ResourceBarrier(1,&writable);
+    auto orderWritable=CD3DX12_RESOURCE_BARRIER::Transition(mMeshOrder.Get(),D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    list->ResourceBarrier(1,&orderWritable);
 }
 
 void PlanetFoliage::ReadStats() {
     if (!Enabled()) return;
     UINT* values=nullptr; CD3DX12_RANGE range(0,CounterBytes);
     if (SUCCEEDED(mReadback->Map(0,&range,reinterpret_cast<void**>(&values)))) {
-        for (UINT q=0;q<Queues;++q) { mStats[q*5+1]=values[252+q]; mStats[30+q]=values[258+q]; }
-        for (UINT command=0;command<2*MaxModels;++command) mModelStats[command]=values[command*7+3];
+        for (UINT q=0;q<Queues;++q) { mStats[q*5+1]=values[FOLIAGE_AGGREGATE_COUNTS/4+q]; mStats[30+q]=values[FOLIAGE_OVERFLOW/4+q]; }
+        for (UINT model=0;model<MaxModels;++model) {
+            mModelStats[model*2]=values[FOLIAGE_UNIQUE_COUNTS/4+model];
+            mModelStats[model*2+1]=values[(model*FOLIAGE_REPRESENTATIONS+FOLIAGE_MESH_LODS)*7+3];
+            for (UINT level=0;level<FOLIAGE_MESH_LODS;++level) mLevelStats[model*FOLIAGE_MESH_LODS+level]=values[(model*FOLIAGE_REPRESENTATIONS+level)*7+3];
+        }
         const CD3DX12_RANGE none(0,0); mReadback->Unmap(0,&none);
     }
     mTested=mRejectedCandidates=mRejected=0;
@@ -722,7 +871,10 @@ void PlanetFoliage::SaveStats(const std::wstring& capture,double placement,doubl
     if (!Enabled()) return; FILE* f=nullptr;
     if (_wfopen_s(&f,(capture+L".planet-foliage.json").c_str(),L"wb") || !f) return;
     UINT activeCommands=0;
-    for (UINT command=0;command<2*MaxModels;++command) if (mModelStats[command]) ++activeCommands;
+    for (UINT model=0;model<MaxModels;++model) {
+        if (mModelStats[model*2+1]) ++activeCommands;
+        for (UINT level=0;level<FOLIAGE_MESH_LODS;++level) if (mLevelStats[model*FOLIAGE_MESH_LODS+level]) ++activeCommands;
+    }
     fprintf(f,"{\"mode\":\"hybrid-impostor\",\"models\":\"game\",\"volume_strength\":%.6f,\"climate_shrubs\":true,\"queue_bytes\":%llu,\"capacity_per_queue\":%u,\"active_commands\":%u,\"counts\":[",
         VolumeStrength,(unsigned long long)(UINT64(Queues)*QueueCapacity*64),QueueCapacity,activeCommands);
     for (UINT q=0;q<Queues;++q) fprintf(f,"%s%u",q ? "," : "",mStats[q*5+1]);
@@ -733,10 +885,12 @@ void PlanetFoliage::SaveStats(const std::wstring& capture,double placement,doubl
     fprintf(f,"],\"hiz_enabled\":%s,\"hiz_active\":%s,\"hiz_tested\":%u,\"hiz_rejected_candidates\":%u,\"hiz_rejected\":%u,\"hiz_drawn\":%u,\"hiz_occluders\":%u",
         mHiZFrame ? "true" : "false",mHiZFrame ? "true" : "false",mTested,mRejectedCandidates,mRejected,proxyCount-std::min(proxyCount,mRejected),mHiZFrame ? meshCount : 0);
     fprintf(f,",\"representation_bytes\":[");
-    for (UINT model=0;model<MaxModels;++model) fprintf(f,"%s%llu,%llu",model ? "," : "",
+    for (UINT model=0;model<mModelCount;++model) fprintf(f,"%s%llu,%llu",model ? "," : "",
         (unsigned long long)mModel[model].meshBytes,(unsigned long long)mModel[model].proxyBytes);
     fprintf(f,"],\"model_counts\":[");
-    for (UINT model=0;model<MaxModels;++model) fprintf(f,"%s[%u,%u]",model ? "," : "",mModelStats[2*model],mModelStats[2*model+1]);
+    for (UINT model=0;model<mModelCount;++model) fprintf(f,"%s[%u,%u]",model ? "," : "",mModelStats[2*model],mModelStats[2*model+1]);
+    fprintf(f,"],\"diverse_biomes\":%s,\"model_names\":[",mDiverse?"true":"false");
+    for (size_t i=0;i<mModelNames.size();++i) fprintf(f,"%s\"%s\"",i?",":"",mModelNames[i].c_str());
     fprintf(f,"],\"family_counts\":[");
     for (UINT family=0;family<6;++family) {
         const UINT first=2+2*family;
@@ -744,9 +898,21 @@ void PlanetFoliage::SaveStats(const std::wstring& capture,double placement,doubl
             mModelStats[2*first+1]+mModelStats[2*(first+1)+1]);
     }
     fprintf(f,"],\"volume_sidecars\":[");
-    for (UINT model=0;model<MaxModels;++model) fprintf(f,"%s%u,%u",model ? "," : "",
+    for (UINT model=0;model<mModelCount;++model) fprintf(f,"%s%u,%u",model ? "," : "",
         (mModel[model].meshSettings.flags&8u) ? 1u : 0u,(mModel[model].proxySettings.flags&8u) ? 1u : 0u);
-    fprintf(f,"],\"gpu_ms\":{\"placement\":%.9f,\"draw\":%.9f,\"total_frame\":%.9f},\"gpu_samples_ms\":[",placement,draw,total);
+    fprintf(f,"],\"mesh_order_bytes\":%u,\"mesh_lod_counts\":[",3u*2u*QueueCapacity*4u);
+    for (UINT model=0;model<mModelCount;++model) {
+        fprintf(f,"%s[",model?",":"");
+        for (UINT level=0;level<FOLIAGE_MESH_LODS;++level) fprintf(f,"%s%u",level?",":"",mLevelStats[model*FOLIAGE_MESH_LODS+level]);
+        fprintf(f,"]");
+    }
+    fprintf(f,"],\"mesh_lod_triangles\":[");
+    for (UINT model=0;model<mModelCount;++model) {
+        fprintf(f,"%s[",model?",":"");
+        for (UINT level=0;level<FOLIAGE_MESH_LODS;++level) fprintf(f,"%s%u",level?",":"",level==0?mModel[model].meshIndexCount/3:level<mModel[model].levelCount?mModel[model].details[level-1].indexCount/3:0);
+        fprintf(f,"]");
+    }
+    fprintf(f,"],\"art_directed\":%s,\"gpu_ms\":{\"placement\":%.9f,\"draw\":%.9f,\"total_frame\":%.9f},\"gpu_samples_ms\":[",mArtDirected?"true":"false",placement,draw,total);
     for(size_t i=0;i<samples.size();++i) fprintf(f,"%s[%.9f,%.9f,%.9f]",i?",":"",samples[i].placement,samples[i].draw,samples[i].total);
     fprintf(f,"],\"source_placement_samples_ms\":[");
     for(size_t i=0;i<samples.size();++i) fprintf(f,"%s%.9f",i?",":"",samples[i].sourcePlacement);

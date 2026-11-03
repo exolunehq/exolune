@@ -1,6 +1,7 @@
 // D3DApp.cpp - the application: the window, the device and its resources, the frame (Draw), the free camera and the
 // input. The benches, the test views and the ship are in D3DAppBench.cpp, D3DAppTests.cpp and D3DAppShip.cpp.
 #include "D3DApp.h"
+#include "ObserverExposure.hlsli"
 #include "Ocean.h"
 #include "GpuHelpers.h"
 #include "d3dx12.h"
@@ -41,7 +42,9 @@ namespace
                              FoliageHiZSrv = PlanetImpostorSrv + PlanetFoliage::DescriptorCount,
                              CloudTemporalSrv = FoliageHiZSrv + 32, // per history read: fresh, history's, drifted's
                              ShipSrv = CloudTemporalSrv + 14, TectonicSrv = ShipSrv + Ship::DescriptorCount, // its views, the climate,
-                             DescriptorCount = TectonicSrv + 5 };                    // the volcanoes and their index
+                             ContactSrv = TectonicSrv + 5, ContactUav = ContactSrv + 1,
+                             ContactHdrUav = ContactSrv + 2, ContactSunUav = ContactSrv + 3,
+                             DescriptorCount = ContactSrv + 4 };
     // Render target views: the back buffers, then the HDR image, the composite image, the two histories and the terrain's
     // sunlit part, for the clouds' shade.
     // Then the cloud temporal pass's fresh light and data, its two histories, light, data and offset each, and the light
@@ -329,7 +332,7 @@ D3DApp::D3DApp(HINSTANCE hInstance, double startAltitude, double latitude, doubl
     mClientHeight = mSettings.height;
     mWireframe = mSettings.wireframe;
     mFaceted = mSettings.faceted;
-    mTaa = mSettings.view == 0.0f && mSettings.taa; // off at startup and in the diagnostic views; key T
+    mTaa = mSettings.taa; // preference; TemporalAA bypasses diagnostics without resetting key T
     mDiagnosticView = mSettings.view;
     mCloudsOn = mSettings.clouds;
     mCoordinates = mSettings.coordinates;
@@ -586,7 +589,7 @@ bool D3DApp::InitDirect3D() {
     // The HDR image: render target for the scene, then shader resource for the tone map.
     CD3DX12_HEAP_PROPERTIES hdrHeapProps(D3D12_HEAP_TYPE_DEFAULT);
     CD3DX12_RESOURCE_DESC hdrDesc = CD3DX12_RESOURCE_DESC::Tex2D(HdrFormat, mClientWidth, mClientHeight, 1, 1, 1, 0,
-        D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+        D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     D3D12_CLEAR_VALUE hdrClear = {};
     hdrClear.Format = HdrFormat;
     memcpy(hdrClear.Color, kClearColor, sizeof(kClearColor));
@@ -603,6 +606,7 @@ bool D3DApp::InitDirect3D() {
     auto cpuDescriptor = [&](UINT i) { return CD3DX12_CPU_DESCRIPTOR_HANDLE(mSrvHeap->GetCPUDescriptorHandleForHeapStart(), i, srvSize); };
     auto gpuDescriptor = [&](UINT i) { return CD3DX12_GPU_DESCRIPTOR_HANDLE(mSrvHeap->GetGPUDescriptorHandleForHeapStart(), i, srvSize); };
     md3dDevice->CreateShaderResourceView(mHdrTarget.Get(), nullptr, cpuDescriptor(HdrSrv));
+    md3dDevice->CreateUnorderedAccessView(mHdrTarget.Get(),nullptr,nullptr,cpuDescriptor(ContactHdrUav));
 
     // Composite and history images, same format as the HDR image. The first history starts readable.
     auto createImage = [&](ComPtr<ID3D12Resource>& image, D3D12_RESOURCE_STATES state, UINT rtv, UINT srv) {
@@ -685,12 +689,25 @@ bool D3DApp::InitDirect3D() {
         D3D12_CLEAR_VALUE sunClear = {};
         sunClear.Format = SunFormat;
         const CD3DX12_RESOURCE_DESC sunDesc = CD3DX12_RESOURCE_DESC::Tex2D(SunFormat, mClientWidth, mClientHeight, 1, 1, 1, 0,
-            D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+            D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
         Check(md3dDevice->CreateCommittedResource(&hdrHeapProps, D3D12_HEAP_FLAG_NONE, &sunDesc, D3D12_RESOURCE_STATE_RENDER_TARGET,
             &sunClear, IID_PPV_ARGS(&mSunPart)), "Sunlit part creation failed.");
         md3dDevice->CreateRenderTargetView(mSunPart.Get(), nullptr,
             CD3DX12_CPU_DESCRIPTOR_HANDLE(mRtvHeap->GetCPUDescriptorHandleForHeapStart(), SunRtv, mRtvDescriptorSize));
         md3dDevice->CreateShaderResourceView(mSunPart.Get(), nullptr, cpuDescriptor(SunSrv));
+        md3dDevice->CreateUnorderedAccessView(mSunPart.Get(),nullptr,nullptr,cpuDescriptor(ContactSunUav));
+    }
+    {
+        const auto desc=CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16_FLOAT,(mClientWidth+1)/2,(mClientHeight+1)/2,1,1,1,0,D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        Check(md3dDevice->CreateCommittedResource(&hdrHeapProps,D3D12_HEAP_FLAG_NONE,&desc,D3D12_RESOURCE_STATE_UNORDERED_ACCESS,nullptr,IID_PPV_ARGS(&mLocalContacts)),"Contact lighting image creation failed.");
+        md3dDevice->CreateShaderResourceView(mLocalContacts.Get(),nullptr,cpuDescriptor(ContactSrv));
+        md3dDevice->CreateUnorderedAccessView(mLocalContacts.Get(),nullptr,nullptr,cpuDescriptor(ContactUav));
+        wchar_t enabled[8]={};const DWORD length=GetEnvironmentVariableW(L"MYPLANETENGINE_LOCAL_CONTACTS",enabled,8);
+        mLocalContactsEnabled=!(length==1 && enabled[0]==L'0');
+        for (DXGI_FORMAT format:{HdrFormat,SunFormat}) {
+            D3D12_FEATURE_DATA_FORMAT_SUPPORT support={format};
+            if (FAILED(md3dDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT,&support,sizeof(support))) || !(support.Support2&D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD)) mLocalContactsEnabled=false;
+        }
     }
     // The clouds' textures (assets/clouds), t24..t27: three noise volumes, then the planet's weather map.
     auto createCloudVolume = [&](ComPtr<ID3D12Resource>& texture, UINT side, UINT mips, UINT descriptor) {
@@ -915,6 +932,19 @@ bool D3DApp::InitDirect3D() {
     postDesc.RTVFormats[0] = HdrFormat;
     postDesc.SampleDesc.Count = 1;
     Check(md3dDevice->CreateGraphicsPipelineState(&postDesc, IID_PPV_ARGS(&mAtmospherePSO)), "Atmosphere PSO creation failed.");
+    if (mLocalContactsEnabled) {
+        CD3DX12_DESCRIPTOR_RANGE sceneRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,0),contactRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,1),
+            outputRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV,1,2),resolveRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV,2,0);
+        CD3DX12_ROOT_PARAMETER parameters[5];parameters[0].InitAsConstantBufferView(0);
+        parameters[1].InitAsDescriptorTable(1,&sceneRange);parameters[2].InitAsDescriptorTable(1,&contactRange);
+        parameters[3].InitAsDescriptorTable(1,&outputRange);parameters[4].InitAsDescriptorTable(1,&resolveRange);
+        mLocalContactRoot=CreateRootSignature(md3dDevice.Get(),CD3DX12_ROOT_SIGNATURE_DESC(5,parameters));
+        const auto trace=LoadShader(L"LocalContacts.cso"),resolve=LoadShader(L"LocalContactsResolve.cso");
+        D3D12_COMPUTE_PIPELINE_STATE_DESC compute={};compute.pRootSignature=mLocalContactRoot.Get();compute.CS=CD3DX12_SHADER_BYTECODE(trace.Get());
+        Check(md3dDevice->CreateComputePipelineState(&compute,IID_PPV_ARGS(&mLocalContactPso)),"Contact lighting pipeline failed.");
+        compute.CS=CD3DX12_SHADER_BYTECODE(resolve.Get());
+        Check(md3dDevice->CreateComputePipelineState(&compute,IID_PPV_ARGS(&mLocalContactResolvePso)),"Contact lighting resolve pipeline failed.");
+    }
     if (mSettings.cloudTemporal) {
         ComPtr<ID3DBlob> tracePs = LoadShader(L"CloudTrace.cso");
         ComPtr<ID3DBlob> resolvePs = LoadShader(L"CloudResolve.cso");
@@ -1151,6 +1181,20 @@ bool D3DApp::InitDirect3D() {
     // publishes and every worktree finds, as the scans. Without it, no plant at all: the planet bare, the title says why.
     std::wstring catalogue = mSettings.foliageAssets;
     if (catalogue.empty()) {
+        const std::wstring game=FindAbove(L"assets\\foliage\\game_biomes_v1\\biomes.txt");
+        if (!game.empty()) {
+            const auto root=game.substr(0,game.size()-std::wstring(L"\\biomes.txt").size());
+            if (GetFileAttributesW((root+L"\\game_fir\\mesh.bin").c_str())!=INVALID_FILE_ATTRIBUTES) catalogue=root;
+        }
+    }
+    if (catalogue.empty()) {
+        const std::wstring biomes=FindAbove(L"assets\\foliage\\biomes_v1\\biomes.txt");
+        if (!biomes.empty()) {
+            const auto root=biomes.substr(0,biomes.size()-std::wstring(L"\\biomes.txt").size());
+            if (GetFileAttributesW((root+L"\\game_fir\\mesh.bin").c_str())!=INVALID_FILE_ATTRIBUTES) catalogue=root;
+        }
+    }
+    if (catalogue.empty()) {
         const std::wstring built = FindAbove(L"assets\\foliage\\climate_shrubs_v2\\game_fir\\mesh.bin");
         catalogue = !built.empty() ? built.substr(0, built.size() - std::wstring(L"\\game_fir\\mesh.bin").size())
                                    : FindAbove(L"plantes\\climate_shrubs_v2");
@@ -1160,7 +1204,7 @@ bool D3DApp::InitDirect3D() {
         mPlanetFoliage.Initialize(md3dDevice.Get(), mCommandList.Get(), catalogue, HdrFormat, SunFormat, DXGI_FORMAT_D32_FLOAT,
             CD3DX12_CPU_DESCRIPTOR_HANDLE(mSrvHeap->GetCPUDescriptorHandleForHeapStart(), PlanetImpostorSrv,
                 md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)),
-            GpuDescriptor(PlanetImpostorSrv));
+            GpuDescriptor(PlanetImpostorSrv),mSettings.foliageTestLod);
     } catch (const std::exception& e) {
         wchar_t reason[512] = {};
         MultiByteToWideChar(CP_UTF8, 0, e.what(), -1, reason, _countof(reason));
@@ -1559,6 +1603,32 @@ void D3DApp::UpdateCamera(float dt) {
     mCamPos = newPos;
 }
 
+void D3DApp::ApplyLocalContacts()
+{
+    if (!mLocalContactsEnabled || mDiagnosticView>0.5f || mWireframe) return;
+    mCommandList->SetComputeRootSignature(mLocalContactRoot.Get());
+    mCommandList->SetComputeRootConstantBufferView(0,mConstantBuffer->GetGPUVirtualAddress());
+    mCommandList->SetComputeRootDescriptorTable(1,GpuDescriptor(HdrSrv));
+    mCommandList->SetComputeRootDescriptorTable(2,GpuDescriptor(ContactSrv));
+    mCommandList->SetComputeRootDescriptorTable(3,GpuDescriptor(ContactUav));
+    mCommandList->SetComputeRootDescriptorTable(4,GpuDescriptor(ContactHdrUav));
+    mCommandList->SetPipelineState(mLocalContactPso.Get());
+    mCommandList->Dispatch(((mClientWidth+1)/2+7)/8,((mClientHeight+1)/2+7)/8,1);
+    constexpr auto sceneRead=D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+    const D3D12_RESOURCE_BARRIER resolve[3]={
+        CD3DX12_RESOURCE_BARRIER::Transition(mLocalContacts.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
+        CD3DX12_RESOURCE_BARRIER::Transition(mHdrTarget.Get(),sceneRead,D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
+        CD3DX12_RESOURCE_BARRIER::Transition(mSunPart.Get(),sceneRead,D3D12_RESOURCE_STATE_UNORDERED_ACCESS)};
+    mCommandList->ResourceBarrier(3,resolve);
+    mCommandList->SetPipelineState(mLocalContactResolvePso.Get());
+    mCommandList->Dispatch((mClientWidth+7)/8,(mClientHeight+7)/8,1);
+    const D3D12_RESOURCE_BARRIER ready[3]={
+        CD3DX12_RESOURCE_BARRIER::Transition(mLocalContacts.Get(),D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
+        CD3DX12_RESOURCE_BARRIER::Transition(mHdrTarget.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,sceneRead),
+        CD3DX12_RESOURCE_BARRIER::Transition(mSunPart.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,sceneRead)};
+    mCommandList->ResourceBarrier(3,ready);
+}
+
 void D3DApp::Draw() {
     LARGE_INTEGER cpuMarks[5]; // the CPU's frame: start, recording, submission, present, the GPU waited for
     QueryPerformanceCounter(&cpuMarks[0]);
@@ -1642,6 +1712,13 @@ void D3DApp::Draw() {
     // Camera on the face frame, in double precision: right above the face's centre unless the mesh is frozen.
     const double camHeight = Dot(mCamPos, faceZ) - PlanetRadius;
     mConstants->camPlane = { (float)Dot(mCamPos, faceX), (float)Dot(mCamPos, faceY), 0.0f, 0.0f };
+    const float observerTarget=mWorldValid && Length(mCamPos-mWorldProbePos)<250
+        ? ObserverCanopy(mHabitat[5].x,float(clearance),mHabitat[5].y) : 0.0f;
+    // Hidden stills use the settled world value. Interactive response converges
+    // in real time, with no framing-dependent luminance histogram.
+    mObserverCanopy=mSettings.Automated()?observerTarget:
+        mObserverCanopy+(observerTarget-mObserverCanopy)*(1.0f-std::exp(-dt/0.35f));
+    mConstants->camPlane.w=mObserverCanopy;
 
     // Anchor of the fine detail drawn in the pixels: the multiple of kDetailUnit closest to the camera.
     // Pixels work from it in float, with exact lattice indices at the planet's scale.
@@ -1738,9 +1815,24 @@ void D3DApp::Draw() {
     }
     if (mShip.Ready()) UpdateShipFrame(dt, faceX, faceY, faceZ);
     const double windAngle = std::fmod(mWeatherTime * kWeatherWindSpeed / PlanetRadius, 2.0 * XM_PI);
-    mConstants->taa = { mTaa && mHistoryValid ? 0.1f : 1.0f, mDiagnosticView,
+    {
+        const Vec3d localUp=Normalize(mCamPos);
+        Vec3d east=Cross(localUp,kNorth);
+        if (Length(east)<1e-6) east=Cross(localUp,{1.0,0.0,0.0});
+        east=Normalize(east);
+        const Vec3d north=Cross(east,localUp);
+        const double direction[]={localUp.x,localUp.y,localUp.z};
+        float climate[Climate::Channels]={}; Climate::At(mClimateCpu,direction,climate);
+        const Vec3d wind=east*climate[Climate::WindEast]+north*climate[Climate::WindNorth];
+        XMStoreFloat4(&mConstants->foliageWind,toLocal(wind));
+        mConstants->foliageWind.w=float(std::fmod(mWeatherTime,4096.0));
+    }
+    mConstants->taa = { TemporalAA() && mHistoryValid ? 0.1f : 1.0f, mDiagnosticView,
                         (mSettings.noPlants || !mPlanetFoliage.Enabled() ? 1.0f : 0.0f) + (mFoliageFade ? 2.0f : 0.0f)
-                            + (mPlanetFoliage.Enabled() ? 0.0f : 4.0f) + 8.0f * float(mFoliageFadeFrame++ & 63u),
+                            + (mPlanetFoliage.Enabled() ? 0.0f : 4.0f) + 8.0f * float(mFoliageFadeFrame++ & 63u)
+                            + (mPlanetFoliage.Diverse() ? 512.0f : 0.0f) + (mPlanetFoliage.ArtDirected() ? 1024.0f : 0.0f)
+                            + (mPlanetFoliage.GeneratedBank() ? 2048.0f : 0.0f) + (TemporalAA() ? 4096.0f : 0.0f)
+                            + (mSettings.foliageWhiteNoise ? 8192.0f : 0.0f),
                         2.0f * std::tan(fovY * 0.5f) / float(mClientHeight) };
     // The clouds' frame (Clouds.hlsli, b1). Their diagnostic views of the weather map and of their shadow take the single
     // pass, whatever MYPLANETENGINE_CLOUD_FULL.
@@ -1869,7 +1961,7 @@ void D3DApp::Draw() {
     mCommandAllocator->Reset();
     mCommandList->Reset(mCommandAllocator.Get(), nullptr);
     if (mView==View::Walk) QueueWalkGround();
-    if (!mSettings.Automated()) QueueWorldSound();
+    QueueWorldSound();
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0);
 
     const double oceanStep=!mCine.empty()?1.0/mCineFps:mSettings.Automated()?1.0/60.0:dt;
@@ -2146,6 +2238,7 @@ void D3DApp::Draw() {
         CD3DX12_RESOURCE_BARRIER::Transition(mHdrTarget.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, sceneRead),
         CD3DX12_RESOURCE_BARRIER::Transition(mSunPart.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, sceneRead) };
     mCommandList->ResourceBarrier(2, sceneToRead);
+    ApplyLocalContacts();
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 18);
     CD3DX12_CPU_DESCRIPTOR_HANDLE compositeRtv(mRtvHeap->GetCPUDescriptorHandleForHeapStart(), CompositeRtv, mRtvDescriptorSize);
     mCommandList->OMSetRenderTargets(1, &compositeRtv, FALSE, nullptr);
@@ -2375,7 +2468,7 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
     wcscat_s(title, cloudTimes);
     if (mMeshFrozen) wcscat_s(title, L" | MAILLAGE FIG\u00C9 (G)");
     if (mFaceted) wcscat_s(title, L" | facettes (R)");
-    if (!mTaa) wcscat_s(title, L" | sans lissage (T)");
+    if (!TemporalAA()) wcscat_s(title, L" | sans lissage (T)");
     if (mView == View::Walk) {
         wchar_t walk[128];
         swprintf_s(walk,L" | marche %.2f m/s | J : vaisseau | Maj : courir | Ctrl : accroupir | H : balancement",Length(mWalkVelocity));

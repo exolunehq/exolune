@@ -12,6 +12,7 @@
 
 ## Implemented systems
 
+
 **Terrain and materials**
 - **`spec-rendu-lointain.md`:** the same planet from orbit to ground, the universal boundary rule; the screen relief above 150 to 400 km and the coast's contour at the pixel, 2026-11-02.
 - **`spec-normales-spline.md`:** per-pixel B-spline normals; one B-spline height surface and its normal on the fine grid.
@@ -36,6 +37,12 @@
 - **`spec-nuages.md`:** the game's clouds, from orbit to ground: model, passes, resources, data and provenance, known defects; their shadow on land and sea; their weather map derived from climate since 2026-10-31.
 - **`recherche-vegetation.md`:** trees, shrubs and forests from orbit to undergrowth; state of the art; climate, placement and ground canopy implemented; generated plants v1 to v3, removed on 2026-10-30, archived in the log.
 - **`vegetation-planetaire.md`:** the game's trees and shrubs, the only foliage, enabled by default; nearby meshes and distant impostors, deterministic population; leaf clusters, precomputed lighting.
+- **`spec-diversite-vegetale.md`:** climate-compatible communities, the 31-model default and 91-role generated review banks; roots, porous forest lighting and wind.
+- **`recherche-generation-vegetale.md`:** premium game packs and neural authoring; current diversity and native-engine limits; FoliMesh rejected after native review, with the POC archived in the log.
+- **`recherche-comfyui-vegetation.md`:** tested native local generation, separate wood/leaf authoring and compact-mesh candidates; evidence, selection and remaining limits.
+- **`spec-pipeline-creation3d.md`:** local generation, a hybrid radial tropical witness, structural variations and root volume; seven LODs, impostors and art/performance gates.
+- **`spec-rendu-vegetation.md`:** near-trunk curvature and bark, temporally filtered coverage, leaf transmission, litter, canopy transport, bounded observer adaptation and contact lighting.
+- **`direction-artistique-vegetation.md`:** the user's eight biome boards, mature silhouettes and volumetric ground connection.
 - **`arbustes-climatiques.md`:** twelve shapes across six climate families; same instances and range, shared GPU subranges.
 - **`vegetation-hiz.md`:** current-frame depth pyramid and GPU mask for fully occluded impostors; population and drawing order preserved.
 - **`optimisation-vegetation.md`:** vegetation culling and GPU timings, preserving appearance, density and distance; memory optimization remains.

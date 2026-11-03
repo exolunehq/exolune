@@ -10,6 +10,10 @@
 
 ## What it contains
 
+- **`spec-pipeline-creation3d-historique.md`:** superseded authoring, torn roots, branch reduction, close-detail iterations and rejected tropical reconstructions; current contracts in `../spec-pipeline-creation3d.md` and `../spec-rendu-vegetation.md`.
+- **`spec-diversite-vegetale-historique.md`:** superseded scanned-fir catalogue, density choices and replaced cold-site witnesses; current scope in `../spec-diversite-vegetale.md`.
+- **`recherche-generation-vegetale-historique.md`:** rejected native FoliMesh POC and acquisition recommendations; local 3D trials, rejected foliage assemblies and superseded plans; current research in `../recherche-comfyui-vegetation.md` and pipeline in `../spec-pipeline-creation3d.md`.
+
 - **`spec-marche-ambiances-historique.md`:** superseded prototype footstep recordings and material selection; current controller and audio in `../spec-marche-ambiances.md`.
 - **`spec-vaisseau-historique.md`:** superseded ship assemblies, junctions, panel layouts and their inspection measurements.
 
@@ -78,7 +82,7 @@
 |  `recherche-vegetation-historique.md`  | Plants generated v1 to v3, their shapes, cost and appearance; removed from code the 2026-10-30, tags `piste/vegetation`, `-v2` and `-v3`. |
 |  `prototype-vegetation-volumique.md`  | The prototype compared of detailed models, volumes and impostors multiviews, closed, its code removed the 2026-10-30; its measurements remain the reference of comparison. |
 |  `prototype-vegetation-volumique-historique.md`  | First volumes removed, lack of coverage and choice of transmission filtering; intermediate measurements of the prototype. |
-|  `vegetation-planetaire-historique.md`  | First flights, saturation of lines, models spread and comparative iterations of the bouquets, normal and visibility of foliage; the comparatives of the milestone 24; the modes, models and launcher removed the 2026-10-30. |
+|  `vegetation-planetaire-historique.md`  | First flights, queue saturation, bouquet iterations, replaced impostor-light measurements, milestone 24 comparisons and removed modes. |
 |  `arbustes-climatiques-historique.md`  | First collection too related, selection of families replaced and development of sub-range GPU; the flight of judgment of then. |
 |  `vegetation-hiz-historique.md`  | The witnesses of the HiZ, historical depth and interlaced modes, removed the 2026-10-30; the interlaced comparison and its flight. |
 |  `optimisation-vegetation-historique.md`  | Compacting and displacement tests of the impostors calculations; limits of measurements on GPU shared; the flight of comparison, removed the 2026-10-30. |

@@ -1,6 +1,7 @@
 # Climatic shrubs
 
 **Status: validated in the state by the user the 2026-10-27; threshold of the benchmark quality not satisfied.**
+- This is the compatible twelve-shrub baseline; current local communities, additional forms and ground herbs are in `spec-diversite-vegetale.md`.
 - Continuation of `vegetation-planetaire.md`; base `piste/arbustes-climatiques-base`, on the initial commit.
 - Integration on `main`, milestone `jalon/24-vegetation-detaillee-main`.
 - Visual acceptance allows this integration with the deviations of benchmark recorded; it does not change the metric or its reference.

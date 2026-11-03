@@ -1,0 +1,2 @@
+# Install with Blender's matching CPython ABI into EXOLUNE_PYTHON_DEPS.
+fast-simplification==0.2.0

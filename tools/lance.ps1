@@ -5,7 +5,7 @@
 #
 # powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 [-Build] [-NoLaunch] [-Parcours tools\tests\<date>.txt]
 #     [-Position '<alt> <lat> <lon> <tangage> <cap>'] [-Soleil '<lat> <lon>'] [-Resolution '1920 1080' | fenetre]
-#     [-ModeleVaisseau chasseur | classique] [-PassePleine] [-Exe <exécutable>] [-Scans <dossier>]
+#     [-ModeleVaisseau chasseur | classique] [-PassePleine] [-Exe <exécutable>] [-Scans <dossier>] [-Plantes <catalogue>]
 param(
     [switch]$Build,
     [switch]$NoLaunch,
@@ -20,6 +20,8 @@ param(
     [string]$ModeleVaisseau = 'chasseur',
     # Un autre exécutable que x64\Release, par exemple une compilation à part (x64\Verif).
     [string]$Exe = '',
+    # Catalogue externe pour un POC d'assets ; le catalogue du jeu reste le défaut.
+    [string]$Plantes = '',
     [string]$Scans = $(if ($env:MYPLANETENGINE_SCANS) { $env:MYPLANETENGINE_SCANS } else { Join-Path (Split-Path (Split-Path $PSScriptRoot)) 'scans' })
 )
 $ErrorActionPreference = 'Stop'
@@ -45,6 +47,7 @@ try {
     Get-ChildItem Env: | Where-Object { $_.Name -like 'MYPLANETENGINE_*' } | ForEach-Object { Remove-Item -LiteralPath "Env:$($_.Name)" }
     $env:MYPLANETENGINE_TESTS = $tests
     $env:MYPLANETENGINE_SCANS = (Resolve-Path -LiteralPath $Scans).Path
+    if ($Plantes) { $env:MYPLANETENGINE_FOLIAGE_ASSETS = (Resolve-Path -LiteralPath $Plantes).Path }
     $env:MYPLANETENGINE_SUN = $Soleil
     $env:MYPLANETENGINE_MODELE_VAISSEAU = $ModeleVaisseau
     if ($Resolution -ne 'fenetre') { $env:MYPLANETENGINE_RESOLUTION = $Resolution; $env:MYPLANETENGINE_FULLSCREEN = '1' }

@@ -30,6 +30,8 @@ Status: research and implementation, the 2026-10-24. Code: `ToneMap.hlsl`, setti
 
 **Since the 2026-10-31, the compensation follows the altitude** (`spec-rendu-orbite.md`): +1 EV on the ground, that of the landscapes; 0 EV in orbit, that of the photos of the Earth, measured on "Blue Marble" of Apollo 17; between the two, the part of the air under the camera, `1 − exp(−h / 8 km)`.
 
+**Since 2026-11-03, the incident meter also reads shelter under forest crowns** (`spec-rendu-vegetation.md`). The existing habitat probe supplies canopy cover and height. A bounded response of at most two stops follows its porous sun/sky transport, fades above the canopy and remains neutral at night. It converges in 0.35 s without reading the frame. Open-ground and orbital calibration remain unchanged; this camera response does not replace radiance transport or alter the linear temporal history.
+
 ## 2. What we had
 
 **No exposure:** a radiance of 1 gives white.
