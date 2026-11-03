@@ -1,0 +1,14 @@
+# External review bank only: new beech, structural oak variants and the new tropical witness when available.
+# Several oak silhouettes share one master; botanical variety, root contact, shade and wind require flight review.
+Temperate forest: roots and structural variants on foot | 525 34.75 50.75 10 0 marche | 30 70
+Temperate forest: neighbouring trunks and second heading | 525 34.75 50.75 10 80 marche | 30 70
+Temperate forest: another local community | 525 34.76 50.76 10 160 marche | 30 70
+Temperate canopy: crown volumes and wind | 538 34.75 50.75 25 0 | 30 70
+Temperate approach: geometry and impostor relay | 628 34.75 50.75 20 0 | 30 70
+Tropical forest: independent architecture and roots | 65 -7.75 -37.25 10 0 marche | -5 -20
+Tropical slope: root contact on another terrain | 940 -8.44835 118.48865 30 163 marche | -20 130
+Tropical approach: distant silhouette | 168 -7.75 -37.25 20 0 | -5 -20
+Boreal control: cold-climate companions | 1140 42.002542495 65.003025314 -10 41.4837 marche | 35 80
+Desert control: sparse vegetation | 1735 -11.825 110.867 25 114 marche | -5 100
+Cold plateau: snow and exposed substrate | 4770 -47.207948 75.090399 30 -122 marche | -40 70
+Temperate forest: low sun and shade boundaries | 525 34.75 50.75 10 0 marche | 10 80

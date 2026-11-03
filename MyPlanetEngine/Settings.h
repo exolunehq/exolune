@@ -15,7 +15,8 @@ struct Settings
     UINT width = 1280, height = 720;
     bool wireframe = false; // MYPLANETENGINE_WIREFRAME: key F at startup
     bool faceted = false;   // MYPLANETENGINE_FACETED: key R at startup
-    bool taa = false;       // MYPLANETENGINE_TAA: the temporal smoothing at startup, outside the diagnostic views; key T
+    bool taa = true;        // MYPLANETENGINE_TAA=0 disables temporal smoothing; diagnostics bypass it; key T
+    bool foliageWhiteNoise = false; // functional control for the coverage sequence
     bool glare = false;     // MYPLANETENGINE_GLARE: the lens's glare
     float view = 0.0f;      // MYPLANETENGINE_VIEW: a diagnostic view (DiagnosticView), 0 for none
     // MYPLANETENGINE_FACE_FACTOR: the face's half-width over the height above the ground (keys K, L).
@@ -52,6 +53,7 @@ struct Settings
     bool noPlants = false;
     std::wstring foliageAssets;
     UINT foliageWarm = 120, foliageSamples = 120;
+    int foliageTestLod = -1; // offscreen validation only
 
     // The photo scans' folder, MYPLANETENGINE_SCANS; empty for the first folder named scans above the executable.
     std::wstring scans;

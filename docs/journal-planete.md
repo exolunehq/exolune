@@ -2,6 +2,42 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-03 · Close trunks, filtered silhouettes and forest skylight**
+
+- **Report:** planar tropical crown, faceted close trunks, soft bark maps, noisy cutout outlines and almost black forest ground.
+- **Geometry:** adaptive PN curvature at L0; original vertices and root support heights fixed; source wood retained at L1–L4.
+- **Bound:** 20,000 added triangles at most, 100,000 total cap, displacement at most 12% of an edge and 0.5% of source height.
+- **Witnesses:** oak L0 counts 53,423 / 53,277 / 53,319; six following levels and impostors retained; root curvature has a tighter 0.1% horizontal bound.
+- **Bark:** shared gradient noise in rest-pose metric bands at 18/64/200 cycles per metre, heights 8/1.2/0.2 mm, footprint filtering and bounded surface-gradient slopes.
+- **Maps:** full woody normal strength, leaf strength 0.55, bark roughness at least 0.78.
+- **Filtering:** temporal smoothing enabled by default; explicit TAA=0 now disables it rather than enabling by variable presence.
+- **Coverage:** filtered proxy alpha and derivative-based mesh alpha; independent digitally shifted Sobol dimensions for both relays and alpha; freeze phase when smoothing is disabled.
+- **Depth:** fractional-alpha proxy depth bounds remain conservative down to 1/1024 coverage.
+- **Canopy:** diffuse leaf scatter 0.28, return factor 0.5; closed-crown sky transport about 0.46 instead of 0.21.
+- **Materials:** separate forest litter from the orbital canopy palette; ordinary ground objects retain unshadowed reflectance with canopy cover packed independently.
+- **Observer:** preserve open/orbital exposure; world-derived canopy adaptation is limited to two stops, fades above crowns, is neutral at night and converges in 0.35 s.
+- **Attribution:** radiance retains separate sky and solar transport through cloud shadows; camera response is applied after linear history.
+- **Diagnostics:** forestlight separates cover/cavity/sky transport; groundalbedo isolates material colour; effective AA is captured in a sidecar.
+- **Generation:** inspect references before 3D with references-only; pinned reference bundles permit a geometry-backend comparison without regenerating the art. Rejected pipes, fragments and branch loops remain outside the review bank.
+- **Tropical replacement:** retain a neural lower trunk, reconstruct five primary and ten secondary radial boughs, then reuse the common leaf/LOD/impostor chain. One 61,355-triangle master becomes 76,425 / 52,555 / 45,515 / 37,595 / 32,315 / 6,800 / 2,960 native triangles.
+- **Volume:** upper-wood span ratio 1.016, surface-spread ratio 1.088 and zero persistent coarse handles; one new hybrid candidate serves five role aliases.
+- **Checks:** 64 hidden native views, seven forced levels on oak and radial kapok, stationary feet under wind, zero queue overflow, matching F4/F5 observer cover, neutral sea/orbit/above-crown controls, fixed disabled-coverage frames and CPU curvature/root/material checks.
+- **Review:** tools/tests/2026-11-03-vegetation-refinement.txt; art and moving-camera review remain open, no performance benchmark.
+- **Milestone:** `jalon/2026-11-03-vegetation-production`.
+
+**2026-11-02 · Reject planar woody sources**
+
+- **Report:** the tropical tree's branches resemble a two-dimensional fan despite broad roots and added foliage.
+- **Rule:** audit upper wood independently, above 35% of woody height; clip crossing triangles exactly and use area-weighted horizontal PCA.
+- **Limit:** maximum oriented-span and surface-spread ratio 3:1; yaw, uniform scale and triangulation do not change the decision.
+- **Placement:** before leaf assembly, again on exported masters and before structural variants; no runtime terrain or rendering change.
+- **Generation:** references now request radial front/back boughs and an oblique view with clear foreshortening.
+- **Inventory:** four new tree masters and zero shrubs; beech/kapok have native cooks but need new volumetric sources; Scots pine also fails; spruce has a separate LOD-cook failure.
+- **Counts:** the initial oak adds one older master and three native derivatives; beech/kapok add six offline derivatives; derivatives and LODs are not new botanical models.
+- **Review:** retain the current in-flight bank as a diagnostic witness; failed masters and their derivatives are not production-approved.
+- **Checks:** Release x64; rotated fan rejection, radial crown acceptance, root exclusion, scale/translation and subdivision invariance; original oak variants retain fixed roots and their triangle counts.
+- **Included in:** `jalon/2026-11-03-vegetation-production`.
+
 ## 2026-11-02 · Distant rendering on main, without the erosion
 
 - **Why:** the user prefers the geometry without the erosion, whose method is in question; the distant-rendering corrections validated in flight on `claude/erosion-montagnes` come to `main` alone. The erosion branch keeps its own work.
@@ -19,7 +55,7 @@ History of field adjustments: what changed, why, what it cost or brought, and ho
 
 **2026-11-02 · Walking, controls and environmental audio**
 
-- **Integration:** walking and audio isolated on current public `main`; vegetation authoring remains on `codex/vegetation-2026-11-02`.
+- **Integration:** walking and audio isolated on current public `main`; vegetation authoring continues on `codex/vegetation-biomes`.
 - **Controls:** J disembarks and returns; WASD/ZQSD or arrows move; Shift runs, Ctrl crouches, Space jumps, H toggles bob, Y mutes and I toggles coordinates.
 - **Contact:** a 9 by 9 relief query at 0.5 m spacing; eye heights 1.68/1.05 m; walking/running/crouching 1.5/3.6/0.75 m/s; slope limit 45 degrees.
 - **Audio:** six recorded contact materials with six takes each, six bird calls and contextual procedural ambience; four independent gains default to 1.

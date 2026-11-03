@@ -2,7 +2,18 @@
 
 Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it.
 
+
+
+**Local vegetation production, 2026-11-03:** generated wood, roots and individual leaves are added detail from placed plants. Continuous underside support and canonical XYZ root scaling affect plant geometry and attachments only; terrain remains the source of truth. The same deformed master feeds LODs and impostors, with protected near bases and bounded coarse error. Sampled runtime contact follows the existing ground without a horizontal squeeze. Structural variations change branch lift, crown spread, shear, twist and lean above the fixed lower fifth; `spec-pipeline-creation3d.md`.
+
+**Radial tropical witness, 2026-11-03:** a generated lower trunk supports five primary and ten secondary cubic boughs, reconstructed offline and unified before leaf assembly. This changes the placed plant master, not terrain or planetary population. Its source, reconstructed region, seed, native levels and impostor remain explicit; `spec-pipeline-creation3d.md`.
+
+**Vegetation diversity, 2026-11-02:** the default 31-model prototype and external 91-role review banks share the existing climate fields, population and terrain. Vertex wind moves placed detail around fixed roots. Porous forest transport changes light, not geometry or population; `spec-diversite-vegetale.md`.
+
+**Near vegetation rendering, 2026-11-03:** seven levels refine the existing placed-detail overlay. Source wood remains exact at L1–L4; L0 adds bounded PN curvature while retaining source vertices, underside triangles and root support heights. Displacement is at most 0.5% of plant height, reduced to 0.1% horizontally on roots. Leaf and shoot reductions change plant detail only. Crown normals, bark microdetail, canopy transport, litter reflectance, observer adaptation and contact lighting do not alter terrain, placement or stored surface distance; `spec-rendu-vegetation.md`.
+
 **Walking, 2026-11-02:** contact samples the existing `ReliefElevation` at 0.5 m spacing over a local footprint. This is a controller query, not a geometry overlay. Terrain generation and vegetation geometry remain unchanged; `spec-marche-ambiances.md` describes the height-field approximation.
+
 
 ## The rule
 
@@ -32,6 +43,7 @@ Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it
 
 | Surcouche | Family | Scale | Amplitude | Where | Arrêt | Status |
 |---|---|---|---|---|---|---|
+| Rooted vegetation and structural variations | Added detail, placed plant meshes | root reach 0.14–2.4 m; existing stem and crown scales | plant vertices only; root underside support, four-contact quadratic and offline crown deformations above 20% height | climate-compatible rooted ground | choose the original catalogue, or disable plants | 2026-11-02 prototype; default 31 roles, external 91-role review; native art and performance pending; `spec-pipeline-creation3d.md` |
 | Octaves filtered by grid cell | Filtering | under 2 grid cells, `MESH_BAND_LIMIT`  | octave replaced by its average | everywhere | none, it's sampling | in place |
 | Maximum frequencies of terrain type and turbulence | Filtering | between ~100 km and ~6 km | 0,13/255 on screen; ribs of a few meters | everywhere |  `NO_LIMIT`  | removed the 2026-10-31 with the old relief |
 | Rounded crests | Filtering | 2 grid cells, never under grid cells of 2 m | hollows and ridges of the billow and ridged multifractal, and chains of tectonic relief | everywhere |  `CREASE_ROUNDING` = 0 | in place |

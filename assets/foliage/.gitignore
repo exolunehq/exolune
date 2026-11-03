@@ -7,3 +7,7 @@ volume_look/*/*.bin
 volume_look_normals/*/*.bin
 climate_shrubs/*/*.bin
 climate_shrubs_v2/*/*.bin
+biomes_v1/*/*.bin
+biomes_v1/*/cooked.sha256
+game_biomes_v1/*/*.bin
+game_biomes_v1/*/cooked.sha256

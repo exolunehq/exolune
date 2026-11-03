@@ -1,0 +1,10 @@
+{
+  "file": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\oak_40159_triangles.glb",
+  "triangles": 40159,
+  "vertices": 18877,
+  "bytes": 770652,
+  "sha256": "ea91a43861cbdcf25d862cc8c6db8f59b776449d1a165bbfe6d146c9f1ca5dd9",
+  "duplicate_faces_removed": 3047,
+  "appearance_stage": "vertex RGB; no UV/PBR bake",
+  "same_unique_faces_as_review_import": true
+}

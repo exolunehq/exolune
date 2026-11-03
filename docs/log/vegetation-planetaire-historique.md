@@ -1,5 +1,36 @@
 # History of planetary vegetation tests
 
+**2026-11-03 · Superseded impostor-light investigation**
+
+**The lighting of the impostors (2026-10-29):**
+- **The defect seen in flight:** at the relay, a dark tree lit up by becoming mesh. Pre-optimization: `242d0f7` and the 8 round give the same still image.
+- **The cause, the normal:** the impostor mixes four cooked views and its mips. The average of the normals of different sheets, renormalized, turns to the camera. The impostor lit up like a card facing the eye: dark in backlight and under a high sun in front, clear sun in the back.
+- **What is not for nothing,** tested one term at a time: specular, occlusion, normal maps, transmission, pre-calculated visibilities, covered by the canopy.
+- **Light correction:** the length of the mean normal is the consistency k of the leaves. The direct, the backlight and the term sol/ciel take the hope on these leaves: E[max(0, x)] = E[x]/2 + E|x|/2; E[x] follows the normal mean, E|x| goes from 1/2, scattered leaves, to |x|, a single leaf.
+- **Where:** `OutputVolume`, and `Light` for pins without pre-calculated visibilities, under `PLANET_FOLIAGE_IMPOSTOR`. The shaders of the meshes compile to the bit as before.
+- **Color correction:** `tools/foliage/bake.py` averaged its four sub-sample in sRGB; it averages them linearly. luminance of impostors: hardwood +8,6 %, pine +1,9 %, shrubs +1 %.
+- **Recurated** by `python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs_v2 <modèles>`, the complete list in `lancement.md`: normal, alpha and bit-identical headers. The `.bin` are not versioned; the previous ones are in `x64/vegetation_eclairage/imposteurs_avant/`.
+- **Measurement:** luminance of the same plants, mesh against impostor alone. On the ground, plants more 300 pixels, 4 places, 5 suns and a place under the cumulus. At the relay, at 25 m from the ground, the farthest quarter of the meshes.
+
+| Report mesh / impostor | Before | Colour only | color and light |
+|---|---|---|---|
+| On the ground, whole image | 0,82 to 1,30; 13 % on average | 0,79 to 1,24; 11 % | 0,87 to 1,15; 7 % |
+| On the ground, crowns | 0,89 to 1,47; 18 % | 0,80 to 1,33; 12 % | 0,88 to 1,21; 9 % |
+| On the relay | 0,86 to 2,05; 21 % | 0,77 to 1,90; 16 % | 0,86 to 1,74; 13 % |
+
+- **What remains:** the mesh remains lighter from 4 to 26 % under a high front or rasing sun, darker from 10 to 14 % sun in the back. The worst at the relay, 1,74, is the backlit edge, where a large nearby tree dominates the measure. Cause not found.
+- **Cost:** few operations per pixel of impostor, not measured at benchmark.
+- **In flight:** `tools/tests/2026-10-29-imposteurs-eclairage.txt`, to be judged. Images and measurements: `x64/vegetation_eclairage/`.
+
+
+**2026-11-02 · Replaced catalogue limits**
+- The runtime exposed one conifer and one broadleaf model across all tree climates.
+- Twelve shrubs supplied two randomly interleaved architectures per climatic family.
+- Fourteen models shared six queues, seven SRV per model and a 1,056-byte command/count buffer.
+- Foliage was static; no tall-grass or flower catalogue complemented the ground tufts.
+- The diverse catalogue replaces those limits with twenty-nine models, spatial communities and near-ground wind.
+- The original catalogue remains a supported fallback; current scope and checks are in `../spec-diversite-vegetale.md`.
+
 **2026-10-27: first variants in flight.**
 - The volume hybrid is considered too expensive and unconvincing at intermediate distance by the user.
 - Pure impostors remain images at any distance; their enlargement becomes visible when approaching.

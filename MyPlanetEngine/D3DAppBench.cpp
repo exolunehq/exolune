@@ -94,12 +94,13 @@ bool D3DApp::BeginBatchFrame() {
         const double* motion = mSettings.batchMotion;
         if (job.weatherTime >= 0.0) mWeatherTime = job.weatherTime;
         if (mBatchFrame == 0) {
+            mFoliageFadeFrame=0; // identical capture frames use the same temporal dither, regardless of preceding jobs
             mPlanetPlantPlacement.Reset(); // a new place: the plants' kept ground starts again
             mPlanetFoliageSamples.clear();
             mDiagnosticView = job.view;
             mFaceFactor = job.faceFactor;
             mSunDir = job.sun ? LatLonToDir(job.sunLatitude, job.sunLongitude) : mStartSunDir;
-            mTaa = mDiagnosticView == 0.0f && mSettings.taa;
+            mTaa = mSettings.taa;
         }
         if (mBatchFrame < BatchSettle)
             PlaceCamera(job.latitude, job.longitude, job.pitchDown, job.heading, mGroundHeight + job.height);
@@ -165,6 +166,19 @@ void D3DApp::SaveCapture(bool batchCapture, UINT trembleIndex) {
         SaveBmp(path, pixels + mCaptureFootprint.Offset, mClientWidth, mClientHeight,
             mCaptureFootprint.Footprint.RowPitch);
         mPlanetFoliage.SaveStats(path, mFoliagePlaceMs, mFoliageDrawMs, mFrameGpuMs, mPlanetFoliageSamples);
+        {
+            FILE* contactFile=nullptr;
+            if (_wfopen_s(&contactFile,(path+L".local-contacts.json").c_str(),L"wb")==0 && contactFile) {
+                const bool active=mLocalContactsEnabled && mDiagnosticView<=0.5f && !mWireframe;
+                fprintf(contactFile,"{\"enabled\":%s,\"half_width\":%d,\"half_height\":%d,\"radius_m\":1.2,\"sun_ray_m\":1.28,\"range_m\":192,\"history\":false}\n",active?"true":"false",(mClientWidth+1)/2,(mClientHeight+1)/2);
+                fclose(contactFile);
+            }
+            FILE* filterFile=nullptr;
+            if (_wfopen_s(&filterFile,(path+L".foliage-filter.json").c_str(),L"wb")==0 && filterFile) {
+                fprintf(filterFile,"{\"temporal_aa\":%s,\"temporal_weight\":%.6f,\"coverage_frames\":%u,\"coverage_sequence\":\"%s\",\"observer_canopy\":%.8f}\n",TemporalAA()?"true":"false",mConstants->taa.x,TemporalAA()?64u:1u,mSettings.foliageWhiteNoise?"white-control":"sobol3",mConstants->camPlane.w);
+                fclose(filterFile);
+            }
+        }
         if (batchCapture) { // the title and this frame's objects, for the benches, at <capture>.txt
             char utf8[2048];
             std::wstring batchSidecar = mTitle + ObjectStatsText();
@@ -229,6 +243,23 @@ void D3DApp::SaveCapture(bool batchCapture, UINT trembleIndex) {
                     fwrite(counts, sizeof(UINT), 2, f);
                     fwrite(plants.data(), sizeof(PlantRecord), plants.size(), f);
                     fclose(f);
+                    // Optional full deformation witness, batch only. Keep the
+                    // compact public position stream unchanged.
+                    if (GetEnvironmentVariableW(L"MYPLANETENGINE_PLANT_INSTANCES", nullptr, 0) > 0 &&
+                        _wfopen_s(&f, (path + L".plant-instances").c_str(), L"wb") == 0 && f) {
+                        static_assert(sizeof(ObjectInstance) == 64, "Unexpected plant instance layout.");
+                        const XMFLOAT4 planetOffset = { mConstants->camPlane.x, mConstants->camPlane.y,
+                            mConstants->faceParams.y + mConstants->faceParams.z, pixelAngle };
+                        XMFLOAT4X4 projection;
+                        XMStoreFloat4x4(&projection, mPrevViewProj);
+                        fwrite("FOLPLC01", 1, 8, f);
+                        fwrite(counts, sizeof(UINT), 2, f);
+                        fwrite(&planetOffset, sizeof(planetOffset), 1, f);
+                        fwrite(&projection, sizeof(projection), 1, f);
+                        for (UINT group = 0; group < 2; ++group) for (UINT i = 0; i < counts[group]; ++i)
+                            fwrite(&objects[(2 + group) * ObjectClassCapacity + i], sizeof(ObjectInstance), 1, f);
+                        fclose(f);
+                    }
                 }
                 const CD3DX12_RANGE nothing(0, 0);
                 mObjectInstancesReadback->Unmap(0, &nothing);

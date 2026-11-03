@@ -1,0 +1,11 @@
+# Optional manual review of the external generated catalogue through lance.ps1 -Plantes.
+# Automated validation stays hidden. Do not replace the default diverse catalogue with this single witness.
+# Inspect source materials, root contact, leaf wind, adjacent geometry fades and impostor relay during approach.
+Temperate ground: reviewed oak, roots and readable leaves | 525 34.75 50.75 10 0 marche | 30 70
+Temperate ground: second heading and nearby trunks | 525 34.75 50.75 10 80 marche | 30 70
+Temperate canopy: geometry LODs | 538 34.75 50.75 25 0 | 30 70
+Temperate approach: mesh and impostor relay | 628 34.75 50.75 20 0 | 30 70
+Temperate distant control | 1808 34.75 50.75 32 0 | 30 70
+Tropical forest: different placement and light | 65 -7.75 -37.25 10 0 marche | -5 -20
+Tropical approach | 168 -7.75 -37.25 20 0 | -5 -20
+Boreal control: existing conifers | 1140 42.002542495 65.003025314 -10 41.4837 marche | 35 80

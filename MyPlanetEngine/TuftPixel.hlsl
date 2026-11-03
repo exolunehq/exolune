@@ -5,6 +5,7 @@
 #include "PlanetSettings.hlsli"
 #include "Atmosphere.hlsli"
 #include "Objects.hlsli"
+#include "CanopyLighting.hlsli"
 
 float4 PSMain(ObjectPixel input, out float4 sunOut : SV_TARGET1) : SV_TARGET0
 {
@@ -26,10 +27,13 @@ float4 PSMain(ObjectPixel input, out float4 sunOut : SV_TARGET1) : SV_TARGET0
 
     const float h = max(input.elevation, 0.0) / 1000.0, muS = dot(up, sun), haze = RegionalGround(PlanetDirection(up));
     const float shade = lerp(0.6, 1.0, rise); // the tuft's own shade, deep at its foot
-    const float3 sunColour = SUN_ILLUMINANCE * SunTransmittance(h, muS, haze);
+    const CanopyTransport transport=CanopyLight(input.canopy,0,muS);
+    const float3 beam=SUN_ILLUMINANCE*SunTransmittance(h,muS,haze);
+    const float3 bounce=beam*transport.sunScatter*float3(0.45,0.65,0.32);
+    const float3 sunColour = beam*transport.direct;
     const float3 sunLight = sunColour * (saturate(dot(normal, sun)) + 0.3 * saturate(muS)) * shade;
-    const float3 sky = SkyIrradiance(h, muS, haze), ground = sunColour * saturate(muS) + sky;
-    const float3 skyLight = (sky * (0.5 + 0.5 * dot(normal, up)) + GROUND_ALBEDO * ground * (0.5 - 0.5 * dot(normal, up))) * shade;
-    sunOut=float4(albedo/PI*(sunLight+GROUND_ALBEDO*sunColour*saturate(muS)*(0.5-0.5*dot(normal,up))*shade),0.0);
+    const float3 sky = SkyIrradiance(h, muS, haze)*transport.sky,solarGround=sunColour*saturate(muS)+bounce,ground=solarGround+sky;
+    const float3 skyLight = ((sky+bounce) * (0.5 + 0.5 * dot(normal, up)) + GROUND_ALBEDO * ground * (0.5 - 0.5 * dot(normal, up))) * shade;
+    sunOut=float4(albedo/PI*(sunLight+(bounce*(0.5+0.5*dot(normal,up))+GROUND_ALBEDO*solarGround*(0.5-0.5*dot(normal,up)))*shade),0.0);
     return float4(albedo / PI * (sunLight + skyLight), length(input.pos) / 1000.0);
 }

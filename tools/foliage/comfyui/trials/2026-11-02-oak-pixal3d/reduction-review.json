@@ -1,0 +1,38 @@
+[
+  {
+    "label": "original",
+    "triangles": 13997450,
+    "vertices_after_import": 6783578,
+    "images": [
+      "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\review\\original-quarter.png",
+      "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\review\\original-walk.png"
+    ]
+  },
+  {
+    "label": "conservative",
+    "triangles": 480105,
+    "vertices_after_import": 222093,
+    "images": [
+      "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\review\\conservative-quarter.png",
+      "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\review\\conservative-walk.png"
+    ]
+  },
+  {
+    "label": "relaxed",
+    "triangles": 129838,
+    "vertices_after_import": 51968,
+    "images": [
+      "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\review\\relaxed-quarter.png",
+      "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\review\\relaxed-walk.png"
+    ]
+  },
+  {
+    "label": "aggressive",
+    "triangles": 40159,
+    "vertices_after_import": 18877,
+    "images": [
+      "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\review\\aggressive-quarter.png",
+      "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\review\\aggressive-walk.png"
+    ]
+  }
+]

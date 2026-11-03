@@ -3,6 +3,7 @@
 #include "Planet.hlsli"
 #include "Objects.hlsli"
 #include "PlanetFoliageLod.hlsli"
+#include "FoliageSequence.hlsli"
 
 // Les reglages d'un modele d'imposteur, tels que le dessin les recoit (PlanetFoliage.h, Settings), et la borne de la
 // profondeur reconstruite de ses moments : min, max, validite, erreur de filtrage.
@@ -13,6 +14,8 @@ struct CullModel {
     uint species, reserved, materialCount, flags;
     float4 volumeParams;
     float4 depthBounds;
+    float4 rootForm;
+    float4 lodForm;
 };
 
 bool Finite(float x) { return (asuint(x)&0x7f800000u)!=0x7f800000u; }
@@ -33,9 +36,10 @@ bool ImpostorDepthBound(ObjectInstance plant, CullModel m, out float depth, out 
     float3 up=normalize(plant.pos+float3(camPlane.xy,faceParams.y+faceParams.z));
     float3 side=plant.axisX, axisZ=cross(side,up);
     float2 own=PlanetFoliageOwn(plant);
-    float sourceWidth=max(max(m.boundsMax.x-m.boundsMin.x,m.boundsMax.z-m.boundsMin.z),1e-5);
+    float sourceWidth=m.rootForm.w>0.0 ? m.rootForm.w : max(max(m.boundsMax.x-m.boundsMin.x,m.boundsMax.z-m.boundsMin.z),1e-5);
     float spread=m.species==2 ? 1.0 : plant.axisY.y;
-    float3 scale=plant.size*float3(m.crown*spread*own.x/sourceWidth,own.y*m.volumeParams.z,m.crown*spread*own.x/sourceWidth);
+    float height=GameVegetation() && m.species<SHRUB?1.0:plant.albedo.y>0.0?plant.albedo.y:m.volumeParams.z;
+    float3 scale=plant.size*float3(m.crown*spread*own.x/sourceWidth,own.y*height,m.crown*spread*own.x/sourceWidth);
     if (!Finite3(scale) || any(scale<=1e-6) ||
         max(max(scale.x,scale.y),scale.z)>8.0*min(min(scale.x,scale.y),scale.z)) return false;
     float3 origin=float3(dot(-plant.pos,side),dot(-plant.pos,up),dot(-plant.pos,axisZ))/scale;
@@ -112,9 +116,10 @@ bool ImpostorDepthBound(ObjectInstance plant, CullModel m, out float depth, out 
             lo=min(lo,ndc-error); hi=max(hi,ndc+error);
         }
     }
-    // Erreur de filtrage ponderee par la couverture game >= 0,25.
+    // Temporal coverage keeps fractional silhouette alpha below the former
+    // half-alpha test. Bound reconstruction error at its actual minimum alpha.
     // La marge finale englobe aussi les arrondis de cette penalite.
-    nearest-=4.1*maxAbsK*m.depthBounds.w;
+    nearest-=(1.01/FOLIAGE_PROXY_ALPHA_MIN)*maxAbsK*m.depthBounds.w;
     nearest-=0.001*max(abs(nearest),1.0)+0.001;
     if (!Finite(nearest) || nearest<=1e-4) return false;
     float4 nearClip=mul(float4(camForward.xyz*nearest,1),viewProj);

@@ -1,0 +1,177 @@
+{
+  "date": "2026-11-02",
+  "status": "functional authoring prototype; art acceptance pending",
+  "run": "E:\\ExoluneAssets\\oak-witness-v1",
+  "manifest": {
+    "status": "complete; artistic acceptance pending",
+    "recipe": "E:\\ExoluneAssets\\oak-witness-v1\\recipe.json",
+    "environment": "E:\\ExoluneAssets\\oak-witness-v1\\environment.json",
+    "reference": {
+      "path": "E:\\ComfyUI\\input\\exolune\\oak-reference.png",
+      "sha256": "fd87575be878c4c20893cc5e69336fe791958de4aa64f95688308a4de29274ec"
+    },
+    "models": [
+      {
+        "path": "E:\\ComfyUI_Models\\models\\diffusion_models\\flux3-image-klein-int8-convrot.safetensors",
+        "bytes": 5827874779,
+        "sha256": "847d8933548afd93df4af2cac2498e70891bf28d9dae06d695f536992e168fe2"
+      },
+      {
+        "path": "E:\\ComfyUI_Models\\models\\text_encoders\\qwen3vl_4b_int8_convrot.safetensors",
+        "bytes": 4858559240,
+        "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c"
+      },
+      {
+        "path": "E:\\ComfyUI_Models\\models\\vae\\flux2-vae.safetensors",
+        "bytes": 336211292,
+        "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3"
+      },
+      {
+        "path": "E:\\ComfyUI_Models\\models\\diffusion_models\\trellis_2_int8_convrot.safetensors",
+        "bytes": 5253048192,
+        "sha256": "d01952ad137213f6a868f86b6b877026276f84af5eec23069217475a0bad3a31"
+      },
+      {
+        "path": "E:\\ComfyUI_Models\\models\\vae\\trellis_2_shape_vae_bf16.safetensors",
+        "bytes": 1095844024,
+        "sha256": "de0cb4949a76c59ee5c091a995a69bcc8c51d5aeda939f0c641a50d2a72341f4"
+      },
+      {
+        "path": "E:\\ComfyUI_Models\\models\\vae\\trellis_2_texture_vae_bf16.safetensors",
+        "bytes": 948461364,
+        "sha256": "714e5ebf094a610e12a8e3b5175c18a62f37f6ea4218acb6073644456b73ab0e"
+      },
+      {
+        "path": "E:\\ComfyUI_Models\\models\\clip_vision\\dino_v3_L_naf_fp32.safetensors",
+        "bytes": 1215214176,
+        "sha256": "4ad2ec4e0879a5b5b04cd97325cc37da954a7b6edca5170b86510f17f2b2290f"
+      },
+      {
+        "path": "E:\\ComfyUI_Models\\models\\background_removal\\birefnet.safetensors",
+        "bytes": 444473596,
+        "sha256": "9ab37426bf4de0567af6b5d21b16151357149139362e6e8992021b8ce356a154"
+      }
+    ],
+    "asset": "E:\\ExoluneAssets\\oak-witness-v1\\cook\\70ed89726401f3d5\\plant.glb",
+    "sha256": "43abf33e3f19e93c9db85defee12f6b43e2fefad1637decee99977b976bd5a74",
+    "audit": {
+      "file": "E:\\ExoluneAssets\\oak-witness-v1\\cook\\70ed89726401f3d5\\plant.glb",
+      "triangles": 39938,
+      "vertices": 48932,
+      "materials": 2,
+      "bytes": 15862612,
+      "bounds_min": [
+        -3.597346305847168,
+        0.0,
+        -3.941938638687134
+      ],
+      "bounds_max": [
+        4.008631706237793,
+        7.999999523162842,
+        4.272499084472656
+      ],
+      "leaf_alpha": "MASK",
+      "pivot_coordinates": "glTF Y-up",
+      "status": "pass"
+    },
+    "review": "E:\\ExoluneAssets\\oak-witness-v1\\cook\\70ed89726401f3d5\\review.blend",
+    "preview": "E:\\ExoluneAssets\\oak-witness-v1\\cook\\70ed89726401f3d5\\quarter.png",
+    "runtime_integration": false,
+    "benchmarks_run": false
+  },
+  "stages": {
+    "reference": {
+      "key": "51b90f9181d922be5bfb68f40bdfd62c480e44a1a099d1ced7df77fbf966e19e",
+      "prompt_id": "7c691265-4134-4714-9f9f-e99dac913700",
+      "folder": "E:\\ExoluneAssets\\oak-witness-v1\\reference\\51b90f9181d922be",
+      "api_sha256": "d7634c2950201857bbe92a0e36ac258a87b874ca8482e92c6dd35af753bd6716",
+      "canvas_sha256": "ff0c6afb2e1108ec7f67d736b3e77ec72a3d57e405784076f16a801263ce4517"
+    },
+    "wood_reference": {
+      "key": "e271a16039b778ee9f62a223a391b66fa60e9f44d613cb64a517afe2a0fc49ce",
+      "prompt_id": "c5c43ce9-4a5d-4342-90ad-f77d992d9f73",
+      "folder": "E:\\ExoluneAssets\\oak-witness-v1\\wood_reference\\e271a16039b778ee",
+      "api_sha256": "55d8a4bae009081e435a3d6aec23c18b0910218bb7ca6c94cbe3781b8e8bd1b9",
+      "canvas_sha256": "3b5b6bcf36e71601fcf44b5c96310368574bc3bb50915425b474e739b6d0472b"
+    },
+    "cluster_reference": {
+      "key": "a7132db2e8fb03841c8f0f7f3a974474843807e1b39213dce9fe6b2fb196719b",
+      "prompt_id": "bf3e3b6d-1ee4-4171-91cd-942eb2a64bae",
+      "folder": "E:\\ExoluneAssets\\oak-witness-v1\\cluster_reference\\a7132db2e8fb0384",
+      "api_sha256": "992b985e57aec52b91a9b2d5cc1918b60c1c2a7edb03cf2c70d76d5ad6027938",
+      "canvas_sha256": "b9feb94b9d278edfe6b8646388d75210ef4e43e4c0e3ca79e96ad82ff9c45779"
+    },
+    "leaf_reference": {
+      "key": "2740a0292c3083c4581cfe28908acbccb645ac212cf6680febd68173667b05d7",
+      "prompt_id": "3684910c-2fb3-4157-b680-7a481bbbd737",
+      "folder": "E:\\ExoluneAssets\\oak-witness-v1\\leaf_reference\\2740a0292c3083c4",
+      "api_sha256": "1167383488e72526870a2548e998b5902f2ce5a4453ef0c40dccb7b308d7ccd7",
+      "canvas_sha256": "07a17ed3ccc47895855c6265e5aab7f4616d40c5504df00b37c5dad7c5fb2f37"
+    },
+    "wood_mesh": {
+      "key": "b3f32745cef2840bc0eaf8e581b9411b4f29dfef645d1c05d6672c527f406b54",
+      "prompt_id": "fce799a3-6d66-49e1-966a-4b300de43b12",
+      "folder": "E:\\ExoluneAssets\\oak-witness-v1\\wood_mesh\\b3f32745cef2840b",
+      "api_sha256": "9518bb057c03a8fbb161e7e0645a48e10918f8f279328f77209fe0db1a9dcdfd",
+      "canvas_sha256": "bce50ffef69cd113df75cc0bf30b5d4cc4732306ad45030cbceb9d1d0051ff9e"
+    },
+    "leaf_alpha": {
+      "key": "5c38915d803c7a6f23b817a8ec1768656c27c64b30f65759e343dbbf3134f180",
+      "prompt_id": "8dabeccf-00ef-4157-9b65-48725697ada6",
+      "folder": "E:\\ExoluneAssets\\oak-witness-v1\\leaf_alpha\\5c38915d803c7a6f",
+      "api_sha256": "3d19060abe305e4acf86ec68d6d378dfabef59cb95ed50c46bfcf87d842d2850",
+      "canvas_sha256": "0ab822db3b43aa6b0ea8997d0d15e5e34fabbced7c535b64ec3c1b82ade179a7"
+    }
+  },
+  "high_wood_triangles": 4281530,
+  "assembly": {
+    "wood_triangles": 10450,
+    "leaf_triangles": 29488,
+    "total_triangles": 39938,
+    "wood_vertices": 10499,
+    "leaf_vertices": 34144,
+    "clusters": 388,
+    "foliage_distribution": "crown_volume",
+    "discarded_disconnected_wood_faces": 1326,
+    "retained_wood_surface_fraction": 0.9843876957893372,
+    "source_height_scale": 8.171149497283391,
+    "final_height_m": 8.0,
+    "leaf_count": 4656,
+    "pivot_coordinate_space": "glTF Y-up; Blender Z-up in review.blend",
+    "root_uv": [
+      0.49462890625,
+      0.03173828125
+    ],
+    "leaf_transparency_fraction": 0.7749977111816406,
+    "asset": "E:\\ExoluneAssets\\oak-witness-v1\\cook\\70ed89726401f3d5\\plant.glb",
+    "preview": "E:\\ExoluneAssets\\oak-witness-v1\\cook\\70ed89726401f3d5\\quarter.png",
+    "wind_attributes": [
+      "_WIND_WEIGHT",
+      "_WIND_PHASE",
+      "_WIND_PIVOT",
+      "_LEAF_PIVOT",
+      "_LEAF_WEIGHT"
+    ],
+    "leaf_representation": "Individual curved leaf cutouts on small 3D shoots, with shoot and leaf pivots."
+  },
+  "wind_witness": {
+    "source": "E:\\ExoluneAssets\\oak-witness-v1\\cook\\70ed89726401f3d5\\plant.glb",
+    "method": "CPU witness using exported pivots and weights; not an engine animation test",
+    "results": [
+      {
+        "mesh": "Oak - individual deformable leaves",
+        "fixed_vertices": 2716,
+        "fixed_attachment_max_error_m": 2.3283064365386963e-10,
+        "moving_vertex_max_displacement_m": 0.18794898688793182,
+        "wood_motion_m": 0.0
+      }
+    ]
+  },
+  "text_only_reference": {
+    "prompt_id": "2c7596c5-e4cf-4b25-90db-04329f17e681",
+    "file": "E:/ExoluneAssets/text-only-reference-proof/reference/9b612a6a0656a8cf/image.png",
+    "scope": "Image stage only; complete text-only-to-mesh run not repeated"
+  },
+  "runtime_integration": false,
+  "benchmarks_run": false
+}

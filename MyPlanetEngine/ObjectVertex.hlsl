@@ -2,6 +2,7 @@
 // TuftVertex.hlsl, a tuft's, set on its foot, stretched a little, its share of height buried along its own up.
 #include "Planet.hlsli"
 #include "Objects.hlsli"
+#include "CanopyLighting.hlsli"
 
 #ifndef SHAPE_VARIANTS
 #define SHAPE_VARIANTS ROCK_VARIANTS
@@ -28,7 +29,8 @@ ObjectPixel VSMain(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
     output.normal = normalize(normal.x * o.axisX + normal.y * o.axisY + normal.z * axisZ);
     output.local = offset + 37.0 * float3((o.seed >> uint3(3, 11, 19)) & 0xFFu) / 255.0;
     output.localNormal = normal;
-    output.albedo = o.albedo * v.shade;
+    output.albedo = float3(o.albedo.rg,ObjectBlue(o.albedo.b)) * v.shade;
+    output.canopy = ObjectCanopy(o.albedo.b);
     output.up = normalize(o.pos + float3(camPlane.xy, faceParams.y + faceParams.z));
     output.elevation = o.elevation;
     output.rise = local.y / (v.height * stretch.y);

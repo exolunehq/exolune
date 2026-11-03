@@ -1,0 +1,17 @@
+{
+  "name": "local_oak_approved",
+  "height_m": 8,
+  "source_triangle_budget": 40000,
+  "target_fps": 60,
+  "preflight_quality": "E:/ExoluneAssets/oak-production/validation/69fe03645a56a6f7af43/measurements/quality-guard.json",
+  "source": {
+    "glb": "E:/ComfyUI/output/Exolune/2026-11-02-pipeline/10_crown/plant.glb",
+    "sha256": "c11c61b00d093c57025ec4a7c7168e6431e198d7f11a329c6756762813e67458",
+    "preview": "E:/ComfyUI/output/Exolune/2026-11-02-pipeline/10_crown/quarter.png",
+    "art_approved": false,
+    "approval_scope": "Offline render selected; native branch reconnection remains under art review"
+  },
+  "cook": {
+    "tile": 2048
+  }
+}

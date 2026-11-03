@@ -3,6 +3,8 @@
 #include "Planet.hlsli"
 #include "Atmosphere.hlsli" // the atmosphere tables, t1 to t3, and the sampler
 #include "Coordinates.hlsli"
+#include "CanopyLighting.hlsli"
+#include "ObserverExposure.hlsli"
 
 Texture2D<float4> composite : register(t0); // the scene under its atmosphere; alpha: distance (km), 0 for the sky,
                                             // negative on the waves the sea shows, which move by themselves
@@ -20,11 +22,19 @@ static const float3 LUMINANCE = float3(0.2126, 0.7152, 0.0722); // Rec. 709
 float Exposure()
 {
     const float muS = max(dot(camVertical.xyz, lightDir.xyz), 0.0);
-    const float3 daylight = SUN_ILLUMINANCE * SunTransmittance(0.0, muS, 0.0) + SkyIrradiance(0.0, muS, 0.0);
+    const float3 sunMeter=SUN_ILLUMINANCE*SunTransmittance(0.0,muS,0.0),skyMeter=SkyIrradiance(0.0,muS,0.0);
+    const float3 daylight = sunMeter+skyMeter;
     // camVertical.w: the camera's altitude above the sea, km (D3DApp::Draw).
     const float airBelow = 1.0 - exp(-max(camVertical.w, 0.0) / RAYLEIGH_SCALE_HEIGHT);
     const float compensation = lerp(EXPOSURE_COMPENSATION, EXPOSURE_COMPENSATION_ORBIT, airBelow);
-    return exp2(compensation) * PI / dot(daylight, LUMINANCE);
+    float observer=1.0;
+    if(camPlane.w>0.0) {
+        const CanopyTransport transport=CanopyLight(camPlane.w,0.0,muS);
+        const float3 sheltered=sunMeter*transport.direct+skyMeter*transport.sky
+            +sunMeter*transport.sunScatter*float3(0.45,0.65,0.32);
+        observer=ObserverExposure(dot(daylight,LUMINANCE),dot(sheltered,LUMINANCE),dot(camVertical.xyz,lightDir.xyz));
+    }
+    return observer*exp2(compensation) * PI / dot(daylight, LUMINANCE);
 }
 
 // The film curve: the photoreceptors' response, x^a / (x^a + k^a) (Naka-Rushton; Lottes 2016 and ACES 2 build on it),

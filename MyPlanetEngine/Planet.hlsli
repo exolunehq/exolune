@@ -35,6 +35,7 @@ cbuffer Frame : register(b0)
     float4   reliefGradients[256]; // immutable noise table (Noise.hlsli); the pixel's coast contour uses the same literals as compute
     float4   screenRelief; // the screen relief (ScreenRelief.hlsl): xy its texels across, z its weight (0: off),
                            // w the pixels per texel side
+    float4   foliageWind; // xyz: local climate wind in the face frame (m/s); w: shared weather clock (s)
 };
 
 struct FaceVertex

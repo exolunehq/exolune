@@ -56,12 +56,14 @@ Result PSMain(VOut input) {
     float4 c[4]={samples[0].color,samples[1].color,samples[2].color,samples[3].color};
     float4 w = float4((1-f.x)*(1-f.y), f.x*(1-f.y), (1-f.x)*f.y, f.x*f.y);
     float4 covered = w * float4(c[0].a,c[1].a,c[2].a,c[3].a);
-    float alpha = dot(covered, 1.0); clip(alpha - 1e-6);
+    float alpha = dot(covered, 1.0); clip(alpha - FOLIAGE_PROXY_ALPHA_MIN);
     // Une vue proche peut soutenir une silhouette absente des autres vues.
     // Son influence s'annule continûment lorsque son poids tend vers zéro.
     float4 support=float4(c[0].a,c[1].a,c[2].a,c[3].a)*saturate(2.0*w);
     float coverage=max(alpha,max(max(support.x,support.y),max(support.z,support.w)));
-    clip(coverage-0.5);
+    // Filtered mip alpha is area coverage. Accumulate it instead of cutting
+    // every distant crown into a hard half-alpha silhouette.
+    ClipFoliageCoverage(input.position.xy,coverage,i);
     float4 vis0[4], vis1[4]; float3 n[4]; float d[4];
     SampleAux(samples[0],n[0],d[0],vis0[0],vis1[0]); SampleAux(samples[1],n[1],d[1],vis0[1],vis1[1]);
     SampleAux(samples[2],n[2],d[2],vis0[2],vis1[2]); SampleAux(samples[3],n[3],d[3],vis0[3],vis1[3]);
