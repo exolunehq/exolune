@@ -9,6 +9,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <immintrin.h>
 
 namespace Erosion
@@ -35,6 +36,14 @@ namespace Erosion
         // A fan where a river leaves a valley deeper than kFanIncision (m) for a ground where it cuts less than kFanDrop of
         // that: the mountain front, where the slope falls and the load settles.
         const double kFanIncision = 200.0, kFanDrop = 0.25;
+        // Step B's conditioning (Condition), tools/hydro/couloirs.py's settings: a stage may stand kRiverFill (m) above the
+        // capping relief, the floodplain fill's bound; its drops spread upstream at kKnickSlope at most. A corridor's wall:
+        // the relief's height above the stage, plus a quarter of its amplitude, over a slope from kWallSlope[0] on plains to
+        // [1] in mountains (amplitude 300 to 1200 m), steeper in resistant rock, times the erodibility to the power
+        // kWallRock (Selby 1980), its width within kWallWidth (m), stored by 25 m.
+        const double kRiverFill = 15.0, kKnickSlope = 0.03, kWallSlope[2] = { 0.2, 0.5 }, kWallWidth[2] = { 300.0, 6000.0 };
+        const double kWallRock = -0.25;
+        const uint32_t kWallDefault = 12;
 
         struct V3 { double x, y, z; };
 
@@ -342,7 +351,7 @@ namespace Erosion
         }
 
         // 6. The texels (Erosion.h).
-        map.texels.assign(size_t(cells) * 4, 0u);
+        map.texels.assign(size_t(cells) * 8, 0u);
         double land = 0.0, lakes = 0.0, iced = 0.0;
         for (uint32_t c = 0; c < cells; ++c) {
             const bool lake = !sea[c] && lakeLevel[c] > kNoOutlet;
@@ -362,8 +371,14 @@ namespace Erosion
             if (ice[c] > 0.0) bits |= uint32_t(std::min(std::max(std::lround(1.0 + 6.0 * (std::log2(ice[c]) - 10.0)), 1l), 255l)) << 24;
             map.texels[2 * size_t(c)] = Level16(level[c]) | Level16(ground) << 16;
             map.texels[2 * size_t(c) + 1] |= bits;
-            map.texels[2 * size_t(cells + c)] = Level16(terminalStage[c]);
-            map.texels[2 * size_t(cells + c) + 1] = terminalBasin[c];
+            // Step B's course words: the level 0's stage until Condition, the narrowest wall; SetSinuosity's byte.
+            map.texels[2 * size_t(cells + c)] = Level16(terminalStage[c]) | Level16(level[c]) << 16;
+            map.texels[2 * size_t(cells + c) + 1] = std::min(terminalBasin[c], 0xffffu) | kWallDefault << 16 | 255u << 24;
+            map.texels[2 * size_t(2 * cells + c)] = map.texels[2 * size_t(2 * cells + c) + 1] = 0xffffffffu;
+            const uint32_t code = bits >> 16 & 255u;
+            map.texels[2 * size_t(3 * cells + c)] = code | code << 8;
+            const float local = outlet[c] > kNoOutlet ? 0.0f : float(runoff[c] * area[c] / kSecondsPerYear);
+            memcpy(&map.texels[2 * size_t(3 * cells + c) + 1], &local, sizeof(local));
             if (!sea[c]) land += area[c], lakes += lake ? area[c] : 0.0, iced += ice[c] > 0.0 ? area[c] : 0.0;
         }
         map.lakeShare = float(lakes / land), map.iceShare = float(iced / land);
@@ -371,7 +386,111 @@ namespace Erosion
         return map;
     }
 
-    const char kMagic[8] = { 'E', 'X', 'O', 'E', 'R', 'O', 'S', '3' };
+    void SetSinuosity(Map& map, const std::vector<uint32_t>& nodes)
+    {
+        const size_t cells = size_t(6) * map.size * map.size;
+        for (size_t c = 0; c < cells; ++c) {
+            uint32_t& y = map.texels[2 * (cells + c) + 1];
+            y = (y & 0x00ffffffu) | (nodes[2 * c] & 255u) << 24;
+        }
+    }
+
+    // As couloirs.py's condition, on the courses' nodes, their stages quadratic between them as the level 0's: 1. downstream,
+    // a node's stage never above its own course's cap, its re-routed inflows', and its inflows' stages; 2. upstream, never a
+    // drop steeper than kKnickSlope, and a course's start, the midpoint with its largest or re-routed inflow, below its cap
+    // too. Every control of a course below its lowest cap keeps the whole course below it. The stage stays non-increasing
+    // downstream: each upstream bound lies above the downstream stage.
+    void Condition(Map& map, const std::vector<Course>& courses, const std::vector<uint32_t>& nodes)
+    {
+        const uint32_t n = map.size;
+        const Cube cube(n);
+        const uint32_t cells = cube.cells;
+        std::vector<uint32_t> receiver(cells, None);
+        std::vector<double> z(cells);
+        uint32_t around[8];
+        for (uint32_t c = 0; c < cells; ++c) {
+            const uint32_t bits = map.texels[2 * size_t(c) + 1];
+            z[c] = double(map.texels[2 * size_t(c)] & 0xffffu) * 0.25 - 8192.0;
+            if (!(bits & HasReceiver)) continue;
+            cube.Neighbours(c, around);
+            receiver[c] = around[bits & 7u];
+        }
+        const std::vector<uint32_t> order = Stack(receiver); // receivers before the cells draining into them
+        for (size_t k = order.size(); k-- > 0;) {
+            const uint32_t c = order[k], r = receiver[c];
+            const Course& o = courses[c];
+            if (o.flags & MainCourse) z[c] = std::min(z[c], double(o.main) + kRiverFill);
+            if (r == None) continue;
+            z[r] = std::min(z[r], z[c]);
+            if (o.flags & Rerouted) z[r] = std::min(z[r], double(o.connector) + kRiverFill);
+        }
+        for (uint32_t c : order) {
+            const uint32_t r = receiver[c];
+            if (r == None) continue;
+            const Course& o = courses[c];
+            double bound = z[r] + kKnickSlope * o.length;
+            if (o.flags & LargestInflow) bound = std::min(bound, 2.0 * (double(courses[r].main) + kRiverFill) - z[r]);
+            if (o.flags & Rerouted) bound = std::min(bound, 2.0 * (double(o.connector) + kRiverFill) - z[r]);
+            z[c] = std::min(z[c], bound);
+        }
+        // The walls, receivers first: a cell without a course takes its receiver's.
+        for (uint32_t c : order) {
+            uint32_t wall = kWallDefault;
+            if (courses[c].flags & MainCourse) {
+                float amplitude;
+                memcpy(&amplitude, &nodes[2 * size_t(c) + 1], 4);
+                const double t = std::min(std::max((double(amplitude) - 300.0) / 900.0, 0.0), 1.0);
+                const double rock = double(nodes[2 * size_t(c)] >> 8 & 255u) / 64.0;
+                const double slope = (kWallSlope[0] + (kWallSlope[1] - kWallSlope[0]) * t * t * (3.0 - 2.0 * t)) * std::pow(rock, kWallRock);
+                const double above = std::max(double(courses[c].relief) - z[c], 0.0) + 0.25 * amplitude;
+                wall = uint32_t(std::lround(std::min(std::max(above / slope, kWallWidth[0]), kWallWidth[1]) / 25.0));
+            } else if (receiver[c] != None)
+                wall = map.texels[2 * size_t(cells + receiver[c]) + 1] >> 16 & 255u;
+            uint32_t& x = map.texels[2 * size_t(cells + c)];
+            uint32_t& y = map.texels[2 * size_t(cells + c) + 1];
+            x = (x & 0xffffu) | Level16(z[c]) << 16;
+            y = (y & 0xff00ffffu) | wall << 16;
+        }
+    }
+
+    void StopAtWater(Map& map, const std::vector<Contacts>& contacts, const std::vector<Course>& courses)
+    {
+        const Cube cube(map.size);
+        const uint32_t cells = cube.cells;
+        std::vector<uint32_t> receiver(cells, None);
+        std::vector<uint8_t> cut(cells, 0);
+        std::vector<double> discharge(cells);
+        uint32_t around[8];
+        auto limit = [](float t) { return uint32_t(std::lround(std::min(std::max(t, 0.0f), 1.0f) * 65535.0f)); };
+        for (uint32_t c = 0; c < cells; ++c) {
+            const auto& h = contacts[c];
+            map.texels[2 * size_t(2 * cells + c)] = limit(h.upstream) | limit(h.downstream) << 16;
+            map.texels[2 * size_t(2 * cells + c) + 1] = limit(h.connector) | limit(h.outlet) << 16;
+            float local = 0.0f;
+            memcpy(&local, &map.texels[2 * size_t(3 * cells + c) + 1], sizeof(local));
+            discharge[c] = local;
+            const uint32_t bits = map.texels[2 * size_t(c) + 1];
+            if (!(bits & HasReceiver)) continue;
+            cube.Neighbours(c, around);
+            const uint32_t r = receiver[c] = around[bits & 7u];
+            cut[c] = h.downstream < 1.0f
+                   || ((courses[c].flags & LargestInflow) && contacts[r].upstream < 1.0f)
+                   || ((courses[c].flags & Rerouted) && h.connector < 1.0f);
+        }
+        const auto order = Stack(receiver);
+        for (size_t i = order.size(); i-- > 0;) {
+            const uint32_t c = order[i], r = receiver[c];
+            if (r != None && !cut[c]) discharge[r] += discharge[c];
+        }
+        for (uint32_t c = 0; c < cells; ++c) {
+            const uint32_t code = uint32_t(std::min(std::max(std::lround(8.0 * (std::log2(std::max(discharge[c], 1e-9)) + 8.0)), 0l), 255l));
+            // A contact on the receiving half still lets the source reach its shared midpoint.
+            const uint32_t midpoint = contacts[c].downstream < 1.0f ? 0u : code;
+            map.texels[2 * size_t(3 * cells + c)] = code | midpoint << 8 | uint32_t(cut[c]) << 16;
+        }
+    }
+
+    const char kMagic[8] = { 'E', 'X', 'O', 'E', 'R', 'O', 'S', '6' };
 
     bool Save(const Map& map, uint32_t seed, uint64_t key, const std::wstring& path)
     {
@@ -397,14 +516,15 @@ namespace Erosion
                && fread(&stored, 8, 1, f) == 1 && stored == key;
         if (ok) {
             map.size = header[1];
-            map.texels.resize(size_t(6) * map.size * map.size * 4);
+            map.texels.resize(size_t(Slices) * map.size * map.size * 2);
             ok = fread(map.texels.data(), 4, map.texels.size(), f) == map.texels.size();
         }
         fclose(f);
         return ok;
     }
 
-    uint64_t Key(const std::vector<float>& form, const Climate::Map& climate, uint32_t seed, uint64_t executableTime)
+    uint64_t Key(const std::vector<float>& form, const Climate::Map& climate, uint32_t seed, uint64_t executableTime,
+                 uint64_t passes)
     {
         uint64_t h = 0xcbf29ce484222325ull; // FNV-1a, 64 bits
         auto add = [&](const void* data, size_t bytes) {
@@ -415,6 +535,7 @@ namespace Erosion
         add(climate.cells.data(), climate.cells.size() * sizeof(float));
         add(&seed, sizeof(seed));
         add(&executableTime, sizeof(executableTime));
+        add(&passes, sizeof(passes));
         return h;
     }
 }

@@ -24,6 +24,13 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 
 ## The established rules
 
+**Evaluate only contributions that can survive their physical filter** (`spec-erosion.md`).
+- Read an octave's bandwidth weight before splitting its lattice or hashing its corners. A zero-weight, zero-mean octave returns zero without evaluating noise.
+- A dry or interrupted tributary keeps its valley and drainage trace. Do not prepare a confluence's wet banks when its wet section is exactly absent.
+- Bound spatial searches by the projection of the physical footprint, including its course halo. A tighter bound must retain every contributing course and preserve face-edge support.
+- Share repeated terrain code in a loop. Reuse a terrain sample only when its ray, position and bandwidth inputs are identical; retain distinct parallax evaluations.
+- These are evaluation shortcuts with identical terrain and water fields. Distance-dependent feature removal is not a performance fix.
+
 **Hydrological consistency is checked on the composed terrain** (`spec-eaux-interieures.md`, revision requirements).
 - A cut-only operation can still manufacture a false side trench; bound residual bank detail against its draining bed and verify the composed section.
 - Preserve existing hollows without raising them to an independently chosen river stage.
@@ -44,6 +51,28 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 **Inland water and its bed share continuous drainage envelopes** (`spec-eaux-interieures.md`).
 - A positive altitude is not proof of inland water. Classify water from wet presence and depth, independently of ocean coverage.
 - Interpolate water stage and depth premultiplied by wet presence; dry terrain must not contaminate either quantity.
+- Carry flow with the same wet weight, reconstruction kernel and resolution transitions as stage and depth.
+- Average the composed valley incision, including retained spurs, after its physical clipping; do not point-sample a narrow corridor on a sliding coarse grid.
+- Keep confluence openings and bank detail in physical world coordinates. Their extent must enter every geometry and water search bound.
+- Match a confluence to the receiving section. Preserve the upstream land tongue; open the downstream-facing bank within the wider channel's envelope instead of adding the same width to both banks. Bed, banks, wet support and filtering share this geometry.
+- Use the receiving flow's local direction, including its meanders. A nearly parallel join must lose its asymmetric opening continuously before that opening changes sides.
+- Joining channels share their deepest wet section; a tributary bank must not become a closing sill inside the receiving water.
+- A wet section always carries its water level. Distance to a junction alone cannot extinguish an inflow before another wet section covers it.
+- Resolved water shading reads the actual stage/bed gap. Wet pixel coverage must not trigger another excavation of the physical terrain.
+- A river ends at its first terrain-defined standing-water contact. Cache the contact and stop its downstream discharge, rather than hiding only the submerged pixels.
+- Re-accumulate from the original local runoff. Quantized cumulative discharges cannot recover that source reliably.
+- An interrupted edge keeps its incoming discharge until its first water contact. The receiving node's remaining local runoff cannot taper that upstream reach prematurely.
+- Keep the world-space trace fixed when effective discharge changes; otherwise cached terrain contacts refer to another path.
+- Drowned terrain cannot be filled into dry river-bank dikes. Sea and lake mouths obey the same contact rule.
+- Open the mouth before its physical contact, and join the receiving water level there. Pre-erosion bank elevation is not distance to the rendered shore.
+- The wet-bank slope has a depth scale, independent of total river width. Integrate that physical section and derive current from its actual cross-sectional area.
+- Overlapping wet intervals require a true union, including containment. Ordering channel centres does not order their banks; a cut water bed must not be classified as dry.
+- Coastal and river erosion meet as independent envelopes on the same substrate. Reapplying the coastal height remap to an excavated river floor cannot manufacture a new marine basin.
+- First-water probes read the coast actually rendered, with the probing river disabled; the old unmodified shoreline is not its outlet.
+- A dry fluvial head loses excavation depth with its width; narrowing a full-depth cut recreates a slot canyon.
+- A broad valley grows continuously from its upstream dry drainage. Keep this physical onset independent of viewing distance; distant heads use the same terrain and its filter.
+- A mouth connection, an estuary and a sediment delta have distinct extents. Calibrate channel width separately from bays and tidal flats; a larger terminal flare alone cannot reproduce all three.
+- Coastal branching divides the parent discharge. It requires distinct shared bed/water branches; a widened water mask alone is not a delta.
 - Water and terrain shading use the same reconstruction resolution. A coarse dry vertex cannot veto water resolved by the fine grid.
 - A dry grid sample is not proof that a channel is absent between samples; retain a physical candidate bound for contour refinement.
 - Every pixel in a derivative quad must evaluate the same field before its derivatives are used for coverage.
@@ -56,6 +85,12 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Keep level basin interiors and document the connecting bands as an approximation until spillways are resolved.
 - Positive water depth controls rendering, vegetation and terrestrial habitat; a dry plane at its drainage stage is land.
 - Keep the pre-erosion form independent of visible water.
+
+**Coastal foam uses the incident waves and the immersed part of the footprint** (`spec-mer-fft-spike.md`).
+- Depth damping cannot erase the wave energy that feeds breaking near shore.
+- Filter height moments with displacement; unresolved crests retain a breaking probability.
+- Condition the foam mean on water, excluding the dry part of a mixed coastal pixel.
+- Keep the same source in near and distant shading; pore detail may disappear, its mean coverage must remain.
 
 **Grounded movement and environmental audio read the rendered world** (`spec-marche-ambiances.md`).
 - Walking contact uses shared relief and a bounded local footprint; no second terrain model.
@@ -165,6 +200,49 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - **What a shape reads is continuous, even from a collection of elements:** never the value of only the nearest or lowest element, which jumps when it changes; use the maximum or blend of their influences, each fading before that change.
 - **Marine abrasion follows a full-ground contour:** the shore estimate only bounds its reach, extended by the possible detail displacement; the shore platform also cuts detail, and lowering stays bounded by the coastal contour (`spec-erosion.md`, coastal cliffs).
 - **A wave cut stays within reach of the sea:** its contour varies more broadly than its platform, and it requires deep sea at the retreat distance, read on the pre-erosion ground; never a valley or lake mistaken for the sea (`spec-erosion.md`).
+
+**A slope that steers a pattern is the true gradient of the ground it follows** (`spec-erosion.md`, step A, since 2026-11-02).
+- Carry it through every mapping of the point it reads: a warp's Jacobian, a lift off the sphere, a map face's projection. Without them, the detail's analytic slope was 50 to 100 % off, and the ravines ran 25 to 55° off the slope.
+- Check it against finite differences of the height it claims to be the slope of, at several sites.
+
+**A shape drawn along a curve is read on the curve, the same for every point that measures it** (`spec-erosion.md`, step B, since 2026-11-03).
+- Its offsets, widths and noises are functions of the curve's parameter, read at the curve's point on the sphere; read at the sample, a meander bends the course with whoever looks, and a junction placed on it moves.
+- A startup pass that measures such a shape builds it with the shader's own functions, at the same places.
+
+**A conditioned profile holds at the resolution it is stored at** (`spec-erosion.md`, step B).
+- A quadratic course between nodes stays under a cap only if all its controls do: condition the controls, not only the nodes' values.
+
+**Water stands in a channel cut into the ground it crosses, never above it** (`spec-erosion.md`, step B).
+- Cut the channel below the lower of its stage and the composed ground; a stage held above a neighbour's carve leaves perched water and a wall at its edge.
+- A curve's attributes continue past its ends along their slope: held at the end, two curves meeting there differ by a step.
+- Where two channels' water overlaps, their stages blend, each weighted by how far inside its edge the point is: the highest alone stood a step above the other's water at its edge.
+- Bound final river depth by its compact channel cut after combining beds; a neighbouring dry bank cannot enlarge the water column. The depth vanishes at a wet edge; terminal lakes keep their separate stage.
+- **Filter incision and wet area separately:** intersect the physical bank with its supporting ground before averaging its cut. A wider sampling footprint must not move the physical banks outward or lower the whole sample to a subpixel river's stage.
+- Carry mean water depth and wet fraction through mesh, fine-grid and screen samples. A positive mean cut is not full water coverage; recover depth conditional on water only for shading.
+- The conservation guarantee of a local section holds with its terrain and course parameters fixed; combining several channels and varying terrain is a separate approximation.
+
+**A drainage axis does not prescribe two parallel mountain flanks** (river-corridor review, 2026-11-03).
+- Valley form must retain asymmetric mountain masses, spurs, side valleys, constrictions and basins across terrain scales.
+- Perturbing only a centreline or adding one width noise cannot establish this structure.
+- Preserve existing two-dimensional mountain residuals through a corridor's slope and floor transition. Their positive part can reduce incision within the original terrain bound; their negative part must not dig a second trench.
+- Mountain masses must also affect the valley outline. Evaluate confinement on each terrain point so the two flanks can advance independently, while retaining the physical wet-bank clearance and the search bound.
+- A confined floor contains the displaced channel and both banks in the valley's distance metric. A minimum width around the original axis can cut a meander through its own flank and leave artificial fins.
+- The wet bank stays clear. Relief recovery depends on physical channel and valley widths, never on camera distance.
+- Retained mountain height also needs horizontal room beyond the dry bank. Bound that added height by its bank distance; a width-only recovery can restore hundreds of metres in a narrow strip and manufacture a continuous slot canyon.
+- Apply this bound to recovered spurs, not the base valley walls. Preserve small lifts with ample room and make recovery monotone in both available distance and mountain height.
+- Centre physical width fluctuations so unresolved octaves return the nominal width; include their maximum width in every search bound.
+- Density, valley form, water width and distance filtering require separate flight judgments; fixing one does not validate the others.
+- Compare references at matching ground footprints and feature sizes. Separate wet channel, exposed bed, valley floor and mountain flanks; camera altitude alone does not fix their apparent scale.
+
+**A reach kept in metres breaks a search kept in cells** (`spec-erosion.md`, step B).
+- What a fixed set of the level 0's cells must hold scales with those cells: on the cube's edges and corners they are half as wide as at the faces' centres.
+
+**A shape drawn for each element of a network is sized by that element, by a published law** (`spec-erosion.md`, step B, since 2026-11-03).
+- A river's valley follows its discharge, its rock and its relief: one profile for every size repeats as a stamp, a valley on every link of the 20 km graph.
+- Compare network density with observations using the same size cutoff and metric; inverse drainage density is not mountain-front outlet spacing.
+- Separate published exponents from engine calibration, including discharge cutoffs and conversion from drainage area to discharge.
+- Smaller elements fade over a size range; omitting their explicit water remains a documented limitation.
+- A bound applies only where what it protects is drawn: the stage is capped where water runs, not along a dry notch.
 
 **A directional terrain pattern must budget the spatial variation of its direction.**
 - Amplitude divided by wavelength is insufficient when the orientation changes across a ridge or a valley junction.

@@ -135,6 +135,7 @@ protected:
         XMUINT4 coordinateText[8]; // two rows of 64 bytes, packed little-endian
         XMFLOAT4 reliefGradients[256]; // immutable table, shared with Noise.hlsli
         XMFLOAT4 screenRelief;         // the screen relief's texels across, its weight, pixels per texel side
+        XMUINT4 erosionMode;           // x: the erosion shown (key 1): 2 full, 1 ravines only, 0 none
     };
 
     // The clouds' frame, b1 (Clouds.hlsli): the camera and the view in the planet frame (km), in double precision.
@@ -164,6 +165,7 @@ protected:
         float shadow;  // the column's shadow height, for the air (Horizon.hlsl)
         XMFLOAT4 water; // downstream velocity (planet frame), water stage (m)
         float waterDistance; // Planet.hlsli: contour candidate distance
+        float waterDepth, waterCoverage; // footprint mean depth and physical wet fraction
     };
 
     static constexpr double PlanetRadius = 6378000.0;
@@ -185,7 +187,7 @@ protected:
     // snow and rock came and went on the way down (docs/journal-planete.md, 2026-10-24).
     static const UINT FineSubdivision = 4;
     static const UINT FineVertexCount = (FaceCells * FineSubdivision + 1) * (FaceCells * FineSubdivision + 1);
-    static const UINT FineSampleBytes = 8 * sizeof(float); // Planet.hlsli: float4 terrain + float4 inland water
+    static const UINT FineSampleBytes = 12 * sizeof(float); // Planet.hlsli: terrain, inland water, flow moments
     static constexpr double FineMinCell = 13.5 / 4.0;
 
     HINSTANCE mhAppInst = nullptr;
@@ -254,7 +256,8 @@ protected:
         XMFLOAT4 faceX, faceY, faceZ, faceParams;
         double nadir[4];
         XMFLOAT4 ringParams, camPlane; // the mesh's, up to here
-        XMFLOAT4 lightDir, camRight, camUp, camForward, waveAxisX;
+        XMFLOAT4 lightDir, camRight, camUp, camForward;
+        XMFLOAT4 waveCull; // only .w is read by terrain compute; wave directions belong to vertex/sea rendering
     };
     TerrainInputs mTerrainInputs = {};
     bool mTerrainKept = false; // the terrain's buffers hold what its passes computed from mTerrainInputs
@@ -278,6 +281,7 @@ protected:
     double mWeatherTime = 0.0, mWeatherRate = 1.0;
     bool mWeatherPaused = true;
     bool mCloudsOn = true;         // key N; MYPLANETENGINE_NO_CLOUDS for the benches that want none
+    UINT mErosionMode = 2;         // key 1: the erosion shown, 2 full, 1 ravines only, 0 none, to compare in flight
     bool mCloudsReference = false; // key C: finer integration steps
     // Their four textures (assets/clouds): the shape and the cirrus' fibres, the erosion, the vertical profiles, the
     // planet's weather map.
@@ -317,7 +321,7 @@ protected:
     ComPtr<ID3D12Resource> mScreenPositions;
     ComPtr<ID3D12PipelineState> mScreenReliefPSO;
     static const UINT ScreenReliefScale = 2, ScreenReliefMaxTexels = (3840 / 2) * (2160 / 2);
-    static const UINT ScreenSampleBytes = 12 * sizeof(float); // Planet.hlsli: ScreenSample
+    static const UINT ScreenSampleBytes = 16 * sizeof(float); // Planet.hlsli: ScreenSample
     static constexpr double ScreenReliefLow = 150e3, ScreenReliefHigh = 400e3; // its weight's rise, camera altitude (m)
     ComPtr<ID3D12Resource> mIndexBuffer;
     D3D12_INDEX_BUFFER_VIEW mIndexBufferView = {};
@@ -342,7 +346,7 @@ protected:
     // The erosion's level 0 (Erosion.h): the network of the rivers and the glaciers, once at startup, from the tectonic
     // map; its time (ms), the network's alone, and its size (MB).
     ComPtr<ID3D12Resource> mErosionMap;
-    double mErosionMs = 0.0, mErosionBuildMs = 0.0, mErosionMb = 0.0;
+    double mErosionMs = 0.0, mErosionBuildMs = 0.0, mErosionCoursesMs = 0.0, mErosionMb = 0.0;
     void CreateErosionMap(const Tectonics::Map& tectonics, ID3D12PipelineState* formPass);
 
     // Objects near the camera (docs/spec-objets-proximite.md): stones and grass tufts on the planet's lattice, placed
@@ -409,6 +413,7 @@ protected:
     ComPtr<ID3D12Resource> mTimestampBuffer;
     UINT64 mTimestampFrequency = 0;
     double mComputeMs = 0.0; // summed over the title period
+    double mScreenReliefMs = 0.0; // the screen-space relief, separated from reusable mesh/fine terrain
     double mDrawMs = 0.0;
     double mObjectMs = 0.0;     // their placement
     double mObjectDrawMs = 0.0; // their draw

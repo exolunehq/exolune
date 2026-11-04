@@ -1,0 +1,21 @@
+# Seed 0, sea-level camera altitudes. Erosion step B (EROSION_RIVERS, on step A): the level 0's rivers in corridors, with
+# their water and the terminal lakes. The CPU sheets: x64/etude-relief-couloirs-moteur/<site>.jpg (rows sans,
+# ravines_moteur2, couloirs = the prototype, couloirs_moteur = the engine's).
+# Check: water continuous along every river drawn; meanders at all scales, width varying, never straight ribbons or forks;
+# tributaries joining the main channel at an angle; no butte under a river, no dry hollow beside it; detail still
+# appearing on approach; corridor edges, joins and confluences without steps; the outlet reaching the sea.
+# F1-F3: a large river from 40 km to its banks. F4: its mouth. F5-F6: a confluence. F7-F8: a snowy range's mountain river.
+# F9-F10: wet mountains, a valley and a confluence. F11-F12: a tropical plain's river, its terminal lake and its shore.
+# Launch with -SansNuages; N restores the clouds. The first launch after a build computes the courses (title: couloirs).
+Massif : rivieres a 40 km | 40014 -7.100 122.620 80 180 | -26.95 106.61
+Massif : vallee du fleuve a 8 km | 8014 -7.060 122.600 45 180 | -26.95 106.61
+Massif : berges du fleuve | 95 -7.150 122.5966 15 180 | -26.95 106.61
+Massif : vers l'embouchure a 4 km | 4000 -7.215 122.607 40 180 | -26.95 106.61
+Massif : confluence a 2 km | 2012 -7.184894 122.599638 40 165.3 | -26.95 106.61
+Massif : confluence de pres | 362 -7.197249 122.602904 20 165.3 | -26.95 106.61
+Chaine enneigee : riviere de montagne a 10 km | 10783 -25.631651 -26.900656 50 48.2 | -5 -60
+Chaine enneigee : riviere de montagne de pres | 1233 -25.588825 -26.847509 20 48.2 | -5 -60
+Montagnes humides : vallee a 5 km | 5614 42.615638 -175.886362 40 329.1 | 20 160
+Montagnes humides : confluence de pres | 1014 42.653169 -175.868196 22 274.8 | 20 160
+Plaine tropicale : riviere et lac a 30 km | 30111 12.804386 27.981473 70 202.2 | -5 10
+Plaine tropicale : rive du lac | 230 12.9886 27.9817 15 180 | -5 10

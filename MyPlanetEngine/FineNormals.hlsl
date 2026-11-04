@@ -41,5 +41,6 @@ void CSMain(uint3 threadId : SV_DispatchThreadID)
     FineSample sample;
     sample.terrain = float4(normal, fine[id].terrain.w);
     sample.inland = fine[id].inland;
+    sample.flow = fine[id].flow;
     outNormals[id] = sample;
 }

@@ -299,12 +299,14 @@ Status: implemented; validated in flight by the user on the reported massif. Fli
 - **One texel per 2 × 2 pixels** (`ScreenReliefScale`), at most 1920 × 1080 texels.
 - **Each texel finds its ground:** the view ray meets the sphere at sea level, then again at the elevation found there, for the parallax of summits seen aslant.
 - **The relief is filtered to 4 texels** (`SCREEN_BAND_LIMIT`), as the mesh is filtered to 2 cells (`MESH_BAND_LIMIT`).
-- **Each texel stores 48 bytes** (`ScreenSample`): camera-relative position and elevation, premultiplied inland water, roughness and fresh volcanic ground.
+- **Each texel stores 64 bytes** (`ScreenSample`): camera-relative position and elevation, premultiplied inland water and flow, roughness and fresh volcanic ground.
+- **Step-B water, since 2026-11-03:** wet fraction, fraction times stage and mean depth come from the physical channel section. The wider support of an averaged cut is not full water presence. The mesh, fine grid, screen grid and pixel contour query share this representation (`spec-erosion.md`).
 - **Its weight rises with camera altitude,** smoothstep from 150 to 400 km (`ScreenReliefLow`, `ScreenReliefHigh`). Below, the fine grid and the per-pixel detail carry the relief to the pixel.
 - **Nothing is kept between frames:** the texels follow the view, as the pixels do.
 
 **The pixel reads it in B-spline,** `ScreenNormal` (`PixelShader.hlsl`).
 - A smoothing cubic B-spline over the 4 × 4 nearest texels; positions taken relative to the first, without cancellation.
+- Inland coverage, stage/depth moments and flow use the same positive weights on both the screen and fine grids. Flow is divided by coverage only after reconstruction; dry samples cannot rotate or slow the wet current during the crossfade.
 - The normal is the cross product of the surface's derivatives.
 - Slope variation as the texels slide: 9 % with a bilinear tent at 4 texels, 3 % with the B-spline, 0.4 % at 8 texels (`log/pistes-glissement.md`).
 - Any texel without ground, at the limb, sets the weight to 0: the mesh and the fine grid take over.
@@ -329,6 +331,6 @@ Status: implemented; validated in flight by the user on the reported massif. Fli
 **Limits:**
 - **Shading only:** the mesh still gives geometry, depth and silhouettes (`geometrie.md`).
 - **Cost:** not measured; no benchmark was run. Between 150 and 400 km, the pixel water contour query still runs with the remaining weight.
-- **Memory:** 48 bytes per texel, about 95 MiB for the 4K maximum.
+- **Memory:** 64 bytes per texel, about 127 MiB for the 4K maximum; fine-grid samples are 48 bytes, about 27 MiB for 768 × 768.
 - **Erosion valleys still appear suddenly** between 1,400 and 1,800 km (`spec-eaux-interieures.md`).
 - **Two rejected options** are in [the history](log/spec-rendu-lointain-historique.md#2026-11-02-rejected-options-of-the-screen-relief).

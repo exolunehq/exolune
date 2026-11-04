@@ -88,6 +88,7 @@ void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupI
     v.elevation = TerrainAt(xy, R, camAltitude, v.dir, v.pos);
     v.water = float4(gWaterFlow, gWaterLevel);
     v.waterDistance = gWaterDistance;
+    v.waterDepth = gWaterDepth, v.waterCoverage = gWaterCoverage;
     v.roughness = gRoughness;
     v.volcanic = gVolcanic;
     v.horizon = -1.5707964; // the horizon pass's (Horizon.hlsl)

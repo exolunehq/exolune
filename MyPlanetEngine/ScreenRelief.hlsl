@@ -38,17 +38,18 @@ bool PlaneHit(float3 ray, float R, float camAltitude, float h, float texelAngle,
     return true;
 }
 
-[numthreads(64, 1, 1)]
+// Compact tiles keep neighbouring rays together through variable river-search loops, especially at the limb.
+[numthreads(8, 8, 1)]
 void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
 {
     LoadGradients(threadInGroup, 64); // before any return: every thread must reach the barrier
-    const uint w = (uint)screenRelief.x, h = (uint)screenRelief.y, id = threadId.x;
-    if (id >= w * h || screenRelief.z <= 0.0)
+    const uint w = (uint)screenRelief.x, h = (uint)screenRelief.y, id = threadId.y * w + threadId.x;
+    if (threadId.x >= w || threadId.y >= h || screenRelief.z <= 0.0)
         return;
     ScreenSample missing = (ScreenSample)0;
     missing.terrain = asfloat(0x7fc00000u).xxxx; // NaN: no ground under the texel
     const float R = faceParams.y, camAltitude = faceParams.z;
-    const float2 uv = (float2(id % w, id / w) + 0.5) / float2(w, h) * 2.0 - 1.0;
+    const float2 uv = (float2(threadId.xy) + 0.5) / float2(w, h) * 2.0 - 1.0;
     const float3 ray = normalize(camForward.xyz + uv.x * camRight.w * camRight.xyz - uv.y * camUp.w * camUp.xyz);
     const float texelAngle = taa.w * screenRelief.w;
     // Sea level first, then the sphere through the relief found there: the parallax of a summit seen aslant.
@@ -56,7 +57,9 @@ void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupI
     float footprint;
     float3 d, pos;
     float elevation = 0.0;
-    [unroll] for (int pass = 0; pass < 2; ++pass)
+    // Keep one terrain-evaluation call site. Duplicating this large body increases driver code/register
+    // pressure as river geometry grows; retain both distinct physical ray/height evaluations.
+    [loop] for (int pass = 0; pass < 2; ++pass)
     {
         if (!PlaneHit(ray, R, camAltitude, max(elevation, 0.0), texelAngle, xy, footprint))
         {
@@ -69,10 +72,14 @@ void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupI
         gCreaseMaxFrequency = R / (SCREEN_BAND_LIMIT * max(footprint, CREASE_MIN_CELL));
         gExactLattice = footprint < EXACT_LATTICE_MAX_CELL;
         elevation = TerrainAt(xy, R, camAltitude, d, pos);
+        // Below sea level the next sphere is still h=0: ray, footprint and terrain inputs are identical.
+        // Reuse the exact first result, including all inland-water and ground fields.
+        if (elevation <= 0.0) break;
     }
     ScreenSample sample;
     sample.terrain = float4(pos, elevation);
-    sample.inland = float4(InlandSample(gWaterLevel, elevation), gWaterDistance);
+    sample.inland = float4(InlandSample(gWaterLevel, gWaterDepth, gWaterCoverage), gWaterDistance);
+    sample.flow = float4(sample.inland.x * gWaterFlow, 0.0);
     sample.ground = float4(gRoughness, gVolcanic, 0.0, 0.0);
     outScreen[id] = sample;
 }

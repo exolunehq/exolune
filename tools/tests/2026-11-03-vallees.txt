@@ -1,0 +1,15 @@
+# Seed 0. Review mountain spurs, asymmetric valley openings and variable river widths at several altitudes.
+# Keep the reported approach and coastal framing. F3/F7 inspect distant mountain ranges; F9-F11 confluences; F12 a lake.
+# Move continuously between views. N toggles clouds; 1 cycles full erosion, ravines only and pre-erosion ground.
+Riviere : capture a 250 km | 250325.2 -7.489828 125.499386 65.74 -9.13 | 20 120
+Riviere : capture a 173 km | 172718.8 -7.189383 125.450731 65.74 -9.12 | 20 120
+Vallee australe : autre chaine | 40227 -26.288373626 -36.520005922 90 0 | -10 -60
+Vallee : versants a 40 km | 44000 -6.8184 125.2198 60 22.58 | 20 120
+Vallee : eperons et berges | 9700 -6.7137 125.2637 35 22.58 | 20 120
+Cote : capture a 863 km | 863385.4 -11.180370 124.914240 65.06 30.66 | 20 120
+Bassin occidental : autre massif | 40143 -6.716592420 122.439919710 90 0 | 20 100
+Cote : relief a 100 km | 100000 -8.25 126.65 65.06 30.66 | 20 120
+Confluence : vue d'ensemble | 8000 -6.251531 125.325826 90 0 | 20 120
+Confluence : rive proche | 2200 -6.250434328 125.346558807 70 180 | 20 120
+Confluence : autre secteur | 3500 -7.173005 125.036219 90 0 | 20 120
+Lac terminal : vue d'ensemble | 6000 41.279216597 -28.287525936 65 0 | 40 -25

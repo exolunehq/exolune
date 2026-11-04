@@ -1,5 +1,47 @@
 # Erosion spec history
 
+**2026-11-04 · Incomplete high-altitude evaluation optimizations.**
+- Native stationary captures before this work: GPU compute 65.4 ms at 1,231 km, 206.2 ms at 2,998 km and 344.4 ms at 9,998 km. Files: `distance-river-filter-cost-before/F01`, `F03`, `F08` under `x64/erosion-reprise/`.
+- Skipping zero-weight noise and unused dry confluence metadata alone was insufficient: corresponding captures were 52.1, 220.2 and 677.6 ms in `distance-river-filter-cost-after/`. These results did not establish a performance fix.
+- Changing the screen pass from an unrolled pair to one shared loop reduced its compiled program from 651,308 to 329,972 bytes. Both terrain evaluations remained. Corresponding captures were 22.1, 108.2 and 651.5 ms in `distance-river-screen-loop/`; the whole-globe cost remained excessive.
+- These are individual title observations at 1280 by 720, clouds hidden, one engine on the GPU. They are diagnostic evidence, not performance-benchmark statistics. The current candidate adds tighter footprint bounds and exact repeated-hit reuse; its validation belongs in `../spec-erosion.md`.
+- Pruning identity checks: 126 octave/footprint/seed cases, including 56 zero-weight cases without lattice work; 7,200 composed points unchanged. The loop-only change introduced no new physical approximation.
+- Source snapshots: `source-before-river-filter-cost/`, `source-river-filter-prune-only/`. No benchmark, commit, tag or push.
+
+**2026-11-04 · Superseded head-growth verification before confluence bank matching.**
+- Release x64 succeeds through `tools/lance.ps1 -Build -NoLaunch`: `x64/erosion-head-growth-build.log`. Existing material-shift and atmosphere-division warnings remain.
+- `verifie_tetes.py`: CPU/GPU settings agree; growth is bounded and monotone with smooth ends. A real upstream section grows from sub-metre incision to widths 282, 1,020 and 4,626 m while remaining dry. Width and depth decrease together towards the source.
+- The reported terrain retains its additional dry tip at 40, 500 and 2,000 m footprints. Twelve dry joins across the planet converge under refinement. Tighter spatial culling leaves all tested terrain/water fields bit-identical in three massifs; raw-flow bounds hold on all 512,980 receiver links.
+- Native cache `EXOEROS6`, payload SHA-256 `c13c3cc07c544a81f70e30b94a4c9f2bbbffc1642d4d4ed549c6031c524fb108` after the 24-byte header. Original graph words, all drainage/basin stages and local runoff match the pre-change cache exactly. Newly evaluated dry courses also acquire first-water contacts; effective downstream discharge can change.
+- Independent accumulation agrees on 1,572,864 nodes and 19,033 stopped links, with conserved runoff. No stage rises downstream; the 3 % grade bound holds. All 454 sampled wet cap points stay below the cap plus fill. Original-terrain and legacy-network identity pass.
+- Continuity passes 36 edge lines, 36 joins and ten confluence lines across three regions. Maximum sampled water steps are 0.010, 0.002 and 0.009 m. The broad edge grid initially missed a 0.10 m deep dry notch; local refinement gives steps 0.02144 to 0.00536 m, ratio 0.250. The test now resolves both detected peaks before diagnosing a jump, retaining the original refinement factor and acceptance threshold.
+- Approach, upstream slot, morphology, mouth, confluence/current and bank-filter checks pass. They retain the 257-sample wet coastal reach, 173–484 m mouth aperture, 120 wet and 103 dry quadratures, 452 resolved confluence samples, and the physical search bound. Logs: `x64/erosion-head-growth-{core,verifie_*,continuity-*}.log` and `erosion-head-growth-approach.log`.
+- Twelve native views inspected in `x64/erosion-reprise/distance-head-growth-final/`; five original before views in `distance-head-scale-before/`. Near heads extend more gradually. Orbital view F2 still has overly regular broad corridors: the visual report is only partly resolved. F7 retains the corrected upstream canyon; F8/F9 retain the previous water connection fixes.
+- Native descent: `approach-head-growth/`, 160 frames from about 1,230 km to 40 m above the head valley. Five spaced frames inspected; a separate final native capture confirms 39.5 m ground clearance. This is a sampled inspection, not proof of every temporal transition.
+- Remaining morphology: orbital corridor repetition and missing fine tributary hierarchy; no long estuarine basin model; F10 has a side distributary ending on land, F11 a coarse straight lake-stage boundary. Bank finish still needs refinement. The onset change is not a complete answer to these reports.
+- The separate coastal-talus test's inactive historical witnesses remain a known pre-existing limitation; earlier evidence is preserved in the erosion log. It was not rerun for this head-only change.
+- No performance or image-quality benchmark, commit, tag or push. Flight review remains pending.
+
+
+**2026-11-04 · Superseded symmetric confluence opening.**
+- The connector added 1.15 receiving nominal half-widths to both banks over nine combined half-widths, independently of its own width deficit. This erased the upstream land tongue and let its round endpoint protrude outside the receiving channel.
+- The former opening regression required a near-junction width gain above 35%, even for a section already wide enough. It rewarded the bulb rather than checking bank geometry.
+- Replaced by receiving-width matching and downstream-facing opening. Source/cache: ignored `source-before-confluence-banks/` and `erosion-before-confluence-banks.bin`. Three native before views: `distance-confluence-banks-before/`.
+- The first asymmetric candidate chose the side from the coarse receiving heading. Three of 584 sampled connectors needed the opposite side when the actual meander slope was included. The retained version uses local flow and smoothly removes the opening near parallel alignment; the coarse-heading candidate is not the final review version.
+
+**2026-11-04 · Rejected 32 m³/s, sixth-order onset.**
+- Candidate: `RIVER_Q.x = 32`, dry share `t^6 (7 - 6t)`. It extends resolved heads but contributes too little upstream incision to change the reported orbital silhouette sufficiently.
+- Native view F2 also exposed extra calculation cost: its ordinary capture title rose from about 40 to 84 ms GPU calculation time. These single frames are not a benchmark or a statistical measurement.
+- Twelve candidate native views: `distance-head-scale-after/`. Source/cache: `source-head-onset-rejected/` and `erosion-head-onset-rejected.bin`, all ignored. This candidate is not the final review build.
+- The next candidate starts at 100 m³/s and grows in linear discharge. It also prunes provably inactive catchments before reading tributaries and tightens dry-course spatial bounds without changing their terrain.
+
+**2026-11-04 · Superseded dry-head onset and diagnosis.**
+- `RIVER_Q` was (200, 300, 450) m³/s; corridor depth and widths used a log-discharge smoothstep over 200–300. Many heads reached their full broad profile within one coarse graph link.
+- Under that calibration, dry and wet courses occupied 8.2 % of land links, with inverse drainage density 170 km; wet courses alone occupied 6.0 %, with 232 km. These are not outlet-spacing measurements.
+- The reported head already had a physical point before this follow-up. A 40 km fine/coarse comparison did not establish a large systematic excess incision from filtering; do not attribute the report to a proven lost-spur mean bias.
+- Extending only synthetic dry head objects was insufficient evidence: actual heads can start below the activation threshold. The new regression follows real dry courses and composed terrain at several footprints.
+- Before-change source and cache: ignored `x64/erosion-reprise/source-before-head-scale/` and `erosion-before-head-scale.bin`. Five native before views use `distance-head-scale-before/`.
+
 **2026-11-01 · Visible water was deferred.**
 - The earlier erosion spec stored river discharge and stage but rendered only the sea.
 - Its remaining step 6 deferred river and lake surfaces to later work with the sea.
@@ -749,3 +791,226 @@ Superseded by the clipped section mean (`../spec-erosion.md`, level 1). The form
 - It dug furrows along every divide between links, parallel to the valleys, and the ground trembled more.
 - The crossing sat where the profile met the estimated ground, not the real one.
 - The patch stayed outside Git, `vallees-empreinte.patch` in the scratchpad of the session that wrote it.
+
+## 2026-11-03: step B's first corridors, before their sizing
+
+Superseded the same day by the corridors sized by discharge (`../spec-erosion.md`, step B). The former contract:
+- **Every link from 10 m³/s** drew a corridor and water, `RIVER_Q` (10, 15): 48 % of land links, 31 km apart over all land, 14 km on the wet plateau at −6.6°, 125.3°.
+- **The floor** was the channel and its meanders' bound, 2W plus twice their amplitudes: ±4 % at a given discharge, 0.6 km at 10 to 30 m³/s, 4.9 km at 1 000 to 3 000 m³/s.
+- **The walls** a smoothstep over the relief's height above the stage over 0.2 to 0.5, 300 m to 6 km: p10 300 m, p50 825 m, p90 3.3 km; at 6 km across the plateau.
+- **Every course capped:** 71 % of river cells lowered, p50 50 m, p95 568 m, max 3.8 km.
+- **The highest wet channel's stage** over overlapping water: a step at confluences, 8 cm at most then, 35 cm on larger rivers once sized.
+
+**Its checks, 2026-11-03,** `verifie_couloirs.py` on the CPU mirror of the startup:
+- **Stage:** no rise downstream over 513 000 links, no drop steeper than 3 %; 66 % of river cells lowered, p95 542 m.
+- **Cap:** 99.4 % of the samples along the five sites' courses under the cap plus the fill; the rest on re-routed tributaries, whose junction the conditioning moved on 6 % of them.
+- **Distance to the meandered course:** median error 0.1 % of the half-width, p95 1.6 %.
+- **Continuity,** along 120 lines: the ground Lipschitz everywhere, the water at edges and joins; at confluences a water step of at most 8 cm.
+- **Water against the prototype,** 20 windows: dry share and wet leaks equal or lower in each, as 0.073 / 0.073 and 0.189 / 0.189 on the snowy range at 10 km, 0.026 / 0.005 and 0.173 / 0.010 on the perched river.
+- **Sheets:** `x64/etude-relief-couloirs-moteur`; route `tools/tests/2026-11-03-rivieres.txt`.
+- **Cost per point:** 16 nodes read, 1 to 4 curves solved, up to 3 meanders; noise octaves added to step A's 27 to 55: 0 to 8 off the mountains, 8 to 30 in them.
+
+**Its defect, seen from 465 km on 2026-11-03:** over the wet plateau, a valley of one width and depth on nearly every link, “drawn with a Photoshop brush of one size”; native captures in `x64/captures-taille/avant`.
+
+## 2026-11-03: sizing handoff verification
+
+**Superseded documentation**
+- The spec header still named `erosion-globale`, tag `piste/erosion-globale`, and route `2026-11-01-auges.txt`; those refer to the earlier network-valley stage.
+- The sizing draft mixed settings from several iterations: 50/100 m³/s and a 10 km corridor reach in geometry, versus 200/300/450 m³/s and 8.5 km in code.
+- It reported 232 km globally, 64 km on the wet plateau and 37 km on its flank as river spacing.
+- Those values were area divided by channel length, not distances between mountain-front outlets.
+- The Hovius comparison and the former 30 m Earth-river density comparison did not validate the 300 m³/s cutoff.
+- The live spec now distinguishes observational scaling laws, calibrated thresholds and inverse drainage density.
+- First-corridor cap, continuity and cost results had also remained in the live sizing section; their original results are preserved above.
+
+**Recovered failure**
+- `python tools/hydro/verifie_couloirs.py` on the engine's `EXOEROS5` cache passed stages, widths and sampled caps, then failed confluence continuity.
+- 22 corridor-edge lines and 22 joins passed; one of four confluence lines retained a 0.660 m depth jump when sampling was refined fourfold.
+- Seed 0, receiver cell 1197130, inflow direction 1; water edge near latitude −6.25015352°, longitude 125.32594265°, terrain 1553.39 m.
+- A neighbouring dry bank won the bed envelope below the wet channel's stage. The entering channel's compact cut was practically zero at its edge.
+- Removing the tributary's blend taper did not change this failure; that option was discarded.
+- Bounding water by the final bed plus the compact cut removed the isolated jump without changing bed heights.
+- Before/final logs and native captures are local artifacts in `x64/erosion-reprise*`; current acceptance status is in `../spec-erosion.md`.
+
+**Native review completion**
+- The first capture pass stopped after F2 while other worktrees used the GPU; it resumed after the user's continuation request.
+- Former F6/F8 camera altitudes, 362 m and 1014 m, triggered placement recovery on the revised terrain. Their current views start at 1100 m and 1800 m.
+- The first F12 location no longer had a wet tributary at the new cutoff. Its replacement is a wet downstream confluence near −7.173005°, 125.036219°, at 3500 m camera altitude.
+- Initial framings remain in `x64/erosion-reprise/initial-framing/`; the twelve final captures are in `x64/erosion-reprise/apres/`.
+
+## 2026-11-03: widened banks and distance-dependent water
+
+**Superseded construction**
+- The compact water cut was averaged, but banks were moved from W/2W to W+r/W+r+max(W,r).
+- Every positive averaged depth became full water presence; a 2 cm depth threshold could then erase a diluted river.
+- Final composition forced every point in the filtered wet support down to the candidate stage minus the mean cut.
+- A fixed row through the reported coast shows up to 4881 m of additional channel lowering with a 4 km radius, against at most 109 m with a 500 m radius. These are diagnostic samples, not a quality benchmark.
+- Physical bank filtering and separate wet fraction supersede this construction. Morphology and density remain separate open issues.
+
+**Reproductions, seed 0, sea-level camera poses**
+- Wide river: `250325.2 -7.489828 125.499386 65.74 -9.13`.
+- Thin/disappearing river: `172718.8 -7.189383 125.450731 65.74 -9.12`.
+- Repeated coastal strokes: `863385.4 -11.180370 124.914240 65.06 30.66`.
+- Native reference views: `x64/erosion-reprise/distance-avant/`.
+
+**Superseded first distance-filter candidate**
+- `x64/erosion-reprise/distance-apres/` predates the final composed-ground correction; its F12 is also an earlier mountain view rather than the current lake witness.
+- Applying only the lowest channel bed omitted compact incision where a neighbouring corridor had already lowered the supporting ground.
+- In a 64 by 64 confluence window near -7.173005, 125.036219, 113 of 522 resolved wet samples disagreed with their actual stage/bed gap; the maximum discrepancy was 3.178 m.
+- The first native F11 showed trees over that falsely wet dry ground.
+- The final composition also subtracts the compact mean cut from the composed support. The same window has no failing sample and a maximum discrepancy below 2e-13 m.
+- Final native captures are in `distance-final/`; the current route uses an actual terminal lake for F12.
+
+**Preceding sizing-review results**
+
+**Current verification, 2026-11-03,** `python tools/hydro/verifie_couloirs.py`, using the engine's `EXOEROS5` cache:
+- **Stage:** no rise downstream over 512 980 links; drops satisfy the 3 % bound within stored-stage precision. River nodes lowered on 57.7 %, median 19 m, p95 265 m.
+- **Cap:** all 536 wet samples in the six inspected regions satisfy the sampled cap plus fill. Only one wet re-routed tributary is represented; this is not global connectivity validation.
+- **Distance:** median error 0.1 % of nominal half-width, p95 1.5 %, maximum 19.8 % in the sampled courses.
+- **Continuity:** 22 corridor-edge lines, 22 joins and four confluence lines pass the refinement check after the compact-cut bound. The former 0.660 m jump is absent; the largest adjacent water-depth change at the finer sampling is about 0.002 m in the confluence witnesses. This is sampled continuity, not global river connectivity.
+- **Identity:** the pre-erosion form is bit-identical with step B on or off. The older-cache comparison is optional and was not repeated in this continuation.
+- **Result:** the complete default CPU check passes; log `x64/erosion-reprise-checks-final.log`.
+- **Build:** Release x64 passes through `tools/lance.ps1 -Build -NoLaunch`; log `x64/erosion-reprise-build.log`. The existing material bit-shift warning remains.
+- **Saved sheets** require explicit `--sheets` and `--sheets-before`; they do not evaluate current code. Older prototype comparisons and cost counts are in [the erosion log](log/spec-erosion-historique.md#2026-11-03-step-bs-first-corridors-before-their-sizing).
+- **Performance and image-quality benchmarks:** not run for this continuation. Viability and approach stability remain open.
+
+**Review:** `tools/tests/2026-11-03-tailles.txt`; the reported plateau, its retained large river, former river sites, snowy terrain and confluence witnesses. Sizing still requires the user's flight review. The first step B version was reviewed before sizing, according to the handoff.
+- **Native captures after the correction:** all twelve views rendered and inspected at 1280 × 720, in `x64/erosion-reprise/apres/`. F2/F3 retain the large river; F10/F11 show the corrected confluence; F12 shows another wet confluence downstream. F6/F8 frame the former small courses from above the current terrain.
+- **Review limits:** captures verify framing and visible water, not continuous approach stability or global drainage. Ribbon-like channels, abrupt confluence shapes and small rivers omitted by the threshold remain visible limitations.
+- **Interactive launch:** verified on 2026-11-03 through `tools/lance.ps1`, at the reported 465 km location, with the twelve-view route, clouds hidden and 1920 × 1080 full screen. User acceptance remains pending.
+
+**2026-11-03 · Distance-filter baseline before morphology changes.**
+- Release x64 passes through `tools/lance.ps1 -Build -NoLaunch`; existing material bit-shift warning only. Log: `x64/erosion-distance-build.log`.
+- The full default `verifie_couloirs.py` passes: stages, sizing, sampled caps, curve distance, 22 edge lines, 22 joins, four confluence lines and pre-erosion identity. Log: `x64/erosion-distance-checks.log`.
+- `verifie_filtre_rivieres.py` passes 103 independent section cases; normalized float32 error is at most 5.5e-6.
+- A separate 64 by 64 resolved confluence window checks 522 wet samples: reported depth agrees with the actual stage/bed gap within 2e-5 m.
+- All twelve final native captures are inspected in `x64/erosion-reprise/distance-final/`: the reported approach, three coastal scales, close rivers, two confluences and a terminal lake.
+- The approach retains a thin course in the checked views; the second confluence no longer has the first candidate's trees over falsely wet dry ground. These captures do not validate every continuous flight transition.
+- Uniform water ribbons and repeated valley walls remain visible. User acceptance remains pending.
+- Interactive review was relaunched through `tools/lance.ps1`; F1 and all twelve palette entries were verified, with free camera and clouds hidden.
+- The intermediate `distance-apres/` captures are superseded; their composed-ground failure is recorded in `log/spec-erosion-historique.md`.
+- No performance or image-quality benchmark was run.
+
+**2026-11-03 · Valley residual restricted below 20 km, superseded.**
+- Native candidate `x64/erosion-reprise/distance-morphology-1/`: F1, F5, F6 and F9.
+- Preserving only the residual below the coarse support retained small relief but left the orbital valley tubes almost unchanged.
+- A local 40 km terrain probe retained at most 320 m; including the 50 km and 25 km detail octaves retained up to 1752 m at the same points.
+- The second candidate therefore uses the pre-detail support, including volcanic edifices, without adding new noise or increasing the original terrain height.
+- The initial 40 km meander extension also required a reach correction: wavelengths above 20 km now belong wholly to the bounded valley displacement. This was corrected before the native candidate above.
+- An exponential width modulation was considered and discarded before native tests: filtering its input would change its mean width with distance. The retained modulation is linear and centred.
+
+**2026-11-03 · Height preservation without outline confinement, superseded.**
+- Twelve native captures in `x64/erosion-reprise/distance-morphology-2/`; F1, F5 and F6 inspected against the first candidate.
+- Including the 50 km and 25 km mountain octaves retained real spurs but left the broad corridor outlines too regular.
+- The next candidate also contracts local floor and wall widths around the positive terrain mass, independently on the two flanks.
+- Source snapshot: ignored `x64/erosion-reprise/source-before-confinement/`.
+- Full correctness passed before confinement: 22 edges, 22 joins, four confluence lines, stages, sampled caps, distance and pre-erosion identity. Log `x64/erosion-morphology-2-corridors.log`.
+- Continuity witnesses now follow the actual displaced course; a 300 m line through the old graph could miss the river after adding larger bends.
+
+**2026-11-03 · Confinement around the undisplaced axis, superseded.**
+- Candidate captures: `x64/erosion-reprise/distance-morphology-3/`; the close confluence F9 exposed long narrow rock strips beside the water.
+- The floor's minimum covered two channel widths around the valley axis, but the channel could meander outside that narrowed floor.
+- The correction contains the displaced channel and both banks in the valley metric, extends its culling bound accordingly, and keeps spur recovery at the uncontracted floor scale.
+- `verifie_morphologie.py` now independently constructs displaced-bank points and checks that every one stays inside the floor.
+
+**2026-11-03 · Verification before the upstream bank-distance envelope.**
+- Release x64 passes through `tools/lance.ps1 -Build -NoLaunch`; log `x64/erosion-morphology-build.log`.
+- `verifie_morphologie.py` passes 4096 bounded terrain compositions, 4096 confined profiles, onset smoothness, resolved-width invariance and centred distant width; log `x64/erosion-morphology-invariants.log`.
+- Across seed 0's full discharge range, the conservative corridor reach is 13 731 m; the fixed node-search contract is 14 094 m at cube corners.
+- The full default `verifie_couloirs.py` passes: 512 980 stage links, 536 wet cap samples, base sizing, curve distance, 22 edge lines, 22 joins, four confluence lines and pre-erosion identity; log `x64/erosion-morphology-final-corridors.log`.
+- Continuity witnesses follow the displaced river, including its larger bends. They no longer test only the undisplaced graph's neighbourhood.
+- `verifie_filtre_rivieres.py` passes 103 independent section cases; normalized float32 error is at most 5.5e-6. All 347 resolved wet samples in the confluence window agree with the stage/bed gap; log `x64/erosion-morphology-water.log`.
+- All twelve final native views are inspected in `x64/erosion-reprise/distance-morphology-final/`; the exact reported approach, coast, two other wet basins, confluences and a terminal lake.
+- Additional 2 km windows in the southern and western basins check 518 and 716 resolved wet points against the actual stage/bed gap; log `x64/erosion-morphology-other-basins.log`.
+- The native cache payload is byte-identical to the one used by the full correctness checks; the pre-detail-support and confinement changes do not change the conditioned stages.
+- The reported approach retains a visible thin river in the checked frames. Original mountain masses survive in the sides, but the orbital network still reads as repeated corridors; the Alpine hierarchy is not achieved.
+- Narrow exposed bank strips remain prominent at the confluence despite the displaced-bank containment correction. The raw relief witness is `x64/erosion-reprise/confluence-relief.png`; do not claim that all apparent fins or bank shapes are fixed.
+- These static views do not certify continuous flight transitions. User acceptance remains pending.
+- Interactive app relaunched from this worktree with the twelve-view route, clouds hidden and a 1280 × 720 window; the process is responsive and rendering. It starts in cockpit mode; no UI control was used to change it.
+- Earlier candidates and their verification are archived in `log/spec-erosion-historique.md`.
+- No performance or image-quality benchmark was run.
+
+**2026-11-03 · Width-only spur recovery, superseded.**
+- Recovery reached its full share at four channel half-widths or 0.6 of the valley floor, regardless of the retained mountain height.
+- The user reproduced a long slot at `3840.6 -5.038412 124.886462 13.17 -102.18`. On 29 cross-sections over 18.9 km, the old recovery raised the ground by up to 667 m within 300 m of the small channel.
+- A prototype enlarged the recovery interval in proportion to spur height. It reduced the slots but could recover less height when the original mountain grew; it was not shipped.
+- The retained fix limits added height by available bank distance with a monotone soft cap; current formulas and verification are in the living spec.
+
+
+**2026-11-03 · Upstream baseline before approach and bank refinements**
+
+**Current verification, 2026-11-03:**
+- Release x64 passes through `tools/lance.ps1 -Build -NoLaunch`; log `x64/erosion-amont-build.log`.
+- `verifie_amont.py` passes monotonicity, C1 joins, unchanged small lifts with ample room, and 29 composed cross-sections over 18.9 km of the reported course. Maximum rise within 300 m of the channel falls from 666.6 to 146.4 m; water coverage is identical. Log: `x64/erosion-amont-regression.log`.
+- `verifie_morphologie.py` passes the bounded terrain, confinement, physical-width and search-reach invariants; log `x64/erosion-amont-morphology.log`.
+- `verifie_filtre_rivieres.py` passes 103 independent filtered-section checks and 347 resolved confluence water samples; log `x64/erosion-amont-water.log`.
+- The full default `verifie_couloirs.py` passes: 512 980 stage links, 536 wet cap samples, curve distance, 22 edge lines, 22 joins, four confluence lines and pre-erosion identity. Log: `x64/erosion-amont-corridors.log`.
+- All twelve native frames in `x64/erosion-reprise/distance-amont/` are inspected, plus the terminal-lake witness in `distance-amont-lake/F12.png`. The reported slot is absent at the exact camera pose; broad-valley witness F5 retains its large form.
+- The native stage-cache payload is byte-identical to the cache used by the correctness suites.
+- The upstream close view is partly obscured by canopy. Water remains overly regular in some views, and the orbital network still repeats broad corridors; this correction does not establish the Alpine tributary hierarchy.
+- These static captures do not certify every location or continuous approach. Flight review: `tools/tests/2026-11-03-amont.txt`; no performance or image-quality benchmark was run.
+- The interactive app is relaunched on that route at the reported position, windowed with clouds hidden; the worktree process is responsive and rendering. Backspace then F1 restores the exact free-camera pose from cockpit mode.
+- Previous morphology verification and discarded recovery variants are archived in `log/spec-erosion-historique.md`.
+
+
+**Rejected approach candidates**
+- Point-sampling the composed valley profile loses or oversamples narrow valleys when coarse cells move. The retained filter integrates the signed local incision, including spur recovery.
+- A vector `lerp` selected between the retained lift and an unused cap with a nearly zero divisor. Float cancellation produced tall parasitic walls in native approach frames. The stable minimum bounds the divisor before evaluation; `verifie_approche.py` exercises 26,123 float32 cases.
+- Enabling the same fan on high-relief coastal outlets widened mountain valleys excessively. Fan eligibility now includes the terminal wall scale as a coarse coastal-relief proxy. This is calibrated eligibility, not a resolved sediment or coast-routing model.
+# Junction and first-water follow-up, 2026-11-04
+
+**Rejected intermediates**
+- The first confluence widening used 0.7 receiving half-width over six combined half-widths. The user still observed angular banks and a pale internal sill.
+- The terminal fan initially held constant spread after its sea node. Continuing its opening removed that mathematical plateau, but native F8/F9 still exposed canals crossing lakes and coastal islands.
+- Those captures are local ignored evidence: `x64/erosion-reprise/distance-refinements/` and `distance-refinements-splay/`. They are not acceptance of the later contact rule.
+- Taking the minimum absolute wet-bed elevation removed a color sill but introduced jumps where a lower-stage course first entered the support. The independent continuity check found a 1.287 m step.
+- The next candidate retained the maximum compact cut and imposed a matching bed as coverage approached one. Its pre-contact continuity checks passed, but that coverage-dependent excavation was subsequently removed. Resolved shading now reads the actual water column without an extra terrain cut.
+- The post-contact continuity suite found a separate 1.207 m water-depth jump. Longitudinal handoff zeroed the tributary's stage weight while its wet incision remained and the narrower main course did not cover it. Removing that handoff preserves the water level throughout the actual wet support; the regression remains covered by the corridor suite.
+
+**Superseded approach verification, 2026-11-03**
+- Six CPU suites passed before the later junction and contact changes. The tested tributary opened 96 to 184 m near its join and retained 92 m upstream.
+- The first fan witness spanned 1,536 m versus 296 m without the fan. The continuous terminal version spanned 1,512 m versus 324 m.
+- The earlier physical reach bound was 13,896 m against the 14,094 m corner contract.
+- `approach-final/` contains 224 native frames, from 1,200 km to the bank. `distance-refinements/` contains twelve poses. The coastal traces were subsequently rejected by the user.
+- Their stage payload remained `b537f704e1bd60f92ee018b7131ce2d08ee8aaeab0d1ee8449395031abd83308`; the later first-water cache has a new schema and must be rechecked.
+
+**2026-11-04 · Before surviving-midpoint and wet-bank corrections**
+- The later coastal counterexample revealed discharge fading before its contact. These captures and measurements describe the preceding implementation.
+**Previous verification:**
+- Release x64 succeeds (`x64/erosion-wet-support-build.log`). Twelve fixed native views and a 224-frame orbit-to-bank descent are captured; user flight acceptance remains pending. Superseded captures and measurements are in `log/spec-erosion-historique.md`.
+- `verifie_approche.py`: 256 composed sections against dense independent quadrature, maximum normalized error 0.000272; 48 footprint/phase combinations preserve incision area within 0.2%; 26,123 float32 cap cases within 2.5e-7 relative error; 480 footprint-edge searches retain neighbouring candidates.
+- `verifie_raccords.py`: the isolated tributary stays 122 m wide upstream and opens from 102 to 240 m near the join. The low-coast fixture has three separated channels over 1,512 m versus 320 m without the fan; the high-relief outlet stays excluded. A four-times finer step reduces the largest wet current change by 0.250.
+- `verifie_amont.py`, `verifie_morphologie.py` and `verifie_filtre_rivieres.py` pass. The physical reach bound is 13,920 m, within the current planet's 14,094 m corner contract. Independent bank integration covers 103 sections with float32 relative error below 2.6e-6; 439 resolved confluence samples match the stage/bed gap.
+- `verifie_contacts.py`: all 1,572,864 nodes match independent runoff accumulation and preserve the sink balance; 11,766 graph links stop at first water. On the coastal witness, 100 of 101 formerly wet samples lose disconnected continuations. Four termination footprints match independent quadrature.
+- The corridor suite's stage, cap and distance checks pass on the contact cache: 440 wet cap samples, none above cap plus fill; normalized distance error p95 0.040. After removing longitudinal handoff, the complete continuity check passes 17 edge lines, 17 joins and four confluences; largest sampled water steps are 0.003 m and shrink with the sampling step. Pre-erosion and old-network identity checks pass. Logs: `x64/erosion-final-corridors.log` for unchanged stage/distance checks, `x64/erosion-wet-support-check.log` for the corrected continuity, `x64/erosion-final-identity.log`.
+- Review route: `tools/tests/2026-11-04-approche-berges.txt`; native descent source in ignored `x64/erosion-reprise/approach-ground.cine`.
+- Native descent: `x64/erosion-reprise/approach-contacts-final/`, exit code 0, from 1,200 km to about 8 m above the bank. Inspected samples at 417, 145, 50, 17, 6 and 2.2 km, then near the bank, retain the corridor and water without the earlier giant-wall regression. This sampled review does not certify all temporal behaviour over the planet.
+- Native `distance-contacts-final/F08.png` removes the reported island and bay continuations. F6 also removes the former grey fragments at the tributary handoff and retains continuous water at the junction.
+- The regenerated native cache payload is identical to the tested payload: SHA-256 `98b849141acfa28264b0a310564f04cbae406bc78cbde7fc8d925d1a97a36e3f` (bytes after the 24-byte header).
+- F10 exposes a remaining fan limitation: one side distributary ends on land because the three branches share the centre course's contact. Independent distributary routing/contact remains required; this view is not accepted delta morphology.
+- F12 exposes the pre-existing coarse basin-stage boundary near a lake inlet. First-water termination does not resolve that straight water-surface boundary; basin connectivity and spillways remain open.
+- F11 has grounded gravel and tufts with no reported floating instances, but its exposed margin still looks plain. This is not acceptance of the full bank-material/geometry refinement.
+- No performance or image-quality benchmark is run. The full planetary network, connected minor tributaries, sub-threshold streams and detailed coastal routing remain open.
+
+**2026-11-04 · Rejected first mouth/bank native review**
+- Release builds `erosion-mouth-banks-build.log` and `erosion-mouth-banks-final-build.log` succeeded. Twelve native views are in ignored `x64/erosion-reprise/distance-mouth-banks/`.
+- F1–F3 still show a rectangular coastal pool and a coloured stripe through its river. The native cache payload matches the earlier contact payload; this is a rendering/composition defect, not an inconsistent cache.
+- Wave erosion remapped a river floor that was already lowered. Centre-ordered interval accumulation also missed the trunk where a narrower nascent branch lay inside it.
+- The isolated discharge and bank-section checks passed, but did not cover either composed failure. The current checks include independent coastal substrates and exact interval partitions.
+- The combined CPU correction removes all 1,232 formerly false-sea samples in the reported 6 km window; native confirmation belongs to the current spec.
+
+**Superseded mouth/wet-bank verification before the head-growth follow-up, 2026-11-04**
+- Release x64 succeeds (`x64/erosion-coast-composition-build.log`). Twelve native views and a 224-frame descent are captured. The rejected false-pool/dry-stripe candidate is archived in `log/spec-erosion-historique.md`.
+- `verifie_embouchures.py`: all 385 visible interrupted midpoints, including 26 connectors, agree on incoming discharge. The reported reach remains wet at 257 successive samples. The isolated mouth opens from 173 to 484 m before contact; sea and elevated-lake apertures coincide and stages meet the receiving level.
+- `verifie_filtre_rivieres.py`: independent quadrature conserves 120 wet and 103 dry sections. Float32 relative error stays below 2.9e-5 and 2.6e-6 respectively. All 452 resolved confluence samples match the stage/bed gap.
+- Additional mouth regressions cover 3,002 interval unions and six nascent fans without dry strips; five coastal substrates agree with the independent river-free terrain. The reported window no longer contains the spurious marine pool.
+- `verifie_contacts.py`: all 1,572,864 nodes match independent accumulation, 11,809 interrupted links and conserved local runoff. Four physical termination filters pass. On the original coastal witness, 120 of 124 formerly wet samples lose disconnected continuations.
+- Approach, junction/current, upstream and morphology checks pass on the new CPU rules. The physical search bound remains 13,920 m within 14,094 m; existing graph traces and pre-erosion terrain are unchanged.
+- Complete continuity passes 17 edge lines, 17 joins and four confluences. Maximum sampled water steps are 0.010, 0.002 and 0.009 m and shrink with the sampling step. Both pre-erosion and legacy-network identity pass (`x64/erosion-coast-final-continuity.log`).
+- These contact, mouth, junction, bank and continuity checks use the regenerated native cache. Its payload SHA-256 is `7e8bd8851a671d7666f04b9f16149a4991801257ff4ea86ee6876d5c2a9a8755`, after the 24-byte header. Logs: `x64/erosion-coast-final-{contacts,mouths,junctions,banks,continuity}.log`.
+- `tools/verifie_ecume_cotiere.py`: 10,000 wave/depth cases against independent quadrature; maximum probability error below 0.00012. Mixed-coast foam decreases as the unresolved depth range grows; crest, trough and deep-water limits pass.
+- The physical coastal-profile filter passes. The separate `verifie_pied_falaise.py` assertion "No current cliff exercises the talus" fails identically on the saved pre-composition source/cache and current code: its four historical witnesses no longer activate the tested talus. This fixture limitation remains open; it is not a passing regression check. Logs: `x64/erosion-coast-cliff-check.log`, `x64/erosion-reprise/cliff-before-composition.log`.
+- Current route: `tools/tests/2026-11-04-embouchures.txt`. Native captures are in `x64/erosion-reprise/distance-mouth-coast-final/`. F1–F3 remove the false coastal pool and internal stripe, retain continuous water and open the mouth. F4 retains the removed bay crossings; F5–F6 retain continuous confluence water; F7 retains the corrected upstream valley; F11–F12 cover orbital distances.
+- Native descent: `x64/erosion-reprise/approach-mouth-coast/`, 224 frames from 1,200 km to about 8 m above the bank; sampled sheet `approach-mouth-coast.png`. Inspected samples retain the corridor without the earlier giant-wall regression. Static samples do not certify all temporal behaviour or planetary locations.
+- Remaining visible limits: F8 has a side distributary ending on land; F10 has a coarse, straight basin-stage boundary; F9 retains a plain bank finish. These are not accepted natural morphology. Independent distributary contacts, continuous basin boundaries/spillways, connected minor tributaries and physical sediment budgets remain open.
+- No performance or image-quality benchmark is requested or run. User flight review remains pending.

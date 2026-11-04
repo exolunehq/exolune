@@ -85,6 +85,9 @@
     <FxCompile Include="FineNormals.hlsl" />
     <FxCompile Include="PlanetMap.hlsl" />
     <FxCompile Include="ErosionForm.hlsl" />
+    <FxCompile Include="ErosionNodes.hlsl" />
+    <FxCompile Include="ErosionStages.hlsl" />
+    <FxCompile Include="ErosionContacts.hlsl" />
     <FxCompile Include="MaterialGenerator.hlsl" />
     <FxCompile Include="ObjectPlacement.hlsl" />
     <FxCompile Include="ObjectCandidates.hlsl" />

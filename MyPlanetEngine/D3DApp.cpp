@@ -1059,7 +1059,7 @@ bool D3DApp::InitDirect3D() {
     // GPU timestamps.
     D3D12_QUERY_HEAP_DESC queryDesc = {};
     queryDesc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
-    queryDesc.Count = 22; // frame, ocean, foliage, batch foliage, cloud atmosphere and its trace, the terrain's colour
+    queryDesc.Count = 23; // frame, ocean, foliage, clouds, terrain colour and the screen-relief start
     Check(md3dDevice->CreateQueryHeap(&queryDesc, IID_PPV_ARGS(&mTimestampHeap)), "Timestamp heap creation failed.");
     mTimestampBuffer = CreateBuffer(md3dDevice.Get(), queryDesc.Count * sizeof(UINT64), D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
     mCommandQueue->GetTimestampFrequency(&mTimestampFrequency);
@@ -1444,82 +1444,135 @@ Tectonics::Map D3DApp::CreateTectonicMap() {
     return map;
 }
 
-// The erosion level 0: pre-erosion ground on the GPU, drainage on the CPU, uploaded at t23.
+// The erosion level 0: pre-erosion ground on the GPU, drainage on the CPU, uploaded at t23. When the cache is stale, step
+// B's courses are then measured on the GPU where they are drawn, their sinuosity (ErosionNodes.hlsl) and the relief they
+// cross (ErosionStages.hlsl), their stages conditioned on the CPU (Erosion::Condition) and the map uploaded again.
 void D3DApp::CreateErosionMap(const Tectonics::Map& tectonics, ID3D12PipelineState* pso) {
-    LARGE_INTEGER t0, t1;
+    LARGE_INTEGER t0, t1, tc = {};
     QueryPerformanceCounter(&t0);
     const uint32_t seed = mSettings.seed, n = tectonics.size, cells = 6 * n * n;
-    const UINT64 bytes = sizeof(float) * cells;
-    ComPtr<ID3D12Resource> form = CreateBuffer(md3dDevice.Get(), bytes, D3D12_HEAP_TYPE_DEFAULT,
+    const UINT64 bytes = sizeof(Erosion::Course) * cells; // the largest pass's
+    ComPtr<ID3D12Resource> target = CreateBuffer(md3dDevice.Get(), bytes, D3D12_HEAP_TYPE_DEFAULT,
         D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     ComPtr<ID3D12Resource> readback = CreateBuffer(md3dDevice.Get(), bytes, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
-    mCommandAllocator->Reset();
-    mCommandList->Reset(mCommandAllocator.Get(), pso);
-    auto toWrite = CD3DX12_RESOURCE_BARRIER::Transition(form.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    mCommandList->ResourceBarrier(1, &toWrite);
-    ID3D12DescriptorHeap* heaps[] = { mSrvHeap.Get() };
-    mCommandList->SetDescriptorHeaps(1, heaps);
-    mCommandList->SetComputeRootSignature(mComputeRootSignature.Get());
-    mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
-    mCommandList->SetComputeRootUnorderedAccessView(1, form->GetGPUVirtualAddress());
-    mCommandList->SetComputeRootDescriptorTable(2, GpuDescriptor(TectonicSrv));
-    mCommandList->Dispatch(n * n / 64, 6, 1);
-    auto toCopy = CD3DX12_RESOURCE_BARRIER::Transition(form.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
-    mCommandList->ResourceBarrier(1, &toCopy);
-    mCommandList->CopyResource(readback.Get(), form.Get());
-    mCommandList->Close();
     ID3D12CommandList* lists[] = { mCommandList.Get() };
-    mCommandQueue->ExecuteCommandLists(1, lists);
-    WaitForPreviousFrame();
+    // One pass over the cells into `target`, read back into `out`; buffers decay to COMMON after each execution.
+    auto run = [&](ID3D12PipelineState* pass, void* out, UINT64 size) {
+        mCommandAllocator->Reset();
+        mCommandList->Reset(mCommandAllocator.Get(), pass);
+        auto toWrite = CD3DX12_RESOURCE_BARRIER::Transition(target.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        mCommandList->ResourceBarrier(1, &toWrite);
+        ID3D12DescriptorHeap* heaps[] = { mSrvHeap.Get() };
+        mCommandList->SetDescriptorHeaps(1, heaps);
+        mCommandList->SetComputeRootSignature(mComputeRootSignature.Get());
+        mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
+        mCommandList->SetComputeRootUnorderedAccessView(1, target->GetGPUVirtualAddress());
+        mCommandList->SetComputeRootDescriptorTable(2, GpuDescriptor(TectonicSrv));
+        mCommandList->Dispatch(n * n / 64, 6, 1);
+        auto toCopy = CD3DX12_RESOURCE_BARRIER::Transition(target.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+        mCommandList->ResourceBarrier(1, &toCopy);
+        mCommandList->CopyBufferRegion(readback.Get(), 0, target.Get(), 0, size);
+        mCommandList->Close();
+        mCommandQueue->ExecuteCommandLists(1, lists);
+        WaitForPreviousFrame();
+        void* mapped = nullptr;
+        CD3DX12_RANGE readRange(0, size), noWrite(0, 0);
+        Check(readback->Map(0, &readRange, &mapped), "Erosion readback failed.");
+        memcpy(out, mapped, size);
+        readback->Unmap(0, &noWrite);
+    };
     std::vector<float> e(cells);
-    void* mapped = nullptr;
-    CD3DX12_RANGE readRange(0, bytes), noWrite(0, 0);
-    Check(readback->Map(0, &readRange, &mapped), "Erosion form readback failed.");
-    memcpy(e.data(), mapped, bytes);
-    readback->Unmap(0, &noWrite);
+    run(pso, e.data(), sizeof(float) * cells);
 
-    // The network from the cache when the form, climate, seed and executable's time agree; else computed.
+    // Step B's passes: their compiled code is in the cache's key, as their settings are.
+    auto compute = [&](ID3DBlob* shader) {
+        D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
+        psoDesc.pRootSignature = mComputeRootSignature.Get();
+        psoDesc.CS = CD3DX12_SHADER_BYTECODE(shader);
+        ComPtr<ID3D12PipelineState> pass;
+        Check(md3dDevice->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&pass)), "Erosion pass PSO creation failed.");
+        return pass;
+    };
+    const ComPtr<ID3DBlob> nodesShader = LoadShader(L"ErosionNodes.cso"), stagesShader = LoadShader(L"ErosionStages.cso");
+    const ComPtr<ID3DBlob> contactsShader = LoadShader(L"ErosionContacts.cso");
+    uint64_t passes = 0xcbf29ce484222325ull; // FNV-1a over the three startup shaders
+    for (ID3DBlob* blob : { nodesShader.Get(), stagesShader.Get(), contactsShader.Get() })
+        for (size_t i = 0; i < blob->GetBufferSize(); ++i)
+            passes = (passes ^ static_cast<const uint8_t*>(blob->GetBufferPointer())[i]) * 0x100000001b3ull;
+
+    // The network from the cache when the form, climate, seed, executable's time and passes agree; else computed.
     wchar_t exePath[MAX_PATH] = {};
     GetModuleFileNameW(nullptr, exePath, MAX_PATH);
     WIN32_FILE_ATTRIBUTE_DATA exeInfo = {};
     GetFileAttributesExW(exePath, GetFileExInfoStandard, &exeInfo);
     const uint64_t key = Erosion::Key(e, mClimateCpu, seed,
-        uint64_t(exeInfo.ftLastWriteTime.dwHighDateTime) << 32 | exeInfo.ftLastWriteTime.dwLowDateTime);
+        uint64_t(exeInfo.ftLastWriteTime.dwHighDateTime) << 32 | exeInfo.ftLastWriteTime.dwLowDateTime, passes);
     std::wstring cache(exePath);
     cache = cache.substr(0, cache.find_last_of(L"\\/") + 1) + L"erosion-" + std::to_wstring(seed) + L".bin";
     Erosion::Map map;
-    if (!Erosion::Load(map, key, cache)) {
+    const bool cached = Erosion::Load(map, key, cache);
+    std::vector<uint32_t> nodes;
+    mErosionCoursesMs = 0.0;
+    if (!cached) {
         map = Erosion::Build(tectonics, mClimateCpu, e, PlanetRadius / 1000.0);
-        Erosion::Save(map, seed, key, cache);
+        QueryPerformanceCounter(&tc);
+        nodes.resize(2 * size_t(cells));
+        run(compute(nodesShader.Get()).Get(), nodes.data(), sizeof(uint32_t) * nodes.size());
+        Erosion::SetSinuosity(map, nodes);
     }
     mErosionBuildMs = map.ms;
+
+    // The map at t23: created once, uploaded again once the stages are conditioned.
     CD3DX12_HEAP_PROPERTIES defaultHeap(D3D12_HEAP_TYPE_DEFAULT);
-    CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32G32_UINT, n, n, 12, 1);
+    CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32G32_UINT, n, n, Erosion::Slices, 1);
     Check(md3dDevice->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COPY_DEST,
         nullptr, IID_PPV_ARGS(&mErosionMap)), "Erosion map creation failed.");
-    mErosionMb = double(cells) * 16.0 / (1024.0 * 1024.0);
-    ComPtr<ID3D12Resource> upload = CreateBuffer(md3dDevice.Get(), GetRequiredIntermediateSize(mErosionMap.Get(), 0, 12),
+    mErosionMb = double(cells) * 32.0 / (1024.0 * 1024.0);
+    ComPtr<ID3D12Resource> upload = CreateBuffer(md3dDevice.Get(), GetRequiredIntermediateSize(mErosionMap.Get(), 0, Erosion::Slices),
         D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-    std::vector<D3D12_SUBRESOURCE_DATA> data(12);
-    for (UINT face = 0; face < 12; ++face)
-        data[face] = { &map.texels[size_t(face) * n * n * 2], LONG_PTR(n) * 8, LONG_PTR(n) * n * 8 };
-    mCommandAllocator->Reset();
-    mCommandList->Reset(mCommandAllocator.Get(), nullptr);
-    UpdateSubresources(mCommandList.Get(), mErosionMap.Get(), upload.Get(), 0, 0, 12, data.data());
-    auto toRead = CD3DX12_RESOURCE_BARRIER::Transition(mErosionMap.Get(), D3D12_RESOURCE_STATE_COPY_DEST,
-        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    mCommandList->ResourceBarrier(1, &toRead);
-    mCommandList->Close();
-    mCommandQueue->ExecuteCommandLists(1, lists);
-    WaitForPreviousFrame();
+    const D3D12_RESOURCE_STATES readable = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+    bool uploaded = false;
+    auto send = [&]() {
+        std::vector<D3D12_SUBRESOURCE_DATA> data(Erosion::Slices);
+        for (UINT face = 0; face < Erosion::Slices; ++face)
+            data[face] = { &map.texels[size_t(face) * n * n * 2], LONG_PTR(n) * 8, LONG_PTR(n) * n * 8 };
+        mCommandAllocator->Reset();
+        mCommandList->Reset(mCommandAllocator.Get(), nullptr);
+        if (uploaded) {
+            auto toCopy = CD3DX12_RESOURCE_BARRIER::Transition(mErosionMap.Get(), readable, D3D12_RESOURCE_STATE_COPY_DEST);
+            mCommandList->ResourceBarrier(1, &toCopy);
+        }
+        UpdateSubresources(mCommandList.Get(), mErosionMap.Get(), upload.Get(), 0, 0, Erosion::Slices, data.data());
+        auto toRead = CD3DX12_RESOURCE_BARRIER::Transition(mErosionMap.Get(), D3D12_RESOURCE_STATE_COPY_DEST, readable);
+        mCommandList->ResourceBarrier(1, &toRead);
+        mCommandList->Close();
+        mCommandQueue->ExecuteCommandLists(1, lists);
+        WaitForPreviousFrame();
+        uploaded = true;
+    };
+    send();
     D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
     srv.Format = DXGI_FORMAT_R32G32_UINT;
     srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
     srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     srv.Texture2DArray.MipLevels = 1;
-    srv.Texture2DArray.ArraySize = 12;
+    srv.Texture2DArray.ArraySize = Erosion::Slices;
     md3dDevice->CreateShaderResourceView(mErosionMap.Get(), &srv, CD3DX12_CPU_DESCRIPTOR_HANDLE(mSrvHeap->GetCPUDescriptorHandleForHeapStart(),
         TectonicSrv + 5, md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+    if (!cached) {
+        std::vector<Erosion::Course> courses(cells);
+        run(compute(stagesShader.Get()).Get(), courses.data(), sizeof(Erosion::Course) * cells);
+        Erosion::Condition(map, courses, nodes);
+        send();
+        std::vector<Erosion::Contacts> contacts(cells);
+        run(compute(contactsShader.Get()).Get(), contacts.data(), sizeof(Erosion::Contacts) * cells);
+        Erosion::StopAtWater(map, contacts, courses);
+        send();
+        LARGE_INTEGER td;
+        QueryPerformanceCounter(&td);
+        mErosionCoursesMs = 1000.0 * double(td.QuadPart - tc.QuadPart) / mFrequency.QuadPart;
+        Erosion::Save(map, seed, key, cache);
+    }
     QueryPerformanceCounter(&t1);
     mErosionMs = 1000.0 * double(t1.QuadPart - t0.QuadPart) / mFrequency.QuadPart;
 }
@@ -1915,6 +1968,7 @@ void D3DApp::Draw() {
         const double rise = std::min(std::max((camAltitude - ScreenReliefLow) / (ScreenReliefHigh - ScreenReliefLow), 0.0), 1.0);
         mConstants->screenRelief = { (float)across, (float)down, (float)(rise * rise * (3.0 - 2.0 * rise)), (float)ScreenReliefScale };
     }
+    mConstants->erosionMode = { mErosionMode, 0u, 0u, 0u };
     XMStoreFloat4(&mConstants->lightDir, toLocal(mSunDir));
     XMStoreFloat4(&mConstants->camVertical, toLocal(up));
     mConstants->camVertical.w = (float)(camAltitude / 1000.0);
@@ -1932,7 +1986,7 @@ void D3DApp::Draw() {
     const TerrainInputs terrainInputs = { mConstants->faceX, mConstants->faceY, mConstants->faceZ, mConstants->faceParams,
         { mConstants->nadir[0], mConstants->nadir[1], mConstants->nadir[2], mConstants->nadir[3] }, mConstants->ringParams,
         mConstants->camPlane, mConstants->lightDir, mConstants->camRight, mConstants->camUp, mConstants->camForward,
-        mConstants->waveAxisX };
+        { 0.0f, 0.0f, 0.0f, mConstants->waveAxisX.w } };
     bool sameMesh = mTerrainKept && std::memcmp(&terrainInputs, &mTerrainInputs, offsetof(TerrainInputs, lightDir)) == 0;
     bool sameTerrain = sameMesh && std::memcmp(&terrainInputs, &mTerrainInputs, sizeof(TerrainInputs)) == 0;
     mTerrainInputs = terrainInputs;
@@ -2021,8 +2075,9 @@ void D3DApp::Draw() {
         mCommandList->ResourceBarrier(1, &normalsToRead);
     }
     // The screen relief (ScreenRelief.hlsl): every frame, as the view's rays move with the camera.
+    mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 22);
     {
-        const UINT texels = (UINT)mConstants->screenRelief.x * (UINT)mConstants->screenRelief.y;
+        const UINT across = (UINT)mConstants->screenRelief.x, down = (UINT)mConstants->screenRelief.y;
         const bool on = mConstants->screenRelief.z > 0.0f;
         auto toWrite = CD3DX12_RESOURCE_BARRIER::Transition(mScreenPositions.Get(), D3D12_RESOURCE_STATE_COMMON,
             D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -2032,7 +2087,7 @@ void D3DApp::Draw() {
         mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
         mCommandList->SetComputeRootUnorderedAccessView(1, mScreenPositions->GetGPUVirtualAddress());
         mCommandList->SetComputeRootDescriptorTable(2, GpuDescriptor(TectonicSrv));
-        if (on) mCommandList->Dispatch((texels + 63) / 64, 1, 1);
+        if (on) mCommandList->Dispatch((across + 7) / 8, (down + 7) / 8, 1);
         auto toRead = CD3DX12_RESOURCE_BARRIER::Transition(mScreenPositions.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
             D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         mCommandList->ResourceBarrier(1, &toRead);
@@ -2366,7 +2421,7 @@ void D3DApp::Draw() {
     mCommandList->ResourceBarrier(1, &toPresent);
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 2);
     mCommandList->ResolveQueryData(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0, mSettings.batch ? 18 : 12, mTimestampBuffer.Get(), 0);
-    mCommandList->ResolveQueryData(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 18, 4, mTimestampBuffer.Get(), 18 * sizeof(UINT64));
+    mCommandList->ResolveQueryData(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 18, 5, mTimestampBuffer.Get(), 18 * sizeof(UINT64));
     if (capture) {
         CD3DX12_TEXTURE_COPY_LOCATION dst(mCaptureBuffer.Get(), mCaptureFootprint);
         CD3DX12_TEXTURE_COPY_LOCATION src(mRenderTargets[mFrameIndex].Get(), 0);
@@ -2402,7 +2457,7 @@ void D3DApp::Draw() {
 // Adds this frame's GPU times, from the timestamps resolved at the end of the frame.
 void D3DApp::ReadGpuTimes() {
     UINT64* ticks = nullptr;
-    CD3DX12_RANGE readRange(0, 22 * sizeof(UINT64));
+    CD3DX12_RANGE readRange(0, 23 * sizeof(UINT64));
     if (FAILED(mTimestampBuffer->Map(0, &readRange, reinterpret_cast<void**>(&ticks)))) return;
     const double ms = 1000.0 / double(mTimestampFrequency);
     const double placement = ms * double(ticks[3] - ticks[1]), objects = ms * double(ticks[5] - ticks[4]);
@@ -2413,6 +2468,7 @@ void D3DApp::ReadGpuTimes() {
     mHiZBuildMs = mSettings.batch ? ms * double(ticks[15] - ticks[14]) : 0.0;
     mHiZCullMs = mSettings.batch ? ms * double(ticks[17] - ticks[16]) : 0.0;
     mComputeMs += ms * double(ticks[1] - ticks[0]);
+    mScreenReliefMs += ms * double(ticks[1] - ticks[22]);
     mDrawMs += ms * double(ticks[2] - ticks[1]) - placement - objects;
     mObjectMs += placement;
     mObjectDrawMs += objects;
@@ -2447,11 +2503,11 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
     ++mTitleFrames;
     if (mTitleTimer < 0.25f) return;
 
-    wchar_t title[1024];
+    wchar_t title[2048];
     swprintf_s(title, L"MyPlanetEngine | hauteur %s | sol %s | face \u00B1%s (k=%g) | %u anneaux | vitesse x%.2f"
-        L" | GPU calcul %.1f ms (FFT %.2f), rendu %.2f ms (min %.2f), objets %.2f + %.2f ms | %.0f fps%s",
+        L" | GPU calcul %.1f ms (FFT %.2f, ecran %.1f), rendu %.2f ms (min %.2f), objets %.2f + %.2f ms | %.0f fps%s",
         FormatDistance(clearance).c_str(), FormatDistance(mGroundHeight).c_str(), FormatDistance(halfWidth).c_str(),
-        mFaceFactor, ringCount, mSpeedFactor, mComputeMs / mTitleFrames, mOceanMs / mTitleFrames, mDrawMs / mTitleFrames, mDrawMinMs, mObjectMs / mTitleFrames,
+        mFaceFactor, ringCount, mSpeedFactor, mComputeMs / mTitleFrames, mOceanMs / mTitleFrames, mScreenReliefMs / mTitleFrames, mDrawMs / mTitleFrames, mDrawMinMs, mObjectMs / mTitleFrames,
         mObjectDrawMs / mTitleFrames,
         mTitleFrames / mTitleTimer, mWireframe ? L" | fil de fer" : L"");
     wchar_t cloudTimes[64];
@@ -2479,9 +2535,10 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
         lon * toDegrees, -std::asin(Dot(mCamForward, up)) * toDegrees,
         std::atan2(Dot(mCamForward, east), Dot(mCamForward, north)) * toDegrees);
     wcscat_s(title, position);
-    wchar_t clouds[128];
-    swprintf_s(clouds, L" | nuages | %s (C) | N : nuages %s | B : silhouette | Espace : pause | V : x5",
-        mCloudsReference ? L"R\u00E9f\u00E9rence" : L"\u00C9co", mCloudsOn ? L"oui" : L"non");
+    wchar_t clouds[160];
+    swprintf_s(clouds, L" | nuages | %s (C) | N : nuages %s | B : silhouette | Espace : pause | V : x5 | 1 : \u00E9rosion %s",
+        mCloudsReference ? L"R\u00E9f\u00E9rence" : L"\u00C9co", mCloudsOn ? L"oui" : L"non",
+        mErosionMode == 2 ? L"compl\u00E8te" : mErosionMode == 1 ? L"ravines" : L"sans");
     wcscat_s(title, clouds);
     if (!mLabel.empty()) { wcscat_s(title, L" | "); wcscat_s(title, mLabel.c_str()); }
     wchar_t weather[64];
@@ -2493,9 +2550,9 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
         mFullscreen ? L"plein ecran" : L"fenetre",mSettings.vsync ? L"oui" : L"non",
         !mSettings.vsync && mAllowTearing ? L" (tearing autorise)" : L"");
     wcscat_s(title,display);
-    wchar_t tectonics[256];
-    swprintf_s(tectonics, L" | tectonique %.0f ms, %.0f Mo, %u volcans en %.0f ms | climat %.0f ms, %.1f Mo | meteo %.0f ms | erosion %.0f ms (reseau %.0f), %.0f Mo",
-        mTectonicMs, mTectonicMb, mVolcanoCount, mVolcanoMs, mClimateMs, mClimateMb, mWeatherMapMs, mErosionMs, mErosionBuildMs, mErosionMb);
+    wchar_t tectonics[320];
+    swprintf_s(tectonics, L" | tectonique %.0f ms, %.0f Mo, %u volcans en %.0f ms | climat %.0f ms, %.1f Mo | meteo %.0f ms | erosion %.0f ms (reseau %.0f, couloirs %.0f), %.0f Mo",
+        mTectonicMs, mTectonicMb, mVolcanoCount, mVolcanoMs, mClimateMs, mClimateMb, mWeatherMapMs, mErosionMs, mErosionBuildMs, mErosionCoursesMs, mErosionMb);
     wcscat_s(title, tectonics);
     if (!mGpuName.empty()) { wcscat_s(title,L" | "); wcscat_s(title,mGpuName.c_str()); }
     mTitle = title;
@@ -2522,6 +2579,7 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
     mTitleTimer = 0.0f;
     mTitleFrames = 0;
     mComputeMs = mDrawMs = mObjectMs = mObjectDrawMs = mCloudPassMs = mOceanMs = 0.0;
+    mScreenReliefMs = 0.0;
     mCloudPassLastMs = mGpuFrameLastMs = 0.0;
     mDrawMinMs = 1e9;
 }
@@ -2670,6 +2728,15 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         }
         if (wParam == 'V') mWeatherRate = mWeatherRate == 1.0 ? 5.0 : 1.0;
         if (wParam == 'N') mCloudsOn = !mCloudsOn;
+        if (wParam == '1') { // the erosion shown, to compare in flight: full, ravines only, none. The mesh's kept vertices,
+            // keyed on the view (TerrainInputs), and the plants' kept ground are computed afresh: kept, they showed the
+            // previous erosion up close, where only the per-pixel water followed the switch.
+            mErosionMode = (mErosionMode + 2u) % 3u;
+            mTerrainKept = false;
+            mPlanetPlantPlacement.Reset();
+            mPlanetFoliageSamples.clear();
+            mHistoryValid = false;
+        }
         if (wParam == 'C') mCloudsReference = !mCloudsReference;
         if (wParam == 'K' || wParam == VK_SUBTRACT) mFaceFactor = std::max(mFaceFactor / 2.0, 0.25);
         if (wParam == 'L' || wParam == VK_ADD) mFaceFactor = std::min(mFaceFactor * 2.0, 64.0);

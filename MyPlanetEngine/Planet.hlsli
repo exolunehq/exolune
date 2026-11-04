@@ -35,6 +35,7 @@ cbuffer Frame : register(b0)
     float4   reliefGradients[256]; // immutable noise table; pixel contours use the same literals as compute
     float4   screenRelief; // the screen relief (ScreenRelief.hlsl): xy its texels across, z its weight (0: off),
                            // w the pixels per texel side
+    uint4    erosionMode;  // x: the erosion shown, key 1 (Relief.hlsli, ErosionMode): 2 full, 1 ravines only, 0 none
 };
 
 struct FaceVertex
@@ -48,6 +49,7 @@ struct FaceVertex
     float  shadow;    // its column's shadow height (m above the sea), for the sun's shafts in the air (Horizon.hlsl)
     float4 water;     // xyz: downstream velocity, planet frame; w: water stage above sea level
     float waterDistance; // conservative candidate distance for contour refinement
+    float waterDepth, waterCoverage; // mean depth and physical wet fraction of the footprint
 };
 
 // One shared sample layout for the fine terrain and its normals. Water quantities are premultiplied by wet presence:
@@ -56,6 +58,7 @@ struct FineSample
 {
     float4 terrain; // xyz: position or normal; w: raw bed elevation
     float4 inland;  // wet presence, presence * stage/depth, candidate distance
+    float4 flow;    // xyz: wet presence * velocity; decoded only after reconstruction
 };
 
 // The screen relief's texel (ScreenRelief.hlsl): the fine grid's sample, and the ground's own fields there, which the
@@ -65,15 +68,16 @@ struct ScreenSample
 {
     float4 terrain;
     float4 inland;
+    float4 flow;
     float4 ground; // x: roughness (gRoughness), sets the slopes hidden below the texel (SlopeSpread); y: fresh volcanic
                    // ground (gVolcanic)
 };
 
-float3 InlandSample(float stage, float elevation)
+float3 InlandSample(float stage, float depth, float coverage)
 {
-    const float depth = max(stage - elevation, 0.0);
-    const float wet = stage > 0.0 && depth > 0.0 ? 1.0 : 0.0;
-    return float3(wet, wet * stage, wet * depth);
+    const float wet = stage > 0.0 && depth > 0.0 ? saturate(coverage) : 0.0;
+    // Depth already includes dry area. Dividing this moment by wet gives depth conditional on water being present.
+    return float3(wet, wet * stage, wet > 0.0 ? depth : 0.0);
 }
 
 struct PSInput

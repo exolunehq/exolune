@@ -20,6 +20,48 @@ float3 LogTail(float3 z)
     return z >= 0.0 ? log(t) - 0.5 * z * z : log(1.0 - t * exp(-0.5 * z * z));
 }
 
+// Depth-limited breaking of the incident FFT crests. H/d ~= 0.78 gives a crest threshold of 0.39 d.
+// Unresolved heights retain their exceedance probability, rather than deleting the surf with the wave mips.
+// This is a local foam source, not a simulation of refraction, sediment or swash on dry ground.
+float CoastalFoam(OceanSurfaceData surface, float elevation, float spread)
+{
+    const float rms = sqrt(max(surface.heightWhole, 0.0));
+    const float depth = -elevation, s = max(spread, 0.01), height = surface.incidentHeight;
+    const float sigma = sqrt(max(surface.heightLost, 0.0) + 0.0004);
+    const float threshold = (0.39 * depth - height) / sqrt(sigma * sigma + 0.1521 * s * s);
+    float probability = exp(LogTail(threshold.xxx).x);
+    [branch] if (depth <= 5.0 * s)
+    {
+        // A mixed footprint includes dry columns. Their apparent exceedance is not foam on water.
+        const float wet = max(exp(LogTail((-depth / s).xxx).x), 1e-8);
+        if (height > 5.0 * sigma)
+            probability = max(probability - exp(LogTail((depth / s).xxx).x), 0.0) / wet;
+        else if (height < -5.0 * sigma) probability = 0.0;
+        else
+        {
+            // Only the mixed shore needs quadrature. Integrate the two independent distributions on d >= 0.
+            const float lo = max(0.0, depth - 5.0 * s);
+            const float hi = min(max(depth, 0.0) + 5.0 * s, max(height + 5.0 * sigma, 0.0) / 0.39);
+            const float half = max(0.5 * (hi - lo), 0.0), centre = 0.5 * (lo + hi);
+            static const float2 gauss[6] = {
+                float2(0.125233409, 0.249147046), float2(0.367831499, 0.233492537),
+                float2(0.587317954, 0.203167427), float2(0.769902674, 0.160078329),
+                float2(0.904117256, 0.106939326), float2(0.981560634, 0.047175336)
+            };
+            float sum = 0.0;
+            [loop] for (uint i = 0u; i < 6u; ++i)
+            {
+                const float2 d = centre + float2(-half, half) * gauss[i].x;
+                const float2 z = (d - depth) / s;
+                const float2 tail = exp(LogTail(float3((0.39 * d - height) / sigma, 0.0)).xy);
+                sum += gauss[i].y * dot(exp(-0.5 * z * z), tail);
+            }
+            probability = half * sum / (2.506628275 * s * wet);
+        }
+    }
+    return 0.75 * smoothstep(0.02, 0.08, rms) * saturate(probability);
+}
+
 // The water's reflectance seen from above, as a diffuse albedo (docs/recherche-mer.md, section 4). Deep water's own,
 // by type: clear ocean blue, cold and coastal water greener with plankton and sediment. Then the bottom seen through the
 // water, Maritorena, Morel and Gentili 1994: R = R_deep + (A - R_deep) e^(-2 K d). Its mean over the sea part of the pixel,
@@ -207,6 +249,9 @@ SeaSurface SeaSurfaceAt(float3 pos,float3 dpdx,float3 dpdy,float3 q,float pixel,
     float foam=saturate(fm*smoothstep(0.0,0.5,cover))*(0.68+0.32*smoothstep(0.3,0.9,cover));
     foam=max(foam,smoothstep(0.35,0.9,stored.y)*smoothstep(0.25,0.6,pat+0.25)*0.95);
     foam*=smoothstep(0.0,3.0,max(-elevation,0.0));
+    const float surf = CoastalFoam(waterSurface, elevation, spread);
+    const float surfFine = surf * (0.8 + 0.4 * b);
+    foam = 1.0 - (1.0 - foam) * (1.0 - surfFine);
     float3 foamAlbedo=float3(0.82,0.87,0.92)*(0.78+0.3*b);
     float3 foamLight=foamAlbedo/PI*(sunLight*max(dot(normal,sun),0.0)*0.5
         +skyIrradiance*(0.75+0.25*saturate(dot(normal,up))));
@@ -219,13 +264,13 @@ SeaSurface SeaSurfaceAt(float3 pos,float3 dpdx,float3 dpdy,float3 q,float pixel,
     float3 nearbySun=lerp(clearSun,foamSun,foam*0.95);
     // The spike's far field uses the same wind and the unresolved whitecap coverage.
     float farShare=smoothstep(0.5,2.0,footprint);
-    float mean=Whitecaps(oceanWind.x);
+    float mean=1.0-(1.0-Whitecaps(oceanWind.x))*(1.0-surf);
     float3 statistical=(1.0-mean)*clear+mean*FOAM_ALBEDO/PI*irradiance;
     float3 statisticalSun=(1.0-mean)*clearSun+mean*FOAM_ALBEDO/PI*(sunLight*max(muS,0.0));
     sea.radiance=lerp(nearby,statistical,farShare);
     sea.sunRadiance=lerp(nearbySun,statisticalSun,farShare);
     sea.foam=lerp(foam,mean,farShare);
-    sea.foamFresh=lerp(foam*freshK,0.0,farShare);sea.foamOld=sea.foam-sea.foamFresh;
+    sea.foamFresh=lerp(max(foam*freshK,surfFine),surf,farShare);sea.foamOld=sea.foam-sea.foamFresh;
     sea.crest=saturate(1.0-determinant);
     float3 pole=float3(faceX.y,faceY.y,faceZ.y),east=cross(up,pole);
     east=dot(east,east)>1e-12?normalize(east):axisX;

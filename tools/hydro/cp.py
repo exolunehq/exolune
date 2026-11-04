@@ -16,7 +16,8 @@
 # precipitation (mm) among them, and humidity(precipitation), the materials' (docs/spec-climat.md).
 # the rock's, relative (docs/spec-relief-tectonique.md, the level 0). The erosion (docs/spec-erosion.md): the level 0 read
 # from the engine's cache, x64/Release/erosion-<seed>.bin (EXOLUNE_EROSION overrides it), erosion_map, erosion_valleys;
-# elevation(ctx, p, valleys=True) carves its valleys and gullies.
+# elevation(ctx, p, valleys=True) carves its valleys and gullies, or with EROSION_RAVINES, step A, draws the ravines on the
+# pre-erosion form instead (ReliefDetail; tools/hydro/verifie_ravines.py).
 import math
 import os
 import numpy as np
@@ -83,6 +84,49 @@ EROSION_CLIFF_SCREE = (0.7002, 0.22)
 EROSION_CLIFF_PLATFORM = (-1.0, 0.02, 4.0)
 EROSION_CLIFF_STACK = (0.065, 0.8, 1.4)
 EROSION_CLIFF_WAVES = (0.28, 1.6)
+# Step A (PlanetSettings.hlsli): the ravines on the pre-erosion form, the network's valleys, water and deposits off.
+EROSION_RAVINES = True
+RAVINE_PERIODS = (5000.0, 11)
+RAVINE_SHAPE = (0.15, 0.8, 0.8, 0.2)
+RAVINE_STEER = (0.5, 1.0)
+RAVINE_ROUNDING = (2.0, 0.1)
+RAVINE_LAND = (0.0, 50.0)
+RAVINE_ROCK = (0.5, 2.0)
+RAVINE_WET = (0.6, 1.0)
+RAVINE_PLAINS = 0.6
+RAVINE_SEED = 20
+# Step B (PlanetSettings.hlsli, the corridors): EROSION_RIVERS, on step A; the RIVER_* settings, as the engine's.
+EROSION_RIVERS = True
+RIVER_Q = (100.0, 300.0, 450.0)
+RIVER_FLOOR = (230.0, 0.4, 4000.0, 0.35)
+RIVER_FLOOR_ROCK = 0.5
+RIVER_FLOOR_LOG2 = (-3.0, 1.0)
+RIVER_VALLEY_NOISE = (12000.0, 1.0, 0.5)
+RIVER_REACH = 8500.0
+RIVER_WALL = (0.15, 0.5, 3000.0)
+RIVER_SPURS = (0.6, 60.0, 0.6)
+RIVER_CONFINEMENT = (0.25, 3.0)
+RIVER_MEANDER = (40000.0, 12.0, 0.1, 0.05)
+RIVER_CHANNEL_WAVE = 10000.0
+RIVER_SPLIT = 6.0
+RIVER_OFFSET_MAX = 2500.0
+RIVER_SINUOUS = (0.02, 0.15, 0.3)
+RIVER_WIDTH_NOISE = (3000.0, 0.9)
+RIVER_BANK = 0.5
+RIVER_BANK_DETAIL = (180.0, 0.7)
+RIVER_BANK_SHOULDER = (2.0, 4.0)
+RIVER_BANK_EDGE = (12.0, 0.16)
+RIVER_CONFLUENCE = (0.5, 9.0)
+RIVER_MOUTH = (2.0, 8.0, 600.0)
+RIVER_CONTACT = (256.0, 25.0, 80.0)
+RIVER_DELTA = (800.0, 2500.0, 14.0, 1800.0)
+RIVER_STEEP_BANK = 3.0
+RIVER_EXTEND = (15000.0, 12000.0, 0.15)
+RIVER_JUNCTION = (12.0, 55.0)
+RIVER_FLOODPLAIN = (0.2, 200.0)
+RIVER_CAP_CELL = 500.0
+RIVER_CAP_SAMPLES = 33
+RIVER_SEED = 40
 MAX_TERRAIN_HEIGHT = 10000.0
 NO_LIMIT = 3.4e38
 CREASE_ROUNDING = 2.0
@@ -319,12 +363,32 @@ def turbulence(ctx, p, f, power, n, seed):
     return p + power * d
 
 
-def gradient_noise_d(cell, q, seed):
-    """One octave and its gradient against the lattice coordinates, best quality, as RlGradientNoiseD (Noise.hlsli):
-    (value, gradient (n, 3)), the cell (n, 3) int64 and the remainder q (n, 3)."""
+def turbulence_jacobian(ctx, p, f, power, n, seed):
+    """RlTurbulenceJacobian: the displaced point's derivatives (n, 3, 3), [i, j] its axis i along the point's axis j."""
+    j = np.broadcast_to(np.eye(3), (len(p), 3, 3)).copy()
+    if _weight(ctx, f) <= 0.0:
+        return j
+    amp = 1.0
+    for o in range(n):
+        w = _weight(ctx, f)
+        if w <= 0.0:
+            break
+        c, q = _lattice(p, f, o)
+        h = _corner_hashes(c)
+        for a in range(3):
+            j[:, a] += power * amp * w * f * gradient_noise_d(c, q, seed + 16 * a + o, h, False)[1]
+        f *= 2.0
+        amp *= 0.5
+    return j
+
+
+def gradient_noise_d(cell, q, seed, hashes=None, best=True):
+    """One octave and its gradient against the lattice coordinates, as RlGradientNoiseD (Noise.hlsli), best quality, or
+    standard as RlCornersD: (value, gradient (n, 3)), the cell (n, 3) int64 and the remainder q (n, 3); hashes, the
+    cell's corners already hashed, q then in [0, 1)."""
     fl = np.floor(q)
     cell, q = cell + fl.astype(np.int64), q - fl
-    h = _corner_hashes(cell)
+    h = _corner_hashes(cell) if hashes is None else hashes
     k = _seed_term(seed)
     g = [_G[_mix(x + k) >> np.uint32(24)] for x in h]  # bit 0 x + 1, bit 1 y + 1, bit 2 z + 1
     r = q - 1.0
@@ -332,8 +396,8 @@ def gradient_noise_d(cell, q, seed):
     for i in range(8):
         d = np.stack([r[:, 0] if i & 1 else q[:, 0], r[:, 1] if i & 2 else q[:, 1], r[:, 2] if i & 4 else q[:, 2]], 1)
         n.append((g[i] * d).sum(1))
-    s = _fade(q, True)
-    ds = 30.0 * q * q * r * r
+    s = _fade(q, best)
+    ds = 30.0 * q * q * r * r if best else -6.0 * q * r
     n000, n100, n010, n110, n001, n101, n011, n111 = n
     g000, g100, g010, g110, g001, g101, g011, g111 = g
     k1, k2, k3 = n100 - n000, n010 - n000, n001 - n000
@@ -349,7 +413,7 @@ def gradient_noise_d(cell, q, seed):
             + ds * np.stack([k1 + k4 * s[:, 1] + k6 * s[:, 2] + k7 * s[:, 1] * s[:, 2],
                              k2 + k5 * s[:, 2] + k4 * s[:, 0] + k7 * s[:, 2] * s[:, 0],
                              k3 + k6 * s[:, 0] + k5 * s[:, 1] + k7 * s[:, 0] * s[:, 1]], 1))
-    return value * SCALE[True], grad * SCALE[True]
+    return value * SCALE[best], grad * SCALE[best]
 
 
 # --- The tectonic map (MyPlanetEngine/Tectonics.h, Tectonics.hlsli), read from the engine's cache. ---
@@ -776,6 +840,9 @@ def volcano_finish(ctx, p, h, fin):
 EROSION_CACHE = os.environ.get("EXOLUNE_EROSION", os.path.join(_REPO, "x64", "Release", "erosion-{seed}.bin"))
 _erosion = {}
 _basins = {}
+_contacts = {}
+_flow_words = {}
+_magic = {}
 EROSION_WATER = 1.0
 EROSION_RIVER_SHAPE = (2.4, 0.35, 0.3, 20.0)
 EROSION_LAKE_TRANSITION = 2000.0
@@ -791,11 +858,21 @@ def erosion_map(seed=None):
         if not os.path.exists(path):
             raise FileNotFoundError(f"{path}: run the engine once with this seed, it writes its level 0 there")
         raw = open(path, "rb").read()
-        assert raw[:8] in (b"EXOEROS2", b"EXOEROS3"), f"{path}: an older level 0, run the engine again"
+        assert raw[:8] in (b"EXOEROS2", b"EXOEROS3", b"EXOEROS4", b"EXOEROS5", b"EXOEROS6"), f"{path}: an older level 0, run the engine again"
+        _magic[seed] = raw[:8]
         s, n = (int(x) for x in np.frombuffer(raw[8:16], np.uint32))
         data = np.frombuffer(raw[24:], np.uint32).reshape(-1, 2)
         _erosion[seed] = (data[:6*n*n], n)
-        _basins[seed] = data[6*n*n:] if raw[:8] == b"EXOEROS3" else np.zeros_like(data)
+        N = 6*n*n
+        _basins[seed] = data[N:2*N] if raw[:8] != b"EXOEROS2" else np.zeros_like(data)
+        if raw[:8] == b'EXOEROS6':
+            limits = data[2*N:3*N]
+            _contacts[seed] = np.stack((limits[:, 0]&65535, limits[:, 0]>>16, limits[:, 1]&65535, limits[:, 1]>>16), 1)/65535.
+            _flow_words[seed] = data[3*N:4*N]
+        else:
+            _contacts[seed] = np.ones((N, 4))
+            code = data[:N, 1]>>16&255
+            _flow_words[seed] = np.stack((code | code<<8, np.zeros(N, np.uint32)), 1)
     return _erosion[seed]
 
 
@@ -1019,7 +1096,7 @@ def erosion_valleys(p, cell_km, walls, seed=None):
         c = _ecell(face,np.floor(x).astype(np.int64)+offset,n)
         basin = erosion_basins(seed)[c]
         weight = np.where(offset,blend,1.-blend).prod(axis=1)
-        lake_level += weight*np.where((basin[:,1]!=0)&(EROSION_WATER>0),np.maximum(0.,(basin[:,0]&65535)*.25-8192.),0.)
+        lake_level += weight*np.where(((basin[:,1]&65535)!=0)&(EROSION_WATER>0),np.maximum(0.,(basin[:,0]&65535)*.25-8192.),0.)
     v = dict(surface=np.full(N, 1e9), gradient=np.zeros((N, 3)), floor=np.zeros(N), level=np.zeros(N), glacier=np.zeros(N),
              incision=np.zeros(N), deposit=np.full(N, -1e9), channel_bed=np.full(N,1e9),channel_surface=np.full(N,1e9),
              lake_level=lake_level,
@@ -1209,6 +1286,928 @@ def erosion_channel_cut(h, bed, surface):
     return np.minimum(np.maximum(h-bed,0.),np.maximum(surface-bed,0.))
 
 
+# --- Step B: the rivers' corridors (MyPlanetEngine/Erosion.hlsli, ErosionRivers; docs/spec-erosion.md). The engine's
+# courses from its conditioned map, built once per node in planet coordinates, each corridor evaluated at the points whose
+# 4 x 4 nodes hold it. The prototype in a tangent plane: couloirs.py.
+_courses = {}
+
+
+def _course_byte(b):
+    """Erosion.h's bits 24-31 decoded: the sinuosity, log2 of the valley floor's factor."""
+    sinuous = RIVER_SINUOUS[2] + (1.0 - RIVER_SINUOUS[2]) * (b & 15).astype(np.float64) / 15.0
+    return sinuous, RIVER_FLOOR_LOG2[0] + (RIVER_FLOOR_LOG2[1] - RIVER_FLOOR_LOG2[0]) * (b >> 4).astype(np.float64) / 15.0
+
+
+def erosion_courses(seed=None):
+    """Step B's course words (Erosion.h): per cell, the conditioned stage (m), the wall width (m), the sinuosity and log2
+    of the valley floor's factor. A cache written before this sizing (EXOEROS5) has none: river_startup computes them, as
+    the engine's startup would."""
+    seed = PLANET_SEED if seed is None else seed
+    if seed not in _courses:
+        b = erosion_basins(seed)
+        if _magic.get(seed) not in (b"EXOEROS5", b"EXOEROS6"):
+            _courses[seed] = river_startup(seed)
+        else:
+            _courses[seed] = ((b[:, 0] >> 16).astype(np.float64) * 0.25 - 8192.0,
+                              ((b[:, 1] >> 16) & 255).astype(np.float64) * 25.0, *_course_byte(b[:, 1] >> 24))
+    return _courses[seed]
+
+
+def _level16(z):
+    return np.clip(np.round((z + 8192.0) * 4.0), 0, 65535) * 0.25 - 8192.0
+
+
+def river_startup(seed=None, verbose=True):
+    """Step B's startup mirrored on the level 0 (ErosionNodes.hlsl, ErosionStages.hlsl, Erosion::Condition): per cell, the
+    conditioned stage (m), the wall width (m), the sinuosity and log2 of the valley floor's factor. Kept beside the erosion
+    cache, keyed by its size and time."""
+    seed = PLANET_SEED if seed is None else seed
+    path = EROSION_CACHE.format(seed=seed)
+    stamp = np.array([os.path.getsize(path), os.path.getmtime(path)])
+    disk = os.path.splitext(path)[0] + "-couloirs-cpu.npz"
+    if os.path.exists(disk):
+        f = np.load(disk)
+        if np.array_equal(f["stamp"], stamp) and "floor" in f:
+            return f["stage"], f["wall"], f["sinuous"], f["floor"]
+    words, n = erosion_map(seed)
+    N = len(words)
+    level = (words[:, 0] & 0xFFFF).astype(np.float64) * 0.25 - 8192.0
+    bits = words[:, 1].astype(np.int64)
+    code = (bits >> 16) & 255
+    nodes = _enode(np.arange(N), n).astype(np.float64)
+    # 1. The nodes: sinuosity, the floor's factor, amplitude and erodibility, quantised as ErosionNodes.hlsl.
+    byte, amplitude, rock = np.empty(N, np.int64), np.empty(N), np.empty(N)
+    for s in range(0, N, 262144):
+        idx = np.arange(s, min(N, s + 262144))
+        tf = tectonic_fields(nodes[idx])
+        slope = np.linalg.norm(tf["forms_gradient"], axis=1) / (1000.0 * R_KM)
+        sinuous = 1.0 - (1.0 - RIVER_SINUOUS[2]) * _smooth(RIVER_SINUOUS[0], RIVER_SINUOUS[1], slope)
+        amplitude[idx] = tf[0][:, 1]
+        k = np.clip(tf["erodibility"], 0.25, 3.98)
+        floor = RIVER_FLOOR_ROCK * np.log2(k) + np.log2(1.0 + (RIVER_FLOOR[3] - 1.0) * _smooth(300.0, 1200.0, amplitude[idx]))
+        f = np.round(15.0 * np.clip((floor - RIVER_FLOOR_LOG2[0]) / (RIVER_FLOOR_LOG2[1] - RIVER_FLOOR_LOG2[0]), 0.0, 1.0))
+        byte[idx] = np.round(15.0 * (sinuous - RIVER_SINUOUS[2]) / (1.0 - RIVER_SINUOUS[2])).astype(np.int64) | f.astype(np.int64) << 4
+        rock[idx] = np.round(64.0 * k) / 64.0
+    sinuous, floor = _course_byte(byte)
+    _courses[seed] = (level, np.full(N, 300.0), sinuous, floor)
+    # 2. The stages: each course's channel sampled, the relief filtered at RIVER_CAP_CELL.
+    has = (bits & _HAS_RECEIVER) != 0
+    receiver = np.full(N, -1)
+    receiver[has] = _eneighbour(np.flatnonzero(has), bits[has] & 7, n)
+    length = np.zeros(N)
+    length[has] = np.linalg.norm(nodes[receiver[has]] - nodes[has], axis=1) * R
+    outlet = (bits & (_SEA | _LAKE)) != 0
+    down = np.where(outlet, np.arange(N), receiver)
+    twice = 16.0 * (math.log2(RIVER_Q[0]) + 8.0)
+    candidates = np.flatnonzero((down >= 0) & (code + code[np.maximum(down, 0)] >= twice))
+    ctx, t = Ctx(RIVER_CAP_CELL), np.linspace(0.0, 1.0, RIVER_CAP_SAMPLES)
+    flags = np.zeros(N, np.int64)
+    points, depth, groups = [], [], []
+    for c in candidates:
+        v = _node_courses(int(c), seed)
+        if v is None:
+            continue
+        flags[c] |= 1
+        todo = [(0, int(c), v["main"])]
+        if v["main_inflow"] < 8:
+            flags[_eneighbour(np.array([c]), np.array([v["main_inflow"]]), n)[0]] |= 2
+        for k in range(8):
+            if (v["connectors"] >> k) & 1:
+                u = int(_eneighbour(np.array([c]), np.array([k]), n)[0])
+                flags[u] |= 4
+                todo.append((1, u, _connector(ctx, v, _river_node(u, seed))))
+        for kind, owner, course in todo:
+            T = _course_tangent(course, t)
+            T /= np.linalg.norm(T, axis=1, keepdims=True)
+            m, q = _meander(ctx, course, t, T)
+            if course["taper"]:
+                m = m * (1.0 - _smooth(0.6, 1.0, t))
+            along = T - (T * q).sum(1, keepdims=True) * q
+            along /= np.linalg.norm(along, axis=1, keepdims=True)
+            points.append(q + ((m[0] + m[2]) / R)[:, None] * np.cross(along, q))
+            qt = 2.0 ** _bez(course["lq"], t)
+            # Only where the course carries water: a dry notch needs no cap.
+            depth.append(np.where(qt > RIVER_Q[1], erosion_river_size(qt)[1], np.nan))
+            groups.append((kind, owner))
+    if verbose:
+        print(f"river_startup: {len(groups)} courses, {len(groups) * len(t)} relief samples", flush=True)
+    P = np.concatenate(points)
+    P /= np.linalg.norm(P, axis=1, keepdims=True)
+    h = np.concatenate([elevation(ctx, P[s:s + 200000], valleys=False) for s in range(0, len(P), 200000)]).reshape(len(groups), -1)
+    caps = np.where(np.isnan(np.stack(depth)), 1e30, np.maximum(h, 0.0) - RIVER_BANK * np.nan_to_num(np.stack(depth))).min(1)
+    main, connector, relief = np.full(N, 1e30), np.full(N, 1e30), np.zeros(N)
+    for (kind, owner), cap, row in zip(groups, caps, h):
+        if kind == 0:
+            main[owner], relief[owner] = cap, row.mean()
+        else:
+            connector[owner] = cap
+    # 3. Erosion::Condition.
+    fill, knick = 15.0, 0.03
+    order, children = [], [[] for _ in range(N)]
+    for c in np.flatnonzero(has):
+        children[receiver[c]].append(int(c))
+    order = [int(c) for c in np.flatnonzero(~has)]
+    for i in range(N):
+        if i >= len(order):
+            break
+        order.extend(children[order[i]])
+    z = level.copy()
+    for c in reversed(order):
+        if flags[c] & 1:
+            z[c] = min(z[c], main[c] + fill)
+        r = receiver[c]
+        if r >= 0:
+            z[r] = min(z[r], z[c])
+            if flags[c] & 4:
+                z[r] = min(z[r], connector[c] + fill)
+    for c in order:
+        r = receiver[c]
+        if r < 0:
+            continue
+        bound = z[r] + knick * length[c]
+        if flags[c] & 2:
+            bound = min(bound, 2.0 * (main[r] + fill) - z[r])
+        if flags[c] & 4:
+            bound = min(bound, 2.0 * (connector[c] + fill) - z[r])
+        z[c] = min(z[c], bound)
+    wall = np.full(N, 12.0)
+    for c in order:
+        if flags[c] & 1:
+            slope = (0.2 + 0.3 * _smooth(300.0, 1200.0, amplitude[c])) * rock[c] ** -0.25
+            above = max(relief[c] - z[c], 0.0) + 0.25 * amplitude[c]
+            wall[c] = round(min(max(above / slope, 300.0), 6000.0) / 25.0)
+        elif receiver[c] >= 0:
+            wall[c] = wall[receiver[c]]
+    out = (_level16(z), wall * 25.0, sinuous, floor)
+    np.savez(disk, stamp=stamp, stage=out[0], wall=out[1], sinuous=out[2], floor=out[3])
+    return out
+
+
+def _bez(k, t):
+    """A quadratic Bezier of controls k (3,) or (3, d) at the parameters t (n,)."""
+    s = 1.0 - t
+    if np.ndim(k) == 2:
+        return (s * s)[:, None] * k[0] + (2.0 * s * t)[:, None] * k[1] + (t * t)[:, None] * k[2]
+    return s * s * k[0] + 2.0 * s * t * k[1] + t * t * k[2]
+
+
+def _straight(k):
+    return bool((k["xyz"][0] == k["xyz"][1]).all() or (k["xyz"][1] == k["xyz"][2]).all())
+
+
+def _course_tangent(k, t):
+    """ErosionCourseTangent: the direction at t (n, 3), a repeated control's straight run its regular limit."""
+    a, b, c = k["xyz"]
+    if _straight(k):
+        return np.broadcast_to(c - a, (len(t), 3)).copy()
+    return (b - a)[None] + t[:, None] * ((c - b) - (b - a))[None]
+
+
+def _meander_octave(wave, finest, sinuous):
+    r = wave / finest
+    share = RIVER_MEANDER[3] + (RIVER_MEANDER[2] - RIVER_MEANDER[3]) * (1.0 - _smooth(2.0, 4.0, r))
+    valley = np.maximum(_smooth(RIVER_SPLIT / 1.4, RIVER_SPLIT * 1.4, r),
+                        _smooth(RIVER_CHANNEL_WAVE, 2.*RIVER_CHANNEL_WAVE, wave))
+    return share * wave * _smooth(0.7, 1.4, r) * sinuous, valley
+
+
+def _meander_bounds(finest, sinuous):
+    """ErosionMeanderBounds: (the floodplain's meanders' bound, twice their amplitudes; the valley's amplitudes summed)."""
+    fine, coarse = 0.0, 0.0
+    for o in range(10):
+        amp, split = _meander_octave(RIVER_MEANDER[0] * 0.5 ** o, finest, sinuous)
+        fine, coarse = fine + 2.0 * amp * (1.0 - split), coarse + amp * split
+    return fine, coarse
+
+
+def _finest(lq):
+    return RIVER_MEANDER[1] * 2.0 * erosion_river_size(2.0 ** lq)[0]
+
+
+COST = dict(meander_octaves=0)  # step B's noise octaves read, for the per-point cost
+
+
+def _meander(ctx, k, t, along, valley=False):
+    """ErosionMeander: (mc, dmc, mf, dmf) at the parameters t (n,), along the unit tangents `along` (n, 3), and the course's
+    point on the sphere (n, 3), the chordal curve's point taken radially; with valley, also the floor's half-width with
+    its noise and that noise (2, n). The floodplain's meanders bend the channel within the floor, the valley beyond."""
+    b = _bez(k["xyz"], t)
+    q = b / np.linalg.norm(b, axis=1, keepdims=True)
+    lq = _bez(k.get('trace_lq', k['lq']), t)
+    n_v = _course_noise(ctx, q, RIVER_VALLEY_NOISE[0], 17)
+    floor = np.minimum(_valley_floor(2.0 ** lq, _bez(k["floor"], t)) * 2.0 ** (RIVER_VALLEY_NOISE[1] * n_v), RIVER_FLOOR[2])
+    if _weight(ctx, R/RIVER_MEANDER[0]) <= 0.:
+        m = np.zeros((4, len(t)))
+        return (m, q, np.stack((floor, n_v))) if valley else (m, q)
+    finest, sinuous = _finest(lq), _bez(k["sinuous"], t)
+    m, fine = np.zeros((4, len(t))), np.zeros(len(t))
+    for o in range(10):
+        wave = RIVER_MEANDER[0] * 0.5 ** o
+        if not (wave >= 0.7 * finest).any():
+            break
+        amp, split = _meander_octave(wave, finest, sinuous)
+        fine += 2.0 * amp * (1.0 - split)
+        f = R / wave
+        w = _weight(ctx, f)
+        sel = np.flatnonzero((amp > 0.0) & (wave >= 0.7 * finest))
+        if w > 0.0 and len(sel):
+            COST["meander_octaves"] += len(sel)
+            c, qq = _lattice(q[sel], f, o)
+            v, g = gradient_noise_d(c, qq, _rseed(RIVER_SEED) + o)
+            dv = (g * along[sel]).sum(1) / wave
+            a = w * amp[sel] / SIGMA
+            m[:, sel] += np.stack((split[sel] * v, split[sel] * dv, (1.0 - split[sel]) * v, (1.0 - split[sel]) * dv)) * a
+    kf = np.maximum(fine, 1e-9)
+    tc, tf = np.tanh(m[0] / RIVER_OFFSET_MAX), np.tanh(m[2] / kf)
+    free = np.clip((floor - 2.0 * erosion_river_size(2.0 ** lq)[0]) / kf, 0.0, 1.0)
+    offset, slope = kf * tf, m[3] * (1.0 - tf * tf)
+    m = np.stack((RIVER_OFFSET_MAX * tc + (1.0 - free) * offset, m[1] * (1.0 - tc * tc) + (1.0 - free) * slope, free * offset, free * slope))
+    return (m, q, np.stack((floor, n_v))) if valley else (m, q)
+
+
+def _course_noise(ctx, q, wave, salt):
+    """ErosionCourseNoise: a noise of wavelength `wave` (m) at the course's points q, within +-1."""
+    f = R / wave
+    weight = _weight(ctx, f)
+    if weight <= 0.:
+        return np.zeros(len(q))
+    COST["meander_octaves"] += len(q)
+    c, qq = _lattice(q, f, 0)
+    n = weight * _gradient(_corner_hashes(c), qq, _rseed(RIVER_SEED) + salt, True)
+    return np.clip(n / (2.0 * SIGMA), -1.0, 1.0)
+
+
+def _course_share(lq):
+    """ErosionCourseShare: the depth share, 0 at RIVER_Q[0], 1 from RIVER_Q[1]."""
+    t = np.clip((np.exp2(lq)-RIVER_Q[0])/(RIVER_Q[1]-RIVER_Q[0]), 0., 1.)
+    return t*t*(3.-2.*t)
+
+
+def _width_factor(ctx, p, opening):
+    """ErosionWidthFactor: bounded centred modulation, by the valley opening and two finer scales."""
+    n = .5*opening + .3*_course_noise(ctx, p, RIVER_WIDTH_NOISE[0], 18)
+    n += .2*_course_noise(ctx, p, RIVER_WIDTH_NOISE[0]*.25, 19)
+    return 1.0 + RIVER_WIDTH_NOISE[1]*n
+
+
+def _bank_factor(ctx, p):
+    n = .55*_course_noise(ctx, p, RIVER_BANK_DETAIL[0], 20)
+    n += .30*_course_noise(ctx, p, RIVER_BANK_DETAIL[0]*.25, 21)
+    n += .15*_course_noise(ctx, p, RIVER_BANK_DETAIL[0]*.0625, 22)
+    return 1.+RIVER_BANK_DETAIL[1]*n
+
+
+def _river_spur_relief(ground, parent, fine):
+    residual = np.maximum(ground-parent-fine, 0.)
+    rounding = RIVER_SPURS[1]
+    return np.where(residual < rounding, .5*residual*residual/rounding, residual-.5*rounding)
+
+
+def river_spur_lift(ground, parent, fine, bank_level, keep):
+    """ErosionSpurLift: the positive terrain residual reduces incision, without raising original ground."""
+    spur, rounding = _river_spur_relief(ground, parent, fine), RIVER_SPURS[1]
+    above = np.maximum(ground-bank_level, 0.)
+    return keep*(above*above/(above+rounding))*spur/np.maximum(above+spur, 1e-6)
+
+
+def river_spur_bank_lift(lift, run):
+    """ErosionSpurBankLift: recovered height needs horizontal room beyond the physical dry bank."""
+    run = np.maximum(run, 0.)
+    allowance = RIVER_SPURS[2]*run*run/(run + RIVER_SPURS[1]/RIVER_SPURS[2])
+    return np.where(lift <= .5*allowance, lift, allowance*(1.-.25*allowance/np.maximum(lift, 1e-9)))
+
+
+def river_confinement(ground, parent, fine, bank_level):
+    """ErosionConfinement: each flank contracts around its own terrain mass, within the original corridor."""
+    above = np.maximum(ground-bank_level, 0.) + RIVER_SPURS[1]
+    ratio = above/(above + RIVER_CONFINEMENT[1]*_river_spur_relief(ground, parent, fine))
+    return RIVER_CONFINEMENT[0] + (1.-RIVER_CONFINEMENT[0])*ratio
+
+
+def _wall_profile(x, lq):
+    """ErosionWallProfile: the walls' rounded ramp at x, 0 at the floor's edge to 1 at the relief."""
+    r = RIVER_WALL[0] + (RIVER_WALL[1] - RIVER_WALL[0]) * _smooth(math.log2(RIVER_Q[1]), math.log2(RIVER_WALL[2]), lq)
+    t, s = np.clip(x, 0.0, 1.0), 1.0 / (1.0 - r)
+    return np.where(t < r, 0.5 * s * t * t / r, np.where(t > 1.0 - r, 1.0 - 0.5 * s * (1.0 - t) ** 2 / r, s * (t - 0.5 * r)))
+
+
+def river_corridor_profile(x, s):
+    """ErosionCorridorProfile: signed, composed terrain change with the local fields frozen."""
+    dv = np.hypot(s['along'], s['lv']+x)
+    dc = np.hypot(s['along'], s['lc']+s['ratio']*x)
+    g = _wall_profile((dv-s['F'])/(s['D']-s['F']), s['lq'])
+    rough = s['rough']*_smooth(2.*s['bank'], 4.*s['bank'], dc)
+    keep = _smooth(2.*s['bank'], s['keep'], dc)
+    above = np.maximum(s['height']-rough, 0.)
+    lift = keep*above*above/(above+RIVER_SPURS[1])*s['spur']/np.maximum(above+s['spur'], 1e-6)
+    lift = river_spur_bank_lift(lift, dc-2.*s['bank'])
+    delta = (rough-s['height']+lift)*(1.-g)
+    return delta*np.where(delta > 0., s['fill'], s['share'])
+
+
+def river_corridor_mean(s, radius):
+    """ErosionCorridorMean: four-point quadrature split at the physical section's transitions."""
+    s = {key: np.broadcast_to(value, np.shape(s['F'])) for key, value in s.items()}
+    active = (np.abs(s['along']) < s['D']) & ~((s['fill'] <= 0.) & (s['height'] <= np.minimum(s['rough'], 0.)))
+    if not active.any():
+        return np.zeros_like(s['F'])
+    r = np.full_like(s['F'], radius)
+    rounding = RIVER_WALL[0]+(RIVER_WALL[1]-RIVER_WALL[0])*_smooth(math.log2(RIVER_Q[1]), math.log2(RIVER_WALL[2]), s['lq'])
+    wall = s['D']-s['F']
+    edges = [-r, r]
+    for width in (s['F'], s['F']+rounding*wall, s['D']-rounding*wall, s['D']):
+        reach = np.sqrt(np.maximum(width*width-s['along']*s['along'], 0.))
+        edges.extend((-s['lv']-reach, -s['lv']+reach))
+    for width in (2.*s['bank'], 4.*s['bank'], s['keep']):
+        reach = np.sqrt(np.maximum(width*width-s['along']*s['along'], 0.))
+        edges.extend(((-s['lc']-reach)/s['ratio'], (-s['lc']+reach)/s['ratio']))
+    edges = np.sort(np.clip(np.stack(edges, axis=-1), -radius, radius), axis=-1)
+    nodes = np.array([.0694318442, .3300094782, .6699905218, .9305681558])
+    weights = np.array([.1739274226, .3260725774, .3260725774, .1739274226])
+    total = np.zeros_like(r)
+    for part in range(15):
+        lo, hi = edges[:, part], edges[:, part+1]
+        ids = np.flatnonzero((hi > lo) & active)
+        if not len(ids):
+            continue
+        a = {key: value[ids, None] for key, value in s.items()}
+        x = lo[ids, None]+(hi-lo)[ids, None]*nodes
+        total[ids] += (hi-lo)[ids]*np.sum(river_corridor_profile(x, a)*weights, axis=1)
+    return total/(2.*radius)
+
+
+def _valley_floor(q, floor):
+    """ErosionValleyFloor: the floor's half-width (m) by the law, before its noise."""
+    return 0.5 * RIVER_FLOOR[0] * np.power(q, RIVER_FLOOR[1]) * 2.0 ** floor
+
+
+def _cell_scale(c, n):
+    st = (np.stack([c % n, c // n % n], -1).astype(np.float64) + 0.5) * 2.0 / n - 1.0
+    k = 1.0 + (st * st).sum(-1)
+    return np.minimum(np.sqrt(1.0 + st[..., 1] ** 2), np.sqrt(1.0 + st[..., 0] ** 2)) / k
+
+
+def _river_node(c, seed=None):
+    words, n = erosion_map(seed)
+    stage, wall, sinuous, floor = erosion_courses(seed)
+    bits = int(words[c, 1])
+    data = int(_flow_words[PLANET_SEED if seed is None else seed][c, 0])
+    code = data & 255
+    return dict(c=c, at=_enode(np.array([c]), n)[0].astype(np.float64), bits=bits, code=code, out_code=data>>8&255,
+                broken=bool(data & (1<<16)), graph_code=bits>>16&255, stops=_contacts[PLANET_SEED if seed is None else seed][c], lq=code / 8.0 - 8.0,
+                stage=stage[c], wall=wall[c], sinuous=sinuous[c], floor=floor[c],
+                lake=(int(_basins[PLANET_SEED if seed is None else seed][c, 0]) & 65535)*.25-8192.)
+
+
+def _fan_strength(discharge, grade, wall):
+    return _smooth(RIVER_DELTA[0], RIVER_DELTA[1], discharge)*(1.-_smooth(.002, .01, grade))*(1.-_smooth(600., 1600., wall))
+
+
+def _node_courses(c, seed=None):
+    """ErosionMainCourse: node c's main course and what continues it, or None without a river."""
+    words, n = erosion_map(seed)
+    v = _river_node(c, seed)
+    bits = v["bits"]
+    outlet = (bits & (_SEA | _LAKE)) != 0
+    twice = 16.0 * (math.log2(RIVER_Q[0]) + 8.0)
+    down = v
+    if not outlet:
+        if not bits & _HAS_RECEIVER:
+            return None
+        down = _river_node(int(_eneighbour(np.array([c]), np.array([bits & 7]), n)[0]), seed)
+    if 2*(max(v['graph_code'], down['graph_code'])+1) < twice:
+        return None
+    main, up, connectors = 8, v, 0
+    for k in range(8):
+        if (bits >> (4 + k)) & 1:
+            u = _river_node(int(_eneighbour(np.array([c]), np.array([k]), n)[0]), seed)
+            target_code = u['out_code'] if u['stops'][2] < 1. else v['code']
+            if u['out_code'] + target_code >= twice:
+                connectors |= 1 << k
+            if main == 8 or u['graph_code'] > up['graph_code']:
+                main, up = k, u
+    if outlet and main == 8:
+        return None
+    inflow = main < 8
+    if v['code']+(v['code'] if v['broken'] else down['code']) < twice and (not inflow or 2*up['out_code'] < twice) and connectors == 0:
+        return None
+    head = not inflow or up['graph_code']+v['graph_code'] < twice
+    up = dict(up, lq=up['out_code']/8.-8.)
+    connectors &= ~(1 << main) if inflow else 0xFF
+    keys = ("stage", "lq", "wall", "sinuous", "floor")
+    start = {key: 0.5 * (up[key] + v[key]) if inflow else v[key] for key in keys}
+    end = {key: 0.5 * (v[key] + down[key]) for key in keys}
+    if inflow and up['broken']:
+        start['lq'] = up['lq']
+    if v['broken']:
+        end['lq'] = v['lq']
+    b = v["at"]
+    k = dict(xyz=np.stack((0.5 * (up["at"] + b) if inflow else b, b, b if outlet else 0.5 * (b + down["at"]))),
+             taper=False, dry=False, flare=np.zeros(3), fan=np.zeros(3), mouth=bool((bits | down['bits']) & (_LAKE | _SEA)) or np.any(v['stops'][:2] < 1.),
+             stops=v['stops'][:2], part_lq=np.array([up['lq'], v['lq']]), split=True, fan_first=False,
+             **{key: np.array([start[key], v[key], end[key]]) for key in keys})
+    k['trace_lq'] = np.array([.5*(up['graph_code']+v['graph_code']) if inflow else v['graph_code'],
+                             v['graph_code'], .5*(v['graph_code']+down['graph_code'])])/8.-8.
+    if bits & _SEA:
+        grade = start['stage']/max(np.linalg.norm(k['xyz'][1]-k['xyz'][0])*R, 1.)
+        fan = _fan_strength(2.**v['lq'], grade, v['wall'])
+        upstream = np.linalg.norm(k['xyz'][1]-k['xyz'][0])*R
+        through = upstream/max(upstream+RIVER_EXTEND[0]*float(_cell_scale(np.array(c), n))*v['stops'][3], 1.)
+        k['fan'] = np.array([0., fan*through, fan*through])
+    if v['lake'] <= 0. and np.any(k['stops'] < 1.):
+        first = k['stops'][0] < 1. and (k['stops'][1] >= 1. or up['out_code'] > v['code'])
+        begin, end = (0., .5*k['stops'][0]) if first else (.5, .5+.5*k['stops'][1])
+        at = lambda t: (1.-t)**2*k['xyz'][0]+2.*t*(1.-t)*k['xyz'][1]+t*t*k['xyz'][2]
+        run = np.linalg.norm(at(end)-at(begin))*R
+        discharge = 2.**(up['lq'] if first else v['lq'])
+        width = float(erosion_river_size(discharge)[0])
+        fan = _fan_strength(discharge, max(float(_bez(k['stage'], begin)), 0.)/max(run, 1.), float(_bez(k['wall'], end)))
+        fan *= _smooth(4.*width, 12.*width, run)
+        k['fan'] = (np.array([0., .5, 1.])-begin)*fan/max(end-begin, .001)
+        k['fan_first'] = first
+    return dict(main=k, r=v, head=head, outlet=outlet, main_inflow=main, connectors=connectors,
+                scale=float(_cell_scale(np.array(c), n)))
+
+
+def _head_course(v):
+    k = dict(v["main"])
+    extent = RIVER_EXTEND[1] * v["scale"]
+    t0 = _course_tangent(k, np.zeros(1))[0]
+    end = k["xyz"][0]
+    start = end - extent / R * t0 / np.linalg.norm(t0)
+    z, rise = k["stage"][0], RIVER_EXTEND[2] * extent
+    k.update(xyz=np.stack((start, 0.5 * (start + end), end)), stage=np.array([z + rise, z + 0.5 * rise, z]),
+             lq=np.full(3, k["lq"][0]), wall=np.full(3, k["wall"][0]), sinuous=np.full(3, k["sinuous"][0]),
+             floor=np.full(3, k["floor"][0]), dry=True, fan=np.zeros(3), stops=np.ones(2), split=False, fan_first=False)
+    k['trace_lq'] = np.full(3, k['trace_lq'][0])
+    return k
+
+
+def _outlet_course(v):
+    k = dict(v["main"])
+    a, b, _ = k["xyz"]
+    d = (b - a) / np.linalg.norm(b - a)
+    end = b + RIVER_EXTEND[0] * v["scale"] / R * d
+    k.update(xyz=np.stack((b, 0.5 * (b + end), end)), **{key: np.full(3, k[key][2]) for key in ("stage", "lq", "wall", "sinuous", "floor")})
+    upstream = max(np.linalg.norm(b-a)*R, 1.)
+    fan_end = v['main']['fan'][2]*(1.+RIVER_EXTEND[0]*v['scale']/upstream)
+    k['fan'] = np.array([v['main']['fan'][2], .5*(v['main']['fan'][2]+fan_end), fan_end])
+    k['stops'] = np.full(2, 0. if v['r']['stops'][1] < 1. else v['r']['stops'][3])
+    k['split'] = False
+    k['fan_first'] = False
+    k['trace_lq'] = np.full(3, k['trace_lq'][2])
+    return k
+
+
+def _junction(main, zS):
+    """ErosionJunction: the first t from 0.5 where the main stage is down to zS."""
+    z0 = main["stage"] - zS
+    t = 0.0 if z0[0] <= 0.0 else z0[0] / max(z0[0] - z0[1] + math.sqrt(max(z0[1] ** 2 - z0[0] * z0[2], 0.0)), 1e-20)
+    return min(max(t, 0.5), 1.0)
+
+
+def _triangle_distance(a, b, c, up):
+    """ErosionTriangleDistance: from the origin to the triangles a, b, c (n, 3) in the planes normal to up; zero inside."""
+    e = (b - a, c - b, a - c)
+    s = [(np.cross(ei, -x) * up).sum(1) for ei, x in zip(e, (a, b, c))]
+    inside = ((s[0] >= 0) & (s[1] >= 0) & (s[2] >= 0)) | ((s[0] <= 0) & (s[1] <= 0) & (s[2] <= 0))
+    d = np.full(len(a), np.inf)
+    for x, ei in zip((a, b, c), e):
+        u = np.clip(-(x * ei).sum(1) / np.maximum((ei * ei).sum(1), 1e-30), 0.0, 1.0)
+        d = np.minimum(d, np.linalg.norm(x + u[:, None] * ei, axis=1))
+    return np.where(inside, 0.0, d)
+
+
+def _connector(ctx, v, u):
+    """ErosionConnector: the inflow u re-routed to the main course's channel, arriving at Howard's angle."""
+    main = v["main"]
+    zS = 0.5 * (u["stage"] + v["r"]["stage"])
+    tj = _junction(main, zS)
+    t = np.array([tj])
+    tangent = _course_tangent(main, t)[0]
+    m, q, valley = _meander(ctx, main, t, (tangent / np.linalg.norm(tangent))[None], valley=True)
+    q = q[0]
+    along = tangent - (tangent @ q) * q
+    along /= np.linalg.norm(along)
+    left = np.cross(along, q)
+    J = q + (m[0, 0] + m[2, 0]) / R * left
+    a = 0.5 * (u["at"] + v["r"]["at"])
+    into = (v["r"]["at"] - u["at"]) / np.linalg.norm(v["r"]["at"] - u["at"])
+    span = max(np.linalg.norm(J - a), 1.0 / R)
+    zJ = float(_bez(main["stage"], t)[0])
+    sa, sb, sc = main["stage"]
+    if _straight(main):
+        slope = abs(sc - sa) / max(np.linalg.norm(main["xyz"][2] - main["xyz"][0]) * R, 1e-6)
+    else:
+        slope = abs(sb - sa + tj * ((sc - sb) - (sb - sa))) / max(np.linalg.norm(tangent) * R, 1e-6)
+    cosine = min(max(slope / max((zS - zJ) / (span * R), 1e-9), 0.0), 1.0)
+    theta = math.radians(min(max(math.degrees(math.acos(cosine)), RIVER_JUNCTION[0]), RIVER_JUNCTION[1]))
+    side = 1.0 if (a - J) @ left > 0.0 else -1.0
+    arrive = math.cos(theta) * along - side * math.sin(theta) * left
+    d = J - a
+    det = np.cross(into, arrive) @ q
+    l0, l1 = (np.cross(d, arrive) @ q) / det, (np.cross(into, d) @ q) / det
+    ahead = abs(det) > 1e-6 and 0.0 < l0 < 1.5 * span and 0.0 < l1 < 1.5 * span
+    ctrl = a + min(l0, np.linalg.norm(v["r"]["at"] - a)) * into if ahead else 0.5 * (a + J)
+    wS, wJ = 0.5 * (u["wall"] + v["r"]["wall"]), float(_bez(main["wall"], t)[0])
+    sS, sJ = 0.5 * (u["sinuous"] + v["r"]["sinuous"]), float(_bez(main["sinuous"], t)[0])
+    fS, fJ = 0.5 * (u["floor"] + v["r"]["floor"]), float(_bez(main["floor"], t)[0])
+    # Its stage leaves at its own course's slope, falling to the main's: past its start the two go on alike.
+    slope_up = (v["r"]["stage"] - u["stage"]) / max(np.linalg.norm(v["r"]["at"] - u["at"]) * R, 1e-6)
+    zM = max(zS + slope_up * np.linalg.norm(ctrl - a) * R, zJ)
+    incoming_lq = u['out_code']/8.-8.
+    stop = u['stops'][2]
+    k = dict(xyz=np.stack((a, ctrl, J)), stage=np.array([zS, zM, zJ]), lq=np.full(3, incoming_lq if stop < 1. else .5*(incoming_lq+v['r']['lq'])),
+                trace_lq=np.full(3, .5*(u['graph_code']+v['r']['graph_code'])/8.-8.),
+                wall=np.array([wS, 0.5 * (wS + wJ), wJ]), sinuous=np.array([sS, 0.5 * (sS + sJ), sJ]),
+                floor=np.array([fS, 0.5 * (fS + fJ), fJ]), taper=True, dry=False,
+                flare=np.zeros(3), fan=np.zeros(3), mouth=main['mouth'] or stop < 1.,
+                stops=np.full(2, stop), split=False, part_lq=np.zeros(2), fan_first=False,
+                junction=tj, octaves=int(np.sum(RIVER_MEANDER[0] * 0.5 ** np.arange(10) >= 0.7 * _finest(main["lq"][1]))))
+    if stop >= 1. and 2.**k['lq'][0] > RIVER_Q[1]:
+        main_width = float(erosion_river_size(2.**_bez(main['lq'], t)[0])[0])
+        receiving_flow = along+np.clip(m[1, 0]+m[3, 0], -1., 1.)*left
+        receiving_flow /= np.linalg.norm(receiving_flow)
+        turn = float(receiving_flow @ np.cross((J-ctrl)/np.linalg.norm(J-ctrl), q))
+        bank_turn = np.sign(turn)*_smooth(0., math.sin(math.radians(RIVER_JUNCTION[0])), abs(turn))
+        receiving_width = main_width*float(_width_factor(ctx, q[None], valley[1])[0])
+        k['flare'] = np.array([receiving_width, main_width, bank_turn])
+    if stop < 1. and v['r']['lake'] <= 0.:
+        end = (1.-stop)**2*a+2.*stop*(1.-stop)*ctrl+stop*stop*J
+        run = np.linalg.norm(end-a)*R
+        discharge = 2.**incoming_lq
+        width = float(erosion_river_size(discharge)[0])
+        fan = _fan_strength(discharge, max(zS, 0.)/max(run, 1.), float(_bez(k['wall'], stop)))
+        fan *= _smooth(4.*width, 12.*width, run)
+        k['fan'] = np.array([0., .5, 1.])*fan/max(stop, .001)
+    return k
+
+
+def _course_reach(k):
+    """ErosionCourseReach: its corridor or its channel, and its valley's offset (m)."""
+    lq = max(k['lq'].max(), k['part_lq'].max() if k.get('split', False) else -1e9)
+    trace = k.get('trace_lq', k['lq'])
+    bounds = max(_meander_bounds(_finest(trace.max()), 1.0)[0], _meander_bounds(_finest(min(trace[0], trace[2])), 1.0)[0])
+    nominal = float(erosion_river_size(2.0**lq)[0])
+    W = max((1.0 + RIVER_WIDTH_NOISE[1])*nominal, k['flare'][0]) + RIVER_BANK_EDGE[0]
+    W += max(min(RIVER_MOUTH[0]*nominal, RIVER_MOUTH[2]) if k.get('mouth', False) else 0., _smooth(0., 1., k['fan'].max())*RIVER_DELTA[3])
+    F = min(float(_valley_floor(2.0 ** lq, k["floor"].max())) * 2.0 ** RIVER_VALLEY_NOISE[1], RIVER_FLOOR[2]) + 2.*math.sqrt(2.)*W
+    share = _course_share(lq)
+    D = min(share*F + max(share*k["wall"].max() * 2.0 ** RIVER_VALLEY_NOISE[2], 1.0), RIVER_REACH)
+    return max(D, 2.0 * W + bounds) + bounds + RIVER_OFFSET_MAX
+
+
+def river_channel_mean(d, w, depth, radius):
+    """Exact box mean of a flat wet bed and depth-scaled cubic bank shoulder."""
+    lo = np.maximum(np.stack((d-radius, -d-radius), -1), 0.)
+    hi = np.maximum(np.stack((d+radius, -d+radius), -1), 0.)
+    w, depth = (np.asarray(x)[..., None] for x in (w, depth))
+    shoulder = np.minimum(w, np.maximum(RIVER_BANK_SHOULDER[0], RIVER_BANK_SHOULDER[1]*depth))
+    core = w-shoulder
+    area = np.minimum(hi, core)-np.minimum(lo, core)
+    a, b = (np.clip((x-core)/shoulder, 0., 1.) for x in (lo, hi))
+    span = b-a
+    mean = a*a*(3.-2.*a)+span*(3.*a*(1.-a)+span*(1.-2.*a-.5*span))
+    area += shoulder*span*np.maximum(1.-mean, 0.)
+    return (depth*area).sum(axis=-1)/(2.*radius)
+
+
+def river_mouth_share(k, t, along, width):
+    """Fixed physical approach to the cached contact, zero at the start of its owning part."""
+    a, b, c = k['xyz']
+    middle = .25*a+.5*b+.25*c
+    first = (t < .5) & k.get('split', False)
+    length = (np.where(first, np.linalg.norm(middle-a), np.linalg.norm(c-middle))
+              if k.get('split', False) else np.linalg.norm(c-a))*R
+    length = np.maximum(length, 1.)
+    part = np.where(first, 2.*t, 2.*t-1.) if k.get('split', False) else t
+    limit = np.where(first, k['stops'][0], k['stops'][1])
+    run = np.maximum(np.minimum(RIVER_MOUTH[1]*width, limit*length), .001)
+    remaining = (limit-part)*length-along
+    return np.where((limit > 0.) & (limit < 1.), 1.-_smooth(0., run, remaining), 0.)
+
+
+def river_channel_bank_cut(d, w, bank_height, above, radius):
+    """Mean positive dry-bank incision, intersected with the ground before the symmetric box filter."""
+    lo = np.maximum(np.stack((d - radius, -d - radius), -1), 0.)
+    hi = np.maximum(np.stack((d + radius, -d + radius), -1), 0.)
+    w, bank_height, above = (np.asarray(x)[..., None] for x in (w, bank_height, above))
+    area = above * (np.minimum(hi, w) - np.minimum(lo, w))
+    fraction = np.clip(above / np.maximum(bank_height, 1e-9), 0., 1.)
+    end = .5 - np.sin(np.arcsin(1. - 2. * fraction) / 3.)
+    shoulder = np.minimum(w, np.maximum(RIVER_BANK_SHOULDER[0], RIVER_BANK_SHOULDER[1]*bank_height))
+    a, b = (np.clip((x - w) / shoulder, 0., end) for x in (lo, hi))
+    span = b - a
+    mean = a*a*(3. - 2.*a) + span*(3.*a*(1. - a) + span*(1. - 2.*a - .5*span))
+    area += shoulder*span*np.maximum(above - bank_height*mean, 0.)
+    area += np.maximum(np.minimum(hi, 2.*w)-np.maximum(lo, w+shoulder), 0.)*np.maximum(above-bank_height, 0.)
+    rise = np.maximum(above - bank_height, 0.)
+    reach = rise / RIVER_STEEP_BANK
+    c, e = (np.clip(x - 2.*w, 0., reach) for x in (lo, hi))
+    area += (e-c)*np.maximum(rise - .5*RIVER_STEEP_BANK*(c+e), 0.)
+    return area.sum(-1) / (2.*radius)
+
+
+def river_channel_coverage(d, w, radius):
+    return np.maximum(np.minimum(d + radius, w) - np.maximum(d - radius, -w), 0.) / (2.*radius)
+
+
+def river_stop_share(k, t, along, radius):
+    stops = k.get('stops', np.ones(2))
+    split = k.get('split', False)
+    first = (t < .5) if split else np.zeros_like(t, dtype=bool)
+    limit = np.where(first, stops[0], stops[1])
+    a, b, c = k['xyz']
+    middle = .25*a+.5*b+.25*c
+    length = np.where(first, np.linalg.norm(middle-a), np.linalg.norm(c-middle)) if split else np.linalg.norm(c-a)
+    length = np.maximum(length*R, 1.)
+    part = np.where(first, 2.*t, 2.*t-1.) if split else t
+    beyond = (part-limit)*length+along
+    def primitive(x):
+        u = np.clip(x/RIVER_CONTACT[2], 0., 1.)
+        return np.minimum(x, 0.)+RIVER_CONTACT[2]*(u-u**3+.5*u**4)
+    return np.where(limit >= 1., 1., np.clip((primitive(beyond+radius)-primitive(beyond-radius))/(2.*radius), 0., 1.))
+
+
+def river_interval_coverage(lo, hi, radius):
+    """Exact union of three clipped intervals, including containment and empty branches."""
+    covered = np.maximum(hi-lo, 0.).sum(axis=-1)
+    for a, b in ((0, 1), (0, 2), (1, 2)):
+        covered -= np.maximum(np.minimum(hi[..., a], hi[..., b])-np.maximum(lo[..., a], lo[..., b]), 0.)
+    covered += np.maximum(hi.min(axis=-1)-lo.max(axis=-1), 0.)
+    return np.clip(covered/(2.*radius), 0., 1.)
+
+
+def _corridor(ctx, k, p, hr, parent, fine, radius, sea, out, ids, cost):
+    """ErosionCorridor at the points p[ids] (unit), into the combined fields out."""
+    if _course_share(max(k['lq'].max(), k['part_lq'].max() if k.get('split', False) else -1e9)) <= 0.0:
+        return
+    P = p[ids]
+    proj = lambda x: (x[None] - P) - ((x[None] - P) * P).sum(1, keepdims=True) * P
+    a, b, c = (proj(x) for x in k["xyz"])
+    e = c - a
+    u = np.clip(-(a * e).sum(1) / np.maximum((e * e).sum(1), 1e-30), 0.0, 1.0)
+    near_chord = (np.linalg.norm(a + u[:, None] * e, axis=1) - 0.5 * np.linalg.norm(b - 0.5 * (a + c), axis=1)) * R <= _course_reach(k) + radius
+    ids, P, a, b, c = ids[near_chord], P[near_chord], a[near_chord], b[near_chord], c[near_chord]
+    if not len(ids):
+        return
+    cost["corridors"][ids] += 1
+    _, t, nearest = _curve(a, b, c)
+    if _straight(k):
+        T = c - a
+    else:
+        T = (b - a) + t[:, None] * ((c - b) - (b - a))
+    T /= np.linalg.norm(T, axis=1, keepdims=True)
+    N = np.cross(T, P)
+    lat, along = -(nearest * N).sum(1) * R, -(nearest * T).sum(1) * R
+    # Past its ends, the stage along its slope, its neighbour's to first order.
+    sa, sb, sc = k["stage"]
+    if _straight(k):
+        slope_z = (sc - sa) / np.maximum(np.linalg.norm(c - a, axis=1) * R, 1e-6)
+    else:
+        slope_z = (sb - sa + t * ((sc - sb) - (sb - sa))) / np.maximum(np.linalg.norm((b - a) + t[:, None] * ((c - b) - (b - a)), axis=1) * R, 1e-6)
+    lq = _bez(k["lq"], t)
+    if k.get('split', False) and np.any(k['stops'] < 1.):
+        up = k['part_lq'][0] if k['stops'][0] < 1. else k['lq'][0]+(k['part_lq'][1]-k['lq'][0])*_smooth(0., .5, t)
+        down = k['part_lq'][1] if k['stops'][1] < 1. else k['part_lq'][1]+(k['lq'][2]-k['part_lq'][1])*_smooth(.5, 1., t)
+        lq = np.where(t < .5, up, down)
+    z, q = _bez(k["stage"], t) + slope_z * along, 2.0 ** lq
+    W0, depth0 = erosion_river_size(q)
+    approach = river_mouth_share(k, t, along, W0) if k.get('mouth', False) else np.zeros_like(t)
+    lake_level = out.get('lake_level', np.zeros(len(p)))[ids]
+    z -= np.maximum(z-lake_level, 0.)*approach
+    stop = river_stop_share(k, t, along, radius)
+    live = np.zeros(len(t)) if k["dry"] else _smooth(RIVER_Q[1], RIVER_Q[2], q)*stop
+    share = _course_share(lq) * (_smooth(0., 1., t) if k['dry'] else stop)
+    fine_max, coarse = _meander_bounds(_finest(_bez(k.get('trace_lq', k['lq']), t)), _bez(k["sinuous"], t))
+    # The corridor's half-width bound, the valley's noise at its largest.
+    wall = share * _bez(k["wall"], t)
+    width_bound = np.maximum((1.0 + RIVER_WIDTH_NOISE[1])*W0, k['flare'][0]) + RIVER_BANK_EDGE[0]
+    width_bound += np.maximum(np.minimum(RIVER_MOUTH[0]*W0, RIVER_MOUTH[2]) if k.get('mouth', False) else 0., _smooth(0., 1., k['fan'].max())*RIVER_DELTA[3])
+    D = np.minimum(share * (np.minimum(_valley_floor(q, _bez(k["floor"], t)) * 2.0 ** RIVER_VALLEY_NOISE[1], RIVER_FLOOR[2]) + 2.*math.sqrt(2.)*width_bound)
+                   + np.maximum(wall * 2.0 ** RIVER_VALLEY_NOISE[2], 1.0), RIVER_REACH)
+    coarse = RIVER_OFFSET_MAX * np.tanh(2.5 * coarse / RIVER_OFFSET_MAX)
+    dv_low = np.maximum(np.abs(along), (np.abs(lat) - coarse - fine_max) * math.sqrt(0.5))
+    dc_low = dv_low
+    edge_max = width_bound * live + radius
+    bank_max = edge_max - radius
+    channel_low = np.where(dc_low > edge_max + bank_max,
+                           z + (1.-RIVER_BANK_DETAIL[1])*RIVER_BANK*depth0*live + RIVER_STEEP_BANK * (dc_low - edge_max - bank_max), -1e9)
+    keep = ((share > 0.) | (live > 0.)) & ~((dv_low >= D + radius) & ((live <= 0.0) | (channel_low >= hr[ids])))
+    keep &= ~((live <= 0.) & (np.abs(along) >= D))
+    sub = np.flatnonzero(keep)
+    if not len(sub):
+        return
+    ids = ids[sub]
+    remaining = np.linalg.norm(c-nearest, axis=1)*R
+    t, T, N, lat, along, z, q, W0, depth0, live, fine_max, share, wall, remaining, slope_z, approach = (
+        x[sub] for x in (t, T, N, lat, along, z, q, W0, depth0, live, fine_max, share, wall, remaining, slope_z, approach))
+    cost["meanders"][ids] += 1
+    before = COST["meander_octaves"]
+    m, point, valley = _meander(ctx, k, t, T, valley=True)
+    valley[0] = np.minimum(_valley_floor(q, _bez(k['floor'], t))*2.**(RIVER_VALLEY_NOISE[1]*valley[1]), RIVER_FLOOR[2])
+    if k["taper"]:
+        m = m * (1.0 - _smooth(0.6, 1.0, t))
+    slope_valley, slope = np.clip(m[1], -1.0, 1.0), np.clip(m[1] + m[3], -1.0, 1.0)
+    dv = np.hypot(along, (lat - m[0]) / np.sqrt(1.0 + slope_valley ** 2))
+    dc = np.hypot(along, (lat - m[0] - m[2]) / np.sqrt(1.0 + slope ** 2))
+    join_run = np.maximum(np.minimum(RIVER_CONFLUENCE[1]*(k['flare'][1]+W0), np.linalg.norm(c-a, axis=1)[sub]*R), .001)
+    join = 1.-_smooth(0., join_run, remaining) if k['flare'][0] > 0. else 0.
+    bank_factor = _bank_factor(ctx, p[ids])
+    edge_noise = (bank_factor-1.)/RIVER_BANK_DETAIL[1]
+    lake = out.get('lake_level', np.zeros(len(p)))[ids]
+    receiving = 1.-_smooth(0., 2.*depth0, np.maximum(z-lake, 0.)) if k.get('mouth', False) else 0.
+    fan_control = np.where((t >= .5) & k.get('fan_first', False), 0., np.clip(_bez(k['fan'], t), 0., 1.))
+    fan = _smooth(0., 1., fan_control)
+    spread = fan*np.minimum(RIVER_DELTA[2]*W0, RIVER_DELTA[3])
+    aperture = np.maximum(approach, receiving*(1.-_smooth(0., RIVER_MOUTH[1]*depth0, hr[ids]-lake)))
+    mouth = np.maximum(np.minimum(RIVER_MOUTH[0]*W0, RIVER_MOUTH[2])*aperture-spread, 0.)
+    own_width = W0*_width_factor(ctx, point, valley[1])+mouth
+    matched = own_width+(np.minimum(own_width, k['flare'][0])-own_width)*join
+    opening = RIVER_CONFLUENCE[0]*np.maximum(k['flare'][0]-matched, 0.)*join
+    base_width, bank_shift = matched+abs(k['flare'][2])*opening, k['flare'][2]*opening*live
+    edge_offset = np.minimum(np.minimum(RIVER_BANK_EDGE[0], RIVER_BANK_EDGE[1]*W0), .25*base_width)*(.3+.7*_smooth(.002, .02, np.abs(slope_z)))*edge_noise
+    W = (base_width+edge_offset)*live
+    asymmetry = _course_noise(ctx, point, 2400., 24) if np.any(fan > 0.) else np.zeros(len(ids))
+    geometric_tangent = (b-a)[sub]+t[:, None]*((c-b)-(b-a))[sub]
+    fan_gradient = k['fan'][1]-k['fan'][0]+t*(k['fan'][2]-2.*k['fan'][1]+k['fan'][0])
+    fan_slope = 6.*fan_control*(1.-fan_control)*fan_gradient*np.minimum(RIVER_DELTA[2]*W0, RIVER_DELTA[3])/np.maximum(np.linalg.norm(geometric_tangent, axis=1)*R, 1.)
+    cost["octaves"][ids] += (COST["meander_octaves"] - before) / max(len(ids), 1)
+    depth = depth0 * live
+    bank_height = RIVER_BANK*depth*bank_factor*(1.-approach)
+    zb = z + bank_height
+    confinement = river_confinement(hr[ids], parent[ids], fine[ids], zb)
+    valley_metric = 1./np.sqrt(1.+slope_valley*slope_valley)
+    bank_metric = np.maximum(1., np.sqrt(1.+slope*slope)*valley_metric)
+    belt = np.abs(m[2]+bank_shift*np.sqrt(1.+slope*slope))*valley_metric + 2.*(spread+np.maximum(W0, W))*bank_metric
+    F = share * np.maximum(belt, valley[0]*confinement)
+    outer = np.minimum(F + np.maximum(wall * 2.0 ** (RIVER_VALLEY_NOISE[2] * valley[1])*confinement, 1.0), RIVER_REACH)
+    bank = np.maximum(spread+W, CREASE_MIN_CELL)
+    h0 = hr[ids]
+    section = dict(lv=(lat-m[0])*valley_metric, lc=(lat-m[0]-m[2])/np.sqrt(1.+slope*slope)-bank_shift, along=along,
+                   ratio=1./(np.sqrt(1.+slope*slope)*valley_metric), F=F, D=outer, lq=np.log2(q), bank=bank,
+                   keep=np.maximum(4.*bank, RIVER_SPURS[0]*np.maximum(F, share*valley[0])), height=h0-zb,
+                   spur=_river_spur_relief(h0, parent[ids], fine[ids]), rough=np.maximum(RIVER_FLOODPLAIN[0]*fine[ids], -.8*bank_height),
+                   share=share, fill=live*sea[ids])
+    S = h0 + river_corridor_mean(section, radius)
+    out["fill"][ids] = np.maximum(out["fill"][ids], S - h0)
+    out["carve"][ids] = np.maximum(out["carve"][ids], h0 - S)
+    lateral = (lat-m[0]-m[2])/np.sqrt(1.+slope*slope)-bank_shift
+    intervals_lo, intervals_hi = np.zeros((len(ids), 3)), np.zeros((len(ids), 3))
+    for branch in ((-1, 0, 1) if np.any(fan > 0.) else (0,)):
+        fraction = 1.-.5*fan if branch == 0 else .25*fan*(1.+branch*.6*asymmetry)
+        wet = (live > 0.) & (fraction > 0.)
+        width, cut_depth = np.maximum(W*np.sqrt(fraction), 1e-3), depth*fraction**EROSION_RIVER_SHAPE[2]
+        spread_factor = .85+branch*.15*asymmetry
+        offset = lateral-branch*spread*spread_factor
+        distance, edge = np.hypot(along, offset), width+radius
+        inside = np.where(distance < edge, river_channel_mean(distance, width, cut_depth, radius), 0.)
+        channel = S-river_channel_bank_cut(distance, width, bank_height, np.maximum(S-z, 0.), radius)-inside
+        lower = wet & (channel < out['bed'][ids])
+        flow = T+(slope+branch*fan_slope*spread_factor)[:, None]*N
+        flow *= (np.minimum(q*fraction/np.maximum((2.*width-np.minimum(width, np.maximum(RIVER_BANK_SHOULDER[0], RIVER_BANK_SHOULDER[1]*cut_depth)))*cut_depth, 1e-3), 4.)/np.linalg.norm(flow, axis=1))[:, None]
+        out['bed'][ids] = np.where(lower, channel, out['bed'][ids])
+        wt = np.where(wet & (distance < edge), _smooth(0., np.maximum(width, CREASE_MIN_CELL), edge-distance), 0.)
+        out['stage'][ids] += wt*z
+        out['cut'][ids] = np.maximum(out['cut'][ids], np.where(wet, inside, 0.))
+        out['weight'][ids] += wt
+        out['flow'][ids] += wt[:, None]*flow
+        signed = np.where(offset < 0., -distance, distance)
+        intervals_lo[:, branch+1] = np.where(wet, np.clip(-signed-width, -radius, radius), 0.)
+        intervals_hi[:, branch+1] = np.where(wet, np.clip(-signed+width, -radius, radius), 0.)
+        out['edge'][ids] = np.where(wet, np.maximum(out['edge'][ids], edge-distance), out['edge'][ids])
+        out['distance'][ids] = np.where(wet, np.minimum(out['distance'][ids], distance-width), out['distance'][ids])
+        out['bank'][ids] = np.where(wet, np.maximum(out['bank'][ids], 1.-_smooth(0., 40., np.maximum(distance-width, 0.))), out['bank'][ids])
+    out['coverage'][ids] = np.maximum(out['coverage'][ids], river_interval_coverage(intervals_lo, intervals_hi, radius))
+
+
+def _erosion_lake_level(face, x, n, cell_m, seed=None):
+    """ErosionLakeLevel: the terminal lakes' stage, continuous across their basins' bands."""
+    level = np.zeros(len(x))
+    band = min(EROSION_LAKE_TRANSITION / cell_m, 0.5)
+    blend = _smooth(0.5 - band, 0.5 + band, x - np.floor(x))
+    for tap in range(4):
+        offset = np.array([tap & 1, tap >> 1])
+        basin = erosion_basins(seed)[_ecell(face, np.floor(x).astype(np.int64) + offset, n)]
+        weight = np.where(offset, blend, 1.0 - blend).prod(axis=1)
+        level += weight * np.where(((basin[:, 1] & 65535) != 0) & (EROSION_WATER > 0), np.maximum(0.0, (basin[:, 0] & 65535) * 0.25 - 8192.0), 0.0)
+    return level
+
+
+def river_courses(ctx, c, seed=None):
+    """Node c's courses, as the engine builds them for a footprint ctx: [(kind, course)], kind main, head, outlet or the
+    connector's neighbour index."""
+    v = _node_courses(c, seed)
+    if v is None:
+        return [], None
+    words, n = erosion_map(seed)
+    out = [("main", v["main"])]
+    if v["head"]:
+        out.append(("head", _head_course(v)))
+    if v["outlet"]:
+        out.append(("outlet", _outlet_course(v)))
+    for k in range(8):
+        if (v["connectors"] >> k) & 1:
+            out.append((k, _connector(ctx, v, _river_node(int(_eneighbour(np.array([c]), np.array([k]), n)[0]), seed))))
+    return out, v
+
+
+def _river_footprint_reach(p, x, n, radius):
+    """Conservative gnomonic footprint bound; preserve the original cross-face halo."""
+    cell = 2.*R/n
+    corner = 3.*radius/(cell*max(1.-2.*radius/R, .5))
+    st = 2.*(x+.5)/n-1.
+    normal = np.max(np.abs(p), axis=1, keepdims=True)
+    local = radius/cell*np.sqrt(1.+st*st)/np.maximum(normal-radius/R, 1e-6)+1e-4
+    interior = np.all(x-corner >= 1., axis=1) & np.all(x+corner <= n-3., axis=1)
+    return np.where(interior[:, None], np.minimum(corner, local), corner)
+
+
+def erosion_rivers(ctx, p, hr, parent, fine, seed=None):
+    """ErosionRivers: corridors around unit points p (n, 3) on relief hr (m), pre-detail support `parent` and fine part `fine`: a dict of
+    fill, carve, bed, stage, edge, distance, flow, lake_level, and the per-point cost (nodes, corridors, meanders,
+    octaves)."""
+    p = p / np.linalg.norm(p, axis=1, keepdims=True)
+    words, n = erosion_map(seed)
+    N, cell_m = len(p), 2.0 * R / n
+    face, x = _elocate(p, n)
+    lake = _erosion_lake_level(face, x, n, cell_m, seed)
+    out = dict(fill=np.zeros(N), carve=np.zeros(N), bed=np.full(N, 1e9), stage=np.zeros(N), cut=np.zeros(N), weight=np.zeros(N),
+               edge=np.full(N, -1e9), distance=np.full(N, 1e9), flow=np.zeros((N, 3)), lake_level=lake, coverage=np.zeros(N), bank=np.zeros(N))
+    cost = dict(nodes=np.zeros(N), corridors=np.zeros(N), meanders=np.zeros(N), octaves=np.zeros(N))
+    sea = _smooth(0., 50., hr-lake)
+    radius = max(1000.0 * _cell_km(ctx), CREASE_MIN_CELL)
+    reach_cells = _river_footprint_reach(p, x, n, radius)
+    origin = np.floor(x-reach_cells).astype(np.int64)-1
+    count = np.floor(x+reach_cells).astype(np.int64)+3-origin
+    total = count.prod(1)
+    cells = np.stack([np.where(k < total, _ecell(face, origin+np.stack((k % count[:, 0], k // count[:, 0]), 1), n), -1)
+                      for k in range(int(total.max()))], 1)
+    for r in np.unique(cells):
+        if r < 0:
+            continue
+        ids = np.flatnonzero((cells == r).any(1))
+        node = _enode(np.array([r]), n)[0].astype(np.float64)
+        ids = ids[np.linalg.norm(node[None] - p[ids], axis=1) * R <= 1.15 * cell_m + RIVER_EXTEND[0] + 16000.0 + radius]
+        if not len(ids):
+            continue
+        courses, v = river_courses(ctx, int(r), seed)
+        if v is None:
+            continue
+        cost["nodes"][ids] += 1
+        main = v["main"]
+        reach = (2.0 * _course_reach(main) + radius) / R
+        for kind, k in courses:
+            sel = ids
+            if not isinstance(kind, str):
+                # Its triangle, start, node and junction on the main curve, widened: the engine's test.
+                P = p[ids]
+                proj = lambda x: (x[None] - P) - ((x[None] - P) * P).sum(1, keepdims=True) * P
+                J0 = _bez(main["xyz"], np.array([_junction(main, k["stage"][0])]))[0]
+                sel = ids[_triangle_distance(proj(k["xyz"][0]), proj(main["xyz"][1]), proj(J0), P) <= reach]
+                cost["octaves"][sel] += k["octaves"]  # its junction's meander, per point in the engine
+            if len(sel):
+                _corridor(ctx, k, p, hr, parent, fine, radius, sea, out, sel, cost)
+    weight = out.pop("weight")
+    wet = weight > 0.0
+    out["stage"] = np.where(wet, out["stage"] / np.where(wet, weight, 1.0), -1e9)
+    out['flow'] = np.where(wet[:, None], out['flow']/np.where(wet, weight, 1.)[:, None], 0.)
+    out["cost"] = cost
+    return out
+
+
+def river_lines(ctx, p, step, seed=None):
+    """The live channels' lines near the points p, sampled every `step` (m): (n, 3) unit points, for the drawn water's
+    dry share (etude_relief.py)."""
+    words, n = erosion_map(seed)
+    face, x = _elocate(p, n)
+    lo, hi = np.floor(x.min(0)).astype(int) - 2, np.floor(x.max(0)).astype(int) + 3
+    nodes = {int(_ecell(np.array([f]), np.array([[i, j]]), n)[0]) for f in np.unique(face)
+             for i in range(lo[0], hi[0]) for j in range(lo[1], hi[1])}
+    lines = []
+    for c in sorted(nodes):
+        courses, _ = river_courses(ctx, c, seed)
+        for kind, k in courses:
+            if k["dry"]:
+                continue
+            length = np.linalg.norm(np.diff(_bez(k["xyz"], np.linspace(0.0, 1.0, 65)), axis=0), axis=1).sum() * R
+            t = np.linspace(0.0, 1.0, max(int(length / step), 2))
+            live = _smooth(RIVER_Q[1], RIVER_Q[2], 2.0 ** _bez(k["lq"], t)) > 0.0
+            t = t[live]
+            if not len(t):
+                continue
+            T = _course_tangent(k, t)
+            T /= np.linalg.norm(T, axis=1, keepdims=True)
+            m, q = _meander(ctx, k, t, T)
+            if k["taper"]:
+                m = m * (1.0 - _smooth(0.6, 1.0, t))
+            along = T - (T * q).sum(1, keepdims=True) * q
+            along /= np.linalg.norm(along, axis=1, keepdims=True)
+            at = q + ((m[0] + m[2]) / R)[:, None] * np.cross(along, q)
+            lines.append(at / np.linalg.norm(at, axis=1, keepdims=True))
+    return np.concatenate(lines) if lines else np.zeros((0, 3))
+
+
 # --- The relief (MyPlanetEngine/Relief.hlsli): the large forms from the map, the detail from the noise. ---
 def _smooth(e0, e1, x):
     t = np.clip((x - e0) / (e1 - e0), 0.0, 1.0)
@@ -1291,12 +2290,99 @@ def _gully_rock(wavelength, relief, mountains, glacial):
     return mountains * _smooth(*EROSION_GULLY_ROCK_RELIEF, relief) * _smooth(*EROSION_GULLY_MANTLE, wavelength) * (0.8 + 0.2 * glacial)
 
 
+def _map_slope(g, d):
+    """ReliefMapSlope: a tectonic map's gradient, per unit of its face's coordinates, per radian at the direction d: through
+    the gnomonic projection, divided by the face normal's share m of d, that normal's share of g dropped."""
+    d = d / np.linalg.norm(d, axis=1, keepdims=True)
+    rows, axis = np.arange(len(d)), np.argmax(np.abs(d), 1)
+    normal = np.zeros_like(d)
+    normal[rows, axis] = np.sign(d[rows, axis])
+    m = (d * normal).sum(1)
+    return (g - ((g * d).sum(1) / m)[:, None] * normal) / m[:, None]
+
+
+def _ravine_mean(r):
+    """ReliefRavineMean: the mean of sqrt(2 (1 + cos u) + r^2) over a turn, (2 / pi) sqrt(r^2 + 4) E(4 / (r^2 + 4)), E the
+    complete elliptic integral of the second kind (Abramowitz and Stegun 17.3.36, error under 2e-8)."""
+    m1 = r * r / (r * r + 4.0)
+    a = 1.0 + m1 * (0.44325141463 + m1 * (0.06260601220 + m1 * (0.04757383546 + m1 * 0.01736506451)))
+    b = m1 * (0.24998368310 + m1 * (0.09200180037 + m1 * (0.04069697526 + m1 * 0.00526449639)))
+    return 2.0 / math.pi * np.sqrt(r * r + 4.0) * (a - b * np.log(m1))
+
+
+def _ravine_profile(re, m, r):
+    """ReliefRavineProfile: a blend's gully profile (re = m cos u), 2 |cos(u / 2)| m, its trough rounded over r radians of
+    phase, less its mean; (value, its derivatives in re and in m)."""
+    root = np.sqrt(np.maximum(2.0 * m * (m + re), 0.0) + (r * m) ** 2)
+    mean, inv = _ravine_mean(r), 1.0 / np.maximum(root, 1e-30)
+    return root - mean * m, m * inv, (2.0 * m + re + r * r * m) * inv - mean
+
+
+def _ravine_blend(cell, q, up, across, period, k):
+    """ReliefRavineBlend: ravine octave k's phasor blend at the point (cell, q) of a lattice of 2 periods, unshifted: the
+    stripes across `across` from the 8 corners of a cell of a period, each its pivot jittered by its hash, at the point
+    bent by one warp octave of that 2-period lattice. (re, m), boosted by m (2 - m), and their gradients per metre along
+    the ground (n, 3), `across` held fixed."""
+    seed = _rseed(RAVINE_SEED) + k
+    qw = q + _shift(k)
+    fl = np.floor(qw)
+    cw, qw = cell + fl.astype(np.int64), qw - fl
+    h = _corner_hashes(cw)
+    d = [gradient_noise_d(cw, qw, seed + 32 + 16 * a, h) for a in range(3)]
+    bend = RAVINE_SHAPE[3] / SIGMA
+    xs = 2.0 * q + bend * np.stack([v for v, _ in d], 1) + _shift(k)
+    fl = np.floor(xs)
+    cs, qs = 2 * cell + fl.astype(np.int64), xs - fl
+    s, ds = _fade(qs, True), 30.0 * qs * qs * (qs - 1.0) ** 2
+    key, turn = _seed_term(seed), 2.0 * math.pi
+    re, im, dre, dim = np.zeros(len(q)), np.zeros(len(q)), np.zeros_like(q), np.zeros_like(q)
+    for i, hc in enumerate(_corner_hashes(cs)):
+        r = _mix(hc + key)
+        jitter = np.stack((r & 1023, (r >> 10) & 1023, (r >> 20) & 1023), 1) / 1023.0 - 0.5
+        corner = np.array([i & 1, (i >> 1) & 1, i >> 2], np.float64)
+        phase = turn * ((qs - corner - RAVINE_SHAPE[2] * jitter) * across).sum(1)
+        t, dt = np.where(corner > 0.5, s, 1.0 - s), np.where(corner > 0.5, ds, -ds)
+        w = t.prod(1)
+        dw = np.stack((dt[:, 0] * t[:, 1] * t[:, 2], t[:, 0] * dt[:, 1] * t[:, 2], t[:, 0] * t[:, 1] * dt[:, 2]), 1)
+        c, sn = np.cos(phase), np.sin(phase)
+        re, im = re + w * c, im + w * sn
+        dre += dw * c[:, None] - (turn * w * sn)[:, None] * across
+        dim += dw * sn[:, None] + (turn * w * c)[:, None] * across
+    m = np.hypot(re, im)
+    boost = 2.0 - m
+    dm = (re[:, None] * dre + im[:, None] * dim) / np.maximum(m, 1e-20)[:, None]
+    dre, dm = boost[:, None] * dre - re[:, None] * dm, (2.0 - 2.0 * m)[:, None] * dm
+    D = np.stack([g for _, g in d], 1)  # the warp's Jacobian rows, per cell of 2 periods
+
+    def ground(u):  # per stripe cell to per metre: the bent lattice's Jacobian, a stripe cell per period
+        v = (u + 0.5 * bend * np.einsum("na,naj->nj", u, D)) / period
+        return v - up * (v * up).sum(1, keepdims=True)
+    return re * boost, m * boost, ground(dre), ground(dm)
+
+
 def detail(ctx, oriented, plain, oriented_octaves, top_km, octaves, relief, sharp, crease, seed, fold=None, fold_share=0.0,
-           fold_weight=0.0, wide_octaves=0, gullies=None, coarse=None, cliff_slope=None):
+           fold_weight=0.0, wide_octaves=0, gullies=None, coarse=None, cliff_slope=None, ravines=None, fine=None):
     """ReliefDetail (Relief.hlsli): (value, slope vector (n, 3)); fold, (value (n,), gradient per radian (n, 3)); gullies,
-    a dictionary slope (n, 3), carved, share, glacial (n,); coarse, a list given the sum of the octaves over EROSION_COARSE."""
+    a dictionary slope (n, 3), carved, share, glacial (n,), and with 'ravines', their amplitude factor (n,); coarse, a list
+    given the sum of the octaves over EROSION_COARSE; ravines, a list given the ravines' height (m) and slope (n, 3); fine,
+    a list given step B's fine relief: the part of the sum a mesh of RIVER_FLOODPLAIN[1] m filters out, in noise units,
+    and the ravines of periods under twice that (m)."""
     up = plain / np.linalg.norm(plain, axis=1, keepdims=True)
     n = len(plain)
+    rav = gullies is not None and "ravines" in gullies
+    rav_h, rav_g = np.zeros(n), np.zeros((n, 3))
+    fine_detail, fine_ravines = np.zeros(n), np.zeros(n)
+    floodplain_f = R / (MESH_BAND_LIMIT * RIVER_FLOODPLAIN[1])
+    if rav:
+        # Slot i: the steering of ravine k_next + i, from the ground's slope and the octaves' crests rounded at its scale.
+        t1, t2 = tangent_basis(plain)
+        two = lambda v, s=slice(None): np.stack(((v * t1[s]).sum(1), (v * t2[s]).sum(1)), 1)
+        first, K = RAVINE_PERIODS
+        steer = np.repeat(two(gullies["slope"])[None], K, 0)
+        x0 = plain * (R / (2.0 * first))
+        c0 = np.floor(x0)
+        q0, c0 = x0 - c0, c0.astype(np.int64)
+        k_next = 0
     rnd, rid, chain, amp = np.zeros(n), np.zeros(n), np.ones(n), 1.0
     crest, top = np.zeros(n), np.zeros(n)
     rs, ds, cs = np.zeros((n, 3)), np.zeros((n, 3)), np.zeros((n, 3))
@@ -1328,7 +2414,9 @@ def detail(ctx, oriented, plain, oriented_octaves, top_km, octaves, relief, shar
         pt = oriented if o < oriented_octaves else plain
         c, q = _lattice(pt, f, o)
         v, g = gradient_noise_d(c, q, seed + o)
+        g_lattice = g
         round_before, ridged_before = rs.copy(), ds.copy()
+        value_before = rnd + (rid - rnd) * sharp
         g = g * f * metres[:, None]
         g = g - up * (g * up).sum(1, keepdims=True)
         share, limited_share = np.zeros(n), np.zeros(n)
@@ -1394,6 +2482,51 @@ def detail(ctx, oriented, plain, oriented_octaves, top_km, octaves, relief, shar
             old_round = round_before + round_a[:, None] * mixed_gradient
             old_ridged = ridged_before + (a * -old_dc)[:, None] * mixed_gradient
             cliff_value = old_round + (old_ridged - old_round) * sharp[:, None]
+        if rav:
+            lam = R / f
+            gs, grs = g, gr
+            if o < oriented_octaves:
+                gs = np.einsum("nij,ni->nj", gullies["oriented"], g_lattice) * f * metres[:, None]
+                gs = gs - up * (gs * up).sum(1, keepdims=True)
+                grs = gs
+                if o == 0 and fold is not None:
+                    grs = gs + (gf - gs) * fs[:, None]
+            g2, r2 = two(round_a[:, None] * gs), two(a[:, None] * grs)
+            for i in range(K - k_next):
+                t = MESH_BAND_LIMIT * first * 0.5 ** (k_next + i) / lam
+                kept = min(max(2.0 - 2.0 * t, 0.0), 1.0)
+                if kept > 0.0:
+                    dc = np.clip(x / np.maximum(e, CREASE_ROUNDING * t), -1.0, 1.0)
+                    steer[i] += kept * (g2 + (-dc[:, None] * r2 - g2) * sharp[:, None])
+            # Emit the ravines the next octave no longer steers.
+            while k_next < K and (o + 1 == octaves or MESH_BAND_LIMIT * first * 0.5 ** k_next * RELIEF_LACUNARITY / lam >= 1.0):
+                P = first * 0.5 ** k_next
+                kept = min(max(2.0 - 2.0 * MESH_BAND_LIMIT * P / lam, 0.0), 1.0)
+                level = gullies["ground"] + relief * (value_before + kept * (rnd + (rid - rnd) * sharp - value_before))
+                S = np.linalg.norm(steer[0], axis=1)
+                height = (RAVINE_SHAPE[0] * P * RAVINE_SHAPE[1] * np.tanh(S / RAVINE_SHAPE[1]) * gullies["ravines"]
+                       * _smooth(*RAVINE_LAND, level) * _weight(ctx, R / P))
+                sel = np.flatnonzero(height > 0.0)
+                if len(sel):
+                    G = steer[0][sel]
+                    across = (G[:, :1] * t2[sel] - G[:, 1:] * t1[sel]) / S[sel, None]
+                    u = q0[sel] * 2.0 ** k_next
+                    fu = np.floor(u)
+                    re, m, dre, dm = _ravine_blend(c0[sel] * 2 ** k_next + fu.astype(np.int64), u - fu, up[sel], across, P, k_next)
+                    rounding = 2.0 * math.pi * max(RAVINE_ROUNDING[0] * (R / P) / (MESH_BAND_LIMIT * ctx.creasef), RAVINE_ROUNDING[1])
+                    value, d_re, d_m = _ravine_profile(re, m, rounding)
+                    A = height[sel]
+                    rav_h[sel] += A * value
+                    if P < 2.0 * RIVER_FLOODPLAIN[1]:
+                        fine_ravines[sel] += A * value
+                    rav_g[sel] += A[:, None] * (d_re[:, None] * dre + d_m[:, None] * dm)
+                    # The finer ravines steer down its walls, its troughs rounded at their scale.
+                    re2, m2 = two(dre, sel), two(dm, sel)
+                    for i in range(1, K - k_next):
+                        _, d_re, d_m = _ravine_profile(re, m, 2.0 * math.pi * RAVINE_STEER[1] * 0.5 ** i)
+                        steer[i][sel] += (RAVINE_STEER[0] * A)[:, None] * (d_re[:, None] * re2 + d_m[:, None] * m2)
+                steer = np.roll(steer, -1, 0)
+                k_next += 1
         frequency = f / (1000.0 * R_KM)
         intrinsic = np.maximum(crease, CREASE_ROUNDING * MESH_BAND_LIMIT * CREASE_MIN_CELL * frequency)
         curvature += amp * relief * frequency * frequency * (noise_curvature + 1.7 * sharp * sharpen_slope * noise_gradient * noise_gradient / np.maximum(intrinsic, 1e-20))
@@ -1408,12 +2541,17 @@ def detail(ctx, oriented, plain, oriented_octaves, top_km, octaves, relief, shar
             cs = rs + (ds - rs) * sharp[:, None]
         if f < R_KM / EROSION_CLIFF_SLOPE_KM and not (share > 0.0).any():
             cliff_value = rs + (ds - rs) * sharp[:, None]
+        fine_detail += (rnd + (rid - rnd) * sharp - value_before) * (1.0 - min(min(max(2.0 - 2.0 * f / floodplain_f, 0.0), 1.0) / w, 1.0))
         f *= RELIEF_LACUNARITY
         amp *= 0.5
     if coarse is not None:
         coarse.append(coarse_value)
     if cliff_slope is not None:
         cliff_slope.append(cliff_value)
+    if ravines is not None:
+        ravines.append((rav_h, rav_g))
+    if fine is not None:
+        fine.append((fine_detail, fine_ravines))
     slope = rs + (ds - rs) * sharp[:, None]
     if wide_octaves:
         return rnd + (rid - rnd) * sharp, slope, wide
@@ -1698,7 +2836,7 @@ def erosion_coast(p, h, shore, coast_slope, rocky, near, coast_offset, forms_gra
     return out
 
 
-def _relief_ground(ctx, p, valleys=True):
+def _relief_ground(ctx, p, valleys=True, rivers_enabled=True):
     p = np.asarray(p, np.float64)
     cell_km = _cell_km(ctx)
     warped = turbulence(ctx, p, R_KM / RELIEF_WARP_TOP, RELIEF_WARP / (SIGMA * R_KM), RELIEF_WARP_OCTAVES, _rseed(0))
@@ -1718,15 +2856,21 @@ def _relief_ground(ctx, p, valleys=True):
     w, depth = _width(RELIEF_TRENCH[0], cell_km, sharp[:, 1] * (1.0 + RELIEF_SEGMENTS[1] * segment))
     fl = RELIEF_TRENCH[1]
     h -= np.where(tr, depth * np.exp((fl - np.sqrt(axis_km ** 2 + fl * fl)) / w), 0.0)
+    # Step A's steering: the profiles' slope (m/km of the boundary's distance), the segments' noise held fixed.
+    profile = np.where(tr, depth * np.exp((fl - np.sqrt(axis_km ** 2 + fl * fl)) / w) * axis_km / (np.sqrt(axis_km ** 2 + fl * fl) * w), 0.0)
     dv = np.abs(sharp[:, 2]) > 1.0
     w, valley = _width(RELIEF_RIDGE_AXIS, cell_km, sharp[:, 2] * (1.0 + RELIEF_SEGMENTS[2] * segment))
     wall, graben = _width(RELIEF_GRABEN[1], cell_km, sharp[:, 2] * (1.0 + RELIEF_SEGMENTS[1] * segment))
     v1 = valley * np.exp(-axis_km ** 2 / (w * w))
     v2 = graben * (1.0 - _smooth(RELIEF_GRABEN[0] - wall, RELIEF_GRABEN[0] + wall, axis_km))
     h += np.where(dv, v1 + (v2 - v1) * rift, 0.0)
+    u = np.clip((axis_km - RELIEF_GRABEN[0] + wall) / (2.0 * wall), 0.0, 1.0)
+    profile += np.where(dv, -2.0 * axis_km / (w * w) * v1 * (1.0 - rift) - graben * 3.0 * u * (1.0 - u) / wall * rift, 0.0)
     sh = sharp[:, 3] > 1.0
     w, depth = _width(RELIEF_TRANSFORM[0] + (RELIEF_TRANSFORM[1] - RELIEF_TRANSFORM[0]) * rift, cell_km, sharp[:, 3])
     h -= np.where(sh, depth * np.exp(-axis_km ** 2 / (w * w)), 0.0)
+    profile += np.where(sh, depth * np.exp(-axis_km ** 2 / (w * w)) * 2.0 * axis_km / (w * w), 0.0)
+    profile = profile[:, None] * np.sign(side[:, :1]) * _map_slope(m["gradient"], warped)  # m per radian
 
     # The coasts: the level moved near the shore; on the flat coasts, barriers.
     coast_slope = np.maximum(np.linalg.norm(m["forms_gradient"], axis=1) / R_KM, RELIEF_COAST_SLOPE[0])
@@ -1777,7 +2921,15 @@ def _relief_ground(ctx, p, valleys=True):
     v = dict(surface=np.full(len(p), 1e9), floor=np.zeros(len(p)), incision=np.zeros(len(p)), deposit=np.full(len(p), -1e9),
              channel_bed=np.full(len(p),1e9),channel_surface=np.full(len(p),1e9),lake_level=np.zeros(len(p)),flow=np.zeros((len(p),3)))
     gullies = None
-    if valleys:
+    network = valleys and not EROSION_RAVINES
+    if valleys and not network:
+        # Step A: nothing carved; the ravines' rock, climate and relief.
+        zero = np.zeros(len(p))
+        wet = RAVINE_WET[0] + (RAVINE_WET[1] - RAVINE_WET[0]) * humidity(climate(p)["precipitation"])
+        gullies = dict(carved=zero, ground=h.copy(), surface=np.full(len(p), 1e9), valley_slope=np.zeros((len(p), 3)),
+                       incision=zero, slope=(_map_slope(m["forms_gradient"], warped) + profile) / (1000.0 * R_KM), share=zero, glacial=zero,
+                       ravines=np.sqrt(np.clip(m["erodibility"], *RAVINE_ROCK)) * wet * (RAVINE_PLAINS + (1.0 - RAVINE_PLAINS) * mountains))
+    if network:
         wander = turbulence(ctx, p, R_KM / EROSION_WARP[0], EROSION_WARP[1] / (SIGMA * R_KM), 2, _rseed(9))
         v = erosion_valleys(wander, cell_km, EROSION_WALLS[0] + (EROSION_WALLS[1] - EROSION_WALLS[0]) * mountains)
         deep = h <= -500.0  # deeper, no valley nor deposit reaches
@@ -1798,6 +2950,11 @@ def _relief_ground(ctx, p, valleys=True):
     t = np.clip(side[:, 1] * (8.0 / (15.0 * reach)), -1.0, 1.0)  # the engine's quintic, levelling off at 15/8 reach
     lift = RELIEF_ORIENTATION[0] * reach * t * (1.875 + t * t * (-1.25 + 0.375 * t * t)) / R_KM
     oriented = bent * (1.0 + lift)[:, None]
+    if gullies is not None and "ravines" in gullies:
+        # Step A's steering: the oriented octaves' slope through the warp's and the lift's Jacobians (the map's warp aside).
+        lift_gradient = (RELIEF_ORIENTATION[0] / R_KM * (1.0 - t * t) ** 2)[:, None] * _map_slope(m["orientation_gradient"], warped)
+        gullies["oriented"] = ((1.0 + lift)[:, None, None] * turbulence_jacobian(ctx, plain, R_KM / RELIEF_DETAIL_WARP[0], RELIEF_DETAIL_WARP[1] / (SIGMA * R_KM), 3, _rseed(4))
+                               + bent[:, :, None] * lift_gradient[:, None, :])
     crease = RELIEF_OLD_CREASE * (1.0 - youth)
     fold_share = (RELIEF_FOLD[3] * (1.0 - _smooth(RELIEF_FOLD_REACH[0], RELIEF_FOLD_REACH[1], side[:, 1])) * mountains
                   * _smooth(RELIEF_FOLD_REACH[2], RELIEF_FOLD_REACH[3], np.linalg.norm(m["orientation_gradient"], axis=1) / R_KM))
@@ -1808,8 +2965,10 @@ def _relief_ground(ctx, p, valleys=True):
     amplitude = relief * quiet
     coarse = []
     cliff_slope = []
+    ravines = []
+    fine = []
     d, slope, wide = detail(ctx, oriented, plain, RELIEF_ORIENTED_OCTAVES, RELIEF_DETAIL_TOP, RELIEF_OCTAVES, amplitude,
-                      mountains, crease, _rseed(1), fold, np.where(fold_share > 0.0, fold_share, 0.0), fold_weight, int(RELIEF_BARRIER_FORM[3]), gullies, coarse, cliff_slope)
+                      mountains, crease, _rseed(1), fold, np.where(fold_share > 0.0, fold_share, 0.0), fold_weight, int(RELIEF_BARRIER_FORM[3]), gullies, coarse, cliff_slope, ravines, fine)
     coarse = h + amplitude * coarse[0]
     h = h + amplitude * d
     smooth = smooth + amplitude * wide / coast_slope
@@ -1829,19 +2988,43 @@ def _relief_ground(ctx, p, valleys=True):
         b, _ = detail(ctx, plain[sel], plain[sel], 0, RELIEF_BADLANDS[1], int(RELIEF_BADLANDS[2]),
                       np.full(sel.sum(), RELIEF_BADLANDS[0]), 1.0, 0.0, _rseed(2))
         h[sel] += badlands[sel] * RELIEF_BADLANDS[0] * b
+    # The ravines, on the whole pre-erosion ground.
+    if valleys and not network:
+        h = h + ravines[0][0]
+        slope = slope + ravines[0][1]
+    # Step B's corridors on that ground; their channels after the finish (_relief).
+    rivers = None
+    coast_height = h.copy()
+    if valleys and not network and EROSION_RIVERS and rivers_enabled:
+        rivers = dict(fill=np.zeros(len(p)), carve=np.zeros(len(p)), bed=np.full(len(p), 1e9), stage=np.full(len(p), -1e9), cut=np.zeros(len(p)),
+                      edge=np.full(len(p), -1e9), distance=np.full(len(p), 1e9), flow=np.zeros((len(p), 3)), lake_level=np.zeros(len(p)), coverage=np.zeros(len(p)), bank=np.zeros(len(p)),
+                      cost=dict(nodes=np.zeros(len(p)), corridors=np.zeros(len(p)), meanders=np.zeros(len(p)), octaves=np.zeros(len(p))))
+        sel = np.flatnonzero(h > -500.0)
+        if len(sel):
+            r = erosion_rivers(ctx, p[sel], h[sel], (large + volc)[sel], amplitude[sel] * fine[0][0][sel] + fine[0][1][sel])
+            for key, value in r.items():
+                if key == "cost":
+                    for c, x in value.items():
+                        rivers["cost"][c][sel] = x
+                else:
+                    rivers[key][sel] = value
+        h = h + rivers["fill"] - rivers["carve"]
     # The valleys carved into the coarse ground, the finer detail on their walls; the deposits.
-    if valleys:
+    if network:
         h = erosion_carve(h, coarse, v, EROSION_SMOOTH)
     h = np.maximum(h, v["deposit"])
+    if rivers is None:
+        coast_height = h
     rough = 0.1 + 0.25 * _smooth(50.0, 400.0, relief) + 0.15 * _smooth(400.0, 1500.0, relief)
     rough = rough + (1.0 - rough) * youth * _smooth(500.0, 1500.0, relief)
     rough = rough + (0.6 - rough) * np.maximum(mesas, badlands)
 
-    return dict(elev=h, large=large, relief=relief, youth=youth, strata=strata,
+    return dict(elev=h, large=large, relief=relief, youth=youth, strata=strata, ravines=ravines[0][0], ravine_slope=ravines[0][1],
+                rivers=rivers, fine=fine[0],
                 channel_bed=v['channel_bed'],channel_surface=v['channel_surface'],lake_level=v['lake_level'],flow=v['flow'],
                 volcanoes=volc, volcanic=volcanic, _fin=fin, _smooth=smooth,
                 axis=sharp[:, 0], trench=sharp[:, 1], divergent=sharp[:, 2], shear=sharp[:, 3], roughness=rough,
-                _wave=(p, h, shore, coast_slope, rocky, near, shore-original_shore, m["forms_gradient"],
+                _wave=(p, coast_height, shore, coast_slope, rocky, near, shore-original_shore, m["forms_gradient"],
                        m["erodibility"], cell_km, cliff_slope[0], relief, shore_metric))
 
 
@@ -1876,22 +3059,49 @@ def _relief_finish(ctx, p, h, near, rocky, smooth, cell_km, fin):
     return cap(h)
 
 
-def _relief(ctx, p, valleys=True):
+def _relief(ctx, p, valleys=True, rivers_enabled=True):
     p = np.asarray(p, np.float64)
-    ground = _relief_ground(ctx, p, valleys)
+    ground = _relief_ground(ctx, p, valleys, rivers_enabled)
     args = ground.pop("_wave")
     h = ground["elev"]
     if valleys:
         candidate = erosion_coast(*args)
-        ids = np.flatnonzero(candidate < h)
+        ids = np.flatnonzero(candidate < args[1])
         if len(ids):
             witness = erosion_sea_point(p[ids], args[7][ids])
             sea = _relief_ground(ctx, witness, False)
             a = sea["_wave"]
             level = _relief_finish(ctx, witness, sea["elev"], a[5], a[4], sea["_smooth"], a[9], sea["_fin"])
             h = h.copy()
-            h[ids] += (candidate[ids]-h[ids]) * erosion_sea_access(level, a[3])
+            coast = args[1][ids]+(candidate[ids]-args[1][ids])*erosion_sea_access(level, a[3])
+            h[ids] = np.minimum(h[ids], coast)
     h = _relief_finish(ctx, p, h, args[5], args[4], ground.pop("_smooth"), args[9], ground.pop("_fin"))
+    rivers = ground.pop("rivers")
+    if rivers is not None:
+        # Step B: the channels cut into the finished ground, the water at their stage where they are wet.
+        # A wet channel cut into the ground it crosses, its stage never above it: no perched water, no wall at its edge.
+        ground.pop('channel_surface'), ground.pop('channel_bed')
+        ground["norivers"] = h.copy()
+        stage = np.minimum(rivers["stage"], h)
+        h = np.minimum(h - rivers["cut"], rivers["bed"])
+        # A neighbour's dry bank may lower the composed bed. Its gap below this stage is not extra water depth.
+        stage = np.minimum(stage, h + rivers["cut"])
+        lake = rivers["lake_level"]
+        ground["elev"], ground["lake_level"] = h, lake
+        ground["water_level"] = np.maximum(0.0, np.maximum(stage, lake))
+        ground["river_coverage"] = np.where(stage > 0., rivers["coverage"], 0.)
+        ground["water_coverage"] = np.maximum(ground["river_coverage"], (lake > 0.) & (lake > h))
+        column = np.maximum(stage-h, 0.)
+        river_depth = rivers['cut']+(column-rivers['cut'])*rivers['coverage']
+        ground["water_depth"] = np.maximum(np.where(stage > 0., river_depth, 0.), np.where(lake > 0., np.maximum(lake-h, 0.), 0.))
+        ground['flow'] = rivers['flow']*np.where(ground['water_level'] > 0., np.clip(rivers['cut']/np.maximum(ground['water_depth'], 1e-3), 0., 1.), 0.)[:, None]
+        ground["surface"] = np.maximum(ground["water_level"], h)
+        river = np.where(rivers["edge"] > 0.0, np.where(stage > 0.0, np.minimum(stage - h, rivers["edge"]), -1e9), rivers["edge"])
+        ground["water_clearance"] = np.maximum(river, np.where(lake > 0.0, lake - h, -1e9))
+        ground["water_distance"] = np.minimum(rivers["distance"], np.where(lake > 0.0, np.abs(lake - h), 1e9))
+        ground['river_bank'] = rivers['bank']
+        ground["river_cost"] = rivers["cost"]
+        return ground
     channel_surface,channel_bed = ground.pop('channel_surface'),ground.pop('channel_bed')
     river_surface = np.minimum(h,channel_surface)
     h -= erosion_channel_cut(h,channel_bed,channel_surface)
@@ -1907,7 +3117,7 @@ def _relief(ctx, p, valleys=True):
 def elevation(ctx, p, extra=False, valleys=True):
     """Elevation (m) of the unit vectors p (n, 3); with extra, the dictionary of the parts: elev, norivers (without the
     legacy alias of elev; use valleys=False for the pre-erosion form), large (large forms and sharp profiles), volcanoes (their edifices) and volcanic (the fresh
-    volcanic ground), relief, youth, strata, the boundary's fields, roughness."""
+    volcanic ground), relief, youth, strata, the boundary's fields, roughness; ravines and ravine_slope, step A's."""
     d = _relief(ctx, p, valleys)
     return d if extra else d["elev"]
 

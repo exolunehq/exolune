@@ -1,6 +1,6 @@
 # Spec: global erosion
 
-Status: living spec, since 2026-10-31, branch `erosion-globale`, experiment `piste/erosion-globale`. It starts from the tectonic stack (`spec-relief-tectonique.md`); research on branch `erosion-niveaux` is only a source (section “What the research taught us”). Current route: `tools/tests/2026-11-01-auges.txt`; previous stages remain in `tools/tests/2026-10-31-erosion.txt`.
+**Status:** living spec, since 2026-10-31. Current worktree: `Exolune-erosion`, branch `claude/erosion-montagnes`; steps A and B remain uncommitted. Current route: `tools/tests/2026-11-04-tetes-estuaires.txt`. The terrain starts from the tectonic stack (`spec-relief-tectonique.md`).
 
 ## The objective
 
@@ -8,7 +8,9 @@ Status: living spec, since 2026-10-31, branch `erosion-globale`, experiment `pis
 
 ## The architecture
 
-**Three levels, one network.** Level 0 decides where water flows and at what height; valleys and gullies only draw it, in increasing detail, attached to it.
+**Current defaults:** level 0 supplies drainage; step A builds ravines on the pre-erosion form; step B adds sized river corridors and inland water. Their implementation and review status are in the step A and B sections below.
+
+**Legacy network path, with `EROSION_RAVINES = false`:** three levels, one network. Level 0 decides where water flows and at what height; levels 1 and 2 draw its valleys and gullies. The following table and level-1/level-2 sections describe that retained path.
 
 | Level | Scales | Where, when | What it does |
 |---|---|---|---|
@@ -277,9 +279,273 @@ Status: living spec, since 2026-10-31, branch `erosion-globale`, experiment `pis
 - **Physical limits remain on computed wind:** lowering at most Hc + 1 m, no ground raised, mountains intact, less than 5 % landlocked cuts and p99 reach below 4 km.
 - **Old tables:** [history](log/spec-erosion-historique.md).
 
+## Step A: ravines on the pre-erosion form
+
+**`EROSION_RAVINES`, on since 2026-11-02, replaces the network's drawing:** levels 1 and 2 drew a geometry worse than none.
+- **Rendered:** the pre-erosion form and its ravines; no valleys, gullies, channels, lakes, deltas or fans; wave-cut cliffs kept.
+- **Kept:** level 0, its build and its cache, for step B's corridors (`tools/hydro/couloirs.py`).
+- **To return:** `EROSION_RAVINES = false`, the network as before.
+
+**The ravines, inside `ReliefDetail`,** ported from the CPU prototype `tools/hydro/ravines.py`, its settings unchanged:
+- 11 octaves of period 5 km down to 4.9 m, halving; each a phasor blend of stripes across its steering slope, a pivot jittered at each lattice corner, the point bent by one warp octave of 2 periods.
+- Profile 2 |cos(u/2)| m (2 − m), its trough rounded over 2 mesh cells or 10 % of the period, less its exact mean, an elliptic integral.
+- Amplitude 0.15 × period × 0.8 tanh(S / 0.8), times rock, humidity and relief, faded in over the first 50 m of the steering ground.
+- Filtered by the footprint like any octave (`RlWeight`); added to the whole ground, after the mesas and badlands.
+
+**The steering, per point and analytic, where the prototype differentiates a filtered grid:**
+- Each ravine reads the large forms, the detail octaves of wavelengths from 2 of its periods, their crests rounded at its scale, and the coarser ravines at half their slope, their troughs rounded at its period.
+- Each detail octave adds itself to every pending ravine; a ravine is drawn once the next octave no longer steers it.
+- **The true slope:** the oriented octaves through the detail warp's and the chain lift's Jacobians (`RlTurbulenceJacobian`); the map's gradients through its face projection (`ReliefMapSlope`); the boundary profiles' slope added.
+- Without them, the detail's own analytic slope is 50 to 100 % off the true gradient and the steering 25 to 55° off the prototype's; with them, 3 to 14° median. The detail's `slope` keeps its other uses unchanged.
+- **Held fixed:** the map's warp, the coast noise, the volcanoes' edifices, the mesas, the segments' noise and the octaves' amplitude factors.
+
+**Its gradient holds the steering fixed:** exact to 5e-5 against finite differences. The whole sum's differs by 23 to 37 % rms, the stripes' turning with the steering, which would need its second derivatives.
+
+**Checks:** `python tools/hydro/verifie_ravines.py`; beside the prototype, `python tools/hydro/etude_relief.py --variants sans ravines ravines_moteur2 --samples 192 --out x64/etude-relief-moteur2`.
+
+**Flight status:** step A's geometry was accepted by the user, as recorded in the 2026-11-03 handoff.
+
+## Step B: river corridors from level 0
+
+**`EROSION_RIVERS`, on step A since 2026-11-03, sized by discharge the same day:** the level 0's large rivers as corridors with their water, ported from the CPU prototype `tools/hydro/couloirs.py` (`RIVER_*`, `PlanetSettings.hlsli`).
+- **Rendered:** step A's relief; on it each river's floor and walls; its channel cut after the finish; water at its stage over the wet channels; the terminal lakes from their existing stage slices.
+- **To return:** `EROSION_RIVERS = false`, step A exactly. The startup passes still run when the cache is stale; nothing reads their words.
+
+**Sized by the river, 2026-11-03.** From 465 km the first corridors drew a valley on nearly every 20 km link, one shape for all: every link from 10 m³/s, 48 % of land links, 14 km apart on the wet plateau (−6.6°, 125.3°), where one cell's runoff alone exceeds 25 m³/s; floors set by the meander belt alone, ±4 % at a given discharge; walls of 6 km wherever the relief stood 3 km above the stage.
+
+**Which links, `RIVER_Q` (100, 300, 450) m³/s:**
+- **Rivers, with water and their full corridor,** above 300 m³/s; water fades to its full nominal width by 450. The nominal channel width at 300 is 83 m before this fade and the width noise.
+- **Dry notches** from 100: depth, floor and walls grow together by `smoothstep(100, 300, Q)`, in discharge rather than log discharge. The monotone curve is C1 at both thresholds. It gives a narrow, shallow continuation on existing upstream links before the broad corridor. Its share is 0.15625 at 150 m³/s and 0.5 at 200 m³/s; it is exactly one from 300.
+- **Smaller links** are left to the ravines: their valleys are the relief's own, finer than the level 0's 20 km graph.
+- **Observational reference:** outlet spacing in linear mountain belts is about half their flank width ([Hovius 1996](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1365-2117.1996.tb00113.x)). This does not prescribe a global discharge cutoff.
+- **Calibration:** thresholds and onset polynomial are engine choices. Smaller rivers have no explicit water. This extends the existing coarse drainage hierarchy, without inventing camera-dependent head shapes or new subgrid tributaries. The former 200–300 onset and density measurements are in `log/spec-erosion-historique.md`.
+- **Bounded evaluation:** raw accumulated flow bounds every surviving inflow; a one-code quantization margin permits an early inactive-catchment rejection. Dry-course culling scales floor and wall reach by their maximum physical growth share. These bounds remove evaluation work, not terrain detail.
+
+**The floor, per point:**
+- **The law:** valley floor width W_v = K_v A^c; published fits vary with lithology and region. Clubb, Weir and Mudd find c = 0.3 ± 0.06 in the Appalachian Plateau and discuss western Alpine fits of 0.3 to 0.4 ([Clubb et al. 2022](https://esurf.copernicus.org/articles/10/437/2022/)).
+- **The engine's calibration:** 230 Q^0.4 m in plains, times the rock's erodibility to the power 0.5 and a mountain factor down to 0.35 over relief amplitudes of 300 to 1 200 m. The coefficient and modifiers are not universal published constants. Replacing drainage area by discharge assumes a runoff regime; A = 31.6 Q in km² only at 1 m/year, whereas the planet's runoff varies.
+- **Along the course:** times 2^±1 by a noise of 12 km read on the course: gorges and basins. At most 8 km wide, never narrower than the channel.
+- **The meanders bend the channel within the floor as far as it allows, the valley with it beyond:** in a gorge the valley winds with its river, incised meanders; in a basin the channel meanders across a straighter valley. The channel's course is the same either way. Every function that builds the channel, the corridor, the junctions and the startup's caps, reads the same `ErosionMeander`.
+- **Stored** per node as the factor's log2 over −3 to 1, 4 bits.
+
+**The walls:**
+- **Width:** the relief's mean height above the stage plus a quarter of its amplitude, over a slope from 0.2 on plains to 0.5 in mountains, times the erodibility to the power −0.25, steeper in resistant rock (Selby 1980); within 300 m to 6 km, as before.
+- **Along the course:** times 2^±0.5 by the same noise, narrower walls with a narrower floor.
+- **Profile:** a ramp at constant slope, rounded into the floor and the relief over 15 % of its width for rivers of 300 m³/s, straight V sides, to 50 % from 3 000 m³/s, the broad footslopes of large valleys. The smoothstep before rounded half of every wall.
+- **The corridor** stays within 8.5 km of its valley's line. The channel width and meanders also enter the search bound; `verifie_morphologie.py` checks it against the 4 × 4 node search, including cube corners.
+
+**The channel:** nominal half-width 2.4 √Q, Leopold and Maddock's (1953) exponent 0.5; depth 0.35 Q^0.3.
+- Physical width varies by `1 + 0.9 (0.5 n12 + 0.3 n3 + 0.2 n0.75)`, each bounded noise in [−1, 1].
+- `n12` is the valley's existing 12 km opening field; the independent finer fields have wavelengths of 3 km and 750 m.
+- The factor stays in [0.1, 1.9]. The linear centred field tends to the nominal width when unresolved.
+- Each field is sampled in world space on the course, consistently at joins. Culling uses its maximum possible width.
+- These coefficients are engine calibration, not a hydraulic law for exposed sediment or braided channels.
+
+**Terrain retained inside the corridor, 2026-11-03:**
+- The previous cross-section suppressed all intermediate terrain by the same symmetric ramp, including existing mountain spurs.
+- Keep the positive residual between the full terrain, its support before the 50 km detail octaves, and the fine floodplain detail.
+- Smooth its onset over 60 m. Bound the retained height by the terrain above the bank; negative residuals never deepen the cut.
+- Contract the local floor and wall widths by `c = 0.25 + 0.75 A / (A + 3 spur)`, with `A = max(terrain - bank, 0) + 60 m`.
+- Read this confinement at the terrain point, not on the drainage axis. Opposite flanks therefore follow different parts of the mountain field.
+- The contraction stays between 0.25 and 1. The minimum floor contains the actual displaced channel and both dry banks, transformed into the valley's distance metric; two widths around the undisplaced axis are insufficient.
+- Search bounds include the maximum displaced-bank belt. They remain inside the existing node search on seed 0.
+- Contracting the profile cannot increase dry incision. Merely lifting detail inside an unchanged floor left its large outline too regular in the preceding native candidate.
+- The candidate lift starts beyond twice the channel half-width, with a smooth recovery to the larger of four half-widths or 0.6 of the uncontracted floor or required bank belt.
+- Bound that lift by the horizontal room from the dry bank: `x = max(channelDistance - 2 bankHalfWidth, 0)`, `B = 0.6 x² / (x + 100 m)`.
+- Keep candidate lifts `L <= B/2` exactly. Otherwise retain `B (1 - B/(4L))`, a C1, monotone soft cap below both `L` and `B`.
+- `RIVER_SPURS.z = 0.6` calibrates this added-height envelope. It is not a limit on the slope of the full terrain or the base valley walls.
+- This prevents a recovered mountain from forming a high inner wall beside a tiny channel. Broad base gorges and small spurs with ample room retain their existing profiles.
+- The final local profile is `bank + (terrain - bank) g + (1 - g) lift`, including the existing fine bank roughness.
+- This preserves spatially asymmetric terrain at several scales without raising the original mountain or obstructing the wet bank.
+- Large bends now start at 40 km. Wavelengths from 10 to 20 km transfer fully to the valley offset, bounded at 2.5 km; larger bends cannot enlarge the channel's fine meander belt.
+- The level-0 drainage graph is unchanged. Preserving spurs does not construct a connected hierarchy of new tributary valleys; that limitation remains part of flight review.
+- Step A computes its ravine steering before step B cuts the large corridors. Retention and confinement do not redirect those finer ravines into the new flanks; connected subdivision remains a structural follow-up.
+
+**The courses, per point (`ErosionRivers`, `Erosion.hlsli`):**
+- **Courses:** the links whose midpoint discharge reaches 200 m³/s, compared on the stored bytes. A course runs from the midpoint with the largest inflow, through the node, to the midpoint with the receiver: the level 0's quadratic Bezier.
+- **Along it:** stage, discharge, wall width, sinuosity and the floor's factor, quadratic from the nodes' values, C1 at the joins, as the level 0's stage.
+- **Heads:** a dry valley straight on from the course's start, 12 km at 15 %. **Outlets:** the course continues 15 km at its level, to the detailed coast. Both in proportion to the level 0's cells, 12 to 25 km: they stay within the 4 × 4 nodes read.
+- **Confluences:** every other inflow carrying a river is re-routed from its link's midpoint to the main channel, where the main stage has fallen to its own past the course's middle. Its requested arrival follows Howard's angle, bounded to 12–55°; the bounded quadratic control may fall back to the chord. Its meanders fade over its last 40 %.
+- **Its control** is where its heading meets the arrival line, clamped to its node: the connector stays among the node's neighbours, within the nodes read.
+- **The course:** the curve displaced by the fractal meander offset, read at the curve's point taken radially to the sphere. Every point that measures a course sees the same course. The octaves are filtered by the mesh as any noise.
+- **The corridor:** the rounded profile plus the bounded terrain residual above; fine floodplain detail, combination by maximum fill and maximum carve, channels cut with steep banks.
+- **Skipped only when proved:** the meanders' slope is clamped to 1 in the distance, which bounds it; a course is skipped where neither its corridor nor its channel can reach the point.
+- **Standing water:** corridor fill is zero at and below its stage, reaching full strength 50 m above it.
+- **Past its ends,** a course's stage goes on along its slope, its neighbour's to first order. Held at its end value, its banks, bed and water stood a step above the next course's, 0.1 m on a 3 % river.
+- **A wet channel is cut into its supporting ground:** the physical bank/ground intersection is integrated over the footprint before composing the channel beds. Its flat wet core and cubic submerged shoulders are integrated separately. Physical banks stay at W and 2W; sampling never moves them outward.
+- **The final river surface respects the wet-section union:** use the deepest compact cut at the blended stage. The surface is bounded by the composed bed plus that cut. Resolved shading uses the actual water column; unresolved shading retains the independent depth moment. Coverage does not trigger another terrain excavation. Terminal lakes retain their own stage.
+- **Overlapping water blends:** stages and currents use wet-interior weights; compact cuts use their maximum. The previous weighted depth created a pale closing sill at confluences.
+- **A re-routed tributary retains its water level throughout its wet section.** Compact wet-interior weights blend the actual overlap; distance to the junction never erases a still-uncovered inflow. Its stage leaves at its own course's slope, then falls to the receiving stage.
+
+**The stages, at startup, only when the cache is stale (`ErosionNodes.hlsl`, `ErosionStages.hlsl`, `Erosion::Condition`):**
+- **Per node:** the sinuosity from the slope of the 25 km forms, the floor's factor, their relief amplitude and the rock's erodibility.
+- **Per course,** the very courses `ErosionRivers` draws: 33 points of its channel, displaced by its meanders, the pre-erosion relief filtered at 500 m. The cap: the lowest of it where the course carries water, from 300 m³/s, clipped at the sea, less the bank; and its mean.
+- **Only as deep as the corridor drawn needs:** a dry notch has no cap; its stage follows its river's by the monotone passes. The cap's filter and the 3 % drop rate are unchanged: a hollow wider than 1 km on a river's own course still sets its stage; filling it would dam the side valley.
+- **On the CPU, the prototype's conditioning on the nodes.** Downstream: a node never above its course's cap plus 15 m, its re-routed inflows' caps, or its inflows' stages. Upstream: drops at most 3 %; a course's start below its cap too.
+- **Why the start too:** every control of a quadratic course below its lowest cap keeps the whole course below it.
+- **The wall width,** then, by the walls' law above.
+- **Stored** in the high halves of the terminal-lake slice (`Erosion.h`): the stage, the wall by 25 m, the sinuosity and the floor's factor in 4 bits each. The original level-0 words remain unchanged. `EXOEROS6` adds first-water contacts and surviving discharge; all three startup shader binaries enter its key.
+
+**Where it differs from the prototype:**
+- The stage is quadratic between nodes, not per vertex: upstream of a hollow, it falls over half a link rather than at 3 %, and the corridor is deeper there.
+- The junctions follow the conditioned stages per point; the startup samples the tributaries at the level 0's.
+- The wall width is the node's; a head keeps its start's.
+- Fine floodplain roughness keeps the detail's and the ravines' relief finer than 400 m. Existing positive terrain residuals at intermediate scales survive separately as spurs.
+- The curves are solved exactly, not as 32 pieces; the cap is sampled on the channel, not on the undisplaced curve.
+
+**Distance filtering, 2026-11-03:**
+- `ErosionChannelBankCut` integrates the positive dry-bank incision in local coordinates, after clipping it against the supporting height.
+- `ErosionChannelCoverage` integrates the physical wet interval, independently of the filtered cut's wider support.
+- Mesh vertices carry mean depth and wet fraction; fine and screen samples carry wet fraction, fraction times stage, and mean depth.
+- Water shading divides mean depth by wet fraction. Step B no longer thresholds the diluted depth to decide whether water exists.
+- Pixel contour refinement uses the same river fraction; lakes retain their separate clearance and contour antialiasing.
+- The analytic guarantee is for a locally straight section with frozen ground and parameters. Channel overlap uses maximum coverage and compact depth; this is not an exact two-dimensional union filter.
+- After combining corridors, remove at least the compact mean cut from their supporting ground. A lower neighbouring corridor must not leave a resolved water sample over dry terrain; the check compares its depth with the actual stage/bed gap.
+- The distance-filter change itself changes no discharge, width, density, map or cache-version setting.
+- Independent check: `python tools/hydro/verifie_filtre_rivieres.py`; 103 sections, numerical quadrature, incision conservation, wet-area conservation and float32 precision.
+- Review route: `tools/tests/2026-11-03-eau-distance.txt`; exact 250 km and 173 km approach screenshots, the reported 863 km coast, closer views and separate confluences.
+
+**Valley morphology remains under review:**
+- The user judges the current direction substantially better. Broad canyon sections returning to ordinary beds are acceptable; prolonged deep, narrowing slots upstream remain the specific defect to remove.
+- The user rejects the repeated corridor shapes, nearly parallel flanks and homogeneous apparent widths, including their coastal outlet pattern.
+- Required direction: retain mountain masses and asymmetric side valleys at several scales, with terrain-related constrictions and openings.
+- Discharge sizing and along-course width noises alone do not establish this structure; the current candidate also retains the terrain's two-dimensional positive residual.
+- **User reference:** the Alps image supplied on 2026-11-03, kept locally at `x64/erosion-reprise/reference-alpes.png`. Read a hierarchy of major valleys, secondary valleys and fine branching between asymmetric spurs. High valley density can coexist with this hierarchy; density alone is not the acceptance measure.
+- At the reference image's regional scale, valley floors and snowy ridges dominate; water itself must not become the broad stroke that defines every valley.
+- The distance-filter correction removes a separate source of uniform widening; it does not certify the network density, valley morphology or physical water-width variation.
+
+**Google Earth reference traversal, 2026-11-03:**
+- Inspected the user's open Alps tab from a 658 km regional camera to about 370 m above the Isere, through the Tarentaise and Bourg-Saint-Maurice basin.
+- Ten original browser captures and their observed camera URLs are kept locally in `x64/erosion-reprise/reference-earth/`; `references.json` records displayed camera heights and scale bars. They are not Git assets.
+- [Regional view](https://earth.google.com/web/@45.58337281,6.93291364,1998.53973021a,655705.50903775d,35y,5.18127419h,0t,0r/data=CgRCAggBOgMKATBCAggASg0I____________ARAA): major valleys organize a much finer branching relief; water does not draw each valley as a broad ribbon.
+- [Bourg-Saint-Maurice at 31 km](https://earth.google.com/web/@45.60508856,6.79962949,1539.68367638a,29723.58533304d,35y,5.18016832h,0t,0r/data=CgRCAggBOgMKATBCAggASg0I____________ARAA): broad openings alternate with narrow sections; opposite slopes carry different spurs, hollows and secondary valleys.
+- [Oblique comparison](https://earth.google.com/web/@45.60407231,6.77177106,907.6682615a,7504.0641206d,35y,5.18011852h,60t,0r/data=CgRCAggBKAI6AwoBMEICCABKDQj___________8BEAA): the slope asymmetry is visible in the terrain, beyond differences in shadows, forest and farmland.
+- [Close river view](https://earth.google.com/web/@45.58697455,6.74873857,750.03970911a,371.82281343d,35y,328.29774422h,0t,0r/data=CgRCAggBOgMKATBCAggASg0I____________ARAA): exposed gravel bars and the wet channel vary separately within a wider valley floor. Opposite wet edges do not simply mirror one centreline.
+- The second user image is preserved at `x64/erosion-reprise/reference-alpes-detail.png`.
+- Compare ground footprints and feature sizes, not camera altitude alone. Camera heights in the manifest are sea-level values; the last two above-target heights are approximate.
+- These are qualitative Alpine references. The developed Isere corridor is not an untouched-river width law, and the imagery does not measure bathymetry or establish a universal valley profile.
+- Implementation target: organize mountain masses and connected side valleys across scales, then derive asymmetric confinement and river widths within that relief. More independent centreline or width noise alone does not meet the target.
+
+**Approach reconstruction, 2026-11-03:**
+- Average the composed signed corridor change, including bank roughness and bounded spur recovery, over the physical cross-section.
+- Split at floor, rounded-wall, bank and spur transitions; four Gauss nodes integrate each piece. Local terrain and course fields remain frozen across the footprint.
+- Culling and node enumeration include that footprint. The physical 4 × 4 search extends to the union of chart cells reached by the footprint, with the cube-corner metric bound. A coarse sample cannot omit a neighbouring narrow course merely because its centre lies outside the original four cells.
+- The filter never enlarges the physical valley or channel to match a screen pixel.
+- A stable float32 cap preserves tiny retained spurs beside large horizontal allowances; no subtraction of huge unused values.
+- Fine and screen grids reconstruct coverage, stage/depth moments and premultiplied current with the same positive 4 × 4 B-spline as height.
+- Mesh/fine/screen crossfades and pixel contour refinement blend those moments before dividing by coverage.
+- Overlapping channels blend their current with the same wet weights as their stage; a change of the lowest bed no longer selects a different velocity abruptly.
+- Fine samples are 48 bytes; screen samples are 64 bytes. Screen activation remains 150–400 km.
+- This is a local section filter, not a full two-dimensional average over an arbitrary curved valley. Unresolved meander variance and interactions between crossing corridors remain approximations.
+
+**Confluence openings and physical banks, 2026-11-04:**
+- A connector reads the receiving channel's physical half-width at its junction, including the shared valley/width modulation. The approach spans at most nine combined nominal half-widths, bounded by the connector's own length so its upstream join stays unchanged.
+- First match any wider tributary down to the receiving width. Open a narrower tributary only towards the downstream-facing bank: add half the remaining width deficit to its half-width and shift the section centre by the same amount. The opposite bank retains the upstream land tongue.
+- At full approach, the half-width plus absolute shift never exceeds the receiving half-width. Equal-width arrivals add no bulb. The side comes from the actual bounded connector tangent and the receiving flow including its meander slope, also in control-point fallback cases.
+- For a local turning sine `s`, the signed opening factor is `sign(s) * smoothstep(0, sin(12 degrees), abs(s))`. Width gain uses its magnitude, and centre shift its signed value. Almost-parallel courses need less opening; passing through parallel alignment cannot flip a full-width bank as the meander is filtered during approach.
+- `RIVER_CONFLUENCE.x = 0.5` is a bounded geometry calibration, not a sediment-transport law. Micro-bank perturbations retain their separate physical bound.
+- The requested arrival-angle range is 12–55 degrees; the existing bounded control-point fallback remains in use.
+- The shift uses channel-normal metres. Bed, wet coverage, bank profile and valley-floor clearance share it; the floor converts the same displacement to its own metric. Search bounds use the larger receiving/tributary width, including the shift. The drainage spine and cached contact path stay unchanged.
+- Water levels and currents blend over actual wet overlap. The former longitudinal handoff could erase a tributary before the receiving channel covered it after discharge was reduced.
+- Bank height varies by `1 + 0.7 (0.55 n180 + 0.30 n45 + 0.15 n11.25)` at actual terrain points. Opposing banks read different fields.
+- The dry bank rises over `min(halfWidth, max(2 m, 4 bankHeight))`, followed by its terrace to twice the half-width. The previous rise across a whole half-width made broad, nearly flat margins. The physical breaks and clipped incision are integrated before sampling.
+- The wet bank uses `B = min(halfWidth, max(2 m, 4 depth))`. Depth is constant inside `W-B`, then `depth * smoothstep(0, 1, (W-|x|)/B)` to the shore. Width and maximum depth stay unchanged; the pale shallow shelf no longer spans the whole river.
+- The exact box mean preserves section area `depth * (2W-B)`. Flow velocity uses this same area. The legacy level-0 quartic profile remains unchanged.
+- Each octave follows the terrain bandwidth rule and tends to zero when unresolved. The existing bank height remains the mean.
+- The same world field moves each wet boundary by at most 12 m, 0.16 nominal half-width and one quarter of local width. Gentle grades retain 30%; full amplitude begins at grade 0.02. This is a calibrated bank-detail proxy, not a bank-erosion simulation.
+- Joining channels retain their deepest compact section. Averaging depths produced a pale closing sill inside the receiving water.
+- Resolved shading reads the actual stage/bed gap without a coverage-dependent terrain correction. Current fades continuously in a lake's receiving water column.
+- Within 40 m of a dry bank, existing world-lattice objects gain gravel and tuft probability. Wet rejection, slope, loose-material, snow, canopy, burial and candidate limits remain active.
+- These are existing pebble and tuft meshes. No new vegetation species or independent decoration path is added.
+
+**Confluence references and scope:**
+- The user's two satellite views show different arrival angles, a pointed upstream land tongue and asymmetric banks. The second also shows exposed sediment bars. They are shape references; no scale or site identity is inferred from the cropped images.
+- Angle and relative flow affect confluence separation, scour and deposition: [Best, 1987](https://doi.org/10.2110/pec.87.39.0027) and [Best, 1988](https://doi.org/10.1111/j.1365-3091.1988.tb00999.x). They do not prescribe one universal flare angle or symmetric widening.
+- Field observations also link bed morphology to planform asymmetry, flow and sediment contributions: [Szupiany et al., 2009](https://doi.org/10.1029/2008WR007428).
+- The current change matches physical sections. Confluence scour, sediment bars, seasonal exposure and sediment mixing remain unmodelled; adding identical decorative islands to every join would not reproduce those processes.
+
+**Dry valley heads and receiving water, 2026-11-04:**
+- A dry head multiplies both corridor width and incision by `smoothstep(0, 1, t)` from its origin to the trunk. The original mountain terrain returns as the incision vanishes.
+- This treats existing fluvial extensions; an extension whose starting discharge is below the onset remains inactive. The shared discharge-growth rule above acts on actual upstream graph courses and is not restricted to these synthetic extensions.
+- Neither rule replaces glacial cirques or adds new drainage links below the existing coarse graph.
+- A lake or sea inlet opens by up to two nominal half-widths, capped at 600 m, over the last eight nominal half-widths before its cached contact. The approach begins at zero at the owning course part's start.
+- The same approach lowers the channel stage to the receiving level and removes the closing dry-bank rise. High pre-erosion terrain cannot suppress this opening.
+- Without a cached contact in the part, the previous low-bank fallback remains over eight channel depths of supporting elevation.
+- Mouth widening and distributary spread share one aperture budget. They do not add two independent wide excavations.
+- Corridor fill is zero below standing water and reaches full strength 50 m above it. Drowned banks cannot build dikes across a lake or bay.
+
+**First-water contacts and surviving runoff, 2026-11-04:**
+- `ErosionContacts.hlsl` samples the original course on a fixed 25 m substrate including ravines, wave erosion, barriers and volcanic finish, with river corridors explicitly disabled. A detected shoreline is refined by seven bisection steps.
+- Wave erosion reads that same substrate before step-B incision. Its result meets the river envelope by a minimum; remapping an already lowered river floor created artificial marine pools and broke drainage-stage continuity.
+- Probe spacing is at most 256 m on the nominal control-polygon parameterization. Sub-probe ponds and fine shoreline details remain a finite-resolution limitation.
+- Four cached UNORM16 limits describe the main course's two halves, its rerouted connector and its terminal extension.
+- The rendered course fades over a fixed 80 m beyond its contact. A box mean filters that physical termination; changing the footprint does not move it.
+- A broken link stops its discharge contribution. Re-accumulation starts with the original local runoff, stored as a float; cumulative discharge bytes are never differenced to infer rainfall.
+- The original largest-inflow geometry and meander-discharge field remain fixed. Only surviving width/depth and reach activity use the updated discharge.
+- A contact in the receiving half still allows its source to reach the shared midpoint. Independent local sources and other tributaries survive.
+- Both sides of that midpoint use the source's discharge. Averaging the now-disconnected receiver's local runoff into it caused premature upstream disappearance and an abrupt downstream restart. The existing interrupted-edge bit distinguishes these cases without additional cache storage.
+- `EXOEROS6` stores 24 RG32 slices: 48 MiB at 512 cells per face, including 24 MiB for contact limits, discharge and local runoff.
+- This follows the rendered level-0 courses. It does not reroute sub-threshold streams or generate a new outlet for a terminal lake.
+
+**Low-coast distributary fans, 2026-11-04:**
+- Marine terminal courses can open an explicit three-channel cross-section; terminal lakes never acquire this fan.
+- Eligibility grows from 800 to 2,500 m³/s, fades over grade 0.002–0.01, and fades with terminal wall scale from 600 to 1,600 m.
+- The fan begins with zero spread at the upstream join and continues opening through the terminal extension until its first-water contact.
+- Contacts before the coarse sea node use the surviving course part's actual contact as the fan mouth. Very short runs lose eligibility over four to twelve nominal half-widths. The three branches share the centre course's stop; separate shoreline routing remains unimplemented.
+- Maximum side offset is 14 nominal channel half-widths, capped at 1.8 km. A 2.4 km world field varies the two sides' offsets and discharge shares.
+- Nominal discharge fractions are `1 - f/2`, `f (1 - 0.6 n)/4`, and `f (1 + 0.6 n)/4`. They sum to one; each branch has its own physical width, depth, bed and current.
+- The three clipped wet intervals use exact inclusion/exclusion, including contained branches. Sorting centres did not sort their banks and could report dry coverage over the trunk's wet bed. Other overlapping courses retain the existing maximum-coverage approximation.
+- The broadened low corridor shares the dry-support fill rule. No independent water triangle is painted over the terrain.
+- **Calibration and limits:** three procedural branches, a coarse coastal-relief eligibility proxy and shallow fill are an initial landform model. They do not simulate sediment budgets, tides, avulsion, adaptive branching or resolved routes through the detailed shoreline.
+- Reference distinction: delta shape depends on river supply, waves and tides ([NPS, Delta Landforms](https://www.nps.gov/articles/delta-landforms.htm)); branching distributes flow and sediment between channels ([USGS, Nelson et al. 2011](https://www.usgs.gov/publications/mechanics-flow-and-sediment-transport-delta-distributary-channels)). The engine coefficients above are not measured laws from those sources.
+
+**Mouth scale references, 2026-11-04:**
+- The user's Google Earth examples include large estuaries, tidal flats and distributary networks. Their outer water/sediment envelope is not the width of one liquid channel.
+- **Gironde:** more than 75 km long and up to 12 km wide; low left bank and more relief on the right ([SMIDDEST](https://www.smiddest.fr/media/6742.pdf)). The Earth view confirms a long asymmetric widening, with islands upstream. The engine's local aperture cannot represent this reach.
+- **Somme:** about 15 km long and 5 km wide at the bay entrance ([primary hydrology study](https://www.persee.fr/doc/jhydr_0000-0001_2009_act_31_1_5926)). A manual Google Earth ruler across the visible entrance gave 5,165.63 m, rounded to about 5.2 km; endpoint placement is approximate. The close view shows narrow channels inside broad banks and tidal flats. The regional tidal range is 9–10 m ([University of Picardie](https://www.u-picardie.fr/beauchamp/bds/bds-b.htm)).
+- **Loire comparison:** one maritime section exceeds 3 km, including about 2.5 km of intertidal mudflat ([Nantes port assessment](https://www.nantes.port.fr/sites/default/files/medias/EES_PS-2021-2026_GPMNSN-VF_2.pdf)). Widening all of this into a deep river channel would misread the reference.
+- **Current model:** `RIVER_MOUTH` opens only the final eight nominal half-widths, adding at most 600 m to either side; the owning course part limits its length. The regression witness opens from 173 to 484 m over roughly 700 m. This is a receiving-water connection, not a large estuary.
+- **Required extension:** propagate receiving-water influence across upstream graph links in physical metres. Keep active channels distinct from shallow receiving basins and sediment flats. Condition the extent on valley confinement, receiving basin and coastal regime; do not apply a Gironde-sized funnel to every lake or mountain mouth. Tides and sediment evolution are not currently simulated.
+- **Earth inspection:** separate reference tab; original user tab unchanged. Gironde camera about 116 km, scale bar 10 km; Somme cameras about 34 km and 2.6 km, with kilometre and hundred-metre scales. No scene coordinates enter production rules.
+
+**Performance follow-up paused, 2026-11-04:**
+- The user stopped the investigation to reboot an overloaded system. The high-altitude fix is not validated; repeat comparable observations after reboot before drawing performance conclusions.
+- Current production includes shared/tiled screen evaluation, identical-hit reuse, conservative footprint pruning and zero-contribution section pruning. Last Release build: `x64/erosion-filtered-sections-build.log`; 9,216 composed samples retain identical fields, and approach quadrature checks pass.
+- The title now separates screen-relief compute time. Isolated shaders in `x64/erosion-reprise/diagnostic-relief/` are experiments, not the production build. Full restart state and source backups: `../PASSATION-erosion.md`.
+
+**Exact evaluation pruning, 2026-11-04:**
+- High-altitude captures exposed redundant river noise work. `ErosionCourseNoise` built the lattice and hashed its corners even when the bandwidth weight was exactly zero. Receiving-width modulation added two more such evaluations per connector.
+- Read the weight first and return the octave's exact zero mean before evaluating noise. This uses the existing physical filter; no width, depth, drainage threshold or morphology setting changes.
+- Prepare confluence banks only for an uninterrupted connector whose discharge can carry a wet section. Its dry valley and immutable trace remain evaluated. Removing unused flare metadata also tightens its conservative spatial bound.
+- `verifie_evaluation_rivieres.py` compares the old and pruned evaluation: 126 octave/footprint/seed combinations agree exactly, with no lattice access in 56 fully filtered cases. 7,200 composed samples in three regions and six footprints retain identical terrain, water, bank and current values.
+- Release succeeds: `x64/erosion-river-filter-cost-build.log`. Confluence sections and the retained morphology, contact, upstream, mouth, bank-filter, head and approach suites pass. The orientation check now visits 237 wet connectors; former dry-only flare metadata is intentionally absent.
+- Native before/after review is paused on `tools/tests/2026-11-04-altitude-rivieres.txt`. Capture title timings are diagnostic observations, not the project performance benchmark or a statistical guarantee.
+
+**Current verification, 2026-11-04: receiving-section confluences**
+- Release x64 succeeds through `tools/lance.ps1 -Build -NoLaunch`: `x64/erosion-confluence-flow-banks-build.log`. Existing material-shift and atmosphere-division warnings remain.
+- `verifie_raccords.py` checks 240 physical sections at four arrival angles and four width ratios, on both sides and through zero opening. Equal-width arrivals add no bulb; the upstream bank and short-connector start stay unchanged. Bed, wet support and the shifted section agree.
+- Local-flow orientation passes on 584 planetary connectors. Twenty-four nearly parallel arrivals have attenuated openings; three require the opposite side from the coarse heading. This is a geometry regression, not a performance benchmark.
+- On 256 planetary nodes, all control points, stages, discharges, contact parameters and fan controls match the pre-change source exactly. Independent runoff accumulation still agrees on 1,572,864 nodes and 19,033 stopped links.
+- All 512,980 receiver links retain monotone stages and the 3% grade bound. All 454 sampled wet cap points stay below the cap plus fill. Original-terrain and legacy-network identity pass: `x64/erosion-confluence-banks-core.log`.
+- Approach, upstream, morphology, mouth, head and bank-filter regressions pass: `x64/erosion-confluence-flow-banks-verifie_*.log`. Physical search reach stays within 14,093.5 m. The reported mouth retains its 173–484 m aperture and 257 successive wet samples.
+- Continuity passes 36 edge lines, 36 joins and ten confluence lines across three regions. Largest sampled ground refinement ratio is 0.28; largest sampled water step is 0.012 m. The existing 0.10 m dry-notch refinement remains continuous. Logs: `x64/erosion-confluence-flow-banks-continuity-*.log`.
+- Final native cache payload matches the pre-change payload byte for byte: SHA-256 `c13c3cc07c544a81f70e30b94a4c9f2bbbffc1642d4d4ed549c6031c524fb108` after the 24-byte header. The geometry change requires no new graph, stage or contact data; log `x64/erosion-confluence-flow-banks-native-cache.log`.
+- Seven final native views inspected in `distance-confluence-flow-banks-final/`: F1/F2 at two distances, F3 another confluence, F4 the local-turn witness, F5 the retained mouth, F7 the lake, F9 the orbital massif. The round protrusions are removed in F1–F3 and the upstream land tongue is retained. F4 remains a very thin feeder into a much larger river; this is not a sediment-shaped confluence.
+- The mouth stays connected. The pre-existing straight lake-stage boundary and repetitive orbital corridors remain visible in F7/F9. No temporal capture was repeated for this bank-only change; approach filtering is checked by the CPU section, footprint and wet-moment regressions.
+- Before captures F1–F3 are in `distance-confluence-banks-before/`. Intermediate coarse-heading renders are archived in `distance-confluence-banks-coarse-heading/`; they are not the final review version.
+- Remaining work: confluence sediment bars and scour; orbital corridor repetition and fine tributary hierarchy; long estuarine basins, independent distributary contacts and lake-stage boundaries. The current bank correction does not implement those processes.
+- The coastal-talus test's inactive historical witnesses remain documented in the erosion log; this confluence-only change does not modify that subsystem.
+- No performance or image-quality benchmark, commit, tag or push. Flight review remains pending.
+
+**The terminal lakes** fill every hollow below their stage within their catchment, as before, connected or not.
+
+**Review:** `tools/tests/2026-11-04-confluents.txt`; F1/F2 inspect the same confluence at two distances, F3 another confluence, F4 a nearly parallel arrival in another region, and F5–F12 retain mouth, fan, lake, mountain and approach witnesses. These refinements await flight review.
+- Interactive Release engine relaunched on F3's pose with the route, clouds hidden and windowed palette. Responding and rendering verified at 14:54. Backspace leaves the initial cockpit; F3 restores the exact pose.
+
 ## The `valleys` flag
 
 **`ReliefElevation(p, true)` renders eroded terrain; `(p, false)` the pre-erosion form,** without any level, the one level 0 reads. Level 0 never reads its own outputs.
+- The third argument controls step-B courses independently. First-water contacts use `(p, true, false)`: ravines and the finished coast remain, while the probing river is absent.
 
 ## Connections
 
@@ -297,6 +563,13 @@ Status: living spec, since 2026-10-31, branch `erosion-globale`, experiment `pis
 ## The CPU port
 
 **`tools/hydro/cp.py` reads the engine's level 0,** `erosion-<graine>.bin`, and reconstructs valleys, deposits and gullies; nodes in float32, like the shader. `EXOLUNE_EROSION` gives another path.
+- **Step B:** `erosion_rivers` mirrors `ErosionRivers`, each node's courses built once in planet coordinates; `river_startup` mirrors the startup passes and `Erosion::Condition`, for a cache written before step B or to check the engine's.
+
+**Comparing terrain variants:** `python tools/hydro/etude_relief.py`.
+- Six sites, the wet plateau added on 2026-11-03; windows of 40 km, 10 km, 2.5 km and 600 m, 256 samples, octaves filtered at the sample spacing.
+- One sheet per site in `x64/etude-relief/`: rows are variants, columns are window sizes; metrics in `<site>.json`.
+- Metrics: detail energy, share in closed pits deeper than 2 m, wet share, wet runs longer than 10 samples.
+- A new variant is one function decorated with `@variant`; `--sites`, `--variants` and `--samples` narrow a run.
 
 ## Current verification, 2026-11-01
 
@@ -413,3 +686,5 @@ Branch `erosion-niveaux`, `docs/recherche-erosion-niveaux.md`:
 | 4 bis | Convex-concave fluvial slopes, truncated spurs | to do |
 | 5 | Large deltas, through a deposit field | to do |
 | 6 | Water from the same river and lake network | first implementation, 2026-11-01; flight review and limitations in `spec-eaux-interieures.md` |
+| A | Ravines on the pre-erosion form, the network's drawing off | geometry accepted in flight according to the 2026-11-03 handoff |
+| B | River corridors from level 0, `tools/hydro/couloirs.py` | first version reviewed in flight; discharge sizing and composed-water correction awaiting flight review |

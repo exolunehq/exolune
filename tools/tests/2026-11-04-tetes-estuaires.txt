@@ -1,0 +1,15 @@
+# Seed 0. Progressive dry valley heads; the same terrain from orbit to the ground.
+# Mouth views retain the receiving-water regressions; estuarine widening is not yet modelled.
+# Backspace leaves the cockpit. F1-F12 select views; the palette requires windowed mode.
+Tete : nouveau signalement 97 km | 96901 -6.185543 125.892589 71.08 20.55 | 20 120
+Tetes : signalement orbital | 1230920.1 -9.148316 124.767492 71.08 20.70 | 20 120
+Tete : meme bassin 25 km | 30000 -5.86 125.94 90 0 | 20 120
+Tete : meme bassin 8 km | 13000 -5.86 125.94 70 0 | 20 120
+Vallee australe : autre chaine | 40227 -26.288373626 -36.520005922 90 0 | -10 -60
+Bassin occidental : autre massif | 40143 -6.716592420 122.439919710 90 0 | 20 100
+Amont : canyon corrige | 3840.6 -5.038412 124.886462 13.17 -102.18 | 20 120
+Confluence : berges et ouverture | 2200 -6.250434328 125.346558807 70 180 | 20 120
+Embouchure : contact du signalement | 3226 -9.027692 127.426786 70.69 -165.64 | 20 120
+Delta : contacts des branches | 12000 -13.260094611 136.819890967 90 0 | 20 120
+Lac terminal : arrivee du cours d'eau | 3530.75 33.024598821 54.893928890 90 0 | 30 50
+Approche : riviere 173 km | 172718.8 -7.189383 125.450731 65.74 -9.12 | 20 120

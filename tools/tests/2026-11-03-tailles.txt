@@ -1,0 +1,22 @@
+# Seed 0, sea-level camera altitudes. Erosion step B sized by discharge: courses from 200 m3/s, dry notches up to 300 m3/s,
+# rivers with water and full corridors from 300 m3/s; floors by the discharge, the rock and the relief, gorges and basins
+# along each course. CPU sheets: x64/etude-relief-taille-avant/<site>.jpg and x64/etude-relief-taille-apres/<site>.jpg.
+# Check: fewer large valleys, widths varying with discharge, rock and position along the course; small links left to
+# ravines or a fading dry notch. Inspect the retained river for dry gaps, perched water and abrupt junctions.
+# These are review criteria, not completed fixes. Key 1 cycles full erosion, ravines only, then no erosion.
+# F1: the reported view at 465 km. F2-F3: the plateau's large river at 40 and 5 km. F4: the plateau's valleys at 120 km.
+# F5-F6: the massif's former river. F7-F8: wet mountains, left to the ravines. F9: the snowy range, also
+# left to the ravines. Launch with -SansNuages; N restores the clouds. The first launch after a build computes the courses.
+# F10-F11: the confluence whose dry neighbour bank caused a 0.66 m water edge. F12: another wet confluence downstream.
+Plateau humide : vue signalee a 465 km | 464941 -8.283789 124.598381 66.09 22.58 | 20 120
+Plateau humide : grand fleuve a 40 km | 44000 -6.8184 125.2198 60 22.58 | 20 120
+Plateau humide : grand fleuve a 5 km | 9700 -6.7137 125.2637 35 22.58 | 20 120
+Plateau humide : vallees a 120 km | 125000 -7.4 125.0 70 22.58 | 20 120
+Massif : ancien cours a 8 km | 8014 -7.060 122.600 45 180 | -26.95 106.61
+Massif : ancien cours sans eau | 1100 -7.197249 122.602904 45 165.3 | -26.95 106.61
+Montagnes humides : vallee a 5 km | 5614 42.615638 -175.886362 40 329.1 | 20 160
+Montagnes humides : ancien cours sans eau | 1800 42.653169 -175.868196 50 274.8 | 20 160
+Chaine enneigee : ravines seules a 10 km | 10783 -25.631651 -26.900656 50 48.2 | -5 -60
+Confluence : vue d'ensemble | 8000 -6.251531 125.325826 90 0 | 20 120
+Confluence : bord d'eau corrige | 1700 -6.250154 125.325943 70 180 | 20 120
+Autre confluence : aval du plateau | 3500 -7.173005 125.036219 90 0 | 20 120

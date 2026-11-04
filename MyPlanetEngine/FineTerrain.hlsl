@@ -40,6 +40,7 @@ void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupI
     const float elevation = TerrainAt(xy, R, camAltitude, dir, pos);
     FineSample sample;
     sample.terrain = float4(pos, elevation);
-    sample.inland = float4(InlandSample(gWaterLevel, elevation), gWaterDistance);
+    sample.inland = float4(InlandSample(gWaterLevel, gWaterDepth, gWaterCoverage), gWaterDistance);
+    sample.flow = float4(sample.inland.x * gWaterFlow, 0.0);
     outFine[id] = sample;
 }

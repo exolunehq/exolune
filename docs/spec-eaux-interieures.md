@@ -7,6 +7,13 @@
 - All eighteen views have buttons in the windowed Tests palette; F1–F12 select the first twelve. The original twelve composition witnesses are retained.
 - Launch erosion review with `-SansNuages`; N can restore the clouds during flight. This changes visibility, not terrain generation.
 - No new simulation during flight.
+- **Since 2026-11-03, with erosion steps A and B on,** rivers come from step B's corridors (`spec-erosion.md`, step B); terminal lakes keep this spec's stage slices. The same water outputs feed the pixel refinement, vegetation, contact and audio.
+- **Current sizing:** explicit rivers above 300 m³/s, fading to full width by 450; dry notches from 200. Smaller rivers are omitted, so old river views may now contain only terrain, sea or lakes.
+- **Composed water:** river depth remains bounded by the blended compact cut. Physical bank incision is now clipped before filtering; wet fraction and mean depth travel separately through mesh, fine and screen samples. An unresolved river no longer lowers its whole footprint to its stage. Terminal lakes retain their stage.
+- **Current review:** `tools/tests/2026-11-04-embouchures.txt`, covering orbit-to-ground continuity, confluences, banks and first-water contacts; prior upstream morphology is retained.
+- **Approach reconstruction:** water coverage, stage/depth moments and premultiplied flow now use the same positive B-spline as terrain. Resolution changes and pixel contour refinement mix those moments before reconstructing conditional water values.
+- **Physical refinement:** tributaries open locally at their junction; low-coast marine courses split into three procedural distributaries sharing the parent discharge. Bank-height octaves and bank proximity use the same terrain queries as contact and grounded objects (`spec-erosion.md`). Detailed coastal connectivity and sediment evolution remain unresolved.
+- **First-water termination:** cached shoreline contacts stop the visible reach and its downstream discharge contribution. Independent local sources survive. Resolved water shading reads the actual stage/bed gap; a tributary no longer contributes a pale closing bank inside the receiving course. The additional cache occupies 24 MiB; no performance benchmark was requested.
 
 **Flight review: structural revision in progress**
 - The user accepted coastal contour antialiasing and river bank contours after pixel refinement; earlier river visibility is sufficient for this stage. The mountain blur and crawl reported from orbit at `1673620.9 -7.138614 122.604860 84.18 32.74` are corrected by the screen relief, validated in flight on 2026-11-02 (`spec-rendu-lointain.md`).
@@ -30,7 +37,7 @@
 | Artificial side pools and perched channels | The original ground is not cut into deeper parallel trenches; wet centre remains | Reported F7/F8 accepted by the user; broader terrain checks pass |
 | Huge orbital coast blocks and flicker | Continuous coast classification across mesh triangles and approaches | Coastal contour correction accepted by the user; similar mountain artifacts remain open |
 | Late river/erosion appearance, moving scars | Coherent physical surface and wet extent through continuous approach/retreat | River contours and earlier visibility accepted for this stage; further visibility improvement deferred. Upstream profile filtering, silhouette and full LOD acceptance remain open |
-| Uniform ribbons and geometric confluences | Banks, discharge and local terrain determine the section and path | Structural channel/network revision open |
+| Uniform ribbons and geometric confluences | Banks, discharge and local terrain determine the section and path | Discharge sizing and composed-water bound awaiting flight review; physical confluence widening remains open |
 | Closed outlets and deltas | A descending wet route reaches the detailed sea/lake; branches conserve discharge | Connectivity revision open |
 | Repeated mountain scratches and summit cuts | Relief-dependent incision preserves different histories and material responses | Incision/routing revision open |
 | Crater cuts and rivers leading nowhere | Closed basins retain water or have a resolved spillway; construction history is respected | Volcanic integration open |
@@ -59,7 +66,7 @@
 1. Validate the first composition correction in flight, including mountains and volcanic bowls. Preserve pre-existing hollows; never raise them with an independent water-level clamp. Check slope continuity and tributary competition as well as height bounds.
 2. Couple channel geometry and wet extent. Use discharge as a capacity constraint; derive the water contour from the resulting terrain section. Banks, bed and water must describe one surface construction. Avoid independent width noise or decorative meanders.
 3. Reconcile network placement with terrain. Sample the terrain at the positions used by the network. Where coarse connections fail, test one bounded startup refinement of existing links, shared junctions and outlets. Cache the result; do not add recursive per-pixel routing or simulation during flight.
-4. Verify downstream connectivity on the finished bed. Deposits and coastal finishing must preserve a route to a connected sea or lake. An estuary may widen where its section allows it; branching deltas require explicit discharge-conserving links, not a generic widening mask. Retain level lake interiors; stage interpolation alone is not a spillway.
+4. Verify downstream connectivity on the finished bed. Deposits and coastal finishing must preserve a route to a connected sea or lake. An estuary may widen where its section allows it; branching deltas require shared physical branches with a divided parent discharge. The current procedural distributaries supply those sections but do not resolve their downstream routing through the detailed coast. Retain level lake interiors; stage interpolation alone is not a spillway.
 5. Filter the same physical bed and wet coverage for all rendering resolutions. Carry water information through the existing fine grid. Evaluate the physical wet extent before averaging; a coarse dry vertex must not erase a resolved fine channel.
 - Start with composition and section shape before deciding whether additional network data are necessary.
 - This proposal retains the existing climate, discharge and basin graph as the starting point; the finer routing method is not yet selected or costed.
@@ -74,10 +81,16 @@
 - Six additional `R32G32_UINT` slices store terminal lake stage and basin ID across each catchment.
 - Receiver-first propagation keeps one stage for every terminal basin.
 - Basin ID zero denotes ocean drainage.
-- Cache version `EXOEROS3` replaces `EXOEROS2`; startup rebuilds an obsolete cache.
-- The erosion texture grows from 12 to 24 MiB at 512 cells per cube face.
+- Cache version `EXOEROS6` includes conditioned course fields and first-water contacts; startup rebuilds obsolete caches.
+- The current erosion texture has 24 RG32 slices and occupies 48 MiB at 512 cells per face. Contact limits, surviving discharge and local runoff account for the latest 24 MiB increase.
+- Rendered step-B courses stop at the first lake or sea contact on the actual ravine/coastal substrate, before river incision. Interrupted upstream flow is removed from downstream accumulation; local sources and other tributaries remain.
+- Coastal and river erosion intersect independently; coastal remapping must not excavate a second sea basin into an already lowered river floor. Fan coverage is an exact union including contained branches.
+- A surviving midpoint on an interrupted edge keeps its source discharge on both sides; receiving-node runoff cannot attenuate it before the contact.
+- Mouth opening uses physical distance to that contact and joins the receiving water level. Lake and sea use the same rule; a delta's sediment evolution remains outside this implementation.
+- Contact lookup is cached. Per-frame terrain queries are not added to search for a shoreline.
+- The probe's finite resolution and the existing network threshold limit small-pond and minor-stream routing. Terminal lakes do not gain an invented outflow.
 
-**Channel geometry**
+**Legacy channel geometry (`EROSION_RAVINES = false`)**
 - Half-width is `max(1, 2.4 sqrt(Q))` metres, with discharge Q in m³/s.
 - Depth is `clamp(0.35 Q^0.3, 0.15, 20)` metres, fading in from Q=0.05 to 0.5.
 - These coefficients are engine calibration, not a calibrated hydrodynamic model.
@@ -102,6 +115,7 @@
 - Two 64-second advection phases blend continuously; this is surface animation, not fluid transport.
 - Dry floodplains at the drainage stage stay dry.
 - The mesh and fine grid carry wet presence, premultiplied stage and premultiplied depth from the same terrain evaluation.
+- Step B carries physical wet fraction and mean depth, including dry area; stage is premultiplied by that fraction. An unresolved river can lie below mean terrain without lowering the whole sample to its stage. Pixel refinement uses this same fraction and a separate lake contour.
 - Dry samples contribute no water stage; conditional stage/depth are decoded after interpolation.
 - Fine water replaces coarse water with the same border weight as fine elevation; a dry coarse vertex no longer suppresses resolved fine water.
 - Ocean coverage remains the ground/sea intersection; inland coverage overlays it continuously, without a Boolean switch on interpolated altitude.
@@ -111,10 +125,10 @@
 - Candidate bands use sample size; the final wet/dry transition uses pixel derivatives. All four derivative lanes evaluate together, using fine derivative reductions without wave-operation requirements.
 - The refined water sample also supplies its stage, depth and flow. Exactly zero clearance remains dry.
 - Land material heights, normals, depth and silhouettes retain their existing sampling; this contour query does not refine geometry.
-- Storage grows by 4 bytes per mesh vertex and 4 bytes per fine sample relative to the previous water reconstruction; no new resource binding or simulation.
+- Storage is 72 bytes per mesh vertex and 32 bytes per fine sample, including step B's independent mean depth and coverage; no new resource binding or simulation.
 - A shared immutable 4 KiB noise table is appended to the frame constants; CPU and compute use the same gradient literals.
 - The terrain VS and PS both use DXC, with identical varying packing. Existing unrelated shaders keep their compiler settings.
-- Cost varies with boundary coverage and terrain complexity; full wet-area integration below a pixel and upstream profile/intersection filtering remain open.
+- Cost varies with boundary coverage and terrain complexity. Step B integrates one local channel section; the full two-dimensional union at confluences, variable terrain and lake-district wet area remain approximate or open.
 - Near objects, cached plant feet and distant vegetation reject submerged ground.
 - Flight clearance follows the visible surface; terrestrial habitat audio excludes submerged ground.
 
