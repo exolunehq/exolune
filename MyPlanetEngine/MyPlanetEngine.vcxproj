@@ -126,6 +126,7 @@
     <ClInclude Include="GpuHelpers.h" />
     <ClInclude Include="Glare.h" />
     <ClInclude Include="Scans.h" />
+    <ClInclude Include="CineVideo.h" />
     <ClInclude Include="Settings.h" />
     <ClInclude Include="PlanetFoliage.h" />
     <ClInclude Include="FoliageHiZ.h" />

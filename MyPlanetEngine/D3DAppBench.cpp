@@ -151,7 +151,8 @@ void D3DApp::SaveCapture(bool batchCapture, UINT trembleIndex) {
         Check(mCaptureBuffer->Map(0, &captureRange, reinterpret_cast<void**>(&pixels)), "Cine capture map failed.");
         wchar_t name[64]; swprintf_s(name, L"\\frame_%05u.bmp", mCineIndex);
         try {
-            SaveBmp(mSettings.cineOut + name, pixels + mCaptureFootprint.Offset, mClientWidth, mClientHeight, mCaptureFootprint.Footprint.RowPitch);
+            if (mCineVideo) mCineVideo->Push(pixels + mCaptureFootprint.Offset, mCaptureFootprint.Footprint.RowPitch);
+            else SaveBmp(mSettings.cineOut + name, pixels + mCaptureFootprint.Offset, mClientWidth, mClientHeight, mCaptureFootprint.Footprint.RowPitch);
         } catch (...) { const CD3DX12_RANGE noWrite(0,0); mCaptureBuffer->Unmap(0, &noWrite); throw; }
         const CD3DX12_RANGE noWrite(0,0); mCaptureBuffer->Unmap(0, &noWrite);
         return;
