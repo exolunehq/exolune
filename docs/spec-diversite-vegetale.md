@@ -2,7 +2,7 @@
 
 **Status**
 - Technical prototype implemented on 2026-11-02; artistic replacement under investigation.
-- The user's boards and selected generative or premium authored sources take priority over retaining the old library.
+- The user's boards guide generated replacements for every tree and undergrowth role.
 - Current direction and tool selection: `direction-artistique-vegetation.md`, `recherche-generation-vegetale.md`.
 - Extend the detailed vegetation renderer, not the planet's terrain or climate model.
 - The former fourteen-model catalogue remains a compatible fallback.
@@ -48,11 +48,32 @@
 - Source height distribution centres on 0.65 m; individual flowers use a 0.7 height multiplier.
 - Open places favour tall grass; warmer moist undergrowth favours fern masses with sorrel companions.
 - Dryness warms green ground foliage toward straw while preserving flower colours.
-- Flowers occupy at most 12% of suitable open-ground herb choices, within spatial patches.
+- Flower colonies use a 4–16 m planet field evaluated once per eligible placement tile. Up to 30% of herb choices in the strongest suitable patch bloom.
+- Existing herb suitability excludes bare ground, snow, shore and submerged sites. Moisture and growing-season conditions then select the flower patches.
+- Shade favours the white wood-anemone form. Woodland edges favour the blue-violet form. The two existing flower roles share the same mesh/impostor dispatch as the other herbs.
 - The light pass bounds meadow and woody maxima separately; a densely wooded bound cannot discard clearing herbs.
 - Existing whole-plant appearance and mesh/impostor transitions also apply to the ground layer.
 - Ground plants add local detail; the distant woody canopy does not count them as shrubs.
 - Foliage bounds, scaling and HiZ read the same instance height metadata.
+
+**Forest-floor study**
+
+| Layer | Habitat and form | Representation |
+|---|---|---|
+| Woody undergrowth | Hazel and red-stem dogwood in temperate woodland. Upright Psychotria and arching Piper in wet tropical woodland. | Four masters with independently attached foliage. A spreading hazel and compact Psychotria have separate native cooks. |
+| Flower colonies | White radial blooms under loose canopy. Lower violet groups at lighter edges. | Seeded curved petals and leaves in 735- and 738-triangle colonies. Each has a lit multiview impostor. |
+| Other herbs | Low sorrel clumps, tall grass in light and fern fronds in humid shelter. | Six generated forms from 324 to 1,856 triangles. Each has a lit multiview impostor. |
+| Ground moss | Sheltered, damp soil on gentle ground between litter and herbs. | Irregular patches on the planet lattice at 0.5–4 m. The normal and colour detail filter out with the pixel footprint. |
+| Bark moss | Damp, shaded trunk feet and exposed root flares. | Rest-pose metric material extends up to 0.85 m. Weight fades before the static tree impostor. |
+| Rock moss | Moist sheltered ledges and the lower edge of existing stones. | Local-frame colour and fine normals blend with rock texture. Sparse additional 0.32–1.95 m woodland boulders share the existing stone placement. |
+
+- The forest boulder term is bounded in both placement passes. It uses the existing rock shapes, queue and burial.
+- Moss is a surface material. Its fine normals describe the cushion without adding a separate instance population.
+- All eight ground plant roles now use generated forms in the migration bank. Its temperate and tropical shrub pools use generated candidates and explicit aliases.
+- The migration bank has 33 generated roles and 58 legacy roles. The 58 roles reference 16 distinct legacy models, all trees or shrubs. Each family needs its own generated replacement coverage before the default catalogue changes.
+- User review uses `tools/tests/2026-11-04-sous-vegetation.txt` with `-Plantes E:/ExoluneAssets/understory-2026-11-04/review-bank-generated-ground -Resolution fenetre`.
+- The Woodland Trust records wood anemone colonies, violet edge habitats and mixed herb and moss layers in temperate woodland. These guide the two flower shapes and their arrangement. [Wood anemone](https://www.woodlandtrust.org.uk/trees-woods-and-wildlife/plants/wild-flowers/wood-anemone/) · [Sweet violet](https://woodlandtrust.org.uk/trees-woods-and-wildlife/plants/wild-flowers/sweet-violet/) · [Woodland communities handbook](https://www.woodlandtrust.org.uk/media/50812/tree-species-handbook-woodland-creation-guide.pdf)
+- US Forest Service observations motivate the substrate split. Its Luquillo study identifies rocks as a frequent tropical bryophyte substrate. Its Pacific Northwest guide describes shaded wood, logs and litter habitats. [Luquillo forest study](https://research.fs.usda.gov/treesearch/67392) · [Pacific Northwest bryophyte guide](https://www.fs.usda.gov/pnw/pubs/pnw_gtr513.pdf)
 
 **Wind**
 - Read the existing local climate wind; transform it into the terrain face frame.

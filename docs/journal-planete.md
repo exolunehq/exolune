@@ -2,6 +2,17 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-04 · Forest undergrowth, flowering colonies and moss**
+
+- **Assets.** Four shrub masters and two structural derivatives use the seven-level native chain and their own lit impostors. Eight procedurally generated forms replace the ground-flora roles. The two flower colonies have 735 and 738 triangles at their mesh level.
+- **Hazel.** Separate the stems above the collar, bow each cane and move the fork anchors with it. Recook the spreading derivative from the corrected master.
+- **Flowers.** A 4–16 m stable field sets colonies. Bloom selection reaches 30% of eligible herbs within the strongest patch. Cover biases the white and violet forms.
+- **Moss.** Dampness and shade select soil patches at 0.5–4 m, exposed lower roots and rock ledges. Root moss tapers out by 0.85 m above the collar. Local detail fades between 5.5 and 18 cm per pixel.
+- **Boulders.** A bounded 0.007 woodland cover term admits 0.32–1.95 m shapes within existing stone patches. Final cover also depends on slope, moist soil and shelter.
+- **Storage.** Tree ground colour uses seven bits per component and three bits for moss suitability. Stone suitability uses the eight low bits of red. The placement record remains 64 bytes.
+- **Review.** Use the dated route and local flora bank documented in `spec-diversite-vegetale.md`. Keep experiment evidence outside Git.
+- **Milestone.** `jalon/2026-11-04-sous-vegetation`.
+
 **2026-11-03 · Close trunks, filtered silhouettes and forest skylight**
 
 - **Report:** planar tropical crown, faceted close trunks, soft bark maps, noisy cutout outlines and almost black forest ground.

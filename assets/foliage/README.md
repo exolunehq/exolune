@@ -3,7 +3,7 @@
 **Current technical prototype: `assets/foliage/game_biomes_v1`.**
 - Thirty-one models: eight tree forms, fifteen shrubs and eight ground plants.
 - Sources, credits, transformations and reproduction: [game_biomes_v1/README.md](game_biomes_v1/README.md).
-- The source library is being reconsidered against generative authoring and premium game packs; `../../docs/recherche-generation-vegetale.md`.
+- The imported models are legacy review controls. Generate all new and replacement plants using `../../docs/spec-pipeline-creation3d.md`.
 - Build through `tools/plantes.ps1`; an existing baseline also allows `python tools/foliage/prepare_vegetation_jeu.py`.
 - Runtime selection, coherent communities, ground cover and wind: `../../docs/spec-diversite-vegetale.md`.
 - Generated banks use seven mesh levels and an impostor; legacy five-level banks remain compatible.

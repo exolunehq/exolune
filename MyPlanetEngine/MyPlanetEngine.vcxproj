@@ -144,6 +144,7 @@
     <None Include="Planet.hlsli" />
     <None Include="FoliageCatalog.hlsli" />
     <None Include="PlantCommunity.hlsli" />
+    <None Include="Moss.hlsli" />
     <None Include="FoliageWind.hlsli" />
     <None Include="CanopyLighting.hlsli" />
     <None Include="RootContact.hlsli" />

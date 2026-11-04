@@ -6,6 +6,7 @@
 #include "Objects.hlsli"
 #include "Vegetation.hlsli"
 #include "Sea.hlsli"
+#include "Moss.hlsli"
 #define RELIEF_PIXEL // the coast's contour, evaluated at the pixel (PSMain); the noise's table from the frame constants
 #include "Relief.hlsli"
 
@@ -207,9 +208,15 @@ Ground GroundAt(float3 q, float elevation, float3 up, float3 normal, float3 shor
     g.canopy = canopySeen;
     g.nearer = hitHeight / rayAngle;
     g.canopyAlbedo = saturate(CanopyColor(m, species, v.aridity) * crowns.color);
+    const float mossSite=MossClimate(v.aridity,v.season)*MossShelter(g.under)*
+                         (1.0-max(m.snow,max(m.beach,m.rock)))*saturate(dot(up,normal))*v.able;
+    const MossMaterial moss=GroundMoss(q,pixel,mossSite);
+    color=lerp(color,moss.albedo,moss.weight);
     g.albedo = saturate(color);
     g.detailScale = lerp(lerp(1.0, 2.0, m.rock), 0.5, max(m.snow, m.beach));
-    g.slope = lerp(m.textureSlope * (1.0 - m.snow) + m.snow * m.snowSlope, TangentSlope(crowns.slope, normal), canopySeen);
+    const float3 soilSlope=lerp(m.textureSlope*(1.0-m.snow)+m.snow*m.snowSlope,
+                                TangentSlope(moss.slope,normal),moss.weight);
+    g.slope = lerp(soilSlope, TangentSlope(crowns.slope, normal), canopySeen);
     const float cavity = lerp(lerp(lerp(1.0, m.sand.cavity, m.sandAmount) * lerp(1.0, m.soil.cavity, m.soilAmount), lerp(1.0, m.scree.cavity, TEXTURE_DETAIL), m.screeWeight),
                               lerp(1.0, m.stone.cavity, TEXTURE_DETAIL), m.rock);
     g.cavity = lerp(1.0, cavity, 1.0 - m.snow);

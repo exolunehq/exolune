@@ -22,7 +22,7 @@ float HerbCover(Vegetation v) {
 float HerbFootprint(Vegetation v,int octave) {
     return -log(max(1.0-HerbCover(v),1e-4))*OctaveShare(octave,0.65);
 }
-uint CommunityModel(Vegetation v,uint species,uint family,uint seed,float2 fields,bool herb) {
+uint CommunityModel(Vegetation v,uint species,uint family,uint seed,float2 fields,float flowerPatches,bool herb) {
     if (GeneratedVegetationBank() && !herb) {
         uint bank=family;
         if (species==CONIFER) bank=(family==3u || v.exposure>.35)?3u:0u;
@@ -39,10 +39,13 @@ uint CommunityModel(Vegetation v,uint species,uint family,uint seed,float2 field
     }
     if (herb) {
         float sun=1.0-smoothstep(0.15,0.55,TreesHere(v));
-        float flowers=sun*smoothstep(0.02,0.22,fields.y)*smoothstep(7.0,12.0,v.season)
-            *(1.0-smoothstep(1.5,2.5,v.aridity));
-        if (CommunityRandom(seed,0xd49726a1u)<0.12*flowers)
-            return 27u+CommunityChoice(fields.x,seed,2);
+        const float colony=smoothstep(0.045,0.21,flowerPatches);
+        const float bloom=colony*smoothstep(6.5,10.0,v.season)*smoothstep(0.35,0.85,v.aridity)
+                         *lerp(0.65,1.0,sun);
+        if (CommunityRandom(seed,0xd49726a1u)<0.30*bloom) {
+            const float underwood=smoothstep(0.18,0.52,TreesHere(v));
+            return CommunityRandom(seed,0x8fb3540du)<lerp(0.18,0.88,underwood) ? 27u : 28u;
+        }
         if (sun<0.6 && v.season>10.0 && v.aridity>0.7)
             return GameVegetation() && CommunityRandom(seed,0x372ca184u)<0.72
                 ? 29u+CommunityChoice(fields.y,seed,2) : 23u+CommunityChoice(fields.y,seed,2);
