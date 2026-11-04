@@ -78,6 +78,7 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 | `MYPLANETENGINE_CINE` | Route path; mutually exclusive with `BATCH`, `CAPTURE` and `TREMBLE` |
 | `MYPLANETENGINE_CINE_OUT` | Existing directory for frames and `cine.log` |
 | `MYPLANETENGINE_CINE_RANGE="0 600 120"` | First frame, frame count, warm-up frame count |
+| `MYPLANETENGINE_CINE_VIDEO=out.mp4` | Frames piped to ffmpeg (HEVC NVENC, cq 12, a keyframe a second, fragmented MP4) instead of BMP files; needs `ffmpeg` on the `PATH` and an NVIDIA GPU; a file cut short by a crash stays readable up to its last whole second; `cine.log` ends with the mean ms per frame and its GPU share |
 | `MYPLANETENGINE_RESOLUTION="640 360"` | Render dimensions; same limits as other captures |
 
 - **Without a range:** the whole route, with 120 warm-up frames.

@@ -73,6 +73,8 @@ void D3DApp::InitCine(D3D12_GPU_DESCRIPTOR_HANDLE tectonics) {
     mCinePoints = CreateBuffer(md3dDevice.Get(), 256, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
     mCineGround = CreateBuffer(md3dDevice.Get(), 8, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     mCineGroundReadback = CreateBuffer(md3dDevice.Get(), 8, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
+    if (!mSettings.cineVideo.empty())
+        mCineVideo = std::make_unique<CineVideo>(mSettings.cineVideo, mClientWidth, mClientHeight, mCineFps);
 }
 
 bool D3DApp::BeginCineFrame() {
@@ -164,7 +166,12 @@ void D3DApp::ClampCine() {
 }
 
 void D3DApp::EndCineFrame() {
+    LARGE_INTEGER now; QueryPerformanceCounter(&now);
+    if (mCineMark.QuadPart) { mCineWallMs += 1000.0 * double(now.QuadPart - mCineMark.QuadPart) / mFrequency.QuadPart; mCineGpuMs += mGpuFrameLastMs; ++mCineTimed; }
+    mCineMark = now;
     if (mCineLead) --mCineLead;
     else ++mCineIndex;
-    if (mCineIndex == mCineEnd) { LogCine("fin"); DestroyWindow(mhMainWnd); }
+    if (mCineIndex == mCineEnd) { if (mCineVideo) mCineVideo->Close();
+        char line[96]; sprintf_s(line, "fin, %.1f ms par image dont GPU %.1f ms", mCineWallMs / std::max(mCineTimed, 1u), mCineGpuMs / std::max(mCineTimed, 1u));
+        LogCine(line); DestroyWindow(mhMainWnd); }
 }

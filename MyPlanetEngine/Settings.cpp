@@ -58,6 +58,7 @@ Settings ReadSettings() {
         if (!GetEnvironmentVariableW(L"MYPLANETENGINE_CINE_OUT", cine, _countof(cine)))
             throw std::runtime_error("MYPLANETENGINE_CINE_OUT is required.");
         s.cineOut = cine;
+        if (GetEnvironmentVariableW(L"MYPLANETENGINE_CINE_VIDEO", cine, _countof(cine))) s.cineVideo = cine;
         if (GetEnvironmentVariableW(L"MYPLANETENGINE_CINE_RANGE", cine, _countof(cine))) {
             int first, count, warm; wchar_t extra;
             if (swscanf_s(cine, L"%d %d %d %lc", &first, &count, &warm, &extra, 1u) != 3 || first < 0 || count <= 0 || warm < 0)

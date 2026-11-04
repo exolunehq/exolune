@@ -16,6 +16,7 @@
 #include "Audio.h"
 #include "Glare.h"
 #include "Settings.h"
+#include "CineVideo.h"
 #include "Climate.h"
 #include "WalkController.h"
 class Ocean;
@@ -467,6 +468,8 @@ protected:
     double mCineFps = 60.0, mCineFov = 60.0, mCineShipGround = 0.0;
     UINT mCineIndex = 0, mCineEnd = 0, mCineLead = 0;
     bool mCineClamped = false;
+    double mCineGpuMs = 0, mCineWallMs = 0; UINT mCineTimed = 0; LARGE_INTEGER mCineMark = {}; // ms per frame, in cine.log
+    std::unique_ptr<CineVideo> mCineVideo; // MYPLANETENGINE_CINE_VIDEO: frames to ffmpeg, not to BMP files
     ComPtr<ID3D12PipelineState> mCineGroundPSO;
     ComPtr<ID3D12Resource> mCinePoints, mCineGround, mCineGroundReadback;
     D3D12_GPU_DESCRIPTOR_HANDLE mCineTectonics = {};
