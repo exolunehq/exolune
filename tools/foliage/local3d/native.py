@@ -1,8 +1,4 @@
-"""Cook a local generated plant into an isolated native comparison catalogue.
-
-The source GLB stays unchanged. Existing native wind is used for the cost test;
-the exported shoot and leaf attributes are preserved, not interpreted by the engine.
-"""
+"""Cook a local generated plant into an isolated native comparison catalogue."""
 from pathlib import Path
 import argparse
 import hashlib
@@ -86,6 +82,8 @@ def main():
     parser.add_argument('--tile',type=int,default=2048,choices=[1024,2048])
     parser.add_argument('--lods',action='store_true',help='Cook the production geometry chain and source vertex data')
     parser.add_argument('--name',default='local_oak_approved')
+    parser.add_argument('--shrub-family',type=int,choices=range(6),
+                        help='Cook an anchored shrub and replace its two legacy climate roles')
     parser.add_argument('--blender',type=Path,default=Path('C:/Program Files/Blender Foundation/Blender 5.2/blender.exe'))
     args=parser.parse_args();out=args.out.resolve();source=args.source.resolve();base=args.base.resolve()
     if out.is_relative_to(ROOT) or out==base:raise ValueError('Comparison assets must remain outside the source tree')
@@ -122,18 +120,25 @@ def main():
     bake.OUT=out;volume_assets.DEST=out;volume_assets.SPEC[name]={'leaf':int(np.log2(leaf_mask))}
     v,indices,atlas,lo,hi,count=bake.load(name)
     extra=None;lod_report=None
+    shrub=args.shrub_family is not None
+    bake_source=source
     if args.lods:
         from lods import source_extra,make
         extra=source_extra(attributes,v,source_origin,source_height)
         wood=((leaf_mask>>v[:,8].astype(int))&1)==0
-        radial=np.linalg.norm(v[:,[0,2]],axis=1);band=wood&(v[:,1]>.06)&(v[:,1]<.18)
-        base_radius=float(np.quantile(radial[band],.6));reach=float(radial[wood&(v[:,1]<.16)].max())
-        root=wood&(v[:,1]<.16)&(radial>base_radius*.65)
-        v[root,8]=np.floor(v[root,8])+.25
-        crown=v[v[:,1]>.2,:3];width=float(max(np.ptp(crown[:,0]),np.ptp(crown[:,2])))
-        from roots import conform
-        v,root_report,shape=conform(v,indices,leaf_mask,target_reach=.085*width/.45,return_shape=True)
-        extra[:,4:7]=shape.apply(extra[:,4:7])[0];extra[:,8:11]=shape.apply(extra[:,8:11])[0]
+        if not shrub:
+            radial=np.linalg.norm(v[:,[0,2]],axis=1);band=wood&(v[:,1]>.06)&(v[:,1]<.18)
+            base_radius=float(np.quantile(radial[band],.6))
+            root=wood&(v[:,1]<.16)&(radial>base_radius*.65)
+            v[root,8]=np.floor(v[root,8])+.25
+            crown=v[v[:,1]>.2,:3];width=float(max(np.ptp(crown[:,0]),np.ptp(crown[:,2])))
+            from roots import conform
+            v,root_report,shape=conform(v,indices,leaf_mask,target_reach=.085*width/.45,return_shape=True)
+            extra[:,4:7]=shape.apply(extra[:,4:7])[0];extra[:,8:11]=shape.apply(extra[:,8:11])[0]
+            base_radius*=shape.ratio;reach=float(np.linalg.norm(v[root][:,[0,2]],axis=1).max())
+            flare=max(float(v[root,1].max()),.005)
+            (folder/'form.bin').write_bytes(struct.pack('<8s4f',b'FOLFORM1',base_radius,flare,reach,width))
+            bake_source=root_reference(source,folder,shape,source_origin,source_height)
         # Artist-style crown normals supply coherent bouquet volume while the
         # original curved leaf normals retain local variation. Wood is intact.
         faces=indices.reshape(-1,3);leaf_faces=faces[(~wood[faces]).all(1)&(extra[faces,11].max(1)>0)]
@@ -142,12 +147,8 @@ def main():
         outward=(leaf_points-centre)/(radii*radii);outward/=np.maximum(np.linalg.norm(outward,axis=1,keepdims=True),1e-8)
         shaded=v[leaf_ids,3:6]*.65+outward*.35;shaded/=np.maximum(np.linalg.norm(shaded,axis=1,keepdims=True),1e-8)
         v[leaf_ids,3:6]=shaded
-        base_radius*=shape.ratio;reach=float(np.linalg.norm(v[root][:,[0,2]],axis=1).max())
-        flare=max(float(v[root,1].max()),.005)
         lo=v[:,:3].min(0);hi=v[:,:3].max(0)
         raw=bytearray((folder/'mesh.bin').read_bytes());struct.pack_into('<6f',raw,28,*lo,*hi);raw[52:52+len(v)*36]=v.astype('<f4').tobytes();(folder/'mesh.bin').write_bytes(raw)
-        (folder/'form.bin').write_bytes(struct.pack('<8s4f',b'FOLFORM1',base_radius,flare,reach,width))
-        bake_source=root_reference(source,folder,shape,source_origin,source_height)
     baked_vertices=v.copy();baked_atlas=Image.new('RGBA',(args.tile*count,args.tile));first=0
     for slot,(part,maps) in enumerate(zip(bake_parts,bake_images)):
         baked_vertices[first:first+len(part[0]),6:8]=part[2];first+=len(part[0])
@@ -159,17 +160,20 @@ def main():
     bake.volume(name,baked_vertices,indices,baked_atlas,lo,hi,count,64);bake.impostor(name,baked_vertices,indices,baked_atlas,lo,hi,count);volume_assets.bake_light(name,leaf_flags)
     if args.lods:
         light=np.frombuffer((folder/'lighting.bin').read_bytes(),dtype='<f4',offset=16).reshape(-1,8).copy()
-        lod_report=make(folder,v,indices,light,extra,leaf_mask,args.blender,bake_source,source_origin,source_height)
-        from near_wood import cook as refine_near_wood
-        near_report=refine_near_wood(folder,leaf_mask)
-        lod_report['levels'][0].update(vertices=near_report['vertices'],triangles=near_report['triangles'])
-        lod_report['near_wood']=near_report
-        (folder/'lod-report.json').write_text(json.dumps(lod_report,indent=2)+'\n')
-    # A class-wide comparison: identical population and five broadleaf roles.
+        lod_report=make(folder,v,indices,light,extra,leaf_mask,args.blender,bake_source,
+                        source_origin,source_height,shrub=shrub)
+        if not shrub:
+            from near_wood import cook as refine_near_wood
+            near_report=refine_near_wood(folder,leaf_mask)
+            lod_report['levels'][0].update(vertices=near_report['vertices'],triangles=near_report['triangles'])
+            lod_report['near_wood']=near_report
+            (folder/'lod-report.json').write_text(json.dumps(lod_report,indent=2)+'\n')
+    # A class-wide comparison uses identical placement with the candidate models.
     replaced=[];published=[lines[0]]
+    shrub_slots=range(2+2*args.shrub_family,4+2*args.shrub_family) if shrub else ()
     for slot,line in enumerate(lines[1:]):
         original,kind,mask=line.split()
-        if int(kind)==1:
+        if slot in shrub_slots or (not shrub and int(kind)==1):
             replaced.append(slot);published.append(f'{name} {kind} {leaf_mask}');continue
         target=out/original;target.mkdir(exist_ok=True)
         for file in (base/original).glob('*.bin'):
@@ -180,13 +184,17 @@ def main():
             'cooker_sha256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in [Path(__file__),Path(__file__).with_name('lods.py'),Path(__file__).with_name('wood_lods.py'),Path(__file__).with_name('near_wood.py'),Path(__file__).with_name('roots.py'),Path(__file__).with_name('variations.py')]},
             'name':name,'vertices':len(v),'triangles':len(indices)//3,'materials':count,'tile':args.tile,
             'leaf_mask':leaf_mask,'replaced_slots':replaced,'tint_palette_max_linear_error':tint_error,
+            'shrub_family':args.shrub_family,
             'texture_note':'16 RGB tint cells for the single leaf; source alpha threshold remapped to native 0.5',
             'wind':'Existing native height/leaf shader; source attachment attributes archived, not uploaded',
-            'scope':'Cost comparison only; five broadleaf slots share the approved witness; default catalogue unchanged'}
-    if args.lods:report.update(lods=lod_report,root_envelope=root_report,normalization={'origin':source_origin.tolist(),'height':source_height},
+            'scope':'Review candidate in two climate shrub roles' if shrub else 'Comparison candidate in five broadleaf roles'}
+    if args.lods:report.update(lods=lod_report,normalization={'origin':source_origin.tolist(),'height':source_height},
         foliage_normals={'source_curvature_share':.65,'crown_gradient_share':.35,'leaf_vertices':len(leaf_ids),'wood_unchanged':True},
-        vertex_colour='Source RGBA retained in the vertex sidecar; tint quantisation only for offline proxy baking',root_contact='Continuous supported root shape and canonical footprint shared by every LOD and impostor',wind='Source shoot/leaf weights and phases drive the shared native deformation; roots remain fixed')
-    if args.lods:report.update(vertices=near_report['vertices'],triangles=near_report['triangles'],near_wood=near_report)
+        vertex_colour='Source RGBA retained in the vertex sidecar; tint quantisation only for offline proxy baking',
+        root_contact='Fixed stem collar uses the existing shrub burial' if shrub else 'Continuous supported root shape and canonical footprint shared by every LOD and impostor',
+        wind='Source shoot/leaf weights and phases drive the shared native deformation; bases remain fixed')
+    if args.lods and not shrub:
+        report.update(vertices=near_report['vertices'],triangles=near_report['triangles'],near_wood=near_report,root_envelope=root_report)
     (out/'native-report.json').write_text(json.dumps(report,indent=2)+'\n')
     (out/'biomes.txt').write_text('\n'.join(published)+'\n',encoding='ascii')
     print(json.dumps(report,indent=2),flush=True)

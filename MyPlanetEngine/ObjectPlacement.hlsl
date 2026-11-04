@@ -19,6 +19,7 @@
 #include "Objects.hlsli"
 #include "Vegetation.hlsli"
 #include "Shadows.hlsli"
+#include "Moss.hlsli"
 
 StructuredBuffer<FaceVertex> mesh : register(t0);         // the mesh as drawn
 RWStructuredBuffer<ObjectInstance> instances : register(u0);
@@ -190,6 +191,11 @@ float Stoniness(float field, float drive)
     return SpreadStep(OBJECT_STONY.x, OBJECT_STONY.y, field + OBJECT_STONY.z * drive, 0.0);
 }
 
+float WoodlandBoulderBound(Candidate k)
+{
+    return 0.007*k.patches*smoothstep(0.32,0.62,k.size)*(1.0-smoothstep(1.4,1.95,k.size));
+}
+
 // Golombek and Rapp's law: the share of the ground covered by rocks of width d to 2d, for the abundance k.
 float GolombekShare(float k, float d)
 {
@@ -255,14 +261,15 @@ bool MakeCandidate(uint slice, uint plane, int2 index, out Candidate k)
     const float most = k.kind == STONES ? k.patches * (GolombekShare(DEBRIS_ABUNDANCE.x, k.d) + GolombekShare(DEBRIS_ABUNDANCE.y, k.d)
                                                        + GolombekShare(GRASS_ROCKS, k.d)) + k.clumps * PebbleShare(k.d)
                                         : k.clumps * max(TUFT_COVER.x, TUFT_COVER.y);
-    if (!census && k.accept >= most * k.chance)
+    const float woodland = k.kind==STONES ? WoodlandBoulderBound(k) : 0.0;
+    if (!census && k.accept >= (most+woodland) * k.chance)
         return false;
     if (k.kind == TUFTS)
         return true;
     // A stone, then, only where its region is stony, at the most its ground's drivers give (4: scree on a slope near
     // repose). Regions of 0.5 to 32 km, the same for every camera.
     k.stony = Fbm3(q, log2(32000.0), log2(500.0), -16.0, 0.5, 83u).x;
-    return census || k.accept < most * k.chance * Stoniness(k.stony, 4.0);
+    return census || k.accept < (most*Stoniness(k.stony,4.0)+woodland)*k.chance;
 }
 
 // First pass, light: every cell of every slice's window, on each plane. The candidates that may be seen go to a list,
@@ -426,6 +433,7 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
         WoodsAt(q, log2(k.cell), v);
     const float scree = loose * m.screeWeight, grass = soils * m.grassAmount * (1.0 - TreesHere(v));
     const float sand = soils * m.sandAmount + (1.0 - m.snow) * m.beach, soil = soils * m.soilAmount, bare = sand + soil;
+    const float wet=MossClimate(v.aridity,v.season)*(1.0-max(m.snow,m.beach));
     float share, presence = 1.0;
     if (stone)
     {
@@ -442,6 +450,7 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
                                                                          + GolombekShare(DEBRIS_ABUNDANCE.y * foot, k.d))
                                      + GolombekShare(GRASS_ROCKS * grass, k.d))
                         + k.clumps * PebbleShare(k.d) * bare);
+        share += WoodlandBoulderBound(k)*rest*soils*wet*MossShelter(GroundLightCover(v));
     }
     else // tufts, in grass and a few dry ones on sand and bare soil, clumped
         share = k.clumps * (TUFT_COVER.x * grass + TUFT_COVER.y * bare);
@@ -512,6 +521,7 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
     o.elevation = e0;
     o.albedo = saturate(albedo);
     o.albedo.b=PackObjectCanopy(o.albedo.b,GroundLightCover(v));
+    o.albedo.r=PackObjectCanopy(o.albedo.r,stone && e0>0.0 ? wet : 0.0);
     o.seed = k.looks.z;
     instances[(stone ? 0 : CLASS_CAPACITY) + slot] = o;
 }

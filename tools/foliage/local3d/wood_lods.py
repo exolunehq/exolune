@@ -18,12 +18,15 @@ if fast_simplification.__version__!='0.2.0':raise ValueError('Install the pinned
 
 p=argparse.ArgumentParser(description=__doc__);p.add_argument('source',type=Path);p.add_argument('out',type=Path)
 p.add_argument('--glb',type=Path,required=True)
+p.add_argument('--shrub',action='store_true',help='Keep the sparse woody collar and stems through coarser levels')
 args=p.parse_args(sys.argv[sys.argv.index('--')+1:]);args.out.mkdir(parents=True,exist_ok=True)
 data=np.load(args.source);vertices=data['vertices'];indices=data['indices'].reshape(-1,3)
 tree=KDTree(len(vertices))
 for i,v in enumerate(vertices):tree.insert(v[:3],i)
 tree.balance()
 targets=[len(indices)]*4+[min(2400,max(24,int(len(indices)*.23))),min(600,max(24,int(len(indices)*.057)))]
+if args.shrub:
+    targets[4:]=[max(24,int(len(indices)*fraction)) for fraction in [.65,.40]]
 section_heights=np.linspace(.10,.45,8)
 def sections(points,triangles):
     edges=points[triangles[:,[0,1,1,2,2,0]]].reshape(-1,2,3);result=[]

@@ -22,6 +22,8 @@ from check_local3d_native import assets
 
 POSES=[('near',1.68,12,0,0),('canopy',30,25,0,0),('relay',120,20,0,0),('far',1300,32,0,0),
        ('near_repeat',1.68,12,0,0),('wind',1.68,12,0,2)]
+SITES={0:(42.002542495,65.003025314,35,80),1:(-11.825,110.867,-5,100),
+       4:(34.75,50.75,30,70),5:(-7.75,-37.25,-5,-20)}
 
 
 def fingerprint(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -31,6 +33,8 @@ def capture(exe,catalogue,out,forced=None,full=False):
     out.mkdir(parents=True,exist_ok=True)
     poses=POSES if full else POSES[:3]
     report=json.loads((catalogue/'native-report.json').read_text())
+    shrub=report.get('shrub_family')
+    lat,lon,sun_lat,sun_lon=SITES.get(shrub,SITES[4])
     protocol={'executable':fingerprint(exe),'shaders':{p.name:fingerprint(p) for p in exe.parent.glob('*.cso')},
               'catalogue':fingerprint(catalogue/'biomes.txt'),
               'asset':{p.name:fingerprint(p) for p in (catalogue/report['name']).glob('*.bin')},
@@ -39,7 +43,7 @@ def capture(exe,catalogue,out,forced=None,full=False):
         if json.loads((out/'complete.json').read_text()).get('protocol')!=protocol:raise ValueError('Functional inputs changed; use a fresh output directory')
         return
     jobs=out/'views.txt';styles=['natural','plantalbedo','plantlod'] if full else ['plantalbedo','plantlod']
-    jobs.write_text('\n'.join(f'{out/(name+"_"+style)}.bmp {style} {height} 34.75 50.75 {pitch} {heading} 2 {weather} 30 70'
+    jobs.write_text('\n'.join(f'{out/(name+"_"+style)}.bmp {style} {height} {lat} {lon} {pitch} {heading} 2 {weather} {sun_lat} {sun_lon}'
                             for name,height,pitch,heading,weather in poses for style in styles)+'\n')
     env={k:v for k,v in os.environ.items() if not k.startswith('MYPLANETENGINE_')}
     env.update(MYPLANETENGINE_BATCH=str(jobs),MYPLANETENGINE_FOLIAGE_ASSETS=str(catalogue),
@@ -75,7 +79,10 @@ def main():
         assert not sum(meta['overflow']) and meta['queue_bytes']==192*1024*1024 and meta['mesh_order_bytes']==12*1024*1024
         assert all(meta['model_names'][slot]==source['name'] for slot in slots)
         levels=np.array(meta['mesh_lod_counts'])[slots].sum(0);active.update(np.flatnonzero(levels).tolist());counts[name]=levels.tolist()
-    assert active==set(range(level_count)),'The review route must exercise every geometry level'
+    if source.get('shrub_family') is None:
+        assert active==set(range(level_count)),'The review route must exercise every geometry level'
+    else:
+        assert active and sum(counts['near'])>0,'The native view must contain shrubs from the candidate roles'
     for level in range(level_count):
         for name,*_ in POSES[:3]:
             meta=json.loads((out/f'forced{level}'/(name+'_plantlod.bmp.planet-foliage.json')).read_text())

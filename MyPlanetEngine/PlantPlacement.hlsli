@@ -240,6 +240,8 @@ void PlacePlantTile(uint4 record, uint tileIndex)
     tileV.able = PlantGround(m);
     tileV.herbs *= (GameVegetation()?0.3+0.7*m.grassAmount:m.grassAmount)*(1.0-m.snow);
     const float2 community=DiverseVegetation() ? Fbm3(q0,log2(2048.0),log2(512.0),log2(k.d),0.6,83u).xy : 0.0;
+    const float flowerPatches=DiverseVegetation() && k.d<4.0 && tileV.herbs*tileV.able>0.0
+        ? Fbm3(q0,4.0,2.0,log2(k.d),0.53,619u).x : 0.0;
     // The quick refusal: every state present on the exact ground, and the light pass's bound, where they are on the mesh's.
     const float bound = min(PlantBound(k, tileV, true) * 1.0001, asfloat(record.w));
     const float sunShare = SunAboveHorizon(dot(upLocal, lightDir.xyz), horizon, 0.0);
@@ -347,11 +349,11 @@ void PlacePlantTile(uint4 record, uint tileIndex)
             const float herbFootprint=HerbFootprint(v,k.octave);
             const float totalFootprint=PlantFootprints(v,k.octave).z;
             const bool herb=species==SHRUB && CommunityRandom(o.seed,0x94da6f71u)*totalFootprint<herbFootprint;
-            const uint model=CommunityModel(v,species,family,o.seed,community,herb);
+            const uint model=CommunityModel(v,species,family,o.seed,community,flowerPatches,herb);
             o.albedo=float3(model+1u,herb ? ((model==27u || model==28u)?0.7:1.0) : species==SHRUB?ShrubHeight(family):1.0,1.0);
             if (GameVegetation()) {
                 if (species<SHRUB) {
-                    o.albedo.y=asfloat(PackPlantGroundColour(VegetatedGroundColor(m,v)));
+                    o.albedo.y=asfloat(PackPlantGroundColour(VegetatedGroundColor(m,v),MossClimate(v.aridity,v.season)));
                     o.albedo.z=asfloat(rootContacts);
                 } else o.albedo.z=1.0-smoothstep(0.30,0.95,v.aridity);
             }

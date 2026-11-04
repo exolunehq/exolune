@@ -14,6 +14,7 @@
 ## Work
 
 - **Vegetation assets:** follow the [vegetation production pipeline](docs/spec-pipeline-creation3d.md) for every master and variant. Retain the recipe and exact source hash, cook LODs and impostors through the common tools, and review in Exolune before promoting an asset. Keep weights, sources, cooked binaries and captures outside Git.
+- **Generate every new and replacement plant model.** Use local neural generation, seeded procedural authoring, or a combination for trees, shrubs and ground flora. A downloaded mesh is a legacy review control. Keep it out of new source recipes and remove its active roles as reviewed generated replacements become available.
 - **The user reviews a fix in flight, at several locations,** never only in the reported view: create `tools/tests/<date>.txt`, one test per line, and launch it from the worktree root with:
   ```powershell
   powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours tools\tests\<date>.txt

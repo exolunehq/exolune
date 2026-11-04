@@ -2,6 +2,9 @@
 
 Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it.
 
+**Shrub witnesses, 2026-11-04.** Seeded stems, solid collars and curved leaf cutouts are placed detail in the existing shrub layer. The common terrain contact and climate distribution still determine placement. Seven mesh levels and a multiview impostor represent each reviewed shrub. See `spec-pipeline-creation3d.md`.
+
+**Forest-floor study, 2026-11-04.** Flower colonies and woodland boulders add placed detail. The ground, rock and root moss layers change material response and fine normals. Terrain height and rock geometry remain sourced by their existing systems. See `spec-diversite-vegetale.md`.
 
 
 **Local vegetation production, 2026-11-03:** generated wood, roots and individual leaves are added detail from placed plants. Continuous underside support and canonical XYZ root scaling affect plant geometry and attachments only; terrain remains the source of truth. The same deformed master feeds LODs and impostors, with protected near bases and bounded coarse error. Sampled runtime contact follows the existing ground without a horizontal squeeze. Structural variations change branch lift, crown spread, shear, twist and lean above the fixed lower fifth; `spec-pipeline-creation3d.md`.
@@ -43,6 +46,7 @@ Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it
 
 | Surcouche | Family | Scale | Amplitude | Where | Arrêt | Status |
 |---|---|---|---|---|---|---|
+| Woodland boulders and flowering colonies | Added detail, placed objects | boulders 0.32–1.95 m wide; flower colonies use herb height | existing ground contact and burial | moist sheltered woodland soils and eligible flower patches | disable ordinary objects or vegetation | Review branch, 2026-11-04. See `spec-diversite-vegetale.md` |
 | Rooted vegetation and structural variations | Added detail, placed plant meshes | root reach 0.14–2.4 m; existing stem and crown scales | plant vertices only; root underside support, four-contact quadratic and offline crown deformations above 20% height | climate-compatible rooted ground | choose the original catalogue, or disable plants | 2026-11-02 prototype; default 31 roles, external 91-role review; native art and performance pending; `spec-pipeline-creation3d.md` |
 | Octaves filtered by grid cell | Filtering | under 2 grid cells, `MESH_BAND_LIMIT`  | octave replaced by its average | everywhere | none, it's sampling | in place |
 | Maximum frequencies of terrain type and turbulence | Filtering | between ~100 km and ~6 km | 0,13/255 on screen; ribs of a few meters | everywhere |  `NO_LIMIT`  | removed the 2026-10-31 with the old relief |
