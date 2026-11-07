@@ -284,7 +284,7 @@ Status: in place the 2026-10-22, for all materials.
 
 ## The screen relief, 2026-11-02
 
-Status: implemented; validated in flight by the user on the reported massif. Flight route: `tools/tests/2026-11-02-montagnes-exposition.txt`.
+Status: validated in flight by the user on the erosion branch, tag `piste/relief-ecran-2026-11-02`; ported to `main` without the erosion the same day. Flight route: `tools/tests/2026-11-02-rendu-lointain.txt`.
 
 **Symptom,** from orbit over a mountain range, `1673620.9 -7.138614 122.604860 84.18 32.74`:
 - the ground blurred into squares, then sharpened suddenly near 1,400 km;

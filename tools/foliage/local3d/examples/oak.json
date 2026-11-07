@@ -1,0 +1,36 @@
+{
+  "name": "oak_witness",
+  "description": "Un chÃªne mature chaleureux et volumineux, crÃ©dible en FPS, avec des racines rÃ©elles et une couronne asymÃ©trique.",
+  "reference": "E:/ComfyUI/input/exolune/oak-reference.png",
+  "geometry_backend": "trellis2",
+  "image_resolution": 1024,
+  "wood_triangles": 12000,
+  "texture_resolution": 2048,
+  "height_m": 8.0,
+  "max_triangles": 40000,
+  "seed": 424242,
+  "cluster_limit": 400,
+  "leaf_length_m": [
+    0.3,
+    0.48
+  ],
+  "shoot_length_m": [
+    0.7,
+    1.1
+  ],
+  "captions": {
+    "reference": "A single complete mature European oak tree, isolated as a premium first-person exploration game vegetation asset. Use the warm, substantial natural art direction of the tree in the reference image, while redrawing the entire tree clearly at high resolution. The tree has a thick expressive irregular trunk, broad flared root collar, several individually readable exposed roots tapering outward, and strong asymmetric limbs supporting a full rounded but uneven crown. The lower trunk is substantial and cleanly visible, with warm grey-brown bark, broad sculpted grooves and restrained moss near the roots. Large coherent foliage bouquets contain many readable small oval oak leaves, dark sheltered greens inside and warmer olive greens at the outer tips, with natural open gaps revealing the main branches. The crown feels alive and three dimensional, with no spherical blobs or uniform repeated tufts. It is artist-directed, believable and tactile, with softly simplified game forms and rich surface detail, avoiding both a cartoon toy and a sparse photographic sapling. A slightly elevated three-quarter front asset view, gentle neutral diffuse lighting, no dramatic baked shadow or depth blur. The entire crown, all lateral branches and all root tips fit inside the square frame with ten percent empty margin. Plain uniform pale grey studio background. The roots end directly at the bottom of the living tree; there is no soil disc, platform, planter, landscape, rock slab or pedestal, no grass around it, no caption, no text, no grid, no additional objects and no people.",
+    "wood_reference": "A single completely leafless mature oak tree, the same substantial warm natural game asset as <ref_image_0>, with its full trunk, roots and main branching architecture retained. The entire tree is shown in the same three-quarter view, with the same silhouette and height as the reference. All green leaves, foliage bouquets, leafy twigs and hanging vines have been removed, revealing the woody structure beneath the crown. A wide irregular oak trunk splits into a few powerful asymmetrical curved limbs, then robust tapering secondary branches with clear organic junctions. The branch ends are substantial and easy to read, not an excessive hair-like tangle of thin twigs. The root collar is wide and sculptural, with several real exposed roots radiating naturally from the trunk and tapering to individual root tips. Warm grey-brown bark has broad irregular grooves and fine natural surface detail, with restrained moss at the lower roots. Premium first-person game art direction: tactile convincing organic volume with softly simplified forms, neither a cartoon toy nor a thin photographic sapling. Uniform soft neutral diffuse studio lighting, complete isolated tree centered in a square frame with generous empty space around every branch and root. Plain uniform pale grey background. No leaves anywhere, no green foliage, no soil platform, no grass, no ground slab, no rocks, no pedestal, no text or labels.",
+    "cluster_reference": "A single isolated short leafy oak branch cluster for the same warm natural first-person game tree shown in <ref_image_0>. Show only one compact small branch module, not a whole tree. A short tapered brown twig enters from the bottom center, forks naturally into several slender stems and carries about twenty-five individually readable mature oak leaves. Each leaf is elongated with rounded oak lobes, a subtle central vein, olive green and warm forest green variation, with fresh lighter tips. Leaves overlap in a natural layered bouquet but many individual outlines and a few airy gaps stay readable. The entire branch spreads into a wide irregular fan occupying the center of a square image, and every leaf tip is completely visible with generous background margin. The point where the short twig enters the cluster remains visible at the bottom center. Premium game vegetation material study with believable tactile volume and softly simplified organic shapes, subtle material detail and no exaggerated cartoon outlines. Front three-quarter view under uniform soft neutral diffuse studio lighting, restrained shading and clear leaf separation against a completely plain pale grey background. No trunk, no tree crown, no landscape, no ground, no pot, no platform, no text, no labels and no extra objects.",
+    "leaf_reference": "A single mature English oak leaf with its short brown petiole, isolated flat as a clean game vegetation material reference. Use the same oak species, lobed silhouette and tactile vein detail as the leaves in <ref_image_0>, but show exactly one complete leaf. The leaf has a rich deep natural forest-green upper surface, restrained fresh green variation along the central vein, rounded irregular oak lobes, and a soft organic curvature across the midrib. It has no yellow, beige or autumn colour. The leaf blade is long and slightly asymmetric, with its pointed rounded tip at the top and one slender brown petiole extending straight down from the bottom. The complete leaf and the whole petiole are visible, centered in the square frame with ample empty margin. Soft neutral diffuse illumination, very weak shading, no dramatic highlights or cast shadow. Premium believable first-person game art direction with subtle material detail, not a cartoon icon and not a glossy plastic leaf. Perfectly plain uniform pale grey background. Exactly one leaf, no branch, no other leaves, no text, no grid, no ground and no extra object."
+  },
+  "image_seeds": {
+    "reference": 314159,
+    "wood_reference": 271828,
+    "cluster_reference": 161803,
+    "leaf_reference": 323606
+  },
+  "foliage_distribution": "crown_volume",
+  "cluster_spacing_m": 0.4,
+  "max_connector_m": 2.2
+}

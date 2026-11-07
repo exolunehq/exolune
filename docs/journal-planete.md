@@ -511,6 +511,109 @@ History of field adjustments: what changed, why, what it cost or brought, and ho
 - **Known defects:** overly regular slopes, small deltas and one false delta, gullies barely visible at a distance; `spec-erosion.md`.
 - **Awaiting in-flight review:** `tools/tests/2026-10-31-erosion.txt`.
 - **Rollback:** commit `fd92705`; `valleys = false` in `TerrainAt` renders the pre-erosion form.
+**2026-11-03 · Close trunks, filtered silhouettes and forest skylight**
+
+- **Report:** planar tropical crown, faceted close trunks, soft bark maps, noisy cutout outlines and almost black forest ground.
+- **Geometry:** adaptive PN curvature at L0; original vertices and root support heights fixed; source wood retained at L1–L4.
+- **Bound:** 20,000 added triangles at most, 100,000 total cap, displacement at most 12% of an edge and 0.5% of source height.
+- **Witnesses:** oak L0 counts 53,423 / 53,277 / 53,319; six following levels and impostors retained; root curvature has a tighter 0.1% horizontal bound.
+- **Bark:** shared gradient noise in rest-pose metric bands at 18/64/200 cycles per metre, heights 8/1.2/0.2 mm, footprint filtering and bounded surface-gradient slopes.
+- **Maps:** full woody normal strength, leaf strength 0.55, bark roughness at least 0.78.
+- **Filtering:** temporal smoothing enabled by default; explicit TAA=0 now disables it rather than enabling by variable presence.
+- **Coverage:** filtered proxy alpha and derivative-based mesh alpha; independent digitally shifted Sobol dimensions for both relays and alpha; freeze phase when smoothing is disabled.
+- **Depth:** fractional-alpha proxy depth bounds remain conservative down to 1/1024 coverage.
+- **Canopy:** diffuse leaf scatter 0.28, return factor 0.5; closed-crown sky transport about 0.46 instead of 0.21.
+- **Materials:** separate forest litter from the orbital canopy palette; ordinary ground objects retain unshadowed reflectance with canopy cover packed independently.
+- **Observer:** preserve open/orbital exposure; world-derived canopy adaptation is limited to two stops, fades above crowns, is neutral at night and converges in 0.35 s.
+- **Attribution:** radiance retains separate sky and solar transport through cloud shadows; camera response is applied after linear history.
+- **Diagnostics:** forestlight separates cover/cavity/sky transport; groundalbedo isolates material colour; effective AA is captured in a sidecar.
+- **Generation:** inspect references before 3D with references-only; pinned reference bundles permit a geometry-backend comparison without regenerating the art. Rejected pipes, fragments and branch loops remain outside the review bank.
+- **Tropical replacement:** retain a neural lower trunk, reconstruct five primary and ten secondary radial boughs, then reuse the common leaf/LOD/impostor chain. One 61,355-triangle master becomes 76,425 / 52,555 / 45,515 / 37,595 / 32,315 / 6,800 / 2,960 native triangles.
+- **Volume:** upper-wood span ratio 1.016, surface-spread ratio 1.088 and zero persistent coarse handles; one new hybrid candidate serves five role aliases.
+- **Checks:** 64 hidden native views, seven forced levels on oak and radial kapok, stationary feet under wind, zero queue overflow, matching F4/F5 observer cover, neutral sea/orbit/above-crown controls, fixed disabled-coverage frames and CPU curvature/root/material checks.
+- **Review:** tools/tests/2026-11-03-vegetation-refinement.txt; art and moving-camera review remain open, no performance benchmark.
+- **Milestone:** `jalon/2026-11-03-vegetation-production`.
+
+**2026-11-02 · Reject planar woody sources**
+
+- **Report:** the tropical tree's branches resemble a two-dimensional fan despite broad roots and added foliage.
+- **Rule:** audit upper wood independently, above 35% of woody height; clip crossing triangles exactly and use area-weighted horizontal PCA.
+- **Limit:** maximum oriented-span and surface-spread ratio 3:1; yaw, uniform scale and triangulation do not change the decision.
+- **Placement:** before leaf assembly, again on exported masters and before structural variants; no runtime terrain or rendering change.
+- **Generation:** references now request radial front/back boughs and an oblique view with clear foreshortening.
+- **Inventory:** four new tree masters and zero shrubs; beech/kapok have native cooks but need new volumetric sources; Scots pine also fails; spruce has a separate LOD-cook failure.
+- **Counts:** the initial oak adds one older master and three native derivatives; beech/kapok add six offline derivatives; derivatives and LODs are not new botanical models.
+- **Review:** retain the current in-flight bank as a diagnostic witness; failed masters and their derivatives are not production-approved.
+- **Checks:** Release x64; rotated fan rejection, radial crown acceptance, root exclusion, scale/translation and subdivision invariance; original oak variants retain fixed roots and their triangle counts.
+- **Included in:** `jalon/2026-11-03-vegetation-production`.
+
+## 2026-11-02 · Distant rendering on main, without the erosion
+
+- **Why:** the user prefers the geometry without the erosion, whose method is in question; the distant-rendering corrections validated in flight on `claude/erosion-montagnes` come to `main` alone. The erosion branch keeps its own work.
+- **Screen relief:** `ScreenRelief.hlsl` recomputes the true relief under each 2 × 2-pixel texel at every frame; the pixel reads it in a 4 × 4 B-spline for light, materials and the coast (`spec-rendu-lointain.md`). From tag `piste/relief-ecran-2026-11-02`, without the inland water fields.
+- **Settings:** `ScreenReliefScale` = 2 pixels; `SCREEN_BAND_LIMIT` = 4 texels; weight from `ScreenReliefLow` = 150 km to `ScreenReliefHigh` = 400 km (`D3DApp.h`, `ScreenRelief.hlsl`).
+- **Same family:** roughness and fresh volcanic ground read in the texel, geology at the pixel; the grid's reconstruction gap widens height limits; exposure widened by the height spread (factor 5); volcanic cones keep their area, edge ≥ 2 cells; `CLOUD_BAND_LIMIT` = 4 pixels per noise texel.
+- **Fine grid:** one cubic B-spline height surface and its analytic normal (`spec-normales-spline.md`, 2026-11-01).
+- **Coast:** below the screen relief, the coast's contour at the pixel, from the shared terrain, ocean only (`spec-rendu-lointain.md`, 2026-11-01). The noise's gradient table moves to `ReliefGradients.inl` and the frame constants; the terrain VS and PS compile with DXC, SM 6.0.
+- **Left out:** erosion, rivers, lakes, inland water fields and their per-pixel contours.
+- **Storage:** one 24-byte texel buffer, sized for 4K, about 47 MiB; one root SRV, `t52`; 4 KiB more frame constants.
+- **Review:** `tools/tests/2026-11-02-rendu-lointain.txt`; Release x64 builds. No performance or quality benchmark.
+- **Tag:** `piste/rendu-lointain-2026-11-02`, branch `claude/rendu-lointain`.
+- **Open:** cost near 300 km, where the screen relief fades in and the coast query runs; `CLOUD_BAND_LIMIT` with `main`'s per-point cloud light, to check in flight.
+- **To return:** raise `ScreenReliefLow` and `ScreenReliefHigh` above any camera altitude; `CLOUD_BAND_LIMIT` = 1.
+
+**2026-11-02 · Walking, controls and environmental audio**
+
+- **Integration:** walking and audio isolated on current public `main`; vegetation authoring continues on `codex/vegetation-biomes`.
+- **Controls:** J disembarks and returns; WASD/ZQSD or arrows move; Shift runs, Ctrl crouches, Space jumps, H toggles bob, Y mutes and I toggles coordinates.
+- **Contact:** a 9 by 9 relief query at 0.5 m spacing; eye heights 1.68/1.05 m; walking/running/crouching 1.5/3.6/0.75 m/s; slope limit 45 degrees.
+- **Audio:** six recorded contact materials with six takes each, six bird calls and contextual procedural ambience; four independent gains default to 1.
+- **Scope:** existing ship selection, cloud rendering, terrain and vegetation retained; no performance or quality benchmark.
+- **Review:** `tools/tests/2026-11-02-marche-main.txt`; functional controller and PCM checks in `tools/tests/check_walking.ps1`.
+- **Milestone:** `jalon/2026-11-02-marche-ambiances`; specification and limitations in `spec-marche-ambiances.md`.
+
+## 2026-11-02 · Clouds: contrast and shiny contours
+
+- **The defect:** since the whitening, flat clouds and bright outlines on their lobes, like specular highlights.
+- **The cause:** the multiple scattering's build-up F was a pixel's quantity, taken at its seen point; it drew rims and dark channels where that point jumped between lobes. Under it, the source was nearly uniform: fitted on slabs, it lost nothing through a finite cloud's sides.
+- **The change:** F per point, on the cloud's chord along the sun, three samples away from it (`CLOUD_BACK_SAMPLES`); the side leak `CLOUD_MULTI_LEAK` = 0,20, on each sample's own covered part. The seen point, its column and the mean μ are removed.
+- **Then, the planes seen in flight:** grey horizontal bands at fixed heights, still while the clouds drifted. The chord's long intervals read the profile at their middle and the density in the cloud up to its 1e-4 floor of cover. Each light interval now reads its profile's mean over its height span (slices of the profile volume, computed at loading); the chord counts an interval whole from 2 % covered (`CLOUD_CHORD_COVER`).
+- **The result:** relief at low sun, p10 / p90 of opaque clouds 0,74 → 0,51 at 3 km; no rim, vein, channel or plane; orbit white kept, 196 against 199 in sRGB; near cumulus greyer under a high sun, 157 against 190.
+- **The cost, 1920 × 1080:** +5 to +15 % on clouds and air, +0,1 ms from orbit, +1,2 ms at 8 km still and +3,6 ms in fast flight; no optimization removed. A proved skip of the three samples was slower, two samples saved nothing measurable.
+- **Reference:** `tools/calage_orbite.py relief`, λ = 0,20 refitted with F per point; sphere 1,9 to 8,5 against 2,5 to 9,7.
+- **Then, in a fast flight, a line at the horizon behind the clouds:** the temporal pass tested its history on the surface the ray ends on; toward the horizon the sea's distance changes by 4 % a row, and neighbours above and below were refused. It now tests the clouds' end, 0 like the sky beyond the low layer's bottom (`CloudTemporalCloudEnd`). Row step at the horizon against the single pass 0,54 → 0,08; still images identical to the level; in a fast flight, 1920 × 1080, +1 to +2 ms at 2 to 8 km, more pixels traced again rather than filled; still, within the noise.
+- **Judged in flight and accepted** by the user, its cost logged to be resumed in an optimization phase (`spec-nuages.md`, the cost).
+- **To judge in flight:** `tools/tests/2026-11-02-nuages-contraste.txt`. Tag at commit: `piste/nuages-contraste`.
+- **To go back:** `Clouds.hlsli`, `CloudsTemporal.hlsli` and `D3DApp.cpp` of `bfa6113`.
+- **Detail:** `spec-rendu-orbite.md`, contrast and shiny contours.
+
+**2026-11-01 · Approved fighter becomes the default**
+
+- Milestone: `jalon/2026-11-01-chasseur-par-defaut`.
+- Approved finish source: `b43d8ee`, from `codex/vaisseau-finitions`.
+- Default model: `chasseur`; original triangular model: `classique`.
+- The fighter lives in `assets/vaisseau/chasseur/`; original source files and binaries remain in `assets/vaisseau/`.
+- `-ModeleVaisseau classique` restores the previous model at launch, with its original eye, folded canopy, water map and jets.
+- The executable alone selects the fighter; no environment variable is required.
+- Fighter eye: 1.03 m; classic eye: 1.07 m; shared forward offset: 0.9192 m.
+- Fighter shadow centre: (0, −0.25, 0.55) m; classic: (0, −2.15, 0.05) m; radius: 6.7 m.
+- Water maps: fighter 1684 × 2450, classic 1584 × 3660, both at 1.2 mm per texel.
+- Main engines: four on the fighter, three on the classic; ten attitude jets on each.
+- Pivots: six on the fighter, two on the classic; unused matrices are identity.
+- VSX2 remains readable; original screen indices convert to explicit roles at load time, without rewriting the package.
+- Accepted finish: seven fitted panels, curved console returns, recessed equipment, curved coaming and thin glazing retainer.
+- Nose shoulders lower smoothly by up to 220 mm; the forward centreline lowers by up to 18 mm; the glazing contact stays fixed.
+- Instrument faces: 1.5 mm recessed; display rims: 1 mm proud; pocket depths: 10/28/12 mm.
+- Dashboard centre: 0.845 m; shoulders: 35 mm lower along the panel; console returns: 65 mm lateral width.
+- Retainer: 34 × 12 mm, 2 mm chamfers, separate 4 mm seal; glass tessellation: 64 × 52.
+- Finish maps: 4096px panel atlas and two 1024px linear micro-surface maps.
+- Fighter asset: 61,698 triangles, 34 materials, 48 draw ranges and 12 images.
+- Terrain, flight controls and planet settings are unchanged.
+- Validation: Release x64 builds successfully; both VSX formats, screen roles and pivot counts pass the packet checks.
+- All 32 original source, texture and model files are unchanged; only their README gains the selection instructions.
+- Four direct engine captures verify cockpit and chase views for both models; the default captures set no model override.
+- Review route: `tools/tests/2026-11-01-modeles-vaisseau.txt`, shared by both models.
+- Construction and inspection details: [ship spec](spec-vaisseau.md); earlier measurements: [history](log/spec-vaisseau-historique.md).
 
 ## 2026-10-31 · Off-real-time cinematic path
 

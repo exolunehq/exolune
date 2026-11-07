@@ -1,0 +1,157 @@
+{
+  "game_fir": {
+    "triangles": 6411,
+    "vertices": 4459,
+    "root_vertices": 457
+  },
+  "game_broadleaf": {
+    "triangles": 7794,
+    "vertices": 15283,
+    "root_vertices": 457
+  },
+  "shrub_boreal_0": {
+    "triangles": 2970,
+    "vertices": 5436,
+    "root_vertices": 0
+  },
+  "shrub_boreal_1": {
+    "triangles": 3960,
+    "vertices": 7248,
+    "root_vertices": 0
+  },
+  "shrub_desert_0": {
+    "triangles": 2492,
+    "vertices": 4592,
+    "root_vertices": 0
+  },
+  "shrub_desert_1": {
+    "triangles": 3204,
+    "vertices": 5904,
+    "root_vertices": 0
+  },
+  "shrub_steppe_0": {
+    "triangles": 2850,
+    "vertices": 5100,
+    "root_vertices": 0
+  },
+  "shrub_steppe_1": {
+    "triangles": 3230,
+    "vertices": 5780,
+    "root_vertices": 0
+  },
+  "shrub_montane_0": {
+    "triangles": 2850,
+    "vertices": 5100,
+    "root_vertices": 0
+  },
+  "shrub_montane_1": {
+    "triangles": 3230,
+    "vertices": 5780,
+    "root_vertices": 0
+  },
+  "shrub_temperate_0": {
+    "triangles": 3560,
+    "vertices": 6560,
+    "root_vertices": 0
+  },
+  "shrub_temperate_1": {
+    "triangles": 4272,
+    "vertices": 7872,
+    "root_vertices": 0
+  },
+  "shrub_tropical_0": {
+    "triangles": 2592,
+    "vertices": 2088,
+    "root_vertices": 0
+  },
+  "shrub_tropical_1": {
+    "triangles": 3240,
+    "vertices": 2610,
+    "root_vertices": 0
+  },
+  "fir_open": {
+    "triangles": 6411,
+    "vertices": 4459,
+    "root_vertices": 457
+  },
+  "fir_dense": {
+    "triangles": 7107,
+    "vertices": 5155,
+    "root_vertices": 457
+  },
+  "broadleaf_2": {
+    "triangles": 5800,
+    "vertices": 12021,
+    "root_vertices": 457
+  },
+  "broadleaf_3": {
+    "triangles": 3600,
+    "vertices": 7051,
+    "root_vertices": 457
+  },
+  "broadleaf_4": {
+    "triangles": 3654,
+    "vertices": 6903,
+    "root_vertices": 457
+  },
+  "broadleaf_5": {
+    "triangles": 3602,
+    "vertices": 6855,
+    "root_vertices": 457
+  },
+  "edge_shrub_a": {
+    "triangles": 2385,
+    "vertices": 1697,
+    "root_vertices": 0
+  },
+  "edge_shrub_c": {
+    "triangles": 1790,
+    "vertices": 1281,
+    "root_vertices": 0
+  },
+  "leafy_shrub": {
+    "triangles": 6302,
+    "vertices": 7761,
+    "root_vertices": 0
+  },
+  "sorrel_a": {
+    "triangles": 353,
+    "vertices": 306,
+    "root_vertices": 0
+  },
+  "sorrel_c": {
+    "triangles": 284,
+    "vertices": 240,
+    "root_vertices": 0
+  },
+  "grass_tall_a": {
+    "triangles": 290,
+    "vertices": 330,
+    "root_vertices": 0
+  },
+  "grass_tall_c": {
+    "triangles": 340,
+    "vertices": 394,
+    "root_vertices": 0
+  },
+  "flower_a": {
+    "triangles": 758,
+    "vertices": 657,
+    "root_vertices": 0
+  },
+  "flower_d": {
+    "triangles": 360,
+    "vertices": 300,
+    "root_vertices": 0
+  },
+  "fern_b": {
+    "triangles": 2384,
+    "vertices": 1660,
+    "root_vertices": 0
+  },
+  "fern_c": {
+    "triangles": 2248,
+    "vertices": 1568,
+    "root_vertices": 0
+  }
+}

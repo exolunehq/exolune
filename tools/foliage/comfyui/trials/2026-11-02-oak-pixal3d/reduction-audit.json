@@ -1,0 +1,110 @@
+[
+  {
+    "label": "conservative",
+    "file": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\oak_target_200000.glb",
+    "sha256": "cfffdc28e3f08ab692dface9b0c5c1450de1267e3c3f440a59bb6a4a3662353e",
+    "bytes": 12558344,
+    "valid_nonempty": true,
+    "primitives": 1,
+    "materials": 1,
+    "skins": 0,
+    "animations": 0,
+    "texture_images": 0,
+    "triangles_in_file": 528216,
+    "vertices_in_file": 222093,
+    "duplicate_unordered_triangles": 48111,
+    "triangles_with_repeated_indices": 0,
+    "exact_zero_area_triangles": 0,
+    "attributes": [
+      "POSITION",
+      "COLOR_0",
+      "NORMAL"
+    ],
+    "bounds_min": [
+      -0.3742074966430664,
+      -0.4918074607849121,
+      -0.37302494049072266
+    ],
+    "bounds_max": [
+      0.3829154968261719,
+      0.4439001679420471,
+      0.3849449157714844
+    ]
+  },
+  {
+    "label": "relaxed",
+    "file": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\oak_budget_50000.glb",
+    "sha256": "8af3e540888497aa6e92edef5c3e9d633b35d2a7bd649d49c1461b25cca5338d",
+    "bytes": 2457976,
+    "valid_nonempty": true,
+    "primitives": 1,
+    "materials": 1,
+    "skins": 0,
+    "animations": 0,
+    "texture_images": 0,
+    "triangles_in_file": 166955,
+    "vertices_in_file": 51968,
+    "duplicate_unordered_triangles": 37117,
+    "triangles_with_repeated_indices": 0,
+    "exact_zero_area_triangles": 0,
+    "attributes": [
+      "POSITION",
+      "COLOR_0",
+      "NORMAL"
+    ],
+    "bounds_min": [
+      -0.3742074966430664,
+      -0.49117374420166016,
+      -0.37302494049072266
+    ],
+    "bounds_max": [
+      0.3829154968261719,
+      0.4434710144996643,
+      0.3836098313331604
+    ]
+  },
+  {
+    "label": "aggressive",
+    "file": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\oak_aggressive_50000.glb",
+    "sha256": "1ebe318b9ad6046c357356edea0595d0180b7cf1373b3b6033b84c3132d55506",
+    "bytes": 788928,
+    "valid_nonempty": true,
+    "primitives": 1,
+    "materials": 1,
+    "skins": 0,
+    "animations": 0,
+    "texture_images": 0,
+    "triangles_in_file": 43206,
+    "vertices_in_file": 18877,
+    "duplicate_unordered_triangles": 3047,
+    "triangles_with_repeated_indices": 0,
+    "exact_zero_area_triangles": 0,
+    "attributes": [
+      "POSITION",
+      "COLOR_0",
+      "NORMAL"
+    ],
+    "bounds_min": [
+      -0.37061500549316406,
+      -0.4909639358520508,
+      -0.36963748931884766
+    ],
+    "bounds_max": [
+      0.38193702697753906,
+      0.43999290466308594,
+      0.3824434280395508
+    ]
+  },
+  {
+    "label": "collapsed_rejected",
+    "file": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\oak_budget_20000.glb",
+    "sha256": "fc3737f1167d3ff896622cd47f971b136592185849a9729ce025504f030107e3",
+    "bytes": 240,
+    "valid_nonempty": false,
+    "primitives": 0,
+    "materials": 1,
+    "skins": 0,
+    "animations": 0,
+    "texture_images": 0
+  }
+]

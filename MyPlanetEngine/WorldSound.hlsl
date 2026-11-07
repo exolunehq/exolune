@@ -38,6 +38,7 @@ void CSMain(uint lane : SV_GroupIndex) {
         habitat[1] = float4(0.0,ClimateHumidity(climate.x),climate.y,e[0]);
         habitat[2] = float4(WorldWeather(cloudCameraKm.xyz),0.0);
         habitat[3] = habitat[4] = 0.0;
+        habitat[5] = 0.0;
         return; // submerged terrain is never a source of land vegetation or fauna
     }
     const float3 up = float3(0,0,1), normal = normalize(float3((e[2]-e[1])*0.5,(e[4]-e[3])*0.5,1));
@@ -53,7 +54,7 @@ void CSMain(uint lane : SV_GroupIndex) {
     gStrataCell=sole; gStrataRaise=0.0;
     const Materials m = GroundMaterials(q,e[0],up,normal,shore,sinLat,pole,pixel,faceX.xyz*sole,faceY.xyz*sole,0,0,StrataShift(q,sole));
     Vegetation v = VegetationAt(m.temperature,m.humidity,m.coldSigma,m.amplitude,Exposure((float3)nadir.xyz,e[0]));
-    WoodsAt(q,-1.0,v); v.able = PlantGround(m);
+    v.able = PlantGround(m); WoodsAt(q,-1.0,v);
     const float cover = PlantCover(TreesHere(v),ShrubsHere(v));
     const SurfaceWeights w=GroundContactWeights(m.soilAmount,m.grassAmount,m.sandAmount,m.screeWeight,m.rock,m.beach,m.snow);
     habitat[0] = float4(w.grass,w.sand,w.rock+w.gravel,w.snow);
@@ -61,4 +62,5 @@ void CSMain(uint lane : SV_GroupIndex) {
     habitat[2] = float4(WorldWeather(cloudCameraKm.xyz),m.beach);
     habitat[3] = float4(w.soil,w.grass,w.gravel,w.rock);
     habitat[4] = float4(w.sand,w.snow,habitat[2].x,0.0);
+    habitat[5] = float4(TreeLightCover(v),v.height,0.0,0.0);
 }

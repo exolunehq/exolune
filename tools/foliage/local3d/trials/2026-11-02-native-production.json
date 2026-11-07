@@ -1,0 +1,238 @@
+{
+  "date": "2026-11-02",
+  "status": "production chain implemented; acceptance fails frame budget and preflight quality; full quality pending",
+  "source": {
+    "path": "E:/ComfyUI/output/Exolune/2026-11-02-pipeline/10_crown/plant.glb",
+    "sha256": "c11c61b00d093c57025ec4a7c7168e6431e198d7f11a329c6756762813e67458",
+    "preview": "E:/ComfyUI/output/Exolune/2026-11-02-pipeline/10_crown/quarter.png",
+    "offline_art_accepted": true
+  },
+  "native": {
+    "catalogue": "E:\\ExoluneAssets\\oak-production\\native\\3074b43451d065ab45c6",
+    "levels": [
+      {
+        "level": 0,
+        "vertices": 48987,
+        "triangles": 39933,
+        "texture_size": "shared master"
+      },
+      {
+        "level": 1,
+        "vertices": 40789,
+        "triangles": 29219,
+        "texture_size": "shared master"
+      },
+      {
+        "level": 2,
+        "vertices": 27245,
+        "triangles": 13836,
+        "texture_size": 512
+      },
+      {
+        "level": 3,
+        "vertices": 10354,
+        "triangles": 5270,
+        "texture_size": 256
+      },
+      {
+        "level": 4,
+        "vertices": 4241,
+        "triangles": 2148,
+        "texture_size": 128
+      }
+    ],
+    "runtime_hashes": {
+      "form.bin": "138845164809edcc1e1a42e07a373132d8ca51b461c927f715162dd205c27e23",
+      "impostor.bin": "8e88d4223e4cdd16a2984d70f254c4e3ccefeb651bd6af5002c33933a74ba403",
+      "impostor_light.bin": "295d83985c57755378d079a44c2a1b088ec340a7435b3f3d5e4fc05e6ddf1f49",
+      "lighting.bin": "34bfe60a19fe002770b5fef251142d80ca14deed2d9dfdc606a1628633b26820",
+      "lods.bin": "f978e2f705f05a2ba0edcd74ae9341f4b1e0ec4751f0979e2dda3b1ff6572634",
+      "material.bin": "8757c3624d7109dd972297c3738d5fa4c7a6f321da2e4c02ac2a091c664a2f08",
+      "mesh.bin": "9b05b83d22d9bda7f1b3c789cd9add3198ee73be10504bf4592494492fb05dd4"
+    },
+    "functional_review": "E:/ExoluneAssets/oak-production/reviews/f236aeab1454bfc9a089/native-review.json",
+    "coverage_review": "E:\\ExoluneAssets\\oak-production\\coverage\\32a43033d6b15ae759d5\\coverage.json"
+  },
+  "performance": {
+    "protocol": {
+      "resolution": [
+        1920,
+        1080
+      ],
+      "order": [
+        "baseline",
+        "candidate",
+        "candidate",
+        "baseline"
+      ],
+      "warmup": 32,
+      "samples_per_view_per_round": 128,
+      "clouds": "enabled",
+      "sea": "enabled",
+      "time": "0 0",
+      "population": "unchanged",
+      "scope": "five broadleaf slots use one approved witness; existing native wind"
+    },
+    "report": "E:\\ExoluneAssets\\oak-production\\validation\\fbe5e6f66ddf7cc47bd6\\measurements\\performance.json",
+    "audit": "E:\\ExoluneAssets\\oak-production\\validation\\fbe5e6f66ddf7cc47bd6\\measurements\\capture-audit.json",
+    "paired_p95_regression_pass": true,
+    "frame_budget_pass": false,
+    "views": {
+      "temperate": {
+        "baseline": {
+          "frame": {
+            "median_ms": 15.885311999999999,
+            "p95_ms": 16.484351999999998,
+            "samples": 256
+          },
+          "cadence_mean_ms": 17.013199999999998
+        },
+        "candidate": {
+          "frame": {
+            "median_ms": 16.103424,
+            "p95_ms": 17.376512,
+            "samples": 256
+          },
+          "cadence_mean_ms": 18.481
+        }
+      },
+      "temperate_side": {
+        "baseline": {
+          "frame": {
+            "median_ms": 16.15872,
+            "p95_ms": 18.489344000000003,
+            "samples": 256
+          },
+          "cadence_mean_ms": 17.517249999999997
+        },
+        "candidate": {
+          "frame": {
+            "median_ms": 16.655872000000002,
+            "p95_ms": 18.77224,
+            "samples": 256
+          },
+          "cadence_mean_ms": 17.8891
+        }
+      },
+      "temperate_canopy": {
+        "baseline": {
+          "frame": {
+            "median_ms": 13.730816,
+            "p95_ms": 14.303744,
+            "samples": 256
+          },
+          "cadence_mean_ms": 14.88615
+        },
+        "candidate": {
+          "frame": {
+            "median_ms": 13.955072,
+            "p95_ms": 14.722304000000001,
+            "samples": 256
+          },
+          "cadence_mean_ms": 14.8598
+        }
+      },
+      "temperate_120m": {
+        "baseline": {
+          "frame": {
+            "median_ms": 18.238976,
+            "p95_ms": 18.778832,
+            "samples": 256
+          },
+          "cadence_mean_ms": 19.1192
+        },
+        "candidate": {
+          "frame": {
+            "median_ms": 17.885696,
+            "p95_ms": 18.5152,
+            "samples": 256
+          },
+          "cadence_mean_ms": 18.8806
+        }
+      },
+      "forest": {
+        "baseline": {
+          "frame": {
+            "median_ms": 19.045375999999997,
+            "p95_ms": 19.715584,
+            "samples": 256
+          },
+          "cadence_mean_ms": 20.164
+        },
+        "candidate": {
+          "frame": {
+            "median_ms": 18.759632,
+            "p95_ms": 20.4206,
+            "samples": 256
+          },
+          "cadence_mean_ms": 19.941450000000003
+        }
+      },
+      "forest_120m": {
+        "baseline": {
+          "frame": {
+            "median_ms": 19.465728,
+            "p95_ms": 20.059392,
+            "samples": 256
+          },
+          "cadence_mean_ms": 20.7422
+        },
+        "candidate": {
+          "frame": {
+            "median_ms": 18.826752,
+            "p95_ms": 19.456416,
+            "samples": 256
+          },
+          "cadence_mean_ms": 19.72715
+        }
+      },
+      "distant": {
+        "baseline": {
+          "frame": {
+            "median_ms": 15.484416,
+            "p95_ms": 16.754944000000002,
+            "samples": 256
+          },
+          "cadence_mean_ms": 16.5195
+        },
+        "candidate": {
+          "frame": {
+            "median_ms": 15.216096,
+            "p95_ms": 15.951872,
+            "samples": 256
+          },
+          "cadence_mean_ms": 16.1665
+        }
+      }
+    }
+  },
+  "preflight_quality": {
+    "report": "E:\\ExoluneAssets\\oak-production\\validation\\69fe03645a56a6f7af43\\measurements\\quality-guard.json",
+    "candidate_vs_current_pass": false,
+    "note": "The six-site preflight has measured regressions and missing canonical coverage; the complete survey is separate"
+  },
+  "full_quality": {
+    "sites": 30,
+    "state": "background work; inspect live report for completion",
+    "validation": "E:\\ExoluneAssets\\oak-production\\validation\\fbe5e6f66ddf7cc47bd6",
+    "report": "E:\\ExoluneAssets\\oak-production\\production-report.json"
+  },
+  "checks": [
+    "Release x64 build",
+    "31-model baseline structure and sixteen hidden views",
+    "4,000 root-plane CPU cases",
+    "local authoring stages, saved canvases and exported wind witness",
+    "native source, five LOD streams, materials and root-weight audit",
+    "48 hidden automatic/forced-LOD native captures",
+    "all 28 paired performance blocks, frozen inputs and identical populations",
+    "36-direction CPU coverage probes"
+  ],
+  "limits": [
+    "Only the woody broadleaf authoring recipe has been executed.",
+    "Five broadleaf roles share one approved master for comparison; this is not the released diverse catalogue.",
+    "Native art and continuous approach review remain pending.",
+    "The new candidate and its baseline exceed the 60 fps budget in several views.",
+    "The six-site quality preflight fails grass-region metrics and misses canonical coverage.",
+    "The complete 30-site quality verdict is still pending."
+  ]
+}

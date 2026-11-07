@@ -5,9 +5,9 @@
 
 namespace
 {
-    // The pilot's eye in the ship frame (assets/vaisseau: 0.92 m behind the frame's origin, 1.07 m up), and the head's
-    // rest, 10 degrees down: the horizon through the canopy, the displays' tops below it.
-    const double kEyeAhead = 0.9192, kEyeUp = 1.07, kHeadRest = -0.08;
+    // The pilot's forward eye offset, shared by both models; height comes from ShipProfiles.h.
+    // The head rests 4.5 degrees down: the horizon through the canopy, the displays below it.
+    const double kEyeAhead = 0.9192, kHeadRest = -0.08; // the pilot's eye (forme_chasseur.OEIL)
 }
 
 // The ship's flight, the standard of keyboard and mouse space games (Star Citizen, Everspace): the mouse pitches and yaws
@@ -43,7 +43,7 @@ void D3DApp::UpdateShip(float dt) {
     // The rates follow the stick and the keys within a tenth of a second.
     const double roll = held(mMoveKeys[5]) - held(mMoveKeys[4]);
     const Vec3d wantedRate = { -mStickY * 1.3, mStickX * 1.0, roll * 1.8 };
-    const Vec3d eyeBefore = mShipForward * kEyeAhead + mShipUp * kEyeUp;
+    const Vec3d eyeBefore = mShipForward * kEyeAhead + mShipUp * mShip.Profile().eyeUp;
     const Vec3d rateBefore = mShipRate;
     mShipRate =mShipRate + (wantedRate - mShipRate) * (1.0 - std::exp(-dt / 0.1));
     // Left-handed frame: Cross(up, forward) is the right; Rotate turns v towards Cross(axis, v).
@@ -106,7 +106,7 @@ void D3DApp::UpdateShip(float dt) {
     // the gaze.
     if (dt > 0.0f) {
         right = Normalize(Cross(mShipUp, mShipForward));
-        const Vec3d spin = (mShipForward * kEyeAhead + mShipUp * kEyeUp - eyeBefore) * (1.0 / dt);
+        const Vec3d spin = (mShipForward * kEyeAhead + mShipUp * mShip.Profile().eyeUp - eyeBefore) * (1.0 / dt);
         const Vec3d a = (mShipVelocity - before + spin - mEyeSpin) * (1.0 / dt);
         mEyeSpin = spin;
         const Vec3d local = { Dot(a, right), Dot(a, mShipUp), Dot(a, mShipForward) };
@@ -132,7 +132,7 @@ void D3DApp::UpdateShip(float dt) {
     look = Rotate(look, headRight, -mHeadPitch);
     const Vec3d headUp = Rotate(mShipUp, headRight, -mHeadPitch);
     if (mView != View::Chase) {
-        mCamPos = mShipPos + mShipForward * (kEyeAhead + mHeadSway.z) + mShipUp * (kEyeUp + mHeadSway.y)
+        mCamPos = mShipPos + mShipForward * (kEyeAhead + mHeadSway.z) + mShipUp * (mShip.Profile().eyeUp + mHeadSway.y)
                 + Normalize(Cross(mShipUp, mShipForward)) * mHeadSway.x;
         mCamForward = look;
         mCamUp = Rotate(headUp, look, mHeadTilt); // towards the left: behind a roll to the right
@@ -153,7 +153,7 @@ void D3DApp::PlaceShipAtCamera() {
     mShipForward = Normalize(mCamForward);
     const Vec3d level = up - mShipForward * Dot(up, mShipForward);
     mShipUp = Length(level) > 1e-6 ? Normalize(level) : Normalize(Cross(mShipForward, { 1.0, 0.0, 0.0 }));
-    mShipPos = mCamPos - mShipForward * kEyeAhead - mShipUp * kEyeUp;
+    mShipPos = mCamPos - mShipForward * kEyeAhead - mShipUp * mShip.Profile().eyeUp;
     mShipVelocity = mShipRate = mHeadSway = mHeadSwayRate = mEyeSpin = {};
     mHeadTilt = mHeadTiltRate = mPlume = 0.0;
     for (double& jet : mJets) jet = 0.0;
@@ -222,7 +222,7 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
     // density thinning by 8 km (RAYLEIGH_SCALE_HEIGHT). In space the glass feels no wind.
     const double airspeed = speed * std::exp(-std::max(Length(mShipPos) - PlanetRadius, 0.0) / 16000.0);
     ship.air = { (float)airspeed, dt, (float)std::fmod(mClock, 3600.0), mSettings.glassTest };
-    ship.options = { mHud ? 1.0f : 0.0f, mView == View::Cockpit ? 1.0f : 0.0f, 0.0f, 0.0f };
+    ship.options = { mHud ? 1.0f : 0.0f, mView == View::Cockpit ? 1.0f : 0.0f, float(mShip.Profile().model), 0.0f };
     ship.thrust = { (float)mPlume,(float)mJets[2], (float)mJets[1], (float)mJets[0] };
     ship.turn = { (float)mJets[3], (float)mJets[4], (float)std::fmod(mClock, 3600.0), 0.0f };
     // The dashboard's screens: the heading from the north, the place, the ground under the ship, the gas.
@@ -238,10 +238,21 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
         const XMVECTOR c = XMLoadFloat3(&p.point);
         return XMMatrixTranspose(XMMatrixTranslationFromVector(-c) * r * XMMatrixTranslationFromVector(c));
     };
+    for (auto& pose : ship.pose) XMStoreFloat4x4(&pose, XMMatrixIdentity());
     const Ship::Pivot* pivots = mShip.pivots;
     XMStoreFloat4x4(&ship.pose[0], pivoted(pivots[0], XMMatrixRotationAxis(XMLoadFloat3(&pivots[0].axis), -0.26f * (float)mStickX)
         * XMMatrixRotationX(0.21f * (float)mStickY) * XMMatrixRotationY(-0.21f * (float)(mShipRate.z / 1.8))));
     XMStoreFloat4x4(&ship.pose[1], pivoted(pivots[1], XMMatrixRotationAxis(XMLoadFloat3(&pivots[1].axis), 0.7f * (float)(mThrottle / 30.0 - 0.5))));
+    // The elevons (design_chasseur.py), inner and outer on each wing: the pitch and the roll mixed, as the ship turns,
+    // both ways, 20 degrees at most. Trailing edge up for the nose up, and on the side the ship rolls towards. Their
+    // hinges run outwards: a positive turn lifts the left's trailing edge and lowers the right's.
+    const double pitchUp = mShipRate.x / 1.3, rollRight = mShipRate.z / 1.8;
+    const double elevon[2] = { std::min(std::max(pitchUp - rollRight, -1.0), 1.0), std::min(std::max(pitchUp + rollRight, -1.0), 1.0) };
+    for (int side = 0; mShip.Profile().model == ShipModel::Chasseur && side < 2; ++side) { // the pilot's left, then right
+        const float angle = (side == 0 ? 0.35f : -0.35f) * (float)elevon[side];
+        for (int k : { 2 + side, 4 + side })
+            XMStoreFloat4x4(&ship.pose[k], pivoted(pivots[k], XMMatrixRotationAxis(XMLoadFloat3(&pivots[k].axis), angle)));
+    }
     XMStoreFloat4(&ship.velocity, toLocal(speed > 1e-3 ? mShipVelocity * (1.0 / speed) : mShipForward));
     ship.velocity.w = (float)speed;
 }

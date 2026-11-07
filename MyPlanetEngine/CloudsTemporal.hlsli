@@ -7,12 +7,12 @@
 #define CLOUDS_TEMPORAL_HLSLI
 
 Texture2D<float4> cloudFresh0 : register(t44);   // cloud light, transmittance; one texel per 4x4 tile
-Texture2D<float4> cloudFresh1 : register(t45);   // cloud distance and its spread (km), shadow T (-1: none), reserved
+Texture2D<float4> cloudFresh1 : register(t45);   // cloud distance and its spread (km), shadow T (-1: none), clouds' end
 Texture2D<float4> cloudHistory0 : register(t46); // light and transmittance per pixel, the previous frame's
-Texture2D<float4> cloudHistory1 : register(t47); // distance, ray end, shadow T (-1: none), reserved
+Texture2D<float4> cloudHistory1 : register(t47); // distance, ray end, shadow T (-1: none), clouds' end
 Texture2D<float2> cloudHistory2 : register(t48); // the distance's spread (km), the drift (pixels)
 // The pixels whose history has drifted, traced one per 2x2 quad (PSCloudTraceHalf): light and transmittance; distance,
-// spread, shadow T as cloudFresh1, w = -1 where the quad's pixel kept its history, 0 where traced.
+// spread, the clouds' end, w = -1 where the quad's pixel kept its history, 0 where traced.
 Texture2D<float4> cloudHalf0 : register(t49);
 Texture2D<float4> cloudHalf1 : register(t50);
 
@@ -34,6 +34,22 @@ static const float CLOUD_TEMPORAL_HALF_MAX_ALTITUDE_KM = 14.0;
 bool CloudTemporalSameEnd(float a, float b, float tolerance)
 {
     return a <= 0.0 ? b <= 0.0 : b > 0.0 && abs(a - b) <= tolerance * max(a, b) + 0.002;
+}
+
+// The ray's end as its clouds see it: 0, as the sky, where the ray has left the low layer through its bottom before the
+// surface. Nothing of the clouds lies beyond: such rays see the same clouds whatever their surface's distance, which
+// toward the horizon changes by 4 % from one row to the next; compared as surfaces, the history and the fills refused
+// their neighbours along a line fixed on the screen, the horizon behind the clouds.
+float CloudTemporalCloudEnd(float3 view, float rayEnd)
+{
+    const float3 cameraKm = (float3)cloudCameraKm.xyz;
+    const float r0 = length(cameraKm), h0 = camVertical.w;
+    const float mu = dot(cameraKm / r0, view);
+    if (rayEnd <= 0.0 || h0 <= CLOUD_LOW_BOTTOM_KM || mu >= 0.0)
+        return rayEnd;
+    const float rb = (float)CLOUD_PLANET_RADIUS_KM + CLOUD_LOW_BOTTOM_KM;
+    const float d = r0 * r0 * mu * mu - (h0 - CLOUD_LOW_BOTTOM_KM) * (r0 + rb); // r0^2 - rb^2 without the cancellation
+    return d >= 0.0 && rayEnd > 1.02 * (-r0 * mu - sqrt(d)) + 0.05 ? 0.0 : rayEnd;
 }
 
 // A point at a current camera-relative offset (km), in the previous frame's pixels; -1 behind the camera.
@@ -109,7 +125,7 @@ bool CloudTemporalCloudFill(int2 pixel, float rayEnd, int2 offset, float2 size, 
     {
         const int2 t = CloudTemporalTap(base, k, grid);
         const float4 tapData = cloudFresh1.Load(int3(t, 0));
-        const float w = CloudTemporalSameEnd(rayEnd, CloudTemporalFreshEnd(t, offset, size), 0.05) ? bilinear[k] : 0.0;
+        const float w = CloudTemporalSameEnd(rayEnd, tapData.w, 0.05) ? bilinear[k] : 0.0;
         light += w * cloudFresh0.Load(int3(t, 0));
         weightSum += w;
         const float wd = tapData.x > 0.0 ? w : 0.0;
@@ -129,7 +145,7 @@ bool CloudTemporalCloudFill(int2 pixel, float rayEnd, int2 offset, float2 size, 
             {
                 const int2 t = clamp(base + int2(x, y), 0, grid - 1);
                 const float2 toTile = float2(t * CLOUD_TEMPORAL_TILE + offset - pixel);
-                if (dot(toTile, toTile) < nearest && CloudTemporalSameEnd(rayEnd, CloudTemporalFreshEnd(t, offset, size), 0.05))
+                if (dot(toTile, toTile) < nearest && CloudTemporalSameEnd(rayEnd, cloudFresh1.Load(int3(t, 0)).w, 0.05))
                 {
                     nearest = dot(toTile, toTile);
                     light = cloudFresh0.Load(int3(t, 0));
@@ -171,7 +187,7 @@ bool CloudTemporalHistoryFill(float2 prevPixel, float rayEnd, float2 size, out f
                 const int2 t = clamp(centre + int2(x, y), 0, int2(size) - 1);
                 const float2 toTexel = float2(t) + 0.5 - prevPixel;
                 const float4 data = cloudHistory1.Load(int3(t, 0));
-                if (dot(toTexel, toTexel) < nearest && CloudTemporalSameEnd(rayEnd, data.y, 0.03))
+                if (dot(toTexel, toTexel) < nearest && CloudTemporalSameEnd(rayEnd, data.w, 0.03))
                 {
                     nearest = dot(toTexel, toTexel);
                     light = cloudHistory0.Load(int3(t, 0));
@@ -237,7 +253,7 @@ bool CloudTemporalCloudHistory(float2 prevPixel, float rayEnd, float2 size, out 
         const float4 tapData = cloudHistory1.Load(int3(t, 0));
         const float4 tapLight = cloudHistory0.Load(int3(t, 0));
         const float2 tapPlace = cloudHistory2.Load(int3(t, 0));
-        const float w = CloudTemporalSameEnd(rayEnd, tapData.y, 0.03) ? weights[k] : 0.0;
+        const float w = CloudTemporalSameEnd(rayEnd, tapData.w, 0.03) ? weights[k] : 0.0;
         bilinear += w * tapLight;
         weightSum += w;
         lo = min(lo, tapLight);
@@ -395,8 +411,8 @@ float4 PSCloudTraceHalf(float4 position : SV_POSITION, out float4 data : SV_TARG
             float4 unusedLight;
             float unusedDepth, unusedSpread, unusedDrift;
             float2 unusedPrev;
-            const bool found = CloudTemporalLookup(p, v, end, entryKm, size, seen, unusedLight, unusedDepth,
-                unusedSpread, unusedDrift, unusedPrev);
+            const bool found = CloudTemporalLookup(p, v, CloudTemporalCloudEnd(v, end), entryKm, size, seen,
+                unusedLight, unusedDepth, unusedSpread, unusedDrift, unusedPrev);
             drifted = seen && !found;
         }
     }
@@ -406,7 +422,8 @@ float4 PSCloudTraceHalf(float4 position : SV_POSITION, out float4 data : SV_TARG
     const float4 scene = hdr.Load(int3(pixel, 0));
     const CloudPixel clouds = CloudTracePixel(float4(scene.rgb, abs(scene.a)), float2(pixel) + 0.5, size,
         true, false, false);
-    data = float4(clouds.depthKm, clouds.depthSpreadKm, -1.0, 0.0);
+    data = float4(clouds.depthKm, clouds.depthSpreadKm,
+        CloudTemporalCloudEnd(CloudViewFloat(float2(pixel) + 0.5, size), abs(scene.a)), 0.0); // z: the clouds' end
     return float4(clouds.cloudLight, dot(clouds.transmission, 1.0 / 3.0));
 }
 
@@ -428,8 +445,7 @@ bool CloudTemporalHalfFill(int2 pixel, float rayEnd, float2 size, out float4 lig
     {
         const int2 t = CloudTemporalTap(base, k, grid);
         const float4 tapData = cloudHalf1.Load(int3(t, 0));
-        const float tapEnd = abs(hdr.Load(int3(min(t * 2 + offset, int2(size) - 1), 0)).a);
-        const float w = tapData.w >= 0.0 && CloudTemporalSameEnd(rayEnd, tapEnd, 0.05) ? bilinear[k] : 0.0;
+        const float w = tapData.w >= 0.0 && CloudTemporalSameEnd(rayEnd, tapData.z, 0.05) ? bilinear[k] : 0.0;
         light += w * cloudHalf0.Load(int3(t, 0));
         weightSum += w;
         const float wd = tapData.x > 0.0 ? w : 0.0;
@@ -459,7 +475,8 @@ float4 PSCloudTrace(float4 position : SV_POSITION, out float4 data : SV_TARGET1)
         true, true, false);
     const float3 sunRGB = sunPart.Load(int3(pixel, 0)).rgb;
     const bool lit = cloudScene.a > 0.0 && max(sunRGB.r, max(sunRGB.g, sunRGB.b)) > 1.0e-6;
-    data = float4(clouds.depthKm, clouds.depthSpreadKm, lit ? clouds.surfaceShadowT : -1.0, 0.0);
+    data = float4(clouds.depthKm, clouds.depthSpreadKm, lit ? clouds.surfaceShadowT : -1.0,
+        CloudTemporalCloudEnd(CloudViewFloat(float2(pixel) + 0.5, size), cloudScene.a));
     return float4(clouds.cloudLight, dot(clouds.transmission, 1.0 / 3.0));
 }
 
@@ -483,7 +500,7 @@ CloudResolveOutput PSCloudResolve(float4 position : SV_POSITION)
     const bool historyValid = cloudTemporal.z > 0.5;
 
     float4 light = float4(0.0, 0.0, 0.0, 1.0);
-    float depthKm = 0.0, spreadKm = 0.0, shadowT = -1.0, driftPx = 0.0;
+    float depthKm = 0.0, spreadKm = 0.0, shadowT = -1.0, driftPx = 0.0, cloudEnd = rayEnd;
     if (cloudCameraKm.w > 0.5l)
     {
         const bool fresh = all(pixel % CLOUD_TEMPORAL_TILE == offset);
@@ -492,6 +509,7 @@ CloudResolveOutput PSCloudResolve(float4 position : SV_POSITION)
         const float4 freshData = cloudFresh1.Load(int3(tile, 0));
         const float freshSpreadKm = freshData.y;
         const float3 view = CloudViewFloat(position.xy, size);
+        cloudEnd = CloudTemporalCloudEnd(view, rayEnd);
         bool fillClouds = false, traceClouds = false, traceShadow = false;
 
         const float entryKm = CloudTemporalShellEntryKm(view);
@@ -505,7 +523,7 @@ CloudResolveOutput PSCloudResolve(float4 position : SV_POSITION)
             if (historyValid && !fresh)
             {
                 bool seen;
-                found = CloudTemporalLookup(pixel, view, rayEnd, entryKm, size, seen, historyLight, historyDepthKm,
+                found = CloudTemporalLookup(pixel, view, cloudEnd, entryKm, size, seen, historyLight, historyDepthKm,
                     historySpreadKm, driftPx, prevPixel);
                 fillClouds = !seen;
             }
@@ -522,7 +540,7 @@ CloudResolveOutput PSCloudResolve(float4 position : SV_POSITION)
                 depthKm = historyDepthKm;
                 spreadKm = historySpreadKm;
             }
-            else if (fillClouds && CloudTemporalCloudFill(pixel, rayEnd, offset, size, light, depthKm, spreadKm))
+            else if (fillClouds && CloudTemporalCloudFill(pixel, cloudEnd, offset, size, light, depthKm, spreadKm))
                 driftPx = 0.75 * CLOUD_TEMPORAL_DRIFT_PX; // unseen by the history: from the fresh tiles, a stand-in
                                                           // that motion soon has traced, before it spreads
             // Under the gate, nor by the fresh tiles, as the sky through a new gap in the leaves: from the history's
@@ -532,7 +550,7 @@ CloudResolveOutput PSCloudResolve(float4 position : SV_POSITION)
             else if (fillClouds && CloudTemporalHalfOn() && CloudTemporalInside(prevPixel, size))
             {
                 // (Nested: HLSL's && evaluates both sides.)
-                if (CloudTemporalHistoryFill(prevPixel, rayEnd, size, light, depthKm, spreadKm))
+                if (CloudTemporalHistoryFill(prevPixel, cloudEnd, size, light, depthKm, spreadKm))
                     driftPx = 0.75 * CLOUD_TEMPORAL_DRIFT_PX;
                 else if (rayEnd <= 0.0)
                 {
@@ -546,7 +564,7 @@ CloudResolveOutput PSCloudResolve(float4 position : SV_POSITION)
             {
                 // Drifted or turned, under the gate: from this frame's quads traced for it. Rebuilt, a stand-in as
                 // the fill; the quad's own pixel is exact. (Nested: HLSL's && evaluates both sides.)
-                if (CloudTemporalHalfFill(pixel, rayEnd, size, light, depthKm, spreadKm))
+                if (CloudTemporalHalfFill(pixel, cloudEnd, size, light, depthKm, spreadKm))
                 {
                     driftPx = all(pixel % 2 == CloudTemporalHalfPixel()) ? 0.0 : 0.75 * CLOUD_TEMPORAL_DRIFT_PX;
                 }
@@ -600,7 +618,7 @@ CloudResolveOutput PSCloudResolve(float4 position : SV_POSITION)
     CloudResolveOutput output;
     output.composite = PreserveOceanMotion(CloudComposite(cloudScene, position.xy, size, clouds), scene.a);
     output.history0 = light;
-    output.history1 = float4(depthKm, rayEnd, shadowT, 0.0);
+    output.history1 = float4(depthKm, rayEnd, shadowT, cloudEnd);
     output.history2 = float2(spreadKm, driftPx);
     return output;
 }

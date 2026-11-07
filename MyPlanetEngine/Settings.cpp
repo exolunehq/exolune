@@ -1,5 +1,6 @@
 // Settings.cpp - see Settings.h.
 #include "Settings.h"
+#include "FoliageCatalog.hlsli"
 #include <algorithm>
 #include <cmath>
 #include <cwchar>
@@ -43,7 +44,7 @@ float DiagnosticView(const wchar_t* name) {
                                L"height", L"distance", L"foam", L"glint", L"foamfresh", L"foamold", L"crest", L"clouds",
                                L"weather", L"cloudshadow", L"plates", L"boundaries", L"boundarydist", L"crustage",
                                L"rocktype", L"uplift", L"relief", // the tectonic map's and the relief's (Tectonics.hlsli)
-                               L"precipitation", L"wind" }; // the climate map's (Climate.hlsli)
+                               L"precipitation", L"wind", L"plantalbedo", L"plantlod", L"forestlight", L"groundalbedo" }; // asset and light validation
     for (int i = 0; i < _countof(views); ++i)
         if (wcscmp(name, views[i]) == 0) return float(i + 1);
     return 0.0f;
@@ -64,6 +65,7 @@ Settings ReadSettings() {
         if (!GetEnvironmentVariableW(L"MYPLANETENGINE_CINE_OUT", cine, _countof(cine)))
             throw std::runtime_error("MYPLANETENGINE_CINE_OUT is required.");
         s.cineOut = cine;
+        if (GetEnvironmentVariableW(L"MYPLANETENGINE_CINE_VIDEO", cine, _countof(cine))) s.cineVideo = cine;
         if (GetEnvironmentVariableW(L"MYPLANETENGINE_CINE_RANGE", cine, _countof(cine))) {
             int first, count, warm; wchar_t extra;
             if (swscanf_s(cine, L"%d %d %d %lc", &first, &count, &warm, &extra, 1u) != 3 || first < 0 || count <= 0 || warm < 0)
@@ -89,7 +91,8 @@ Settings ReadSettings() {
         s.width=width; s.height=height; s.explicitResolution=true;
     }
     s.wireframe = GetEnvironmentVariableW(L"MYPLANETENGINE_WIREFRAME", nullptr, 0) > 0;
-    s.taa = GetEnvironmentVariableW(L"MYPLANETENGINE_TAA", nullptr, 0) > 0;
+    s.taa = !(GetEnvironmentVariableW(L"MYPLANETENGINE_TAA", display, _countof(display)) > 0 && wcscmp(display,L"0")==0);
+    s.foliageWhiteNoise = GetEnvironmentVariableW(L"MYPLANETENGINE_FOLIAGE_WHITE_NOISE",display,_countof(display))>0 && wcscmp(display,L"1")==0;
     s.clouds = GetEnvironmentVariableW(L"MYPLANETENGINE_NO_CLOUDS", nullptr, 0) == 0;
     wchar_t full[16] = {};
     s.cloudTemporal = !(GetEnvironmentVariableW(L"MYPLANETENGINE_CLOUD_FULL", full, _countof(full)) > 0 && wcscmp(full, L"1") == 0);
@@ -156,6 +159,11 @@ Settings ReadSettings() {
     if (GetEnvironmentVariableW(L"MYPLANETENGINE_FOLIAGE_SAMPLES", samples, _countof(samples)) > 0)
         s.foliageSamples = static_cast<UINT>(std::max(1, std::min(_wtoi(samples), 10000)));
     wchar_t scans[MAX_PATH] = {};
+    wchar_t testLod[32]={};
+    if (s.batch && GetEnvironmentVariableW(L"MYPLANETENGINE_FOLIAGE_TEST_LOD",testLod,_countof(testLod))>0) {
+        s.foliageTestLod=_wtoi(testLod);
+        if (s.foliageTestLod<0 || s.foliageTestLod>=FOLIAGE_MESH_LODS) throw std::runtime_error("Invalid foliage validation LOD.");
+    }
     if (GetEnvironmentVariableW(L"MYPLANETENGINE_SCANS", scans, MAX_PATH) > 0) s.scans = scans;
     wchar_t map[MAX_PATH] = {};
     if (GetEnvironmentVariableW(L"MYPLANETENGINE_MAP", map, MAX_PATH) > 0) s.map = map;

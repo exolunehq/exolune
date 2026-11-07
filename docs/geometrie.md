@@ -20,6 +20,18 @@ Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it
 
 **River evaluation, 2026-11-04:** skip zero-weight noise and unused wet-bank preparation; tighten interior chart searches while retaining the physical footprint and face-edge halo. The screen passes preserve both ray queries and composition order, share course evaluation across a GPU wave, and reuse only identical screen inputs. Evaluation only, no new geometry, setting or sampling resolution. The composed terrain, water, banks and current match the previous evaluation at tested footprints; `tools/hydro/verifie_evaluation_rivieres.py` and `spec-erosion.md`.
 
+
+**Local vegetation production, 2026-11-03:** generated wood, roots and individual leaves are added detail from placed plants. Continuous underside support and canonical XYZ root scaling affect plant geometry and attachments only; terrain remains the source of truth. The same deformed master feeds LODs and impostors, with protected near bases and bounded coarse error. Sampled runtime contact follows the existing ground without a horizontal squeeze. Structural variations change branch lift, crown spread, shear, twist and lean above the fixed lower fifth; `spec-pipeline-creation3d.md`.
+
+**Radial tropical witness, 2026-11-03:** a generated lower trunk supports five primary and ten secondary cubic boughs, reconstructed offline and unified before leaf assembly. This changes the placed plant master, not terrain or planetary population. Its source, reconstructed region, seed, native levels and impostor remain explicit; `spec-pipeline-creation3d.md`.
+
+**Vegetation diversity, 2026-11-02:** the default 31-model prototype and external 91-role review banks share the existing climate fields, population and terrain. Vertex wind moves placed detail around fixed roots. Porous forest transport changes light, not geometry or population; `spec-diversite-vegetale.md`.
+
+**Near vegetation rendering, 2026-11-03:** seven levels refine the existing placed-detail overlay. Source wood remains exact at L1–L4; L0 adds bounded PN curvature while retaining source vertices, underside triangles and root support heights. Displacement is at most 0.5% of plant height, reduced to 0.1% horizontally on roots. Leaf and shoot reductions change plant detail only. Crown normals, bark microdetail, canopy transport, litter reflectance, observer adaptation and contact lighting do not alter terrain, placement or stored surface distance; `spec-rendu-vegetation.md`.
+
+**Walking, 2026-11-02:** contact samples the existing `ReliefElevation` at 0.5 m spacing over a local footprint. This is a controller query, not a geometry overlay. Terrain generation and vegetation geometry remain unchanged; `spec-marche-ambiances.md` describes the height-field approximation.
+
+
 ## The rule
 
 **The Exolune tectonic relief is the source of geometry truth,** since the 2026-10-31 (`spec-relief-tectonique.md`).
@@ -69,6 +81,7 @@ Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it
 | Bounded valley/detail composition | Replacement within erosion | existing valley and detail scales | cut envelope bounds new excavation; compact water cut remains at most 20 m | existing drainage profiles, including their terminal segments | terrain call with `valleys = false`; water alone: `EROSION_WATER = 0` | 2026-11-01 first correction; no new settings; coarse routing and volcanic integration remain open; `spec-eaux-interieures.md` |
 | Inland channels and lake surfaces | Replacement within erosion | discharge-sized channels; terminal catchments | quartic channel depth capped at 20 m; lake fill to the existing water-balance stage | existing erosion network | `EROSION_WATER = 0` | 2026-11-01 first implementation; `spec-eaux-interieures.md`; flight review pending |
 | Global erosion and directional gullies | Replacement | network valleys; detail wavelengths from 11 km to 100 m | drained valley profiles; gully replacement constrained by the shared turning envelope | incised terrain, glacier-shaped troughs, river slopes and coasts | terrain call with `valleys = false`; gullies alone: `EROSION_GULLY_SHARE = 0` | Erosion branch, `spec-erosion.md`; 2026-11-01 blade correction awaiting flight review; conservative budget strongly attenuates rock gullies |
+| Rooted vegetation and structural variations | Added detail, placed plant meshes | root reach 0.14–2.4 m; existing stem and crown scales | plant vertices only; root underside support, four-contact quadratic and offline crown deformations above 20% height | climate-compatible rooted ground | choose the original catalogue, or disable plants | 2026-11-02 prototype; default 31 roles, external 91-role review; native art and performance pending; `spec-pipeline-creation3d.md` |
 | Octaves filtered by grid cell | Filtering | under 2 grid cells, `MESH_BAND_LIMIT`  | octave replaced by its average | everywhere | none, it's sampling | in place |
 | Connected coastal talus | Replacement within coastal erosion | nominal 35-degree apron at the physical cliff contact; 900 m patch field | existing cap of 22% of cliff height, never above the original terrain | wave-eroded rocky coasts | `EROSION_CLIFF_SCREE.y = 0` for talus alone | 2026-11-01 correction of the symmetric mound's artificial moat; `spec-erosion.md`; flight review pending |
 | Coastal metric at physical scale | Filtering within coastal erosion | existing 9 km wave-erosion scale, for octaves and ria crease derivatives | controls the existing height contour and reach; does not change the source terrain | wave-eroded rocky coasts | part of `EROSION_CLIFF_SLOPE_KM`; no new setting | 2026-11-01 correction of cusp-driven walls; six CPU terrain witnesses pass; flight review pending |
@@ -98,6 +111,7 @@ Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it
 
 **Are not top layers:**
 - **The fine grid:** the same function, sampled four times finer, for pixel heights and normals. Since 2026-11-01, one cubic height reconstruction supplies both; this is shading, with no displaced mesh or refined silhouette (`spec-normales-spline.md`).
+- **The screen relief and the coast's contour at the pixel:** the same function, filtered at the screen texel or at the pixel, for light, materials and the sea's coverage, since 2026-11-02. Shading only: the mesh keeps geometry, depth and silhouettes (`spec-rendu-lointain.md`).
 - **The grid of the noise in pairs of floats, in flight:** the same function; the splitting of each octave on the grid into two floats, 48 bits, instead of a double, on the vertices that slide (`Noise.hlsli`, `optimisation.md`, round 8). The point is the same at 2·10⁻⁸ m; only the last bit of a height can change. The vertex under the camera remains in double precision; at a standstill, all the mesh also.
 - **The planet map:** the same function on a cube fixed on the planet, 6 × 1 024², calculated at startup after the tectonic map (`PlanetMap.hlsli`). Data for mist and water: it does not move any vertices.
 - **The tectonic map:** it is part of the relief, it is not a superlayer.
@@ -110,3 +124,21 @@ Opened the 2026-10-23, to resume after rendering. **The proximity geometry is wa
 - **noise functions or algorithms:** the erosion filter, `spec-parois-minerales.md`.
 - **Real relief:** lidar patches melted by our noise functions.
 - **Objects:** rocks sown in real volumes, `log/spec-parois.md`, option 3. Open the 2026-10-24 for stones and blocks: `spec-objets-proximite.md`.
+
+**2026-11-01 · Manufactured ship geometry**
+
+- **Classification:** added detail on a manufactured asset, outside the terrain-overlay system.
+- **Scope:** fitted console panels, curved console returns, integrated dashboard recesses, curved coaming, rolled foredeck, glazing retainer, seat upholstery, service fittings and identification plates.
+- **Scale:** 1.5 mm recessed instrument faces, 10–28 mm pockets, a 34 × 12 mm glazing retainer and 4 mm seal.
+- **Panel outlines:** seven custom skins follow their support contours with 7–12 mm margins and chamfered corners.
+- **Dashboard curve:** the centre stays at 0.845 m; the shoulders lower by 35 mm along the dashboard plane.
+- **Console junction:** a 65 mm lateral return meets the dashboard and the flat console bay at d = 3.84 m with tangent cubic sections.
+- **Foredeck:** shoulder relief rises smoothly to at most 220 mm and fades before d = 3.8 m; the forward centreline lowers by at most 18 mm, fading before d = 2 m.
+- **Sightline:** five eye positions cover the nominal eye, ±30 mm sideways and ±60 mm fore/aft; the camera settings are unchanged.
+- **Attached details:** hull paint is regenerated from the new sections; the top and side forward attitude jets follow the revised skin.
+- **Glass:** unchanged analytic shape, tessellated at 64 × 52 for the thinner retainer.
+- **Reference frame:** the ship; no change to Exolune relief, planetary meshes or terrain settings.
+- **Source:** `assets/vaisseau/chasseur/forme_chasseur.py`, `cockpit_chasseur.py`, `panneaux_cockpit.py`, `encastrements.py`, `cadre_verriere.py` and `finitions_cockpit.py`.
+- **Selection:** the accepted fighter is the default; `-ModeleVaisseau classique` restores the original triangular asset and its geometry profile.
+- **Milestone:** `jalon/2026-11-01-chasseur-par-defaut`; approved asset source: `b43d8ee`.
+- **Specification:** [ship assembly](spec-vaisseau.md).

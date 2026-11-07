@@ -1,24 +1,30 @@
-RWByteAddressBuffer arguments : register(u1);
-cbuffer ClassifySettings : register(b1) { uint queueBaseLow, queueBaseHigh; };
-static const uint STRIDE=28, QUEUE_CAPACITY=524288, MODEL_COUNTS=784, AGGREGATE_COUNTS=1008, OVERFLOW=1032;
+#include "FoliageCatalog.hlsli"
+RWByteAddressBuffer arguments:register(u1);
+cbuffer ClassifySettings:register(b1) { uint queueBaseLow,queueBaseHigh,orderBaseLow,orderBaseHigh; };
+static const uint STRIDE=28,CAPACITY=524288,ORDER_CAPACITY=2*CAPACITY;
 [numthreads(1,1,1)]
-void CSMain(uint id : SV_DispatchThreadID) {
-    // SV_InstanceID démarre à zéro : l'adresse SRV racine porte aussi le préfixe.
-    [unroll] for (uint queue=0;queue<6;++queue) {
-        uint rep=queue&1, firstModel=queue<4 ? queue/2 : 2, endModel=queue<4 ? firstModel+1 : 14;
-        uint total=0;
-        [loop] for (uint model=firstModel;model<endModel;++model) {
-            uint command=model*2+rep, n=arguments.Load(MODEL_COUNTS+4*command);
-            uint start=min(total,QUEUE_CAPACITY), accepted=min(n,QUEUE_CAPACITY-start);
-            uint offset=(queue*QUEUE_CAPACITY+min(start,QUEUE_CAPACITY-1))*64;
-            uint addressLow=queueBaseLow+offset;
-            arguments.Store(command*STRIDE,addressLow);
-            arguments.Store(command*STRIDE+4,queueBaseHigh+(addressLow<queueBaseLow ? 1u : 0u));
-            arguments.Store(command*STRIDE+12,accepted);
-            arguments.Store(command*STRIDE+24,start);
-            total+=n;
+void CSMain(uint id:SV_DispatchThreadID) {
+    for (uint species=0;species<3;++species) {
+        uint meshTotal=0,proxyTotal=0,uniqueTotal=0;
+        for (uint model=0;model<FOLIAGE_MAX_MODELS;++model) {
+            if (FoliageModelSpecies(model)!=species) continue;
+            uniqueTotal+=arguments.Load(FOLIAGE_UNIQUE_COUNTS+model*4);
+            for (uint level=0;level<FOLIAGE_REPRESENTATIONS;++level) {
+                bool proxy=level==FOLIAGE_MESH_LODS;
+                uint command=model*FOLIAGE_REPRESENTATIONS+level;
+                uint n=arguments.Load(FOLIAGE_MODEL_COUNTS+command*4),limit=proxy?CAPACITY:ORDER_CAPACITY;
+                uint start=min(proxy?proxyTotal:meshTotal,limit),accepted=min(n,limit-start);
+                uint offset=proxy?((species*2+1)*CAPACITY+min(start,CAPACITY-1))*64:(species*ORDER_CAPACITY+min(start,ORDER_CAPACITY-1))*4;
+                uint base=proxy?queueBaseLow:orderBaseLow,address=base+offset;
+                arguments.Store(command*STRIDE,address);
+                arguments.Store(command*STRIDE+4,(proxy?queueBaseHigh:orderBaseHigh)+(address<base?1u:0u));
+                arguments.Store(command*STRIDE+12,accepted);arguments.Store(command*STRIDE+24,start);
+                if (proxy) proxyTotal+=n;else meshTotal+=n;
+            }
         }
-        arguments.Store(AGGREGATE_COUNTS+queue*4,min(total,QUEUE_CAPACITY));
-        arguments.Store(OVERFLOW+queue*4,total>QUEUE_CAPACITY ? total-QUEUE_CAPACITY : 0);
+        arguments.Store(FOLIAGE_AGGREGATE_COUNTS+(species*2)*4,min(uniqueTotal,CAPACITY));
+        arguments.Store(FOLIAGE_AGGREGATE_COUNTS+(species*2+1)*4,min(proxyTotal,CAPACITY));
+        arguments.Store(FOLIAGE_OVERFLOW+(species*2)*4,meshTotal>ORDER_CAPACITY?meshTotal-ORDER_CAPACITY:0);
+        arguments.Store(FOLIAGE_OVERFLOW+(species*2+1)*4,proxyTotal>CAPACITY?proxyTotal-CAPACITY:0);
     }
 }

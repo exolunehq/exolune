@@ -1,0 +1,14 @@
+# Walking/audio integration on public main. Existing terrain and vegetation; seed 0.
+# J disembarks/returns; WASD/ZQSD/arrows move; Shift runs; Ctrl crouches; Space jumps; H toggles bob; Y mutes; I toggles coordinates.
+Forest floor: walking, stopping and ship return | 60 -7.75 -37.25 20 0 marche | -5 -20
+Forest at night: calls and unchanged foot contact | 60 -7.75 -37.25 20 0 marche | 5 160
+Windward forest: weather and leaf ambience | 900 -12.375 112.125 25 294 marche | -5 125
+Desert: sand and exposed stone | 1735 -11.825 110.867 25 114 marche | -5 100
+Steppe: grass and residual soil | 450 41.75 -22.25 25 0 marche | 35 -5
+Coastal plain: contact boundaries and surf | 15 16.71 -89.25 25 9 marche | 30 -70
+Cold plateau: snow contacts | 4770 -47.207948 75.090399 30 -122 marche | -40 70
+Woody slope: ascent, descent and jumps | 940 -8.44835 118.48865 30 163 marche | -20 130
+Temperate ground: another contact family | 525 34.75 50.75 25 0 marche | 30 70
+F10 open ocean: visible disembarkation refusal | 100 -20.47 -75.45 0 160 | -50 -75
+Polar region: cold habitat and surface contact | 8000 88 65 15 0 | 75 65
+Orbit: habitat fades, J queries valid ground | 1000000 -7.75 -37.25 55 0 | -5 -20

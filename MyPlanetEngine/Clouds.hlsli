@@ -54,9 +54,19 @@ static const float CLOUD_CIRRUS_DENSITY_SCALE = 0.018;
 // Multiple scattering and whole-cloud reflectance, fitted to Monte Carlo slabs by tools/calage_orbite.py nuages.
 // The source falls as a slab's diffuse transmission toward the sun, 1 / (1 + b tau_s) (two-stream): steep near a lit face,
 // slow deep inside; an exponential fitted to the same slabs left a turret's shaded face at 57 % of its lit one, not 38.
+// It builds up as 1 - e^(-k tau), tau the cloud's chord along the sun through the point: a slab's tau / mu.
 static const float CLOUD_MULTI_WEIGHT = 3.40;
 static const float CLOUD_MULTI_SUN_FALLOFF = 0.040;
 static const float CLOUD_MULTI_THICKNESS = 0.061;
+// Diffuse light lost through a finite cloud's sides, fitted to Monte Carlo spheres
+// (tools/calage_orbite.py relief); zero leakage in a plane slab.
+static const float CLOUD_MULTI_LEAK = 0.20;
+// The chord's samples away from the sun, doubling from 500 m: 3.5 km below a thick layer's top. Over 1.75 km, its
+// build-up fell short of the slab's whole thickness: thick clouds greyed from orbit, 179 against 199 in sRGB.
+static const uint CLOUD_BACK_SAMPLES = 3u;
+// The cover from which an interval of the chord counts whole: a calibrated setting, judged on the views of
+// 2026-11-02 (docs/spec-rendu-orbite.md); below it, the interval counts by its share.
+static const float CLOUD_CHORD_COVER = 0.02;
 static const double CLOUD_ANCHOR_KM = 32.0l;
 static const float CLOUD_SHAPE_TEXELS_PER_KM = 4.0;
 static const float CLOUD_CIRRUS_SHAPE_TEXELS_PER_KM = 16.0;
@@ -314,13 +324,14 @@ float CloudNormalPdf(float value)
 
 // inCloud: fetch the shape and erosion before the profile; otherwise after the early outs, which save them in clear air.
 // Nearby lighting samples share the view sample's weather, but keep their own altitude, profile and noise.
+// profileSpanKm: the height the sample stands for, a light interval's; its profile is that span's mean.
 CloudDensitySample CloudLowDensity(float3 pointOffsetKm, CloudContext context,
                       float detailLod, float macroLod, bool inCloud,
-                      float4 weather, float altitudeKm)
+                      float4 weather, float altitudeKm, float profileSpanKm = 0.0)
 {
     CloudDensitySample result = (CloudDensitySample)0;
-    if (altitudeKm <= CLOUD_LOW_BOTTOM_KM
-        || altitudeKm >= CLOUD_LOW_TOP_KM)
+    if (altitudeKm + 0.5 * profileSpanKm <= CLOUD_LOW_BOTTOM_KM
+        || altitudeKm - 0.5 * profileSpanKm >= CLOUD_LOW_TOP_KM)
         return result;
 
     // World-anchored, camera-independent 32/128 km shape and 4 km erosion fields.
@@ -343,11 +354,18 @@ CloudDensitySample CloudLowDensity(float3 pointOffsetKm, CloudContext context,
         return result;
 
     const float type = saturate(weather.g);
-    const float heightFraction = saturate((altitudeKm - 2.0) / 6.0);
+    // The span within the layer, read at its middle in the slice of its width (D3DApp, UploadCloudVolume): a long light
+    // interval sampled at its middle lit or dropped all of its length as that middle crossed a cumulus' flat base,
+    // drawing planes at fixed heights across the clouds. Outside the layer, the span holds nothing.
+    const float spanFraction = profileSpanKm / 6.0;
+    const float spanBottom = saturate((altitudeKm - 2.0) / 6.0 - 0.5 * spanFraction);
+    const float spanTop = saturate((altitudeKm - 2.0) / 6.0 + 0.5 * spanFraction);
+    const float heightFraction = 0.5 * (spanBottom + spanTop);
     const float2 profileUv = (0.5 + 63.0 * float2(type, heightFraction)) / 64.0;
     // Fixed mip 0: the profile is a deliberately low-frequency vertical reference.
-    const float2 profile = cloudProfiles.SampleLevel(linearClamp,
-        float3(profileUv, 0.5), 0.0).rg;
+    float2 profile = cloudProfiles.SampleLevel(linearClamp,
+        float3(profileUv, (0.5 + 63.0 * (spanTop - spanBottom)) / 64.0), 0.0).rg;
+    profile.r *= spanFraction > 0.0 ? (spanTop - spanBottom) / spanFraction : 1.0;
     if (profile.r <= 0.0)
         return result;
 
@@ -466,7 +484,7 @@ float CloudCirrusDensity(float3 pointOffsetKm, CloudContext context,
 
 CloudDensitySample CloudDensity(float3 pointOffsetKm, CloudContext context,
                    float detailLod, float macroLod, bool inCloud,
-                   float4 weather, out float altitudeKm, out bool cirrus)
+                   float4 weather, out float altitudeKm, out bool cirrus, float profileSpanKm = 0.0)
 {
     altitudeKm = CloudAltitude(pointOffsetKm, context);
     cirrus = altitudeKm > CLOUD_CIRRUS_BOTTOM_KM
@@ -478,7 +496,7 @@ CloudDensitySample CloudDensity(float3 pointOffsetKm, CloudContext context,
         result.density = CloudCirrusDensity(pointOffsetKm, context, macroLod, altitudeKm, weather);
         return result;
     }
-    return CloudLowDensity(pointOffsetKm, context, detailLod, macroLod, inCloud, weather, altitudeKm);
+    return CloudLowDensity(pointOffsetKm, context, detailLod, macroLod, inCloud, weather, altitudeKm, profileSpanKm);
 }
 
 CloudDensitySample CloudDensity(float3 pointOffsetKm, CloudContext context,
@@ -634,12 +652,8 @@ void CloudMarch(double3 originQKm, double3 viewQ, double3 sunQ,
     // Clear sky joins a column when its covered fraction grows.
     float columnBeginKm = 0.0, segmentT = 1.0;
     float columnFraction = 0.0, columnT = 1.0;
-    float3 singleLight = 0.0, multiLight = 0.0;
-    float3 segmentSingleLight = 0.0, segmentMultiLight = 0.0;
-    float weightedMu = 0.0, muWeight = 0.0;
-    float marchOpticalDepth = 0.0;
+    float3 columnLight = 0.0, segmentLight = 0.0;
     float segmentDepth = 0.0, segmentDepthSq = 0.0, segmentDepthWeight = 0.0;
-    float segmentDistance = 0.0; // relative to entry, keeping the seen point precise from orbit
 
     bool inCloud = false;
     // The exact shell interval is consumed; there is no fixed iteration cap that lengthens the step.
@@ -658,14 +672,12 @@ void CloudMarch(double3 originQKm, double3 viewQ, double3 sunQ,
         if ((traveledKm - columnBeginKm) * horizontalRate > footprintKm)
         {
             // Close between accepted intervals, preserving the resolved ray's sampling and Beer integral.
-            segmentSingleLight += segmentT * columnFraction * singleLight;
-            segmentMultiLight += segmentT * columnFraction * multiLight;
+            segmentLight += segmentT * columnFraction * columnLight;
             segmentT *= 1.0 - columnFraction * (1.0 - columnT);
             columnBeginKm = traveledKm;
             columnFraction = 0.0;
             columnT = 1.0;
-            singleLight = 0.0;
-            multiLight = 0.0;
+            columnLight = 0.0;
         }
         const float stepKm = min(min(min(max(0.5 * footprintKm, nearStepKm), farStepKm / max(verticalRate, 0.02)),
             segmentKm - traveledKm), opticalStepKm);
@@ -703,8 +715,7 @@ void CloudMarch(double3 originQKm, double3 viewQ, double3 sunQ,
         {
             const float oldShare = columnFraction / sample.fraction;
             columnT = oldShare * columnT + (1.0 - oldShare);
-            singleLight *= oldShare;
-            multiLight *= oldShare;
+            columnLight *= oldShare;
             columnFraction = sample.fraction;
         }
         if (density > 0.0)
@@ -720,33 +731,46 @@ void CloudMarch(double3 originQKm, double3 viewQ, double3 sunQ,
             [branch]
             if (needsLight)
             {
-                float sunDepth = 0.0;
+                float sunDepth = 0.0, chordDepth = 0.0, sunLeak = 0.0;
                 float sunDistanceKm = 0.0;
-                // Six doubling intervals, taken at their middle: 7.875 km toward the sun, the whole low layer.
+                // Six doubling intervals, taken at their middle: 7.875 km toward the sun, the whole low layer; then
+                // CLOUD_BACK_SAMPLES of them away from it from 500 m, the rest of the cloud's chord along the sun.
                 // Unrolled: the samples are independent, their fetches overlap.
                 [unroll]
-                for (uint s = 0u; s < 6u; ++s)
+                for (uint s = 0u; s < 6u + CLOUD_BACK_SAMPLES; ++s)
                 {
-                    const float sunStepKm = 0.125 * (float)(1u << s);
+                    const bool back = s >= 6u;
+                    if (s == 6u)
+                        sunDistanceKm = 0.0;
+                    const float sunStepKm = 0.125 * (float)(1u << (back ? s - 4u : s));
                     const float3 sunPointOffsetKm = pointOffsetKm
-                        + context.sunQ * (sunDistanceKm + 0.5 * sunStepKm);
+                        + (back ? -context.sunQ : context.sunQ) * (sunDistanceKm + 0.5 * sunStepKm);
                     const float sunLodAltitudeKm = CloudAltitude(sunPointOffsetKm, context);
                     const float sunShapeTexelsPerKm = sunLodAltitudeKm >= CLOUD_CIRRUS_BOTTOM_KM
                         ? CLOUD_CIRRUS_SHAPE_TEXELS_PER_KM
                         : CLOUD_SHAPE_TEXELS_PER_KM;
-                    const float sunShapeLod = max(macroLod, clamp(log2(max(sunStepKm
-                        * sunShapeTexelsPerKm, 1.0)), 0.0, 7.0));
+                    const float stepShapeLod = clamp(log2(max(sunStepKm * sunShapeTexelsPerKm, 1.0)), 0.0, 7.0);
+                    const float sunShapeLod = max(macroLod, stepShapeLod);
                     const float sunDetailLod = max(detailLod, clamp(log2(max(sunStepKm
                         * CLOUD_DETAIL_TEXELS_PER_KM, 1.0)), 0.0, 5.0));
                     float sunAltitudeKm;
                     bool sunCirrus;
                     const CloudDensitySample sunSample = CloudDensity(sunPointOffsetKm, context,
-                        sunDetailLod, sunShapeLod, true, weather, sunAltitudeKm, sunCirrus);
-                    sunDepth += saturate(sunSample.fraction / max(columnFraction, 1.0e-4)) * sunSample.density * sunStepKm;
+                        sunDetailLod, sunShapeLod, true, weather, sunAltitudeKm, sunCirrus, abs(muSun) * sunStepKm);
+                    const float sunShare = saturate(sunSample.fraction / max(columnFraction, 1.0e-4));
+                    const float depth = sunShare * sunSample.density * sunStepKm;
+                    sunDepth += back ? 0.0 : depth;
+                    // The chord holds the cloud where it exists, its density in the cloud: averaged with the clear sky
+                    // of a coarse interval, a cumulus would turn grey. Below 2 % covered, by its share: the density
+                    // in the cloud does not vanish with its cover, and its 1e-4 floor drew a plane at a fixed height.
+                    chordDepth += saturate(sunSample.fraction / CLOUD_CHORD_COVER) * sunSample.density * sunStepKm;
+                    // The sun's light crossing a partly covered interval leaks out of its sides: the interval's own
+                    // covered part f, not its share of the view's column, a pixel's quantity whose isosurfaces drew
+                    // bright veins. Only the scales the interval resolves; the finer ones are the view's own fringes.
+                    sunLeak += back ? 0.0 : saturate(1.0 + stepShapeLod - macroLod)
+                        * (1.0 - sunSample.fraction) * sunSample.fraction * sunSample.density * sunStepKm;
                     sunDistanceKm += sunStepKm;
                 }
-                weightedMu += depthWeight * mu;
-                muWeight += depthWeight;
 
                 const float3 directTransmittance = exp(-sunDepth * 80.0);
                 const float3 sunRadiance = SUN_ILLUMINANCE * SunTransmittance(altitudeKm, muSun);
@@ -761,19 +785,22 @@ void CloudMarch(double3 originQKm, double3 viewQ, double3 sunQ,
                 const float3 oneOrderIntegral = oneOrderSource * (1.0 - attenuation)
                     / max(extinctionPerKm, 1.0e-5);
 
+                // The multiple scattering of this point, from the cloud around it: what the sun's chord through it
+                // holds, both sides, builds it up (F); the light falls toward the sun as a slab's diffuse transmission
+                // and leaks out of a finite cloud's sides. Neither the pixel's seen point nor its column enters the
+                // build-up or the leak: they drew their isosurfaces as rims and veins.
+                const float buildUp = 1.0 - exp(-CLOUD_MULTI_THICKNESS * 80.0 * chordDepth);
                 const float3 multiSource = scatteringPerKm * (sunRadiance * mu + skyIrradiance) * CLOUD_MULTI_WEIGHT
+                    * buildUp * exp(-CLOUD_MULTI_LEAK * 80.0 * sunLeak)
                     / ((1.0 + CLOUD_MULTI_SUN_FALLOFF * sunDepth * 80.0) * 4.0 * PI);
                 const float3 multiIntegral = multiSource * (1.0 - attenuation)
                     / max(extinctionPerKm, 1.0e-5);
 
-                singleLight += columnT * oneOrderIntegral;
-                multiLight += columnT * multiIntegral;
+                columnLight += columnT * (oneOrderIntegral + multiIntegral);
             }
             segmentDepth += depthWeight * (begin + sampleDistanceKm);
             segmentDepthSq += depthWeight * (begin + sampleDistanceKm) * (begin + sampleDistanceKm);
             segmentDepthWeight += depthWeight;
-            segmentDistance += depthWeight * sampleDistanceKm;
-            marchOpticalDepth += extinctionPerKm * stepKm;
             columnT *= attenuation;
         }
         // An opaque column keeps the geometric step, even as it widens.
@@ -801,45 +828,10 @@ void CloudMarch(double3 originQKm, double3 viewQ, double3 sunQ,
         traveledKm += stepKm;
     }
 
-    // The last column joins the closed ones before applying the segment's full-thickness response.
-    singleLight = segmentSingleLight + segmentT * columnFraction * singleLight;
-    multiLight = segmentMultiLight + segmentT * columnFraction * multiLight;
-    if (segmentDepthWeight > 0.0 && muWeight > 0.0)
-    {
-        const float meanMu = max(weightedMu / muWeight, 0.05);
-        const float seenDistanceKm = segmentDistance / segmentDepthWeight;
-        const float3 seenPointOffsetKm = context.entryOffsetKm + context.viewQ * seenDistanceKm;
-        const float4 seenWeather = CloudSampleWeather(seenPointOffsetKm, context);
-        const float footprintKm = max((begin + seenDistanceKm) * pixelAngle, nearStepKm);
-        const float detailLod = clamp(log2(max(CLOUD_BAND_LIMIT * footprintKm * CLOUD_DETAIL_TEXELS_PER_KM, 1.0)), 0.0, 5.0);
-        const float seenAltitudeKm = CloudAltitude(seenPointOffsetKm, context);
-        const bool seenCirrus = seenAltitudeKm >= CLOUD_CIRRUS_BOTTOM_KM;
-        const float shapeTexelsPerKm = seenCirrus
-            ? CLOUD_CIRRUS_SHAPE_TEXELS_PER_KM : CLOUD_SHAPE_TEXELS_PER_KM;
-        const float macroLod = clamp(log2(max(CLOUD_BAND_LIMIT * footprintKm * shapeTexelsPerKm, 1.0)), 0.0, 7.0);
-        const float3 columnUp = normalize(context.upAnchor + seenPointOffsetKm / context.radiusAnchorKm);
-        const float columnBottomKm = seenCirrus ? CLOUD_CIRRUS_BOTTOM_KM : CLOUD_LOW_BOTTOM_KM;
-        const uint columnSliceCount = seenCirrus ? 8u : 12u;
-        float columnOpticalDepth = 0.0;
-        // Integrate the whole vertical layer through P, smoothed at the diffusion scale, about 1 km.
-        // Each 0.5 km midpoint slice contributes its in-cloud density, without the covered fraction.
-        [loop]
-        for (uint slice = 0u; slice < columnSliceCount; ++slice)
-        {
-            const float sliceAltitudeKm = columnBottomKm + ((float)slice + 0.5) * 0.5;
-            const float3 pointOffsetKm = seenPointOffsetKm
-                + columnUp * (sliceAltitudeKm - seenAltitudeKm);
-            float altitudeKm;
-            bool cirrus;
-            const CloudDensitySample probe = CloudDensity(pointOffsetKm, context,
-                max(detailLod, 3.0), max(macroLod, 2.0), true, seenWeather, altitudeKm, cirrus);
-            columnOpticalDepth += 80.0 * probe.density * 0.5;
-        }
-        singleLight += multiLight * (1.0 - exp(-CLOUD_MULTI_THICKNESS
-            * max(columnOpticalDepth, marchOpticalDepth) / meanMu));
-    }
+    // The last column joins the closed ones.
+    const float3 light = segmentLight + segmentT * columnFraction * columnLight;
     // Segments overlap independently; compose their premultiplied light and moments in ray order.
-    cloudLight += transmission * singleLight;
+    cloudLight += transmission * light;
     const float incomingWeight = max(transmission.r, max(transmission.g, transmission.b));
     weightedDepth += incomingWeight * segmentDepth;
     weightedDepthSq += incomingWeight * segmentDepthSq;

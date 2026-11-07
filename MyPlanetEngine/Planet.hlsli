@@ -38,6 +38,7 @@ cbuffer Frame : register(b0)
     uint4    erosionMode;  // x: the erosion shown, key 1 (Relief.hlsli, ErosionMode): 2 full, 1 ravines only, 0 none;
                            // y: 1 when the screen relief covers every pixel at full weight (FineTerrain.hlsl);
                            // z: 1 once the rivers' map for wide footprints is computed (Erosion.hlsli)
+    float4   foliageWind; // xyz: local climate wind in the face frame (m/s); w: shared weather clock (s)
 };
 
 struct FaceVertex

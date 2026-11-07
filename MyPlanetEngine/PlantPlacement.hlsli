@@ -7,6 +7,8 @@
 // Vegetation.hlsli.
 #ifndef PLANT_PLACEMENT_HLSLI
 #define PLANT_PLACEMENT_HLSLI
+#include "PlantCommunity.hlsli"
+#include "RootContact.hlsli"
 
 // A crown's ground, on average over its octave, per d^2 of the octave's smallest height d: pi / 4 (crown spread)^2 E[h^2],
 // its height h log-uniform over the octave, E[h^2] = 2.164 d^2.
@@ -22,7 +24,7 @@ float3 PlantFootprints(Vegetation v, int k)
 {
     const float trees = -log(1.0 - TreesHere(v)) * OctaveShare(k, v.height);
     const float shrubs = -log(1.0 - ShrubsHere(v)) * OctaveShare(k, SHRUB_HEIGHT);
-    return float3(trees * v.conifer, trees * (1.0 - v.conifer), shrubs);
+    return float3(trees * v.conifer, trees * (1.0 - v.conifer), shrubs+HerbFootprint(v,k));
 }
 
 // The vegetation's climate at a tile before its materials, on the mesh's ground and slope, with its cell's noise and the
@@ -54,7 +56,12 @@ float PlantBound(Candidate k, Vegetation v, bool everywhere)
     v.wood = v.wood > 0.0 || everywhere ? 1.0 : 0.0;
     v.stand = v.stand > 0.0 || everywhere ? 1.0 : 0.0;
     v.shrub = v.shrub > 0.0 || everywhere ? 1.0 : 0.0;
-    const float3 f = PlantFootprints(v, k.octave);
+    float3 f = PlantFootprints(v, k.octave);
+    if (everywhere && DiverseVegetation()) {
+        // Maximum woody cover and maximum meadow cover occur in different parts of a tile.
+        f.z=-log(1.0-ShrubsHere(v))*OctaveShare(k.octave,SHRUB_HEIGHT)
+            -log(max(1.0-HerbCeiling()*v.herbs*v.able,1e-4))*OctaveShare(k.octave,0.65);
+    }
     const float area = f.x > 0.0 ? CrownArea(CONIFER, 1.0) : f.y > 0.0 ? CrownArea(BROADLEAF, v.spread) : CrownArea(SHRUB, 1.0);
     return (f.x + f.y + f.z) * 1.47 * k.chance / area;
 }
@@ -294,6 +301,8 @@ void PlacePlantTile(uint4 record, uint tileIndex)
                                         t1 * k.d, t2 * k.d, 0.0, 0.0, 0.0);
     Vegetation tileV = VegetationAt(m.temperature, m.humidity, m.coldSigma, m.amplitude, Exposure(up, e0));
     tileV.able = PlantGround(m);
+    tileV.herbs *= (GameVegetation()?0.3+0.7*m.grassAmount:m.grassAmount)*(1.0-m.snow);
+    const float2 community=DiverseVegetation() ? Fbm3(q0,log2(2048.0),log2(512.0),log2(k.d),0.6,83u).xy : 0.0;
     // The quick refusal: every state present on the exact ground, and the light pass's bound, where they are on the mesh's.
     const float bound = min(PlantBound(k, tileV, true) * 1.0001, asfloat(record.w));
     const float sunShare = SunAboveHorizon(dot(upLocal, lightDir.xyz), horizon, 0.0);
@@ -312,6 +321,15 @@ void PlacePlantTile(uint4 record, uint tileIndex)
         uint species;
         if (k.accept >= PlantChance(k, PlantFootprints(v, k.octave), v.spread, species))
             continue;
+        const uint plantSeed=(k.looks.z & 0xFFFFFFE0u) | species << 3 | (k.looks.z >> 29);
+        const bool rooted=GameVegetation() && species<SHRUB;
+        const float rootRadius=PlantRootRadius(k.size,species==BROADLEAF?v.spread:1.0,plantSeed);
+        float3 rootEast=cross(k.up,float3(0,1,0));
+        if (dot(rootEast,rootEast)<1e-10) rootEast=cross(k.up,float3(1,0,0));
+        rootEast=normalize(rootEast);
+        const float3 rootNorth=cross(rootEast,k.up), slopePlanet=t1*slope.x+t2*slope.y;
+        const float de=dot(slopePlanet,rootEast)*rootRadius, dn=dot(slopePlanet,rootNorth)*rootRadius;
+        uint rootContacts=PackRootContacts(de,-de,dn,-dn,rootRadius);
         // Its foot on the ground the mesh draws, far away, where the plant is drawn coarse: it stands on the ground seen,
         // and follows it; near the camera, from PLANT_LOD_PIXELS.y to x pixels high, on the exact ground, never on the
         // mesh, which slides under the near plants by metres on mountains. The exact ground, one per plant, is the
@@ -333,7 +351,24 @@ void PlacePlantTile(uint4 record, uint tileIndex)
             if (!GroundCached(plantKey, exact))
             {
                 const float height = ExactElevation(k.p * INV_R);
-                exact = float3(height, gWaterLevel, 0.0); // cache the same water decision as the ground query
+                exact = float3(height, gWaterLevel, 0.0); // y: the same water decision as the ground query; z: root contacts
+            }
+            if (rooted && span>192.0) {
+                if (exact.z==0.0) {
+                    const double3 at=k.p*INV_R;
+                    const double step=(double)rootRadius*INV_R;
+                    float a=ExactElevation(at+(double3)rootEast*step)-exact.x;
+                    float b=ExactElevation(at-(double3)rootEast*step)-exact.x;
+                    float c=ExactElevation(at+(double3)rootNorth*step)-exact.x;
+                    float d=ExactElevation(at-(double3)rootNorth*step)-exact.x;
+                    exact.z=asfloat(PackRootContacts(a,b,c,d,rootRadius));
+                }
+                const uint detailed=asuint(exact.z);
+                const float share=smoothstep(192.0,384.0,span);
+                rootContacts=PackRootContacts(lerp(de,RootContactValue(detailed,0u,rootRadius),share),
+                    lerp(-de,RootContactValue(detailed,7u,rootRadius),share),
+                    lerp(dn,RootContactValue(detailed,14u,rootRadius),share),
+                    lerp(-dn,RootContactValue(detailed,21u,rootRadius),share),rootRadius);
             }
             KeepGround(plantKey, exact);
             e = lerp(drawn, exact.x, smoothstep(PLANT_LOD_PIXELS.y, PLANT_LOD_PIXELS.x, span));
@@ -367,11 +402,25 @@ void PlacePlantTile(uint4 record, uint tileIndex)
         o.size = k.size;
         o.axisX = cos(turn) * side + sin(turn) * cross(upLocal, side);
         o.burial = burial;
-        o.axisY = float3(sunShare, species == BROADLEAF ? v.spread : 1.0, TreesHere(v));
+        o.axisY = float3(sunShare, species == BROADLEAF ? v.spread : 1.0, TreeLightCover(v));
         o.elevation = e;
-        o.seed = (k.looks.z & 0xFFFFFFE0u) | species << 3 | (k.looks.z >> 29);
+        o.seed = plantSeed;
         if (species == SHRUB)
             o.axisY.y = 1.0 + ShrubClimateFamily(ShrubClimate(v, m.temperature), o.seed);
+        if (DiverseVegetation()) {
+            const uint family=species==SHRUB?ShrubFamily(o):ShrubClimateFamily(ShrubClimate(v,m.temperature),o.seed);
+            const float herbFootprint=HerbFootprint(v,k.octave);
+            const float totalFootprint=PlantFootprints(v,k.octave).z;
+            const bool herb=species==SHRUB && CommunityRandom(o.seed,0x94da6f71u)*totalFootprint<herbFootprint;
+            const uint model=CommunityModel(v,species,family,o.seed,community,herb);
+            o.albedo=float3(model+1u,herb ? ((model==27u || model==28u)?0.7:1.0) : species==SHRUB?ShrubHeight(family):1.0,1.0);
+            if (GameVegetation()) {
+                if (species<SHRUB) {
+                    o.albedo.y=asfloat(PackPlantGroundColour(VegetatedGroundColor(m,v)));
+                    o.albedo.z=asfloat(rootContacts);
+                } else o.albedo.z=1.0-smoothstep(0.30,0.95,v.aridity);
+            }
+        }
         stablePlantScratch[tileIndex * 16u + i] = o;
         if (coarse) coarseMask |= 1u << i; else fineMask |= 1u << i;
     }

@@ -8,11 +8,10 @@ Status: experiment 1 of `log/pistes-glissement.md`, measured at benchmark the 20
 - The 4 by 4 support rounds sampling-scale height transitions without overshooting the contributing heights; constant and affine height fields retain their values.
 - This replaces bilinear heights and independently interpolated centred-difference normals; the former slope jumped at fine-cell boundaries.
 - The existing fade over eight face cells is retained; missing outer samples fall back to the valid central four samples. All buffer addresses are clamped.
-- Water retains its existing premultiplied sampling and physical pixel contour refinement.
+- The gap between the bilinear and the B-spline heights widens the height limits drawn on the grid (`spec-rendu-lointain.md`, the screen relief).
 - The change adds height-buffer reads and arithmetic, with no extra terrain evaluation, buffer, compute pass, mesh change or generation setting.
-- Release x64 passes; the reported pose has paired native 120-frame approach recordings. A second mountain range, a closer valley and two water witnesses retain their forms.
-- Flight review: `tools/tests/2026-11-01-montagnes-distance.txt`; move sideways and approach through F1-F6. Broad temporal acceptance remains pending.
-- The reconstruction attenuates grid-scale variation; it cannot restore missing sub-grid geometry, repair silhouettes or remove prescribed erosion patterns.
+- Validated in flight by the user on the erosion branch; ported to `main` on 2026-11-02, flight route `tools/tests/2026-11-02-rendu-lointain.txt`.
+- The reconstruction attenuates grid-scale variation; it cannot restore missing sub-grid geometry or repair silhouettes.
 - Earlier reconstruction and exact local capture paths are in [the history](log/spec-normales-spline-historique.md#2026-11-01-fine-grid-reconstruction).
 
 ## The purpose

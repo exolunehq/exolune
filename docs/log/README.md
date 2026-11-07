@@ -27,6 +27,12 @@
 - **`spec-marche-ambiances-historique.md`:** replaced prototype contact recordings and material selector; current rules in `../spec-marche-ambiances.md`.
 - **`spec-vaisseau-historique.md`:** the replaced clearance-dependent near plane and nadir-only interactive contact; current projection and sweep limits in `../spec-vaisseau.md`.
 - **`spec-erosion-historique.md`:** old coastal profiles, comparison of the 9 km filter and expected slope; superseded symmetric band and reach without a sea probe; singular crests, provisional climate, gullies without a slope reserve and their old measurements; C and D measurements before scale separation and spherical valley projection; removed duplicate coastal estimator from E; flattened glacial profiles and measurements from `14c99ec`; the rock-only slope budget, valley dilation, symmetric coastal talus and mesh-scale metric, signed-detail composition, rejected incision cap and archive-worktree closure, superseded on 2026-11-01; current rules in `../spec-erosion.md` and `../spec-eaux-interieures.md`.
+- **`spec-pipeline-creation3d-historique.md`:** superseded authoring, torn roots, branch reduction, close-detail iterations and rejected tropical reconstructions; current contracts in `../spec-pipeline-creation3d.md` and `../spec-rendu-vegetation.md`.
+- **`spec-diversite-vegetale-historique.md`:** superseded scanned-fir catalogue, density choices and replaced cold-site witnesses; current scope in `../spec-diversite-vegetale.md`.
+- **`recherche-generation-vegetale-historique.md`:** rejected native FoliMesh POC and acquisition recommendations; local 3D trials, rejected foliage assemblies and superseded plans; current research in `../recherche-comfyui-vegetation.md` and pipeline in `../spec-pipeline-creation3d.md`.
+
+- **`spec-marche-ambiances-historique.md`:** superseded prototype footstep recordings and material selection; current controller and audio in `../spec-marche-ambiances.md`.
+- **`spec-vaisseau-historique.md`:** superseded ship assemblies, junctions, panel layouts and their inspection measurements.
 
 **The origins of**
 
@@ -50,7 +56,7 @@
 |  `spec-textures-generees-historique.md`  | The experiments drawn from the comparison and what they became; the towers of the rock generated and its structure of 64 m, removed the 2026-10-24. |
 |  `spec-relief-reel.md`  | The relief of materials carried by the mesh: disabled the 2026-10-23, removed from the code the 2026-10-30, tag `piste/parois-gradins` ; geometry track (`../geometrie.md`). |
 |  `spec-parois.md`  | The walls in grades: disabled the 2026-10-23, removed from the code the 2026-10-30, tag `piste/parois-gradins`. |
-|  `spec-normales-spline-historique.md`  | The cardinal spline prefilter and `SPLINE_SHARPENING`, removed the 2026-10-30, tag `jalon/09-normales-spline`. |
+|  `spec-normales-spline-historique.md`  | The cardinal spline prefilter and `SPLINE_SHARPENING`, removed the 2026-10-30, tag `jalon/09-normales-spline`; the fine-grid reconstruction's captures, 2026-11-01. |
 |  `spec-rendu-lointain-historique.md`  | Two fixes of the relief pass of materials, removed the 2026-10-30; the screen relief's rejected options, 2026-11-02. |
 |  `spec-parois-minerales-historique.md`  | Render path options, broken strips and their patches, removed the 2026-10-24; erosion filter, tag `piste/erosion-filtre`. |
 |  `spec-relief-tectonique-historique.md`  | The replaced versions of the board and cords of the 2026-10-31, their measurements and their defects. |
@@ -93,7 +99,7 @@
 |  `recherche-vegetation-historique.md`  | Plants generated v1 to v3, their shapes, cost and appearance; removed from code the 2026-10-30, tags `piste/vegetation`, `-v2` and `-v3`. |
 |  `prototype-vegetation-volumique.md`  | The prototype compared of detailed models, volumes and impostors multiviews, closed, its code removed the 2026-10-30; its measurements remain the reference of comparison. |
 |  `prototype-vegetation-volumique-historique.md`  | First volumes removed, lack of coverage and choice of transmission filtering; intermediate measurements of the prototype. |
-|  `vegetation-planetaire-historique.md`  | First flights, saturation of lines, models spread and comparative iterations of the bouquets, normal and visibility of foliage; the comparatives of the milestone 24; the modes, models and launcher removed the 2026-10-30. |
+|  `vegetation-planetaire-historique.md`  | First flights, queue saturation, bouquet iterations, replaced impostor-light measurements, milestone 24 comparisons and removed modes. |
 |  `arbustes-climatiques-historique.md`  | First collection too related, selection of families replaced and development of sub-range GPU; the flight of judgment of then. |
 |  `vegetation-hiz-historique.md`  | The witnesses of the HiZ, historical depth and interlaced modes, removed the 2026-10-30; the interlaced comparison and its flight. |
 |  `optimisation-vegetation-historique.md`  | Compacting and displacement tests of the impostors calculations; limits of measurements on GPU shared; the flight of comparison, removed the 2026-10-30. |

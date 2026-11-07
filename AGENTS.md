@@ -14,6 +14,7 @@
 ## Work
 
 - **Fix shared rules at planetary scale.** Reported coordinates are regression witnesses, never special-case conditions. Follow `docs/principes.md`.
+- **Vegetation assets:** follow the [vegetation production pipeline](docs/spec-pipeline-creation3d.md) for every master and variant. Retain the recipe and exact source hash, cook LODs and impostors through the common tools, and review in Exolune before promoting an asset. Keep weights, sources, cooked binaries and captures outside Git.
 - **The user reviews a fix in flight, at several locations,** never only in the reported view: create `tools/tests/<date>.txt`, one test per line, and launch it from the worktree root with:
   ```powershell
   powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours tools\tests\<date>.txt

@@ -42,16 +42,6 @@ float WaterHeight(float2 p)
     return lerp(lerp(h00, h10, t.x), lerp(h01, h11, t.x), t.y) * 1e-6;
 }
 
-// Distance (m) from a point of the canopy to its sills, in the ship's plan: the edges F-S and S-A of each pane.
-float SillDistance(float3 local)
-{
-    const float2 p = float2(abs(local.x), local.y), F = float2(0.0, -4.02), S = float2(0.9375, -0.523), A = float2(0.0, 0.32);
-    const float2 fs = S - F, sa = A - S;
-    const float d1 = length(p - F - fs * saturate(dot(p - F, fs) / dot(fs, fs)));
-    const float d2 = length(p - S - sa * saturate(dot(p - S, sa) / dot(sa, sa)));
-    return min(d1, d2);
-}
-
 // The head-up display's symbols, at infinity: the horizon, a pitch ladder every 10 degrees, the flight path marker.
 float HudSymbols(float3 d, float pixel)
 {
@@ -80,10 +70,11 @@ float4 PSMain(ShipPixel input) : SV_Target
     float3 outward = normalize(input.normal);
     if (dot(outward, input.pos - centre) < 0.0)
         outward = -outward;
-    // The two front panes meet on the nose's ridge at a sharp angle: their reflections would part there on a straight
-    // line. Within 35 cm of it the normal turns to the ridge's own, sideways component faded out, as on one bent sheet.
-    const float3 side = shipModel[0].xyz;
-    outward = normalize(outward - side * dot(outward, side) * (1.0 - smoothstep(0.0, 0.35, abs(input.local.x))));
+    // The classic's two flat panes share a softened centre ridge. The fighter has a curved canopy.
+    if (ShipClassic()) {
+        const float3 side = shipModel[0].xyz;
+        outward = normalize(outward - side * dot(outward, side) * (1.0 - smoothstep(0.0, 0.35, abs(input.local.x))));
+    }
     const bool inside = dot(v, outward) < 0.0;
     const float3 n = inside ? -outward : outward; // towards the eye
     const float nv = saturate(dot(n, v)), fresnel = 0.04 + 0.96 * pow(1.0 - nv, 5.0);

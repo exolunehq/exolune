@@ -18,6 +18,7 @@
 #include "Glare.h"
 #include "Settings.h"
 #include "Tectonics.h"
+#include "CineVideo.h"
 #include "Climate.h"
 #include "WalkController.h"
 #include "FlightContact.h"
@@ -121,7 +122,7 @@ protected:
         XMFLOAT4 camRight;   // camera axes, face-local; .w of right and up: tangents of the half fields of view
         XMFLOAT4 camUp;
         XMFLOAT4 camForward;
-        XMFLOAT4 camPlane;   // camera position on the face plane, 0 unless the mesh is frozen
+        XMFLOAT4 camPlane;   // xy: position on the face plane; z: frozen; w: observer canopy cover
         XMFLOAT4 detailOrigin; // camera minus the detail anchor, planet frame; .w: anchor unit
         XMINT4 detailAnchor;   // the detail anchor, in anchor units
         XMFLOAT4 camVertical;  // the camera's vertical, face-local; .w: camera altitude above sea level (km)
@@ -139,6 +140,7 @@ protected:
         XMUINT4 erosionMode;           // x: the erosion shown (key 1): 2 full, 1 ravines only, 0 none; y: 1 when the
                                        // screen relief covers every pixel at full weight (FineTerrain.hlsl); z: 1 once
                                        // the rivers' map for wide footprints is computed (Erosion.hlsli)
+        XMFLOAT4 foliageWind; // climate wind, face-local; shared weather clock
     };
 
     // The clouds' frame, b1 (Clouds.hlsli): the camera and the view in the planet frame (km), in double precision.
@@ -236,6 +238,11 @@ protected:
     // The terrain's sunlit part, a second render target of the scene: what the clouds' shadow takes off (Clouds.hlsli, t17).
     static const DXGI_FORMAT SunFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
     ComPtr<ID3D12Resource> mSunPart;
+    ComPtr<ID3D12Resource> mLocalContacts;
+    ComPtr<ID3D12RootSignature> mLocalContactRoot;
+    ComPtr<ID3D12PipelineState> mLocalContactPso,mLocalContactResolvePso;
+    bool mLocalContactsEnabled=true;
+    void ApplyLocalContacts();
 
     // Temporal smoothing (key T, MYPLANETENGINE_TAA at startup): the tone map pass blends the composite image with the
     // previous result, reprojected, and writes the new result into the other history image.
@@ -244,6 +251,7 @@ protected:
     UINT mHistoryIndex = 0;     // the one holding the previous result
     bool mHistoryValid = false;
     bool mTaa = false;
+    bool TemporalAA() const { return mTaa && mDiagnosticView == 0.0f; }
     void PlaceCamera(double latitude, double longitude, double pitchDown, double heading, double altitude);
     float mDiagnosticView = 0.0f; // MYPLANETENGINE_VIEW: a material's weight or a field, unlit and without smoothing
     ComPtr<ID3D12RootSignature> mResolveRootSignature;
@@ -359,7 +367,7 @@ protected:
     // The climate map (Climate.h): the planet's rain, temperatures and winds from its large forms, once at startup, after the
     // tectonic map; its time (ms) and size (MB).
     ComPtr<ID3D12Resource> mClimateMap;
-    Climate::Map mClimateCpu; // retained from CreateClimateMap for the erosion level 0 and its cache key
+    Climate::Map mClimateCpu; // retained from CreateClimateMap: the erosion level 0 and its cache key, environmental wind and temperature
     double mClimateMs = 0.0, mClimateMb = 0.0, mWeatherMapMs = 0.0; // and the clouds' weather map's time (ms)
     void CreateClimateMap(const Tectonics::Map& tectonics, uint32_t seed, const std::wstring& cache);
     // The erosion's level 0 (Erosion.h): the network of the rivers and the glaciers, once at startup, from the tectonic
@@ -506,6 +514,8 @@ protected:
     double mCineFps = 60.0, mCineFov = 60.0, mCineShipGround = 0.0;
     UINT mCineIndex = 0, mCineEnd = 0, mCineLead = 0;
     bool mCineClamped = false;
+    double mCineGpuMs = 0, mCineWallMs = 0; UINT mCineTimed = 0; LARGE_INTEGER mCineMark = {}; // ms per frame, in cine.log
+    std::unique_ptr<CineVideo> mCineVideo; // MYPLANETENGINE_CINE_VIDEO: frames to ffmpeg, not to BMP files
     ComPtr<ID3D12PipelineState> mCineGroundPSO;
     ComPtr<ID3D12Resource> mCinePoints, mCineGround, mCineGroundReadback;
     D3D12_GPU_DESCRIPTOR_HANDLE mCineTectonics = {};
@@ -579,7 +589,8 @@ protected:
     ComPtr<ID3D12PipelineState> mWalkGroundPSO, mWorldSoundPSO;
     ComPtr<ID3D12RootSignature> mWorldSoundRoot;
     ComPtr<ID3D12Resource> mWalkPoints, mWalkGround, mWalkReadback, mWorldSound, mWorldReadback;
-    XMFLOAT4 mHabitat[5] = {}; // habitat/weather, then six foot-contact areas and wetness
+    XMFLOAT4 mHabitat[6] = {}; // habitat/weather, foot contacts, then observer canopy/height
+    float mObserverCanopy=0;
     FootContact CurrentFootContact() const;
     bool mWorldPending = false, mWorldValid = false;
     D3D12_GPU_DESCRIPTOR_HANDLE mWorldTectonics = {}, mWorldPlanet = {}, mWorldClouds = {}, mWorldMaterials = {};

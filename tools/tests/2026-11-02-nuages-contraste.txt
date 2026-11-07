@@ -1,0 +1,13 @@
+# Cloud contrast and glossy contours (docs/spec-rendu-orbite.md, 2026-11-02): the multiple scattering of each point, from the cloud around it, never from the pixel. Look for: no shiny plastic rims along the lobes, no bright veins inside, no dark winding channels in a layer; lit faces white, shaded flanks and bases grey; thick clouds as white as before from orbit. Altitudes above sea level; locations of seed 0; weather paused. Compare with main: the same lines on main's build.
+Orbit, sun high: thick clouds as white as before, smooth hearts | 10000000 -0.5 -18.225 90 0 | 9.5 -18.225
+Low orbit 750 km, sun at 12 degrees: textured sheets, darker than at noon, no seam | 750000 -40 -100 30 180 | -7.68 -180.752
+Cumulus field from 400 km, sun high: white clusters, nothing grey or dirty | 400175 18.25 39 50 280 | 12.364 64.219
+At 10 km over the tropical range, sun high: white tops, soft shadows between them, no dark winding channels | 10111 -12.6 112.6 15 294 | -35.822 102.331
+The same, sun at 10 degrees: relief, lit faces bright, lee sides grey; it was a flat sheet | 10111 -12.6 112.6 15 294 | -70.222 17.104
+Cumulus wall at 3 km, sun high on the right: no shiny rims along the lobes, white tops, grey bodies | 3279 4.6 -81.5 -3 90 | -25.4 -81.5
+The same, low sun in front: dark bodies, bright edges, no glossy outline | 3279 4.6 -81.5 -3 90 | 0.798 -1.468
+The same, low sun on the right: lit side against shaded side, no bright veins inside | 3279 4.6 -81.5 -3 90 | -75.4 -81.5
+At 3,7 km, nearly level, sun high: no grey band at a fixed height; fly forward fast, no line at the horizon behind the clouds | 3925 4.6 -81.25 2 90 | -25.4 -81.25
+At 1.5 km under the cumulus, sun high: no bright outline around the rounded lobes | 1776 4.6 -81.5 -10 90 | -25.4 -81.5
+At 1.5 km, sun at 25 degrees in front: silver edges only near the sun, the rest soft | 1776 4.6 -81.5 -10 90 | 1.942 -16.429
+At 1.5 km, low sun behind: lit faces peach, shaded ones grey, still white enough | 1776 4.6 -81.5 -10 90 | 0.798 -161.532

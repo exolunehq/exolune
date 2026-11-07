@@ -12,6 +12,7 @@
 
 ## Implemented systems
 
+
 **Terrain and materials**
 - **`diagnostic-orbite.md`:** requested comparison against clean `main`; exact activity indexing, spherical-cap pruning, bounded GPU scheduling and the limb fallback fix; since 2026-11-05 night, the fine grid computed only at the limb in orbit, one river query per screen texel, and a startup map of the rivers for footprints wider than 25 km. Erosion costs under 1 ms from 10,000 km; the per-texel river query in mid orbit remains, located by pass. Since 2026-11-07, the erosion against `main`'s frame rate: within 15 % of `main` at every view, the cost split by pass and what remains; review route `2026-11-07.txt`. Moving-camera measurements, native precision limits, material quality comparison and review route `2026-11-05-orbite-correction.txt`.
 - **`spec-erosion.md`:** asymmetric valleys, stable water reconstruction, physical banks and first-water contacts. Confluence banks match the receiving section and local flow. River queries share exact activity masks and conservative bounds; screen work uses bounded node queues and complete overflow fallback. Restart state: `../PASSATION-erosion.md`. Orbital corridor regularity remains only partly improved. Confluence sediment bars, long estuaries, independent distributary contacts, lake boundaries and finer tributaries remain open. Earlier evidence is in `log/spec-erosion-historique.md`.
@@ -39,13 +40,19 @@
 - **`spec-nuages.md`:** the game's clouds, from orbit to ground: model, passes, resources, data and provenance, known defects; their shadow on land and sea; their weather map derived from climate since 2026-10-31.
 - **`recherche-vegetation.md`:** trees, shrubs and forests from orbit to undergrowth; state of the art; climate, placement and ground canopy implemented; generated plants v1 to v3, removed on 2026-10-30, archived in the log.
 - **`vegetation-planetaire.md`:** the game's trees and shrubs, the only foliage, enabled by default; nearby meshes and distant impostors, deterministic population; leaf clusters, precomputed lighting.
+- **`spec-diversite-vegetale.md`:** climate-compatible communities, the 31-model default and 91-role generated review banks; roots, porous forest lighting and wind.
+- **`recherche-generation-vegetale.md`:** premium game packs and neural authoring; current diversity and native-engine limits; FoliMesh rejected after native review, with the POC archived in the log.
+- **`recherche-comfyui-vegetation.md`:** tested native local generation, separate wood/leaf authoring and compact-mesh candidates; evidence, selection and remaining limits.
+- **`spec-pipeline-creation3d.md`:** local generation, a hybrid radial tropical witness, structural variations and root volume; seven LODs, impostors and art/performance gates.
+- **`spec-rendu-vegetation.md`:** near-trunk curvature and bark, temporally filtered coverage, leaf transmission, litter, canopy transport, bounded observer adaptation and contact lighting.
+- **`direction-artistique-vegetation.md`:** the user's eight biome boards, mature silhouettes and volumetric ground connection.
 - **`arbustes-climatiques.md`:** twelve shapes across six climate families; same instances and range, shared GPU subranges.
 - **`vegetation-hiz.md`:** current-frame depth pyramid and GPU mask for fully occluded impostors; population and drawing order preserved.
 - **`optimisation-vegetation.md`:** vegetation culling and GPU timings, preserving appearance, density and distance; memory optimization remains.
 
 **Ship and execution**
-- **`spec-marche-ambiances.md`:** instant disembarkation, terrain walking and contextual audio; textured contact layers, six recorded footstep materials and bounded XAudio2 mixing.
-- **`spec-vaisseau.md`:** the player's ship, cockpit, controls and canopy weather; common near plane and bounded swept terrain contact, with sampling limits and flight review pending.
+- **`spec-marche-ambiances.md`:** instant disembarkation, FPS walking, contextual foot contacts, environmental audio and shared keyboard/button controls.
+- **`spec-vaisseau.md`:** default fighter and preserved classic ship, model selection, cockpit, flight and canopy weather; construction history in `log/spec-vaisseau-historique.md`.
 - **`recherche-eau-verriere.md`:** water on the canopy glass, drops, rivulets and film in flight; state of the art; simulated drops and trails implemented, awaiting in-flight review.
 - **`recherche-son.md`:** ship sound, engine, stabilizers and wind; state of the art, procedural synthesis on XAudio2 selected and implemented, awaiting in-flight review.
 - **`execution-optimisee.md`:** Release executable with a local profile, borderless full screen, startup resolution and optional unrestricted presentation.

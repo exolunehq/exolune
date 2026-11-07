@@ -94,3 +94,20 @@ docs/spec-roche-organique.md, « Les cibles » :
   - cible-falaise-alcoves.jpg : Mountains Albuquerque 2, domaine public ;
   - cible-basalte.jpg : Bruneau Wild and Scenic River, BLM, domaine public ;
   - cible-badlands.jpg : Dubois Badlands, BLM, domaine public.
+
+
+5. Environmental audio recordings, in assets/audio/
+=================================================
+
+Footsteps on different surfaces, mastered by congusbongus, CC BY 3.0:
+https://opengameart.org/content/footsteps-on-different-surfaces
+The soil contact derives from swuing's footstep-grass.wav, CC BY 3.0:
+https://freesound.org/people/swuing/sounds/38874/
+The gravel contact derives from Ali_6868's Gravel Footsteps, CC0 1.0:
+https://freesound.org/people/Ali_6868/packs/21608/
+CC BY 3.0: https://creativecommons.org/licenses/by/3.0/
+
+Additional CC0 1.0 recordings: Fantozzi (rock and sand), SilentStrikeZ
+(grass), florianreichelt (snow), and isaiah658 (birds).
+Source links, original notices, conversion changes and SHA-256 hashes:
+assets/audio/README.md, assets/audio/licenses/ and assets/audio/sources.json.

@@ -8,7 +8,8 @@
 - Listening and the complete interactive route remain for user review.
 - Footstep revision: six recorded material banks; textured coating selection and targeted PCM checks pass.
 - Contact labels visually checked: grass in forest, sand in desert, snow on the plateau, bare soil on the coastal plain.
-- Uncommitted work has no milestone tag; a tag must identify a committed state.
+- Integration on current public main preserves its ship selection, cloud contrast and existing vegetation.
+- Milestone: `jalon/2026-11-02-marche-ambiances`; vegetation authoring continues separately.
 
 **Controls**
 - J, or the upper-left Marcher/Vaisseau button, toggles walking and the saved flight view.
@@ -98,7 +99,7 @@
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Build -NoLaunch
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\tests\check_walking.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours tools\tests\2026-11-01-pas.txt -Resolution fenetre
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours tools\tests\2026-11-02-marche-main.txt -Resolution fenetre
 ```
 - F1–F12 cover forest, night, showers, desert, steppe, shore, snow, slopes, sea, poles and orbit.
 - The optional sixth pose token `marche` starts a route view on exact ground.

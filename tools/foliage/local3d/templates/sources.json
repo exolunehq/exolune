@@ -1,0 +1,30 @@
+{
+  "upstream": "Comfy-Org/workflow_templates",
+  "revision": "60d0d2c2f5c98ab50116abd837156e4010534657",
+  "license": "MIT",
+  "license_source": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/60d0d2c2f5c98ab50116abd837156e4010534657/LICENSE",
+  "modified": true,
+  "description": "API derivatives using native nodes, with local image captions, selected backend and bounded PBR mesh cook. Canvases are rebuilt from the running native schema.",
+  "files": [
+    {
+      "file": "reference.json",
+      "source": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/60d0d2c2f5c98ab50116abd837156e4010534657/templates/image_flux3_klein_distilled_image_edit.json",
+      "sha256": "c61c84a6f0010a352f4dd65e321d17bb23b24c0cc684fbcb85639d65595b72c0"
+    },
+    {
+      "file": "wood_trellis2.json",
+      "source": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/60d0d2c2f5c98ab50116abd837156e4010534657/templates/3d_pixal3d_trellis2_image_to_model.json",
+      "sha256": "07bc016eaca0b6d4cd4028d8ff5b86da622c73f22f221288b90ec8b13a497283"
+    },
+    {
+      "file": "wood_pixal3d.json",
+      "source": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/60d0d2c2f5c98ab50116abd837156e4010534657/templates/3d_pixal3d_trellis2_image_to_model.json",
+      "sha256": "822f71f8dcd13ade57f06edfecf750413a9b5a51ab0f3311163f5c1c56ef995c"
+    },
+    {
+      "file": "alpha.json",
+      "source": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/60d0d2c2f5c98ab50116abd837156e4010534657/templates/3d_pixal3d_trellis2_image_to_model.json",
+      "sha256": "369e0f1b10999a2747701a78ede35ae436f42d2c1711bcbe65abe3eb50df2a3f"
+    }
+  ]
+}

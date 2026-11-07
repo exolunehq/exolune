@@ -1,0 +1,20 @@
+{
+  "source": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\03_oak_pixal1024_colour_00001.glb",
+  "vertices": 6783578,
+  "triangles": 13997450,
+  "objects": 1,
+  "materials": 3,
+  "dimensions_before_normalization": [
+    0.7573943138122559,
+    0.758298397064209,
+    0.9361615180969238
+  ],
+  "render_scale_only": true,
+  "renders": [
+    "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\review\\front-colour.png",
+    "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\review\\quarter-colour.png",
+    "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\review\\back-colour.png",
+    "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\review\\side-colour.png",
+    "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\review\\quarter-geometry.png"
+  ]
+}

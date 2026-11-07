@@ -15,7 +15,8 @@ struct Settings
     UINT width = 1280, height = 720;
     bool wireframe = false; // MYPLANETENGINE_WIREFRAME: key F at startup
     bool faceted = false;   // MYPLANETENGINE_FACETED: key R at startup
-    bool taa = false;       // MYPLANETENGINE_TAA: the temporal smoothing at startup, outside the diagnostic views; key T
+    bool taa = true;        // MYPLANETENGINE_TAA=0 disables temporal smoothing; diagnostics bypass it; key T
+    bool foliageWhiteNoise = false; // functional control for the coverage sequence
     bool glare = false;     // MYPLANETENGINE_GLARE: the lens's glare
     float view = 0.0f;      // MYPLANETENGINE_VIEW: a diagnostic view (DiagnosticView), 0 for none
     // MYPLANETENGINE_FACE_FACTOR: the face's half-width over the height above the ground (keys K, L).
@@ -53,6 +54,7 @@ struct Settings
     bool noPlants = false;
     std::wstring foliageAssets;
     UINT foliageWarm = 120, foliageSamples = 120;
+    int foliageTestLod = -1; // offscreen validation only
 
     // The photo scans' folder, MYPLANETENGINE_SCANS; empty for the first folder named scans above the executable.
     std::wstring scans;
@@ -80,7 +82,7 @@ struct Settings
     bool coordinates = true; // I: screenshot coordinates; off by default in automated captures
     double batchMotion[6] = {};
 
-    std::wstring cinePath, cineOut;
+    std::wstring cinePath, cineOut, cineVideo; // cineVideo: an .mp4 the frames are encoded to, instead of BMP files
     UINT cineFirst = 0, cineCount = 0, cineWarm = 120; // count 0: to the end
 
     // The benches render without showing the window, in the free camera, the sea on a fixed clock.

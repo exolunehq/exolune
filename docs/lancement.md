@@ -11,8 +11,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours to
 
 **Plant binaries are not versioned:** `assets/foliage/.gitignore` excludes them. Without them, the app flies without plants and its title says “végétation absente” (vegetation missing).
 
-- **Flight catalog:** `assets/foliage/climate_shrubs_v2`, two trees and twelve shrubs.
-- **Build it once** from the root: `tools\plantes.ps1` downloads the source models (`assets/foliage/README.md`), imports them and bakes the catalog. Python 3 is required; about 3 minutes and 750 MB. It is placed alongside the repositories, in `plantes/climate_shrubs_v2`, where every worktree finds it.
+- **Current technical prototype:** `assets/foliage/game_biomes_v1`, 31 models, local communities, ground vegetation, volumetric roots and wind; art direction remains under review (`spec-diversite-vegetale.md`).
+- **Build once** from the root: `tools\plantes.ps1` downloads pinned sources, imports and cooks the baseline and prototype. Python with numpy/Pillow/numba/UnityPy is required during development.
+- **Existing baseline:** `python tools/foliage/prepare_vegetation_jeu.py` builds only the rooted extension; `--base` selects a local baseline. No Blender dependency for this prototype.
+- **Fallback:** the old fourteen-model catalogue remains in `assets/foliage/climate_shrubs_v2` or shared `plantes/climate_shrubs_v2` beside the repositories.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\plantes.ps1
@@ -37,16 +39,18 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 - **`-Position '<alt> <lat> <lon> <tangage> <cap>'`:** starting view, the globe by default.
 - **`-Soleil '<lat> <lon>'`:** sun position, `10 -5` by default.
 - **`-Resolution '1920 1080'`** by default, full screen; `fenetre` for a 1280x720 window, where the palette is visible.
+- **`-ModeleVaisseau chasseur|classique`:** the approved fighter by default; `classique` loads the preserved triangular ship. Direct executable launches use `MYPLANETENGINE_MODELE_VAISSEAU`; without it, the fighter.
 - **`-PassePleine`:** clouds in a single pass, without their temporal pass (`optimisation.md`); for comparison.
 - **`-SansNuages`:** start with clouds hidden for terrain review; N toggles them during flight. Use this option for the current erosion review.
 - **`-Scans <dossier>`:** ground photos.
+- **`-Plantes <catalogue>`:** explicitly select an external asset catalogue for an authoring POC; the default game catalogue is unchanged.
 
-**The launcher clears the session's `MYPLANETENGINE_*` variables during launch, then restores them.** It sets only `MYPLANETENGINE_TESTS`, `_SUN`, `_RESOLUTION` and `_FULLSCREEN`, `_SCANS`, `_CLOUD_FULL` with `-PassePleine`, and `_NO_CLOUDS` with `-SansNuages`.
+**The launcher clears the session's `MYPLANETENGINE_*` variables during launch, then restores them.** It sets only `MYPLANETENGINE_TESTS`, `_SUN`, `_RESOLUTION` and `_FULLSCREEN`, `_SCANS`, `_MODELE_VAISSEAU`, and `_CLOUD_FULL` with `-PassePleine`, `_NO_CLOUDS` with `-SansNuages`, and `_FOLIAGE_ASSETS` with an explicit `-Plantes`.
 
 ## Default game and benchmark variables
 
 - **Clouds:** always present, using their temporal pass. Weather starts paused at time 0.
-- **Temporal antialiasing:** disabled at startup; T enables it.
+- **Temporal antialiasing:** enabled at startup; T toggles it. `MYPLANETENGINE_TAA=0` disables it explicitly.
 - **Lens halo:** disabled.
 - **Override variables** for benchmarks and comparisons:
 
@@ -55,7 +59,7 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 | `MYPLANETENGINE_NO_CLOUDS` | No clouds, like the N key |
 | `MYPLANETENGINE_CLOUD_FULL=1` | Clouds in a single pass |
 | `MYPLANETENGINE_WEATHER_TIME` | Weather time, in seconds |
-| `MYPLANETENGINE_TAA` | Temporal antialiasing from startup |
+| `MYPLANETENGINE_TAA` | Temporal antialiasing; default enabled, explicit `0` disables it |
 | `MYPLANETENGINE_GLARE` | Lens halo |
 | `MYPLANETENGINE_VIEW` | Diagnostic view; terrain views are raw, without clouds or air, except `ground`, the cloud silhouette |
 | `MYPLANETENGINE_SEED` | Another seed for tectonic map and climate, to compare planets; detail noise retains its seed |
@@ -75,6 +79,7 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 | `MYPLANETENGINE_CINE` | Route path; mutually exclusive with `BATCH`, `CAPTURE` and `TREMBLE` |
 | `MYPLANETENGINE_CINE_OUT` | Existing directory for frames and `cine.log` |
 | `MYPLANETENGINE_CINE_RANGE="0 600 120"` | First frame, frame count, warm-up frame count |
+| `MYPLANETENGINE_CINE_VIDEO=out.mp4` | Frames piped to ffmpeg (HEVC NVENC, cq 12, a keyframe a second, fragmented MP4) instead of BMP files; needs `ffmpeg` on the `PATH` and an NVIDIA GPU; a file cut short by a crash stays readable up to its last whole second; `cine.log` ends with the mean ms per frame and its GPU share |
 | `MYPLANETENGINE_RESOLUTION="640 360"` | Render dimensions; same limits as other captures |
 
 - **Without a range:** the whole route, with 120 warm-up frames.
@@ -132,12 +137,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/cine/rendre.ps1 -Parco
 
 - **J / Marcher button:** instant ground placement; J again returns to the saved ship. Hold Alt or toggle M to click the upper-left buttons.
 - **Walking:** WASD/ZQSD or arrows; Shift runs, Ctrl crouches, Space jumps, H toggles bob. Y / Son button mutes audio.
-- **Walking route:** `tools/tests/2026-11-01-marche.txt`; an optional `marche` pose token places a test on current terrain.
+- **Walking route:** `tools/tests/2026-11-02-marche-main.txt`; an optional `marche` pose token places a test on current terrain.
 - **Audio:** default on; optional `MYPLANETENGINE_AUDIO="master footsteps ambience ship"`, gains in [0,1], or `[Audio] Volumes` in the local profile; `spec-marche-ambiances.md`.
+- **I:** camera coordinates in screenshots; enabled in interactive views and disabled in automated output by default. `MYPLANETENGINE_COORDINATES=1` includes them in a capture.
 
-- **I:** screenshot coordinates, visible by default in interactive flight, in windowed and full-screen modes.
-- **The bottom-left overlay:** camera latitude/longitude in degrees, altitude above sea level in metres, pitch down, heading and planet seed; updated every frame and included in screenshots.
-- **Automated output:** coordinates are hidden by default in captures, benchmarks and cinematic renders; `MYPLANETENGINE_COORDINATES=1` includes them when explicitly needed.
 - **H:** tree impostor-to-mesh fade, enabled by default; disabled, each tree switches abruptly.
 - **T:** temporal antialiasing.
 - **O and P,** held: rotate the sun.

@@ -1,4 +1,4 @@
-// The water on the canopy (docs/recherche-eau-verriere.md): drops simulated as particles in the panes' plane, then
+// The water on the canopy (docs/recherche-eau-verriere.md): drops simulated as particles on the bubble, then
 // drawn into a map that the glass reads (ShipGlass.hlsl). Three passes a frame, after the weather (ShipWeather.hlsl):
 // WATER_PASS 0 moves the drops, 1 clears the map and dries the film, 2 draws the drops into the map.
 #include "Planet.hlsli"
@@ -23,7 +23,6 @@ RWTexture2D<float> waterFilm : register(u3);
 RWStructuredBuffer<uint> gathered : register(u4); // volume merged into each drop this frame (mm3 / 1000)
 
 static const uint DROP_COUNT = 8192;
-static const float3 PANE_F = float3(0.0, -4.02, 0.697), PANE_S = float3(0.937, -0.516, 0.83), PANE_A = float3(0.0, 0.32, 1.655);
 
 uint WaterHash(uint x)
 {
@@ -31,23 +30,6 @@ uint WaterHash(uint x)
     return x;
 }
 float WaterRandom(inout uint state) { state = WaterHash(state); return float(state & 0xFFFFFF) / 16777216.0; }
-
-// The pane under a point of the plan: its outward normal, the right pane's mirrored for the left.
-float3 PaneNormal(float2 p)
-{
-    const float3 n = normalize(cross(PANE_S - PANE_F, PANE_A - PANE_F));
-    return float3(p.x < 0.0 ? -abs(n.x) : abs(n.x), n.y, abs(n.z));
-}
-
-// Inside the canopy's outline, with a margin (m).
-bool OnCanopy(float2 p, float margin)
-{
-    const float2 q = float2(abs(p.x), p.y), f = PANE_F.xy, s = PANE_S.xy, a = PANE_A.xy;
-    const float e1 = (s.x - f.x) * (q.y - f.y) - (s.y - f.y) * (q.x - f.x);
-    const float e2 = (a.x - s.x) * (q.y - s.y) - (a.y - s.y) * (q.x - s.x);
-    return e1 * sign((s.x - f.x) * (a.y - f.y) - (s.y - f.y) * (a.x - f.x)) > margin * length(s - f)
-        && e2 * sign((a.x - s.x) * (f.y - s.y) - (a.y - s.y) * (f.x - s.x)) > margin * length(a - s);
-}
 
 int2 WaterTexel(float2 p) { return int2(floor((p - WATER_ORIGIN) / WATER_TEXEL)); }
 bool InMap(int2 t) { return all(t >= 0) && all(t < int2(WATER_SIZE)); }
@@ -76,9 +58,9 @@ void CSMain(uint3 id : SV_DispatchThreadID)
         if (WaterRandom(state) >= chance)
             return;
         float2 p;
-        [loop] for (int k = 0; k < 4; ++k) // a point of the canopy's rectangle, kept when on a pane
+        [loop] for (int k = 0; k < 4; ++k) // a point of the teardrop's rectangle, kept when on the bubble
         {
-            p = float2(lerp(-0.94, 0.94, WaterRandom(state)), lerp(-4.0, 0.3, WaterRandom(state)));
+            p = float2(lerp(-CANOPY_W, CANOPY_W, WaterRandom(state)), lerp(CANOPY_Y0, CANOPY_Y1, WaterRandom(state)));
             if (OnCanopy(p, 0.004)) break;
         }
         if (!OnCanopy(p, 0.004))
@@ -122,7 +104,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     // drop's section over its mass (1/r). Against them, the contact line holds the drop until they pass a threshold that
     // grows as it shrinks (r^-2): on glass, a 2.6 mm drop just starts to slide down a 35 degree slope. A wet track holds
     // less.
-    const float3 n = PaneNormal(d.p);
+    const float3 n = CanopyNormal(d.p);
     const float3 g = -shipUp.xyz * 9.81, alongAir = normalize(float3(0.0, 1.0, 0.0) - n * n.y);
     const float flow = saturate(air / 27.8);
     const float3 a3 = g - n * dot(g, n) + alongAir * (0.08 * flow / d.r);

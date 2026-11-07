@@ -42,6 +42,6 @@ if __name__ == "__main__":
         res = []
         for taa in (True, False):
             tag = f"{name}{'' if taa else '_off'}"
-            files = run(exe, args, os.path.join(out, tag), {"MYPLANETENGINE_TAA": "1"} if taa else {})
+            files = run(exe, args, os.path.join(out, tag), {"MYPLANETENGINE_TAA": "1" if taa else "0"})
             res.append(analyse(files, os.path.join(out, tag + "_heat.png")) if len(files) > 1 else float("nan"))
         print(f"{name} | tremblement avec/sans lissage : {res[0]:.2f} / {res[1]:.2f}", flush=True)

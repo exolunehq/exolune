@@ -40,8 +40,8 @@ if __name__ == "__main__":
     view = run(exe, args, tag, {"MYPLANETENGINE_VIEW": "sea", "MYPLANETENGINE_TREMBLE_FRAMES": "2"})[0]
     sea, ground = view.min(axis=2) > 250, view.max(axis=2) < 5  # the view: the sea white, the ground black, the sky its own
     rows = []
-    for name, extra in (("mer figée, lissage", {"MYPLANETENGINE_TIME": "0 0", "MYPLANETENGINE_TAA": "1"}), ("mer figée, sans lissage", {"MYPLANETENGINE_TIME": "0 0"}),
-                        ("mer animée, lissage", {"MYPLANETENGINE_TAA": "1"}), ("mer animée, sans lissage", {})):
+    for name, extra in (("mer figée, lissage", {"MYPLANETENGINE_TIME": "0 0", "MYPLANETENGINE_TAA": "1"}), ("mer figée, sans lissage", {"MYPLANETENGINE_TIME": "0 0", "MYPLANETENGINE_TAA": "0"}),
+                        ("mer animée, lissage", {"MYPLANETENGINE_TAA": "1"}), ("mer animée, sans lissage", {"MYPLANETENGINE_TAA": "0"})):
         frames = run(exe, args, tag, extra)
         diffs = np.abs(np.diff(frames, axis=0)).max(axis=3)
         land = ground

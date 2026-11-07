@@ -1,0 +1,393 @@
+{
+  "date": "2026-11-02",
+  "status": "inference_and_five_view_inspection_complete",
+  "source_template": {
+    "repository": "Comfy-Org/workflow_templates",
+    "revision": "c067929d7e9cc0f3fd15be348fa1a1d85da15946",
+    "file": "templates/3d_pixal3d_trellis2_image_to_model.json",
+    "license": "MIT"
+  },
+  "runtime": {
+    "comfyui": "0.43.0",
+    "frontend": "1.57.6",
+    "torch": "2.11.0+cu128",
+    "gpu": "NVIDIA GeForce RTX 4070 Ti",
+    "vram_mib": 12282,
+    "ram_mib": 32650,
+    "custom_nodes": false,
+    "offline": true
+  },
+  "prompt_id": "eef0c675-98c9-480c-a2b4-25806c354d25",
+  "inference_seconds": 341.81,
+  "input": {
+    "provenance": "Isolated mature oak cropped from user-supplied temperate biome board",
+    "board_url": "https://chatgpt.com/s/m_6ae84ff1010c8191b850e1332368b7f5",
+    "board": {
+      "path": "E:\\ComfyUI\\input\\exolune\\temperate-board.png",
+      "bytes": 3736348,
+      "sha256": "4ecfaee02810d73a067a20b6deb880d47786452daad00a3d455b6f39d53fb973"
+    },
+    "crop": {
+      "x": 2,
+      "y": 651,
+      "width": 210,
+      "height": 274
+    },
+    "crop_file": {
+      "path": "E:\\ComfyUI\\input\\exolune\\oak-reference.png",
+      "bytes": 120180,
+      "sha256": "fd87575be878c4c20893cc5e69336fe791958de4aa64f95688308a4de29274ec"
+    },
+    "preprocessed_file": {
+      "path": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\01_input_oak_00002_.png",
+      "bytes": 834500,
+      "sha256": "30c93599ff1acf07e42ef1514c9f80a4ca63ea5d367cc1b78a0cae22b20c834e"
+    },
+    "preprocessing": "Native BiRefNet; crop to mask; 1024 square; pad factor 1.1; black background"
+  },
+  "generation": {
+    "batch": 1,
+    "shape_resolution": 1024,
+    "structure": {
+      "seed": 56,
+      "steps": 12,
+      "cfg": 7.5,
+      "sampler": "euler",
+      "scheduler": "normal",
+      "sampling_shift": 5
+    },
+    "shape": {
+      "seed": 42,
+      "steps": 20,
+      "cfg": 7.5,
+      "sampler": "euler",
+      "scheduler": "normal"
+    },
+    "refine": {
+      "seed": 42,
+      "steps": 12,
+      "cfg": 7.5,
+      "sampler": "euler",
+      "scheduler": "simple"
+    },
+    "texture": {
+      "seed": 43,
+      "steps": 12,
+      "cfg": 1,
+      "sampler": "euler",
+      "scheduler": "normal"
+    },
+    "camera": "MoGe horizontal FOV estimate",
+    "solid_remesh": false,
+    "decimation": false,
+    "colour": "vertex RGB from generated texture field; no PBR UV baking"
+  },
+  "models": [
+    {
+      "path": "E:\\ComfyUI_Models\\models\\diffusion_models\\pixal3d_int8_convrot.safetensors",
+      "size": 5584555824,
+      "container_complete": true,
+      "reused_existing": true,
+      "bytes": 5584555824,
+      "sha256": "4621eac3b715484f79303c7152af641fe0b2b14f4d0e3d394fd6922d00f955ec"
+    },
+    {
+      "path": "E:\\ComfyUI_Models\\models\\vae\\trellis_2_shape_vae_bf16.safetensors",
+      "size": 1095844024,
+      "container_complete": true,
+      "reused_existing": true,
+      "bytes": 1095844024,
+      "sha256": "de0cb4949a76c59ee5c091a995a69bcc8c51d5aeda939f0c641a50d2a72341f4"
+    },
+    {
+      "path": "E:\\ComfyUI_Models\\models\\vae\\trellis_2_texture_vae_bf16.safetensors",
+      "size": 948461364,
+      "container_complete": true,
+      "reused_existing": true,
+      "bytes": 948461364,
+      "sha256": "714e5ebf094a610e12a8e3b5175c18a62f37f6ea4218acb6073644456b73ab0e"
+    },
+    {
+      "path": "E:\\ComfyUI_Models\\models\\clip_vision\\dino_v3_L_naf_fp32.safetensors",
+      "size": 1215214176,
+      "container_complete": true,
+      "reused_existing": true,
+      "bytes": 1215214176,
+      "sha256": "4ad2ec4e0879a5b5b04cd97325cc37da954a7b6edca5170b86510f17f2b2290f"
+    },
+    {
+      "path": "E:\\ComfyUI_Models\\models\\geometry_estimation\\moge_2_vitl_normal_fp16.safetensors",
+      "size": 661859924,
+      "container_complete": true,
+      "reused_existing": true,
+      "bytes": 661859924,
+      "sha256": "cb1a692d03235671e959e81360d7b4d9f44aefadb1f852d6ca6aa17799d5e31f"
+    },
+    {
+      "path": "E:\\ComfyUI_Models\\models\\background_removal\\birefnet.safetensors",
+      "size": 444473596,
+      "container_complete": true,
+      "reused_existing": true,
+      "bytes": 444473596,
+      "sha256": "9ab37426bf4de0567af6b5d21b16151357149139362e6e8992021b8ce356a154"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\02_oak_pixal1024_raw_00001.glb",
+      "bytes": 249523768,
+      "sha256": "5ce7de21a62e37f49fbc7e27a8a3e5ce78b3220b7149cd943348e98e77983d45"
+    },
+    {
+      "path": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\03_oak_pixal1024_colour_00001.glb",
+      "bytes": 412630948,
+      "sha256": "5425969bf10874e09f67e54fc8df2284aa16f3b2997525c057361d7475bf0420"
+    }
+  ],
+  "workflows": [
+    {
+      "path": "C:\\Users\\etien\\Documents\\repos\\Exolune\\tools\\foliage\\comfyui\\trials\\2026-11-02-oak-pixal3d\\workflow.json",
+      "bytes": 39412,
+      "sha256": "51c58430271e429701f050d7ccf86798cfd7e54c91709b146e87b2dc557efb19"
+    },
+    {
+      "path": "C:\\Users\\etien\\Documents\\repos\\Exolune\\tools\\foliage\\comfyui\\trials\\2026-11-02-oak-pixal3d\\api.json",
+      "bytes": 61638,
+      "sha256": "3ede333feaeb0296c28dbba48dc048560d53ac9f05365c0ea12887cb78f1c857"
+    }
+  ],
+  "art_acceptance": "User finds local appearance promising; production acceptance pending density, materials and foliage structure.",
+  "game_integration": false,
+  "benchmark": false,
+  "limitations": [
+    "Small approximately 210-pixel source crop",
+    "Single view does not constrain hidden branches",
+    "Raw authoring mesh exceeds runtime budgets",
+    "Vertex colour is not a baked PBR material"
+  ],
+  "agent_assessment": {
+    "integration_recommended": false,
+    "useful_features": [
+      "Substantial trunk",
+      "Root flare",
+      "Readable main branching"
+    ],
+    "defects": [
+      "Fused crumpled foliage surfaces",
+      "Tilted soil slab retained from source"
+    ],
+    "next_evaluation": "Compare learned compact-mesh reconstruction and UV/normal baking; retain artistic direction and separately evaluate deformable foliage."
+  },
+  "raw_mesh": {
+    "vertices": 6796117,
+    "triangles": 13997450,
+    "bytes": 249523768
+  },
+  "review": {
+    "renderer": "Blender 5.2.1 LTS; Cycles CPU; 24 samples; 960 square",
+    "display_height_metres": 8,
+    "source_mesh_modified": false,
+    "report": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\review\\mesh-report.json",
+    "renders": [
+      "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\review\\front-colour.png",
+      "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\review\\quarter-colour.png",
+      "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\review\\back-colour.png",
+      "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\review\\side-colour.png",
+      "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\review\\quarter-geometry.png"
+    ]
+  },
+  "reduction": {
+    "status": "completed CPU authoring comparison; not integrated",
+    "tool": {
+      "version": "1.3",
+      "url": "https://github.com/zeux/meshoptimizer/releases/download/v1.3/gltfpack-windows.zip",
+      "sha256": "f6e9c09d66af23da3da71b86f0652d2413e81c734e0aecd1cd3d0e6e6e8645c0",
+      "license": "MIT",
+      "license_url": "https://raw.githubusercontent.com/zeux/meshoptimizer/v1.3/LICENSE.md"
+    },
+    "audit": [
+      {
+        "label": "conservative",
+        "file": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\oak_target_200000.glb",
+        "sha256": "cfffdc28e3f08ab692dface9b0c5c1450de1267e3c3f440a59bb6a4a3662353e",
+        "bytes": 12558344,
+        "valid_nonempty": true,
+        "primitives": 1,
+        "materials": 1,
+        "skins": 0,
+        "animations": 0,
+        "texture_images": 0,
+        "triangles_in_file": 528216,
+        "vertices_in_file": 222093,
+        "duplicate_unordered_triangles": 48111,
+        "triangles_with_repeated_indices": 0,
+        "exact_zero_area_triangles": 0,
+        "attributes": [
+          "POSITION",
+          "COLOR_0",
+          "NORMAL"
+        ],
+        "bounds_min": [
+          -0.3742074966430664,
+          -0.4918074607849121,
+          -0.37302494049072266
+        ],
+        "bounds_max": [
+          0.3829154968261719,
+          0.4439001679420471,
+          0.3849449157714844
+        ]
+      },
+      {
+        "label": "relaxed",
+        "file": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\oak_budget_50000.glb",
+        "sha256": "8af3e540888497aa6e92edef5c3e9d633b35d2a7bd649d49c1461b25cca5338d",
+        "bytes": 2457976,
+        "valid_nonempty": true,
+        "primitives": 1,
+        "materials": 1,
+        "skins": 0,
+        "animations": 0,
+        "texture_images": 0,
+        "triangles_in_file": 166955,
+        "vertices_in_file": 51968,
+        "duplicate_unordered_triangles": 37117,
+        "triangles_with_repeated_indices": 0,
+        "exact_zero_area_triangles": 0,
+        "attributes": [
+          "POSITION",
+          "COLOR_0",
+          "NORMAL"
+        ],
+        "bounds_min": [
+          -0.3742074966430664,
+          -0.49117374420166016,
+          -0.37302494049072266
+        ],
+        "bounds_max": [
+          0.3829154968261719,
+          0.4434710144996643,
+          0.3836098313331604
+        ]
+      },
+      {
+        "label": "aggressive",
+        "file": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\oak_aggressive_50000.glb",
+        "sha256": "1ebe318b9ad6046c357356edea0595d0180b7cf1373b3b6033b84c3132d55506",
+        "bytes": 788928,
+        "valid_nonempty": true,
+        "primitives": 1,
+        "materials": 1,
+        "skins": 0,
+        "animations": 0,
+        "texture_images": 0,
+        "triangles_in_file": 43206,
+        "vertices_in_file": 18877,
+        "duplicate_unordered_triangles": 3047,
+        "triangles_with_repeated_indices": 0,
+        "exact_zero_area_triangles": 0,
+        "attributes": [
+          "POSITION",
+          "COLOR_0",
+          "NORMAL"
+        ],
+        "bounds_min": [
+          -0.37061500549316406,
+          -0.4909639358520508,
+          -0.36963748931884766
+        ],
+        "bounds_max": [
+          0.38193702697753906,
+          0.43999290466308594,
+          0.3824434280395508
+        ]
+      },
+      {
+        "label": "collapsed_rejected",
+        "file": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\oak_budget_20000.glb",
+        "sha256": "fc3737f1167d3ff896622cd47f971b136592185849a9729ce025504f030107e3",
+        "bytes": 240,
+        "valid_nonempty": false,
+        "primitives": 0,
+        "materials": 1,
+        "skins": 0,
+        "animations": 0,
+        "texture_images": 0
+      }
+    ],
+    "cleaned_derivative": {
+      "file": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\oak_40159_triangles.glb",
+      "triangles": 40159,
+      "vertices": 18877,
+      "bytes": 770652,
+      "sha256": "ea91a43861cbdcf25d862cc8c6db8f59b776449d1a165bbfe6d146c9f1ca5dd9",
+      "duplicate_faces_removed": 3047,
+      "appearance_stage": "vertex RGB; no UV/PBR bake",
+      "same_unique_faces_as_review_import": true
+    },
+    "review": [
+      {
+        "label": "original",
+        "triangles": 13997450,
+        "vertices_after_import": 6783578,
+        "images": [
+          "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\review\\original-quarter.png",
+          "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\review\\original-walk.png"
+        ]
+      },
+      {
+        "label": "conservative",
+        "triangles": 480105,
+        "vertices_after_import": 222093,
+        "images": [
+          "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\review\\conservative-quarter.png",
+          "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\review\\conservative-walk.png"
+        ]
+      },
+      {
+        "label": "relaxed",
+        "triangles": 129838,
+        "vertices_after_import": 51968,
+        "images": [
+          "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\review\\relaxed-quarter.png",
+          "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\review\\relaxed-walk.png"
+        ]
+      },
+      {
+        "label": "aggressive",
+        "triangles": 40159,
+        "vertices_after_import": 18877,
+        "images": [
+          "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\review\\aggressive-quarter.png",
+          "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\review\\aggressive-walk.png"
+        ]
+      }
+    ],
+    "original_outputs_unchanged": true,
+    "gpu_used": false,
+    "benchmark": false,
+    "limitations": [
+      "Reduced versions use vertex colour, without UV/PBR baking",
+      "Close-up bark and crown detail deteriorate",
+      "No leaf attachments, wood/leaf material separation or wind weights are created"
+    ],
+    "scripts": [
+      {
+        "path": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\reduce_oak.py",
+        "sha256": "353e530baecc76955aa431622ac489c597d5ef081aab63df553fd397b3b1fdeb"
+      },
+      {
+        "path": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\reduce_budget_oak.py",
+        "sha256": "cecd2bfeb98aa5fc0867ba0b287c1299eb0099f267f0c58fe7730d144d28d19e"
+      },
+      {
+        "path": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\clean_reduction.py",
+        "sha256": "e61021bb448b8c4be2bc1fb8f90399b37352d9edae82c094d9b0ee3a2e13dc45"
+      },
+      {
+        "path": "E:\\ComfyUI\\output\\Exolune\\2026-11-02\\reduction\\render_reductions.py",
+        "sha256": "fe8f1eab4cf1b806c9d03033c45d792db1e6206e1afeeb11b261ec5488028b1a"
+      }
+    ]
+  }
+}

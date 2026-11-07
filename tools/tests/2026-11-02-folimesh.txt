@@ -1,0 +1,8 @@
+# External non-commercial POC catalogue through lance.ps1 -Plantes; no automatic interactive launch.
+# One FoliMesh oak replaces broadleaf slots for source evaluation; no species-diversity claim.
+Temperate ground: source trunk, roots and leaf clusters | 525 34.75 50.75 10 0 marche | 30 70
+Same place, another heading | 525 34.75 50.75 10 80 marche | 30 70
+Same place from 120 m: source-derived impostor relay | 628 34.75 50.75 20 0 | 30 70
+Forest ground: another placement and light | 65 -7.75 -37.25 10 0 marche | -5 -20
+Forest approach from 120 m | 168 -7.75 -37.25 20 0 | -5 -20
+Boreal control: existing conifers remain | 1140 42.002542495 65.003025314 -10 41.4837 marche | 35 80

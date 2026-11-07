@@ -1,5 +1,7 @@
 # Triangular ship
 
+**Classic model, preserved.** The default fighter lives in [chasseur/](chasseur/README.md). Select this original ship with `tools/lance.ps1 -ModeleVaisseau classique`. Its sources and delivery files remain unchanged.
+
 **Files**
 
 - `vaisseau_travail.blend`: editable scene, separate cockpit parts and packed textures.

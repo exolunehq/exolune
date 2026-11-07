@@ -443,9 +443,9 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
     const float loose = (1.0 - m.snow) * (1.0 - m.beach) * (1.0 - m.rock), soils = loose * (1.0 - m.screeWeight);
     // Under the trees' crowns, the floor is their litter, not a meadow's tufts and rocks (docs/recherche-vegetation.md).
     Vegetation v = VegetationAt(m.temperature, m.humidity, m.coldSigma, m.amplitude, Exposure(up, e0));
+    v.able = PlantGround(m);
     if (soils > 0.0)
         WoodsAt(q, log2(k.cell), v);
-    v.able = PlantGround(m);
     const float scree = loose * m.screeWeight, grass = soils * m.grassAmount * (1.0 - TreesHere(v));
     const float sand = soils * m.sandAmount + (1.0 - m.snow) * m.beach, soil = soils * m.soilAmount, bare = sand + soil;
     float share, presence = 1.0;
@@ -500,12 +500,8 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
         albedo = ClimateColor(m) * m.grass.color * (1.0 + 0.2 * LatticeRandom(k.looks).z);
     }
 
-    // Under the plants' crowns, the ground's light through their gaps, as the pixels give it (PixelShader.hlsl): the sun
-    // and the sky in their shares of a clear day's light at a high sun, 85 and 15 %, on its colour.
-    {
-        const float open = 1.0 - PlantCover(TreesHere(v), ShrubsHere(v)), muS = dot(upLocal, lightDir.xyz);
-        albedo *= 0.85 * pow(open, 1.0 / max(muS, 0.1)) + 0.15 * open;
-    }
+    // Store cover separately from reflectance; the material pass transports
+    // actual sun and sky independently, including under clouds and at night.
 
     // The gap between a stone's foot and the ground the mesh draws, along the vertical (docs/spec-objets-proximite.md).
     if (meshElevation >= 0.0 && stone)
@@ -537,6 +533,7 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
     o.axisY = axisY;
     o.elevation = e0;
     o.albedo = saturate(albedo);
+    o.albedo.b=PackObjectCanopy(o.albedo.b,GroundLightCover(v));
     o.seed = k.looks.z;
     instances[(stone ? 0 : CLASS_CAPACITY) + slot] = o;
 }

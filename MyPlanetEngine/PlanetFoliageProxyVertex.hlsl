@@ -77,7 +77,7 @@ VOut VSMain(uint vertex:SV_VertexID,uint id:SV_InstanceID) {
     model.width=width; model.height=height; model.viewsX=viewsX; model.viewsY=viewsY;
     model.boundsMin=boundsMin; model.radius=radius; model.boundsMax=boundsMax; model.crown=crown;
     model.species=species; model.reserved=reserved; model.materialCount=materialCount; model.flags=flags;
-    model.volumeParams=volumeParams; model.depthBounds=depthBounds;
+    model.volumeParams=volumeParams; model.depthBounds=depthBounds; model.rootForm=rootForm;
     float nearestDepth; float2 boundLo, boundHi;
     if (!ImpostorDepthBound(o,model,nearestDepth,boundLo,boundHi)) nearestDepth=1.0;
     VOut result; result.position=float4(ndc,nearestDepth,1);

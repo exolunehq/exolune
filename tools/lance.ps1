@@ -1,11 +1,11 @@
-﻿# Le lanceur du jeu : compile au besoin, puis ouvre MyPlanetEngine.exe en plein écran avec la palette « Tests », un bouton
+# Le lanceur du jeu : compile au besoin, puis ouvre MyPlanetEngine.exe en plein écran avec la palette « Tests », un bouton
 # par ligne du fichier de tests et F1 à F12 (D3DApp, MYPLANETENGINE_TESTS). Le jeu est le comportement par défaut de l'exe :
-# le lanceur ne pose que la palette, le soleil, l'écran et les scans. Les MYPLANETENGINE_* de la session sont effacées le
+# le lanceur pose la palette, le soleil, l'écran, les scans et le modèle de vaisseau. Les MYPLANETENGINE_* sont effacées le
 # temps du lancement, puis restaurées.
 #
 # powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 [-Build] [-NoLaunch] [-Parcours tools\tests\<date>.txt]
 #     [-Position '<alt> <lat> <lon> <tangage> <cap>'] [-Soleil '<lat> <lon>'] [-Resolution '1920 1080' | fenetre]
-#     [-PassePleine] [-SansNuages] [-Exe <exécutable>] [-Scans <dossier>]
+#     [-ModeleVaisseau chasseur | classique] [-PassePleine] [-SansNuages] [-Exe <exécutable>] [-Scans <dossier>] [-Plantes <catalogue>]
 param(
     [switch]$Build,
     [switch]$NoLaunch,
@@ -18,8 +18,12 @@ param(
     [switch]$PassePleine,
     # Masquer les nuages pour examiner le terrain ; N les réaffiche pendant le vol.
     [switch]$SansNuages,
+    [ValidateSet('chasseur', 'classique')]
+    [string]$ModeleVaisseau = 'chasseur',
     # Un autre exécutable que x64\Release, par exemple une compilation à part (x64\Verif).
     [string]$Exe = '',
+    # Catalogue externe pour un POC d'assets ; le catalogue du jeu reste le défaut.
+    [string]$Plantes = '',
     [string]$Scans = $(if ($env:MYPLANETENGINE_SCANS) { $env:MYPLANETENGINE_SCANS } else { Join-Path (Split-Path (Split-Path $PSScriptRoot)) 'scans' })
 )
 $ErrorActionPreference = 'Stop'
@@ -45,7 +49,9 @@ try {
     Get-ChildItem Env: | Where-Object { $_.Name -like 'MYPLANETENGINE_*' } | ForEach-Object { Remove-Item -LiteralPath "Env:$($_.Name)" }
     $env:MYPLANETENGINE_TESTS = $tests
     $env:MYPLANETENGINE_SCANS = (Resolve-Path -LiteralPath $Scans).Path
+    if ($Plantes) { $env:MYPLANETENGINE_FOLIAGE_ASSETS = (Resolve-Path -LiteralPath $Plantes).Path }
     $env:MYPLANETENGINE_SUN = $Soleil
+    $env:MYPLANETENGINE_MODELE_VAISSEAU = $ModeleVaisseau
     if ($Resolution -ne 'fenetre') { $env:MYPLANETENGINE_RESOLUTION = $Resolution; $env:MYPLANETENGINE_FULLSCREEN = '1' }
     if ($PassePleine) { $env:MYPLANETENGINE_CLOUD_FULL = '1' }
     if ($SansNuages) { $env:MYPLANETENGINE_NO_CLOUDS = '1' }

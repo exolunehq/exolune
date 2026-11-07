@@ -13,7 +13,7 @@ namespace {
 
 void D3DApp::InitializeWorld(D3D12_GPU_DESCRIPTOR_HANDLE tectonics,D3D12_GPU_DESCRIPTOR_HANDLE planet,
     D3D12_GPU_DESCRIPTOR_HANDLE clouds,D3D12_GPU_DESCRIPTOR_HANDLE materials) {
-    if (mSettings.Automated() && !mStartWalking) return;
+    // The same world probe supplies observer lighting in hidden captures.
     mWorldTectonics=tectonics; mWorldPlanet=planet; mWorldClouds=clouds; mWorldMaterials=materials;
     D3D12_COMPUTE_PIPELINE_STATE_DESC desc = {};
     auto shader=LoadShader(L"WalkGround.cso");
@@ -168,7 +168,11 @@ void D3DApp::UpdateWalking(float dt) {
 }
 
 void D3DApp::QueueWorldSound() {
-    if (!mWorldSoundPSO || (mWorldValid && mClock<mWorldNextProbe)) return;
+    if (!mWorldSoundPSO) return;
+    if(mSettings.Automated()) {
+        if(mDiagnosticView>0.5f || Length(mCamPos)-PlanetRadius-mGroundHeight>96) return;
+        if(mWorldValid && mFrameNumber%6u!=0u && Length(mCamPos-mWorldProbePos)<0.01) return;
+    } else if(mWorldValid && mClock<mWorldNextProbe) return;
     ID3D12DescriptorHeap* heaps[]={mSrvHeap.Get()}; mCommandList->SetDescriptorHeaps(1,heaps);
     mCommandList->SetComputeRootSignature(mWorldSoundRoot.Get()); mCommandList->SetPipelineState(mWorldSoundPSO.Get());
     mCommandList->SetComputeRootConstantBufferView(0,mConstantBuffer->GetGPUVirtualAddress());

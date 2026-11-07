@@ -120,3 +120,22 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/nuages-planete.ps1
 - No E2E check in motion; poles, coupling and approach remain to be judged in flight.
 - After integration: Release x64 and 72 shaders of the project compiled, then variant Planet; captures in orbit at 800 km and 60 m over the sea FFT, without error of start. Clouds+spotted air27,65 and17,75 ms.
 - Detailed vegetation verified with the local assets already prepared of main:13610 impostors hardwoods, zero overhang or floating plant; capture at 567,2 m above ground. GPU total37,97 ms, of which14,44 ms clouds+air; this view does not validate a global budget.
+
+## Close-up: F on the column at the seen point, 2026-10-31 to 2026-11-02
+
+**Replaced on 2026-11-02 by F per point,** on the sun's chord (`../spec-rendu-orbite.md`): the seen point jumped between lobes and drew shiny rims and dark channels. The account of then:
+
+**The defect, in flight, after fusion in `integration`:** from 1 to 10 km, clouds of shiny plastic, a dark circle on their contours and on the folds where one lobe passes before another, a brilliant backlit border, a flat interior.
+
+**The causes, by elimination,** on cumulus seen from 1,5 and 3 km, sun from front, side and back, against the shaders before the experiment and the same map:
+- **F measured the thickness along the view:** on an edge or the silhouette of a lobe, the razor ray crosses only a thin string, F collapses, the multiple scattering extinguishes: the cerne. Cut F erases it.
+- **The edges were smooth surfaces:** the physical water of the cloud, up to 80 /km, makes the boundary opaque in 12 m, and the noise functions have no detail under their texels, 250 m and 125 m: their smooth isosurface looked like plastic. The old law, density × R, softened them by transparency.
+- **Neither the phase nor the card at the mip 0** were responsible for anything.
+
+**The tests dismissed:** F along the sun, gray spots at the heart of the cumulus where the line of the sun comes out by the base; along the normal, an aspect of liquid metal, the gradient of a thin noise turning from one pixel to another; the column in medium density, rings, then gray cumulus where the covered part mixes the clear sky.
+
+**The correction:** the thickness of F is that of the cloud where it exists, its column smoothed at the scale of diffusion (above, the multiple scattering); and the variance of the unresolved scales broadens the edges in fringes. No more circle, fold or plastic; orbit targets do not move, thick cloud at 0,685 before as after.
+
+**What remains:** the cumulus relief close-up is softer than before the experiment; ratio of 10e and 90e percentiles of luminance, side and back, 0,68 and 0,77 against 0,46 and 0,67. Their multiple source takes an average incidence, 0,5 for a cumulus, and not that of each face. experiment: local bearing, by the density gradient smoothed at the diffusion scale, smooth at this scale.
+
+**Cost:** +0,1 to +0,5 ms, the column of each segment.

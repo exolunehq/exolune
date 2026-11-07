@@ -54,7 +54,7 @@ void D3DApp::PrepareFlightContact(const FlightPose& before) {
     const Vec3d ends[2]={mFlightAfter.camera,mFlightAfter.ship};
     // A fixed sphere about the ship origin contains its offset model sphere at every intermediate attitude.
     // An endpoint centre displacement alone would not bound a curved or returning rotational path.
-    const double radii[2]={FlightContact::CameraRadius,double(Ship::Radius)+std::hypot(double(Ship::CentreY),double(Ship::CentreZ))};
+    const double radii[2]={FlightContact::CameraRadius,double(Ship::Radius)+std::hypot(double(mShip.Profile().centreY),double(mShip.Profile().centreZ))};
     mFlightQueued=false;
     for (unsigned i=0;i<2;++i) {
         // The cockpit eye is inside the fixed hull envelope at every attitude. Chase and free eyes move outside it.

@@ -5,6 +5,7 @@
 #ifndef VEGETATION_HLSLI
 #define VEGETATION_HLSLI
 #include "PlanetMap.hlsli"
+#include "CanopyLighting.hlsli"
 
 struct Vegetation
 {
@@ -26,6 +27,9 @@ struct Vegetation
     float conifer;   // the conifers' share among the trees
     float spread;    // how much wider their crowns are than PLANT_CROWN: 1, to 3 for a savanna's flat crowns
     float able;      // the share of the ground plants can root in: neither bare rock, nor scree, nor a beach
+    float herbs;     // potential ground layer; the heavy placement further excludes snow and non-grassy material
+    float lightTrees; // crown cover filtered over at least four metres, for continuous light only
+    float lightShrubs;
 };
 #include "ShrubClimate.hlsli"
 
@@ -61,11 +65,14 @@ Vegetation VegetationAt(float t, float humidity, float coldSigma, float amplitud
     Vegetation v;
     v.wood = v.stand = v.edge = v.shrub = 0.0;
     v.able = 1.0;
+    v.lightTrees=v.lightShrubs=0.0;
     v.exposure = exposure;
+    v.herbs=SpreadStep(0.0,7.0,t,coldSigma)*SpreadStep(0.25,0.7,humidity,0.0);
     // The seasons: a sine around the annual mean (tools/saisons_terre.py). The growing season, the days over
     // TREE_SEASON_START, and its mean; the biotemperature, the year's mean of the temperatures over 0 (Holdridge).
     const float theta = acos(clamp((TREE_SEASON_START - t) / amplitude, -1.0, 1.0));
     v.season = t + amplitude * sin(theta) / max(theta, 1e-4);
+    if (GameVegetation()) v.herbs=SpreadStep(5.0,10.0,v.season,coldSigma)*SpreadStep(0.25,0.65,humidity,0.0);
     const float warm = acos(clamp(-t / amplitude, -1.0, 1.0));
     const float biotemperature = (t * warm + amplitude * sin(warm)) / 3.14159265;
     // The humidity is the log of the annual precipitation from 100 to 3000 mm (BiomePalette.hlsli).
@@ -197,10 +204,21 @@ void WoodsAt(float3 q, float pixel, inout Vegetation v)
     const float seen = woodSeen * Presence(patch, patchSigma.y, stands, drive);
     v.edge = 4.0 * seen * (1.0 - seen);
     const float shrubDrive = FOREST_EDGE.y * v.edge;
-    v.shrub = v.shrubs * v.shrubCold > 0.0
-            ? Presence(PresenceField(q, pixel, 89u, PRESENCE_SCALES.y, PresenceThreshold(SHRUB_LAND, shrubDrive), PresenceReach(patchSigma.x)),
-                       patchSigma.x, SHRUB_LAND, shrubDrive) : 0.0;
+    const bool hasShrubs=v.shrubs*v.shrubCold>0.0;
+    const float shrubField=hasShrubs?PresenceField(q,pixel,89u,PRESENCE_SCALES.y,PresenceThreshold(SHRUB_LAND,shrubDrive),PresenceReach(patchSigma.y)):0.0;
+    v.shrub=hasShrubs?Presence(shrubField,patchSigma.x,SHRUB_LAND,shrubDrive):0.0;
+    // Reuse the same fields and the existing edge-sized early-out bound.
+    // This affects illumination, never population, placement or visible canopy.
+    const float shadePixel=max(pixel,2.0);
+    const float shadeWood=Presence(region,PresenceSigma(shadePixel,PRESENCE_SCALES.x),woods,drive);
+    const float shadeStand=shadeWood*Presence(patch,PresenceSigma(shadePixel,PRESENCE_SCALES.y),stands,drive);
+    v.lightTrees=v.cold*v.able*(STAND_COVER*shadeStand+v.open*(shadeWood-shadeStand));
+    const float shadeShrub=hasShrubs?Presence(shrubField,PresenceSigma(shadePixel,PRESENCE_SCALES.y),SHRUB_LAND,shrubDrive):0.0;
+    v.lightShrubs=v.shrubCold*v.able*shadeShrub*lerp(v.shrubs,min(v.shrubs,SHRUB_COVER.w),shadeStand*v.cold);
 }
+
+float TreeLightCover(Vegetation v) { return VegetationAbsent()?0.0:v.lightTrees; }
+float GroundLightCover(Vegetation v) { return VegetationAbsent()?0.0:1.0-(1.0-saturate(v.lightTrees))*(1.0-saturate(v.lightShrubs)); }
 
 // The ground's share under the trees' crowns here: the forest's stands, the savanna's trees, the cold's toll. And under
 // the shrubs': fewer under a forest's canopy, the understorey; above the tree line, the krummholz.
@@ -322,6 +340,15 @@ float BiomeClass(Vegetation v, float temperature)
 // alike: CANOPY_ALBEDO for the trees, darker for conifers (PLANT_TINT); for the shrubs, SHRUB_ALBEDO in dry lands, the
 // broadleaves' in humid ones (SHRUB_ARIDITY.z to w); a little brighter or darker from place to place as the ground's
 // colour is, its hue drifting with it by region. species: conifer, broadleaf, shrub, or a mix as weights (x, y, z).
+float3 VegetatedGroundColor(Materials m, Vegetation v) {
+    // Blue Marble describes a whole biome, including its dark forest canopy.
+    // It is not the reflectance of the exposed leaf litter underneath it.
+    const float litter=smoothstep(0.35,0.75,TreeLightCover(v));
+    const float3 dry=lerp(float3(0.24,0.18,0.105),float3(0.20,0.145,0.09),v.conifer);
+    const float moisture=lerp(1.0,0.78,smoothstep(0.55,0.95,m.humidity));
+    const float3 organic=dry*moisture*(1.0+0.3*m.local.z)*(1.0+float3(0.2,0,-0.2)*m.regional.z);
+    return lerp(ClimateColor(m),organic,litter);
+}
 float3 CanopyColor(Materials m, float3 species, float aridity)
 {
     const float3 shrub = lerp(SHRUB_ALBEDO, CANOPY_ALBEDO, SpreadStep(SHRUB_ARIDITY.z, SHRUB_ARIDITY.w, aridity, 0.0));
