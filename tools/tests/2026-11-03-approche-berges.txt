@@ -1,0 +1,14 @@
+# Seed 0. Orbit-to-ground continuity, junction openings, bank relief and distinct coastal outlets.
+# Backspace leaves the cockpit. F1-F12 select these views; the palette requires windowed mode.
+Approche : orbite 1200 km | 1200000 -6.250434328 125.346558807 90 0 | 20 120
+Approche : 400 km | 400000 -6.250434328 125.346558807 90 0 | 20 120
+Approche : 173 km | 172718.8 -7.189383 125.450731 65.74 -9.12 | 20 120
+Approche : vallee a 30 km | 30000 -6.250434328 125.346558807 90 0 | 20 120
+Confluence : ensemble | 8000 -6.251531 125.325826 90 0 | 20 120
+Confluence : berges et ouverture | 2200 -6.250434328 125.346558807 70 180 | 20 120
+Amont : canyon corrige | 3840.6 -5.038412 124.886462 13.17 -102.18 | 20 120
+Delta : cote basse | 18000 -9.040512300 127.244378813 90 0 | 20 120
+Delta : chenaux proches | 3500 -9.040512300 127.244378813 70 0 | 20 120
+Cote montagneuse : sans eventail | 18000 -9.017738465 127.673566077 90 0 | 20 120
+Berge : au sol, galets et touffes | 1525.593238 -6.294915225 125.337911834 8 114.321381 | 20 120
+Vallee australe : autre chaine | 40227 -26.288373626 -36.520005922 90 0 | -10 -60

@@ -10,6 +10,7 @@
 // The lattice: the planet frame's Cartesian grid. The ground where the vertical's largest component is along axis a
 // takes its objects from the grid of the two other axes, projected along a onto the sphere: no seam, nothing that
 // moves, each cell of s x s covering s^2 / |up.a| of the ground.
+#define EROSION_WAVE_LIST // neighbouring candidates list their rivers' nodes together (Erosion.hlsli)
 #include "Planet.hlsli"
 #include "PlanetSettings.hlsli"
 #include "Relief.hlsli"
@@ -347,6 +348,18 @@ void CullMain(uint3 id : SV_DispatchThreadID)
 ByteAddressBuffer candidates : register(t1);
 ByteAddressBuffer candidateCount : register(t2);
 
+#ifdef PLANET_STABLE_PLANTS
+// PlanetPlantGround.hlsl: the plant tiles whose exact ground the last frame did not keep, listed by the light pass.
+[numthreads(64, 1, 1)]
+void GroundMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
+{
+    LoadGradients(threadInGroup, 64); // before any return: every thread must reach the barrier
+    if (id.x >= min(candidateCount.Load(12), CANDIDATES))
+        return;
+    PlantTileGround(candidates.Load4(16 * id.x));
+}
+#endif
+
 [numthreads(64, 1, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
 {
@@ -369,7 +382,7 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
     counters.InterlockedAdd(COUNT_EVALUATED * 4, 1u);
     const float3 up = k.up, t1 = normalize(Axis(k.b) - up * dot(up, Axis(k.b))), t2 = cross(up, t1);
     const double3 u = k.p * INV_R;
-    const float e0 = ExactElevation(u), waterLevel = gWaterLevel;
+    const float e0 = ExactElevation(u), waterLevel = gWaterLevel, riverBank = gRiverBank;
     const float e1 = ExactElevation(u + (double3)t1 * INV_R), e2 = ExactElevation(u + (double3)t2 * INV_R);
     ObjectInstance r = (ObjectInstance)0; // the census's record: see tools/banc_objets.py
     r.pos.z = k.chance * 1.47 * k.d * k.d; // the cell's ground (m^2)
@@ -446,14 +459,14 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
         const float crest = smoothstep(OBJECT_CREST.x, OBJECT_CREST.y, -curvature);
         const float repose = radians(OBJECT_REPOSE.x - OBJECT_REPOSE.y * (k.octave - OBJECT_OCTAVES.x));
         const float rest = 1.0 - smoothstep(tan(repose - radians(OBJECT_REPOSE.z)), tan(repose), steepness);
-        presence = Stoniness(k.stony, 3.0 * scree + bare * (1.0 - saturate(m.humidity)) + steepness);
+        presence = Stoniness(k.stony, max(3.0 * scree + bare * (1.0 - saturate(m.humidity)), 2.5 * riverBank * loose) + steepness);
         share = presence * rest * (k.patches * (lerp(1.0, OBJECT_CREST.z, crest) * (GolombekShare(DEBRIS_ABUNDANCE.x * scree, k.d)
                                                                          + GolombekShare(DEBRIS_ABUNDANCE.y * foot, k.d))
                                      + GolombekShare(GRASS_ROCKS * grass, k.d))
-                        + k.clumps * PebbleShare(k.d) * bare);
+                        + k.clumps * PebbleShare(k.d) * max(bare, 0.6 * riverBank * loose));
     }
     else // tufts, in grass and a few dry ones on sand and bare soil, clumped
-        share = k.clumps * (TUFT_COVER.x * grass + TUFT_COVER.y * bare);
+        share = k.clumps * (TUFT_COVER.x * grass + lerp(TUFT_COVER.y, TUFT_COVER.x, riverBank * (1.0 - TreesHere(v))) * bare);
     const float chance = share * k.chance;
     if (census)
     {

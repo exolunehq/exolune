@@ -111,7 +111,8 @@ PSInput VSMain(uint id : SV_VertexID)
     output.dir = v.dir;
     output.elevation = v.elevation;
     output.water = v.water;
-    output.inland = float4(InlandSample(v.water.w, v.elevation), v.waterDistance);
+    output.inland = float4(InlandSample(v.water.w, v.waterDepth, v.waterCoverage), v.waterDistance);
+    output.water.xyz *= output.inland.x;
     output.normal = unit;
     output.decision = decision;
     output.shore = shore;

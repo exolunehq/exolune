@@ -67,6 +67,7 @@ int2 TileCell(int2 tile, uint i)
 
 // The light pass for the plants: every tile of every slice's window. A tile may be seen if one of its plants may be, by
 // the reach of the octave's tallest and the tile's size, and the vegetation on the mesh's ground there bounds them all.
+void ListGroundMiss(uint4 record);
 void CullPlantTile(uint3 id, uint slice, uint plane)
 {
     const int octave = SliceOctave(slice);
@@ -142,8 +143,10 @@ void CullPlantTile(uint3 id, uint slice, uint plane)
     if (!any)
         return;
     const uint tileIndex = (((6u - id.z / planeCount) * planeCount + plane) * 512u + id.y) * 512u + id.x;
-    stableTileRecords[tileIndex] = uint4(slice * 4 + plane | first << 8 | f32tof16(horizon) << 16, (uint)tile.x, (uint)tile.y, asuint(bound));
+    const uint4 record = uint4(slice * 4 + plane | first << 8 | f32tof16(horizon) << 16, (uint)tile.x, (uint)tile.y, asuint(bound));
+    stableTileRecords[tileIndex] = record;
     stableValues[tileIndex] = uint2(1, 0);
+    ListGroundMiss(record);
 }
 
 // The exact ground, kept from frame to frame (docs/optimisation.md, round 3): a tile's, at its first cell and half a tile
@@ -184,6 +187,62 @@ void KeepGround(uint3 key, float3 e)
         }
     }
 }
+// This frame's, kept by PlanetPlantGround before the heavy pass: no thread of the heavy pass writes its key.
+bool GroundKept(uint3 key, out float3 e)
+{
+    e = 0.0;
+    const uint bucket = Hash(key).x & (GROUND_BUCKETS - 1u);
+    [unroll] for (uint s = 0; s < 4; ++s)
+    {
+        const uint slot = 4u * bucket + s;
+        const uint4 a = groundWrite[2u * slot];
+        if (all(a.xyz == key))
+        {
+            e = float3(asfloat(a.w), asfloat(groundWrite[2u * slot + 1u].xy));
+            return true;
+        }
+    }
+    return false;
+}
+
+// A tile's key and its three exact grounds: at its first cell and half a tile away along its two axes.
+uint3 TileGroundKey(uint slice, uint plane, int2 tile, uint first)
+{
+    return uint3((uint)tile.x, (uint)tile.y, 0x80000000u | slice | first << 4 | (uint)planes[plane].x << 8 | (planes[plane].y > 0 ? 1u << 10 : 0u));
+}
+float3 TileGround(Candidate k)
+{
+    const float3 up = k.up, t1 = normalize(Axis(k.b) - up * dot(up, Axis(k.b))), t2 = cross(up, t1);
+    const double3 u = k.p * INV_R;
+    const float half = 0.5 * k.d;
+    return float3(ExactElevation(u), ExactElevation(u + (double3)t1 * (half * INV_R)), ExactElevation(u + (double3)t2 * (half * INV_R)));
+}
+
+// The light pass's survivors whose ground the last frame did not keep, for PlanetPlantGround: their rivers computed by
+// full waves of them, not by a lone lane of each heavy wave, the others idle (candidateList, dispatch: the objects' own).
+void ListGroundMiss(uint4 record)
+{
+    const uint slice = (record.x & 0xFFu) / 4, plane = record.x % 4, first = (record.x >> 8) & 0xFFu;
+    float3 e;
+    if (GroundCached(TileGroundKey(slice, plane, int2(record.yz), first), e))
+        return;
+    uint slot;
+    dispatch.InterlockedAdd(12, 1u, slot);
+    if (slot >= CANDIDATES)
+        return;
+    if (slot % 64 == 0)
+        dispatch.InterlockedAdd(0, 1u);
+    candidateList.Store4(16 * slot, record);
+}
+
+// PlanetPlantGround: a listed tile's exact ground, kept for this frame's heavy pass and the next frame.
+void PlantTileGround(uint4 record)
+{
+    const uint slice = (record.x & 0xFFu) / 4, plane = record.x % 4, first = (record.x >> 8) & 0xFFu;
+    Candidate k;
+    MakeCandidate(slice, plane, TileCell(int2(record.yz), first), k);
+    KeepGround(TileGroundKey(slice, plane, int2(record.yz), first), TileGround(k));
+}
 
 // The heavy pass for a tile: the exact ground, its slope and materials at its first cell; the climate there; then each
 // plant of its cells: where the woods and shrubs are at its place, its species drawn, kept or not, its foot on the ground,
@@ -204,13 +263,17 @@ void PlacePlantTile(uint4 record, uint tileIndex)
     const float3 up = k.up, t1 = normalize(Axis(k.b) - up * dot(up, Axis(k.b))), t2 = cross(up, t1);
     const double3 u = k.p * INV_R;
     const float half = 0.5 * k.d;
-    // A function of the tile alone, kept from frame to frame (GroundCached).
-    const uint3 groundKey = uint3((uint)tile.x, (uint)tile.y,
-                                  0x80000000u | slice | first << 4 | (uint)planes[plane].x << 8 | (planes[plane].y > 0 ? 1u << 10 : 0u));
+    // A function of the tile alone, kept from frame to frame (GroundCached); else computed by PlanetPlantGround this frame
+    // (GroundKept); else here, past its list's capacity.
+    const uint3 groundKey = TileGroundKey(slice, plane, tile, first);
     float3 e;
-    if (!GroundCached(groundKey, e))
-        e = float3(ExactElevation(u), ExactElevation(u + (double3)t1 * (half * INV_R)), ExactElevation(u + (double3)t2 * (half * INV_R)));
-    KeepGround(groundKey, e);
+    if (GroundCached(groundKey, e))
+        KeepGround(groundKey, e);
+    else if (!GroundKept(groundKey, e))
+    {
+        e = TileGround(k);
+        KeepGround(groundKey, e);
+    }
     const float e0 = e.x, e1 = e.y, e2 = e.z;
     if (max(e0, max(e1, e2)) <= 0.0)
         return;

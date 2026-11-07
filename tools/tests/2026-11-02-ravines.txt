@@ -1,0 +1,18 @@
+# Seed 0, sea-level camera altitudes. Erosion step A (EROSION_RAVINES): the pre-erosion form and its ravines, no network
+# valleys, rivers or lakes; wave-cut cliffs kept. The CPU sheets: x64/etude-relief-moteur2/<site>.jpg.
+# Check: gullies run down the slopes and branch into one another, from kilometres to metres; no stripes across the slope,
+# no seam along crests or troughs, no ground popping while descending; no water inland; coasts and the sea unchanged.
+# F1: orbit, the reported massif. F2-F4: the massif from 40 km to close. F5-F7: a snowy range. F8-F9: a dry slope.
+# F10-F11: wet mountains. F12: a tropical plain, the low-relief control. Launch with -SansNuages; N restores the clouds.
+Massif : orbite 300 km | 300000 -7.138614 122.604860 84.18 32.74 | -26.95 106.61
+Massif : 40 km | 40000 -7.138614 122.604860 84 32.74 | -26.95 106.61
+Massif : versants a 8 km | 10000 -7.138614 122.604860 60 32.74 | -26.95 106.61
+Massif : ravines de pres | 3000 -7.138614 122.604860 30 32.74 | -26.95 106.61
+Chaine enneigee : 40 km | 40000 -25.6 -26.94 84 0 | -5 -60
+Chaine enneigee : versants a 8 km | 12000 -25.6 -26.94 60 0 | -5 -60
+Chaine enneigee : ravines de pres | 4900 -25.6 -26.94 30 0 | -5 -60
+Versant sec : 4 km | 5000 26.692011 -23.292216 55 0 | 5 -50
+Versant sec : ravines de pres | 1600 26.692011 -23.292216 30 0 | 5 -50
+Montagnes humides : 5 km | 6000 42.693130 -175.950838 55 0 | 20 160
+Montagnes humides : ravines de pres | 1900 42.693130 -175.950838 30 0 | 20 160
+Plaine tropicale : temoin peu releve | 900 12.855277 27.915018 30 0 | -5 10

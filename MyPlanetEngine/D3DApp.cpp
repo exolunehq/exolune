@@ -43,7 +43,7 @@ namespace
                              FoliageHiZSrv = PlanetImpostorSrv + PlanetFoliage::DescriptorCount,
                              CloudTemporalSrv = FoliageHiZSrv + 32, // per history read: fresh, history's, drifted's
                              ShipSrv = CloudTemporalSrv + 14, TectonicSrv = ShipSrv + Ship::DescriptorCount, // its views, the climate,
-                             DescriptorCount = TectonicSrv + 6 };                    // the volcanoes, their index and erosion
+                             DescriptorCount = TectonicSrv + 7 };                    // the volcanoes, their index, erosion and its courses
     // Render target views: the back buffers, then the HDR image, the composite image, the two histories and the terrain's
     // sunlit part, for the clouds' shade.
     // Then the cloud temporal pass's fresh light and data, its two histories, light, data and offset each, and the light
@@ -312,6 +312,7 @@ D3DApp::D3DApp(HINSTANCE hInstance, double startAltitude, double latitude, doubl
     mCoordinates = mSettings.coordinates;
     mWeatherTime = mSettings.weatherTime;
     mLabel = mSettings.label;
+    mErosionMode = mSettings.erosionMode;
     ReadTests();
     ReadBatch(); // before MYPLANETENGINE_FACE_FACTOR: a job that gives no face factor takes the default one
     ReadCine();
@@ -500,6 +501,15 @@ void D3DApp::ToggleFullscreen() {
 }
 
 bool D3DApp::InitDirect3D() {
+    mGpuBreadcrumbs = GetEnvironmentVariableW(L"MYPLANETENGINE_GPU_BREADCRUMBS", nullptr, 0) != 0;
+    if (mGpuBreadcrumbs) {
+        ComPtr<ID3D12DeviceRemovedExtendedDataSettings1> dred;
+        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&dred)))) {
+            dred->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+            dred->SetBreadcrumbContextEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+            dred->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+        }
+    }
 #ifdef _DEBUG
     ComPtr<ID3D12Debug> debug;
     if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug)))) debug->EnableDebugLayer();
@@ -736,7 +746,9 @@ bool D3DApp::InitDirect3D() {
     CD3DX12_DESCRIPTOR_RANGE shipSunRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 44); // the ship's map towards the sun
     // The tectonic map and its views (Tectonics.hlsli), the climate map (Climate.hlsli), the volcanoes and their index
     // (Volcanoes.hlsli), and the erosion map (Erosion.hlsli): t18..t23.
-    CD3DX12_DESCRIPTOR_RANGE tectonicRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 6, 18);
+    // The courses built at startup follow them in the same table (Erosion.hlsli, ErosionCourseRecord): t60.
+    const CD3DX12_DESCRIPTOR_RANGE tectonicRanges[2] = { CD3DX12_DESCRIPTOR_RANGE(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 6, 18),
+                                                         CD3DX12_DESCRIPTOR_RANGE(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 60) };
     CD3DX12_ROOT_PARAMETER params[13];
     params[0].InitAsConstantBufferView(0);
     params[1].InitAsShaderResourceView(0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
@@ -749,15 +761,23 @@ bool D3DApp::InitDirect3D() {
     params[8].InitAsConstantBufferView(1);
     params[9].InitAsDescriptorTable(1,&oceanRange);
     params[10].InitAsDescriptorTable(1, &shipSunRange, D3D12_SHADER_VISIBILITY_PIXEL);
-    params[11].InitAsDescriptorTable(1, &tectonicRange, D3D12_SHADER_VISIBILITY_PIXEL);
+    params[11].InitAsDescriptorTable(2, tectonicRanges, D3D12_SHADER_VISIBILITY_PIXEL);
     params[12].InitAsShaderResourceView(52, 0, D3D12_SHADER_VISIBILITY_PIXEL); // the screen relief
     mRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(13, params, 4, samplers));
     // Terrain compute: frame constants, its output (UAV), the tectonic map the relief reads (Relief.hlsli).
     CD3DX12_ROOT_PARAMETER computeParams[3];
     computeParams[0].InitAsConstantBufferView(0);
     computeParams[1].InitAsUnorderedAccessView(0);
-    computeParams[2].InitAsDescriptorTable(1, &tectonicRange);
+    computeParams[2].InitAsDescriptorTable(2, tectonicRanges);
     mComputeRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(3, computeParams, 1, &samplers[3]));
+    CD3DX12_ROOT_PARAMETER screenParams[8];
+    screenParams[0].InitAsConstantBufferView(0);
+    screenParams[1].InitAsUnorderedAccessView(0);
+    screenParams[2].InitAsDescriptorTable(2, tectonicRanges);
+    screenParams[3].InitAsUnorderedAccessView(1);
+    screenParams[4].InitAsConstants(1, 1);
+    for (UINT i = 0; i != 3; ++i) screenParams[5 + i].InitAsUnorderedAccessView(2 + i); // the wide queries (ScreenRiverTasks.hlsli)
+    mScreenRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(8, screenParams, 1, &samplers[3]));
     // Fine grid normals: frame constants, the grid's positions (SRV), its normals (UAV). Its positions use the
     // terrain compute's signature.
     CD3DX12_ROOT_PARAMETER fineParams[3];
@@ -782,7 +802,7 @@ bool D3DApp::InitDirect3D() {
     objectParams[10].InitAsDescriptorTable(1, &planetMapRange); // the plants' exposure (Vegetation.hlsli)
     for (UINT i = 0; i < 4; ++i) objectParams[11 + i].InitAsUnorderedAccessView(4 + i); // stable plant scratch
     for (UINT i = 0; i < 3; ++i) objectParams[15 + i].InitAsUnorderedAccessView(8 + i); // the plant tiles' kept ground (PlanetPlantPlacement)
-    objectParams[18].InitAsDescriptorTable(1, &tectonicRange); // the relief's tectonic map, for the exact ground
+    objectParams[18].InitAsDescriptorTable(2, tectonicRanges); // the relief's tectonic map, for the exact ground
     const CD3DX12_STATIC_SAMPLER_DESC objectSamplers[2] = { samplers[1], samplers[3] };
     mObjectRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(19, objectParams, 2, objectSamplers));
     // The atmosphere pass, full screen: frame constants, HDR and atmosphere tables, the relief shadow mesh, the terrain's
@@ -945,9 +965,18 @@ bool D3DApp::InitDirect3D() {
     computeDesc.CS = CD3DX12_SHADER_BYTECODE(fineNormalsCs.Get());
     Check(md3dDevice->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&mFineNormalsPSO)), "Fine normals PSO creation failed.");
     ComPtr<ID3DBlob> screenReliefCs = LoadShader(L"ScreenRelief.cso"); // the terrain compute's signature
-    computeDesc.pRootSignature = mComputeRootSignature.Get();
+    computeDesc.pRootSignature = mScreenRootSignature.Get();
     computeDesc.CS = CD3DX12_SHADER_BYTECODE(screenReliefCs.Get());
     Check(md3dDevice->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&mScreenReliefPSO)), "Screen relief PSO creation failed.");
+    ComPtr<ID3DBlob> screenRiversCs = LoadShader(L"ScreenRivers.cso");
+    computeDesc.CS = CD3DX12_SHADER_BYTECODE(screenRiversCs.Get());
+    Check(md3dDevice->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&mScreenRiversPSO)), "Screen rivers PSO creation failed.");
+    ComPtr<ID3DBlob> screenRiverTexelCs = LoadShader(L"ScreenRiverTexel.cso");
+    computeDesc.CS = CD3DX12_SHADER_BYTECODE(screenRiverTexelCs.Get());
+    Check(md3dDevice->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&mScreenRiverTexelPSO)), "Screen river texel PSO creation failed.");
+    ComPtr<ID3DBlob> screenRiverArgsCs = LoadShader(L"ScreenRiverArgs.cso");
+    computeDesc.CS = CD3DX12_SHADER_BYTECODE(screenRiverArgsCs.Get());
+    Check(md3dDevice->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&mScreenRiverArgsPSO)), "Screen river arguments PSO creation failed.");
     ComPtr<ID3DBlob> placementCs = LoadShader(L"ObjectPlacement.cso");
     computeDesc.pRootSignature = mObjectRootSignature.Get();
     computeDesc.CS = CD3DX12_SHADER_BYTECODE(placementCs.Get());
@@ -1018,6 +1047,10 @@ bool D3DApp::InitDirect3D() {
     mScreenPositions = CreateBuffer(md3dDevice.Get(), ScreenSampleBytes * ScreenReliefMaxTexels, D3D12_HEAP_TYPE_DEFAULT,
         D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 
+    if (!mSettings.capturePath.empty() && GetEnvironmentVariableW(L"MYPLANETENGINE_SCREEN_DUMP", nullptr, 0))
+        mScreenCaptureBuffer = CreateBuffer(md3dDevice.Get(), ScreenSampleBytes * ScreenReliefMaxTexels,
+            D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
+
     // Objects: their instances, the draw's arguments and the measures, the candidates and the second pass's dispatch,
     // reset every frame from an upload copy; the shapes, uploaded below.
     mObjectInstances = CreateBuffer(md3dDevice.Get(), sizeof(ObjectInstance) * ObjectCapacity, D3D12_HEAP_TYPE_DEFAULT,
@@ -1059,7 +1092,7 @@ bool D3DApp::InitDirect3D() {
     // GPU timestamps.
     D3D12_QUERY_HEAP_DESC queryDesc = {};
     queryDesc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
-    queryDesc.Count = 22; // frame, ocean, foliage, batch foliage, cloud atmosphere and its trace, the terrain's colour
+    queryDesc.Count = ScreenTimestampCount;
     Check(md3dDevice->CreateQueryHeap(&queryDesc, IID_PPV_ARGS(&mTimestampHeap)), "Timestamp heap creation failed.");
     mTimestampBuffer = CreateBuffer(md3dDevice.Get(), queryDesc.Count * sizeof(UINT64), D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
     mCommandQueue->GetTimestampFrequency(&mTimestampFrequency);
@@ -1444,82 +1477,228 @@ Tectonics::Map D3DApp::CreateTectonicMap() {
     return map;
 }
 
-// The erosion level 0: pre-erosion ground on the GPU, drainage on the CPU, uploaded at t23.
+// The erosion level 0: pre-erosion ground on the GPU, drainage on the CPU, uploaded at t23. When the cache is stale, step
+// B's courses are then measured on the GPU where they are drawn, their sinuosity (ErosionNodes.hlsl) and the relief they
+// cross (ErosionStages.hlsl), their stages conditioned on the CPU (Erosion::Condition) and the map uploaded again.
 void D3DApp::CreateErosionMap(const Tectonics::Map& tectonics, ID3D12PipelineState* pso) {
-    LARGE_INTEGER t0, t1;
+    LARGE_INTEGER t0, t1, tc = {};
     QueryPerformanceCounter(&t0);
     const uint32_t seed = mSettings.seed, n = tectonics.size, cells = 6 * n * n;
-    const UINT64 bytes = sizeof(float) * cells;
-    ComPtr<ID3D12Resource> form = CreateBuffer(md3dDevice.Get(), bytes, D3D12_HEAP_TYPE_DEFAULT,
+    const UINT64 bytes = sizeof(Erosion::Course) * cells; // the largest pass's
+    ComPtr<ID3D12Resource> target = CreateBuffer(md3dDevice.Get(), bytes, D3D12_HEAP_TYPE_DEFAULT,
         D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     ComPtr<ID3D12Resource> readback = CreateBuffer(md3dDevice.Get(), bytes, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
-    mCommandAllocator->Reset();
-    mCommandList->Reset(mCommandAllocator.Get(), pso);
-    auto toWrite = CD3DX12_RESOURCE_BARRIER::Transition(form.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    mCommandList->ResourceBarrier(1, &toWrite);
-    ID3D12DescriptorHeap* heaps[] = { mSrvHeap.Get() };
-    mCommandList->SetDescriptorHeaps(1, heaps);
-    mCommandList->SetComputeRootSignature(mComputeRootSignature.Get());
-    mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
-    mCommandList->SetComputeRootUnorderedAccessView(1, form->GetGPUVirtualAddress());
-    mCommandList->SetComputeRootDescriptorTable(2, GpuDescriptor(TectonicSrv));
-    mCommandList->Dispatch(n * n / 64, 6, 1);
-    auto toCopy = CD3DX12_RESOURCE_BARRIER::Transition(form.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
-    mCommandList->ResourceBarrier(1, &toCopy);
-    mCommandList->CopyResource(readback.Get(), form.Get());
-    mCommandList->Close();
     ID3D12CommandList* lists[] = { mCommandList.Get() };
-    mCommandQueue->ExecuteCommandLists(1, lists);
-    WaitForPreviousFrame();
+    // One pass over the cells into `target`, read back into `out`; buffers decay to COMMON after each execution.
+    auto run = [&](ID3D12PipelineState* pass, void* out, UINT64 size) {
+        mCommandAllocator->Reset();
+        mCommandList->Reset(mCommandAllocator.Get(), pass);
+        auto toWrite = CD3DX12_RESOURCE_BARRIER::Transition(target.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        mCommandList->ResourceBarrier(1, &toWrite);
+        ID3D12DescriptorHeap* heaps[] = { mSrvHeap.Get() };
+        mCommandList->SetDescriptorHeaps(1, heaps);
+        mCommandList->SetComputeRootSignature(mComputeRootSignature.Get());
+        mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
+        mCommandList->SetComputeRootUnorderedAccessView(1, target->GetGPUVirtualAddress());
+        mCommandList->SetComputeRootDescriptorTable(2, GpuDescriptor(TectonicSrv));
+        mCommandList->Dispatch(n * n / 64, 6, 1);
+        auto toCopy = CD3DX12_RESOURCE_BARRIER::Transition(target.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+        mCommandList->ResourceBarrier(1, &toCopy);
+        mCommandList->CopyBufferRegion(readback.Get(), 0, target.Get(), 0, size);
+        mCommandList->Close();
+        mCommandQueue->ExecuteCommandLists(1, lists);
+        WaitForPreviousFrame();
+        void* mapped = nullptr;
+        CD3DX12_RANGE readRange(0, size), noWrite(0, 0);
+        Check(readback->Map(0, &readRange, &mapped), "Erosion readback failed.");
+        memcpy(out, mapped, size);
+        readback->Unmap(0, &noWrite);
+    };
+    mErosionSize = n;
+    auto courseView = [&](ID3D12Resource* resource, UINT elements) {
+        D3D12_SHADER_RESOURCE_VIEW_DESC view = {};
+        view.Format = DXGI_FORMAT_UNKNOWN;
+        view.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+        view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        view.Buffer.NumElements = elements;
+        view.Buffer.StructureByteStride = ErosionCourseBytes;
+        md3dDevice->CreateShaderResourceView(resource, &view, CD3DX12_CPU_DESCRIPTOR_HANDLE(mSrvHeap->GetCPUDescriptorHandleForHeapStart(),
+            TectonicSrv + 6, md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+    };
+    courseView(nullptr, 1);
     std::vector<float> e(cells);
-    void* mapped = nullptr;
-    CD3DX12_RANGE readRange(0, bytes), noWrite(0, 0);
-    Check(readback->Map(0, &readRange, &mapped), "Erosion form readback failed.");
-    memcpy(e.data(), mapped, bytes);
-    readback->Unmap(0, &noWrite);
+    run(pso, e.data(), sizeof(float) * cells);
 
-    // The network from the cache when the form, climate, seed and executable's time agree; else computed.
+    // Step B's passes: their compiled code is in the cache's key, as their settings are.
+    auto compute = [&](ID3DBlob* shader) {
+        D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
+        psoDesc.pRootSignature = mComputeRootSignature.Get();
+        psoDesc.CS = CD3DX12_SHADER_BYTECODE(shader);
+        ComPtr<ID3D12PipelineState> pass;
+        Check(md3dDevice->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&pass)), "Erosion pass PSO creation failed.");
+        return pass;
+    };
+    const ComPtr<ID3DBlob> nodesShader = LoadShader(L"ErosionNodes.cso"), stagesShader = LoadShader(L"ErosionStages.cso");
+    const ComPtr<ID3DBlob> contactsShader = LoadShader(L"ErosionContacts.cso");
+    uint64_t passes = 0xcbf29ce484222325ull; // FNV-1a over the three startup shaders
+    for (ID3DBlob* blob : { nodesShader.Get(), stagesShader.Get(), contactsShader.Get() })
+        for (size_t i = 0; i < blob->GetBufferSize(); ++i)
+            passes = (passes ^ static_cast<const uint8_t*>(blob->GetBufferPointer())[i]) * 0x100000001b3ull;
+
+    // The network from the cache when the form, climate, seed, executable's time and passes agree; else computed.
     wchar_t exePath[MAX_PATH] = {};
     GetModuleFileNameW(nullptr, exePath, MAX_PATH);
     WIN32_FILE_ATTRIBUTE_DATA exeInfo = {};
     GetFileAttributesExW(exePath, GetFileExInfoStandard, &exeInfo);
     const uint64_t key = Erosion::Key(e, mClimateCpu, seed,
-        uint64_t(exeInfo.ftLastWriteTime.dwHighDateTime) << 32 | exeInfo.ftLastWriteTime.dwLowDateTime);
+        uint64_t(exeInfo.ftLastWriteTime.dwHighDateTime) << 32 | exeInfo.ftLastWriteTime.dwLowDateTime, passes);
     std::wstring cache(exePath);
     cache = cache.substr(0, cache.find_last_of(L"\\/") + 1) + L"erosion-" + std::to_wstring(seed) + L".bin";
     Erosion::Map map;
-    if (!Erosion::Load(map, key, cache)) {
+    const bool cached = Erosion::Load(map, key, cache);
+    std::vector<uint32_t> nodes;
+    mErosionCoursesMs = 0.0;
+    if (!cached) {
         map = Erosion::Build(tectonics, mClimateCpu, e, PlanetRadius / 1000.0);
-        Erosion::Save(map, seed, key, cache);
+        QueryPerformanceCounter(&tc);
+        nodes.resize(2 * size_t(cells));
+        run(compute(nodesShader.Get()).Get(), nodes.data(), sizeof(uint32_t) * nodes.size());
+        Erosion::SetSinuosity(map, nodes);
     }
     mErosionBuildMs = map.ms;
+
+    // The physical cache retains its 24 slices. Six GPU-only slices hold exact 8x8 activity masks, six the node bounds,
+    // six the rivers' map for wide footprints (ErosionRiverMap.hlsl). They share t23 in every terrain consumer.
+    const UINT gpuSlices = Erosion::Slices + 18;
+    std::vector<uint32_t> activity(size_t(cells) * 2, 0u);
+    std::vector<uint32_t> eligible(size_t(cells) * 2, 0u);
+    std::vector<uint32_t> rivers(size_t(cells) * 2, 0u);
+    // The map at t23: created once, uploaded again once the stages are conditioned.
     CD3DX12_HEAP_PROPERTIES defaultHeap(D3D12_HEAP_TYPE_DEFAULT);
-    CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32G32_UINT, n, n, 12, 1);
+    CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32G32_UINT, n, n, gpuSlices, 1);
     Check(md3dDevice->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COPY_DEST,
         nullptr, IID_PPV_ARGS(&mErosionMap)), "Erosion map creation failed.");
-    mErosionMb = double(cells) * 16.0 / (1024.0 * 1024.0);
-    ComPtr<ID3D12Resource> upload = CreateBuffer(md3dDevice.Get(), GetRequiredIntermediateSize(mErosionMap.Get(), 0, 12),
+    mErosionMb = double(cells) * 56.0 / (1024.0 * 1024.0);
+    ComPtr<ID3D12Resource> upload = CreateBuffer(md3dDevice.Get(), GetRequiredIntermediateSize(mErosionMap.Get(), 0, gpuSlices),
         D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-    std::vector<D3D12_SUBRESOURCE_DATA> data(12);
-    for (UINT face = 0; face < 12; ++face)
-        data[face] = { &map.texels[size_t(face) * n * n * 2], LONG_PTR(n) * 8, LONG_PTR(n) * n * 8 };
-    mCommandAllocator->Reset();
-    mCommandList->Reset(mCommandAllocator.Get(), nullptr);
-    UpdateSubresources(mCommandList.Get(), mErosionMap.Get(), upload.Get(), 0, 0, 12, data.data());
-    auto toRead = CD3DX12_RESOURCE_BARRIER::Transition(mErosionMap.Get(), D3D12_RESOURCE_STATE_COPY_DEST,
-        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    mCommandList->ResourceBarrier(1, &toRead);
-    mCommandList->Close();
-    mCommandQueue->ExecuteCommandLists(1, lists);
-    WaitForPreviousFrame();
+    const D3D12_RESOURCE_STATES readable = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+    bool uploaded = false;
+    auto send = [&]() {
+        std::vector<D3D12_SUBRESOURCE_DATA> data(gpuSlices);
+        for (UINT face = 0; face < Erosion::Slices; ++face)
+            data[face] = { &map.texels[size_t(face) * n * n * 2], LONG_PTR(n) * 8, LONG_PTR(n) * n * 8 };
+        for (UINT face = 0; face < 6; ++face)
+            data[Erosion::Slices + face] = { &activity[size_t(face) * n * n * 2], LONG_PTR(n) * 8, LONG_PTR(n) * n * 8 };
+        for (UINT face = 0; face < 6; ++face)
+            data[Erosion::Slices + 6 + face] = { &eligible[size_t(face) * n * n * 2], LONG_PTR(n) * 8, LONG_PTR(n) * n * 8 };
+        for (UINT face = 0; face < 6; ++face)
+            data[Erosion::Slices + 12 + face] = { &rivers[size_t(face) * n * n * 2], LONG_PTR(n) * 8, LONG_PTR(n) * n * 8 };
+        mCommandAllocator->Reset();
+        mCommandList->Reset(mCommandAllocator.Get(), nullptr);
+        if (uploaded) {
+            auto toCopy = CD3DX12_RESOURCE_BARRIER::Transition(mErosionMap.Get(), readable, D3D12_RESOURCE_STATE_COPY_DEST);
+            mCommandList->ResourceBarrier(1, &toCopy);
+        }
+        UpdateSubresources(mCommandList.Get(), mErosionMap.Get(), upload.Get(), 0, 0, gpuSlices, data.data());
+        auto toRead = CD3DX12_RESOURCE_BARRIER::Transition(mErosionMap.Get(), D3D12_RESOURCE_STATE_COPY_DEST, readable);
+        mCommandList->ResourceBarrier(1, &toRead);
+        mCommandList->Close();
+        mCommandQueue->ExecuteCommandLists(1, lists);
+        WaitForPreviousFrame();
+        uploaded = true;
+    };
+    send();
     D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
     srv.Format = DXGI_FORMAT_R32G32_UINT;
     srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
     srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     srv.Texture2DArray.MipLevels = 1;
-    srv.Texture2DArray.ArraySize = 12;
+    srv.Texture2DArray.ArraySize = gpuSlices;
     md3dDevice->CreateShaderResourceView(mErosionMap.Get(), &srv, CD3DX12_CPU_DESCRIPTOR_HANDLE(mSrvHeap->GetCPUDescriptorHandleForHeapStart(),
         TectonicSrv + 5, md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+    if (!cached) {
+        std::vector<Erosion::Course> courses(cells);
+        run(compute(stagesShader.Get()).Get(), courses.data(), sizeof(Erosion::Course) * cells);
+        Erosion::Condition(map, courses, nodes);
+        send();
+        std::vector<Erosion::Contacts> contacts(cells);
+        run(compute(contactsShader.Get()).Get(), contacts.data(), sizeof(Erosion::Contacts) * cells);
+        Erosion::StopAtWater(map, contacts, courses);
+        send();
+        LARGE_INTEGER td;
+        QueryPerformanceCounter(&td);
+        mErosionCoursesMs = 1000.0 * double(td.QuadPart - tc.QuadPart) / mFrequency.QuadPart;
+        Erosion::Save(map, seed, key, cache);
+    }
+    if (n >= 8 && n % 8 == 0) {
+        const ComPtr<ID3DBlob> activityShader = LoadShader(L"ErosionActivity.cso");
+        run(compute(activityShader.Get()).Get(), eligible.data(), sizeof(uint32_t) * eligible.size());
+        // Each eligible node's courses, numbered: its main course, then its connectors (ErosionCourseBuild.hlsl).
+        uint32_t courseCount = 0;
+        for (size_t c = 0; c < cells; ++c)
+            if (eligible[2 * c] & 1u) {
+                const uint32_t connectors = eligible[2 * c] >> 1;
+                eligible[2 * c] = 1u | courseCount << 1;
+                courseCount += 1 + connectors;
+            }
+        // The word keeps 18 bits for its first course (Erosion.hlsli, EROSION_FIRST_MASK).
+        if (courseCount > 0x3ffffu) throw std::runtime_error("Too many river courses for the node words.");
+        activity = eligible;
+        send();
+        {
+            mErosionCourses = CreateBuffer(md3dDevice.Get(), UINT64(std::max(courseCount, 1u)) * ErosionCourseBytes,
+                D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+            const ComPtr<ID3DBlob> courseShader = LoadShader(L"ErosionCourseBuild.cso");
+            const ComPtr<ID3D12PipelineState> coursePass = compute(courseShader.Get());
+            mCommandAllocator->Reset();
+            mCommandList->Reset(mCommandAllocator.Get(), coursePass.Get());
+            auto toWrite = CD3DX12_RESOURCE_BARRIER::Transition(mErosionCourses.Get(), D3D12_RESOURCE_STATE_COMMON,
+                D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+            mCommandList->ResourceBarrier(1, &toWrite);
+            ID3D12DescriptorHeap* heaps[] = { mSrvHeap.Get() };
+            mCommandList->SetDescriptorHeaps(1, heaps);
+            mCommandList->SetComputeRootSignature(mComputeRootSignature.Get());
+            mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
+            mCommandList->SetComputeRootUnorderedAccessView(1, mErosionCourses->GetGPUVirtualAddress());
+            mCommandList->SetComputeRootDescriptorTable(2, GpuDescriptor(TectonicSrv));
+            mCommandList->Dispatch(n * n / 64, 6, 1);
+            auto toRead = CD3DX12_RESOURCE_BARRIER::Transition(mErosionCourses.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, readable);
+            mCommandList->ResourceBarrier(1, &toRead);
+            mCommandList->Close();
+            mCommandQueue->ExecuteCommandLists(1, lists);
+            WaitForPreviousFrame();
+            courseView(mErosionCourses.Get(), std::max(courseCount, 1u));
+            mErosionCourseCount = courseCount;
+        }
+        // Each node's word marks whether one of its courses can carry a channel: the water contour lists no other.
+        const ComPtr<ID3DBlob> wetShader = LoadShader(L"ErosionCourseWet.cso");
+        run(compute(wetShader.Get()).Get(), eligible.data(), sizeof(uint32_t) * eligible.size());
+        const ComPtr<ID3DBlob> tilesShader = LoadShader(L"ErosionActivityTiles.cso");
+        run(compute(tilesShader.Get()).Get(), activity.data(), sizeof(uint32_t) * activity.size());
+        activity[2 * (size_t(n) * n - 1)] = 0x45524934u; // ERI4: original chart, conservative projected course bounds, built courses
+        wchar_t activityDump[MAX_PATH] = {};
+        if (GetEnvironmentVariableW(L"MYPLANETENGINE_EROSION_ACTIVITY_DUMP", activityDump, MAX_PATH)) {
+            FILE* file = nullptr;
+            if (_wfopen_s(&file, activityDump, L"wb") || !file) throw std::runtime_error("Cannot write erosion activity diagnostic.");
+            const bool ok = fwrite(&n, sizeof(n), 1, file) == 1
+                && fwrite(eligible.data(), sizeof(uint32_t), eligible.size(), file) == eligible.size()
+                && fwrite(activity.data(), sizeof(uint32_t), activity.size(), file) == activity.size();
+            const int closed = fclose(file);
+            if (!ok || closed) throw std::runtime_error("Cannot complete erosion activity diagnostic.");
+        }
+        send();
+    }
+    // Then the rivers' map, from the complete evaluation with the index above; frames read it once it is there.
+    if (n > 2 * 4) {
+        LARGE_INTEGER tr0, tr1;
+        QueryPerformanceCounter(&tr0);
+        const ComPtr<ID3DBlob> riverShader = LoadShader(L"ErosionRiverMap.cso");
+        run(compute(riverShader.Get()).Get(), rivers.data(), sizeof(uint32_t) * rivers.size());
+        send();
+        mErosionRiverMap = true;
+        QueryPerformanceCounter(&tr1);
+        mErosionRiverMapMs = 1000.0 * double(tr1.QuadPart - tr0.QuadPart) / mFrequency.QuadPart;
+    }
     QueryPerformanceCounter(&t1);
     mErosionMs = 1000.0 * double(t1.QuadPart - t0.QuadPart) / mFrequency.QuadPart;
 }
@@ -1909,12 +2088,17 @@ void D3DApp::Draw() {
     const float fineWeight = (float)(fineRise * fineRise * (3.0 - 2.0 * fineRise));
     mConstants->ringParams = { (float)ringCount, (float)RingGrowth, fineWeight, (float)FineSubdivision };
     // The screen relief, from orbit down to where the fine grid and the per-pixel detail carry the relief to the pixel.
+    bool screenCovers = false;
     {
         const UINT across = (mClientWidth + ScreenReliefScale - 1) / ScreenReliefScale;
         const UINT down = std::min((mClientHeight + ScreenReliefScale - 1) / ScreenReliefScale, ScreenReliefMaxTexels / across);
         const double rise = std::min(std::max((camAltitude - ScreenReliefLow) / (ScreenReliefHigh - ScreenReliefLow), 0.0), 1.0);
-        mConstants->screenRelief = { (float)across, (float)down, (float)(rise * rise * (3.0 - 2.0 * rise)), (float)ScreenReliefScale };
+        const float weight = (float)(rise * rise * (3.0 - 2.0 * rise));
+        mConstants->screenRelief = { (float)across, (float)down, weight, (float)ScreenReliefScale };
+        // At full weight on every row, the pixel reads the fine grid only at the limb (FineTerrain.hlsl).
+        screenCovers = weight >= 1.0f && down * ScreenReliefScale >= mClientHeight;
     }
+    mConstants->erosionMode = { mErosionMode, screenCovers ? 1u : 0u, mErosionRiverMap ? 1u : 0u, 0u };
     XMStoreFloat4(&mConstants->lightDir, toLocal(mSunDir));
     XMStoreFloat4(&mConstants->camVertical, toLocal(up));
     mConstants->camVertical.w = (float)(camAltitude / 1000.0);
@@ -1932,7 +2116,7 @@ void D3DApp::Draw() {
     const TerrainInputs terrainInputs = { mConstants->faceX, mConstants->faceY, mConstants->faceZ, mConstants->faceParams,
         { mConstants->nadir[0], mConstants->nadir[1], mConstants->nadir[2], mConstants->nadir[3] }, mConstants->ringParams,
         mConstants->camPlane, mConstants->lightDir, mConstants->camRight, mConstants->camUp, mConstants->camForward,
-        mConstants->waveAxisX };
+        { 0.0f, 0.0f, 0.0f, mConstants->waveAxisX.w } };
     bool sameMesh = mTerrainKept && std::memcmp(&terrainInputs, &mTerrainInputs, offsetof(TerrainInputs, lightDir)) == 0;
     bool sameTerrain = sameMesh && std::memcmp(&terrainInputs, &mTerrainInputs, sizeof(TerrainInputs)) == 0;
     mTerrainInputs = terrainInputs;
@@ -1952,6 +2136,9 @@ void D3DApp::Draw() {
     mCommandAllocator->Reset();
     mCommandList->Reset(mCommandAllocator.Get(), nullptr);
     QueueFlightContact();
+    auto gpuStage = [&](const wchar_t* label) {
+        if (mGpuBreadcrumbs) mCommandList->SetMarker(0, label, UINT((wcslen(label) + 1) * sizeof(wchar_t)));
+    };
     if (mView==View::Walk) QueueWalkGround();
     if (!mSettings.Automated()) QueueWorldSound();
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0);
@@ -1962,6 +2149,7 @@ void D3DApp::Draw() {
     mCommandList->EndQuery(mTimestampHeap.Get(),D3D12_QUERY_TYPE_TIMESTAMP,7);
 
     // 1. Compute: elevations of the whole mesh, every frame its inputs change. Buffers are back to COMMON after each frame.
+    gpuStage(L"Terrain mesh");
     auto toUav = CD3DX12_RESOURCE_BARRIER::Transition(mFaceVertexBuffer.Get(),
         D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     mCommandList->ResourceBarrier(1, &toUav);
@@ -1972,7 +2160,10 @@ void D3DApp::Draw() {
     mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
     mCommandList->SetComputeRootUnorderedAccessView(1, mFaceVertexBuffer->GetGPUVirtualAddress());
     mCommandList->SetComputeRootDescriptorTable(2, GpuDescriptor(TectonicSrv));
-    if (!sameTerrain) mCommandList->Dispatch((vertexCount + 63) / 64, 1, 1);
+    // By 8 x 8 tiles of vertices (TerrainCompute.hlsl): the face's grid, then its rings by 8; 4 n vertices a ring.
+    static_assert(FaceCells % 2 == 0, "the rings' tiles take 8 of their 4 n vertices");
+    const UINT meshGroups = ((FaceCells + 8) / 8) * ((FaceCells + 8) / 8) + ((ringCount + 7) / 8) * (FaceCells / 2);
+    if (!sameTerrain) mCommandList->Dispatch(meshGroups, 1, 1);
     if (latticePairs) {
         // The vertex under the camera, left by the pairs, from the exact shader as it is: the mesh kept (camPlane.z), it
         // computes only the vertices without terrain. The camera stands on the same ground as on the exact mesh.
@@ -1982,9 +2173,10 @@ void D3DApp::Draw() {
         mCommandList->ResourceBarrier(1, &pairsWritten);
         mCommandList->SetPipelineState(mComputePSO.Get());
         mCommandList->SetComputeRootConstantBufferView(0, mNadirConstantBuffer->GetGPUVirtualAddress());
-        mCommandList->Dispatch((vertexCount + 63) / 64, 1, 1);
+        mCommandList->Dispatch(meshGroups, 1, 1);
         mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
     }
+    mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 35);
     // The march toward the sun, into the same vertices: the terrain's horizon, for its cast shadow, and the shadow height,
     // for the air (Shadows.hlsli).
     auto terrainWritten = CD3DX12_RESOURCE_BARRIER::UAV(mFaceVertexBuffer.Get());
@@ -1995,6 +2187,7 @@ void D3DApp::Draw() {
         D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_COPY_SOURCE);
     mCommandList->ResourceBarrier(1, &toRead);
 
+    mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 36);
     // The fine grid (docs/spec-rendu-lointain.md, step 2): positions, then normals, away from the ground only.
     if (fineWeight > 0.0f)
     {
@@ -2002,8 +2195,11 @@ void D3DApp::Draw() {
             D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
         mCommandList->ResourceBarrier(1, &fineToWrite);
         mCommandList->SetPipelineState(mFineTerrainPSO.Get());
+        gpuStage(L"Terrain fine grid");
         mCommandList->SetComputeRootUnorderedAccessView(1, mFinePositions->GetGPUVirtualAddress());
-        if (!sameTerrain) mCommandList->Dispatch((FineVertexCount + 63) / 64, 1, 1);
+        // By 8 x 8 tiles of samples (FineTerrain.hlsl).
+        if (!sameTerrain) mCommandList->Dispatch((FaceCells * FineSubdivision + 8) / 8, (FaceCells * FineSubdivision + 8) / 8, 1);
+        mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 37);
         auto fineToRead = CD3DX12_RESOURCE_BARRIER::Transition(mFinePositions.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
             D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         auto normalsToWrite = CD3DX12_RESOURCE_BARRIER::Transition(mFineNormals.Get(), D3D12_RESOURCE_STATE_COMMON,
@@ -2020,19 +2216,118 @@ void D3DApp::Draw() {
             D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         mCommandList->ResourceBarrier(1, &normalsToRead);
     }
-    // The screen relief (ScreenRelief.hlsl): every frame, as the view's rays move with the camera.
+    else mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 37);
+    mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 38);
+    // Ground, river geometry and finish retain the same two physical ray queries in smaller kernels.
+    gpuStage(L"Screen relief");
+    mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 22);
     {
-        const UINT texels = (UINT)mConstants->screenRelief.x * (UINT)mConstants->screenRelief.y;
+        const UINT across = (UINT)mConstants->screenRelief.x, down = (UINT)mConstants->screenRelief.y;
         const bool on = mConstants->screenRelief.z > 0.0f;
+        const ScreenInputs screenInputs = { mConstants->faceX, mConstants->faceY, mConstants->faceZ,
+            { mConstants->nadir[0], mConstants->nadir[1], mConstants->nadir[2], mConstants->nadir[3] },
+            { mConstants->camPlane.x, mConstants->camPlane.y, mConstants->faceParams.y, mConstants->faceParams.z },
+            mConstants->camRight, mConstants->camUp, mConstants->camForward,
+            { mConstants->taa.w, 0.0f, 0.0f, 0.0f }, mConstants->screenRelief, mConstants->erosionMode };
+        const bool sameScreen = mScreenKept && std::memcmp(&screenInputs, &mScreenInputs, sizeof(ScreenInputs)) == 0;
+        mScreenUpdated = on && !sameScreen;
+        mScreenInputs = screenInputs;
+        mScreenKept = on;
         auto toWrite = CD3DX12_RESOURCE_BARRIER::Transition(mScreenPositions.Get(), D3D12_RESOURCE_STATE_COMMON,
             D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
         mCommandList->ResourceBarrier(1, &toWrite);
-        mCommandList->SetComputeRootSignature(mComputeRootSignature.Get());
-        mCommandList->SetPipelineState(mScreenReliefPSO.Get());
-        mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
-        mCommandList->SetComputeRootUnorderedAccessView(1, mScreenPositions->GetGPUVirtualAddress());
-        mCommandList->SetComputeRootDescriptorTable(2, GpuDescriptor(TectonicSrv));
-        if (on) mCommandList->Dispatch((texels + 63) / 64, 1, 1);
+        if (on && !sameScreen) {
+            // Allocate only the current view's work, not a full 4K scratch buffer for every window.
+            // The previous frame has completed before recording this one.
+            if (across * down > mScreenWorkTexels) {
+                mScreenWorkTexels = across * down;
+                mScreenWork = CreateBuffer(md3dDevice.Get(), ScreenWorkBytes * mScreenWorkTexels, D3D12_HEAP_TYPE_DEFAULT,
+                    D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+                auto scratch = [&](UINT64 bytes) {
+                    return CreateBuffer(md3dDevice.Get(), bytes, D3D12_HEAP_TYPE_DEFAULT,
+                        D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+                };
+                mScreenRiverCounter = scratch(4); // the wide queries (ScreenRiverTexel.hlsl)
+                mScreenRiverDispatch = scratch(12); // their dispatch's arguments
+                mScreenRiverFallback = scratch(4ull * mScreenWorkTexels);
+            }
+            auto workToWrite = CD3DX12_RESOURCE_BARRIER::Transition(mScreenWork.Get(), D3D12_RESOURCE_STATE_COMMON,
+                D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+            mCommandList->ResourceBarrier(1, &workToWrite);
+            mCommandList->SetComputeRootSignature(mScreenRootSignature.Get());
+            mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
+            mCommandList->SetComputeRootUnorderedAccessView(1, mScreenPositions->GetGPUVirtualAddress());
+            mCommandList->SetComputeRootDescriptorTable(2, GpuDescriptor(TectonicSrv));
+            mCommandList->SetComputeRootUnorderedAccessView(3, mScreenWork->GetGPUVirtualAddress());
+            mCommandList->SetComputeRootUnorderedAccessView(5, mScreenRiverCounter->GetGPUVirtualAddress());
+            mCommandList->SetComputeRootUnorderedAccessView(6, mScreenRiverDispatch->GetGPUVirtualAddress());
+            mCommandList->SetComputeRootUnorderedAccessView(7, mScreenRiverFallback->GetGPUVirtualAddress());
+            const auto workWritten = CD3DX12_RESOURCE_BARRIER::UAV(mScreenWork.Get());
+            const auto screenWritten = CD3DX12_RESOURCE_BARRIER::UAV(mScreenPositions.Get());
+            const auto allWritten = CD3DX12_RESOURCE_BARRIER::UAV(nullptr);
+            // Every footprint reads the rivers' map, or no river is drawn: both rays in the ground pass, finished there,
+            // without the river passes (ScreenRelief.hlsl). The nearest ground is the nadir's, the highest summit up;
+            // a texel's river radius is twice its footprint (ScreenBandwidth), the map alone from sqrt 2 of its cells.
+            const double mapCell = mErosionSize > 8 ? 2.0 * PlanetRadius / double(mErosionSize - 8) : 1e30;
+            const bool direct = mErosionMode < 2 || (mErosionRiverMap
+                && 2.0 * (camAltitude - 10e3) * double(mConstants->taa.w) * double(mConstants->screenRelief.w) >= 1.4143 * mapCell);
+            if (direct) {
+                mCommandList->SetComputeRoot32BitConstant(4, 2u, 0);
+                mCommandList->SetPipelineState(mScreenReliefPSO.Get());
+                gpuStage(L"Screen ground, direct");
+                mCommandList->Dispatch((across + 7) / 8, (down + 7) / 8, 1);
+                mCommandList->ResourceBarrier(1, &screenWritten);
+                for (UINT stamp = 23; stamp != 35; ++stamp)
+                    mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, stamp);
+            }
+            for (UINT pass = 0; pass != (direct ? 0u : 2u); ++pass) {
+                // At full weight, one river query per texel: the first pass only places the ground for the parallax;
+                // the second evaluates its rivers, at the raised point or at the kept sea-level one (ScreenRelief.hlsl).
+                const bool rivers = pass != 0 || mConstants->screenRelief.z < 1.0f;
+                // Without them, the first ray's ground is finished in its own pass (ScreenRelief.hlsl, bit 2).
+                const bool finished = !rivers;
+                mCommandList->SetComputeRoot32BitConstant(4, finished ? 4u : pass, 0);
+                mCommandList->SetPipelineState(mScreenReliefPSO.Get());
+                gpuStage(L"Screen ground");
+                mCommandList->Dispatch((across + 7) / 8, (down + 7) / 8, 1);
+                mCommandList->ResourceBarrier(1, &allWritten);
+                mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 23 + 6 * pass);
+                // One river query per texel in a kernel of its own; the wide ones, at the limb, a wave each.
+                if (rivers) {
+                    mCommandList->SetPipelineState(mScreenRiverTexelPSO.Get());
+                    gpuStage(L"Screen rivers, per texel");
+                    mCommandList->Dispatch((across + 7) / 8, (down + 7) / 8, 1);
+                    mCommandList->ResourceBarrier(1, &allWritten);
+                }
+                mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 24 + 6 * pass);
+                if (rivers) {
+                    mCommandList->SetPipelineState(mScreenRiverArgsPSO.Get());
+                    mCommandList->Dispatch(1, 1, 1);
+                    auto argsToRead = CD3DX12_RESOURCE_BARRIER::Transition(mScreenRiverDispatch.Get(),
+                        D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
+                    mCommandList->ResourceBarrier(1, &argsToRead);
+                }
+                mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 25 + 6 * pass);
+                if (rivers) {
+                    mCommandList->SetPipelineState(mScreenRiversPSO.Get());
+                    gpuStage(L"Screen river fallback");
+                    mCommandList->ExecuteIndirect(mObjectDispatchSignature.Get(), 1, mScreenRiverDispatch.Get(), 0, nullptr, 0);
+                    mCommandList->ResourceBarrier(1, &workWritten);
+                    auto argsToWrite = CD3DX12_RESOURCE_BARRIER::Transition(mScreenRiverDispatch.Get(),
+                        D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+                    mCommandList->ResourceBarrier(1, &argsToWrite);
+                }
+                mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 26 + 6 * pass);
+                mCommandList->ResourceBarrier(1, &screenWritten);
+                mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 27 + 6 * pass);
+                // The next ground pass resets the counter.
+                mCommandList->ResourceBarrier(1, &allWritten);
+                mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 28 + 6 * pass);
+            }
+            auto workToCommon = CD3DX12_RESOURCE_BARRIER::Transition(mScreenWork.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                D3D12_RESOURCE_STATE_COMMON);
+            mCommandList->ResourceBarrier(1, &workToCommon);
+        }
         auto toRead = CD3DX12_RESOURCE_BARRIER::Transition(mScreenPositions.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
             D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         mCommandList->ResourceBarrier(1, &toRead);
@@ -2366,7 +2661,18 @@ void D3DApp::Draw() {
     mCommandList->ResourceBarrier(1, &toPresent);
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 2);
     mCommandList->ResolveQueryData(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0, mSettings.batch ? 18 : 12, mTimestampBuffer.Get(), 0);
-    mCommandList->ResolveQueryData(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 18, 4, mTimestampBuffer.Get(), 18 * sizeof(UINT64));
+    mCommandList->ResolveQueryData(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 18, 5, mTimestampBuffer.Get(), 18 * sizeof(UINT64));
+    if (mScreenUpdated) mCommandList->ResolveQueryData(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 23, 12,
+        mTimestampBuffer.Get(), 23 * sizeof(UINT64));
+    mCommandList->ResolveQueryData(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 35, 4,
+        mTimestampBuffer.Get(), 35 * sizeof(UINT64));
+    if (capture && mScreenCaptureBuffer && mConstants->screenRelief.z > 0.0f) {
+        auto screenToCopy = CD3DX12_RESOURCE_BARRIER::Transition(mScreenPositions.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+            D3D12_RESOURCE_STATE_COPY_SOURCE);
+        mCommandList->ResourceBarrier(1, &screenToCopy);
+        const UINT64 bytes = UINT64(ScreenSampleBytes) * UINT(mConstants->screenRelief.x) * UINT(mConstants->screenRelief.y);
+        mCommandList->CopyBufferRegion(mScreenCaptureBuffer.Get(), 0, mScreenPositions.Get(), 0, bytes);
+    }
     if (capture) {
         CD3DX12_TEXTURE_COPY_LOCATION dst(mCaptureBuffer.Get(), mCaptureFootprint);
         CD3DX12_TEXTURE_COPY_LOCATION src(mRenderTargets[mFrameIndex].Get(), 0);
@@ -2382,6 +2688,20 @@ void D3DApp::Draw() {
     mCommandQueue->ExecuteCommandLists(_countof(lists), lists);
     const UINT presentFlags=!mSettings.vsync && mAllowTearing ? DXGI_PRESENT_ALLOW_TEARING : 0;
     if (FAILED(mSwapChain->Present(mSettings.vsync ? 1 : 0, presentFlags))) { // say why the GPU gave up, rather than freeze or vanish
+        if (mGpuBreadcrumbs) {
+            ComPtr<ID3D12DeviceRemovedExtendedData1> dred;
+            D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT1 output = {};
+            if (SUCCEEDED(md3dDevice.As(&dred)) && SUCCEEDED(dred->GetAutoBreadcrumbsOutput1(&output))) {
+                for (auto node = output.pHeadAutoBreadcrumbNode; node; node = node->pNext) {
+                    const UINT last = node->pLastBreadcrumbValue ? *node->pLastBreadcrumbValue : 0;
+                    fprintf(stderr, "DRED command list: %u / %u completed\n", last, node->BreadcrumbCount);
+                    for (UINT i = last > 12 ? last - 12 : 0; i < std::min(last + 12, node->BreadcrumbCount); ++i)
+                        fprintf(stderr, "  operation %u = %u\n", i, UINT(node->pCommandHistory[i]));
+                    for (UINT i = 0; i < node->BreadcrumbContextsCount; ++i)
+                        fprintf(stderr, "  context %u: %ls\n", node->pBreadcrumbContexts[i].BreadcrumbIndex, node->pBreadcrumbContexts[i].pContextString);
+                }
+            }
+        }
         char reason[96];
         sprintf_s(reason, "GPU lost (device removed reason 0x%08X).", (unsigned)md3dDevice->GetDeviceRemovedReason());
         throw std::runtime_error(reason);
@@ -2402,7 +2722,7 @@ void D3DApp::Draw() {
 // Adds this frame's GPU times, from the timestamps resolved at the end of the frame.
 void D3DApp::ReadGpuTimes() {
     UINT64* ticks = nullptr;
-    CD3DX12_RANGE readRange(0, 22 * sizeof(UINT64));
+    CD3DX12_RANGE readRange(0, ScreenTimestampCount * sizeof(UINT64));
     if (FAILED(mTimestampBuffer->Map(0, &readRange, reinterpret_cast<void**>(&ticks)))) return;
     const double ms = 1000.0 / double(mTimestampFrequency);
     const double placement = ms * double(ticks[3] - ticks[1]), objects = ms * double(ticks[5] - ticks[4]);
@@ -2413,6 +2733,12 @@ void D3DApp::ReadGpuTimes() {
     mHiZBuildMs = mSettings.batch ? ms * double(ticks[15] - ticks[14]) : 0.0;
     mHiZCullMs = mSettings.batch ? ms * double(ticks[17] - ticks[16]) : 0.0;
     mComputeMs += ms * double(ticks[1] - ticks[0]);
+    mPerfScreenLast = ms * double(ticks[1] - ticks[22]);
+    for (UINT i = 0; i < 4; ++i)
+        mPerfTerrainParts[i] = ms * double(ticks[35 + i] - ticks[i == 0 ? 7 : 34 + i]);
+    for (UINT i = 0; i < 6; ++i) mPerfScreenParts[i] = mScreenUpdated
+        ? ms * double((ticks[23 + i] - ticks[22 + i]) + (ticks[29 + i] - ticks[28 + i])) : 0.0;
+    mScreenReliefMs += mPerfScreenLast;
     mDrawMs += ms * double(ticks[2] - ticks[1]) - placement - objects;
     mObjectMs += placement;
     mObjectDrawMs += objects;
@@ -2447,11 +2773,11 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
     ++mTitleFrames;
     if (mTitleTimer < 0.25f) return;
 
-    wchar_t title[1024];
+    wchar_t title[2048];
     swprintf_s(title, L"MyPlanetEngine | hauteur %s | sol %s | face \u00B1%s (k=%g) | %u anneaux | vitesse x%.2f"
-        L" | GPU calcul %.1f ms (FFT %.2f), rendu %.2f ms (min %.2f), objets %.2f + %.2f ms | %.0f fps%s",
+        L" | GPU calcul %.1f ms (FFT %.2f, ecran %.1f), rendu %.2f ms (min %.2f), objets %.2f + %.2f ms | %.0f fps%s",
         FormatDistance(clearance).c_str(), FormatDistance(mGroundHeight).c_str(), FormatDistance(halfWidth).c_str(),
-        mFaceFactor, ringCount, mSpeedFactor, mComputeMs / mTitleFrames, mOceanMs / mTitleFrames, mDrawMs / mTitleFrames, mDrawMinMs, mObjectMs / mTitleFrames,
+        mFaceFactor, ringCount, mSpeedFactor, mComputeMs / mTitleFrames, mOceanMs / mTitleFrames, mScreenReliefMs / mTitleFrames, mDrawMs / mTitleFrames, mDrawMinMs, mObjectMs / mTitleFrames,
         mObjectDrawMs / mTitleFrames,
         mTitleFrames / mTitleTimer, mWireframe ? L" | fil de fer" : L"");
     wchar_t cloudTimes[64];
@@ -2479,9 +2805,10 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
         lon * toDegrees, -std::asin(Dot(mCamForward, up)) * toDegrees,
         std::atan2(Dot(mCamForward, east), Dot(mCamForward, north)) * toDegrees);
     wcscat_s(title, position);
-    wchar_t clouds[128];
-    swprintf_s(clouds, L" | nuages | %s (C) | N : nuages %s | B : silhouette | Espace : pause | V : x5",
-        mCloudsReference ? L"R\u00E9f\u00E9rence" : L"\u00C9co", mCloudsOn ? L"oui" : L"non");
+    wchar_t clouds[160];
+    swprintf_s(clouds, L" | nuages | %s (C) | N : nuages %s | B : silhouette | Espace : pause | V : x5 | 1 : \u00E9rosion %s",
+        mCloudsReference ? L"R\u00E9f\u00E9rence" : L"\u00C9co", mCloudsOn ? L"oui" : L"non",
+        mErosionMode == 2 ? L"compl\u00E8te" : mErosionMode == 1 ? L"ravines" : L"sans");
     wcscat_s(title, clouds);
     if (!mLabel.empty()) { wcscat_s(title, L" | "); wcscat_s(title, mLabel.c_str()); }
     wchar_t weather[64];
@@ -2493,9 +2820,10 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
         mFullscreen ? L"plein ecran" : L"fenetre",mSettings.vsync ? L"oui" : L"non",
         !mSettings.vsync && mAllowTearing ? L" (tearing autorise)" : L"");
     wcscat_s(title,display);
-    wchar_t tectonics[256];
-    swprintf_s(tectonics, L" | tectonique %.0f ms, %.0f Mo, %u volcans en %.0f ms | climat %.0f ms, %.1f Mo | meteo %.0f ms | erosion %.0f ms (reseau %.0f), %.0f Mo",
-        mTectonicMs, mTectonicMb, mVolcanoCount, mVolcanoMs, mClimateMs, mClimateMb, mWeatherMapMs, mErosionMs, mErosionBuildMs, mErosionMb);
+    wchar_t tectonics[320];
+    swprintf_s(tectonics, L" | tectonique %.0f ms, %.0f Mo, %u volcans en %.0f ms | climat %.0f ms, %.1f Mo | meteo %.0f ms | erosion %.0f ms (reseau %.0f, couloirs %.0f, carte %.0f), %.0f Mo",
+        mTectonicMs, mTectonicMb, mVolcanoCount, mVolcanoMs, mClimateMs, mClimateMb, mWeatherMapMs, mErosionMs, mErosionBuildMs, mErosionCoursesMs,
+        mErosionRiverMapMs, mErosionMb);
     wcscat_s(title, tectonics);
     if (!mGpuName.empty()) { wcscat_s(title,L" | "); wcscat_s(title,mGpuName.c_str()); }
     mTitle = title;
@@ -2522,6 +2850,7 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
     mTitleTimer = 0.0f;
     mTitleFrames = 0;
     mComputeMs = mDrawMs = mObjectMs = mObjectDrawMs = mCloudPassMs = mOceanMs = 0.0;
+    mScreenReliefMs = 0.0;
     mCloudPassLastMs = mGpuFrameLastMs = 0.0;
     mDrawMinMs = 1e9;
 }
@@ -2670,6 +2999,15 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         }
         if (wParam == 'V') mWeatherRate = mWeatherRate == 1.0 ? 5.0 : 1.0;
         if (wParam == 'N') mCloudsOn = !mCloudsOn;
+        if (wParam == '1') { // the erosion shown, to compare in flight: full, ravines only, none. The mesh's kept vertices,
+            // keyed on the view (TerrainInputs), and the plants' kept ground are computed afresh: kept, they showed the
+            // previous erosion up close, where only the per-pixel water followed the switch.
+            mErosionMode = (mErosionMode + 2u) % 3u;
+            mTerrainKept = false;
+            mPlanetPlantPlacement.Reset();
+            mPlanetFoliageSamples.clear();
+            mHistoryValid = false;
+        }
         if (wParam == 'C') mCloudsReference = !mCloudsReference;
         if (wParam == 'K' || wParam == VK_SUBTRACT) mFaceFactor = std::max(mFaceFactor / 2.0, 0.25);
         if (wParam == 'L' || wParam == VK_ADD) mFaceFactor = std::min(mFaceFactor * 2.0, 64.0);

@@ -10,6 +10,19 @@
 
 ## What it contains
 
+- **High-altitude performance, 2026-11-04–05:** `spec-erosion-historique.md` preserves the original diagnosis, former precision claims and rejected serial, striped, low-threshold, cooperative-mesh and mask-first schedules, plus superseded comparison tables. Current indexed evaluation is in `../spec-erosion.md`; measurements and limitations are in `../diagnostic-orbite.md`.
+
+- **Confluence banks, 2026-11-04:** `spec-erosion-historique.md` preserves the symmetric width addition and its misleading mandatory-widening check. Current receiving-section matching is in `../spec-erosion.md`.
+
+- **Dry valley onset, 2026-11-04:** `spec-erosion-historique.md` preserves the former 200–300 m³/s activation, its density figures and the limits of the initial distant-head diagnosis. Current physical onset and estuary scale references are in `../spec-erosion.md`.
+
+- **Mouth/bank follow-up, 2026-11-04:** `spec-erosion-historique.md` records the superseded contact review and the rejected false-pool/dry-stripe candidate; current universal composition rules are in `../spec-erosion.md`.
+- **Approach and bank refinements, 2026-11-03:** `spec-erosion-historique.md` preserves the upstream baseline and the rejected cancellation-prone vector filter. Current geometry and checks remain in `../spec-erosion.md`.
+
+- **Erosion continuation, 2026-11-03–04:** `spec-erosion-historique.md` preserves earlier corridor measurements, superseded sizing, rejected coastal channels and the discontinuous absolute-bed union. Current rules and review are in `spec-erosion.md`.
+- **River distance filtering, 2026-11-03:** the same log preserves the widened-bank construction, approach/coast reproductions, preceding sizing-review results and the verified baseline before valley-morphology changes.
+- **Valley morphology, 2026-11-03:** the erosion log preserves the limited-height candidates, unchanged corridor outlines and displaced-bank confinement failure; current formulas and checks remain in `../spec-erosion.md`.
+- **Upstream slot canyons, 2026-11-03:** the same log records the width-only recovery failure, its preceding verification and the discarded height-dependent recovery interval.
 - **`spec-normales-spline-historique.md`:** retired cardinal prefilter and the replaced fine-grid height/normal interpolation; current reconstruction in `../spec-normales-spline.md`.
 - **`spec-marche-ambiances-historique.md`:** replaced prototype contact recordings and material selector; current rules in `../spec-marche-ambiances.md`.
 - **`spec-vaisseau-historique.md`:** the replaced clearance-dependent near plane and nadir-only interactive contact; current projection and sweep limits in `../spec-vaisseau.md`.

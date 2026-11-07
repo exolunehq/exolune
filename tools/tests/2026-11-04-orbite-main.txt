@@ -1,0 +1,5 @@
+# Orbit performance comparison. Seed 0. Use the same route in main and erosion.
+# Backspace leaves the cockpit. F1-F3 select the views. Move continuously when judging cadence.
+Massif : 1 231 km | 1230920.1 -9.148316 124.767492 71.08 20.70 | 20 120
+Hemisphere : 3 000 km | 3000000 42.693130 -175.950838 90 0 | 40 -170
+Globe : 10 000 km | 10000000 -0.5 -18.225 90 0 | 10 -5

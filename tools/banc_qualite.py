@@ -52,7 +52,8 @@ def run(exe, jobs, path, sun):
     env = dict(os.environ, MYPLANETENGINE_BATCH=path, MYPLANETENGINE_SUN=sun, **ENGINE)
     for k in ("MYPLANETENGINE_VIEW", "MYPLANETENGINE_CAPTURE", "MYPLANETENGINE_TREMBLE"):
         env.pop(k, None)
-    subprocess.run([exe], env=env, timeout=600)
+    # A run's time grows with its views: about 1.3 s each with the erosion's rivers, 1,440 to pick 30 places.
+    subprocess.run([exe], env=env, timeout=max(600, 4 * len(jobs)))
 
 
 def luminance(img):

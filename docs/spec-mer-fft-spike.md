@@ -12,7 +12,7 @@
 - Four 256² cascades: tiles of 1,103, 113.1, 11.57 and 1.183 m; disjoint bands.
 - Choppiness 1.25, damped below 40 cm wavelength; capillary ripples remain close to the linear model.
 - Precomputed initial spectrum; time evolution, row FFT followed by column FFT.
-- Shared outputs: XYZ displacement, five derivatives, first and second slope moments; mips every frame.
+- Shared outputs: XYZ displacement, five derivatives, slope moments and a second height moment in the spare fourth channel; mips every frame.
 - Normal from the inverse horizontal Jacobian; unresolved covariance transformed by that Jacobian.
 - Foam deposited according to the Jacobian; density and freshness in two 512² toroidal maps covering 128 and 1,024 m.
 - Drift of 0.03 U downwind; density dissipates at 0.22/s, freshness at 1.6/s.
@@ -30,9 +30,17 @@
 - Foam maps cleared after a camera jump or spectrum change.
 - Displacement damped by depth; waves included in the visibility margin.
 
+**Local coastal foam, 2026-11-04**
+- The incident FFT height and height variance are read before depth damping, from the existing displacement/moment fetches.
+- A crest exceeding 0.39 water depth activates a calibrated source, using the approximate depth-limited wave-height ratio 0.78; this is not a resolved breaker solver ([USACE, EM 1110-2-1420](https://www.publications.usace.army.mil/Portals/76/Publications/EngineerManuals/EM_1110-2-1420.pdf)).
+- Unresolved incident heights retain their Gaussian exceedance probability. Mixed coastal pixels condition that mean on their immersed heights.
+- Coverage is bounded by 0.75, with energy activation over 0.02–0.08 m RMS. Existing pores modulate nearby detail; the same coastal mean remains in distant shading.
+- No new texture, buffer or FFT sample fetch is added. Terrain geometry and dry-land inundation are unchanged.
+- Native flight review and mathematical verification are recorded with the mouth/bank work in `spec-erosion.md`; no benchmark is requested.
+
 **Spike limitations**
 - Uniform wind and swell set per view; planetary wind map remains to be connected.
-- Coastal breaking and refraction untreated.
+- Coastal foam is a local depth-limited approximation. Refraction, shoaling transformation, foam transport through the surf zone and swash on dry ground remain untreated.
 - Simplified distant transition to Cox-Munk and Monahan; near-field coverage not calibrated against Monahan.
 - Reflection at 400 km: mean error of 2.8% at 12 m/s, 6.2% at 24 m/s; the 5% target is therefore not met in strong wind.
 - The measured variation on a frozen sea as the mesh slides is not eliminated.

@@ -1,0 +1,15 @@
+# Seed 0. The pixel water contour's two rungs: the channels alone on the grid's ground, the whole relief near a shore.
+# Move sideways and approach: river widths and colours steady, no seam in tiles along a river, coasts and lake shores as before.
+# Backspace leaves the cockpit. F1-F12 select views; the palette requires windowed mode.
+Approche : riviere et cote 250 km | 250000 -7.489828 125.499386 65.74 -9.13 | 20 120
+Approche : riviere 173 km | 172718.8 -7.189383 125.450731 65.74 -9.12 | 20 120
+Tetes de vallees : 97 km | 96901 -6.185543 125.892589 71.08 20.55 | 20 120
+Tete : meme bassin 25 km | 30000 -5.86 125.94 90 0 | 20 120
+Confluence : berges | 2200 -6.250434328 125.346558807 70 180 | 20 120
+Vallee amont : 3 840 m | 3840.6 -5.038412 124.886462 13.17 -102.18 | 20 120
+Embouchure : mer et chenal | 3226 -9.027692 127.426786 70.69 -165.64 | 20 120
+Delta : branches a la cote | 12000 -13.260094611 136.819890967 90 0 | 20 120
+Lac terminal : arrivee du cours d'eau | 3530.75 33.024598821 54.893928890 90 0 | 30 50
+Lac : rive nette | 963.25 42.513100842 -24.531474493 20 -42.49 | 40 -20
+Riviere a 18 km : presence de l'eau | 18045.3 7.953168 -84.525373 84 24.75 | 10 -85
+Massif : 1 231 km, inchange | 1230920.1 -9.148316 124.767492 71.08 20.70 | 20 120

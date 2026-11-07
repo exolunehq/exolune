@@ -66,6 +66,50 @@ def dry_floor():
     return 4
 
 
+def water_rung(count=160, radii=(50., 300.)):
+    """The pixel contour's channel rung (gErosionWater, cp.WATER), on the full query's own inputs, at points up to 1.5 km
+    from the massif's channels: the same wet fraction, stage, cut, current and positive edge, with fewer courses."""
+    from verifie_lames import direction
+    rng = np.random.default_rng(1106)
+    centre = direction(-9.148316, 124.767492)
+    east = np.cross([0., 1., 0.], centre)
+    east /= np.linalg.norm(east)
+    north = np.cross(centre, east)
+    result = {}
+    for radius in radii:
+        ctx = cp.Ctx(radius)
+        a, d = rng.uniform(0., 2. * np.pi, 64), 150e3 * np.sqrt(rng.uniform(size=64))
+        seeds = centre + (d / cp.R)[:, None] * (np.cos(a)[:, None] * east + np.sin(a)[:, None] * north)
+        lines = cp.river_lines(ctx, seeds / np.linalg.norm(seeds, axis=1, keepdims=True), 2000.)
+        on = lines[rng.choice(len(lines), count)]
+        side = np.cross(on, rng.normal(size=(count, 3)))
+        side /= np.linalg.norm(side, axis=1, keepdims=True)
+        pts = on + (rng.uniform(-1500., 1500., count) / cp.R)[:, None] * side
+        pts /= np.linalg.norm(pts, axis=1, keepdims=True)
+        inputs, original = {}, cp.erosion_rivers
+        cp.erosion_rivers = lambda c, q, hr, parent, fine, seed=None: (
+            inputs.update(q=q, hr=hr, parent=parent, fine=fine) or original(c, q, hr, parent, fine, seed))
+        try:
+            cp._relief_ground(ctx, pts)
+        finally:
+            cp.erosion_rivers = original
+        args = (ctx, inputs['q'], inputs['hr'], inputs['parent'], inputs['fine'])
+        full = cp.erosion_rivers(*args)
+        cp.WATER = True
+        try:
+            water = cp.erosion_rivers(*args)
+        finally:
+            cp.WATER = False
+        for key in ('coverage', 'cut', 'stage', 'flow'):
+            assert np.array_equal(full[key], water[key]), (radius, key)
+        assert np.array_equal(np.maximum(full['edge'], 0.), np.maximum(water['edge'], 0.)), radius
+        result[f'{radius:g} m'] = dict(points=len(inputs['q']), wet=int((full['coverage'] > 0.).sum()),
+                                      courses_full=round(float(full['cost']['meanders'].mean()), 2),
+                                      courses_water=round(float(water['cost']['meanders'].mean()), 2))
+    return result
+
+
 if __name__ == '__main__':
     print(json.dumps(dict(quad_masks=derivative_quads(), narrow_channel=missed_channel(),
-                          explicit_intersections=wet_intersections(), dry_floor_scales=dry_floor()), indent=2))
+                          explicit_intersections=wet_intersections(), dry_floor_scales=dry_floor(),
+                          water_rung=water_rung()), indent=2))

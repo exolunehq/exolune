@@ -187,6 +187,97 @@ static const float3 EROSION_CLIFF_PLATFORM = float3(-1.0, 0.02, 4.0);
 static const float3 EROSION_CLIFF_STACK    = float3(0.065, 0.8, 1.4);
 // The swell from every side, plus the directional waves; the westerlies' peak strength relative to the trades.
 static const float2 EROSION_CLIFF_WAVES    = float2(0.28, 1.6);
+// Step A of the erosion's replacement (docs/spec-erosion.md, the ravines): true, the pre-erosion form and its ravines; the
+// network's valleys, gullies, channels, lakes, deltas and fans off, the wave-cut cliffs kept. false, the network as before.
+// The level 0 reads the pre-erosion form, the same either way.
+static const bool  EROSION_RAVINES          = true;
+// The ravines (ReliefDetail): RAVINE_OCTAVES octaves of period RAVINE_TOP (m) halving, 5 km to 4.9 m, each stripes down
+// the slope of the relief keeping wavelengths from 2 periods and of the coarser ravines at RAVINE_STEER.x of theirs, their
+// troughs rounded over RAVINE_STEER.y of its period: branching by cascade. RAVINE_SHAPE: amplitude x times the period times
+// the steering slope saturated at y (tanh); z the pivots' jitter, a share of a period; w the warp, in periods at one
+// deviation, its wavelength 2 periods. The trough rounded over RAVINE_ROUNDING.x mesh cells or y of the period, the wider.
+// The amplitude fades in over RAVINE_LAND (m) of the steering ground above the sea, times the square root of the
+// erodibility clipped to RAVINE_ROCK, RAVINE_WET.x in a desert to y in the wet, RAVINE_PLAINS on plains to 1 in mountains.
+static const float RAVINE_TOP               = 5000.0;
+static const int   RAVINE_OCTAVES           = 11;
+static const float4 RAVINE_SHAPE            = float4(0.15, 0.8, 0.8, 0.2);
+static const float2 RAVINE_STEER            = float2(0.5, 1.0);
+static const float2 RAVINE_ROUNDING         = float2(2.0, 0.1);
+static const float2 RAVINE_LAND             = float2(0.0, 50.0);
+static const float2 RAVINE_ROCK             = float2(0.5, 2.0);
+static const float2 RAVINE_WET              = float2(0.6, 1.0);
+static const float RAVINE_PLAINS            = 0.6;
+// Step B (docs/spec-erosion.md, the corridors), on step A: true, the level 0's rivers in corridors, with their water and
+// the terminal lakes; false, step A exactly. Ported from the CPU prototype tools/hydro/couloirs.py, sized by discharge.
+// Their stages are conditioned at startup (Erosion.cpp, ErosionStages.hlsl); per point, ErosionRivers.
+static const bool  EROSION_RIVERS           = true;
+// A dry course from RIVER_Q.x m3/s; depth and width grow together by ErosionCourseShare. A shallow onset on existing
+// tributaries precedes the large valley, with no view-dependent head extension. Water still starts at y, full at z.
+// These thresholds and the onset polynomial are engine calibration, not measured outlet spacing (docs/spec-erosion.md).
+static const float3 RIVER_Q                 = float3(100.0, 300.0, 450.0);
+// The valley floor's width (Brocard and van der Beek 2006, Clubb et al. 2022): x Q^y m at a factor 1, at most 2 z m. The
+// factor, per node: the rock's erodibility to the power RIVER_FLOOR_ROCK, times w in mountains; stored as its log2 in
+// RIVER_FLOOR_LOG2's range. The meander belt stays inside it.
+static const float4 RIVER_FLOOR             = float4(230.0, 0.4, 4000.0, 0.35);
+static const float RIVER_FLOOR_ROCK         = 0.5;
+static const float2 RIVER_FLOOR_LOG2        = float2(-3.0, 1.0);
+// Along a course, its floor times exp2(+- y) and its walls' width times exp2(+- z), by a noise of wavelength x m: gorges
+// and basins. A corridor's half-width stays under RIVER_REACH m, within the 4 x 4 nodes read.
+static const float3 RIVER_VALLEY_NOISE      = float3(12000.0, 1.0, 0.5);
+static const float RIVER_REACH              = 8500.0;
+// The walls' profile: a ramp at constant slope, rounded into the floor and the relief over a share x of its width for
+// rivers of RIVER_Q.y m3/s, straight V sides, to y from z m3/s, the broad footslopes of large valleys.
+static const float3 RIVER_WALL              = float3(0.15, 0.5, 3000.0);
+// Preserve positive terrain residuals from RELIEF_DETAIL_TOP down on valley sides, including inside the old flat floor.
+// x: recovery distance as a share of its half-width; y: C1 rounding in metres; z: retained-height envelope per metre
+// beyond the dry bank. This bounds only recovered spurs, not the original valley walls. The wet banks stay clear.
+static const float3 RIVER_SPURS             = float3(0.6, 60.0, 0.6);
+// Each mountain mass contracts its local floor and wall widths: minimum factor x, relief sensitivity y.
+// Read on the terrain point so opposite flanks advance independently; the wet bank remains the minimum width.
+static const float2 RIVER_CONFINEMENT       = float2(0.25, 3.0);
+// Meanders (Leopold and Wolman 1960): octaves of wavelength RIVER_MEANDER.x m halving, faded in from 0.7 to 1.4 of the
+// finest, y channel widths; amplitude per wavelength z on the two finest, w on the coarser. Octaves under RIVER_SPLIT
+// finest wavelengths bend the channel within its floodplain, the coarser ones the valley, bounded by RIVER_OFFSET_MAX m.
+static const float4 RIVER_MEANDER           = float4(40000.0, 12.0, 0.1, 0.05);
+// Wavelengths from x to 2x transfer fully to the bounded valley offset, even on the largest rivers.
+static const float RIVER_CHANNEL_WAVE       = 10000.0;
+static const float RIVER_SPLIT              = 6.0;
+static const float RIVER_OFFSET_MAX         = 2500.0;
+// Sinuosity falls where the 25 km forms are steeper than x, to y, down to z of it.
+static const float3 RIVER_SINUOUS           = float3(0.02, 0.15, 0.3);
+// Width modulation: finest pair's larger wavelength (m), maximum fractional amplitude (<1). The valley's opening
+// contributes 0.5, noises of x and x/4 contribute 0.3 and 0.2. Linear centred octaves retain the nominal mean width.
+static const float2 RIVER_WIDTH_NOISE       = float2(1500.0, 0.9);
+// The banks stand RIVER_BANK channel depths above the stage; past its edge a channel's banks rise at RIVER_STEEP_BANK.
+static const float RIVER_BANK               = 0.5;
+// World-fixed bank-height octaves, centred on the existing bank height; wavelength (m), relative amplitude.
+static const float2 RIVER_BANK_DETAIL        = float2(180.0, 0.7);
+// Wet/dry bank shoulders: minimum run (m), run per metre of depth/height; at most one channel half-width.
+static const float2 RIVER_BANK_SHOULDER      = float2(2.0, 4.0);
+// Fine shoreline displacement: maximum metres and share of the nominal half-width. Gentle reaches retain 60%: the
+// Isere's banks at Bourg-Saint-Maurice wander by tens of metres along gravel bars (spec-erosion.md, the references).
+static const float2 RIVER_BANK_EDGE          = float2(25.0, 0.25);
+// Tributary opening: downstream-bank share of the width deficit (at most 0.5), approach in combined half-widths.
+static const float2 RIVER_CONFLUENCE         = float2(0.5, 9.0);
+// A mouth adds x half-widths over the last y nominal half-widths before first water, at most z metres.
+// The same y also retains the low-bank fallback in channel depths when no cached contact is in this part.
+static const float3 RIVER_MOUTH              = float3(2.0, 8.0, 600.0);
+// Cached first-water contacts: maximum longitudinal probe spacing, terrain cell, submerged fade length (m).
+static const float3 RIVER_CONTACT            = float3(256.0, 25.0, 80.0);
+// Low-gradient marine fans: discharge onset/full (m3/s), side-branch offset in channel half-widths, maximum offset (m).
+static const float4 RIVER_DELTA              = float4(800.0, 2500.0, 14.0, 1800.0);
+static const float RIVER_STEEP_BANK         = 3.0;
+// Outlets continue x m past their node at their level, to the detailed coast; above a head its dry valley rises over y m
+// at the slope z. Both where the level 0's cells are widest, in proportion to them elsewhere.
+static const float3 RIVER_EXTEND            = float3(15000.0, 12000.0, 0.15);
+// A tributary's arrival angle bounds (degrees), about Howard's.
+static const float2 RIVER_JUNCTION          = float2(12.0, 55.0);
+// The floodplain keeps x of the relief finer than 2 y m.
+static const float2 RIVER_FLOODPLAIN        = float2(0.2, 200.0);
+// At startup, the stage is capped by the relief filtered at RIVER_CAP_CELL m, sampled at RIVER_CAP_SAMPLES points along
+// each course (Erosion.cpp adds its fill and spreads its drops).
+static const float RIVER_CAP_CELL           = 500.0;
+static const int   RIVER_CAP_SAMPLES        = 33;
 // Highest possible terrain (m).
 static const float MAX_TERRAIN_HEIGHT       = 10000.0;
 

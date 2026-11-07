@@ -120,7 +120,8 @@ void FftRows(uint3 group:SV_GroupID,uint t:SV_GroupIndex) {
 void Emit(uint x,uint y,uint c,float4 a,float4 b) {
     output0[uint3(x,y,c)]=float4(a.x,a.z,a.y,a.w); // Dx, height, Dy, dDx/dy
     output1[uint3(x,y,c)]=b; // height slopes x,y, horizontal derivatives xx,yy
-    output2[uint3(x,y,c)]=float4(b.x*b.x,b.y*b.y,b.x*b.y,0.0);
+    // The spare fourth moment carries incident height energy through the same mip filter as displacement.
+    output2[uint3(x,y,c)]=float4(b.x*b.x,b.y*b.y,b.x*b.y,a.z*a.z);
 }
 [numthreads(128,1,1)]
 void FftColumns(uint3 group:SV_GroupID,uint t:SV_GroupIndex) {

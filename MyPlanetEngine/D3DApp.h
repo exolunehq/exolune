@@ -12,6 +12,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <array>
 #include "Ship.h"
 #include "Audio.h"
 #include "Glare.h"
@@ -135,6 +136,9 @@ protected:
         XMUINT4 coordinateText[8]; // two rows of 64 bytes, packed little-endian
         XMFLOAT4 reliefGradients[256]; // immutable table, shared with Noise.hlsli
         XMFLOAT4 screenRelief;         // the screen relief's texels across, its weight, pixels per texel side
+        XMUINT4 erosionMode;           // x: the erosion shown (key 1): 2 full, 1 ravines only, 0 none; y: 1 when the
+                                       // screen relief covers every pixel at full weight (FineTerrain.hlsl); z: 1 once
+                                       // the rivers' map for wide footprints is computed (Erosion.hlsli)
     };
 
     // The clouds' frame, b1 (Clouds.hlsli): the camera and the view in the planet frame (km), in double precision.
@@ -164,6 +168,7 @@ protected:
         float shadow;  // the column's shadow height, for the air (Horizon.hlsl)
         XMFLOAT4 water; // downstream velocity (planet frame), water stage (m)
         float waterDistance; // Planet.hlsli: contour candidate distance
+        float waterDepth, waterCoverage; // footprint mean depth and physical wet fraction
     };
 
     static constexpr double PlanetRadius = 6378000.0;
@@ -185,7 +190,7 @@ protected:
     // snow and rock came and went on the way down (docs/journal-planete.md, 2026-10-24).
     static const UINT FineSubdivision = 4;
     static const UINT FineVertexCount = (FaceCells * FineSubdivision + 1) * (FaceCells * FineSubdivision + 1);
-    static const UINT FineSampleBytes = 8 * sizeof(float); // Planet.hlsli: float4 terrain + float4 inland water
+    static const UINT FineSampleBytes = 12 * sizeof(float); // Planet.hlsli: terrain, inland water, flow moments
     static constexpr double FineMinCell = 13.5 / 4.0;
 
     HINSTANCE mhAppInst = nullptr;
@@ -254,7 +259,8 @@ protected:
         XMFLOAT4 faceX, faceY, faceZ, faceParams;
         double nadir[4];
         XMFLOAT4 ringParams, camPlane; // the mesh's, up to here
-        XMFLOAT4 lightDir, camRight, camUp, camForward, waveAxisX;
+        XMFLOAT4 lightDir, camRight, camUp, camForward;
+        XMFLOAT4 waveCull; // only .w is read by terrain compute; wave directions belong to vertex/sea rendering
     };
     TerrainInputs mTerrainInputs = {};
     bool mTerrainKept = false; // the terrain's buffers hold what its passes computed from mTerrainInputs
@@ -278,6 +284,7 @@ protected:
     double mWeatherTime = 0.0, mWeatherRate = 1.0;
     bool mWeatherPaused = true;
     bool mCloudsOn = true;         // key N; MYPLANETENGINE_NO_CLOUDS for the benches that want none
+    UINT mErosionMode = 2;         // key 1: the erosion shown, 2 full, 1 ravines only, 0 none, to compare in flight
     bool mCloudsReference = false; // key C: finer integration steps
     // Their four textures (assets/clouds): the shape and the cirrus' fibres, the erosion, the vertical profiles, the
     // planet's weather map.
@@ -315,10 +322,26 @@ protected:
     ComPtr<ID3D12PipelineState> mFineNormalsPSO;
     // The screen relief (ScreenRelief.hlsl): the relief under each texel of ScreenReliefScale pixels.
     ComPtr<ID3D12Resource> mScreenPositions;
-    ComPtr<ID3D12PipelineState> mScreenReliefPSO;
+    ComPtr<ID3D12PipelineState> mScreenReliefPSO, mScreenRiversPSO, mScreenRiverTexelPSO;
+    ComPtr<ID3D12PipelineState> mScreenRiverArgsPSO;
+    ComPtr<ID3D12RootSignature> mScreenRootSignature;
+    ComPtr<ID3D12Resource> mScreenWork;
+    ComPtr<ID3D12Resource> mScreenRiverCounter, mScreenRiverDispatch;
+    ComPtr<ID3D12Resource> mScreenRiverFallback;
+    static const UINT ScreenTimestampCount = 39;
+    UINT mScreenWorkTexels = 0;
+    static const UINT ScreenWorkBytes = (4 + 39) * sizeof(float); // ScreenReliefWork.hlsli
+    struct ScreenInputs {
+        XMFLOAT4 faceX, faceY, faceZ;
+        double nadir[4];
+        XMFLOAT4 camera, camRight, camUp, camForward, footprint, layout;
+        XMUINT4 erosion;
+    };
+    ScreenInputs mScreenInputs = {};
+    bool mScreenKept = false; // exact reuse only; no reprojection or temporal approximation
     static const UINT ScreenReliefScale = 2, ScreenReliefMaxTexels = (3840 / 2) * (2160 / 2);
-    static const UINT ScreenSampleBytes = 12 * sizeof(float); // Planet.hlsli: ScreenSample
-    static constexpr double ScreenReliefLow = 150e3, ScreenReliefHigh = 400e3; // its weight's rise, camera altitude (m)
+    static const UINT ScreenSampleBytes = 16 * sizeof(float); // Planet.hlsli: ScreenSample
+    static constexpr double ScreenReliefLow = 150e3, ScreenReliefHigh = 200e3; // its weight's rise, camera altitude (m)
     ComPtr<ID3D12Resource> mIndexBuffer;
     D3D12_INDEX_BUFFER_VIEW mIndexBufferView = {};
     ComPtr<ID3D12Resource> mReadbackBuffer;   // the nadir vertex, to know the ground height
@@ -342,7 +365,12 @@ protected:
     // The erosion's level 0 (Erosion.h): the network of the rivers and the glaciers, once at startup, from the tectonic
     // map; its time (ms), the network's alone, and its size (MB).
     ComPtr<ID3D12Resource> mErosionMap;
-    double mErosionMs = 0.0, mErosionBuildMs = 0.0, mErosionMb = 0.0;
+    ComPtr<ID3D12Resource> mErosionCourses; // the courses built at startup (ErosionCourseBuild.hlsl), t60
+    static const UINT ErosionCourseBytes = 176; // Erosion.hlsli, ErosionCourseRecord
+    uint32_t mErosionCourseCount = 0;
+    UINT mErosionSize = 0; // the erosion map's side, its cells per face edge (CreateErosionMap)
+    double mErosionMs = 0.0, mErosionBuildMs = 0.0, mErosionCoursesMs = 0.0, mErosionRiverMapMs = 0.0, mErosionMb = 0.0;
+    bool mErosionRiverMap = false; // the rivers' map for wide footprints is computed (erosionMode.z, Erosion.hlsli)
     void CreateErosionMap(const Tectonics::Map& tectonics, ID3D12PipelineState* formPass);
 
     // Objects near the camera (docs/spec-objets-proximite.md): stones and grass tufts on the planet's lattice, placed
@@ -409,6 +437,7 @@ protected:
     ComPtr<ID3D12Resource> mTimestampBuffer;
     UINT64 mTimestampFrequency = 0;
     double mComputeMs = 0.0; // summed over the title period
+    double mScreenReliefMs = 0.0; // the screen-space relief, separated from reusable mesh/fine terrain
     double mDrawMs = 0.0;
     double mObjectMs = 0.0;     // their placement
     double mObjectDrawMs = 0.0; // their draw
@@ -421,6 +450,12 @@ protected:
     // GPU, the cadence (from one present to the next), and the GPU idle between two frames.
     static const UINT PerfGpu = 14, PerfPasses = PerfGpu + 6;
     double mPerfLast[PerfPasses] = {}, mPerfSum[PerfPasses] = {};
+    double mPerfScreenLast = 0.0;
+    double mPerfScreenParts[6] = {};
+    double mPerfTerrainParts[4] = {}; // mesh, horizon, fine positions, fine normals
+    bool mScreenUpdated = false;
+    bool mGpuBreadcrumbs = false;
+    std::vector<std::array<double, PerfPasses + 11>> mPerfSamples;
     LARGE_INTEGER mPerfPresent = {};
     UINT64 mPerfGpuEnd = 0;
     UINT mPerfFrames = 0;
@@ -457,6 +492,7 @@ protected:
     UINT mBatchFrame = 0;
     std::wstring mLabel; // MYPLANETENGINE_LABEL, then what is missing at startup: shown in the title
     ComPtr<ID3D12Resource> mCaptureBuffer;
+    ComPtr<ID3D12Resource> mScreenCaptureBuffer; // optional raw field verification with native captures
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT mCaptureFootprint = {};
     void ReadBatch();
     UINT BatchCaptureFrame() const;

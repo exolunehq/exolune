@@ -21,6 +21,7 @@ struct Settings
     // MYPLANETENGINE_FACE_FACTOR: the face's half-width over the height above the ground (keys K, L).
     double faceFactor = 2.0;
     std::wstring label;     // MYPLANETENGINE_LABEL, shown in the title: tells side-by-side builds apart
+    UINT erosionMode = 2;   // MYPLANETENGINE_EROSION_MODE: key 1's comparison, 0 none, 1 ravines, 2 full (default)
 
     // The clouds: always, unless MYPLANETENGINE_NO_CLOUDS (key N); in their temporal pass, unless
     // MYPLANETENGINE_CLOUD_FULL=1. Their weather starts at MYPLANETENGINE_WEATHER_TIME (s).

@@ -24,11 +24,13 @@ void D3DApp::InitializeWorld(D3D12_GPU_DESCRIPTOR_HANDLE tectonics,D3D12_GPU_DES
     mWalkGround=CreateBuffer(md3dDevice.Get(),bytes,D3D12_HEAP_TYPE_DEFAULT,D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     mWalkReadback=CreateBuffer(md3dDevice.Get(),bytes,D3D12_HEAP_TYPE_READBACK,D3D12_RESOURCE_STATE_COPY_DEST);
 
-    CD3DX12_DESCRIPTOR_RANGE tectonicRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,6,18), planetRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,29),
+    const CD3DX12_DESCRIPTOR_RANGE tectonicRanges[2]={CD3DX12_DESCRIPTOR_RANGE(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,6,18),
+        CD3DX12_DESCRIPTOR_RANGE(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,60)}; // and the erosion's built courses (Erosion.hlsli)
+    CD3DX12_DESCRIPTOR_RANGE planetRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,29),
         cloudRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,4,24), materialRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,2,5);
     CD3DX12_ROOT_PARAMETER params[7];
     params[0].InitAsConstantBufferView(0); params[1].InitAsConstantBufferView(1); params[2].InitAsUnorderedAccessView(0);
-    params[3].InitAsDescriptorTable(1,&tectonicRange); params[4].InitAsDescriptorTable(1,&planetRange);
+    params[3].InitAsDescriptorTable(2,tectonicRanges); params[4].InitAsDescriptorTable(1,&planetRange);
     params[5].InitAsDescriptorTable(1,&cloudRange); params[6].InitAsDescriptorTable(1,&materialRange);
     const CD3DX12_STATIC_SAMPLER_DESC samplers[] = {
         CD3DX12_STATIC_SAMPLER_DESC(0,D3D12_FILTER_MIN_MAG_MIP_LINEAR,D3D12_TEXTURE_ADDRESS_MODE_CLAMP,D3D12_TEXTURE_ADDRESS_MODE_CLAMP,D3D12_TEXTURE_ADDRESS_MODE_CLAMP),

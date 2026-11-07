@@ -1,0 +1,18 @@
+# Seed 0. The erosion against main's frame rate (docs/diagnostic-orbite.md, 2026-11-07).
+# Exact, nothing to see: screen rivers per texel, tiles, wet nodes, channel reach, the fine grid's margin, the plants'
+# ground pass. To judge in flight: the screen relief's crossfade now from 150 to 200 km, the channel bands (0.3 of a sample
+# now), no halo beside the rivers, the mesh's rivers from the map at mid orbit, the banks after the Isere's photographs.
+# Move sideways and approach: rivers and coasts steady through the crossfade, no seam, no blurred band along a river.
+# Backspace leaves the cockpit. F1-F12 select views; the palette requires windowed mode.
+Approche : relief ecran seul 250 km | 250000 -7.489828 125.499386 65.74 -9.13 | 20 120
+Fondu : sa fin 190 km | 190000 -7.256700 125.461600 65.74 -9.13 | 20 120
+Fondu : son debut 160 km | 160000 -7.140100 125.442800 65.74 -9.13 | 20 120
+Tetes de vallees : contour 97 km | 96901 -6.185543 125.892589 71.08 20.55 | 20 120
+Confluence : berges 2 200 m | 2200 -6.250434328 125.346558807 70 180 | 20 120
+Vallee amont : 3 840 m | 3840.6 -5.038412 124.886462 13.17 -102.18 | 20 120
+Embouchure : mer et chenal | 3226 -9.027692 127.426786 70.69 -165.64 | 20 120
+Lac : rive nette | 963.25 42.513100842 -24.531474493 20 -42.49 | 40 -20
+Massif : maillage sur la carte 1 231 km | 1230920.1 -9.148316 124.767492 71.08 20.70 | 20 120
+Hemisphere : 3 000 km | 3000000 42.693130 -175.950838 90 0 | 40 -170
+Globe : 10 000 km | 10000000 -0.5 -18.225 90 0 | 10 -5
+Loin : 40 000 km | 40000000 25 60 90 0 | 20 120

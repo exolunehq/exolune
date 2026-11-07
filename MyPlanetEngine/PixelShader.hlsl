@@ -1,3 +1,6 @@
+// The channel rung's queries list their rivers' nodes by wave (Erosion.hlsli); the whole relief's do not, its helper
+// lanes feeding the ocean's derivatives.
+#define EROSION_WAVE_LIST
 #include "Planet.hlsli"
 #include "PlanetSettings.hlsli"
 #include "Atmosphere.hlsli"
@@ -234,16 +237,19 @@ StructuredBuffer<FineSample> fineNormals : register(t7); // the fine grid's norm
 // Reconstruct one cubic height surface from the fine grid, and differentiate that SAME surface for its normal.
 // Linear heights and independently interpolated normals exposed the sliding grid in distant mountains: the
 // height's slope jumped at every cell border. Positive B-spline weights keep the source height range. Water
-// retains its premultiplied four-tap reconstruction and separate physical contour query below.
+// uses the same positive spline for its moments, followed by the physical contour query below.
 // Weight fades over the face's last eight cells; no fine grid on rings or culled samples.
 // uncertainty (m): how far the bilinear and the B-spline reconstructions of the same samples disagree, what the grid
 // cannot tell of the height between its samples.
-float3 FineNormal(float3 chart, out float weight, out float elevation, out float4 inland, out float uncertainty)
+float3 FineNormal(float3 chart, out float weight, out float elevation, out float4 inland, out float3 flow, out float uncertainty,
+                  out uint4 near)
 {
+    near = (uint4)EROSION_NEAR_UNKNOWN; // the wet nodes its four samples around the pixel know (Erosion.hlsli, ErosionRiversNear)
     weight = 0.0;
     elevation = 0.0;
     uncertainty = 0.0;
     inland = 0.0;
+    flow = 0.0;
     if (ringParams.z <= 0.0 || chart.z > 0.5)
         return 0.0;
     const float n = faceParams.w;
@@ -258,31 +264,44 @@ float3 FineNormal(float3 chart, out float weight, out float elevation, out float
     const float4 a = sa.terrain, b = sb.terrain, d = sd.terrain, e = se.terrain;
     if (dot(a.xyz, a.xyz) * dot(b.xyz, b.xyz) * dot(d.xyz, d.xyz) * dot(e.xyz, e.xyz) == 0.0) // a point off screen
         return 0.0;
+    near = uint4(asuint(sa.flow.w), asuint(sb.flow.w), asuint(sd.flow.w), asuint(se.flow.w));
     inland = lerp(lerp(sa.inland, sb.inland, t.x), lerp(sd.inland, se.inland, t.x), t.y);
+    flow = lerp(lerp(sa.flow.xyz, sb.flow.xyz, t.x), lerp(sd.flow.xyz, se.flow.xyz, t.x), t.y);
     const float4 wu = SplineWeights(t.x), wv = SplineWeights(t.y), su = SplineSlopes(t.x), sv = SplineSlopes(t.y);
     float height = 0.0;
     float2 slope = 0.0;
+    float4 water = 0.0;
+    float3 velocity = 0.0;
     bool valid = true;
     [unroll] for (int y = 0; y < 4; ++y)
     {
         float row = 0.0, rowSlope = 0.0;
+        float4 rowWater = 0.0;
+        float3 rowFlow = 0.0;
         [unroll] for (int x = 0; x < 4; ++x)
         {
             const int2 tap = clamp(c + int2(x - 1, y - 1), 0, fineCells);
-            const float4 sample = fineNormals[tap.y * (fineCells + 1) + tap.x].terrain;
+            const FineSample field = fineNormals[tap.y * (fineCells + 1) + tap.x];
+            const float4 sample = field.terrain;
             valid = valid && dot(sample.xyz, sample.xyz) > 0.0;
             // Derivative weights sum to zero; subtract a nearby height before accumulating them.
             row += wu[x] * (sample.w - a.w);
             rowSlope += su[x] * (sample.w - a.w);
+            rowWater += wu[x] * field.inland;
+            rowFlow += wu[x] * field.flow.xyz;
         }
         height += wv[y] * row;
         slope += float2(wv[y] * rowSlope, sv[y] * row);
+        water += wv[y] * rowWater;
+        velocity += wv[y] * rowFlow;
     }
     const float4 mixed = lerp(lerp(a, b, t.x), lerp(d, e, t.x), t.y);
     elevation = valid ? a.w + height : mixed.w;
     uncertainty = abs(elevation - mixed.w);
     weight = ringParams.z * saturate(min(min(chart.x, n - chart.x), min(chart.y, n - chart.y)) / 8.0);
     if (!valid) return normalize(mixed.xyz);
+    inland = water;
+    flow = velocity;
     const float fineCell = 2.0 * faceParams.x / fineCells;
     slope /= fineCell;
     const float2 xy = (f / fineCells * 2.0 - 1.0) * faceParams.x;
@@ -304,13 +323,14 @@ StructuredBuffer<ScreenSample> screenSamples : register(t52); // the screen reli
 // weight: the relief's own, 0 where one of the 16 has no ground (the limb). position: the ground's, camera-relative;
 // ground: its own fields (ScreenSample).
 float3 ScreenNormal(float2 pixel, float3 up, out float weight, out float elevation, out float4 inland, out float3 position,
-                    out float4 ground)
+                    out float4 ground, out float3 flow)
 {
     weight = 0.0;
     elevation = 0.0;
     inland = 0.0;
     position = 0.0;
     ground = 0.0;
+    flow = 0.0;
     if (screenRelief.z <= 0.0)
         return 0.0;
     const int2 size = int2(screenRelief.xy);
@@ -322,12 +342,14 @@ float3 ScreenNormal(float2 pixel, float3 up, out float weight, out float elevati
     float3 du = 0.0, dv = 0.0, at = 0.0;
     float height = 0.0;
     float4 water = 0.0, fields = 0.0;
+    float3 velocity = 0.0;
     bool valid = true;
     [unroll] for (int y = 0; y < 4; ++y)
     {
         float3 row = 0.0, rowSlope = 0.0;
         float rowHeight = 0.0;
         float4 rowWater = 0.0, rowFields = 0.0;
+        float3 rowFlow = 0.0;
         [unroll] for (int x = 0; x < 4; ++x)
         {
             const ScreenSample s = screenSamples[(c.y + y - 1) * size.x + c.x + x - 1];
@@ -338,6 +360,7 @@ float3 ScreenNormal(float2 pixel, float3 up, out float weight, out float elevati
             rowHeight += wu[x] * s.terrain.w;
             rowWater += wu[x] * s.inland;
             rowFields += wu[x] * s.ground;
+            rowFlow += wu[x] * s.flow.xyz;
         }
         at += wv[y] * row;
         du += wv[y] * rowSlope;
@@ -345,6 +368,7 @@ float3 ScreenNormal(float2 pixel, float3 up, out float weight, out float elevati
         height += wv[y] * rowHeight;
         water += wv[y] * rowWater;
         fields += wv[y] * rowFields;
+        velocity += wv[y] * rowFlow;
     }
     if (!valid)
         return 0.0;
@@ -354,6 +378,7 @@ float3 ScreenNormal(float2 pixel, float3 up, out float weight, out float elevati
     inland = water;
     position = origin + at;
     ground = fields;
+    flow = velocity;
     weight = screenRelief.z;
     return normal;
 }
@@ -416,7 +441,9 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     const float3 splineNormal = SplineNormal(input.chart, input.corner, up, splineSurface, splineElevation, splineWeight);
     float fineWeight, fineElevation, fineUncertainty;
     float4 fineInland;
-    const float3 fineNormal = FineNormal(input.chart, fineWeight, fineElevation, fineInland, fineUncertainty);
+    float3 fineFlow;
+    uint4 fineNear;
+    const float3 fineNormal = FineNormal(input.chart, fineWeight, fineElevation, fineInland, fineFlow, fineUncertainty, fineNear);
     // The fine grid lights the ground from face cells of FINE_LIGHT_MIN_CELL; the materials are decided on it further down.
     const float lightWeight = fineWeight * smoothstep(FINE_LIGHT_MIN_CELL, 2.0 * FINE_LIGHT_MIN_CELL, 2.0 * faceParams.x / faceParams.w);
     // The screen relief, where on, takes over from both: the true relief down to its texels, whatever the grid's cells.
@@ -424,8 +451,9 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     float4 screenInland;
     float3 screenPosition;
     float4 screenGround;
+    float3 screenFlow;
     const float3 screenNormal = ScreenNormal(input.position.xy, up, screenWeight, screenElevation, screenInland, screenPosition,
-                                             screenGround);
+                                             screenGround, screenFlow);
     const float3 vertexNormal = normalize(lerp(normalize(lerp(normalize(lerp(normalize(input.normal), splineNormal, splineWeight)),
                                                               fineNormal, lightWeight)), screenNormal, screenWeight));
     // The grain starts below the lighting's cells, and fewer slopes hide within them.
@@ -447,7 +475,7 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     const float4 inlandSample = lerp(lerp(input.inland, fineInland, fineWeight), screenInland, screenWeight);
     float waterLevel = inlandSample.y / max(inlandSample.x, 1e-8);
     float waterDepth = inlandSample.z / max(inlandSample.x, 1e-8);
-    float3 waterFlow = input.water.xyz;
+    float3 waterFlow = lerp(lerp(input.water.xyz, fineFlow, fineWeight), screenFlow, screenWeight) / max(inlandSample.x, 1e-8);
     // Independent water coverages: a dry positive vertex cannot reclassify a whole coastal triangle as a lake.
     // Premultiplication excludes dry heights from the water stage; the fine grid supplies its own wetness.
     const float elevationSpread = ElevationSpread(slopeSpread, cellSize);
@@ -462,7 +490,7 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     const float screenOceanAA = max(abs(ddx(elevation)) + abs(ddy(elevation)), 0.02);
     oceanCoverage = lerp(oceanCoverage, 1.0 - smoothstep(-0.5 * screenOceanAA, 0.5 * screenOceanAA, elevation), screenWeight);
     const float shoreAA = max(abs(ddx(inlandSample.z)) + abs(ddy(inlandSample.z)), 0.05);
-    float inlandCoverage = saturate(inlandSample.x) * smoothstep(0.02, 0.02 + shoreAA, waterDepth);
+    float inlandCoverage = saturate(inlandSample.x) * (ErosionRivers() ? 1.0 : smoothstep(0.02, 0.02 + shoreAA, waterDepth));
     // Grid wetness is a candidate, never the final contour. In particular a narrow river can pass between every
     // dry sample. Refine its conservative distance band with the SAME terrain rule at pixel scale. This also
     // prevents a moving grid's linear height approximation from drawing polygonal coastlines in orbit.
@@ -472,31 +500,92 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     const float heightBand = max(elevationSpread, max(abs(ddx(elevation)), abs(ddy(elevation)))
                                   * sampleCell / max(footprint, 1e-3)) + 0.02 * sampleCell + 2.0;
     const float coastSupport = 1.0 - smoothstep(2.0 * heightBand, 3.0 * heightBand, abs(elevation));
-    const float riverSupport = 1.0 - smoothstep(2.0 * sampleCell, 3.0 * sampleCell, abs(inlandSample.w));
-    const float mixedShore = smoothstep(0.0, 0.02, inlandSample.x) * (1.0 - smoothstep(0.98, 1.0, inlandSample.x));
+    // A channel's band: its edge's distance on the grid, within 0.8 to 1.2 samples. Interpolated across a channel
+    // narrower than the samples, that distance stays under half a sample. Partly wet samples mark a lake's shore;
+    // along a river they spread its filtered wetness over the band already kept (spec-eaux-interieures.md).
+    const bool lakeBands = !ErosionRivers();
+    const float bandScale = lakeBands ? 1.0 : 0.3;
+    const float riverSupport = 1.0 - smoothstep(2.0 * bandScale * sampleCell, 3.0 * bandScale * sampleCell, abs(inlandSample.w));
+    float mixedShore = smoothstep(0.0, 0.02, inlandSample.x) * (1.0 - smoothstep(0.98, 1.0, inlandSample.x));
+    // Keep the cancellation-free nadir offset used by TerrainAt; no planet-sized float position.
+    const float3 offset = up.x * faceX.xyz + up.y * faceY.xyz - (dot(up.xy, up.xy) / max(1.0 + up.z, 1e-6)) * faceZ.xyz;
+    const double3 at = nadir.xyz + (double3)offset;
+    float lakeHere = -1.0; // the terminal lake's stage, once read
+    [branch] if (!lakeBands && mixedShore > 0.0 && unresolved > 0.0 && screenRelief.z < 1.0)
+    {
+        lakeHere = ErosionLakeLevelAt((float3)at);
+        mixedShore *= lakeHere > 0.0 ? 1.0 : 0.0;
+    }
+    // Past the band and any lake, the grid's water is a narrow channel's filtered wetness spread by the B-spline, a halo
+    // the photographs show no trace of: none, where the pixel would refine a channel.
+    [branch] if (!lakeBands && inlandCoverage > 0.0 && inlandSample.w > 3.0 * bandScale * sampleCell
+                 && unresolved > 0.0 && screenRelief.z < 1.0)
+    {
+        if (lakeHere < 0.0) lakeHere = ErosionLakeLevelAt((float3)at);
+        if (!(lakeHere > 0.0)) inlandCoverage *= 1.0 - unresolved * (1.0 - screenWeight);
+    }
     // The screen relief already holds the contour at its texels: no per-pixel query under it.
-    const float refine = (1.0 - screenWeight) * unresolved * max(coastSupport, max(riverSupport, mixedShore));
+    // At the limb a screen stencil may miss the sphere. Its fallback is the filtered mesh/fine-grid water,
+    // not an unbounded second terrain evaluation inside the pixel shader. Both use the same wet moments.
+    const float refine = (1.0 - screenRelief.z) * unresolved * max(coastSupport, max(riverSupport, mixedShore));
     const float dryBound = max(2.0 * footprint, 20.0);
     float preciseElevation = elevation, preciseClearance = -dryBound;
     float preciseLevel = waterLevel, preciseDepth = waterDepth;
+    float preciseRiverCoverage = 0.0, preciseLakeClearance = -dryBound;
     float3 preciseFlow = waterFlow;
     // Two fine-derivative reductions broadcast any candidate across its 2x2 quad, without requiring wave ops.
     const float candidate = refine > 0.0 ? 1.0 : 0.0;
     const float rowCandidate = saturate(candidate + abs(ddx_fine(candidate)));
     const float evaluateContour = rowCandidate + abs(ddy_fine(rowCandidate));
+    // The contour's rung by what it places (docs/spec-eaux-interieures.md). A shore is the terrain's own level line: near
+    // the sea's level or a lake's, the whole relief at the pixel. A channel is narrower than the grid's samples, its
+    // valley is not: the grid's ground, and the channels alone at the pixel (gErosionWater), the same wet fraction.
+    // A channel's candidate takes the whole relief only within two height bands of a shore's level, where that shore is
+    // a full candidate itself: in the band's fade the grid's height lies past any shore, and the steep walls of a valley
+    // the grid cannot resolve widen that band along every river. Decided per wave, so that its lanes never run both.
+    float shore = 0.0;
+    [branch] if (refine > 0.0)
+    {
+        const bool channels = ErosionRivers() && max(riverSupport, mixedShore) > 0.0;
+        shore = !channels || coastSupport >= 1.0 ? 1.0 : 0.0;
+        [branch] if (shore <= 0.0)
+        {
+            const float lake = lakeHere >= 0.0 ? lakeHere : ErosionLakeLevelAt((float3)at);
+            shore = lake > 0.0 && abs(elevation - lake) < 2.0 * heightBand ? 1.0 : 0.0;
+        }
+    }
+    const bool wholeRelief = WaveActiveAnyTrue(shore > 0.0);
     [branch] if (evaluateContour > 0.0)
     {
         gMaxFrequency = (1000.0 * PLANET_RADIUS_KM) / (MESH_BAND_LIMIT * pixelCell);
         gCreaseMaxFrequency = gMaxFrequency;
         gExactLattice = pixelCell < EXACT_LATTICE_MAX_CELL;
-        // Keep the cancellation-free nadir offset used by TerrainAt; no planet-sized float position.
-        const float3 offset = up.x * faceX.xyz + up.y * faceY.xyz
-                            - (dot(up.xy, up.xy) / max(1.0 + up.z, 1e-6)) * faceZ.xyz;
-        preciseElevation = ReliefElevation(nadir.xyz + (double3)offset);
-        preciseLevel = gWaterLevel;
-        preciseDepth = max(preciseLevel - preciseElevation, 0.0);
-        preciseClearance = max(gWaterClearance, -dryBound);
-        preciseFlow = gWaterFlow;
+        [branch] if (wholeRelief)
+        {
+            gErosionWaveList = false;
+            preciseElevation = ReliefElevation(at);
+            preciseLevel = gWaterLevel;
+            preciseDepth = gWaterDepth / max(gWaterCoverage, 1e-8);
+            preciseClearance = max(gWaterClearance, -dryBound);
+            preciseRiverCoverage = gRiverCoverage;
+            preciseLakeClearance = max(gLakeClearance, -dryBound);
+            preciseFlow = gWaterFlow;
+        }
+        else
+        {
+            gErosionWater = true;
+            const ErosionRiver river = ErosionRiversNear(at, max(ReliefCellKm(), gRiverCellKm), elevation, elevation, 0.0,
+                                                         fineWeight > 0.0 ? fineNear : (uint4)EROSION_NEAR_UNKNOWN);
+            gErosionWater = false;
+            // The channels' water as ReliefFinishGround draws it, without the terrain's clamps: their wet fraction and
+            // mean cut at the pixel; the terminal lake's clearance from the grid's height, off the lake's level here.
+            preciseRiverCoverage = river.stage > 0.0 ? river.coverage : 0.0;
+            preciseLakeClearance = river.lakeLevel > 0.0 ? max(river.lakeLevel - elevation, -dryBound) : -dryBound;
+            const float depth = max(river.stage > 0.0 ? river.cut : 0.0, max(preciseLakeClearance, 0.0));
+            preciseLevel = max(0.0, max(river.stage, river.lakeLevel));
+            preciseDepth = depth / max(max(preciseRiverCoverage, preciseLakeClearance > 0.0 ? 1.0 : 0.0), 1e-8);
+            preciseFlow = preciseLevel > 0.0 ? river.flow * saturate(river.cut / max(depth, 1e-3)) : 0.0;
+        }
     }
     // Every lane of a derivative quad evaluates together, including a mixed lake shore at the end of a candidate
     // band. A dry fallback must never participate in a derivative of the freshly evaluated water field.
@@ -505,15 +594,22 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     const float preciseOcean = 1.0 - smoothstep(-0.5 * oceanAA, 0.5 * oceanAA, preciseElevation);
     // A dry plane can coincide exactly with its drainage stage. Zero clearance is dry, never half water;
     // centre-symmetric AA would flood every such floor with a 50% reflective ribbon in distant views.
-    const float preciseInland = smoothstep(0.0, 0.5 * liquidAA, preciseClearance);
+    const float lakeAA = max(abs(ddx(preciseLakeClearance)) + abs(ddy(preciseLakeClearance)), 0.02);
+    const float preciseInland = ErosionRivers() ? max(preciseRiverCoverage, smoothstep(0.0, 0.5 * lakeAA, preciseLakeClearance))
+                                              : smoothstep(0.0, 0.5 * liquidAA, preciseClearance);
     oceanCoverage = lerp(oceanCoverage, preciseOcean, refine);
-    inlandCoverage = lerp(inlandCoverage, preciseInland, refine);
+    // Blend wet moments before decoding. Interpolating conditional depths/stages with dry values changed the water
+    // colour and current as the fine grid, pixel contour and screen samples exchanged their weights on approach.
+    const float3 waterMoments = lerp(float3(inlandCoverage, inlandCoverage * waterLevel, inlandCoverage * waterDepth),
+                                     float3(preciseInland, preciseInland * preciseLevel, preciseInland * preciseDepth), refine);
+    const float3 flowMoment = lerp(inlandCoverage * waterFlow, preciseInland * preciseFlow, refine);
+    inlandCoverage = waterMoments.x;
     // The contour query decides water, not the bandwidth of land materials or their existing fine normals.
     // Feeding its finer height to coarse snow/material decisions introduces a new high-frequency pattern in orbit.
     const float waterBedElevation = lerp(elevation, preciseElevation, refine);
-    waterLevel = lerp(waterLevel, preciseLevel, refine);
-    waterDepth = lerp(waterDepth, preciseDepth, refine);
-    waterFlow = lerp(waterFlow, preciseFlow, refine);
+    waterLevel = waterMoments.y / max(inlandCoverage, 1e-8);
+    waterDepth = waterMoments.z / max(inlandCoverage, 1e-8);
+    waterFlow = flowMoment / max(inlandCoverage, 1e-8);
     const float sea = inlandCoverage + (1.0 - inlandCoverage) * oceanCoverage;
     // The point the materials and the fine detail are looked up at: on the spline surface, where the view ray
     // meets it, one Newton step from the triangle; on the triangle where the spline does not apply.

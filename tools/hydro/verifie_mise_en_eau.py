@@ -36,7 +36,7 @@ def profiles():
 
 def network():
     words,n = cp.erosion_map()
-    basins = cp.erosion_basins()
+    basins = cp.erosion_basins()&0xFFFF  # the low halves: step B's courses use the high ones (Erosion.h)
     assert np.any(basins[:,1]), 'No terminal basins: run the updated engine first'
     ids = np.arange(len(words))
     level,_,_,_,bits = cp._eread(words,ids)
@@ -72,7 +72,7 @@ def envelopes():
 
 
 def basin_connections():
-    words,n=cp.erosion_map();basins=cp.erosion_basins();ids=np.arange(len(words))
+    words,n=cp.erosion_map();basins=cp.erosion_basins()&0xFFFF;ids=np.arange(len(words))
     right=np.minimum(ids+1,len(words)-1)
     border=(ids%n<n-1)&(basins[:,1]!=basins[right,1])&((basins[:,1]!=0)|(basins[right,1]!=0))
     lake=((words[:,1]&cp._LAKE)!=0)|((words[right,1]&cp._LAKE)!=0)

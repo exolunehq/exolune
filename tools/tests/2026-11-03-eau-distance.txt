@@ -1,0 +1,15 @@
+# Seed 0. Reproduce the two approach screenshots, then inspect the same river closer, the coast's repeated cuts,
+# and separate river/confluence witnesses. Sea-level camera altitudes. N restores clouds; 1 cycles erosion modes.
+# Check water coverage and terrain shape while moving continuously between views; acceptance remains in flight.
+Riviere : capture a 250 km | 250325.2 -7.489828 125.499386 65.74 -9.13 | 20 120
+Riviere : capture a 173 km | 172718.8 -7.189383 125.450731 65.74 -9.12 | 20 120
+Riviere : approche a 100 km | 100000 -6.895 125.402 65.74 -9.12 | 20 120
+Riviere : approche a 40 km | 44000 -6.8184 125.2198 60 22.58 | 20 120
+Riviere : approche a 5 km | 9700 -6.7137 125.2637 35 22.58 | 20 120
+Cote : capture a 863 km | 863385.4 -11.180370 124.914240 65.06 30.66 | 20 120
+Cote : approche a 430 km | 430000 -9.5 125.9 65.06 30.66 | 20 120
+Cote : approche a 100 km | 100000 -8.25 126.65 65.06 30.66 | 20 120
+Confluence : vue d'ensemble | 8000 -6.251531 125.325826 90 0 | 20 120
+Confluence : rive proche | 1700 -6.250154 125.325943 70 180 | 20 120
+Confluence : autre secteur | 3500 -7.173005 125.036219 90 0 | 20 120
+Lac terminal : vue d'ensemble | 6000 41.279216597 -28.287525936 65 0 | 40 -25

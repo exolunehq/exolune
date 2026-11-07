@@ -76,6 +76,16 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="ScreenRelief.hlsl" />
+    <FxCompile Include="ScreenRivers.hlsl" />
+    <FxCompile Include="ScreenRiverTexel.hlsl" />
+    <FxCompile Include="ErosionActivity.hlsl" />
+    <FxCompile Include="ErosionCourseBuild.hlsl" />
+    <FxCompile Include="ErosionCourseWet.hlsl" />
+    <FxCompile Include="PlanetPlantGround.hlsl" />
+    <FxCompile Include="ErosionActivityTiles.hlsl" />
+    <FxCompile Include="ErosionRiverMap.hlsl" />
+    <FxCompile Include="ScreenRiverArgs.hlsl" />
     <FxCompile Include="VertexShader.hlsl" />
     <FxCompile Include="PixelShader.hlsl" />
     <FxCompile Include="TerrainCompute.hlsl" />
@@ -85,6 +95,9 @@
     <FxCompile Include="FineNormals.hlsl" />
     <FxCompile Include="PlanetMap.hlsl" />
     <FxCompile Include="ErosionForm.hlsl" />
+    <FxCompile Include="ErosionNodes.hlsl" />
+    <FxCompile Include="ErosionStages.hlsl" />
+    <FxCompile Include="ErosionContacts.hlsl" />
     <FxCompile Include="MaterialGenerator.hlsl" />
     <FxCompile Include="ObjectPlacement.hlsl" />
     <FxCompile Include="ObjectCandidates.hlsl" />
