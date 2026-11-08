@@ -24,6 +24,18 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 
 ## The established rules
 
+**Generated settlements follow shared life and existing land** (`spec-ville-procedurale.md`).
+- Compose habitat groups and planted commons before pedestrian connections.
+- Do not default to private frontage plots or vehicular grids for solarpunk settlements.
+- Sample the existing terrain; reject unsupported sites instead of silently flattening them.
+- Keep building access and manufactured foundations consistent with walking contact.
+- Apply ground-occupation exclusion to natural objects through one shared mask.
+- Preserve exact source provenance and reject reduced shells that fail surface or visual review.
+- Approve a manufactured master against the original design in neutral views before production promotion. Explicitly requested exploratory series may compare variants while that art gate remains open; review every exact source before cooking it.
+- Shared topology must preserve the intended depth, overhangs and junctions; connectivity alone does not establish fidelity. Bound variation shear as well as local orientation, retain planar glazing, and reconstruct a junction when the intended change exceeds its family.
+- A rendered candidate, successful build or source triangle count does not establish production performance.
+- A neutral-to-runtime derivative retains its exact parent, fitted interfaces and access datum. Bound structural reduction against the source surface, preserve its normals and repeat native review for the resulting bank.
+
 **Grounded movement and environmental audio read the rendered world** (`spec-marche-ambiances.md`).
 - Walking contact uses shared relief and a bounded local footprint; no second terrain model.
 - Separate disembarkation recovery from movement contact; refuse invalid landings visibly.
@@ -287,3 +299,42 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - **`tools/banc_objets.py`:** objects per ground in the counted photos, the distance between their foot and the mesh's ground along an approach, the rises along a descent, and the man-height views next to the photos.
 - **`tools/banc_vegetation.py` :** biome cover, tree line, light connection between plants and the canopy, the orbit light view, the test views. With `banc_descente.py` and `forest` view: the share of forest per pixel, from 20 km to the ground.
 - **The benchmarks render without window** and do not take the user's focus.
+
+**City density and generated variants**
+
+- Design ecological corridors, shared destinations and density fields before individual buildings.
+- Review alternative masterplans before scaling a composition into a city.
+- Density comes from collective form and stacked uses, never an automatic private-plot frontage grammar.
+- Variants change wings, floors, terraces and access while retaining shared material and transport interfaces.
+- Union manufactured path surfaces before partitioning their materials; a junction must not contain doubled ground faces.
+- Bake only local ambient visibility into assets; never bake the current sun or multiply direct light by ambient occlusion.
+- Cull ground in bounded chunks and batch repeated shadow casters as well as visible geometry.
+- A neural face-count request is not a geometry budget result. Read the actual output and reject damaged reductions.
+
+- Validate transport interfaces in metric principal-axis coordinates before placing a generated vehicle; a convincing reference view does not establish clearance.
+- Resolve coplanar architectural intersections and give structural ramps thickness before deriving LODs.
+
+- Reconstruct geometric adjacency across import seams before simplification; material and normal seams are corner attributes, not holes. Closed structural parts must stay closed after reduction.
+
+- Detail expresses use and construction, not arbitrary ornament. An opening needs a readable mechanism appropriate to its function: sensor, actuator, pull, latch or sliding rail.
+- Author the primary entrance in the source and connect access to that point; the centre of a bounding box is not an entrance.
+- A manufactured source's ground datum controls placement. Negative footing vertices stay buried; aligning the minimum bound above ground must not lift every entrance.
+- Spend geometry on silhouettes, recesses, thresholds and mechanical interfaces. Shade fine fibres, seams and distant room contents without multiplying mesh density.
+- Validate an entrance's standing approach independently of its component topology. A door, its frame and controls can be valid meshes while another part blocks access. Review cameras use the manufactured floor datum above the unchanged terrain.
+- Review near-field functional details and district silhouettes separately, recording a judgement for each native capture. A successful build or attractive single view is not an AAA art-quality gate.
+- A manufactured part has a coherent surface and intentional interfaces. Joining object names does not remove hidden faces or make disconnected primitives structurally continuous.
+- Match load-bearing saddles, seals and reveals to the surfaces they contact. Keep articulation gaps deliberate; reject accidental floating attachments.
+- Bake shallow manufacturing detail into shared surface maps after establishing the silhouette and UVs. Normal maps do not repair a broken silhouette or a missing opening.
+- Choose neural, parametric or hybrid generation by the required editability and verified native result. A successful organic silhouette does not validate its apertures, hidden side or runtime reduction.
+- Treat calibrated views rendered from an existing mesh as a reconstruction control, not independent evidence of hidden architecture.
+- Allocate a bounded minimum to small functional parts before distributing a whole-asset reduction budget. Check actual counts and retained surfaces afterwards.
+- Keep generated topology and repaired topology separately. Closed edges, smooth normals and a requested part count do not establish valid winding, clean interfaces or preserved openings.
+- Record the extent of directed reconstruction. A neural design guide followed by rebuilt surfaces is a hybrid authoring process; it is not a finished neural mesh or automatic retopology.
+- Derive structural variants from explicit profile and interface controls. Revalidate apertures, approach clearance and LODs for each variant; a valid master does not prove its variants valid.
+- Preserve architectural continuity before segmentation. Coherent shell/support junctions remain connected surfaces with controlled tangents; intersecting rounded solids and material decoration do not constitute a finished junction.
+- Verify design fidelity before material finishing, variants and LOD production. Compare silhouette, volume depth, overhangs, opening proportions and junction curvature with the canonical art reference; closed topology cannot compensate for architectural drift.
+- Keep art references and cleaned generation inputs distinct. Record design changes introduced by image preparation; a cleaner conditioning image does not replace the original design without review.
+- Derive close surface laminates from the actual supporting triangles. Matching sampled points on two independently tessellated curves does not prevent crossings between those points.
+- Preserve declared assembly contacts at every LOD. Check projected triangle intersections, not only sampled points. Bound outward correction in metres and screen pixels; retain the preceding accepted level when the bound fails.
+- Preserve authored material semantics across export display-name changes. A structural variant must not silently fall back to untextured generic shading.
+- Derive virtual-room dimensions from the authored metric UV span. Glazing mullions do not necessarily delimit independent rooms.

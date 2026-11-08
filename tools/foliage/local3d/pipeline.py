@@ -224,7 +224,7 @@ def stage(name, body, roles, args, comfy, schema, models):
         if state['prompt_id'] not in known:
             state.update({'status':'error', 'details':'Previous server no longer knows this prompt; submitting the saved graph again.'})
     if not state.get('prompt_id') or state.get('status')=='error':
-        required=7.25 if name=='wood_mesh' else 2.0 if name=='leaf_alpha' else 7.0
+        required=getattr(args,'minimum_free_vram_gib',7.25) if name=='wood_mesh' else 2.0 if name=='leaf_alpha' else 7.0
         no_game(required,args.allow_shared_gpu,args.yield_if_gpu_busy)
         if not comfy.idle():raise GpuBudgetUnavailable('ComfyUI is busy with another queued job; resume when it is idle.')
         response=comfy.call('prompt',body);save(folder/'submission.json',response)

@@ -44,7 +44,7 @@ namespace
                              ShipSrv = CloudTemporalSrv + 14, TectonicSrv = ShipSrv + Ship::DescriptorCount, // its views, the climate,
                              ContactSrv = TectonicSrv + 5, ContactUav = ContactSrv + 1,
                              ContactHdrUav = ContactSrv + 2, ContactSunUav = ContactSrv + 3,
-                             DescriptorCount = ContactSrv + 4 };
+                             CitySrv = ContactSrv + 4, DescriptorCount = CitySrv + City::DescriptorCount };
     // Render target views: the back buffers, then the HDR image, the composite image, the two histories and the terrain's
     // sunlit part, for the clouds' shade.
     // Then the cloud temporal pass's fresh light and data, its two histories, light, data and offset each, and the light
@@ -774,7 +774,8 @@ bool D3DApp::InitDirect3D() {
     // The tectonic map and its views (Tectonics.hlsli), the climate map (Climate.hlsli), the volcanoes and their index
     // (Volcanoes.hlsli): t18..t22.
     CD3DX12_DESCRIPTOR_RANGE tectonicRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 18);
-    CD3DX12_ROOT_PARAMETER params[13];
+    CD3DX12_DESCRIPTOR_RANGE citySunRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,53);
+    CD3DX12_ROOT_PARAMETER params[14];
     params[0].InitAsConstantBufferView(0);
     params[1].InitAsShaderResourceView(0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
     params[2].InitAsDescriptorTable(1, &lutRange, D3D12_SHADER_VISIBILITY_PIXEL);
@@ -788,7 +789,8 @@ bool D3DApp::InitDirect3D() {
     params[10].InitAsDescriptorTable(1, &shipSunRange, D3D12_SHADER_VISIBILITY_PIXEL);
     params[11].InitAsDescriptorTable(1, &tectonicRange, D3D12_SHADER_VISIBILITY_PIXEL);
     params[12].InitAsShaderResourceView(52, 0, D3D12_SHADER_VISIBILITY_PIXEL); // the screen relief
-    mRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(13, params, 3, samplers));
+    params[13].InitAsDescriptorTable(1,&citySunRange,D3D12_SHADER_VISIBILITY_PIXEL);
+    mRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(14, params, 3, samplers));
     // Terrain compute: frame constants, its output (UAV), the tectonic map the relief reads (Relief.hlsli).
     CD3DX12_ROOT_PARAMETER computeParams[3];
     computeParams[0].InitAsConstantBufferView(0);
@@ -1175,6 +1177,7 @@ bool D3DApp::InitDirect3D() {
     const std::wstring shipPack = FindAbove(mShip.Profile().packPath);
     if (!shipPack.empty()) mShip.Load(shipPack);
     mShip.Initialize(md3dDevice.Get(), mCommandList.Get(), mSrvHeap.Get(), ShipSrv, mClientWidth, mClientHeight, HdrFormat, SunFormat);
+    mCity.Initialize(md3dDevice.Get(),mCommandList.Get(),mSrvHeap.Get(),CitySrv,mSettings.cityAssets,mSettings.seed,HdrFormat,SunFormat);
     if (!mShip.Ready()) mView = View::Free;
     // The plants' catalogue (docs/arbustes-climatiques.md): MYPLANETENGINE_FOLIAGE_ASSETS; else the first built one above
     // the executable, the repository's, then the one shared beside the repositories, `plantes`, which tools\plantes.ps1
@@ -1279,6 +1282,7 @@ bool D3DApp::InitDirect3D() {
     mCommandQueue->ExecuteCommandLists(1, lists);
     WaitForPreviousFrame();
     mShip.ReleaseUploads();
+    mCity.ReleaseUploads();
     mPlanetFoliage.ReleaseUploads();
 
     mOcean=std::make_unique<Ocean>();
@@ -1288,6 +1292,7 @@ bool D3DApp::InitDirect3D() {
     mIndexBufferView.SizeInBytes = static_cast<UINT>(indexBufferSize);
     mIndexBufferView.Format = DXGI_FORMAT_R32_UINT;
     CreateTectonicMap(); // the relief reads it, the planet map with it
+    if (!mSettings.cityProbe.empty()) { ExportCityGround(GpuDescriptor(TectonicSrv)); PostQuitMessage(0); return true; }
     InitCine(GpuDescriptor(TectonicSrv));
     CreatePlanetMap();
     InitializeWorld(GpuDescriptor(TectonicSrv),GpuDescriptor(PlanetMapSrv),GpuDescriptor(CloudSrv),GpuDescriptor(MaterialSrv));
@@ -1814,6 +1819,7 @@ void D3DApp::Draw() {
         mConstants->shipSphere.w = Ship::Radius;
     }
     if (mShip.Ready()) UpdateShipFrame(dt, faceX, faceY, faceZ);
+    UpdateCityFrame(faceX,faceY,faceZ,view*proj);
     const double windAngle = std::fmod(mWeatherTime * kWeatherWindSpeed / PlanetRadius, 2.0 * XM_PI);
     {
         const Vec3d localUp=Normalize(mCamPos);
@@ -2145,6 +2151,7 @@ void D3DApp::Draw() {
         mFaceVertexBuffer->GetGPUVirtualAddress(), GpuDescriptor(LutSrv), GpuDescriptor(PlanetMapSrv), GpuDescriptor(CompositeSrv),
         GpuDescriptor(CloudSrv) };
     if (shipDrawn) mShip.DrawShadows(mCommandList.Get(), shipTables);
+    mCity.DrawShadows(mCommandList.Get(),mConstantBuffer->GetGPUVirtualAddress());
     mCommandList->OMSetRenderTargets(2, sceneRtvs, FALSE, &dsvHandle);
     mCommandList->ClearRenderTargetView(hdrRtv, kClearColor, 0, nullptr);
     mCommandList->ClearRenderTargetView(sunRtv, kClearColor, 0, nullptr);
@@ -2155,6 +2162,7 @@ void D3DApp::Draw() {
     mCommandList->RSSetViewports(1, &viewport);
     mCommandList->RSSetScissorRects(1, &scissor);
     if (shipDrawn) mShip.DrawOpaque(mCommandList.Get(), shipTables); // first: it hides much of the scene from the cockpit
+    mCity.Draw(mCommandList.Get(),mConstantBuffer->GetGPUVirtualAddress(),GpuDescriptor(LutSrv),GpuDescriptor(PlanetMapSrv));
 
     ID3D12DescriptorHeap* heaps[] = { mSrvHeap.Get() };
     const auto drawTerrain = [&](ID3D12PipelineState* pso) {
@@ -2173,6 +2181,7 @@ void D3DApp::Draw() {
         mCommandList->SetGraphicsRootDescriptorTable(9,GpuDescriptor(OceanSrv));
         mCommandList->SetGraphicsRootDescriptorTable(10, mShip.SunMapSrv());
         mCommandList->SetGraphicsRootDescriptorTable(11, GpuDescriptor(TectonicSrv));
+        mCommandList->SetGraphicsRootDescriptorTable(13,mCity.Ready()?mCity.ShadowSrv():mShip.SunMapSrv());
         mCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         mCommandList->IASetIndexBuffer(&mIndexBufferView);
         mCommandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);

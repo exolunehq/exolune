@@ -2,6 +2,7 @@
 
 **Status**
 
+- Architecture uses the [generated city extension](spec-ville-procedurale.md), sharing source provenance and review gates with this chain while retaining its own surface, material and placement rules.
 - Use this procedure for each new master and structural variant.
 - The user accepts the surface-distribution oak shown in `10_crown/quarter.png`.
 - Its immutable GLB has SHA-256 `c11c61b00d093c57025ec4a7c7168e6431e198d7f11a329c6756762813e67458`.

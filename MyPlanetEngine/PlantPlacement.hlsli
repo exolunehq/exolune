@@ -9,6 +9,7 @@
 #define PLANT_PLACEMENT_HLSLI
 #include "PlantCommunity.hlsli"
 #include "RootContact.hlsli"
+#include "CityLand.hlsli"
 
 // A crown's ground, on average over its octave, per d^2 of the octave's smallest height d: pi / 4 (crown spread)^2 E[h^2],
 // its height h log-uniform over the octave, E[h^2] = 2.164 d^2.
@@ -281,6 +282,7 @@ void PlacePlantTile(uint4 record, uint tileIndex)
             continue;
         float e = drawn;
         float3 pos = FaceLocal((float3)(k.p + (double3)(k.up * e) - cam));
+        if(CityOccupied(pos))continue;
         float span = k.size / (length(pos) * pixelAngle);
         if (span > PLANT_LOD_PIXELS.y)
         {

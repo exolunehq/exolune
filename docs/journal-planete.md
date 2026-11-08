@@ -2,6 +2,115 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-08 · Neutral series integrated into the city review bank**
+
+- **Scope.** The user requests native integration and a visible launch after GPU availability. Four houses, two civic buildings and two greenhouses replace seven slots and add one model; 34 existing sources stay pinned.
+- **Geometry.** Dense structural surfaces reduce to a 54,000-triangle LOD0 target. Greenhouses remain at 21,288 and 23,944 triangles. Original fitted panes, entries and steps stay intact.
+- **Surface checks.** Source normals transfer to the reduced structure. Exported manufactured parts pass closure and winding checks. Sampled source-relative p95 stays below 0.14 mm for the six reduced models.
+- **Appearance.** Use the shared ceramic, timber, teal, stone and reflective-glazing palette, metric UVs, common PBR detail and indirect-only source visibility. No new renderer setting or terrain geometry is introduced.
+- **Placement.** Select garden houses from available house/courtyard families. Use each actual fitted entrance and source footprint in the common terrain/support/access rules.
+- **Evidence.** `E:/ExoluneAssets/city-series-2026-11-08/candidate-02`; exact counts, four-seed validation, native views and delivery status belong to that bank's reports.
+- **Native review.** The bank contains 42 models, 127 buildings and 359 instances. Thirty captures were inspected, including identical entry/distance pixels and six low-house placements. Twelve unchanged views form `native-selected`; the route covers all eight sources, two entrances and two distances.
+- **Remaining finish.** Exterior glazing is opaque. Faceted service-wall shading, bright timber-return marks and distant collective outlines remain open artistic work; the review does not conceal these limitations.
+- **Acceptance.** This is a user review bank. Art and performance acceptance remain false; no benchmark is requested or run.
+- **Milestone.** `piste/2026-11-08-ville-series-integrees` records the integrated city and its production tools. Earlier proposed city tags describe intermediate iterations retained in external source snapshots.
+
+**2026-11-08 · Neutral architecture series**
+
+- **Scope.** The user requests series of houses and public buildings using the directed master method. This supersedes the earlier single-study restriction for exploratory variants, not the production-art gate.
+- **Sources.** Four houses, including the retained control, two civic buildings and two greenhouses. The latter families use their own connected construction domains.
+- **Variation.** House width 0.88–1.28, depth 0.92–1.14, upper-height factor 0.75–1.28 and 4–9 fitted fins. Large wing offsets are rejected above junction shear 1.25. Greenhouses vary length 17–24 m and four/six length bays.
+- **Interfaces.** Civic side apertures preserve the main shell; public stairs follow their source terrace. Import-seam recovery and corner-normal preservation precede export cleanup.
+- **Checks.** Release x64 builds; each exported source receives topology and exact-reimport validation, then CPU hero/rear/entry views. These are geometry reviews, not performance benchmarks.
+- **Evidence.** `E:/ExoluneAssets/architecture-series-2026-11-08/series-v3`; recipes, source snapshots and capture-bound judgements remain external. Iteration findings are in `log/generation-architecture-historique.md`.
+- **Runtime.** No settings, terrain, active bank, textures or LODs change. The 180,000-triangle source ceiling does not replace the 60,000-triangle game LOD0 gate.
+- **Milestone.** Proposed `piste/2026-11-08-series-architecture` awaits a requested commit. No tag points at the unchanged base.
+
+**2026-11-08 · Original-reference house master, neutral stage**
+
+- **Scope.** One directed geometry master against the original board. The user requests neutral review before textures, LODs and variants.
+- **Source.** Independent front/rear controls, 0.12 m ribbon sampling, 85 mm lip radii, 0.82 m roof camber and 0.38 m soffit camber. The living wing advances ahead of the upper wing.
+- **Interfaces.** Vertical glazing and fins intersect the structural source. The entrance stays under the shared canopy; the stair sweep follows the terrace edge.
+- **Checks.** Closed operands, bounded Boolean subtraction and connected closed parts. Release x64 builds. CPU studio views do not measure runtime performance.
+- **Evidence.** `E:/ExoluneAssets/house-master-2026-11-08`; exact sources, hashes, snapshots and neutral captures remain outside Git. Iteration findings belong to `log/generation-architecture-historique.md`.
+- **Status.** Fidelity awaits user review. No textures, reduction, variants, bank replacement or terrain changes.
+- **Milestone.** Proposed `piste/2026-11-08-maison-maitre-neutre` awaits a requested commit; no tag points at the unchanged base.
+
+**2026-11-08 · Continuous house junctions and a structural variant**
+
+- **Correction.** The user rejected separate rounded shells intersecting without coherent junctions. One connected structural domain now includes the two inhabited wings, the entrance surround and the supporting arch.
+- **Geometry.** Four actual apertures, a 0.45 m face grid, 55 mm edge radii, rear taper and roof camber. Equal-angle bevel offsets preserve short boundary edges.
+- **Fittings.** Glazing bays, seals, sun fins and sliding controls derive from those apertures. Roof laminates clip actual supporting triangles at 4–16 mm offsets. Light-channel sampling uses physical arc length.
+- **Variation.** The second asset extends the upper wing by a 0.16 profile factor, raises its crown by 0.15 above the shared shoulder and advances it by 0.65 m. Bay rhythm and fins change independently.
+- **Budget.** A 40,000-triangle source ceiling; five common geometry levels at nominal ratios 1, .60, .30, .12, .045. Source-relative error and closed-part guards remain active.
+- **LOD interfaces.** Exact projected roof/PV triangle intersections enforce 4 mm minimum clearance. Reduced overlays receive at most 0.15 m and 0.4 projected pixels of outward compensation; LOD0 is unchanged. A failed bound retains the preceding accepted level. This adds no triangles.
+- **Materials.** One virtual room spans each house wing; metric UV derivatives set its width and height. Restore upward room coordinates from stored downward texture V. Ceramic colour, roughness and normal share a 2 m cladding tile with 1.2 mm recessed joints. Timber relief uses a 0.3 mm height scale. Independent seam and grain overlays are removed.
+- **Variant export.** Preserve stable material semantics through Blender's numeric display-name suffixes. Identical master/variant materials reuse the same PBR layers. Both house catalogue entries record two floors.
+- **Lineage.** PartCrafter supplies pinned design evidence. All final vertices are reconstructed; no automatic neural retopology or source-normal bake is claimed.
+- **Evidence.** `E:/ExoluneAssets/house-finish-2026-11-08`. Rejected iterations and source corrections are in `log/generation-architecture-historique.md`. Exact bank and native review results belong to the external delivery reports.
+- **Rejected design control.** `candidate-17/bank`: 30,063→2,854 triangles for the house and 31,148→2,936 for its variant. Serialized contact checks pass at all ten LOD slots; source topology and four placement seeds pass. The user rejects its design fidelity.
+- **Native review.** Twenty inspected captures cover the paired exteriors, intermediate LODs, a collective entrance and the suspended cabin. Exact-bank verification passes. Close shadows, timber grain, virtual-room detail and distant aliasing remain open art issues.
+- **Runtime.** No terrain change or performance benchmark. Art and performance acceptance remain separate from functional validation.
+- **Milestone.** Proposed `piste/2026-11-08-maison-jonctions` awaits a requested commit. No tag points at the unchanged base.
+- **Rollback.** Select the previous reviewed bank and its captured executable/shaders. Do not promote the rejected separate-loft assets as the rollback target.
+
+**2026-11-08 · Local architectural method study**
+
+- **Scope.** Seven completed neural geometry trials on the same house design: two Pixal multiview, two PartCrafter and three LATO.2 trials.
+- **Conditioning.** Four-view calibrated reconstruction controls; original and locally cleaned single-image references retained separately.
+- **Reduction.** A 28,000-triangle total request now supports a bounded 500-triangle reservation per semantic part. The selected research candidate has 27,992 triangles.
+- **Decision.** Continue the cleaned-reference PartCrafter plus controlled reconstruction/QEM route. The current candidate still fails source detail/topology acceptance; no city asset is replaced.
+- **Evidence.** `E:/ExoluneAssets/architecture-2026-11-08`; recipes, model hashes, GLBs, topology dumps and CPU views. No native performance claim or benchmark.
+- **Runtime.** Planet settings, terrain and the city bank are unchanged by this study. Release x64 build passes.
+- **Milestone.** Proposed `piste/2026-11-08-architecture-multivue` awaits a requested commit. Detailed experiments belong to `log/generation-architecture-historique.md`.
+
+**2026-11-07 · City detail and manufacturing interfaces**
+
+- **Scope.** 41 model recipes, including 11 collective variants. Four additional profiles vary twist, stepped terraces, floor height and wing arrangement.
+- **Entrances.** Source-authored access points guide pedestrian connections. Sliding controls serve collective entrances; smaller leaves retain an appropriate mechanical opening system.
+- **Placement.** Source zero is the ground datum. Buried footings no longer lift the whole building. High thresholds retain their steps above bounded support platforms.
+- **Geometry.** Continuous portal profiles, hollow planters, formed seating cradles, forged suspension yokes and roof-conforming saddles replace selected primitive assemblies.
+- **Source gate.** Recover imported seams at 1 micrometre and check tagged parts for a single component, closed consistently oriented edges and non-collapsed faces.
+- **Detail.** Shared generated panel normal/roughness maps carry shallow vents, sockets and markings. Grain and seat joints share coherent material detail.
+- **Shading.** View-dependent virtual rooms and cabin contents add no interior geometry or collision. Fine content converges under pixel filtering.
+- **Radiometry.** Normalized trim emission dims to 0.055 in daylight and reaches 0.30 at night; control-panel emission is 0.065; virtual-room warm emission is 0.055. Solar illuminance remains PI and indirect occlusion remains bounded.
+- **Access review.** A nine-ray source gate checks the standing approach. Planters flank civic entrances, a continuous vestibule reaches the greenhouse spine, and asymmetric facade attachment samples the full doorway width.
+- **Geometry budget.** Existing 60,000/12,000 LOD0 limits and five source-relative levels remain unchanged. Exact storage and placement counts are external production evidence.
+- **Neural comparison.** The house remains a source witness. Pinned Pixal3D trials at 1,024 and 512 reject the tested reductions. The completed 512 candidate has 61,780 triangles for 28,000 requested and torn shells, despite complete 2K PBR maps. A 6.5 GiB free-memory admission threshold enables shared-GPU inference; this is not a timing measurement.
+- **Evidence.** `E:/ExoluneAssets/city-2026-11-07-detail`; 24 district/close-detail captures, 253 connected parts, four placement seeds and three startup controls. The bank has 362 placements and stores 1,779,003 triangles across all LOD slots. Art and performance acceptance remain false.
+- **Milestone.** Proposed `piste/2026-11-07-ville-details` remains pending a requested commit; no misleading tag is created on the unchanged base.
+- **Rollback.** Select the expansion bank and its exact reviewed executable/shaders; changing only the asset path does not restore the old lighting implementation.
+
+**2026-11-07 · Braided archipelago expansion**
+
+- **Plan.** The user selected the braided archipelago from three explicit proposals. The city reserves two continuous habitat corridors before footprint placement.
+- **Scale.** 23 sectors, three stations, a 919 m suspended line, 37 generated recipes. Collective structural variants span three to nine floors.
+- **Relief.** Seed 0, latitude -11.04, longitude 49.784, 513 × 513 samples at 2 m. Support and pedestrian grade bounds remain unchanged.
+- **Paths.** Support plinths follow source hulls and entrances. Union junctions first. Partition compacted aggregate, common paving and 0.18 m low stone borders. Segment boundaries at 2.8 m and limit draped triangle edges to 4.5 m.
+- **Reduction.** Weld geometric seams within each part at 1 micrometre before collapse; reject newly opened closed parts and repair missing reduced normals from face geometry.
+- **Source corrections.** Wing floors offset by 75 mm; station deck at local 17.85 m; ramp thickness 220 mm; terrain-reaching station and ring supports. Neural train remains an unpromoted candidate.
+- **Visibility.** Eight source-mesh cosine rays over 2.5 m bake ambient visibility. The indirect-light floor is 40%; direct light is unaffected.
+- **Materials.** Analytic wall normals on curved glazing and reservoirs, with planar caps. Shared generated colour, normal and roughness layers; analytically filtered subpixel seams.
+- **Runtime.** Scene mask 256 × 256; 64 m ground chunks; model-batched local shadow casters; texel-snapped 760 m shadow projection; small distant caster retirement.
+- **Evidence.** `E:/ExoluneAssets/city-2026-11-07-expansion`. Functional and structural checks only; no performance benchmark requested.
+- **Review bank.** 122 building/infrastructure placements, 212 furniture/cultivation placements and 22 transport placements. Release x64, four placement seeds, twelve native city views and three startup controls pass. Exact bank and binary hashes are retained with the captures.
+- **Visual gate.** Thin distant contours, simplified opaque glazing and planted furniture still need art refinement. The dated `2026-11-07-ville-archipel` palette covers the whole city, not only the house view.
+- **Milestone.** Proposed `piste/2026-11-07-ville-archipel` remains pending a requested commit. No tag points misleadingly at the unchanged base commit.
+- **Limits.** Static transport previews, exterior collision, no city HLOD or global settlement streaming. Final acceptance remains explicit.
+
+**2026-11-07 · Generated solarpunk habitat review**
+
+- **Scope.** Fourteen generated architectural recipes; exteriors and pedestrian spaces first.
+- **Composition.** Seven shared courts, grouped housing, sparse curved paths of 2.2–2.7 m and selected grass connections. No private frontage plots or vehicle roads.
+- **Site.** Seed 0, latitude -11.04, longitude 49.784. Existing relief sampled on a 257 × 257 grid at 2 m spacing.
+- **Support.** Reject water below 2 m, path grades above 8% and building height variation above 0.5 m. Foundation skirts extend 0.15 m into sampled terrain.
+- **Detail.** Five nominal geometry ratios: 1, .60, .30, .12, .045. Failed sampled surface bounds retain the previous level.
+- **Rendering.** Projected-size thresholds 520, 260, 115 and 42 pixels; 20% dither relays; 1024-pixel PBR layers; one 4096-pixel local sun map.
+- **Launch.** Explicit `-Ville` bank; ordinary launches retain their existing behavior.
+- **Evidence.** CPU invariants and hidden native captures under `E:/ExoluneAssets/city-2026-11-07`. No performance benchmark requested or accepted.
+- **Status.** Review branch `codex/solarpunk-city`; proposed tag `piste/2026-11-07-ville-solarpunk` remains pending a requested commit.
+- **Limits.** Art review, city HLOD/impostors and planet-wide streaming remain separate work. See `spec-ville-procedurale.md`.
+
 **2026-11-04 · Forest undergrowth, flowering colonies and moss**
 
 - **Assets.** Four shrub masters and two structural derivatives use the seven-level native chain and their own lit impostors. Eight procedurally generated forms replace the ground-flora roles. The two flower colonies have 735 and 738 triangles at their mesh level.

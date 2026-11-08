@@ -144,6 +144,8 @@ Settings ReadSettings() {
 
     wchar_t foliageAssets[MAX_PATH] = {};
     if (GetEnvironmentVariableW(L"MYPLANETENGINE_FOLIAGE_ASSETS", foliageAssets, MAX_PATH) > 0) s.foliageAssets = foliageAssets;
+    if (GetEnvironmentVariableW(L"MYPLANETENGINE_CITY_ASSETS", foliageAssets, MAX_PATH) > 0) s.cityAssets = foliageAssets;
+    if (GetEnvironmentVariableW(L"MYPLANETENGINE_CITY_PROBE", foliageAssets, MAX_PATH) > 0) s.cityProbe = foliageAssets;
     wchar_t warm[32] = {};
     if (GetEnvironmentVariableW(L"MYPLANETENGINE_FOLIAGE_WARMUP", warm, _countof(warm)) > 0)
         s.foliageWarm = static_cast<UINT>(std::max(1, std::min(_wtoi(warm), 10000)));

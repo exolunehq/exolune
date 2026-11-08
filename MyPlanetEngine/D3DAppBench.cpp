@@ -166,6 +166,7 @@ void D3DApp::SaveCapture(bool batchCapture, UINT trembleIndex) {
         SaveBmp(path, pixels + mCaptureFootprint.Offset, mClientWidth, mClientHeight,
             mCaptureFootprint.Footprint.RowPitch);
         mPlanetFoliage.SaveStats(path, mFoliagePlaceMs, mFoliageDrawMs, mFrameGpuMs, mPlanetFoliageSamples);
+        mCity.SaveStats(path);
         {
             FILE* contactFile=nullptr;
             if (_wfopen_s(&contactFile,(path+L".local-contacts.json").c_str(),L"wb")==0 && contactFile) {

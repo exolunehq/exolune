@@ -10,6 +10,8 @@
 
 ## What it contains
 
+- **`ville-procedurale-historique.md`:** superseded city banks, geometry/lighting/detail iterations and rejected neural candidates; current scope in `../spec-ville-procedurale.md`.
+- **`generation-architecture-historique.md`:** pinned Pixal multiview, PartCrafter and LATO.2 trials, rejected house controls, neutral master and series iterations; current decision in `../recherche-generation-architecture.md`.
 - **`spec-pipeline-creation3d-historique.md`:** superseded authoring, torn roots, branch reduction, close-detail iterations and rejected tropical reconstructions; current contracts in `../spec-pipeline-creation3d.md` and `../spec-rendu-vegetation.md`.
 - **`spec-diversite-vegetale-historique.md`:** superseded scanned-fir catalogue, density choices and replaced cold-site witnesses; current scope in `../spec-diversite-vegetale.md`.
 - **`recherche-generation-vegetale-historique.md`:** rejected native FoliMesh POC and acquisition recommendations; local 3D trials, rejected foliage assemblies and superseded plans; current research in `../recherche-comfyui-vegetation.md` and pipeline in `../spec-pipeline-creation3d.md`.

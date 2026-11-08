@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "stage": "User-authorized neutral model series; no production-art acceptance implied",
+  "references": {
+    "house": {
+      "path": "C:/Users/etien/Downloads/01 — Maison à coques habitées-1.png",
+      "sha256": "656a48197ee9accebd1dfc1613d848cb25cb7f0d3ea54e8493540412fbd2ce88"
+    },
+    "civic": {
+      "path": "C:/Users/etien/Downloads/Maison commune aux trois pétales-4.png",
+      "sha256": "28ed26509bd2197524f3d588b332fc0c90d47ab05761aa45d16483fe40bd1a8b"
+    },
+    "greenhouse": {
+      "path": "C:/Users/etien/Downloads/06 — Serre à enveloppes imbriquées-5.png",
+      "sha256": "b29fb4f668d85748c187cd14cd3449f180e829c65ef5d7934ed493ec2646e6a7"
+    }
+  },
+  "house_source": {
+    "path": "E:/ExoluneAssets/house-master-2026-11-08/maitre-neutre/master.glb",
+    "sha256": "9eb3d3ef8f529d6bc4460ca68c1e467e7aab5b4ab26fe67b6aa42e611f626170"
+  },
+  "master_triangle_ceiling": 180000,
+  "assets": [
+    {
+      "id": "house_source",
+      "label": "Maison à coques",
+      "family": "house",
+      "parameters": {
+        "width": 1,
+        "depth": 1,
+        "upper_width": 1,
+        "upper_height": 1,
+        "upper_shift_x": 0,
+        "upper_shift_y": 0,
+        "fins": 7
+      }
+    },
+    {
+      "id": "house_low",
+      "label": "Maison basse",
+      "family": "house",
+      "parameters": {
+        "width": 1.08,
+        "depth": 0.92,
+        "upper_width": 0.995,
+        "upper_height": 0.75,
+        "upper_shift_x": -0.08,
+        "upper_shift_y": 0.05,
+        "fins": 4
+      }
+    },
+    {
+      "id": "house_long",
+      "label": "Maison étirée",
+      "family": "house",
+      "parameters": {
+        "width": 1.28,
+        "depth": 1.08,
+        "upper_width": 1.005,
+        "upper_height": 0.92,
+        "upper_shift_x": 0.08,
+        "upper_shift_y": -0.04,
+        "fins": 9
+      }
+    },
+    {
+      "id": "house_tall",
+      "label": "Maison élancée",
+      "family": "house",
+      "parameters": {
+        "width": 0.88,
+        "depth": 1.14,
+        "upper_width": 1,
+        "upper_height": 1.28,
+        "upper_shift_x": 0,
+        "upper_shift_y": 0,
+        "fins": 5
+      }
+    },
+    {
+      "id": "civic_forum",
+      "label": "Maison commune — forum",
+      "family": "civic",
+      "parameters": {
+        "width": 1,
+        "height": 1,
+        "depth_m": 11,
+        "left_lift": 0,
+        "gallery_z": 3.65,
+        "bays": 7
+      }
+    },
+    {
+      "id": "civic_garden",
+      "label": "Maison commune — jardin",
+      "family": "civic",
+      "parameters": {
+        "width": 0.85,
+        "height": 0.88,
+        "depth_m": 13,
+        "left_lift": 0.13,
+        "gallery_z": 3.25,
+        "bays": 6
+      }
+    },
+    {
+      "id": "greenhouse_long",
+      "label": "Serre longitudinale",
+      "family": "greenhouse",
+      "parameters": {
+        "width": 1,
+        "height": 1,
+        "length_m": 24,
+        "length_bays": 6
+      }
+    },
+    {
+      "id": "greenhouse_wide",
+      "label": "Serre élargie",
+      "family": "greenhouse",
+      "parameters": {
+        "width": 1.18,
+        "height": 1.07,
+        "length_m": 17,
+        "length_bays": 4
+      }
+    }
+  ]
+}

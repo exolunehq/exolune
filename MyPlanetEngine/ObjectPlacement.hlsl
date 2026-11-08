@@ -11,6 +11,7 @@
 // takes its objects from the grid of the two other axes, projected along a onto the sphere: no seam, nothing that
 // moves, each cell of s x s covering s^2 / |up.a| of the ground.
 #include "Planet.hlsli"
+#include "CityLand.hlsli"
 #include "PlanetSettings.hlsli"
 #include "Relief.hlsli"
 #include "Terrain.hlsli"
@@ -506,6 +507,7 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
         counters.InterlockedMax(GAP_PIXELS * 4, (uint)(abs(gap) / (length(pos) * pixelAngle) * 100.0)); // on screen, 0.01 px
     }
 
+    if(CityOccupied(pos))return;
     // Stones from the start of the instances, tufts from CLASS_CAPACITY; each its own draw's instance count.
     uint slot;
     counters.InterlockedAdd((stone ? COUNT_PLACED : COUNT_TUFTS) * 4, 1u, slot);

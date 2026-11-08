@@ -360,6 +360,21 @@ float3 ScreenNormal(float2 pixel, float3 up, out float weight, out float elevati
 }
 
 Texture2D<float> shipSunMap : register(t44); // the ship's own map towards the sun (Ship.h)
+Texture2D<float> citySunMap : register(t53);
+float CityShadowOn(float3 p){
+    if(cityLandGrid.w<.5)return 1;
+    float4 c=mul(float4(p,1),citySunShadow);float3 q=c.xyz/c.w;
+    float2 uv=q.xy*float2(.5,-.5)+.5;
+    if(any(uv<0)||any(uv>1)||q.z<0||q.z>1)return 1;
+    float lit=0;
+    [unroll]for(int y=-1;y<=1;++y)[unroll]for(int x=-1;x<=1;++x){
+        int2 t=int2(uv*4096)+int2(x,y);
+        float d=all(t>=0)&&all(t<4096)?citySunMap.Load(int3(t,0)):1;
+        lit+=smoothstep(q.z-.00012,q.z-.00002,d);
+    }
+    float edge=min(min(uv.x,uv.y),min(1-uv.x,1-uv.y));
+    return lerp(1,lit/9,smoothstep(0,.045,edge));
+}
 
 // The ship's shadow on the ground and the sea: its map towards the sun, read beyond its sphere along the sun. The sun's
 // disc blurs it with the distance behind the ship, its penumbra 0.0093 rad wide: the mean of 16 taps over that disc.
@@ -439,7 +454,7 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     const float sunShare = SunAboveHorizon(dot(up, lightDir.xyz), input.horizon, horizonSpread)
                          * FinerReliefLit(dot(normalize(lerp(normalize(input.normal), screenNormal, screenWeight)), lightDir.xyz),
                                           lerp(input.slopeSpread, slopeSpread, screenWeight))
-                         * ShipShadowOn(input.pos);
+                         * ShipShadowOn(input.pos) * CityShadowOn(input.pos);
     const float elevation = lerp(lerp(lerp(input.elevation, splineElevation, splineWeight), fineElevation, fineWeight), screenElevation,
                                  screenWeight);
     // The point the materials and the fine detail are looked up at: on the spline surface, where the view ray

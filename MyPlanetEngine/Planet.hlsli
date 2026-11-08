@@ -36,6 +36,9 @@ cbuffer Frame : register(b0)
     float4   screenRelief; // the screen relief (ScreenRelief.hlsl): xy its texels across, z its weight (0: off),
                            // w the pixels per texel side
     float4   foliageWind; // xyz: local climate wind in the face frame (m/s); w: shared weather clock (s)
+    float4x4 cityFromFace,citySunShadow;
+    float4 cityLandGrid; // xy origin, z cell size, w enabled
+    uint4 cityLandBits[512]; // 256 x 256 occupied cells, natural-object exclusion only
 };
 
 struct FaceVertex

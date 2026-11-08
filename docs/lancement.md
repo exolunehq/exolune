@@ -43,8 +43,9 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 - **`-PassePleine`:** clouds in a single pass, without their temporal pass (`optimisation.md`); for comparison.
 - **`-Scans <dossier>`:** ground photos.
 - **`-Plantes <catalogue>`:** explicitly select an external asset catalogue for an authoring POC; the default game catalogue is unchanged.
+- **`-Ville <bank>`:** load a generated settlement library and placement scene; see `spec-ville-procedurale.md` and the dated city review route.
 
-**The launcher clears the session's `MYPLANETENGINE_*` variables during launch, then restores them.** It sets only `MYPLANETENGINE_TESTS`, `_SUN`, `_RESOLUTION` and `_FULLSCREEN`, `_SCANS`, `_MODELE_VAISSEAU`, and `_CLOUD_FULL` with `-PassePleine`, and `_FOLIAGE_ASSETS` with an explicit `-Plantes`.
+**The launcher clears the session's `MYPLANETENGINE_*` variables during launch, then restores them.** It sets only `MYPLANETENGINE_TESTS`, `_SUN`, `_RESOLUTION` and `_FULLSCREEN`, `_SCANS`, `_MODELE_VAISSEAU`, and `_CLOUD_FULL` with `-PassePleine`, `_FOLIAGE_ASSETS` with an explicit `-Plantes`, and `_CITY_ASSETS` with an explicit `-Ville`.
 
 ## Default game and benchmark variables
 

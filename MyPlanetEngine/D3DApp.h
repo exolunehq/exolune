@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 #include "Ship.h"
+#include "City.h"
 #include "Audio.h"
 #include "Glare.h"
 #include "Settings.h"
@@ -134,6 +135,9 @@ protected:
         XMFLOAT4 reliefGradients[256]; // immutable table, shared with Noise.hlsli
         XMFLOAT4 screenRelief;         // the screen relief's texels across, its weight, pixels per texel side
         XMFLOAT4 foliageWind; // climate wind, face-local; shared weather clock
+        XMFLOAT4X4 cityFromFace,citySunShadow;
+        XMFLOAT4 cityLandGrid;
+        XMUINT4 cityLandBits[512];
     };
 
     // The clouds' frame, b1 (Clouds.hlsli): the camera and the view in the planet frame (km), in double precision.
@@ -335,6 +339,7 @@ protected:
     double mVolcanoMs = 0.0;
     double mTectonicMs = 0.0, mTectonicMb = 0.0;
     void CreateTectonicMap();
+    void ExportCityGround(D3D12_GPU_DESCRIPTOR_HANDLE tectonics);
     // The climate map (Climate.h): the planet's rain, temperatures and winds from its large forms, once at startup, after the
     // tectonic map; its time (ms) and size (MB).
     ComPtr<ID3D12Resource> mClimateMap;
@@ -507,6 +512,10 @@ protected:
     enum class View { Free, Cockpit, Chase, Bare, Walk }; // Walk leaves the stationary ship at its saved pose
     View mView = View::Free;
     Ship mShip;
+    City mCity;
+    void UpdateCityFrame(const Vec3d&,const Vec3d&,const Vec3d&,DirectX::FXMMATRIX);
+    void ApplyCityWalking();
+    void ConstrainCityWalking(Vec3d& next);
     Audio mAudio; // the ship's engine, thrusters and wind, set in UpdateShip
     Vec3d mShipPos = {}, mShipForward = {}, mShipUp = {}, mShipVelocity = {}; // planet frame; velocity in m/s
     Vec3d mShipRate = {};          // pitch up, yaw right, roll right (rad/s)

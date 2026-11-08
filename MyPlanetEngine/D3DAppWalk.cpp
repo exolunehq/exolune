@@ -74,6 +74,7 @@ void D3DApp::ReadWalkGround() {
     std::memcpy(mWalkTerrain.heights.data(),heights,read.End);
     mWalkReadback->Unmap(0,&noWrite);
     for (float h:mWalkTerrain.heights) if (!std::isfinite(h)) { mWalkPatchValid=false; break; }
+    ApplyCityWalking();
 }
 
 void D3DApp::ToggleWalking() {
@@ -145,7 +146,8 @@ void D3DApp::UpdateWalking(float dt) {
         mWalker.x=Dot(foot,mWalkPatchX); mWalker.y=Dot(foot,mWalkPatchY);
         mWalker.vx=Dot(mWalkVelocity,mWalkPatchX); mWalker.vy=Dot(mWalkVelocity,mWalkPatchY);
         mWalker.Advance(dt,{Dot(move,mWalkPatchX),Dot(move,mWalkPatchY),held(VK_SHIFT)>0,held(VK_CONTROL)>0,mWalkJump&&focused},mWalkTerrain);
-        const Vec3d next=Normalize(mWalkPatchCentre+mWalkPatchX*mWalker.x+mWalkPatchY*mWalker.y);
+        Vec3d next=Normalize(mWalkPatchCentre+mWalkPatchX*mWalker.x+mWalkPatchY*mWalker.y);
+        ConstrainCityWalking(next);
         mWalkFoot=next*(PlanetRadius+mWalker.elevation);
         mWalkVelocity=mWalkPatchX*mWalker.vx+mWalkPatchY*mWalker.vy;
         mWalkVelocity=mWalkVelocity-next*Dot(mWalkVelocity,next);
