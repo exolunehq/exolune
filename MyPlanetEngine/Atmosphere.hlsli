@@ -13,6 +13,7 @@
 #include "Planet.hlsli"
 #include "Mesh.hlsli"
 #include "PlanetMap.hlsli"
+#include "Celestial.hlsli"
 
 // The tables: (altitude, angle, the haze's ground), the third axis a slice per ground (GroundCoordinate).
 Texture3D<float4> transmittanceLut   : register(t1); // transmittance to the top of the atmosphere
@@ -164,8 +165,10 @@ float3 SunTransmittance(float h, float muS)
 
 float2 AltitudeSunUv(float h, float muS, float maxHeight, uint2 size)
 {
-    return float2(ToTexture(0.5 + 0.5 * muS, size.x), ToTexture(saturate(h / maxHeight), size.y));
+    return float2(ToTexture(0.5 + 0.5 * sign(muS)*sqrt(abs(muS)), size.x), ToTexture(saturate(h / maxHeight), size.y));
 }
+
+float SunCosineFromUv(float u,uint size) { const float x=2.0*FromTexture(u,size)-1.0; return x*abs(x); }
 
 float3 MultiScattering(float h, float muS, float ground)
 {
@@ -180,8 +183,19 @@ float3 MultiScattering(float h, float muS)
 
 float3 SkyIrradiance(float h, float muS, float ground)
 {
-    return skyIrradianceLut.SampleLevel(linearClamp, float3(AltitudeSunUv(h, muS, SKY_IRRADIANCE_MAX_HEIGHT, SKY_IRRADIANCE_SIZE),
+    float3 sky=skyIrradianceLut.SampleLevel(linearClamp, float3(AltitudeSunUv(h, muS, SKY_IRRADIANCE_MAX_HEIGHT, SKY_IRRADIANCE_SIZE),
                                                             GroundCoordinate(ground)), 0.0).rgb;
+#ifndef ATMOSPHERE_TABLE
+    sky+=NIGHT_IRRADIANCE;
+    [unroll] for(uint i=0;i<3;++i) {
+        const float mu=dot(normalize(celestialPosition[i].xyz),camVertical.xyz);
+        const float3 beam=SunTransmittance(h,mu,ground);
+        const float3 scattered=skyIrradianceLut.SampleLevel(linearClamp,
+            float3(AltitudeSunUv(h,mu,SKY_IRRADIANCE_MAX_HEIGHT,SKY_IRRADIANCE_SIZE),GroundCoordinate(ground)),0).rgb/PI;
+        sky+=celestialFlux[i].rgb*(beam*saturate(mu)+scattered);
+    }
+#endif
+    return sky;
 }
 
 float3 SkyIrradiance(float h, float muS)
@@ -219,7 +233,7 @@ struct ShadowRay
 // Beyond the mesh, no relief.
 float ShadowMargin(ShadowRay ray, float t, float h)
 {
-    if (!ray.on)
+    if (!ray.on || erosionMode.w!=0u)
         return 1.0;
     if (h > MAX_TERRAIN_HEIGHT / 1000.0)
         return h; // no relief that high
@@ -303,6 +317,27 @@ float3 IntegrateScattering(float h0, float mu, float muS0, float nu, float maxDi
             // Van de Hulst similarity for the isotropic multiple-scattering source.
             source += MultiScattering(h, muS, groundM) * (m.rayleigh + m.mie * (1.0 - MIE_ASYMMETRY));
         source *= SUN_ILLUMINANCE;
+#ifndef ATMOSPHERE_TABLE
+        // Secondary sources scatter through this same air. The finite bodies supply their phase and eclipse flux.
+        if (shadow.on) {
+            const float3 view=normalize(shadow.direction);
+            const float3 up=normalize(shadow.origin+view*t);
+            [unroll] for(uint moon=0;moon<3;++moon) {
+                const float3 dir=normalize(celestialPosition[moon].xyz);
+                const float moonMu=dot(up,dir), moonNu=dot(view,dir);
+                source+=celestialFlux[moon].rgb*SunTransmittance(h,moonMu,groundM)
+                    *(m.rayleigh*RayleighPhase(moonNu)+m.mie*MiePhase(moonNu));
+            }
+        }
+#endif
+        // Finite emission layer at 86--98 km; analytic step average prevents a skipped orbital limb.
+        if (withMultiScattering) {
+            const float previousHeight=HeightAlong(h0,mu,t-.5*dt);
+            const float lo=min(previousHeight,hB), hi=max(previousHeight,hB);
+            const float fraction=hi-lo>1e-4?saturate((min(hi,98.0)-max(lo,86.0))/(hi-lo))
+                :(h>86.0 && h<98.0?1.0:0.0);
+            source+=float3(.65,1.0,.75)*(3.8e-9/12.0)*fraction;
+        }
         const float3 stepTransmittance = exp(-m.extinction * dt);
         light += transmittance * (source - source * stepTransmittance) / max(m.extinction, 1e-9);
         transmittance *= stepTransmittance;

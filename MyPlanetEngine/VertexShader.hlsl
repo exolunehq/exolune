@@ -3,6 +3,9 @@
 #include "Mesh.hlsli"
 #include "Materials.hlsli"
 #include "OceanSurface.hlsli"
+#ifdef AIRLESS_SURFACE
+#include "AirlessField.hlsli"
+#endif
 
 StructuredBuffer<FaceVertex> verts : register(t0);
 
@@ -99,7 +102,7 @@ PSInput VSMain(uint id : SV_VertexID)
 
     const float2 rest=float2(dot(v.pos,waveAxisX.xyz),dot(v.pos,waveAxisY.xyz));
     float3 displacement=0.0;
-    if(v.elevation<0.0 && v.water.w<=0.0) displacement=OceanGeometry(rest,cellSize,v.elevation);
+    if(erosionMode.w==0u && v.elevation<0.0 && v.water.w<=0.0) displacement=OceanGeometry(rest,cellSize,v.elevation);
     float3 horizontal=waveAxisX.xyz*displacement.x+waveAxisY.xyz*displacement.z;
     horizontal-=dot(horizontal,v.dir)*v.dir;
     float3 renderPos=v.pos+v.dir*displacement.y+horizontal;
@@ -125,8 +128,12 @@ PSInput VSMain(uint id : SV_VertexID)
     // universel.md). The strata and lenses, whose finer octaves made the beds slide, are the pixels' (PixelShader.hlsl).
     const float3 q = detailOrigin.xyz + v.pos.x * faceX.xyz + v.pos.y * faceY.xyz + v.pos.z * faceZ.xyz;
     // On fresh volcanic ground, basalt, the palette's darkest rock (Materials.hlsli, RockColor).
+    #ifdef AIRLESS_SURFACE
+    output.geology = float4(v.volcanic,0,0,0); // impact reflectance sampled with the physical ground
+#else
     output.geology = float4(Geology(q, cellSize), v.volcanic);
     output.geology.x = lerp(output.geology.x, -0.6, v.volcanic);
+#endif
     output.horizon = v.horizon;
     return output;
 }

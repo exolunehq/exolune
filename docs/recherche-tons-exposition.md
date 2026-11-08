@@ -1,16 +1,20 @@
 # Search: exhibition and the tone curve
 
-Status: research and implementation, the 2026-10-24. Code: `ToneMap.hlsl`, settings in `PlanetSettings.hlsli`. benchmark : `tools/banc_tons.py`. Flight views: `tools/tests/2026-10-24-tons.txt`. Sources at the end of the file.
+Status: implemented, updated 2026-11-07. Code: `SceneExposure.hlsli` and `ToneMap.hlsl`, settings in `PlanetSettings.hlsli`. Flight review: `tools/tests/2026-11-07-exposition-sans-lissage.txt`. Sources at the end of the file.
 
 ## 1. Conclusion
 
 **The simplest and most robust choice: an exposure set on the illuminance, a photoreceptor curve on the strongest channel.**
 
 **Exposure measures the light that falls, not the light in the image.**
-- She reads the daylight under the camera, like an incident light exposure meter facing the sun: its beam through the air, plus the sky. The tables of the atmosphere already give it.
+- The ground reference reads the solar beam and diffuse sky; as the air falls below the observer, direct sunlight is metered at the observer instead.
+- The transition uses the existing air fraction `1 - exp(-h / 8 km)`.
+- Above the atmosphere, solar rays first intersect its outer sphere before using the transmittance table; rays missing it cross vacuum.
+- The apparent planetary horizon follows the observer altitude; ground sunset must not trigger orbital night exposure.
+- Near an orbital eclipse, eight strips average the visible solar disc through the air; analytic disc coverage retains a thin crescent after the centre ray is hidden.
 - A gray card facing the sun shows its reflectance, regardless of its height. In low sunlight, the illuminated faces keep their clarity; the flat ground and shadow darken, as in a photo exposed for its high lights.
 - It never reads the image: turning the camera does not change it. Neither pumping, nor flicker, by construction.
-- After bedtime, she keeps the bedtime light: twilight darkens.
+- Below sunset, the meter follows twilight, natural night light and the moons; a perceptual key keeps night dark (`spec-ciel-celeste.md`).
 - **A setting:** compensation, in EV, as on a camera. An EV: the middle floor of our day views is equal to that of sunny photos.
 
 **The curve is that of the photoreceptors: x^a / (x^a + k^a).**
@@ -31,6 +35,13 @@ Status: research and implementation, the 2026-10-24. Code: `ToneMap.hlsl`, setti
 **Since the 2026-10-31, the compensation follows the altitude** (`spec-rendu-orbite.md`): +1 EV on the ground, that of the landscapes; 0 EV in orbit, that of the photos of the Earth, measured on "Blue Marble" of Apollo 17; between the two, the part of the air under the camera, `1 − exp(−h / 8 km)`.
 
 **Since 2026-11-03, the incident meter also reads shelter under forest crowns** (`spec-rendu-vegetation.md`). The existing habitat probe supplies canopy cover and height. A bounded response of at most two stops follows its porous sun/sky transport, fades above the canopy and remains neutral at night. It converges in 0.35 s without reading the frame. Open-ground and orbital calibration remain unchanged; this camera response does not replace radiance transport or alter the linear temporal history.
+
+**Since 2026-11-07, night has a metered response** (`spec-ciel-celeste.md`). The key decreases towards 0.03/0.69 in darkness. Stellar points and diffuse galactic light use a separate bounded eye response. Resolved bright bodies cap local exposure at 8. These display responses do not modify physical surface illumination. The previous sunset clamp is archived in `log/recherche-tons-exposition-historique.md`.
+
+**Direct response restored, 2026-11-07**
+- Apply the incident meter directly to tone mapping and cockpit dimming.
+- The user rejected the asymmetric temporal filter after flight review; the experiment is archived in `log/recherche-tons-exposition-historique.md`.
+- The observer-altitude solar meter, visible-disc integration and previous orbital overexposure correction remain active.
 
 ## 2. What we had
 
@@ -90,13 +101,13 @@ Status: research and implementation, the 2026-10-24. Code: `ToneMap.hlsl`, setti
 
 **The eye.**
 - The cones respond in I^n / (I^n + σ^n), Naka and Rushton 1966; σ follows adaptation. Reinhard and Devlin 2005 derive a tone operator from it.
-- Adaptation to light takes a few seconds, to darkness minutes. It only makes sense to model it if the exposure reads the image.
+- A rising solar crescent can change incident illumination rapidly even with a continuous geometric meter; the current rendering retains the direct response selected in flight.
 
 **From orbit to ground.**
 - Flight simulators publish little about their exhibition.
 - What the problem imposes: from orbit, the frame is half black, and the planet covers large differences of illuminance. A measure on the image overexposes the planet, except to exclude black.
-- A measure on the illuminance at the nadir does not have this problem. In vertical descent, the measured point does not move: neither does the exposure.
-- **Its limit:** orbit, above the night, the day seen in the distance is overexposed. This is the real case of a photographer in the night aiming at the day.
+- The incident meter avoids framing dependence; direct sunlight and the planetary horizon must follow the observer altitude.
+- A sunlit orbital observer retains daylight exposure even above the night hemisphere; genuine planetary shadow permits dark adaptation.
 
 **The exposure meter turned towards the sun, not flat.**
 - **Tested first flat,** the illuminance from a horizontal ground: at noon, the two are equal; at low sun, the flat ground receives almost only the sky, and the exposure went up from 3 to 4 EV.

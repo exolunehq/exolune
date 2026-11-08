@@ -2,6 +2,24 @@
 
 Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it.
 
+**Distant terrain depth, 2026-11-08:** a representation correction, not a new terrain field. The filtered terrain map supplies the proxy's physical surface distance and ocean remains at sea level. The 8,192 m transition envelope remains a raster-coverage bound only; it no longer supplies cloud clipping depth or overwrites detailed depth. Colour blending does not interpolate signed distances; `spec-rendu-orbite.md`.
+
+**Three airless manifests, 2026-11-08:** the two remaining moons receive the shared physical impact field with different seeds and their existing radii. The largest impact band is capped at 60% of body radius; this leaves the first moon's field unchanged. Meshes, fine grids, screen relief, contact and anchored stones use the same renderer and selected field. No additional detailed terrain buffers or terrestrial erosion changes; `spec-lune-terrain.md`.
+
+**Free-camera contact, 2026-11-08:** contact-envelope consistency and motion response only. Stationary airless recovery now uses the same 2.5-radius support as moving contact and global clipping. Sliding redirects the remaining swept path under the same sample budget. The relief, rendered geometry, materials and object placement do not change; `spec-lune-terrain.md`.
+
+**Airless reference iteration, 2026-11-08:** modification of the body-local physical field, not an added mesher or geometry overlay. Nine overlapping impact populations now include large basins, age-dependent depths, fractured walls, worn rims and complex central peaks. Mesh, contact and cooked distant normals sample that field. Footprint filtering and reconstructed material positions change its representation; dust colour and particulate photometry do not move geometry. The cooked atlas adds unresolved slope residuals at orbital distances without changing silhouettes or contact. The existing anchored object system supplies loose debris. Exolune's erosion settings and shared vertex budgets are unchanged; `spec-lune-terrain.md`.
+
+**Airless moon, 2026-11-08:** a new body-local impact field, not an overlay on Exolune. The required implementation samples it through the same sliding planes, rings, fine grid and screen reconstruction as the main planet. Terrain and contact share the field; surface rocks and pebbles are added objects seated on it. The separate cube-sphere quadtree is rejected and archived in `log/spec-lune-terrain-historique.md`. No terrestrial erosion parameter changes. The descriptive contract applies to every body: `spec-manifestes-corps.md`. Integration status: `spec-lune-terrain.md`.
+
+**Orbital exposure correction, 2026-11-07:** no mesh, relief, silhouette or body-position change. Only the light meter uses the existing planetary radius and observer altitude to locate the apparent horizon and atmospheric entry.
+
+**Celestial prototype, 2026-11-07:** separate finite spheres, outside Exolune's terrain overlay system (`spec-ciel-celeste.md`). Three moons, three planets and the Sun use analytic intersections. Lunar craters change albedo and normals; planetary bands change albedo. No Exolune relief, landable lunar mesh or collision surface is added.
+
+**Smooth Navigator prototype, 2026-11-03:** manufactured asset geometry, authored offline. A fitted quad control surface replaces the generated exterior skin and removes acquired dents; `recherche-vaisseau-navigateur.md`. The selectable `navigateur` profile loads its own package at scale ×4, nose −Y, up +Z, with 196,608 triangles. This exterior is outside the terrain overlay system; `spec-reflets-vaisseau.md`.
+
+**Navigator cabin, 2026-11-03:** manufactured interior geometry, outside the terrain overlay system. A continuous wall, coved floor, rooted station and sensor follow the actual hull with a 12.5% inward margin. Five fitted solids complete the seat and recessed lateral consoles; all six cabin meshes are connected and closed. A large octagonal rear fitting replaces nine wall panels; formed pressure wells and a taller bucket seat refine the station. The cushion underside follows the evaluated seat shell. Console instrumentation adds graduated faces, knurled controls, captive seats and engraved legends within the existing two solids. Eight instrument sightlines are verified from the pilot eye. Actual mounting surfaces are checked at 1,876 points, with a maximum gap below 0.02 mm. The approved outer skin is retained. The cockpit eye is `(0, -0.65, 0.70)` m. The clear forward field is view-dependent rendering, with an opaque exterior; `spec-navigateur-cockpit-son.md`.
+
 **Orbit evaluation, 2026-11-05:** exact activity indexing, conservative projected bounds, zero-contribution pruning and bounded GPU scheduling. Evaluation only; no new geometry, physical setting, sampling bandwidth or resolution. The missing screen stencil at the limb uses the existing filtered mesh/fine water fallback. Native precision limits and moving-camera measurements are in `diagnostic-orbite.md`.
 
 **Further orbit evaluation, 2026-11-05 evening:** intersect candidate rectangles with the existing distance gate's spherical cap; merge the same section transitions directly; reduce screen results with four lanes per query. Evaluation only, with unchanged physical sections, quadrature and sampling. Native numerical differences remain subject to the existing tolerances; the remaining erosion cost is measured separately from correctness.
@@ -31,6 +49,7 @@ Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it
 
 **Walking, 2026-11-02:** contact samples the existing `ReliefElevation` at 0.5 m spacing over a local footprint. This is a controller query, not a geometry overlay. Terrain generation and vegetation geometry remain unchanged; `spec-marche-ambiances.md` describes the height-field approximation.
 
+**Navigator live faces, 2026-11-03:** manufactured detail within the existing console solids. Flat optical faces replace the fixed raised needles; the shader draws live heading and propulsion on those surfaces. Physical rims, contacts and the approved hull are unchanged. Display coordinates come from the authored mesh patches; no terrain overlay is changed.
 
 ## The rule
 

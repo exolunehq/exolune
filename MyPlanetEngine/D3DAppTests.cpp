@@ -25,7 +25,13 @@ void D3DApp::ReadTests() {
         std::wistringstream place(line.substr(bar + 1, sunBar == std::wstring::npos ? std::wstring::npos : sunBar - bar - 1));
         if (!(place >> t.altitude >> t.latitude >> t.longitude >> t.pitchDown >> t.heading)) continue;
         std::wstring view;
-        if (place >> view) { t.walk = view==L"marche"; t.view = DiagnosticView(view.c_str()); }
+        while (place >> view) {
+            if(view==L"marche")t.walk=true;
+            else if(view==L"lune" || view==L"lune1")t.moon=0;
+            else if(view==L"lune2")t.moon=1;
+            else if(view==L"lune3")t.moon=2;
+            else t.view=DiagnosticView(view.c_str());
+        }
         if (sunBar != std::wstring::npos) {
             std::wistringstream sun(line.substr(sunBar + 1));
             t.sun = static_cast<bool>(sun >> t.sunLatitude >> t.sunLongitude);
@@ -82,15 +88,17 @@ void D3DApp::GoToTest(size_t index) {
     }
     // The test palette follows the shared cloud wind, without resetting the weather clock.
     const double windLongitude = mWeatherTime * kWeatherWindSpeed / PlanetRadius * 180.0 / XM_PI;
-    PlaceCamera(t.latitude, t.longitude + windLongitude, t.pitchDown, t.heading, t.altitude);
+    mSunDir = t.sun ? LatLonToDir(t.sunLatitude, t.sunLongitude) : mStartSunDir;
+    if(t.moon>=0)PlaceMoonCamera(t.latitude,t.longitude,t.pitchDown,t.heading,t.altitude,unsigned(t.moon));
+    else PlaceCamera(t.latitude, t.longitude + windLongitude, t.pitchDown, t.heading, t.altitude);
     if (mView != View::Free) PlaceShipAtCamera();
-    mStartWalking = t.walk || walking;
+    mStartWalking = t.walk; // each route row selects its own mode, including after an inter-body teleport
     mSunDir = t.sun ? LatLonToDir(t.sunLatitude, t.sunLongitude) : mStartSunDir;
     mDiagnosticView = t.view;
     mHistoryValid = false;
     mPlanetPlantPlacement.Reset();
     mTestLabel = t.label;
-    SetForegroundWindow(mhMainWnd);
+    if(!mSettings.Automated())SetForegroundWindow(mhMainWnd);
 }
 
 LRESULT CALLBACK D3DApp::TestsProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {

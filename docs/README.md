@@ -6,12 +6,19 @@
 
 - **`concept.md`:** the cube face that follows the camera, recalculated every frame.
 - **`principes.md`:** fix rules, not individual cases. This file is authoritative.
+- **`spec-manifestes-corps.md`:** fundamental engine contract: one rendering technology, one descriptive manifest per celestial body, shared detail budgets and negligible distant work.
 - **`geometrie.md`:** geometry comes from Exolune's tectonic terrain; its overlays, classified.
 - **`journal-planete.md`:** settings history, milestones and tagged experiments.
 - **`lancement.md`:** launch the app for an in-flight review; assets to build in a fresh worktree, launcher variables and controls.
 
 ## Implemented systems
 
+- **`spec-lune-terrain.md`:** three seeded airless manifests, shared landable rendering, cooked distant surfaces, and bounded contact with retreat/sliding.
+
+- **`spec-ciel-celeste.md`:** altitude-aware orbital exposure; finite moons and planets, photometric stellar points, volumetric galaxies, atmospheric visibility and night adaptation; current prototype and flight review.
+
+- **`spec-reflets-vaisseau.md`:** selectable smooth Navigator exterior, current-scene chrome reflections, physical sky and planet fallback, review route and off-screen limits.
+- **`spec-navigateur-cockpit-son.md`:** connected Navigator cabin, live heading and propulsion instruments, interior materials, panoramic viewing field and quiet levitation resonance.
 
 **Terrain and materials**
 - **`diagnostic-orbite.md`:** requested comparison against clean `main`; exact activity indexing, spherical-cap pruning, bounded GPU scheduling and the limb fallback fix; since 2026-11-05 night, the fine grid computed only at the limb in orbit, one river query per screen texel, and a startup map of the rivers for footprints wider than 25 km. Erosion costs under 1 ms from 10,000 km; the per-texel river query in mid orbit remains, located by pass. Since 2026-11-07, the erosion against `main`'s frame rate: within 15 % of `main` at every view, the cost split by pass and what remains; review route `2026-11-07.txt`. Moving-camera measurements, native precision limits, material quality comparison and review route `2026-11-05-orbite-correction.txt`.
@@ -26,13 +33,13 @@
 - **`spec-objets-proximite.md`:** ground detail near the camera, pebbles, rocks and grass tufts at fixed positions on the planet, without popping; `jalon/19-detail-sol`.
 
 **Light and air**
-- **`recherche-tons-exposition.md`:** exposure set by illuminance, the tone curve; state of the art, choices and measurements against photos.
+- **`recherche-tons-exposition.md`:** direct incident exposure with observer-altitude sunlight; shared cockpit response and tone curve. The rejected temporal filter is archived.
 - **`recherche-ombres-relief.md`:** terrain cast shadows, a horizon per vertex; sky occlusion remains to be implemented.
 - **`recherche-rayons.md`:** sun shafts, air in the terrain's shadow, using the cast-shadow march.
 - **`recherche-profondeur-atmospherique.md`:** distance conveyed by air, haze, low mist and visibility; boundary-layer mist over the regional ground.
-- **`recherche-halo.md`:** lens halo around the sun and snow, the 1/θ² law and its measurement; experiment `piste/halo-optique`.
-- **`spec-rendu-orbite.md`:** the planet from orbit compared with Apollo 17: aerosol multiple scattering by similarity, cloud light calibrated against Monte Carlo, cloud water independent of coverage, pixel statistics replacing fine rays, orbital exposure; experiment `piste/orbite-rendu`, awaiting in-flight review.
-- **The game's air is rendered through cloud compositing** (`spec-nuages.md`): rays and regional-ground mist rendered there since 2026-10-30, awaiting in-flight review; the halo is disabled by default.
+- **`recherche-halo.md`:** current energy-conserving optical glare, enabled in normal rendering; 1/θ² response and limits.
+- **`spec-rendu-orbite.md`:** orbital atmosphere, cloud photometry and pixel statistics; physical surface depth preserves clouds through the distant-terrain transition.
+- **The game's air is rendered through cloud compositing** (`spec-nuages.md`): rays and regional-ground mist rendered there since 2026-10-30, awaiting in-flight review; optical glare is enabled in normal rendering.
 
 **Sea, clouds and vegetation**
 - **`spec-eaux-interieures.md`:** rivers and terminal lakes; reported side trenches, coastal contours and river contours accepted; earlier river visibility sufficient for this stage. Coarse routing, volcanic integration, ribbon widths and full approach stability remain open.
@@ -52,7 +59,8 @@
 
 **Ship and execution**
 - **`spec-marche-ambiances.md`:** instant disembarkation, FPS walking, contextual foot contacts, environmental audio and shared keyboard/button controls.
-- **`spec-vaisseau.md`:** default fighter and preserved classic ship, model selection, cockpit, flight and canopy weather; construction history in `log/spec-vaisseau-historique.md`.
+- **`spec-vaisseau.md`:** default fighter, model selection, cockpit, independent flight/free-camera controls and canopy weather; history in `log/spec-vaisseau-historique.md`.
+- **`recherche-vaisseau-navigateur.md`:** Trimaxion references, smooth editable v2 exterior and provenance of the selectable runtime derivative.
 - **`recherche-eau-verriere.md`:** water on the canopy glass, drops, rivulets and film in flight; state of the art; simulated drops and trails implemented, awaiting in-flight review.
 - **`recherche-son.md`:** ship sound, engine, stabilizers and wind; state of the art, procedural synthesis on XAudio2 selected and implemented, awaiting in-flight review.
 - **`execution-optimisee.md`:** Release executable with a local profile, borderless full screen, startup resolution and optional unrestricted presentation.
@@ -69,7 +77,6 @@
 - **`recherche-mer.md`:** sea and lakes; state of the art and reference laws; coasts and lakes remain to be implemented.
 - **`recherche-cotes.md`:** beaches, cliffs and shores; audit of complexplanet at the coast, state of the art and plan; step 1 ported to the FFT sea, beach based on distance to water; step 2 on branch `plages`, awaiting porting.
 - **`recherche-rivieres.md`:** streams, rivers and mountain lakes; audit of complexplanet's valleys, state of the art and plan; step 1, the planet map, done; October 26 and 27 spikes archived in the log; research continues on branch `erosion-niveaux`.
-- **`recherche-ciel-nocturne.md`:** stars, planets, Milky Way, airglow and the eye at night; implemented on branch `etoiles`, awaiting integration.
 - **`recherche-geometrie-proximite.md`:** ledges and meter-scale terrain near the camera, without popping or jitter; state of the art and plan, no decision yet.
 
 ## The log

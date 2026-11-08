@@ -1,0 +1,10 @@
+# Backspace: free camera. Right drag: look. Shift + left/right arrow: roll.
+# Fly sideways while aiming at a distant star; translation must not steer the view.
+Moon: exact nadir | 2500000 20 15 90 0 lune | -25 55
+Moon: exact zenith | 2500000 20 15 -90 0 lune | -25 55
+Moon: beyond nadir, inverted horizon | 2500000 20 15 135 0 lune | -25 55
+Exolune: orbital horizon | 1815422.6 38.566571 -169.098266 52.59 -27.91 | 10 -5
+Exolune: exact nadir | 10000000 -0.5 -18.225 90 0 | 10 -5
+Exolune: geographic pole and nadir | 10000000 90 37 90 45 | 10 -5
+Moon: near surface | 25 20 15 0 -102 lune | -25 55
+Moon: walking vertical | 1.68 20 15 -8 -102 lune marche | -25 55

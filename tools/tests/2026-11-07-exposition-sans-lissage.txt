@@ -1,0 +1,13 @@
+# Instantaneous exposure restored: review sunrise, orbital corrections, atmosphere and moons.
+Before sunrise | 1815422.6 38.566517 -169.098256 52.59 -27.91 | 10 -5
+Sunrise | 1815437.7 38.720450 -168.724399 52.59 -27.68 | 10 -5
+Intermediate solar crescent | 1815430.15 38.6434835 -168.9113275 52.59 -27.795 | 10 -5
+Reported terminator: day-side detail | 13545630.4 19.751087 -107.588831 84.22 55.72 | 10 -5
+Reported white screen: crescent and glare | 19810521.3 -20.915709 157.285984 82.53 -126.67 | 10 -5
+High orbit in planetary shadow | 19810521.3 -10 175 90 0 | 10 -5
+Low orbit before eclipse | 400000 0 100 65 270 | 0 0
+Low orbit in planetary shadow | 400000 0 120 65 270 | 0 0
+Atmospheric daylight | 12000 -8 145 -55 90 | -8 145
+Atmospheric moonlit night | 12000 -8 145 -60 90 | 10 -5
+Atmospheric moonless night | 12000 -12 -25 -55 90 | 10 155
+Lunar approach in direct sunlight | 261622000 6.3140660 121.9581586 -90 0 | 10 -5

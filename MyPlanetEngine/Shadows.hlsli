@@ -23,7 +23,7 @@ bool MeshHeight(SHADOW_MESH verts, float2 xy, out float height)
     height = 0.0;
     if (!MeshCell(xy, ids, t))
         return false;
-    height = Bilinear(max(float4(verts[ids.x].elevation, verts[ids.y].elevation, verts[ids.z].elevation, verts[ids.w].elevation), 0.0), t);
+    height = Bilinear(max(float4(verts[ids.x].elevation, verts[ids.y].elevation, verts[ids.z].elevation, verts[ids.w].elevation), TERRAIN_MIN_HEIGHT), t);
     return true;
 }
 
@@ -43,7 +43,8 @@ float SunHorizon(SHADOW_MESH verts, float2 xy, float3 p, float3 up, float h, out
     // A point q (from p) of the sun's vertical plane hides its centre from the column up to dot(q, across) / cos^2 of
     // its elevation above p: its height over the sun's ray through p, across being normal to that ray.
     const float3 across = up - sinSun * sun;
-    float horizon = -sqrt(h * (2.0 * R + h)) / (R + h), rise = 0.0; // the sphere's horizon (sine); dot(q, across)
+    const float aboveFloor=max(h-TERRAIN_MIN_HEIGHT,0.0);
+    float horizon = -sqrt(aboveFloor * (2.0 * (R+TERRAIN_MIN_HEIGHT) + aboveFloor)) / (R + h), rise = 0.0; // the sphere's horizon (sine); dot(q, across)
     shadow = h;
     float2 way = R * sun.xy - sun.z * xy; // the great circle's line on the face plane
     if (dot(way, way) < 1e-12 * R * R)
@@ -61,7 +62,7 @@ float SunHorizon(SHADOW_MESH verts, float2 xy, float3 p, float3 up, float h, out
         float r2, L;
         PlanePoint(at, R, d, r2, L);
         const float3 q = RelativePosition(d, r2, L, R, camAltitude, e) - p;
-        const float3 top = RelativePosition(d, r2, L, R, camAltitude, MAX_TERRAIN_HEIGHT) - p;
+        const float3 top = RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MAX_HEIGHT) - p;
         horizon = max(horizon, dot(q, up) * rsqrt(dot(q, q)));
         rise = max(rise, dot(q, across));
         if (dot(top, up) * rsqrt(dot(top, top)) < max(horizon, lowerLimb) && dot(top, across) < rise)

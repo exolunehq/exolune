@@ -1,0 +1,15 @@
+# Orbital exposure regression: both reported positions, neighbouring phases, eclipse, air and night controls.
+Reported terminator: preserve day-side detail | 13545630.4 19.751087 -107.588831 84.22 55.72 | 10 -5
+Reported white screen: crescent and solar glare | 19810521.3 -20.915709 157.285984 82.53 -126.67 | 10 -5
+High orbit day side | 13545630.4 19.751087 -65 84.22 55.72 | 10 -5
+High orbit approaching eclipse | 19810521.3 -10 159 90 0 | 10 -5
+High orbit in the planet shadow | 19810521.3 -10 175 90 0 | 10 -5
+Low orbit after ground sunset | 400000 0 100 65 270 | 0 0
+Low orbit in the planet shadow | 400000 0 120 65 270 | 0 0
+Atmospheric daylight | 12000 -8 145 -55 90 | -8 145
+Atmospheric moonlit night | 12000 -8 145 -60 90 | 10 -5
+Atmospheric moonless night | 12000 -12 -25 -55 90 | 10 155
+Lunar approach under direct sunlight | 261622000 6.3140660 121.9581586 -90 0 | 10 -5
+Sun above the atmosphere | 300000 10 -5 -90 0 | 10 -5
+Solar penumbra at the planetary limb | 19810521.3 -10 160.685746285 90 0 | 10 -5
+Last solar crescent at the limb | 19810521.3 -10 160.875746285 90 0 | 10 -5

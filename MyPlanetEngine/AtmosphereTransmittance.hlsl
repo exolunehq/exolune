@@ -1,6 +1,7 @@
 // Atmosphere table 1 of 3, at startup: transmittance from (altitude, direction) to the top of the atmosphere, a slice
 // per haze's ground.
 #include "Planet.hlsli"
+#define ATMOSPHERE_TABLE 1
 #include "Atmosphere.hlsli"
 
 RWTexture3D<float4> output : register(u0);

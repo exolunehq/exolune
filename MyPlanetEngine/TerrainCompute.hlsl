@@ -7,7 +7,7 @@
 // - then each ring: 4n vertices around a square, in the same order as the face's border.
 #define EROSION_WAVE_LIST // neighbouring samples list their rivers' nodes together (Erosion.hlsli)
 #include "Planet.hlsli"
-#include "Relief.hlsli"
+#include "SurfaceStack.hlsli"
 #include "Terrain.hlsli"
 #include "Mesh.hlsli"
 
@@ -68,8 +68,8 @@ void CSMain(uint3 groupId : SV_GroupID, uint threadInGroup : SV_GroupIndex)
     // shadow can fall on screen (docs/recherche-ombres-relief.md).
     const uint nadirVertex = (n / 2) * (n + 1) + n / 2;
     if (id != nadirVertex
-        && !MaybeVisible(RelativePosition(d, r2, L, R, camAltitude, 0.0),
-                         RelativePosition(d, r2, L, R, camAltitude, MAX_TERRAIN_HEIGHT), ShadowSweep(d), 6.0 * cellSize + waveAxisX.w * (1.0-smoothstep(32.0,64.0,cellSize))))
+        && !MaybeVisible(RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MIN_HEIGHT),
+                         RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MAX_HEIGHT), ShadowSweep(d), 6.0 * cellSize + waveAxisX.w * (1.0-smoothstep(32.0,64.0,cellSize))))
     {
         FaceVertex hidden = (FaceVertex)0;
         hidden.pos = asfloat(0x7fc00000u).xxx;
@@ -111,6 +111,9 @@ void CSMain(uint3 groupId : SV_GroupID, uint threadInGroup : SV_GroupIndex)
     v.waterDepth = gWaterDepth, v.waterCoverage = gWaterCoverage;
     v.roughness = gRoughness;
     v.volcanic = gVolcanic;
+#ifdef AIRLESS_SURFACE
+    v.volcanic = gAirlessAlbedo; // the profile's material scalar in the shared vertex layout
+#endif
     v.horizon = -1.5707964; // the horizon pass's (Horizon.hlsl)
     v.shadow = 0.0;
     outVerts[id] = v;

@@ -2,6 +2,182 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-08 · Cloud continuity through the distant-surface transition**
+
+- **Report:** clouds disappear during approach and return closer to Exolune.
+- **Cause:** the proxy's 8,192 m coverage envelope entered scene depth; colour blending also interpolated signed ocean distances and could place an occluder in front of the cloud layer.
+- **Change:** blend RGB only, replace HDR alpha with filtered physical surface depth, and preserve detailed depth during the transition draw.
+- **Scope:** no cloud-density, weather, lighting, exposure or temporal-sampling change; the existing map sample also supplies height.
+- **Validation:** Release x64 passes. Five background views at 20,000, 10,000, 7,000, 4,000 and 2,000 km retain the same cloud formations across the transition; continuous flight remains for user review.
+- **Review:** `tools/tests/2026-11-08-transition-nuages.txt`; evidence in `artifacts/trois-lunes-2026-11-08/nuages/`. No performance benchmark requested or run.
+- **Handoff:** waited for the erosion branch's benchmark to finish, then relaunched Release at test 1 of `tools/tests/2026-11-08-lunes-et-nuages.txt` with `-Camera libre`. The window responds and only one engine is running. F1–F6 cover the moons; F7–F12 cover the cloud transition.
+- **Base:** `piste/base-profondeur-nuages-2026-11-08` identifies the base commit only; implementation remains uncommitted.
+
+**2026-11-08 · Three seeded landable moons**
+
+- **Request:** apply the same surface stack to the other moons with different seeds.
+- **Manifests:** moon 1 keeps 1,800 km / 9173 / 1.62 m/s²; moon 2 uses 700 km / 28411 / 0.63 m/s²; moon 3 uses 260 km / 60149 / 0.234 m/s².
+- **Geometry:** cap the largest impact band at the smaller of 1,000 km and 60% of radius; the first moon is unchanged.
+- **Sharing:** one set of sliding planes, rings, fine grids, screen reconstruction and object buffers; switching bodies clears reused histories.
+- **Distant surface:** three generated atlases replace the procedural/reference pair; one additional 11,184,812-byte payload, no new detailed planet engine. Headers check radius, seed and field version.
+- **Contact:** broad-phase candidate checks share a 192-height-sample sweep budget; walking and illumination use the selected manifest.
+- **Checks:** Release x64, 96 contact sequences, celestial photometry, terrestrial sweep checks and walking at all three gravities pass.
+- **Native review:** eight final stills cover both new moons in orbit, their distant maps, ground/contact, walking and the unchanged first moon. The walking sites contain 1,114 and 388 seated stones, with Exolune visible from both.
+- **Flight review:** continuous movement and inter-body switching remain for the user; the combined twelve-view route is `tools/tests/2026-11-08-lunes-et-nuages.txt`.
+- **Review:** `tools/tests/2026-11-08-trois-lunes.txt`; evidence in `artifacts/trois-lunes-2026-11-08/`.
+- **Base:** `piste/base-trois-lunes-2026-11-08` identifies the base commit only; implementation remains uncommitted.
+
+**2026-11-08 · Contact permits retreat and sliding**
+
+- **Report:** free camera becomes unusable on touching a body.
+- **Reproduction:** the production airless sweep stopped an outward request from a previously accepted contact; the new regression test fails before the fix.
+- **Response:** reject only inward motion, recover shallow overlap and sweep the remaining slide; placement and movement share the existing 2.5-radius hull support.
+- **Bounds:** retain the 2 cm contact skin; recovery targets 4 cm clearance. Up to five responses share 192 height samples, including contact normals.
+- **Look:** terrestrial free-camera recovery and invalid-query rollback change position without restoring stale attitude.
+- **Validation:** Release x64 and the shared relief tests pass, including 48 contact sequences at three radii/seeds, two hull sizes and polar sites. Terrestrial swept-contact, attitude and walking suites also pass.
+- **Native review:** four background stills cover near-contact, a crater slope, initial overlap recovery and a polar site; the recovered eye is above the terrain. Evidence is in `artifacts/contact-libre-2026-11-08/`.
+- **Flight review:** `tools/tests/2026-11-08-contact-libre.txt` also includes two terrestrial approaches, walking and orbit. Continuous user-controlled movement remains for flight review; automated stills do not initialize the terrestrial GPU contact solver.
+- **Handoff:** Release relaunched through the dated route at test 1 with `-Camera libre`; the native window responds and only one engine is running.
+- **Scope:** no rendered geometry, field, material or lighting changes; no performance benchmark requested or run.
+- **Base:** `piste/base-contact-libre-2026-11-08` marks the base commit only; changes remain uncommitted.
+
+**2026-11-08 · Independent flight attitude**
+
+- **Report:** the camera felt bound to an orbit instead of moving freely.
+- **Cause:** position changes rotated the camera and ship around the body's vertical; free look also clamped pitch and rebuilt its up axis from the planet.
+- **Change:** camera and ship keep their own orthonormal frame; translation and nearby-body selection do not steer them or rotate velocity.
+- **Placement:** explicit heading supplies a stable up axis at nadir, zenith and geographic poles; free-camera/ship transitions preserve roll.
+- **Controls:** free camera retains right-drag look and translation; Shift + left/right arrow adds roll. `tools/lance.ps1 -Camera libre` starts directly in that mode.
+- **Scope:** walking vertical, terrain collision and near-Moon orbital translation remain; no terrain, shader or lighting settings change.
+- **Checks:** Release x64, attitude, flight-contact and walking checks pass; background review route `tools/tests/2026-11-08-vol-libre.txt`.
+- **Native review:** seven background stills cover both bodies, exact nadir/zenith, inverted pitch, a geographic pole, approach and walking; user-controlled movement remains for flight review.
+- **Handoff:** Release relaunched through the dated route at test 1 with `-Camera libre`; the native window responds and only this engine is running.
+- **Evidence:** `artifacts/vol-libre-2026-11-08/`; no performance benchmark requested or run.
+- **Base:** `piste/base-vol-libre-2026-11-08` marks the base commit only; changes remain uncommitted.
+
+**2026-11-08 · Airless references across distance**
+
+- **Request:** iterate against orbital and ground photographs; retain the shared renderer and globally bounded detail.
+- **References:** Galileo full disc, LRO Taurus-Littrow and Tycho, Apollo 17 ground panorama; links and colour limits are in `spec-lune-terrain.md`.
+- **Field:** nine scales from 1,000 km, divided by five, with radii from 0.07 to 0.45 of each scale; footprint support starts at half a sampling footprint and is full at two.
+- **Morphology:** deepen simple impact bowls, retain age-dependent wear, and use fractured, pointed central uplifts in complex craters; the shared envelope remains ±16 km.
+- **Materials:** impact ejecta and old basin floors supply reflectance; reduce and break up the overly circular dark floors exposed by the first iteration.
+- **Distance:** carry the impact reflectance through the mesh, fine grid and screen reconstruction in the existing buffer layout.
+- **Dust:** common filtered bands cover unresolved wavelengths up to 8 km, with a continuous cutoff below the current geometry sampling; retain real-scale grain and rock scans nearby.
+- **Projection:** sample material coordinates on the reconstructed surface, as Exolune does.
+- **Photometry:** 35% diffuse and 65% single-scattering approximation, shared by ground, objects and distant disc; unresolved flux integrates the same law.
+- **Proxy:** 2,048 × 1,024 RGBA8 with twelve linear mip levels, 11,184,812 bytes, regenerated from the filtered physical field.
+- **Orbital bridge:** two filtered atlas reads add only the slopes missing below the detailed grid's footprint; the common map slot is reused and the bridge fades out below a texel's width.
+- **Objects:** retain a background impact-debris share on airless regolith instead of applying the terrestrial stoniness cutoff.
+- **Validation:** Release x64 and CPU relief/contact/reflectance checks pass; 14 poses were inspected across three visual iterations, with seven final recaptures covering the orbital bridge, walking, a basin and polar terrain.
+- **Ground:** the two walking sites contain 436 and 77 stones; Exolune is visible from the young crater site. Native stills retain contact and hard terrain shadows.
+- **Cost:** existing mesh, fine-grid, screen and object budgets are unchanged; no performance benchmark was requested or run.
+- **Evidence:** baseline and iterations remain under `artifacts/lune-references-2026-11-08/`; flight route `tools/tests/2026-11-08-lune-references.txt`.
+- **Review:** begin at the full disc, test 3; F1–F10 cover lunar distances and ground sites, F11–F12 are terrestrial controls. Interactive flight remains for the user.
+- **Handoff:** Release relaunched at test 3 in windowed mode; the native window responds and only this engine process is running.
+- **Base:** `piste/base-erosion-lune-2026-11-08`; these changes remain uncommitted for review.
+
+**2026-11-08 · Fundamental body-manifest architecture**
+
+- **Decision:** every celestial body, including Exolune, the Sun and gas giants, has a descriptive manifest and uses the common rendering framework.
+- **Solid terrain:** retain the existing sliding planes, rings and per-frame continuous refinement; change the physical stack, not the rendering technology.
+- **Quality:** simpler airless physics retains realistic surface materials, regolith, rocks, pebbles, contact and shadows.
+- **Cost:** inactive descriptions remain compact; distant work is minimal, and nearby detail shares bounded engine budgets.
+- **Correction:** the separate lunar quadtree is rejected; its settings and preliminary checks are archived in `log/spec-lune-terrain-historique.md`.
+- **Status:** contract recorded in `principes.md` and `spec-manifestes-corps.md`; common-renderer integration remains in progress.
+- **Integration:** the impact stack reuses the terrain, fine-grid, screen, object-placement and shadow paths with their shared buffers; negative basin elevations remain valid throughout.
+- **Lighting:** nearby surfaces, distant bodies and exposure now share the phase law for reflected planet light.
+- **Review lighting:** the lunar route uses solar latitude/longitude -25/55 degrees, about 30 degrees above the first site's horizon; the polar view keeps its separate lighting.
+- **Impact profile:** shared floors, age-dependent rim wear, irregular outlines and large-crater floors replace the overly regular bowls seen in the first common-renderer captures. Fractured-highland amplitude is 0.012 times each band scale; radius and seed are unchanged.
+- **Checks:** Release x64 build, shared-field, contact and walking checks pass. Orbit, descent and an Exolune view from 25 m were captured with the common renderer before this profile revision. The revised surface opened in walking mode at 1.7 m with Exolune visible; full flight review remains pending.
+- **Review workflow:** the user requested background captures instead of computer-use control; further agent visual checks follow that preference.
+- **Handoff:** Release relaunched on the lunar walking view after the erosion capture process ended; one engine running and its native window responding. Flight review and the zero placed-rock count at this site remain open checks.
+- **Base:** retain `piste/base-erosion-lune-2026-11-08`; no commit or push requested.
+
+**2026-11-08 · Erosion base and first airless terrain**
+
+- **Base:** rebased `codex/vegetation-biomes` from `e524e4c` onto `claude/erosion-sur-main` at `9780367`, adding 17 committed upstream changes.
+- **Recovery:** the original working tree is retained in stash `f9124cc` and `artifacts/rebase-erosion-2026-11-08/working-state.zip` with a hash manifest.
+- **Integration:** kept the erosion resource layout, fixed 5 cm near plane and contact changes together with the celestial buffers, infinite reversed Z, direct exposure and Navigator work.
+- **Rebase verification:** Release x64 build passed; both reported orbital overexposure views were captured successfully with readable daylight and bounded solar glare.
+- **Moon:** radius 1,800 km, seed 9173, nine compact impact bands, shared mesh/contact field and a 512 × 256 filtered far proxy.
+- **Architecture:** the initial separate lunar mesher is superseded by the shared-renderer decision above; discarded settings are archived.
+- **Movement:** nearby body frame, swept spherical flight contact, 0.5 m walking samples and 1.62 m/s² lunar gravity.
+- **Lighting:** lunar horizon and planet shine enter the direct exposure meter; no temporal exposure filter.
+- **Review:** `tools/tests/2026-11-08-lune.txt`; final validation must cover the common renderer, surface objects and landing.
+- **Performance:** no performance or quality benchmark was run; the implementation bounds work explicitly.
+- **History:** the base milestone is `piste/base-erosion-lune-2026-11-08`; lunar work remains uncommitted for user review.
+
+**2026-11-07 · Temporal exposure reverted after flight review**
+
+- **Decision:** the user preferred the previous direct response and requested removal of the temporal smoothing.
+- **Change:** removed the 0.35/2.5 s global filter, GPU state, bindings and CINE exposure trace; restored direct scene and cockpit metering.
+- **Preserved:** observer-altitude sunlight and finite solar-disc integration, previous orbital overexposure corrections, celestial rendering and all unrelated work. No geometry change.
+- **Verification:** all eight modified engine/project files match the saved pre-filter versions; Release x64 rebuild passes.
+- **Review:** `tools/tests/2026-11-07-exposition-sans-lissage.txt`, twelve sunrise, orbital, atmospheric and lunar controls.
+- **Flight:** restored app relaunched at the saved player location with the review route; native window responding.
+- **History:** rejected settings and measurements moved to `log/recherche-tons-exposition-historique.md`; no commit or tag was created.
+
+**2026-11-07 · Orbital terminator exposure correction**
+
+- **Report:** a saturated planetary day side and an entirely white frame at 13,545 and 19,811 km altitude.
+- **Cause:** the initial celestial meter retained the sea-level solar beam; ground night drove exposure upward while the observer remained in sunlight.
+- **Rule:** the direct beam transitions to the observer altitude with the existing air fraction `1 - exp(-h / 8 km)`.
+- **Geometry:** use the apparent planetary horizon; outside the atmosphere, intersect its outer sphere before sampling the transmittance table. Average eight strips over the visible solar disc with analytic coverage, preserving light when its centre is occulted. No terrain geometry change.
+- **Settings:** unchanged +1/0 EV compensation, tone curve and optical straylight 0.3; no screenshot-specific exposure cap.
+- **Review:** `tools/tests/2026-11-07-exposition-orbite.txt`, fourteen locations and conditions; functional stills only, no benchmark requested.
+- **Checks:** Release x64 and shader compilation pass. Fourteen native stills verify the two reported views, neighbouring phases, full planetary shadow, low orbit, atmospheric nights, lunar approach, Sun and partial solar eclipse. The day side retains detail; the reported white frame and both solar-crescent controls retain a dark space background.
+- **Flight:** corrected Release launched from the workspace root in windowed mode at the first reported position; F1/F2 reproduce the two reports, with fourteen review views.
+- **Status:** uncommitted. Planned tag `piste/exposition-orbite-2026-11-07` belongs to a future requested commit.
+- **Current rules:** `recherche-tons-exposition.md`; superseded behaviour in `log/recherche-tons-exposition-historique.md`.
+
+**2026-11-07 · Celestial sky and finite lunar system**
+
+- **System:** three moons, radii 1,800 / 700 / 260 km at 280,000 / 110,000 / 42,000 km; circular Kepler motion on the shared world clock.
+- **Planets:** orbital radii 0.68 / 1.65 / 4.7 AU, physical radii 6,100 / 4,200 / 63,000 km; the finite Sun is at 1 AU with radius 695,700 km.
+- **Photometry:** scene solar irradiance pi, solar V magnitude -26.74; Lambert phase, inverse-square irradiance and finite solar penumbra cast by Exolune.
+- **Geometry:** analytic spheres, real depth and camera-relative positions; infinite reversed depth and a near plane bounded by the nearest body; no Exolune terrain change or lunar landing geometry.
+- **Surfaces:** normalized LROC albedo and LOLA normal slopes; 2048 × 1024, twelve mip levels, 11,184,812-byte resident packet; source hashes and credit in `assets/celestial/manifest.json`.
+- **Reflectance:** moon RGB values `(0.16, 0.15, 0.135)`, `(0.24, 0.255, 0.27)` and `(0.15, 0.115, 0.085)`; different texture rotations.
+- **Points:** 42,000 stars, magnitudes -1.46 to 8, normalized Moffat profile with scale 1.35 pixels and exponent 3, four integration samples; warm/cool colours and a denser galactic population.
+- **Galaxy:** observer at 8.2 kpc in a spiral stellar disk; forty depth intervals, emitting populations and chromatic dust absorption; two inclined remote galactic volumes.
+- **Transport:** final air/cloud transmission exported by both cloud paths; body depth clips air and clouds; visible surfaces block stellar points.
+- **Night light:** ambient irradiance 2e-8, airglow over 86--98 km with zenith radiance 3.8e-9; lunar sky light, atmospheric scattering and sea glints.
+- **Tables:** square-root solar coordinate concentrates samples at twilight; sky irradiance uses 32-bit floats, at unchanged dimensions.
+- **Display:** night key approaches 0.03/0.69, stellar response bounded to 650,000--2,000,000, resolved bright-disc exposure capped at 8; fixed half-code-value dither.
+- **Optics:** existing linear glare enabled by default at unchanged straylight 0.3; diagnostic views bypass it; `MYPLANETENGINE_GLARE=0` disables inspection runs.
+- **Cockpit:** dimmable emitters scale by at most `2 / Exposure()` at night, blending over solar cosine -0.02 to 0.03; exterior beacons keep their flux.
+- **History:** stellar points stay outside temporal history; resolved bodies use their finite distance for reprojection.
+- **Review:** `tools/tests/2026-11-07-ciel.txt`; native functional stills in `artifacts/ciel-2026-11-07`; no performance or quality benchmark requested or run.
+- **Flight:** fourteen-view route launched from the workspace root in windowed mode, starting at the moonlit-night view; user review remains open.
+- **Checks:** Release x64 builds; phase, penumbra, orbital radius, inverse-square flux, parallax and finite-value assertions pass; shipped texture size and hash pass. Native stills verify atmospheric visibility, both cloud paths, finite body depth, solar glare and night instrument readability.
+- **Scope:** visual system prototype; moon light has no terrain/cloud-cast shadows or solar-eclipse lighting on Exolune; distant reflection fallback omits stars and galaxies.
+- **Status:** uncommitted; planned tag `piste/ciel-celeste-2026-11-07` belongs to a future requested commit, not to the unrelated current HEAD.
+- **Current spec:** `spec-ciel-celeste.md`; superseded branch plan and visual iterations in `docs/log/`.
+
+**2026-11-03 · Connected Navigator cabin and quiet levitation resonance**
+
+- **Geometry:** six connected closed cabin solids; continuous wall, coved floor, rooted station and sensor; 139 wall panels, formed pressure wells and a 1.56 m octagonal rear fitting.
+- **Assembly:** console and seat frame landings follow the chassis; the cushion underside follows the evaluated bucket shell. Contact checks cover 1,876 points; eight instrument sightlines are clear from the pilot eye.
+- **Exterior:** smooth v2 ×4, nose −Y, 196,608 triangles; chrome metallic 1, roughness 0.075, linear base colour `(0.84, 0.87, 0.91)`.
+- **Packet:** 459,757 vertices, 723,264 triangles, 12 material ranges, no texture images.
+- **Instruments:** each console has three circular controls/readouts, a formed palm well, an engraved legend strip and four captive seats. Blue heading and amber propulsion use actual flight state; the other controls remain static.
+- **Live faces:** material role 12, generated centres/radii, derivative-filtered strokes; emission gain 0.32 with blue `(0.18, 0.40, 1.0)` and amber `(1.0, 0.32, 0.045)`. Fixed raised needles become flat optical surfaces.
+- **Materials:** polished edges, satin tactile surfaces, dark optical faces and charcoal seating; current linear palette and emission in `spec-navigateur-cockpit-son.md`.
+- **Shading:** flat deck normals, 45-degree sharp transitions and a more detailed sensor casing around an amber lens.
+- **Studio review:** white key 850, blue strip 400, warm return 220, forward card 350 and reading light 65 Blender watts; world strength .25, exposure -.5, close-up f/11. These settings affect offline review only.
+- **Camera:** Navigator eye `(0, -0.65, 0.70)` m; starts in cockpit view, with cockpit/chase/bare cycling.
+- **View:** clear forward field in the cabin; opaque reflective hull in exterior views; no canopy water simulation.
+- **Lighting:** three blue fixtures with analytic illumination in the same normalized solar units as the world.
+- **Sound:** quiet nearly stationary noise-excited resonances at 164.9/437.7/1031.3 Hz; faint 38.17/53.83 Hz sub layer and damped delays. Power changes level and brightness, without an RPM sweep or exhaust voice.
+- **Mix:** existing master/ship gains; internal vibration retained, exterior sound follows air density.
+- **Reflection:** current-scene HDR/depth trace, physical sky/planet fallback and ship reprojection; omit hidden cabin geometry from exterior reflection input.
+- **Review:** Release x64 and current geometry checks pass. Native sea, forest, orbit, night and exterior stills verify the integration; paired instrument views show heading 000/090 degrees and propulsion 000/060 percent. Standalone audio checks remain valid for the unchanged synth.
+- **Flight:** `tools/tests/2026-11-03-navigateur-cockpit.txt` launched from the workspace root in windowed mode for user review, after advance notice; six locations via F1–F6.
+- **Scope:** optional Navigator profile; fighter remains the default and planet generation settings are unchanged.
+- **Status:** uncommitted; no tag or publication requested. Details: `spec-navigateur-cockpit-son.md`.
+- **History:** superseded construction and sound settings in `log/recherche-vaisseau-navigateur-historique.md`.
+
 **2026-11-07 · Erosion against main's frame rate**
 - **Goal set by the user:** the erosion costs `main` at most 15 % of its frame rate.
 - **Settings:** `ScreenReliefHigh` from 400 to 200 km; the contour's river band from 2–3 samples to 0.6–0.9, no grid water past it outside lakes; partly wet samples for lake shores only; the inland reflection's sky in 3 steps instead of 6.
@@ -741,7 +917,7 @@ History of field adjustments: what changed, why, what it cost or brought, and ho
 |  `piste/tons-exposition`  | Exposure set to daylight under the camera, exposure meter turned to the sun; the tone curve of the photoreceptors on the strongest channel. |
 |  `piste/ombres-relief`  | The shadows cast from the relief: horizon towards the sun at each vertex, interpolated as an angle, part of the sun to the pixel. |
 |  `piste/rayons-soleil`  | Sun rays: the air in the shadow of the relief, by the height of shadow read at each step of the ray of view. |
-|  `piste/etoiles`  | The night sky: stars and planets in point images, threshold of the Schaefer eye, Milky Way, atmospheric glow, night with the exposure meter and eye key, sticks. Branch `etoiles`, retained for integration (`recherche-ciel-nocturne.md`). |
+|  `piste/etoiles`  | The night sky: stars and planets in point images, threshold of the Schaefer eye, Milky Way, atmospheric glow, night with the exposure meter and eye key, sticks. Historical branch `etoiles`, unavailable in this checkout; superseded by `spec-ciel-celeste.md` (`log/recherche-ciel-nocturne.md`). |
 |  `piste/plages`  | Beaches: the beach of 0 to 2,5 m, the clean waterline, the wet sand and its brilliance, the sea leash, the rock belts. Branch `plages`, made on the old sea, to wear on the sea FFT (`recherche-cotes.md`). |
 |  `piste/objets-proximite`  | Proximity objects, step 3: the detail of the ground, pebbles and tufts grass, debris only in the stony regions, fixed on the grid of the planet, without pop. |
 |  `piste/ombre-unique`  | A single shadow of the relief: the walk of the horizon of each vertex also gives the shadow height of the air; the polar grid and its two passes removed. |
@@ -800,7 +976,7 @@ History of field adjustments: what changed, why, what it cost or brought, and ho
 | Atmosphere | Earth, according to Hillaire 2020 | Rayleigh, ozone, 100 km thick; boundary layer aerosols, visibility of 40 km at sea level, up to 2 km above regional ground; ground albedo 0,3, sun of illuminance π. |
 |  `HAZE_GROUND_SCALE_KM`  | 10 km | The layer of mist settles on the ground of the planet map, smoothed on this standard deviation: it follows the plateaus, levelling on the ridges and valleys. |
 | Map of the planet | 6 × 1 024², at startup, after the tectonic map (`PlanetMap.hlsli`) | The relief on a cube fixed on the planet: the soil, the water of the filled bowls, the drained area. From the data, no summit moves. |
-|  `GLARE_STRAYLIGHT`  | 0,3 deg²/sr | Halo of the lens: a source of illuminance E veils the image at θ degrees from it of 0,3 E / θ². A recent goal. 0 removes it. Off by default; `MYPLANETENGINE_GLARE` It's active. |
+|  `GLARE_STRAYLIGHT`  | 0,3 deg²/sr | Halo of the lens: a source of illuminance E veils the image at θ degrees from it of 0,3 E / θ². A recent goal. 0 removes it. Enabled by default; `MYPLANETENGINE_GLARE=0` disables it. |
 |  `OBJECT_STONY`  | 0,27 to 0,42; 0,22 | Nearby objects: where there is debris, a field of 0,5 to 32 km raised by the scree, dry bare ground and slope. No debris on 74 % of grasslands, 70 % of sands and bare soils, 11 % of scree. |
 |  `PEBBLES`, `GRASS_ROCKS`, `TUFT_COVER`  | 2 % to 3 cm, erased beyond 8 cm; 0,03; 20 % and 1 % per octave | The recipe by soil: pebbles of sand and bare soil; rocks of grass, law of Golombek and Rapp; tufts in grass, dry on sand and bare soil. |
 |  `DEBRIS_ABUNDANCE`  | 0,05 ; 0,25 | Stones of the scree; landslides at the foot of the real walls. A law of Golombek and Rapp each. |
@@ -2036,9 +2212,9 @@ Out of this file: `PLANT_CROWN` in `Objects.hlsli`, 0,3, 0,45 and 1,1, the crown
 
 ## 2026-10-25 · Night sky: stars, planets, Milky Way · tag `piste/etoiles`
 
-**Out of `main`:** branch `etoiles`, kept to be integrated; the plan is in `recherche-ciel-nocturne.md`. Its settings are not in “Current Settings”.
+**Out of `main`:** branch `etoiles`, kept to be integrated; the plan is in `log/recherche-ciel-nocturne.md`. Its settings are not in “Current Settings”.
 
-**Settings:** `SUN_MAGNITUDE` = -26,74, `SUN_LUX` = 125 885 lx, `STAR_POINT_LIMIT` = 8, `DIFFUSE_GALACTIC_LIGHT` = 0,3, `AIRGLOW_ZENITH_MAGNITUDE` = 22,4, `AIRGLOW_ALTITUDE_KM` = 90, `AIRGLOW_WIDTH_KM` = 4, `AIRGLOW_COLOR_INDEX` = 0,8, new; atmosphere tables in floating 32 bits, multiple scattering on 256 × 32 instead of 32 × 32. Search, selection and sources: `recherche-ciel-nocturne.md`.
+**Settings:** `SUN_MAGNITUDE` = -26,74, `SUN_LUX` = 125 885 lx, `STAR_POINT_LIMIT` = 8, `DIFFUSE_GALACTIC_LIGHT` = 0,3, `AIRGLOW_ZENITH_MAGNITUDE` = 22,4, `AIRGLOW_ALTITUDE_KM` = 90, `AIRGLOW_WIDTH_KM` = 4, `AIRGLOW_COLOR_INDEX` = 0,8, new; atmosphere tables in floating 32 bits, multiple scattering on 256 × 32 instead of 32 × 32. Search, selection and sources: `log/recherche-ciel-nocturne.md`.
 
 - **Request:** stars, constellations, galaxies and planets, views from space and ground; their visibility day and night through the air; a dim light on nights.
 - **Rules, in `principes.md`:** the sky is light, not a decor; night remains night; a table resolves the function it carries.
@@ -2087,7 +2263,7 @@ Out of this file: `PLANT_CROWN` in `Objects.hlsli`, 0,3, 0,45 and 1,1, the crown
 - **Rest:**
   - **the twilight of 0° to -6°,** 1,7 to 4 times brighter than the Schaefer model, the exposure meter 2 times at nightfall and 3 to 5 times at -6°: the approximation of Hillaire's multiple scattering;
   - **the zodiacal light,** 20 to 30 % of the night, and its cone at twilight;
-  - **the catalogues:** the BSC5 for stars up to 6,5, the map of the NASA for the Milky Way; files to request, `recherche-ciel-nocturne.md`;
+  - **the catalogues:** the BSC5 for stars up to 6,5, the map of the NASA for the Milky Way; files to request, `log/recherche-ciel-nocturne.md`;
   - **a single layer of glow,** medium color: orbit view, the green line of oxygen at 97 km is not distinguished;
   - **at dusk, the screen loses 0,2 to 0,7 magnitude on the eye:** the image of a star, 2 pixels of 5', dilutes the light that the eye of the cones focuses on 1'; at night, 0,01 to 0,02. A thinner screen brings it closer;
   - **night sky on the screen,** gray to 25 %: to be judged in flight;

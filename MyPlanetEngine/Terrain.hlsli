@@ -3,6 +3,12 @@
 #ifndef TERRAIN_HLSLI
 #define TERRAIN_HLSLI
 
+#ifdef AIRLESS_SURFACE
+static const float TERRAIN_MIN_HEIGHT=-16000, TERRAIN_MAX_HEIGHT=16000;
+#else
+static const float TERRAIN_MIN_HEIGHT=0, TERRAIN_MAX_HEIGHT=MAX_TERRAIN_HEIGHT;
+#endif
+
 // Camera-relative position, face-local, of the vertex of direction d raised to elevation h.
 // The camera sits at (camPlane.xy, R + camAltitude). z = d.z * (R + h) - (R + camAltitude), rewritten so
 // that no two ~6e6 m floats get subtracted.
@@ -55,7 +61,7 @@ bool MaybeVisible(float3 low, float3 high, float3 sweep, float margin)
 // ground can see the sun.
 float3 ShadowSweep(float3 d)
 {
-    const float R = faceParams.y, lowest = -sqrt(2.0 * MAX_TERRAIN_HEIGHT / R); // the highest summit's horizon
+    const float R = faceParams.y, lowest = -sqrt(2.0 * (TERRAIN_MAX_HEIGHT-TERRAIN_MIN_HEIGHT) / R); // the highest summit's horizon
     const float3 sun = lightDir.xyz;
     const float sinSun = dot(sun, d), elevation = asin(clamp(sinSun, -1.0, 1.0)) - SUN_ANGULAR_RADIUS;
     const float3 away = sinSun * d - sun;
@@ -66,7 +72,7 @@ float3 ShadowSweep(float3 d)
     for (int i = 0; i < 2; ++i)
     {
         const float t = tan(max(elevation - reach / R, lowest));
-        reach = R * (sqrt(t * t + 2.0 * MAX_TERRAIN_HEIGHT / R) - t);
+        reach = R * (sqrt(t * t + 2.0 * (TERRAIN_MAX_HEIGHT-TERRAIN_MIN_HEIGHT) / R) - t);
     }
     return normalize(away) * reach - d * (0.5 * reach * reach / R); // along the sphere
 }

@@ -3,39 +3,16 @@
 #include "Planet.hlsli"
 #include "Atmosphere.hlsli" // the atmosphere tables, t1 to t3, and the sampler
 #include "Coordinates.hlsli"
-#include "CanopyLighting.hlsli"
-#include "ObserverExposure.hlsli"
+#include "SceneExposure.hlsli"
 
 Texture2D<float4> composite : register(t0); // the scene under its atmosphere; alpha: distance (km), 0 for the sky,
                                             // negative on the waves the sea shows, which move by themselves
 Texture2D<float4> history : register(t4);   // the previous frame's result, before the exposure
-Texture2D<float4> glass : register(t5);     // the ship's glass (ShipGlass.hlsl): screen = smoothed * alpha + rgb
+Texture2D<float4> glass : register(t5);     // glass: screen = smoothed * alpha + rgb; negative alpha: opaque hull distance
+Texture2D<float4> skyTransport : register(t6); // alpha: visible resolved body, for local bright-disc adaptation
+Texture2D<float4> celestial : register(t7); // physical stellar and galactic radiance, without temporal history
 
 static const float3 LUMINANCE = float3(0.2126, 0.7152, 0.0722); // Rec. 709
-
-// The exposure, as an incident light meter turned towards the sun, at sea level under the camera: the sun's beam through
-// the air, plus the sky, counted as a flat ground receives it. A grey card facing the sun then shows its own reflectance,
-// whatever the sun's height: sunlit faces keep their light at dusk, flat ground and shade darken, as in a photograph
-// exposed for its highlights. It never reads the image: turning the camera, or what the frame holds, cannot move it; no
-// pumping, no flicker. Past sunset the meter keeps the sunset's light: the twilight darkens.
-// ponytail: the card's own sky, the low sky and aureole in front of it, would take 0.1 to 0.5 stop more at low sun (tried).
-float Exposure()
-{
-    const float muS = max(dot(camVertical.xyz, lightDir.xyz), 0.0);
-    const float3 sunMeter=SUN_ILLUMINANCE*SunTransmittance(0.0,muS,0.0),skyMeter=SkyIrradiance(0.0,muS,0.0);
-    const float3 daylight = sunMeter+skyMeter;
-    // camVertical.w: the camera's altitude above the sea, km (D3DApp::Draw).
-    const float airBelow = 1.0 - exp(-max(camVertical.w, 0.0) / RAYLEIGH_SCALE_HEIGHT);
-    const float compensation = lerp(EXPOSURE_COMPENSATION, EXPOSURE_COMPENSATION_ORBIT, airBelow);
-    float observer=1.0;
-    if(camPlane.w>0.0) {
-        const CanopyTransport transport=CanopyLight(camPlane.w,0.0,muS);
-        const float3 sheltered=sunMeter*transport.direct+skyMeter*transport.sky
-            +sunMeter*transport.sunScatter*float3(0.45,0.65,0.32);
-        observer=ObserverExposure(dot(daylight,LUMINANCE),dot(sheltered,LUMINANCE),dot(camVertical.xyz,lightDir.xyz));
-    }
-    return observer*exp2(compensation) * PI / dot(daylight, LUMINANCE);
-}
 
 // The film curve: the photoreceptors' response, x^a / (x^a + k^a) (Naka-Rushton; Lottes 2016 and ACES 2 build on it),
 // through the grey card, 0.18 to 0.18. Its toe deepens the shadows, its shoulder rolls the highlights off towards white.
@@ -69,12 +46,16 @@ Output PSMain(float4 position : SV_POSITION)
     float2 size;
     composite.GetDimensions(size.x, size.y);
     const int2 pixel = int2(position.xy);
-    const float4 current = composite.Load(int3(pixel, 0));
+    const float4 g = glass.Load(int3(pixel, 0));
+    const bool opaqueOverlay = g.a < 0.0;
+    const float4 current = opaqueOverlay ? float4(g.rgb, -g.a) : composite.Load(int3(pixel, 0));
     float3 low = current.rgb, high = current.rgb;
     [unroll] for (int dy = -1; dy <= 1; ++dy)
     [unroll] for (int dx = -1; dx <= 1; ++dx)
     {
-        const float3 c = composite.Load(int3(clamp(pixel + int2(dx, dy), int2(0, 0), int2(size) - 1), 0)).rgb;
+        const int3 q = int3(clamp(pixel + int2(dx, dy), int2(0, 0), int2(size) - 1), 0);
+        const float4 layer = glass.Load(q);
+        const float3 c = opaqueOverlay && layer.a < 0.0 ? layer.rgb : composite.Load(q).rgb;
         low = min(low, c);
         high = max(high, c);
     }
@@ -98,9 +79,19 @@ Output PSMain(float4 position : SV_POSITION)
     // The scene's light, linear: a glare or bloom term, in the same units, is added to `color` here. The diagnostic
     // views are measures, not light (tools/banc_qualite.py): their white stays 1, whatever the sun.
     // The glass after the smoothing, kept out of the history: what sticks to it moves with the ship, not the world.
-    const float4 g = glass.Load(int3(pixel, 0));
-    const float3 shown = color * g.a + g.rgb;
-    output.screen = float4(taa.y > 0.5 ? shown : FilmCurve(shown * Exposure()), 1.0);
+    const float exposure=Exposure();
+    const float body=skyTransport.Load(int3(pixel,0)).a;
+    // Bright resolved discs retain surface contrast under local eye adaptation. Their physical lighting is unchanged.
+    const float sceneExposure=opaqueOverlay?exposure:lerp(exposure,min(exposure,8.0),saturate(body));
+    const float3 starlight=opaqueOverlay?0.0:celestial.Load(int3(pixel,0)).rgb*clamp(exposure,SKY_EYE_EXPOSURE,2000000.0);
+    const float3 shown=opaqueOverlay?color*exposure:(color*sceneExposure+starlight)*g.a+g.rgb*exposure;
+    output.screen = float4(taa.y > 0.5 ? (opaqueOverlay?color:color*g.a+g.rgb) : FilmCurve(shown), 1.0);
+    // Sub-code-value, fixed screen dither, in display space: dark sky gradients must not form contour bands.
+    if(taa.y<.5) {
+        float3 encoded=pow(max(output.screen.rgb,0.0),1.0/2.2);
+        encoded+=(CelestialRandom(uint(pixel.x)+uint(pixel.y)*65537u)-.5)/255.0;
+        output.screen.rgb=pow(saturate(encoded),2.2);
+    }
     output.screen.rgb = CoordinateOverlay(output.screen.rgb, pixel, int2(size));
     output.screen.rgb = ActionOverlay(output.screen.rgb, pixel, int2(size));
     return output;

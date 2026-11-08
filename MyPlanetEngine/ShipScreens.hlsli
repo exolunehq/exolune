@@ -149,7 +149,7 @@ float3 FlightScreen(float2 p, float3 c)
         c = lerp(o, c, saturate((c.r - c.b - 0.1) * 2.5));
     }
     Readout(c, p, float4(14, 112, 100, 142), float2(20, 118), 20.0, shipVelocity.w * 3.6, 5, 0, false, SCREEN_CYAN);
-    Readout(c, p, float4(415, 112, 505, 142), float2(421, 118), 18.0, shipUp.w, 5, 2, false, SCREEN_CYAN);
+    Readout(c, p, float4(415, 112, 505, 142), float2(421, 118), 18.0, shipGauges.z>0?shipGauges.y:shipUp.w, 5, 2, false, SCREEN_CYAN);
     Readout(c, p, float4(258, 420, 300, 442), float2(263, 424), 13.0, fmod(round(shipCourse.x) + 360.0, 360.0), 3, 0, true, SCREEN_AMBER);
     if (In(p, float4(262, 463, 300, 481)))
     {
@@ -214,7 +214,7 @@ float3 SystemsScreen(float2 p, float3 c)
         Paint(c, value > 0.55 ? SCREEN_CYAN : SCREEN_AMBER, Fill(max(e.x, e.y)) * step(0.004, value));
     }
     Readout(c, p, float4(393, y + 21, 416, y + 35), float2(395, y + 24), 9.0, value * 100.0, 3, 0, false, SCREEN_TEXT);
-    const float altitude = shipUp.w;
+    const float altitude = shipGauges.z>0?shipGauges.y:shipUp.w;
     Readout(c, p, float4(93, 404, 130, 426), float2(95, 409), 12.0, 97.6 + 1.5 * gas + 0.3 * sin(clock * 0.9), 3, 1, false, SCREEN_CYAN);
     Readout(c, p, float4(243, 404, 282, 426), float2(253 - 7.44, 409), 12.0,
             288.15 - 6.5 * min(altitude, 11.0) + air * air / 2010.0 + 30.0 * gas, 4, 0, false, SCREEN_CYAN);
@@ -248,7 +248,7 @@ float3 ShipScreen(uint role, float2 uv, float3 image)
     case SCREEN_SYSTEMS: return SystemsScreen(p, image);
     case DIAL_GAS:       return Dial(p, image, shipGauges.x * 8.0);       // THRUST %
     case DIAL_PITCH:     return Dial(p, image, 4.0 + ShipPitch() / 22.5); // ATT DEG: level at 4, ±90° at the ends
-    default:             return Dial(p, image, shipUp.w - shipCourse.w);  // ALT KM: above the ground
+    default:             return Dial(p, image, (shipGauges.z>0?shipGauges.y:shipUp.w) - shipCourse.w);  // ALT KM: above the ground
     }
 }
 #endif

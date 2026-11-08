@@ -93,10 +93,8 @@ struct WaterReflection
 
 // The sky's integration steps for the reflection: six for the sea, three for inland water, the same image within 1/255.
 static uint gReflectionSteps = 6u;
-WaterReflection ReflectOnWater(float3 up, float3 normal, float3 view, float3 sun, float3 along, float2 lost, float2 whole,
-                               float height, float3 sunLight)
+float WaterSourceGlint(float3 up,float3 normal,float3 view,float3 sun,float3 along,float2 lost,float2 whole)
 {
-    WaterReflection r;
     const float3 across = cross(up, along), slope3 = up - normal / max(dot(normal, up), 0.05); // the shown slope
     const float muS = dot(up, sun), muV = max(dot(up, view), 1e-3);
 
@@ -124,6 +122,15 @@ WaterReflection ReflectOnWater(float3 up, float3 normal, float3 view, float3 sun
         masking = 1.0 / masking;
     }
     const float glint = fresnel * density * masking / (4.0 * muV * hUp * hUp * hUp * hUp);
+    return muS > 0.0 ? glint : 0.0;
+}
+
+WaterReflection ReflectOnWater(float3 up, float3 normal, float3 view, float3 sun, float3 along, float2 lost, float2 whole,
+                               float height, float3 sunLight)
+{
+    WaterReflection r;
+    const float muS=dot(up,sun);
+    const float glint=WaterSourceGlint(up,normal,view,sun,along,lost,whole);
     r.glint = muS > 0.0 ? PI * glint / muS : 0.0;
 
     // The sky's reflection, along the mirror of the view about the shown normal, kept above the horizon; Fresnel averaged
@@ -145,6 +152,13 @@ WaterReflection ReflectOnWater(float3 up, float3 normal, float3 view, float3 sun
                                            skyTransmittance, hitsGround);
     r.sunRadiance = sunLight * glint;
     r.radiance = r.fresnel * sky + r.sunRadiance;
+    // Finite moons use the same facet distribution and Fresnel response as the Sun.
+    [unroll] for(uint moon=0;moon<3;++moon) {
+        const float3 source=normalize(celestialPosition[moon].xyz);
+        const float mu=dot(up,source);
+        r.radiance+=celestialFlux[moon].rgb*SunTransmittance(height,mu)
+            *WaterSourceGlint(up,normal,view,source,along,lost,whole);
+    }
     return r;
 }
 

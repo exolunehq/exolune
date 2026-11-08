@@ -2,6 +2,7 @@
 // For each altitude and sun height: the light scattered twice, from every direction, with an isotropic
 // phase, L2; and the share of light that scatters again, f. Infinite bounces sum to L2 / (1 - f). A slice per haze's ground.
 #include "Planet.hlsli"
+#define ATMOSPHERE_TABLE 1
 #include "Atmosphere.hlsli"
 
 RWTexture3D<float4> output : register(u1);
@@ -10,7 +11,7 @@ RWTexture3D<float4> output : register(u1);
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
     const float2 uv = (id.xy + 0.5) / MULTI_SCATTERING_SIZE;
-    const float muS0 = FromTexture(uv.x, MULTI_SCATTERING_SIZE.x) * 2.0 - 1.0;
+    const float muS0 = SunCosineFromUv(uv.x, MULTI_SCATTERING_SIZE.x);
     const float h0 = FromTexture(uv.y, MULTI_SCATTERING_SIZE.y) * ATMOSPHERE_HEIGHT_KM;
     const float ground = SliceGround(id.z);
     const float r0 = BOTTOM + h0, h0Term = h0 * (2.0 * BOTTOM + h0);

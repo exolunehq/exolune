@@ -1,0 +1,112 @@
+{
+  "checked_cabin_vertices": 263340,
+  "outside_parts": [],
+  "eye": [
+    0.0,
+    -0.6499999761581421,
+    0.699999988079071
+  ],
+  "eye_radial_hull_clearance_m": 1.7170681300937987,
+  "topology": [
+    {
+      "object": "Navigator | continuous cabin, station and sensor",
+      "components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0
+    },
+    {
+      "object": "Navigator | fitted console R",
+      "components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0
+    },
+    {
+      "object": "Navigator | fitted console L",
+      "components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0
+    },
+    {
+      "object": "Navigator | formed bucket seat",
+      "components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0
+    },
+    {
+      "object": "Navigator | fitted seat pad",
+      "components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0
+    },
+    {
+      "object": "Navigator | seat docking frame",
+      "components": 1,
+      "boundary_edges": 0,
+      "non_manifold_edges": 0
+    }
+  ],
+  "actual_mount_contacts": [
+    {
+      "part": "Navigator | fitted console R",
+      "tested_points": 293,
+      "maximum_gap_m": 8.478760719299316e-06
+    },
+    {
+      "part": "Navigator | fitted console L",
+      "tested_points": 293,
+      "maximum_gap_m": 1.017749309539795e-05
+    },
+    {
+      "part": "Navigator | fitted seat pad",
+      "tested_points": 1225,
+      "maximum_gap_m": 1.1920928955078125e-07
+    },
+    {
+      "part": "Navigator | seat docking frame",
+      "tested_points": 65,
+      "maximum_gap_m": 1.0132789611816406e-06
+    }
+  ],
+  "pilot_instrument_visibility": [
+    {
+      "console": -1,
+      "control": "readout",
+      "blocked": false
+    },
+    {
+      "console": -1,
+      "control": "forward trim",
+      "blocked": false
+    },
+    {
+      "console": -1,
+      "control": "forward field",
+      "blocked": false
+    },
+    {
+      "console": -1,
+      "control": "palm",
+      "blocked": false
+    },
+    {
+      "console": 1,
+      "control": "readout",
+      "blocked": false
+    },
+    {
+      "console": 1,
+      "control": "forward trim",
+      "blocked": false
+    },
+    {
+      "console": 1,
+      "control": "forward field",
+      "blocked": false
+    },
+    {
+      "console": 1,
+      "control": "palm",
+      "blocked": false
+    }
+  ]
+}

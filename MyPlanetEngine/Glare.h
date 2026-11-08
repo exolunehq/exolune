@@ -1,6 +1,6 @@
 // Glare.h - the lens's glare (GlareDown.hlsl, GlareUp.hlsl; docs/recherche-halo.md): the composite image halved level
 // after level, then summed back up and spread over it, before the temporal smoothing. Its own descriptor heaps: an SRV
-// and an RTV per level, the composite's SRV last. Off, unless MYPLANETENGINE_GLARE.
+// and an RTV per level, the composite's SRV last. Normal rendering; MYPLANETENGINE_GLARE=0 disables it for inspection.
 #pragma once
 
 #ifndef NOMINMAX

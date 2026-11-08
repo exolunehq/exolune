@@ -1,0 +1,15 @@
+# Celestial review: normal rendering, deterministic system epoch. Altitudes in metres above sea level.
+Orbital limb: stars behind the planet | 10000000 12 0 65 90 | 10 -5
+Moonless night: stellar disk | 12000 -12 -25 -55 90 | 10 155
+Moonlit night: three phases | 12000 -8 145 -60 90 | 10 -5
+Late daylight: sky contrast | 12000 -8 145 -35 270 | -8 65
+Civil twilight: first bright points | 12000 -8 145 -35 270 | -8 48
+Deep twilight: faint stars return | 12000 -8 145 -35 270 | -8 37
+Noon: atmosphere hides the stars | 12000 -8 145 -55 90 | -8 145
+Above the air: same sky | 300000 -8 145 -55 90 | -8 145
+Night coast: clouds and horizon | 300 -20.47 -75.45 -12 90 | 10 155
+Near the first moon: spherical surface | 261622000 6.3140660 121.9581586 -90 0 | 10 -5
+Second moon: cooler surface | 99622000 -5.5331882 139.4786291 -90 0 | 10 -5
+Remote galaxy: inclined dust disk | 2000000 24.8226638 154.5637836 -90 0 | 10 -5
+Moon in front of Exolune: depth order | 443622000 6.3140660 121.9581586 90 0 | 10 130
+Sun from space: finite luminous disk | 300000 10 -5 -90 0 | 10 -5

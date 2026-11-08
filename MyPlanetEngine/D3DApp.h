@@ -22,30 +22,13 @@
 #include "Climate.h"
 #include "WalkController.h"
 #include "FlightContact.h"
+#include "AirlessTerrain.h"
+#include "FlightFrame.h"
 class Ocean;
 namespace Tectonics { struct Map; }
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
-
-// Double precision vector for the camera: a float is only 0.5 m precise at 6 378 km.
-struct Vec3d
-{
-    double x, y, z;
-    Vec3d operator+(const Vec3d& o) const { return { x + o.x, y + o.y, z + o.z }; }
-    Vec3d operator-(const Vec3d& o) const { return { x - o.x, y - o.y, z - o.z }; }
-    Vec3d operator*(double s) const { return { x * s, y * s, z * s }; }
-};
-inline double Dot(const Vec3d& a, const Vec3d& b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
-inline Vec3d Cross(const Vec3d& a, const Vec3d& b) { return { a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x }; }
-inline double Length(const Vec3d& v) { return std::sqrt(Dot(v, v)); }
-inline Vec3d Normalize(const Vec3d& v) { return v * (1.0 / Length(v)); }
-// Rodrigues rotation around a unit axis; a positive angle turns v towards Cross(axis, v).
-inline Vec3d Rotate(const Vec3d& v, const Vec3d& axis, double angle)
-{
-    const double c = std::cos(angle), s = std::sin(angle);
-    return v * c + Cross(axis, v) * s + axis * (Dot(axis, v) * (1.0 - c));
-}
 
 const Vec3d kNorth = { 0.0, 1.0, 0.0 };
 // Latitude and longitude to a unit direction, y towards the north: (cos lat cos lon, sin lat, cos lat sin lon).
@@ -86,7 +69,7 @@ protected:
     // starts a comment; view is a diagnostic name or "marche" for grounded walking), a "Tests" palette beside the render
     // window has a button for each, and F1 to F12 do the same: the camera goes there, in the test's view or the game's,
     // the temporal smoothing starts afresh, the test's label shows in the title, and the focus comes back to fly.
-    struct TestView { std::wstring label; double altitude, latitude, longitude, pitchDown, heading, sunLatitude, sunLongitude; bool sun; float windSpeed,windDirection,swellHeight;bool wind; float view; bool walk; };
+    struct TestView { std::wstring label; double altitude, latitude, longitude, pitchDown, heading, sunLatitude, sunLongitude; bool sun; float windSpeed,windDirection,swellHeight;bool wind; float view; bool walk; int moon=-1; };
     std::vector<TestView> mTests;
     HWND mTestsWnd = nullptr;
     std::wstring mTestLabel;
@@ -94,6 +77,24 @@ protected:
     void CreateTestsWindow();
     void GoToTest(size_t index);
     static LRESULT CALLBACK TestsProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+    Airless::Surface mMoonSurface;
+    Vec3d mMoonCentre={};
+    std::array<Airless::Vec,Celestial::Moons.size()> mMoonCentres={};
+    int mActiveMoon=-1,mMoonMesh=-1;
+    bool mMoonFrameValid=false;
+    void UpdateCelestialFrame();
+    int MoonAt(Vec3d position) const;
+    void SelectMoon(int moon);
+    bool NearMoon(Vec3d position) const;
+    Vec3d SurfaceCentre(Vec3d position) const;
+    Vec3d SurfaceUp(Vec3d position) const;
+    double SurfaceRadius(Vec3d position) const;
+    double SurfaceAltitude(Vec3d position) const;
+    void PlaceMoonCamera(double latitude,double longitude,double pitchDown,double heading,double clearance,unsigned moon=0);
+    struct FlightPose;
+    void MoonFlightContact(const FlightPose& before);
+    bool CelestialRect(Vec3d centre,double radius,D3D12_RECT& rectangle) const;
 
     std::unique_ptr<Ocean> mOcean;
     float mOceanSpeed=12.0f,mOceanDirection=70.0f,mOceanSwell=1.8f,mOceanElevation=-1000.0f;
@@ -141,6 +142,7 @@ protected:
                                        // screen relief covers every pixel at full weight (FineTerrain.hlsl); z: 1 once
                                        // the rivers' map for wide footprints is computed (Erosion.hlsli)
         XMFLOAT4 foliageWind; // climate wind, face-local; shared weather clock
+        XMFLOAT4 celestialPosition[7], celestialSurface[7], celestialLight[7], celestialFlux[7];
     };
 
     // The clouds' frame, b1 (Clouds.hlsli): the camera and the view in the planet frame (km), in double precision.
@@ -223,6 +225,9 @@ protected:
     ComPtr<ID3D12PipelineState> mWirePSO;
     ComPtr<ID3D12PipelineState> mTerrainDepthPSO; // the terrain's depth alone, before the plants (docs/optimisation.md, round 2)
     ComPtr<ID3D12PipelineState> mTerrainShadePSO; // then its colour, on the pixels it shows only
+    ComPtr<ID3D12PipelineState> mAirlessComputePSO,mAirlessFinePSO,mAirlessHorizonPSO,mAirlessScreenPSO;
+    ComPtr<ID3D12PipelineState> mAirlessDepthPSO,mAirlessShadePSO,mAirlessWirePSO;
+    ComPtr<ID3D12PipelineState> mAirlessObjectCandidatesPSO,mAirlessObjectPlacementPSO,mAirlessObjectPSO;
     ComPtr<ID3D12PipelineState> mComputePSO;
     ComPtr<ID3D12PipelineState> mComputePairsPSO; // the same, in a flight: the lattice in pairs of floats (round 8)
 
@@ -232,6 +237,10 @@ protected:
     // orbit, cutting off the densest air in rings (docs/spec-rendu-lointain.md).
     static const DXGI_FORMAT HdrFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
     ComPtr<ID3D12Resource> mHdrTarget;
+    ComPtr<ID3D12Resource> mSkyTransport, mCelestialTarget;
+    std::array<ComPtr<ID3D12Resource>,Celestial::AirlessAtlasSlots> mAirlessMaterial;
+    ComPtr<ID3D12RootSignature> mCelestialRoot;
+    ComPtr<ID3D12PipelineState> mGalaxyPSO, mStarsPSO, mCelestialBodiesPSO, mEarthProxyBlendPSO;
     ComPtr<ID3D12DescriptorHeap> mSrvHeap; // shader visible, see the Descriptor enum in D3DApp.cpp
     ComPtr<ID3D12RootSignature> mPostRootSignature;
     ComPtr<ID3D12PipelineState> mAtmospherePSO; // the clouds and the air over the scene in one pass, into mComposite
@@ -509,7 +518,7 @@ protected:
     void SaveCapture(bool batchCapture, UINT trembleIndex);
 
     // Offline film: independent ship and camera poses, fixed clock, global frame numbers.
-    struct CineFrame { bool cockpit, bare; double nav[6], cam[6], fov, weather; }; // bare: the pilot's eye, the ship hidden
+    struct CineFrame { bool cockpit, bare, cabin; double nav[6], cam[6], fov, weather; }; // cabin: explicit interior inspection camera
     std::vector<CineFrame> mCine;
     double mCineFps = 60.0, mCineFov = 60.0, mCineShipGround = 0.0;
     UINT mCineIndex = 0, mCineEnd = 0, mCineLead = 0;
@@ -571,7 +580,7 @@ protected:
     double mHeadTilt = 0.0, mHeadTiltRate = 0.0; // the head's roll behind the ship's, towards the left (rad)
     double mPlume = 0.0;    // the engines' plume, 0 to 1: the gas, following it as the speed does (ShipPlume.hlsli)
     double mJets[5] = {};   // the attitude jets' commands, -1 to 1: slide right, lift, roll right, pitch up, yaw right
-    Vec3d mCamUp = {};             // the view's up: the vertical for the free camera, the ship's or the head's otherwise
+    Vec3d mCamUp = {};             // independent flight attitude; walking alone follows the surface vertical
     Vec3d mChaseOffset = {};       // the chase camera from the ship, lagging behind its turns
     Vec3d mPrevShipPos = {}, mPrevShipForward = {}, mPrevShipUp = {};
     double mRawDx = 0.0, mRawDy = 0.0; // raw mouse motion, the ship's views

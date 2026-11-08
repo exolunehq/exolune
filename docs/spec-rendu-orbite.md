@@ -1,5 +1,14 @@
 # The planet seen from orbit
 
+**Distant-surface continuity, 2026-11-08**
+- The distant representation and detailed terrain blend colour only; HDR alpha remains a physical surface distance, independent of the blend weight.
+- The proxy samples filtered relief from the existing terrain map, with ocean at sea level.
+- Its expanded transition envelope supplies raster coverage only; it neither clips clouds nor overwrites the detailed depth buffer.
+- Cloud layers, atmosphere and their sampling settings remain unchanged.
+- Review: `tools/tests/2026-11-08-transition-nuages.txt`; eight fixed-light approach views from 40,000 km to 500 km.
+- Release x64 and five background views at 20,000, 10,000, 7,000, 4,000 and 2,000 km pass visual continuity review; continuous flight remains for the user.
+- The replaced depth blend and enlarged occluder are recorded in [history](log/spec-rendu-orbite-historique.md).
+
 **The goal:** that the planet seen from orbit supports the comparison with the Earth of Apollo 17, "Blue Marble": a dark blue ocean, ochre deserts, white and opaque clouds with smooth hearts, a thin blue limb. Without degrading anything at 10 km, at 1 km or on the ground.
 
 **State, 2026-10-31:** made on the experiment `piste/orbite-rendu`, branch `claude/orbite-rendu-0e3f4e`; to be judged in flight, `tools/tests/2026-10-31-orbite-rendu.txt`. **2026-11-02:** the clouds' multiple scattering per point, for contrast and against shiny contours; to be judged in flight, `tools/tests/2026-11-02-nuages-contraste.txt`.
@@ -85,6 +94,7 @@
 
 ### The exhibition
 
+- **Orbital terminator, 2026-11-07:** direct sunlight is metered at the observer above the air, using its altitude-dependent planetary horizon. A dark ground reference cannot trigger night exposure while the observer remains in sunlight (`recherche-tons-exposition.md`).
 - **0 EV in orbit, +1 EV on the ground:** landscape photos are exposed for the ground, those of the Earth for its clouds. Measured on "Blue Marble", its sea and clouds match ours at 0 EV.
 - **Between the two, the air under the camera,** `1 − exp(−h / 8 km)`: +0,88 EV to 1 km, +0,29 to 10 km. The exposure remains an incident exposure meter, without reading the image.
 

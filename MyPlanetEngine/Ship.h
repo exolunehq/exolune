@@ -1,6 +1,6 @@
 // Ship.h - the player's ship (assets/vaisseau): the engine's pack of it (paquet_moteur.py), its opaque surfaces drawn in the
 // scene, its own two shadow maps, the canopy's weather under the clouds (ShipWeather.hlsl) and the climate it reads, and its
-// glass drawn into an overlay that the tone map applies after the temporal smoothing (ToneMap.hlsl). Must match Ship.hlsli.
+// glass after temporal smoothing, or a reflective opaque hull before it (ToneMap.hlsl). Must match Ship.hlsli.
 #pragma once
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -24,7 +24,8 @@ public:
     // The canopy's water (ShipWater.hlsli): profile-specific maps at 1.2 mm, shared simulated drop capacity.
     static constexpr UINT DropCount = 8192;
     static constexpr UINT ShadowSize = 2048;
-    static constexpr DXGI_FORMAT OverlayFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    // Negative alpha stores an opaque reflective surface's distance before temporal smoothing.
+    static constexpr DXGI_FORMAT OverlayFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
     // Shadow radius (m); each profile supplies the centre. Match Ship.hlsli's SHIP_RADIUS.
     static constexpr float Radius = 6.7f;
 
@@ -85,6 +86,7 @@ private:
     std::vector<uint32_t> mIndices;
     std::vector<Draw> mDraws;
     std::vector<uint32_t> mModes; // per material: 0 opaque, 1 blended, 2 canopy
+    std::vector<uint32_t> mRoles; // VSX3 role 10: late reflective hull; 11: the Navigator's lit interior
     std::vector<Image> mImages;
     bool mLoaded = false, mReady = false;
 
@@ -100,7 +102,7 @@ private:
     D3D12_INDEX_BUFFER_VIEW mIndexView = {};
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDsvHeap, mRtvHeap;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> mRoot;
-    Microsoft::WRL::ComPtr<ID3D12PipelineState> mOpaquePSO, mShadowPSO, mGlassPSO, mPlumePSO, mWeatherPSO, mWaterPSO[3];
+    Microsoft::WRL::ComPtr<ID3D12PipelineState> mOpaquePSO, mReflectionPSO, mShadowPSO, mGlassPSO, mPlumePSO, mWeatherPSO, mWaterPSO[3];
     Constants* mConstants = nullptr;
     bool mShadowsReadable = false, mWeatherReadable = false, mWaterReadable = false;
 };

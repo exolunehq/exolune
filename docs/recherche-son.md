@@ -9,6 +9,8 @@
 - **The code:** `MyPlanetEngine/Audio.h` and `Audio.cpp`. One call per frame, `mAudio.Update(ShipSound)`, filled in `D3DApp::UpdateShip`.
 - **Voices:** the engine, three groups of stabilizers (roll, side slip, climb and descent), the wind.
 
+**Navigator voice, 2026-11-03:** `NavigatorSound.h` supplies a quiet original levitation resonance. Nearly stationary noise-excited bands and a faint sub layer respond mainly in level and brightness, without an RPM sweep, combustion pulse or exhaust layer. Environmental wind remains in world audio. No film samples enter the runtime bank. The 36 s preview and callback-size, stopping and vacuum checks are described in `spec-navigateur-cockpit-son.md`; timbre remains under listening review.
+
 ## State of the art
 
 **Flight and space games:**

@@ -31,6 +31,7 @@ struct Walker {
     bool grounded = true;
     unsigned steps = 0;
     float landing = 0;
+    double gravity=9.81,waterFloor=.15;
 
     // The caller rebases x/y and vx/vy into each new patch before advancing. No motion beyond sampled ground.
     void Advance(double dt, Input in, const WalkTerrain& terrain) {
@@ -49,7 +50,7 @@ struct Walker {
             const double oldX = x, oldY = y, oldElevation = elevation;
             double h = 0, sx = 0, sy = 0;
             auto allowed = [&](double nx, double ny) {
-                if (!terrain.Sample(nx, ny, h, sx, sy) || h < 0.15) return false; // swimming is a separate mode
+                if (!terrain.Sample(nx, ny, h, sx, sy) || h < waterFloor) return false; // swimming is a separate mode
                 double edge, dx, dy;
                 for (const auto& p : std::array<std::array<double, 2>, 4>{{{{Radius,0}},{{-Radius,0}},{{0,Radius}},{{0,-Radius}}}})
                     if (!terrain.Sample(nx + p[0], ny + p[1], edge, dx, dy) || edge > std::max(elevation, h) + 0.30)
@@ -74,7 +75,7 @@ struct Walker {
                 elevation = h; vertical = 0;
             } else {
                 grounded = false;
-                vertical -= 9.81 * step;
+                vertical -= gravity * step;
                 elevation += vertical * step;
                 if (elevation <= h && vertical <= 0) {
                     landing = std::max(landing, float(std::min(-vertical / 5.0, 1.5)));

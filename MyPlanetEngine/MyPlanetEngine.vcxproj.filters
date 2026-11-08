@@ -56,6 +56,9 @@
     <ClInclude Include="D3DApp.h">
       <Filter>Fichiers sources</Filter>
     </ClInclude>
+    <ClInclude Include="FlightFrame.h">
+      <Filter>Fichiers sources</Filter>
+    </ClInclude>
     <ClInclude Include="PlanetMap.h">
       <Filter>Fichiers sources</Filter>
     </ClInclude>
@@ -118,5 +121,40 @@
     <FxCompile Include="AtmosphereTransmittance.hlsl" />
     <FxCompile Include="AtmosphereMultiScattering.hlsl" />
     <FxCompile Include="AtmosphereSkyIrradiance.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CelestialSystem.h" />
+    <ClInclude Include="CelestialManifest.h" />
+    <None Include="Celestial.hlsli" />
+    <None Include="SceneExposure.hlsli" />
+    <FxCompile Include="CelestialBodies.hlsl" />
+    <FxCompile Include="CelestialSky.hlsl" />
+    <FxCompile Include="Stars.hlsl" />
+    <FxCompile Include="StarsPixel.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="D3DAppCelestial.cpp"><Filter>Fichiers sources</Filter></ClCompile>
+    <ClCompile Include="AirlessTerrain.cpp"><Filter>Fichiers sources</Filter></ClCompile>
+    <ClInclude Include="AirlessTerrain.h"><Filter>Fichiers d%27en-tête</Filter></ClInclude>
+    <None Include="DistantPlanet.hlsli"><Filter>Fichiers sources</Filter></None>
+    <FxCompile Include="AirlessVertex.hlsl"><Filter>Fichiers sources</Filter></FxCompile>
+    <FxCompile Include="AirlessPixel.hlsl"><Filter>Fichiers sources</Filter></FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="AirlessField.hlsli" />
+    <None Include="AirlessRelief.hlsli" />
+    <None Include="AirlessMaterial.hlsli" />
+    <None Include="AirlessPhotometry.hlsli" />
+    <None Include="SurfaceStack.hlsli" />
+    <None Include="TerrainNormals.hlsli" />
+    <None Include="TerrainRay.hlsli" />
+    <None Include="TerrainShipShadow.hlsli" />
+    <FxCompile Include="AirlessCompute.hlsl" />
+    <FxCompile Include="AirlessFine.hlsl" />
+    <FxCompile Include="AirlessHorizon.hlsl" />
+    <FxCompile Include="AirlessScreen.hlsl" />
+    <FxCompile Include="AirlessObjectCandidates.hlsl" />
+    <FxCompile Include="AirlessObjectPlacement.hlsl" />
+    <FxCompile Include="AirlessObjectPixel.hlsl" />
   </ItemGroup>
 </Project>

@@ -72,9 +72,10 @@ SamplerState shipSampler : register(s5); // wrapping, anisotropic
 
 // The selected profile drives geometry and weather together. See ShipProfiles.h for the CPU dimensions.
 bool ShipClassic() { return shipOptions.z < 0.5; }
+bool ShipNavigator() { return shipOptions.z > 1.5; }
 #include "ShipClassique.hlsli"
 #include "ShipChasseur.hlsli"
-#define SHIP_CENTRE (ShipClassic() ? CLASSIC_CENTRE : FIGHTER_SHIP_CENTRE)
+#define SHIP_CENTRE (ShipNavigator() ? float3(0, 0, 0) : ShipClassic() ? CLASSIC_CENTRE : FIGHTER_SHIP_CENTRE)
 static const float SHIP_RADIUS = 6.7;
 #define WATER_ORIGIN (ShipClassic() ? CLASSIC_WATER_ORIGIN : FIGHTER_WATER_ORIGIN)
 #define WATER_SIZE (ShipClassic() ? CLASSIC_WATER_SIZE : FIGHTER_WATER_SIZE)
@@ -84,6 +85,7 @@ static const float WATER_TEXEL = 0.0012;
 #define CANOPY_Y1 (ShipClassic() ? 0.3 : FIGHTER_CANOPY_Y1)
 bool OnCanopy(float2 p, float margin)
 {
+    if (ShipNavigator()) return false;
     if (ShipClassic()) return ClassicOnCanopy(p, margin);
     return FighterOnCanopy(p, margin);
 }

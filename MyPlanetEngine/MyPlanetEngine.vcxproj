@@ -81,6 +81,8 @@
     <ClCompile Include="Audio.cpp" />
     <ClCompile Include="WorldAudio.cpp" />
     <ClCompile Include="D3DApp.cpp" />
+    <ClCompile Include="D3DAppCelestial.cpp" />
+    <ClCompile Include="AirlessTerrain.cpp" />
     <ClCompile Include="D3DAppBench.cpp" />
     <ClCompile Include="D3DAppCine.cpp" />
     <ClCompile Include="D3DAppContact.cpp" />
@@ -127,11 +129,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio.h" />
+    <ClInclude Include="CelestialSystem.h" />
+    <ClInclude Include="CelestialManifest.h" />
+    <ClInclude Include="AirlessTerrain.h" />
+    <ClInclude Include="NavigatorSound.h" />
     <ClInclude Include="WorldAudio.h" />
     <ClInclude Include="FootContact.h" />
     <ClInclude Include="WalkController.h" />
     <ClInclude Include="FlightContact.h" />
     <ClInclude Include="D3DApp.h" />
+    <ClInclude Include="FlightFrame.h" />
     <ClInclude Include="GpuHelpers.h" />
     <ClInclude Include="Glare.h" />
     <ClInclude Include="Scans.h" />
@@ -181,6 +188,9 @@
     <None Include="BiomePalette.hlsli" />
     <None Include="Mesh.hlsli" />
     <None Include="PlanetSettings.hlsli" />
+    <None Include="Celestial.hlsli" />
+    <None Include="DistantPlanet.hlsli" />
+    <None Include="SceneExposure.hlsli" />
     <None Include="Shadows.hlsli" />
     <None Include="Objects.hlsli" />
     <None Include="Vegetation.hlsli" />
@@ -484,7 +494,7 @@
     <FxCompile Include="WalkGround.hlsl">
       <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel>
       <EntryPointName>CSMain</EntryPointName><DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>SurfaceProbe.hlsli;Relief.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>Celestial.hlsli;SurfaceProbe.hlsli;Relief.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="FlightGround.hlsl">
       <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel>
@@ -494,7 +504,7 @@
     <FxCompile Include="WorldSound.hlsl">
       <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel>
       <EntryPointName>CSMain</EntryPointName><DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>SurfaceProbe.hlsli;SurfaceWeights.hlsli;WorldWeather.hlsli;Materials.hlsli;Vegetation.hlsli;Planet.hlsli;Atmosphere.hlsli;Clouds.hlsli;Relief.hlsli;Terrain.hlsli;Mesh.hlsli;Shadows.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>Celestial.hlsli;SurfaceProbe.hlsli;SurfaceWeights.hlsli;WorldWeather.hlsli;Materials.hlsli;Vegetation.hlsli;Planet.hlsli;Atmosphere.hlsli;Clouds.hlsli;Relief.hlsli;Terrain.hlsli;Mesh.hlsli;Shadows.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="TerrainComputePairs.hlsl">
       <ShaderType>Compute</ShaderType>
@@ -533,70 +543,77 @@
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>VSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="ShipShadow.hlsl">
       <ShaderType>Vertex</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>VSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="ShipPixel.hlsl">
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>PSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>ShipScreens.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;ShipNavigatorFixtures.hlsli;ShipNavigator.hlsli;ShipScreens.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="ShipGlass.hlsl">
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>PSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="ShipReflection.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;ShipNavigatorFixtures.hlsli;ShipNavigator.hlsli;ShipPixel.hlsl;ShipReflections.hlsli;ShipScreens.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;PlanetSettings.hlsli;Atmosphere.hlsli;PlanetMap.hlsli;BiomePalette.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="ShipWeather.hlsl">
       <ShaderType>Compute</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>CSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;Atmosphere.hlsli;Materials.hlsli;Climate.hlsli;Clouds.hlsli;WorldWeather.hlsli;Terrain.hlsli;Mesh.hlsli;Shadows.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;Atmosphere.hlsli;Materials.hlsli;Climate.hlsli;Clouds.hlsli;WorldWeather.hlsli;Terrain.hlsli;Mesh.hlsli;Shadows.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="ShipWaterMove.hlsl">
       <ShaderType>Compute</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>CSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>ShipWater.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;ShipWater.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="ShipWaterClear.hlsl">
       <ShaderType>Compute</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>CSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>ShipWater.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;ShipWater.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="ShipWaterSplat.hlsl">
       <ShaderType>Compute</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>CSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>ShipWater.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;ShipWater.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="ShipPlumeVertex.hlsl">
       <ShaderType>Vertex</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>VSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>ShipPlume.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;ShipPlume.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="ShipPlumePixel.hlsl">
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>PSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>ShipPlume.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;ShipPlume.hlsli;Ship.hlsli;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <!-- The clouds and the air over the scene (Clouds.hlsli): the single pass, then the temporal pass's three entry points,
          each compiled from AtmospherePass.hlsl by its wrapper. Shader model 6 (DXC), as the terrain. -->
@@ -605,35 +622,65 @@
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>PSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>Clouds.hlsli;CloudsTemporal.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>Celestial.hlsli;Clouds.hlsli;CloudsTemporal.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="CloudTrace.hlsl">
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>PSCloudTrace</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>AtmospherePass.hlsl;Clouds.hlsli;CloudsTemporal.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>Celestial.hlsli;AtmospherePass.hlsl;Clouds.hlsli;CloudsTemporal.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="CloudTraceHalf.hlsl">
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>PSCloudTraceHalf</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>AtmospherePass.hlsl;Clouds.hlsli;CloudsTemporal.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>Celestial.hlsli;AtmospherePass.hlsl;Clouds.hlsli;CloudsTemporal.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="CloudResolve.hlsl">
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>PSCloudResolve</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>AtmospherePass.hlsl;Clouds.hlsli;CloudsTemporal.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>Celestial.hlsli;AtmospherePass.hlsl;Clouds.hlsli;CloudsTemporal.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="ToneMap.hlsl">
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>PSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>Coordinates.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;Coordinates.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="CelestialBodies.hlsl">
+      <ShaderType>Pixel</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>AirlessPhotometry.hlsli;DistantPlanet.hlsli;PlanetMap.hlsli;Climate.hlsli;BiomePalette.hlsli;Celestial.hlsli;Planet.hlsli;PlanetSettings.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="AirlessVertex.hlsl">
+      <ShaderType>Vertex</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>VSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>AirlessField.hlsli;AirlessRelief.hlsli;AirlessMaterial.hlsli;AirlessPhotometry.hlsli;SurfaceStack.hlsli;TerrainNormals.hlsli;TerrainRay.hlsli;TerrainShipShadow.hlsli;Celestial.hlsli;Planet.hlsli;PlanetSettings.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="AirlessPixel.hlsl">
+      <ShaderType>Pixel</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>AirlessField.hlsli;AirlessRelief.hlsli;AirlessMaterial.hlsli;AirlessPhotometry.hlsli;SurfaceStack.hlsli;TerrainNormals.hlsli;TerrainRay.hlsli;TerrainShipShadow.hlsli;Celestial.hlsli;Planet.hlsli;PlanetSettings.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="CelestialSky.hlsl">
+      <ShaderType>Pixel</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>Celestial.hlsli;Planet.hlsli;PlanetSettings.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="Stars.hlsl">
+      <ShaderType>Vertex</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>VSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>Celestial.hlsli;Planet.hlsli;PlanetSettings.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="StarsPixel.hlsl">
+      <ShaderType>Pixel</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>Celestial.hlsli;Planet.hlsli;PlanetSettings.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="GlareDown.hlsl">
       <ShaderType>Pixel</ShaderType>
@@ -697,4 +744,55 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ItemGroup>
+    <None Include="AirlessField.hlsli" />
+    <None Include="AirlessRelief.hlsli" />
+    <None Include="AirlessMaterial.hlsli" />
+    <None Include="AirlessPhotometry.hlsli" />
+    <None Include="SurfaceStack.hlsli" />
+    <None Include="TerrainNormals.hlsli" />
+    <None Include="TerrainRay.hlsli" />
+    <None Include="TerrainShipShadow.hlsli" />
+    <FxCompile Include="AirlessCompute.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>CSMain</EntryPointName>
+      <AdditionalOptions>-HV 2018 %(AdditionalOptions)</AdditionalOptions>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>AirlessField.hlsli;AirlessRelief.hlsli;AirlessMaterial.hlsli;AirlessPhotometry.hlsli;SurfaceStack.hlsli;TerrainNormals.hlsli;TerrainRay.hlsli;TerrainShipShadow.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="AirlessFine.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>CSMain</EntryPointName>
+      <AdditionalOptions>-HV 2018 %(AdditionalOptions)</AdditionalOptions>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>AirlessField.hlsli;AirlessRelief.hlsli;AirlessMaterial.hlsli;AirlessPhotometry.hlsli;SurfaceStack.hlsli;TerrainNormals.hlsli;TerrainRay.hlsli;TerrainShipShadow.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="AirlessHorizon.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>CSMain</EntryPointName>
+      <AdditionalOptions>-HV 2018 %(AdditionalOptions)</AdditionalOptions>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>AirlessField.hlsli;AirlessRelief.hlsli;AirlessMaterial.hlsli;AirlessPhotometry.hlsli;SurfaceStack.hlsli;TerrainNormals.hlsli;TerrainRay.hlsli;TerrainShipShadow.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="AirlessScreen.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>CSMain</EntryPointName>
+      <AdditionalOptions>-HV 2018 %(AdditionalOptions)</AdditionalOptions>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>AirlessField.hlsli;AirlessRelief.hlsli;AirlessMaterial.hlsli;AirlessPhotometry.hlsli;SurfaceStack.hlsli;TerrainNormals.hlsli;TerrainRay.hlsli;TerrainShipShadow.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="AirlessObjectCandidates.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>CullMain</EntryPointName>
+      <AdditionalOptions>-HV 2018 %(AdditionalOptions)</AdditionalOptions>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>AirlessField.hlsli;AirlessRelief.hlsli;AirlessMaterial.hlsli;AirlessPhotometry.hlsli;SurfaceStack.hlsli;TerrainNormals.hlsli;TerrainRay.hlsli;TerrainShipShadow.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="AirlessObjectPlacement.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>CSMain</EntryPointName>
+      <AdditionalOptions>-HV 2018 %(AdditionalOptions)</AdditionalOptions>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>AirlessField.hlsli;AirlessRelief.hlsli;AirlessMaterial.hlsli;AirlessPhotometry.hlsli;SurfaceStack.hlsli;TerrainNormals.hlsli;TerrainRay.hlsli;TerrainShipShadow.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="AirlessObjectPixel.hlsl">
+      <ShaderType>Pixel</ShaderType><ShaderModel>5.0</ShaderModel><EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>AirlessField.hlsli;AirlessRelief.hlsli;AirlessMaterial.hlsli;AirlessPhotometry.hlsli;SurfaceStack.hlsli;TerrainNormals.hlsli;TerrainRay.hlsli;TerrainShipShadow.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+  </ItemGroup>
 </Project>

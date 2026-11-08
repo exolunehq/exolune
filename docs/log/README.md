@@ -10,6 +10,16 @@
 
 ## What it contains
 
+- **`spec-rendu-orbite-historique.md`:** removed signed-depth blend and expanded proxy occluder that clipped clouds during approach.
+
+- **`spec-lune-terrain-historique.md`:** superseded single landable moon, removed contact latch, rejected lunar quadtree and appearance iterations.
+
+- **`recherche-halo-historique.md`:** superseded opt-in halo, optical research and intermediate measurements.
+- **`spec-ciel-celeste-historique.md`:** initial procedural moons, sky-only body composition and superseded display settings.
+- **`recherche-tons-exposition-historique.md`:** superseded sunset clamp and sea-level orbital metering; rejected asymmetric temporal exposure experiment.
+
+- **`recherche-ciel-nocturne.md`:** superseded 2026-10-25 branch plan; current system in `../spec-ciel-celeste.md`.
+
 - **High-altitude performance, 2026-11-04–05:** `spec-erosion-historique.md` preserves the original diagnosis, former precision claims and rejected serial, striped, low-threshold, cooperative-mesh and mask-first schedules, plus superseded comparison tables. Current indexed evaluation is in `../spec-erosion.md`; measurements and limitations are in `../diagnostic-orbite.md`.
 
 - **Confluence banks, 2026-11-04:** `spec-erosion-historique.md` preserves the symmetric width addition and its misleading mandatory-widening check. Current receiving-section matching is in `../spec-erosion.md`.
@@ -25,7 +35,7 @@
 - **Upstream slot canyons, 2026-11-03:** the same log records the width-only recovery failure, its preceding verification and the discarded height-dependent recovery interval.
 - **`spec-normales-spline-historique.md`:** retired cardinal prefilter and the replaced fine-grid height/normal interpolation; current reconstruction in `../spec-normales-spline.md`.
 - **`spec-marche-ambiances-historique.md`:** replaced prototype contact recordings and material selector; current rules in `../spec-marche-ambiances.md`.
-- **`spec-vaisseau-historique.md`:** the replaced clearance-dependent near plane and nadir-only interactive contact; current projection and sweep limits in `../spec-vaisseau.md`.
+- **`spec-vaisseau-historique.md`:** removed contact look rollback, orbital steering and pitch clamp, replaced near plane and nadir-only contact; current controls and contact in `../spec-vaisseau.md`.
 - **`spec-erosion-historique.md`:** old coastal profiles, comparison of the 9 km filter and expected slope; superseded symmetric band and reach without a sea probe; singular crests, provisional climate, gullies without a slope reserve and their old measurements; C and D measurements before scale separation and spherical valley projection; removed duplicate coastal estimator from E; flattened glacial profiles and measurements from `14c99ec`; the rock-only slope budget, valley dilation, symmetric coastal talus and mesh-scale metric, signed-detail composition, rejected incision cap and archive-worktree closure, superseded on 2026-11-01; current rules in `../spec-erosion.md` and `../spec-eaux-interieures.md`.
 - **`spec-pipeline-creation3d-historique.md`:** superseded authoring, torn roots, branch reduction, close-detail iterations and rejected tropical reconstructions; current contracts in `../spec-pipeline-creation3d.md` and `../spec-rendu-vegetation.md`.
 - **`spec-diversite-vegetale-historique.md`:** superseded scanned-fir catalogue, density choices and replaced cold-site witnesses; current scope in `../spec-diversite-vegetale.md`.
@@ -33,6 +43,7 @@
 
 - **`spec-marche-ambiances-historique.md`:** superseded prototype footstep recordings and material selection; current controller and audio in `../spec-marche-ambiances.md`.
 - **`spec-vaisseau-historique.md`:** superseded ship assemblies, junctions, panel layouts and their inspection measurements.
+- **`recherche-vaisseau-navigateur-historique.md`:** first neural shell, rejected smoothing and mixed audio cuts, exterior-only runtime, primitive cabin, static instrument reviews and rejected motor/jet sound revisions.
 
 **The origins of**
 
