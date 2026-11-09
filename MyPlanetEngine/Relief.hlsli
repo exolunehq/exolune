@@ -338,7 +338,8 @@ float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float t
         float3 ravineGr = 0.0;
         // Decide from the complete parent, including both >20 km octaves. Suppressing or amplifying those octaves
         // before this decision made a valley invent the ground it was about to carve, including on uncut forest slopes.
-        [branch] if (o == EROSION_GULLY_FIRST)
+        // Only the network's valleys and gullies change anything here (ReliefSampleGround).
+        [branch] if (!EROSION_RAVINES && o == EROSION_GULLY_FIRST)
         {
             const float depth = max(gullies.ground + relief * coarse - gullies.surface, 0.0);
             gullies.carved = smoothstep(0.0, 800.0, depth);
@@ -367,7 +368,7 @@ float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float t
         const float roundA = amplitude * w / (1.0 + RELIEF_EROSION * dot(roundSlope, roundSlope));
         const float folded = o == 1 || o == 2 ? 1.0 - 0.5 * foldShare * saturate(foldWeight) : 1.0;
         const float ridgeA = 1.7 * amplitude * w * chain * folded / (1.0 + RELIEF_RIDGE_EROSION * dot(ridgedSlope, ridgedSlope));
-        [branch] if (o >= EROSION_GULLY_FIRST && gullies.share > 0.0 && PLANET_RADIUS_KM / (float)f > EROSION_GULLY.z)
+        [branch] if (!EROSION_RAVINES && o >= EROSION_GULLY_FIRST && gullies.share > 0.0 && PLANET_RADIUS_KM / (float)f > EROSION_GULLY.z)
         {
             // The ground's slope under the octave: the coarse octaves' does not count where a valley replaces them.
             const float3 under = gullies.slope + lerp(roundSlope, ridgedSlope, sharp) - gullies.carved * coarseSlope;
@@ -471,7 +472,8 @@ float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float t
             }
             cliffSlope = lerp(roundBefore + roundA * mixedGradient, ridgedBefore + ridgeA * -oldDc * mixedGradient, sharp);
         }
-        [branch] if (ravines)
+        // Only the ravines this footprint draws (ravineDrawn): a finer one's height is 0, its steering never read.
+        [branch] if (ravines && ravineNext < ravineDrawn)
         {
             // This octave in each pending ravine's steering: kept from 2 of its periods, as on a mesh of a period, its
             // crests rounded at that scale. Any visible ravine's octaves span over 4 cells: whole, as the mesh changes.
@@ -480,10 +482,13 @@ float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float t
             const float2 ridgedPart = ravineA * float2(dot(ravineGr, t1), dot(ravineGr, t2));
             float t = MESH_BAND_LIMIT * RAVINE_TOP * exp2(-(float)ravineNext) / lambda;
             [unroll] for (int i = 0; i < RAVINE_OCTAVES; ++i, t *= 0.5)
-                steer[i] += saturate(2.0 - 2.0 * t)
-                          * lerp(roundPart, -clamp(ravineX / max(ravineRounding, CREASE_ROUNDING * t), -1.0, 1.0) * ridgedPart, sharp);
+            {
+                [branch] if (ravineNext + i < ravineDrawn)
+                    steer[i] += saturate(2.0 - 2.0 * t)
+                              * lerp(roundPart, -clamp(ravineX / max(ravineRounding, CREASE_ROUNDING * t), -1.0, 1.0) * ridgedPart, sharp);
+            }
             // The ravines the next octave no longer steers, on the ground of the octaves that do.
-            [loop] while (ravineNext < RAVINE_OCTAVES)
+            [loop] while (ravineNext < ravineDrawn)
             {
                 const float period = RAVINE_TOP * exp2(-(float)ravineNext);
                 if (o + 1 < octaves && MESH_BAND_LIMIT * period * RELIEF_LACUNARITY < lambda)
@@ -492,7 +497,8 @@ float ReliefDetail(RlPoint oriented, RlPoint plain, int orientedOctaves, float t
                 const float level = gullies.ground + relief * lerp(lerp(roundPrev, round, kept), lerp(ridgedPrev, ridged, kept), sharp);
                 const float steep = length(steer[0]), fp = 1000.0 * PLANET_RADIUS_KM / period;
                 const float height = RAVINE_SHAPE.x * period * RAVINE_SHAPE.y * tanh(steep / RAVINE_SHAPE.y) * gullies.ravines
-                                   * smoothstep(RAVINE_LAND.x, RAVINE_LAND.y, level) * RlWeight(fp);
+                                   * smoothstep(RAVINE_LAND.x, RAVINE_LAND.y, level) * RlWeight(fp) * smoothstep(RAVINE_SLOPE.x, RAVINE_SLOPE.y, steep)
+                                   * (period < RAVINE_CLIFF.x ? 1.0 - smoothstep(RAVINE_CLIFF.y, RAVINE_CLIFF.z, steep) : 1.0);
                 [branch] if (height > 0.0)
                 {
                     const float3 across = (steer[0].x * t2 - steer[0].y * t1) / steep;
@@ -787,7 +793,9 @@ ReliefGround ReliefSampleGround(double3 position, bool valleys, bool courses, bo
     const float mountains = smoothstep(300.0, 1200.0, relief);
     // The level 0's valleys (Erosion.hlsli), their walls steeper on the chains: on their floor the detail fades, nothing
     // finer than the level 0 bars its rivers. Step A (EROSION_RAVINES) carves none; step B (EROSION_RIVERS) has its own.
-    const bool network = valleys && !ErosionRavines();
+    // With the ravines, no mode draws it: mode 0 has no valleys at all, the others the ravines instead. A constant, so
+    // that its code leaves every kernel, not a branch never taken.
+    const bool network = !EROSION_RAVINES && valleys;
     ErosionValley valley = (ErosionValley)0;
     valley.surface = 1e9, valley.deposit = -1e9;
     valley.channelBed = valley.channelSurface = 1e9;

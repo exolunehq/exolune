@@ -89,6 +89,9 @@ void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupI
     FineSample sample;
     sample.terrain = float4(pos, elevation);
     sample.inland = float4(InlandSample(gWaterLevel, gWaterDepth, gWaterCoverage), gWaterDistance);
-    sample.flow = float4(sample.inland.x * gWaterFlow, asfloat(gErosionNear));
+    // Bit 7 of the near word: no terminal lake within the pixels' reach of the sample, a fine cell and a half; it spares
+    // them the lake's lookups (PixelShader.hlsl, lakeFree).
+    const bool lakeFree = ErosionLakeFree(dir.x * faceX.xyz + dir.y * faceY.xyz + dir.z * faceZ.xyz, 1.5 * cellSize);
+    sample.flow = float4(sample.inland.x * gWaterFlow, asfloat(gErosionNear | (lakeFree ? 0x80u : 0u)));
     outFine[id] = sample;
 }

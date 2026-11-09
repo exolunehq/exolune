@@ -497,37 +497,49 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     const float sampleCell = input.cellSize / lerp(1.0, ringParams.w, fineWeight);
     const float pixelCell = max(0.5 * footprint, CREASE_MIN_CELL);
     const float unresolved = smoothstep(1.0, 2.0, sampleCell / pixelCell);
-    const float heightBand = max(elevationSpread, max(abs(ddx(elevation)), abs(ddy(elevation)))
-                                  * sampleCell / max(footprint, 1e-3)) + 0.02 * sampleCell + 2.0;
+    // What the grid cannot place of the heights: where the fine grid carries them, its B-spline against its bilinear
+    // (FineNormal), which a smooth slope does not raise; elsewhere a sample's step. A sample's step on every slope made
+    // its whole steep flanks coasts' candidates, kilometres above the sea, the whole relief evaluated there for nothing.
+    const float slopeBand = max(abs(ddx(elevation)), abs(ddy(elevation))) * sampleCell / max(footprint, 1e-3);
+    const float heightBand = max(elevationSpread, lerp(slopeBand, 2.0 * fineUncertainty, (1.0 - screenWeight) * fineWeight))
+                           + 0.02 * sampleCell + 2.0;
     const float coastSupport = 1.0 - smoothstep(2.0 * heightBand, 3.0 * heightBand, abs(elevation));
     // A channel's band: its edge's distance on the grid, within 0.8 to 1.2 samples. Interpolated across a channel
     // narrower than the samples, that distance stays under half a sample. Partly wet samples mark a lake's shore;
     // along a river they spread its filtered wetness over the band already kept (spec-eaux-interieures.md).
     const bool lakeBands = !ErosionRivers();
-    const float bandScale = lakeBands ? 1.0 : 0.3;
+    const float bandScale = lakeBands ? 1.0 : lerp(CONTOUR_CHANNEL_BAND.x, CONTOUR_CHANNEL_BAND.z,
+                                                   smoothstep(CONTOUR_CHANNEL_BAND.y, CONTOUR_CHANNEL_BAND.w, sampleCell));
     const float riverSupport = 1.0 - smoothstep(2.0 * bandScale * sampleCell, 3.0 * bandScale * sampleCell, abs(inlandSample.w));
     float mixedShore = smoothstep(0.0, 0.02, inlandSample.x) * (1.0 - smoothstep(0.98, 1.0, inlandSample.x));
     // Keep the cancellation-free nadir offset used by TerrainAt; no planet-sized float position.
     const float3 offset = up.x * faceX.xyz + up.y * faceY.xyz - (dot(up.xy, up.xy) / max(1.0 + up.z, 1e-6)) * faceZ.xyz;
     const double3 at = nadir.xyz + (double3)offset;
-    float lakeHere = -1.0; // the terminal lake's stage, once read
-    [branch] if (!lakeBands && mixedShore > 0.0 && unresolved > 0.0 && screenRelief.z < 1.0)
-    {
+    // No terminal lake within reach of the pixel's four fine samples (FineTerrain.hlsl, bit 7 of their near words): its
+    // stage is zero, not read. Read once, for the three tests below, by any pixel that may take one: three reads in the
+    // code, though seldom run, cost 0.1 ms a frame at 2,200 m and 97 km (docs/diagnostic-orbite.md).
+    const bool lakeFree = all((fineNear & 0x80u) != 0u);
+    float lakeHere = 0.0; // the terminal lake's stage
+    [branch] if (!lakeBands && !lakeFree && unresolved > 0.0 && screenRelief.z < 1.0)
         lakeHere = ErosionLakeLevelAt((float3)at);
+    [branch] if (!lakeBands && mixedShore > 0.0 && unresolved > 0.0 && screenRelief.z < 1.0)
         mixedShore *= lakeHere > 0.0 ? 1.0 : 0.0;
-    }
     // Past the band and any lake, the grid's water is a narrow channel's filtered wetness spread by the B-spline, a halo
     // the photographs show no trace of: none, where the pixel would refine a channel.
     [branch] if (!lakeBands && inlandCoverage > 0.0 && inlandSample.w > 3.0 * bandScale * sampleCell
                  && unresolved > 0.0 && screenRelief.z < 1.0)
     {
-        if (lakeHere < 0.0) lakeHere = ErosionLakeLevelAt((float3)at);
         if (!(lakeHere > 0.0)) inlandCoverage *= 1.0 - unresolved * (1.0 - screenWeight);
     }
     // The screen relief already holds the contour at its texels: no per-pixel query under it.
     // At the limb a screen stencil may miss the sphere. Its fallback is the filtered mesh/fine-grid water,
     // not an unbounded second terrain evaluation inside the pixel shader. Both use the same wet moments.
+#ifdef PIXEL_SCREEN_RELIEF
+    // The screen relief at full weight (PixelShaderScreen.hlsl, D3DApp::Draw): never refined; known to the compiler.
+    const float refine = 0.0;
+#else
     const float refine = (1.0 - screenRelief.z) * unresolved * max(coastSupport, max(riverSupport, mixedShore));
+#endif
     const float dryBound = max(2.0 * footprint, 20.0);
     float preciseElevation = elevation, preciseClearance = -dryBound;
     float preciseLevel = waterLevel, preciseDepth = waterDepth;
@@ -549,10 +561,7 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
         const bool channels = ErosionRivers() && max(riverSupport, mixedShore) > 0.0;
         shore = !channels || coastSupport >= 1.0 ? 1.0 : 0.0;
         [branch] if (shore <= 0.0)
-        {
-            const float lake = lakeHere >= 0.0 ? lakeHere : ErosionLakeLevelAt((float3)at);
-            shore = lake > 0.0 && abs(elevation - lake) < 2.0 * heightBand ? 1.0 : 0.0;
-        }
+            shore = lakeHere > 0.0 && abs(elevation - lakeHere) < 2.0 * heightBand ? 1.0 : 0.0;
     }
     const bool wholeRelief = WaveActiveAnyTrue(shore > 0.0);
     [branch] if (evaluateContour > 0.0)
@@ -603,7 +612,7 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     const float3 waterMoments = lerp(float3(inlandCoverage, inlandCoverage * waterLevel, inlandCoverage * waterDepth),
                                      float3(preciseInland, preciseInland * preciseLevel, preciseInland * preciseDepth), refine);
     const float3 flowMoment = lerp(inlandCoverage * waterFlow, preciseInland * preciseFlow, refine);
-    inlandCoverage = waterMoments.x;
+    inlandCoverage = waterMoments.x >= INLAND_MIN_COVERAGE ? waterMoments.x : 0.0;
     // The contour query decides water, not the bandwidth of land materials or their existing fine normals.
     // Feeding its finer height to coarse snow/material decisions introduces a new high-frequency pattern in orbit.
     const float waterBedElevation = lerp(elevation, preciseElevation, refine);

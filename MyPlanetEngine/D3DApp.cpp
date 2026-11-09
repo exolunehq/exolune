@@ -928,6 +928,17 @@ bool D3DApp::InitDirect3D() {
         shadeDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
         shadeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
         Check(md3dDevice->CreateGraphicsPipelineState(&shadeDesc, IID_PPV_ARGS(&mTerrainShadePSO)), "Terrain shade PSO creation failed.");
+        ComPtr<ID3DBlob> screenPs = LoadShader(L"PixelShaderScreen.cso");
+        shadeDesc.PS = CD3DX12_SHADER_BYTECODE(screenPs.Get());
+        Check(md3dDevice->CreateGraphicsPipelineState(&shadeDesc, IID_PPV_ARGS(&mTerrainShadeScreenPSO)),
+            "Terrain screen shade PSO creation failed.");
+        ComPtr<ID3DBlob> nearPs = LoadShader(L"PixelShaderNear.cso"), screenNearPs = LoadShader(L"PixelShaderScreenNear.cso");
+        shadeDesc.PS = CD3DX12_SHADER_BYTECODE(nearPs.Get());
+        Check(md3dDevice->CreateGraphicsPipelineState(&shadeDesc, IID_PPV_ARGS(&mTerrainShadeNearPSO)),
+            "Terrain near shade PSO creation failed.");
+        shadeDesc.PS = CD3DX12_SHADER_BYTECODE(screenNearPs.Get());
+        Check(md3dDevice->CreateGraphicsPipelineState(&shadeDesc, IID_PPV_ARGS(&mTerrainShadeScreenNearPSO)),
+            "Terrain screen near shade PSO creation failed.");
     }
     psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
     Check(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mWirePSO)), "Wireframe PSO creation failed.");
@@ -1019,6 +1030,22 @@ bool D3DApp::InitDirect3D() {
     computeDesc.pRootSignature = mFineRootSignature.Get();
     computeDesc.CS = CD3DX12_SHADER_BYTECODE(fineNormalsCs.Get());
     Check(md3dDevice->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&mFineNormalsPSO)), "Fine normals PSO creation failed.");
+    {
+        // The face's cells sorted by the pixel shader they need: frame constants, the mesh and the fine grid as drawn
+        // (SRVs), the cells' indices and their draws' arguments (UAVs).
+        CD3DX12_ROOT_PARAMETER cellParams[5];
+        cellParams[0].InitAsConstantBufferView(0);
+        cellParams[1].InitAsShaderResourceView(0);
+        cellParams[2].InitAsShaderResourceView(1);
+        cellParams[3].InitAsUnorderedAccessView(0);
+        cellParams[4].InitAsUnorderedAccessView(1);
+        mContourCellsRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(5, cellParams));
+        ComPtr<ID3DBlob> cellsCs = LoadShader(L"TerrainContourCells.cso");
+        D3D12_COMPUTE_PIPELINE_STATE_DESC cellsDesc = {};
+        cellsDesc.pRootSignature = mContourCellsRootSignature.Get();
+        cellsDesc.CS = CD3DX12_SHADER_BYTECODE(cellsCs.Get());
+        Check(md3dDevice->CreateComputePipelineState(&cellsDesc, IID_PPV_ARGS(&mContourCellsPSO)), "Contour cells PSO creation failed.");
+    }
     ComPtr<ID3DBlob> screenReliefCs = LoadShader(L"ScreenRelief.cso"); // the terrain compute's signature
     computeDesc.pRootSignature = mScreenRootSignature.Get();
     computeDesc.CS = CD3DX12_SHADER_BYTECODE(screenReliefCs.Get());
@@ -1101,6 +1128,23 @@ bool D3DApp::InitDirect3D() {
         D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     mScreenPositions = CreateBuffer(md3dDevice.Get(), ScreenSampleBytes * ScreenReliefMaxTexels, D3D12_HEAP_TYPE_DEFAULT,
         D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    {
+        // The face's cells in two lists (TerrainContourCells.hlsl): room for every cell in each, and the two draws'
+        // arguments, reset every frame from their starting values: no index yet, the second list from 6 n^2.
+        const UINT faceIndices = 6 * FaceCells * FaceCells;
+        mContourCellLists = CreateBuffer(md3dDevice.Get(), UINT64(2) * faceIndices * sizeof(UINT), D3D12_HEAP_TYPE_DEFAULT,
+            D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        mContourCellView = { mContourCellLists->GetGPUVirtualAddress(), 2 * faceIndices * UINT(sizeof(UINT)), DXGI_FORMAT_R32_UINT };
+        mContourCellArgs = CreateBuffer(md3dDevice.Get(), 2 * sizeof(D3D12_DRAW_INDEXED_ARGUMENTS), D3D12_HEAP_TYPE_DEFAULT,
+            D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        mContourCellArgsStart = CreateBuffer(md3dDevice.Get(), 2 * sizeof(D3D12_DRAW_INDEXED_ARGUMENTS), D3D12_HEAP_TYPE_UPLOAD,
+            D3D12_RESOURCE_STATE_GENERIC_READ);
+        const D3D12_DRAW_INDEXED_ARGUMENTS start[2] = { { 0, 1, 0, 0, 0 }, { 0, 1, faceIndices, 0, 0 } };
+        void* bytes = nullptr;
+        mContourCellArgsStart->Map(0, &noRead, &bytes);
+        memcpy(bytes, start, sizeof(start));
+        mContourCellArgsStart->Unmap(0, nullptr);
+    }
 
     if (!mSettings.capturePath.empty() && GetEnvironmentVariableW(L"MYPLANETENGINE_SCREEN_DUMP", nullptr, 0))
         mScreenCaptureBuffer = CreateBuffer(md3dDevice.Get(), ScreenSampleBytes * ScreenReliefMaxTexels,
@@ -2330,7 +2374,7 @@ void D3DApp::Draw() {
         mCommandList->SetComputeRootUnorderedAccessView(2, mFineNormals->GetGPUVirtualAddress());
         if (!sameTerrain) mCommandList->Dispatch((FineVertexCount + 63) / 64, 1, 1);
         auto normalsToRead = CD3DX12_RESOURCE_BARRIER::Transition(mFineNormals.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         mCommandList->ResourceBarrier(1, &normalsToRead);
     }
     else mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 37);
@@ -2561,7 +2605,7 @@ void D3DApp::Draw() {
     if (shipDrawn) mShip.DrawOpaque(mCommandList.Get(), shipTables); // first: it hides much of the scene from the cockpit
 
     ID3D12DescriptorHeap* heaps[] = { mSrvHeap.Get() };
-    const auto drawTerrain = [&](ID3D12PipelineState* pso) {
+    const auto bindTerrain = [&](ID3D12PipelineState* pso) {
         mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
         mCommandList->SetPipelineState(pso);
         mCommandList->SetGraphicsRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
@@ -2579,6 +2623,9 @@ void D3DApp::Draw() {
         mCommandList->SetGraphicsRootDescriptorTable(11, GpuDescriptor(TectonicSrv));
         mCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         mCommandList->IASetIndexBuffer(&mIndexBufferView);
+    };
+    const auto drawTerrain = [&](ID3D12PipelineState* pso) {
+        bindTerrain(pso);
         mCommandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
     };
     // The terrain's depth alone (docs/optimisation.md, round 2): its colour waits for the plants, below. The wireframe, at once.
@@ -2632,7 +2679,50 @@ void D3DApp::Draw() {
         mCommandList->OMSetRenderTargets(2, sceneRtvs, FALSE, &dsvHandle);
         mCommandList->RSSetViewports(1, &viewport);
         mCommandList->RSSetScissorRects(1, &scissor);
-        drawTerrain(mTerrainShadePSO.Get());
+        // Under the screen relief at full weight, no pixel refines its contour (PixelShaderScreen.hlsl). Elsewhere the face's
+        // cells where none may refine take that shader too, the others and the rings the whole one (TerrainContourCells.hlsl).
+        // Near the ground, both with the rock's near detail (PixelShaderNear.hlsl).
+        const bool nearDetail = clearance < NearDetailClearance;
+        ID3D12PipelineState* const shadePso = nearDetail ? mTerrainShadeNearPSO.Get() : mTerrainShadePSO.Get();
+        ID3D12PipelineState* const screenPso = nearDetail ? mTerrainShadeScreenNearPSO.Get() : mTerrainShadeScreenPSO.Get();
+        if (mConstants->screenRelief.z >= 1.0f)
+            drawTerrain(screenPso);
+        else {
+            const UINT faceIndices = 6 * FaceCells * FaceCells;
+            const CD3DX12_RESOURCE_BARRIER toSort[2] = {
+                CD3DX12_RESOURCE_BARRIER::Transition(mContourCellArgs.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST),
+                CD3DX12_RESOURCE_BARRIER::Transition(mContourCellLists.Get(), D3D12_RESOURCE_STATE_COMMON,
+                    D3D12_RESOURCE_STATE_UNORDERED_ACCESS) };
+            mCommandList->ResourceBarrier(2, toSort);
+            mCommandList->CopyBufferRegion(mContourCellArgs.Get(), 0, mContourCellArgsStart.Get(), 0,
+                2 * sizeof(D3D12_DRAW_INDEXED_ARGUMENTS));
+            const auto argsToWrite = CD3DX12_RESOURCE_BARRIER::Transition(mContourCellArgs.Get(), D3D12_RESOURCE_STATE_COPY_DEST,
+                D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+            mCommandList->ResourceBarrier(1, &argsToWrite);
+            mCommandList->SetComputeRootSignature(mContourCellsRootSignature.Get());
+            mCommandList->SetPipelineState(mContourCellsPSO.Get());
+            mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
+            mCommandList->SetComputeRootShaderResourceView(1, mFaceVertexBuffer->GetGPUVirtualAddress());
+            mCommandList->SetComputeRootShaderResourceView(2, mFineNormals->GetGPUVirtualAddress());
+            mCommandList->SetComputeRootUnorderedAccessView(3, mContourCellLists->GetGPUVirtualAddress());
+            mCommandList->SetComputeRootUnorderedAccessView(4, mContourCellArgs->GetGPUVirtualAddress());
+            mCommandList->Dispatch((FaceCells * FaceCells + 63) / 64, 1, 1);
+            const CD3DX12_RESOURCE_BARRIER toDraw[2] = {
+                CD3DX12_RESOURCE_BARRIER::Transition(mContourCellArgs.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                    D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT),
+                CD3DX12_RESOURCE_BARRIER::Transition(mContourCellLists.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                    D3D12_RESOURCE_STATE_INDEX_BUFFER) };
+            mCommandList->ResourceBarrier(2, toDraw);
+            bindTerrain(shadePso);
+            if (indexCount > faceIndices) // the rings, from the mesh's own indices
+                mCommandList->DrawIndexedInstanced(indexCount - faceIndices, 1, faceIndices, 0, 0);
+            mCommandList->IASetIndexBuffer(&mContourCellView);
+            mCommandList->ExecuteIndirect(mObjectCommandSignature.Get(), 1, mContourCellArgs.Get(), 0, nullptr, 0);
+            mCommandList->SetPipelineState(screenPso);
+            mCommandList->ExecuteIndirect(mObjectCommandSignature.Get(), 1, mContourCellArgs.Get(),
+                sizeof(D3D12_DRAW_INDEXED_ARGUMENTS), nullptr, 0);
+            mCommandList->IASetIndexBuffer(&mIndexBufferView);
+        }
     }
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 21);
 

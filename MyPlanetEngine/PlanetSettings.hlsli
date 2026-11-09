@@ -200,6 +200,12 @@ static const bool  EROSION_RAVINES          = true;
 // erodibility clipped to RAVINE_ROCK, RAVINE_WET.x in a desert to y in the wet, RAVINE_PLAINS on plains to 1 in mountains.
 static const float RAVINE_TOP               = 5000.0;
 static const int   RAVINE_OCTAVES           = 11;
+// Those finer than x (m) fade on the slopes from y to z, where the rock bares: on the cliffs they drew parallel grooves of
+// 5 and 10 m; on the snow and the grass, their absence left a hole in the ladder of scales (docs/journal-planete.md).
+static const float3 RAVINE_CLIFF            = float3(15.0, 0.5, 0.8);
+// No ravine on the flat: they rise over slopes from x to y. Water spreads in sheets there; their stripes, regular on the
+// plains, left a hole in the soil's ladder of scales.
+static const float2 RAVINE_SLOPE            = float2(0.05, 0.3);
 static const float4 RAVINE_SHAPE            = float4(0.15, 0.8, 0.8, 0.2);
 static const float2 RAVINE_STEER            = float2(0.5, 1.0);
 static const float2 RAVINE_ROUNDING         = float2(2.0, 0.1);
@@ -239,6 +245,13 @@ static const float2 RIVER_CONFINEMENT       = float2(0.25, 3.0);
 // finest, y channel widths; amplitude per wavelength z on the two finest, w on the coarser. Octaves under RIVER_SPLIT
 // finest wavelengths bend the channel within its floodplain, the coarser ones the valley, bounded by RIVER_OFFSET_MAX m.
 static const float4 RIVER_MEANDER           = float4(40000.0, 12.0, 0.1, 0.05);
+// The pixel contour's channel band, in samples of the grid (PixelShader.hlsl, bandScale): x where its samples are under
+// y metres, z from w metres up, where the grid's distance is the samples' own and the channels far narrower than them.
+static const float4 CONTOUR_CHANNEL_BAND    = float4(0.3, 100.0, 0.15, 200.0);
+// Inland water covering less of the pixel than this is dry (PixelShader.hlsl): rivers filtered at wide footprints spread
+// their wetness thin over whole valleys, each pixel shading the water for a share under 1/64: 6/255 at most, along the
+// valleys' floors, from 250 to 1,231 km (docs/diagnostic-orbite.md, 2026-11-09).
+static const float INLAND_MIN_COVERAGE      = 1.0 / 64.0;
 // Wavelengths from x to 2x transfer fully to the bounded valley offset, even on the largest rivers.
 static const float RIVER_CHANNEL_WAVE       = 10000.0;
 static const float RIVER_SPLIT              = 6.0;
@@ -373,6 +386,14 @@ static const float4 GRASS_BANDS = float4(-2.0, 7.0, 0.06, 0.2);
 // over thirteen octaves, 0.12 per axis and octave, the noise's gradient 0.5 per axis. Far away, the rule takes those octaves
 // as there (RockShares); at 0.05 near the camera, they were not, and every face was its photo's even carpet.
 static const float4 ROCK_BANDS = float4(3.0, 6.0, 0.24, 0.06);
+// The rock's face photo near the ground (Materials.hlsli, PIXEL_NEAR_DETAIL). Its joints run straight across its 12.7 m:
+// at a few centimetres a pixel, a straight joint matched itself along its length, repetition p95 0.22 to 0.27 against the
+// photos' 0.18 (docs/diagnostic-orbite.md, 2026-11-09). Read aside by a noise of FACE_WARP.x (m), y m per unit of its
+// gradient, about 2 cm at one deviation, while the noise spans 16 pixels, gone at 8: its joints wander as real ones do.
+// Then bands of 25 and 50 cm, colour only, 4 % at one deviation each, as weathering shades a wall: the rock had no detail
+// under 8 m. Wider, the warp swirled the photo up close; at 8 cm, a 50 m view's rock repeated more.
+static const float2 FACE_WARP = float2(0.5, 0.04);
+static const float4 FACE_BANDS = float4(-2.0, -1.0, 0.0, 0.2);
 // Scree, 4 to 64 m: its tile stops at 4 m.
 static const float4 SCREE_BANDS = float4(2.0, 6.0, 0.05, 0.06);
 // Bare soil, 50 cm to 64 m, over the sandy gravel's photo: where it is too dry for grass and too damp or cold for sand,

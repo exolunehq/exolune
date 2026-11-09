@@ -2,13 +2,45 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-09 · The cliff photo near the ground**
+- **Report:** the 30 places against `main`, rock 12 m at place 4, gap p95 +17 % and repeat +27 %. Its worst crops lie on a cliff the erosion bared, under the face photo, whose straight joints repeat along their length (`diagnostic-orbite.md`).
+- **Settings:** `FACE_WARP` (0.5 m, 0.04): the face photo read aside by about 2 cm, faded in between 6 and 3 cm a pixel; `FACE_BANDS`: shades of 25 and 50 cm, 4 % at one deviation each (`PlanetSettings.hlsli`, `Materials.hlsli`). Only under `NearDetailClearance`, 1,000 m above the ground (`D3DApp.h`).
+- **Gain, 30 places against `main`:** rock 12 m gap +8 %, repeat −4 %; every p95 within 10 %. Over 24 views around place 4, gap p95 2.55 and repeat 0.193 against `main`'s 2.59 and 0.210. Frame time unchanged at the eight views: the far shaders are the same bytes as before.
+- **Review:** `tools/tests/2026-11-09.txt`, the cliff at 5 and 2 m.
+- **To go back:** `FACE_WARP.y` 0 and `FACE_BANDS.w` 0.
+- **Milestone:** no commit, tag or push requested.
+
+**2026-11-09 · Faint river water dry; lakes read once**
+- **Report:** in the final bench against `main`, the erosion's own cost (on minus off) over its 15 % share at 250 km (2.36 ms against 2.25) and 1,231 km (1.86 against 1.81); 2,200 m at the limit.
+- **Setting:** `INLAND_MIN_COVERAGE` 1/64 (`PlanetSettings.hlsli`, `PixelShader.hlsl`): inland water covering less of the pixel is dry. Rivers filtered at wide footprints spread their wetness thin over whole valleys, and every pixel shaded the water for it.
+- **Gain:** 0.15 ms at 250 km and 1,231 km; at most 6/255 along the valleys' floors there, within 2/255 at 97 km and 2,200 m.
+- **Quality, 30 places against `main`:** every p95 as before the setting (`qualite-final`); all within 10 % but rock 12 m, below.
+- **Exact, no setting:** the pixels read the terminal lake's level once (`PixelShader.hlsl`), 0.1 ms at 97 km and 2,200 m (`spec-eaux-interieures.md`).
+- **Rock 12 m, place 4:** measured over 24 views around the place, the build equals `main` (gap p95 2.59 both, repeat 0.220 against 0.210); the bench's one view ranges from 1.5 to 4.2 dB of gap by heading alone (`principes.md`). No setting changed.
+- **To go back:** `INLAND_MIN_COVERAGE` 0.
+- **Milestone:** no commit, tag or push requested.
+
+**2026-11-09 · Ravines by slope; the contour's channel band at altitude**
+- **Report:** the quality bench against `main`, 13 places: grass 200 m gap +19 %, snow 50 m gap +15 %, soil 50 m gap +35 %, rock 12 m repeat +13 %.
+- **Settings:** `RAVINE_OCTAVES` back to 11 (4.9 m); `RAVINE_SLOPE` (0.05, 0.3): no ravine on the flat; `RAVINE_CLIFF` (15 m, 0.5, 0.8): the finer ones fade on the cliffs (`PlanetSettings.hlsli`, `Relief.hlsli`, `tools/hydro/cp.py`). `CONTOUR_CHANNEL_BAND.z` from 0.2 to 0.15.
+- **Gain, 30 places against `main`:** grass, snow and soil within 10 % at every height (soil 50 m +7 %, snow 200 m +9 %); places 26, 28 and 29 give exactly `main`'s soil. Left: rock 12 m, place 4 alone, gap +17 % and repeat +27 %. 97 km 0.2 ms faster with the band.
+- **To go back:** `RAVINE_OCTAVES` 9 without `RAVINE_SLOPE` and `RAVINE_CLIFF`; `CONTOUR_CHANNEL_BAND.z` 0.2.
+- **Milestone:** no commit, tag or push requested.
+
+**2026-11-08 · Ravines down to 19.5 m**
+- **Report:** place 4 of the quality bench, at 12 m: a gully's walls striped by the ravines' cascade, parallel grooves of 5 and 10 m.
+- **Setting:** `RAVINE_OCTAVES` from 11 to 9, the finest period 19.5 m instead of 4.9 m (`PlanetSettings.hlsli`, `tools/hydro/cp.py`). The rock's photos carry the detail below.
+- **Gain, place 4's rock:** at 12 m, the gap's p95 from 2.81 to 2.18 (`main` 2.07) and the repetition's from 0.22 to 0.205 (`main` 0.18); at 50 m, the repetition's from 0.184 to 0.140 (`main` 0.16). Frame time unchanged at 97 km, 2,200 m, 250 km and 1,231 km.
+- **To go back:** `RAVINE_OCTAVES` 11.
+- **Milestone:** no commit, tag or push requested.
+
 **2026-11-07 · Erosion against main's frame rate**
 - **Goal set by the user:** the erosion costs `main` at most 15 % of its frame rate.
 - **Settings:** `ScreenReliefHigh` from 400 to 200 km; the contour's river band from 2–3 samples to 0.6–0.9, no grid water past it outside lakes; partly wet samples for lake shores only; the inland reflection's sky in 3 steps instead of 6.
 - **Banks, after the Isere's photographs:** `RIVER_WIDTH_NOISE.x` from 3,000 to 1,500 m; `RIVER_BANK_EDGE` from (12 m, 0.16) to (25 m, 0.25); gentle reaches keep 60 % of their bank displacement instead of 30 % (`Erosion.hlsli`, `tools/hydro/cp.py`). To go back: those values.
 - **Evaluation:** courses built at startup (14 MB), shared node listings, direct screen relief, mesh rivers from the map at mid orbit.
 - **Exact:** screen rivers per texel, each texel's finish in their kernel; fine grid and mesh by tiles; the contour lists wet nodes; the fine grid's culling margin at 6 fine cells; the plants' missing exact grounds in their own pass, within 1/255.
-- **Result:** against `main` itself, every view within 15 %, 14 % at worst. Against erosion off in one executable, seven views of eight; 97 km at 15.6 %, from 26 to 73 % this morning. `diagnostic-orbite.md`.
+- **Result, corrected on 2026-11-08:** against `main` measured in the same window, 97 km and 2,200 m lose 21 %, 250 km and 1,231 km 11 to 13 %. The "14 % at worst" compared with a `main` measured in a busier window. `diagnostic-orbite.md`.
 - **Review:** pending, `tools/tests/2026-11-07.txt`; the crossfade, the bands and the banks change images slightly.
 - **Milestone:** no commit, tag or push requested.
 
