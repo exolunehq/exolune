@@ -8,7 +8,7 @@ History of field adjustments: what changed, why, what it cost or brought, and ho
 - **Gain, 30 places against `main`:** rock 12 m gap +8 %, repeat −4 %; every p95 within 10 %. Over 24 views around place 4, gap p95 2.55 and repeat 0.193 against `main`'s 2.59 and 0.210. Frame time unchanged at the eight views: the far shaders are the same bytes as before.
 - **Review:** `tools/tests/2026-11-09.txt`, the cliff at 5 and 2 m.
 - **To go back:** `FACE_WARP.y` 0 and `FACE_BANDS.w` 0.
-- **Milestone:** no commit, tag or push requested.
+- **Milestone:** `jalon/2026-11-09-erosion-main`, the erosion merged into `main`.
 
 **2026-11-09 · Faint river water dry; lakes read once**
 - **Report:** in the final bench against `main`, the erosion's own cost (on minus off) over its 15 % share at 250 km (2.36 ms against 2.25) and 1,231 km (1.86 against 1.81); 2,200 m at the limit.
