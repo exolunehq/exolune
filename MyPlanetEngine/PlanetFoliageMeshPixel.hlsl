@@ -1,5 +1,6 @@
 #include "PlanetFoliageCommon.hlsli"
 #include "BarkDetail.hlsli"
+#include "Moss.hlsli"
 Texture2DArray<float4> meshColour : register(t34);
 Texture2DArray<float4> meshNormal : register(t35);
 Texture2DArray<float4> meshMask : register(t36);
@@ -60,7 +61,7 @@ Result PSMain(VOut i) {
     ClipFoliageCoverage(i.position.xy,saturate((colour.a-0.5)/alphaWidth+0.5),o);
     if (GameVegetation() && species<SHRUB && i.rootBlend>0.0)
         colour.rgb=lerp(colour.rgb,PlantGroundColour(o),0.72*saturate(i.rootBlend));
-    if (GameVegetation() && FoliageModel(o)>=23u) {
+    if (GameVegetation() && GroundPlant(o)) {
         const float green=smoothstep(0.0,0.06,colour.g-max(colour.r,colour.b));
         const float luminance=dot(colour.rgb,float3(0.2126,0.7152,0.0722));
         colour.rgb=lerp(colour.rgb,luminance*float3(1.30,0.99,0.52),green*saturate(o.albedo.z));
@@ -73,6 +74,16 @@ Result PSMain(VOut i) {
         normal=BarkSurfaceNormal(normal,dpdx,dpdy,barkDerivative);
         colour.rgb*=1.0+bark.y;
         mask.y=max(mask.y,0.78);
+        if (GameVegetation() && species<SHRUB) {
+            const float base=1.0-smoothstep(0.08,0.85,max(0.0,i.barkPosition.y));
+            const float habitat=PlantMoss(o)*MossShelter(o.axisY.z)*base*PlanetFoliageStoredWindShare(o);
+            const MossMaterial moss=LocalMoss(i.barkPosition,footprint,habitat,0.24*i.rootBlend);
+            const float3 up=PlantUp(o), side=o.axisX, across=cross(side,up);
+            const float3 slope=moss.slope.x*side+moss.slope.y*up+moss.slope.z*across;
+            normal=normalize(normal-moss.weight*(slope-normal*dot(slope,normal)));
+            colour.rgb=lerp(colour.rgb,moss.albedo,moss.weight);
+            mask.y=lerp(mask.y,0.96,moss.weight);
+        }
     }
     return OutputVolume(colour.rgb,normal,i.pos,o,i.localHeight,true,mask.x,mask.y,mask.z,i.visibility0,i.visibility1);
 }

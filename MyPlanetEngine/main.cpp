@@ -47,7 +47,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR cmdLine, int)
                 fprintf(log,"%s\n",e.what());fclose(log);
             }
         }
-        if (GetEnvironmentVariableW(L"MYPLANETENGINE_CAPTURE", nullptr, 0) ||
+        if (GetEnvironmentVariableW(L"MYPLANETENGINE_CITY_PROBE", nullptr, 0) ||
+            GetEnvironmentVariableW(L"MYPLANETENGINE_CAPTURE", nullptr, 0) ||
             GetEnvironmentVariableW(L"MYPLANETENGINE_TREMBLE", nullptr, 0))
             fprintf(stderr, "MyPlanetEngine: %s\n", e.what());
         else

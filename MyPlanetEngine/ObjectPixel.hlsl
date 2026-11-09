@@ -13,6 +13,7 @@
 #include "TerrainShipShadow.hlsli"
 StructuredBuffer<FaceVertex> objectGround : register(t4);
 #endif
+#include "Moss.hlsli"
 
 float4 PSMain(ObjectPixel input, out float4 sunOut : SV_TARGET1) : SV_TARGET0
 {
@@ -45,6 +46,13 @@ float4 PSMain(ObjectPixel input, out float4 sunOut : SV_TARGET1) : SV_TARGET0
         bump += weights[k] * (slope.x * b + slope.y * c);
     }
     const float3 axisZ = cross(input.axisX, input.axisY);
+    const float3 up = normalize(input.up), sun = lightDir.xyz;
+    const float footprint=max(length(ddx(input.local)),length(ddy(input.local)));
+    const float ledge=smoothstep(-0.15,0.75,dot(normalize(input.normal),up));
+    const float footMoss=1.0-smoothstep(0.05,0.44,input.rise);
+    const float habitat=input.moss*MossShelter(input.canopy)*max(ledge,0.57*footMoss);
+    const MossMaterial moss=LocalMoss(input.local,footprint,habitat,0.15*footMoss);
+    bump=lerp(bump,moss.slope,moss.weight);
     const float3 bumpFace = bump.x * input.axisX + bump.y * input.axisY + bump.z * axisZ;
     // Its facets: the triangles' own normal, half of it, so that the planes' cuts read as faces and edges.
     float3 facet = normalize(cross(ddy(input.pos), ddx(input.pos)));
@@ -52,7 +60,7 @@ float4 PSMain(ObjectPixel input, out float4 sunOut : SV_TARGET1) : SV_TARGET0
         facet = -facet;
     float3 normal = normalize(normalize(input.normal) + facet);
     normal = normalize(normal - (bumpFace - dot(bumpFace, normal) * normal));
-    const float3 albedo = saturate(input.albedo * colour);
+    const float3 albedo = saturate(lerp(input.albedo*colour,moss.albedo,moss.weight));
 
 #ifdef AIRLESS_SURFACE
     const float3 radial=normalize(input.up);
@@ -66,7 +74,6 @@ float4 PSMain(ObjectPixel input, out float4 sunOut : SV_TARGET1) : SV_TARGET0
     // Lit like the ground (PixelShader.hlsl): the sun through the air above, the whole sky's light, less where the
     // stone meets the ground, which hides the sky from its foot; and the light the ground sends back on its sides and
     // underside, GROUND_ALBEDO of what reaches the ground. Without it, the faces in the shade were black.
-    const float3 up = normalize(input.up), sun = lightDir.xyz;
     const float h = max(input.elevation, 0.0) / 1000.0, muS = dot(up, sun), haze = RegionalGround(PlanetDirection(up));
     const float foot = lerp(0.5, 1.0, smoothstep(0.0, 0.3, input.rise));
     const CanopyTransport transport=CanopyLight(input.canopy,0,muS);

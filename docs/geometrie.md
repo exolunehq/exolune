@@ -2,6 +2,8 @@
 
 Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it.
 
+**City/main integration, 2026-11-09:** manufactured overlays and body-scoped contact only. Retain the current terrestrial erosion and lunar physical fields. Export city support after erosion initialization; keep terrestrial occupation, walking surfaces and moss out of airless body contact. An older placement bank retains its original terrain hash; merging code does not recook its geometry.
+
 **Distant terrain depth, 2026-11-08:** a representation correction, not a new terrain field. The filtered terrain map supplies the proxy's physical surface distance and ocean remains at sea level. The 8,192 m transition envelope remains a raster-coverage bound only; it no longer supplies cloud clipping depth or overwrites detailed depth. Colour blending does not interpolate signed distances; `spec-rendu-orbite.md`.
 
 **Three airless manifests, 2026-11-08:** the two remaining moons receive the shared physical impact field with different seeds and their existing radii. The largest impact band is capped at 60% of body radius; this leaves the first moon's field unchanged. Meshes, fine grids, screen relief, contact and anchored stones use the same renderer and selected field. No additional detailed terrain buffers or terrestrial erosion changes; `spec-lune-terrain.md`.
@@ -37,6 +39,13 @@ Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it
 **Water contour rungs, 2026-11-06:** away from a shore's level, the contour evaluates the channels alone on the grid's ground. Evaluation only: the same wet fraction, stage, cut and current; no geometry, setting or sampling change.
 
 **River evaluation, 2026-11-04:** skip zero-weight noise and unused wet-bank preparation; tighten interior chart searches while retaining the physical footprint and face-edge halo. The screen passes preserve both ray queries and composition order, share course evaluation across a GPU wave, and reuse only identical screen inputs. Evaluation only, no new geometry, setting or sampling resolution. The composed terrain, water, banks and current match the previous evaluation at tested footprints; `tools/hydro/verifie_evaluation_rivieres.py` and `spec-erosion.md`.
+**Generated settlement, 2026-11-07.** Buildings, furniture, permeable paths and foundation skirts are manufactured placed overlays. The planner samples existing relief; it does not flatten, resculpt or replace terrain. Five source-derived mesh levels represent architecture. The occupancy mask removes natural instances from manufactured footprints and narrow access corridors. Exterior collision uses conservative building hulls; walking surfaces use the cooked ground triangles. Architecture materials and sunlight shadows change lighting only. See `spec-ville-procedurale.md`.
+
+**Architectural detail, 2026-11-07.** Authored vestibules, opening mechanisms, furniture fittings, captive wheels and transport bearings add manufactured asset detail. Seeded floor spacing, setbacks and twists vary the building masters. Entrance coordinates steer the existing access paths. Virtual room depth and material fibres are shading only; they add no traversable interior, terrain displacement or collision geometry.
+
+**Shrub witnesses, 2026-11-04.** Seeded stems, solid collars and curved leaf cutouts are placed detail in the existing shrub layer. The common terrain contact and climate distribution still determine placement. Seven mesh levels and a multiview impostor represent each reviewed shrub. See `spec-pipeline-creation3d.md`.
+
+**Forest-floor study, 2026-11-04.** Flower colonies and woodland boulders add placed detail. The ground, rock and root moss layers change material response and fine normals. Terrain height and rock geometry remain sourced by their existing systems. See `spec-diversite-vegetale.md`.
 
 
 **Local vegetation production, 2026-11-03:** generated wood, roots and individual leaves are added detail from placed plants. Continuous underside support and canonical XYZ root scaling affect plant geometry and attachments only; terrain remains the source of truth. The same deformed master feeds LODs and impostors, with protected near bases and bounded coarse error. Sampled runtime contact follows the existing ground without a horizontal squeeze. Structural variations change branch lift, crown spread, shear, twist and lean above the fixed lower fifth; `spec-pipeline-creation3d.md`.
@@ -100,6 +109,7 @@ Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it
 | Bounded valley/detail composition | Replacement within erosion | existing valley and detail scales | cut envelope bounds new excavation; compact water cut remains at most 20 m | existing drainage profiles, including their terminal segments | terrain call with `valleys = false`; water alone: `EROSION_WATER = 0` | 2026-11-01 first correction; no new settings; coarse routing and volcanic integration remain open; `spec-eaux-interieures.md` |
 | Inland channels and lake surfaces | Replacement within erosion | discharge-sized channels; terminal catchments | quartic channel depth capped at 20 m; lake fill to the existing water-balance stage | existing erosion network | `EROSION_WATER = 0` | 2026-11-01 first implementation; `spec-eaux-interieures.md`; flight review pending |
 | Global erosion and directional gullies | Replacement | network valleys; detail wavelengths from 11 km to 100 m | drained valley profiles; gully replacement constrained by the shared turning envelope | incised terrain, glacier-shaped troughs, river slopes and coasts | terrain call with `valleys = false`; gullies alone: `EROSION_GULLY_SHARE = 0` | Erosion branch, `spec-erosion.md`; 2026-11-01 blade correction awaiting flight review; conservative budget strongly attenuates rock gullies |
+| Woodland boulders and flowering colonies | Added detail, placed objects | boulders 0.32–1.95 m wide; flower colonies use herb height | existing ground contact and burial | moist sheltered woodland soils and eligible flower patches | disable ordinary objects or vegetation | Review branch, 2026-11-04. See `spec-diversite-vegetale.md` |
 | Rooted vegetation and structural variations | Added detail, placed plant meshes | root reach 0.14–2.4 m; existing stem and crown scales | plant vertices only; root underside support, four-contact quadratic and offline crown deformations above 20% height | climate-compatible rooted ground | choose the original catalogue, or disable plants | 2026-11-02 prototype; default 31 roles, external 91-role review; native art and performance pending; `spec-pipeline-creation3d.md` |
 | Octaves filtered by grid cell | Filtering | under 2 grid cells, `MESH_BAND_LIMIT`  | octave replaced by its average | everywhere | none, it's sampling | in place |
 | Connected coastal talus | Replacement within coastal erosion | nominal 35-degree apron at the physical cliff contact; 900 m patch field | existing cap of 22% of cliff height, never above the original terrain | wave-eroded rocky coasts | `EROSION_CLIFF_SCREE.y = 0` for talus alone | 2026-11-01 correction of the symmetric mound's artificial moat; `spec-erosion.md`; flight review pending |
@@ -161,3 +171,28 @@ Opened the 2026-10-23, to resume after rendering. **The proximity geometry is wa
 - **Selection:** the accepted fighter is the default; `-ModeleVaisseau classique` restores the original triangular asset and its geometry profile.
 - **Milestone:** `jalon/2026-11-01-chasseur-par-defaut`; approved asset source: `b43d8ee`.
 - **Specification:** [ship assembly](spec-vaisseau.md).
+
+**Braided-city extension**
+
+- The 2026-11-08 series integration derives eight runtime assets from exact neutral masters. Bounded structural simplification changes manufactured object geometry only; source-normal transfer and shared PBR materials change shading. Source footprints and fitted entrances drive the existing support/access planner. Planetary relief remains unchanged.
+- The 2026-11-08 neutral series adds external manufactured sources only: bounded house deformations, a connected civic shell and a glazed greenhouse frame. It changes no terrain, placement, collision, native bank, texture or cooked LOD. Approach steps derive from each source terrace; front/rear/entry review remains on CPU.
+- The original-reference house master is an external manufactured-geometry study. Independent front/rear controls, curved spans, transverse apertures and fitted glazing change only that source. Neutral CPU rendering introduces no terrain, collision, runtime bank, texture or LOD change.
+- The 2026-11-08 shell-house pair rebuilds manufactured envelopes, glazing, foundations and thresholds from controlled metric profiles. It changes neither the planet's relief nor terrain sampling.
+- One structural domain preserves the wing, entrance and support junctions. Roof laminates clip its actual support triangles; all of this remains manufactured object geometry.
+- Roof/support contact checks constrain the manufactured LODs. Bounded outward laminate compensation changes object geometry only; it never displaces planetary terrain.
+- Structural variants share the construction method but repeat source, access and LOD checks independently. Shared surface maps and the room-V correction change shading only.
+- Connected portal profiles, hollow planters, seating cradles and conformal suspension saddles are manufactured object geometry.
+- Their topology gate checks one connected closed surface per tagged part after recovering import seams.
+- Shared panel normal/roughness sheets and virtual window interiors change shading only.
+- None of these changes modifies the planet's relief.
+- The 2026-11-08 multiview/parts/topology study changes only external manufactured-asset candidates. No candidate is promoted and no terrain geometry changes.
+
+- **Manufactured overlay:** 23 planned sectors, structural building variants and three stations use the existing terrain export.
+- **Paths:** a planar polygon union determines junctions; aggregate, common paving and low stone borders form non-overlapping partitions.
+- **Support:** 2 m terrain samples set footing heights and buried skirts; no terrain flattening is introduced.
+- **Transport:** continuous guidebeams, carrying rings, stations and static cabins share a local elevation datum. They are manufactured geometry, not relief.
+- **Runtime representation:** 64 m ground chunks change culling only. Walking contact uses the full cooked surface.
+- **Exclusion:** a 256 × 256 mask removes natural scatter from occupied ground; it is not a terrain or collision field.
+
+- **Source integrity:** wing floor offsets, volumetric ramps and seam-aware reduction change manufactured architecture only. A closed structural part retains its boundary condition across LODs.
+- **Foundations:** rendered support follows the projected source hull and access threshold; the conservative collision rectangle remains separate.

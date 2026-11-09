@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "lod0_target": 54000,
+  "models": {
+    "shell_house": "house_source",
+    "patio_house": "house_low",
+    "shell_duplex": "house_long",
+    "shell_tall": "house_tall",
+    "civic_petals": "civic_forum",
+    "civic_workshop": "civic_garden",
+    "nested_greenhouse": "greenhouse_wide",
+    "greenhouse_long": "greenhouse_long"
+  }
+}

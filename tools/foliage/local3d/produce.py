@@ -150,11 +150,14 @@ def execute(args,recipe,out):
         if adopted:
             candidate=Path(adopted);info=json.loads((candidate/'native-report.json').read_text())
             if info['source_sha256']!=digest or info['cooker_sha256']!=cook_inputs['scripts']:raise ValueError('Adopted cook does not match the source and current cooker')
-            if info['tile']!=cook.get('tile',2048) or info['name']!=recipe['name']:raise ValueError('Adopted cook settings mismatch')
+            if (info['tile']!=cook.get('tile',2048) or info['name']!=recipe['name']
+                    or info.get('shrub_family')!=cook.get('shrub_family')):raise ValueError('Adopted cook settings mismatch')
         else:
             work=out/'cook-attempts';work.mkdir(exist_ok=True);candidate=work/f'{key(cook_inputs)}-{time.time_ns()}'
-            run([sys.executable,HERE/'native.py','--source',source,'--out',candidate,'--tile',str(cook.get('tile',2048)),
-                 '--lods','--name',recipe['name'],'--blender',args.blender],out/'cook.log')
+            command=[sys.executable,HERE/'native.py','--source',source,'--out',candidate,'--tile',str(cook.get('tile',2048)),
+                     '--lods','--name',recipe['name'],'--blender',args.blender]
+            if cook.get('shrub_family') is not None:command+=['--shrub-family',str(cook['shrub_family'])]
+            run(command,out/'cook.log')
         assets(candidate)
         store_catalogue(candidate,cooked,out.parent/'_local3d-store')
         save(cooked/'inputs.json',cook_inputs)
@@ -228,7 +231,7 @@ def execute(args,recipe,out):
     status='failed acceptance' if 'fail' in statuses else 'pending acceptance' if 'pending' in statuses else 'production ready'
     report={'status':status,'production_ready':status=='production ready','recipe':str(args.recipe.resolve()),'source':str(source),
             'catalogue':str(cooked),'validation':str(validation),'levels':structural['levels'],'gates':gates,'lod_coverage':coverage_report,
-            'scope':'Rendering pipeline; this witness catalogue replaces five broadleaf roles for comparison only',
+            'scope':json.loads((cooked/'native-report.json').read_text())['scope'],
             'next':'Review native art, resolve failed gates and finish pending checks'}
     if recipe.get('preflight_quality'):
         prior_path=Path(recipe['preflight_quality']);prior=json.loads(prior_path.read_text())
@@ -258,7 +261,7 @@ def execute(args,recipe,out):
         f"- [Material diagnostic]({(review/'automatic/near_plantalbedo.png').as_posix()}).",
         f"- [LOD diagnostic]({(review/'automatic/near_plantlod.png').as_posix()})."]
     if coverage_report:lines.append(f"- [CPU coverage sheet]({(coverage/'coverage.png').as_posix()}); unlit diagnostic, separate from native art acceptance.")
-    lines+=['','Five broadleaf roles share one witness for this comparison. Distinct future variants require a combined-catalogue memory and quality check.',
+    lines+=['',report['scope']+'. Distinct variants require a combined-catalogue memory and quality check.',
             '',f'Catalogue: `{cooked}`.', '',f'Evidence: `{validation}`.']
     (out/'production-report.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
     print(json.dumps(report,indent=2),flush=True)

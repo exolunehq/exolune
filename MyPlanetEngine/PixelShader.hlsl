@@ -9,6 +9,7 @@
 #include "Objects.hlsli"
 #include "Vegetation.hlsli"
 #include "Sea.hlsli"
+#include "Moss.hlsli"
 #define RELIEF_PIXEL
 #include "Relief.hlsli"
 
@@ -142,9 +143,15 @@ Ground GroundAt(float3 q, float elevation, float3 up, float3 normal, float3 shor
     g.canopy = canopySeen;
     g.nearer = hitHeight / rayAngle;
     g.canopyAlbedo = saturate(CanopyColor(m, species, v.aridity) * crowns.color);
+    const float mossSite=MossClimate(v.aridity,v.season)*MossShelter(g.under)*
+                         (1.0-max(m.snow,max(m.beach,m.rock)))*saturate(dot(up,normal))*v.able;
+    const MossMaterial moss=GroundMoss(q,pixel,mossSite);
+    color=lerp(color,moss.albedo,moss.weight);
     g.albedo = saturate(color);
     g.detailScale = lerp(lerp(1.0, 2.0, m.rock), 0.5, max(m.snow, m.beach));
-    g.slope = lerp(m.textureSlope * (1.0 - m.snow) + m.snow * m.snowSlope, TangentSlope(crowns.slope, normal), canopySeen);
+    const float3 soilSlope=lerp(m.textureSlope*(1.0-m.snow)+m.snow*m.snowSlope,
+                                TangentSlope(moss.slope,normal),moss.weight);
+    g.slope = lerp(soilSlope, TangentSlope(crowns.slope, normal), canopySeen);
     const float cavity = lerp(lerp(lerp(1.0, m.sand.cavity, m.sandAmount) * lerp(1.0, m.soil.cavity, m.soilAmount), lerp(1.0, m.scree.cavity, TEXTURE_DETAIL), m.screeWeight),
                               lerp(1.0, m.stone.cavity, TEXTURE_DETAIL), m.rock);
     g.cavity = lerp(1.0, cavity, 1.0 - m.snow);
@@ -165,6 +172,22 @@ Ground GroundAt(float3 q, float elevation, float3 up, float3 normal, float3 shor
 }
 
 #include "TerrainShipShadow.hlsli"
+Texture2D<float> citySunMap : register(t53);
+float CityShadowOn(float3 p){
+    if(cityLandGrid.w<.5)return 1;
+    float4 c=mul(float4(p,1),citySunShadow);float3 q=c.xyz/c.w;
+    float2 uv=q.xy*float2(.5,-.5)+.5;
+    if(any(uv<0)||any(uv>1)||q.z<0||q.z>1)return 1;
+    float lit=0;
+    [unroll]for(int y=-1;y<=1;++y)[unroll]for(int x=-1;x<=1;++x){
+        int2 t=int2(uv*4096)+int2(x,y);
+        float d=all(t>=0)&&all(t<4096)?citySunMap.Load(int3(t,0)):1;
+        lit+=smoothstep(q.z-.00012,q.z-.00002,d);
+    }
+    float edge=min(min(uv.x,uv.y),min(1-uv.x,1-uv.y));
+    return lerp(1,lit/9,smoothstep(0,.045,edge));
+}
+
 
 // sunOut: the light the sun alone gives, for the clouds' shade in the atmosphere pass (Clouds.hlsli, CloudShadeAt).
 float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
@@ -226,7 +249,7 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     const float sunShare = SunAboveHorizon(dot(up, lightDir.xyz), input.horizon, horizonSpread)
                          * FinerReliefLit(dot(normalize(lerp(normalize(input.normal), screenNormal, screenWeight)), lightDir.xyz),
                                           lerp(input.slopeSpread, slopeSpread, screenWeight))
-                         * ShipShadowOn(input.pos);
+                         * ShipShadowOn(input.pos) * CityShadowOn(input.pos);
     float elevation = lerp(lerp(lerp(input.elevation, splineElevation, splineWeight), fineElevation, fineWeight), screenElevation,
                            screenWeight);
     const float4 inlandSample = lerp(lerp(input.inland, fineInland, fineWeight), screenInland, screenWeight);

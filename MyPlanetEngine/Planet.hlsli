@@ -43,6 +43,9 @@ cbuffer Frame : register(b0)
     float4   celestialSurface[7]; // linear diffuse reflectance; body kind in w
     float4   celestialLight[7]; // direction to the finite sun; solar irradiance / pi in w
     float4   celestialFlux[7]; // received irradiance at the camera, including phase and planet eclipse
+    float4x4 cityFromFace,citySunShadow;
+    float4 cityLandGrid; // xy origin, z cell size, w enabled
+    uint4 cityLandBits[512]; // 256 x 256 occupied cells, natural-object exclusion only
 };
 
 struct FaceVertex

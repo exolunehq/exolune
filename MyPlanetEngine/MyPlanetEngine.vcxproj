@@ -88,6 +88,7 @@
     <ClCompile Include="D3DAppContact.cpp" />
     <ClCompile Include="D3DAppShip.cpp" />
     <ClCompile Include="D3DAppWalk.cpp" />
+    <ClCompile Include="D3DAppCity.cpp" />
     <ClCompile Include="D3DAppTests.cpp" />
     <ClCompile Include="Glare.cpp" />
     <ClCompile Include="Scans.cpp" />
@@ -97,6 +98,7 @@
     <ClCompile Include="PlanetPlantPlacement.cpp" />
     <ClCompile Include="Ocean.cpp" />
     <ClCompile Include="Ship.cpp" />
+    <ClCompile Include="City.cpp" />
     <ClCompile Include="main.cpp" />
     <!-- Optimised even in Debug: the planet map's flood goes through 6.3 million cells at every startup. -->
     <ClCompile Include="PlanetMap.cpp">
@@ -153,6 +155,7 @@
     <ClInclude Include="Erosion.h" />
     <ClInclude Include="Ocean.h" />
     <ClInclude Include="Ship.h" />
+    <ClInclude Include="City.h" />
     <ClInclude Include="ShipProfiles.h" />
   </ItemGroup>
   <ItemGroup>
@@ -162,6 +165,7 @@
     <None Include="Planet.hlsli" />
     <None Include="FoliageCatalog.hlsli" />
     <None Include="PlantCommunity.hlsli" />
+    <None Include="Moss.hlsli" />
     <None Include="FoliageWind.hlsli" />
     <None Include="CanopyLighting.hlsli" />
     <None Include="RootContact.hlsli" />
@@ -180,6 +184,9 @@
     <None Include="Clouds.hlsli" />
     <None Include="CloudsTemporal.hlsli" />
     <None Include="Ship.hlsli" />
+    <None Include="City.hlsli" />
+    <None Include="CityInteriors.hlsli" />
+    <None Include="CityLand.hlsli" />
     <None Include="ShipClassique.hlsli" />
     <None Include="ShipChasseur.hlsli" />
     <None Include="ShipWater.hlsli" />
@@ -769,6 +776,26 @@
     <FxCompile Include="OceanMipSingle.hlsl">
       <ShaderType>Compute</ShaderType><ShaderModel>5.0</ShaderModel>
       <EntryPointName>MipSingle</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="CityGround.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+      <AdditionalOptions>-HV 2018 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalInputs>Relief.hlsli;SurfaceProbe.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="CityVertex.hlsl">
+      <ShaderType>Vertex</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>VSMain</EntryPointName>
+      <AdditionalInputs>City.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="CityShadow.hlsl">
+      <ShaderType>Vertex</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>VSMain</EntryPointName>
+      <AdditionalInputs>City.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="CityPixel.hlsl">
+      <ShaderType>Pixel</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>PSMain</EntryPointName>
+      <AdditionalInputs>City.hlsli;CityInteriors.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

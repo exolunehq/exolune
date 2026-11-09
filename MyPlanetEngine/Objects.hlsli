@@ -71,6 +71,10 @@ uint FoliageModel(ObjectInstance o) {
     if (DiverseVegetation() && o.albedo.x>=1.0) return min((uint)(o.albedo.x-1.0),FOLIAGE_MAX_MODELS-1u);
     return species==SHRUB ? 2u+2u*ShrubFamily(o)+ShrubVariant(o.seed) : species;
 }
+bool GroundPlant(ObjectInstance o) {
+    const uint model=FoliageModel(o);
+    return model>=23u && model<=30u;
+}
 float PlantHeightFactor(ObjectInstance o,uint species) {
     if (GameVegetation() && species<SHRUB) return 1.0; // tree metadata carries contact colour instead of an unused height
     return o.albedo.y>0.0 ? o.albedo.y : species==SHRUB ? ShrubHeight(ShrubFamily(o)) : 1.0;
@@ -79,14 +83,15 @@ float PlantRootRadius(float size,float spread,uint seed) {
     float own=1.0+0.15*(float((seed>>8)&255u)/127.5-1.0);
     return max(0.085*size*spread*own,0.14);
 }
-uint PackPlantGroundColour(float3 colour) {
-    uint3 rgb=(uint3)round(saturate(colour)*255.0);
-    return 0x3f000000u | rgb.x | (rgb.y<<8u) | (rgb.z<<16u);
+uint PackPlantGroundColour(float3 colour,float moss) {
+    uint3 rgb=(uint3)round(saturate(colour)*127.0);
+    return 0x3f000000u | rgb.x | (rgb.y<<7u) | (rgb.z<<14u) | ((uint)round(saturate(moss)*7.0)<<21u);
 }
 float3 PlantGroundColour(ObjectInstance o) {
     uint rgb=asuint(o.albedo.y);
-    return float3(rgb&255u,(rgb>>8u)&255u,(rgb>>16u)&255u)/255.0;
+    return float3(rgb&127u,(rgb>>7u)&127u,(rgb>>14u)&127u)/127.0;
 }
+float PlantMoss(ObjectInstance o) { return float((asuint(o.albedo.y)>>21u)&7u)/7.0; }
 
 // From the object vertex shader to its pixels.
 struct ObjectPixel
@@ -103,6 +108,7 @@ struct ObjectPixel
     float3 axisX     : TEXCOORD6; // its frame, face-local
     float3 axisY     : TEXCOORD7;
     nointerpolation float canopy : TEXCOORD8; // ordinary objects only; decoded canopy cover
+    nointerpolation float moss : TEXCOORD9;
 };
 
 #endif

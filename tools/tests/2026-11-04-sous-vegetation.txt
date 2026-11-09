@@ -1,0 +1,14 @@
+# Seed 0. Inspect flower colonies, leaf movement, moss and material changes at walking height.
+# label | sea altitude, latitude, longitude, pitch, heading, mode | sun latitude and longitude
+Clairiere tropicale - arbustes et violettes | 55 -7.74978 -37.2498 25 255 marche | -5 -20
+Sous-bois tempere - racines et blocs moussus | 525 34.74975 50.75090 25 290 marche | 30 70
+Anemones - fleurs blanches et tiges | 55 -7.75006580 -37.24993896 34 90 marche | -5 -20
+Violettes de pres - cinq petales | 55 -7.74979734 -37.24980164 34 255 marche | -5 -20
+Psychotria compact - volume et vent | 55 -7.74976301 -37.24981689 18 255 marche | -5 -20
+Piper - rameaux arques | 55 -7.74998045 -37.24997711 18 0 marche | -5 -20
+Noisetier - tiges et feuilles larges | 42 -11.04076385 49.78413010 18 115.64 marche | -10 60
+Cornouiller - silhouette et tiges rouges | 42 -11.04047871 49.78408432 18 115.64 marche | -10 60
+Bloc moussu - roche et bords de la mousse | 525 34.74981174 50.75081545 23 -48.371 marche | 30 70
+Approche tropicale - formes et imposteurs | 68 -7.75 -37.25 35 0 | -5 -20
+Controle boreal | 1140 42.002542495 65.003025314 10 41.4837 marche | 35 80
+Controle sec - pierres et sol nu | 1735 -11.825 110.867 20 114 marche | -5 100

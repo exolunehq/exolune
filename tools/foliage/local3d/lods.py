@@ -25,7 +25,7 @@ def source_extra(attributes,vertices,origin=None,height=None):
     return np.concatenate(values)
 
 
-def make(folder,vertices,indices,light,extra,leaf_mask,blender,source,origin=None,height=None):
+def make(folder,vertices,indices,light,extra,leaf_mask,blender,source,origin=None,height=None,*,shrub=False):
     folder=Path(folder);work=folder/'lod-work';work.mkdir(exist_ok=True)
     triangles=indices.reshape(-1,3);leaf=((leaf_mask>>vertices[triangles[:,0],8].astype(int))&1)!=0
     wood_faces=triangles[~leaf];wood_ids,wood_indices=np.unique(wood_faces,return_inverse=True)
@@ -34,6 +34,7 @@ def make(folder,vertices,indices,light,extra,leaf_mask,blender,source,origin=Non
     if height is None:height=hi[1]-lo[1]
     np.savez_compressed(work/'wood.npz',vertices=vertices[wood_ids],indices=wood_indices.astype('<u4'),light=light[wood_ids],extra=extra[wood_ids],origin=origin,height=height)
     command=[str(blender),'--background','--factory-startup','--threads','4','--python-exit-code','1','--python',str(Path(__file__).with_name('wood_lods.py')),'--',str(work/'wood.npz'),str(work),'--glb',str(source)]
+    if shrub:command.append('--shrub')
     with (work/'blender.log').open('w') as log:subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,check=True,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
     leaf_faces=triangles[leaf];is_leaf=np.max(extra[leaf_faces,11],axis=1)>0
     card_faces=leaf_faces[is_leaf];stem_faces=leaf_faces[~is_leaf]
@@ -105,7 +106,7 @@ def make(folder,vertices,indices,light,extra,leaf_mask,blender,source,origin=Non
         v[:,:3]=bounded
         if not np.isfinite(v).all() or i.max()>=len(v):raise ValueError('Invalid cooked LOD')
         if len(i)//3>=previous*.9:raise ValueError('LOD cannot meet the reduction budget with this source topology')
-        maps=b'';resolution={1:0,2:0,3:1024,4:512,5:256,6:128}[level]
+        maps=b'';resolution={1:0,2:0,3:0 if shrub else 1024,4:512,5:256,6:128}[level]
         if resolution:
             raw=(folder/'mesh.bin').read_bytes();_,nv,ni,w,h,nmat,*_=struct.unpack_from('<8s5I6f',raw)
             atlas=Image.frombytes('RGBA',(w,h),raw[52+nv*36+ni*4:]);material=(folder/'material.bin').read_bytes()
@@ -139,6 +140,8 @@ def make(folder,vertices,indices,light,extra,leaf_mask,blender,source,origin=Non
         stream.write(struct.pack('<8s2I',b'FOLLOD02',7,len(vertices)));stream.write(extra.astype('<f4').tobytes())
         for v,i,l,e,resolution,maps in streams:
             stream.write(struct.pack('<3I',len(v),len(i),resolution));stream.write(v.tobytes());stream.write(i.tobytes());stream.write(l.tobytes());stream.write(e.tobytes());stream.write(maps)
-    result={'levels':[{'level':0,'vertices':len(vertices),'triangles':len(indices)//3}]+report,'wood_reconstruction':json.loads((work/'wood-audit.json').read_text()),'source':'master wood unchanged through L4; near curved leaves and shoot rows retained; coarse wood UVs and textures rebaked','shared_materials':'L0/L1/L2 share maps; L3/L4 downsample source UV maps to 1024/512; coarse maps use 256/128'}
+    materials=('L0–L3 share source maps; L4 downsampled to 512; coarse maps use 256/128' if shrub
+               else 'L0/L1/L2 share maps; L3/L4 downsample source UV maps to 1024/512; coarse maps use 256/128')
+    result={'levels':[{'level':0,'vertices':len(vertices),'triangles':len(indices)//3}]+report,'wood_reconstruction':json.loads((work/'wood-audit.json').read_text()),'source':'master wood unchanged through L4; near curved leaves and shoot rows retained; coarse wood UVs and textures rebaked','shared_materials':materials}
     (folder/'lod-report.json').write_text(json.dumps(result,indent=2)+'\n')
     return result

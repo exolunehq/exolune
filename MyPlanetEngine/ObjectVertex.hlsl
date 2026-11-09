@@ -29,8 +29,9 @@ ObjectPixel VSMain(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
     output.normal = normalize(normal.x * o.axisX + normal.y * o.axisY + normal.z * axisZ);
     output.local = offset + 37.0 * float3((o.seed >> uint3(3, 11, 19)) & 0xFFu) / 255.0;
     output.localNormal = normal;
-    output.albedo = float3(o.albedo.rg,ObjectBlue(o.albedo.b)) * v.shade;
+    output.albedo = float3(ObjectBlue(o.albedo.r),o.albedo.g,ObjectBlue(o.albedo.b)) * v.shade;
     output.canopy = ObjectCanopy(o.albedo.b);
+    output.moss = ObjectCanopy(o.albedo.r);
     output.up = normalize(o.pos + float3(camPlane.xy, faceParams.y + faceParams.z));
     output.elevation = o.elevation;
     output.rise = local.y / (v.height * stretch.y);

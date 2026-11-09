@@ -9,7 +9,7 @@
 - Latest user direction: reject FoliMesh after native review; continue vegetation work in the other active conversation.
 - Tool survey and proposed comparison: `recherche-generation-vegetale.md`.
 - The FoliMesh POC looks worse than the previous vegetation to the user; its technical results and limitations are archived in `log/recherche-generation-vegetale-historique.md`.
-- Premium paid packs with broad model and variant coverage remain an alternative.
+- Generate the tree and undergrowth masters from the biome boards with local neural or seeded procedural authoring.
 - Bentley previews were insufficient; the linked Tripo oak is too cartoon-like.
 - Local ComfyUI authoring remains an experimental comparison; the first Pixal3D tree has fused foliage; `recherche-comfyui-vegetation.md`.
 - The circled mature tree in Tripo's article cover is an artistic reference; its provenance and actual 3D output are unverified.

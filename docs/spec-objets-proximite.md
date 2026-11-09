@@ -4,7 +4,7 @@ Status: in place, `jalon/19-detail-sol`. experiment opened the 2026-10-24, tag `
 
 **In brief:**
 - **The detail of the ground, not the rock:** what we see standing at his feet, pebbles and tufts placed on the ground; never the bedrock or its relief, which fall under geometry.
-- **Debris only in the rocky regions:** a stone field of 0,5 to 32 km, on the planet grid, higher on the scree, dry bare ground and slopes. No debris on 74 % of grasslands, 70 % of sands and bare soils, 11 % of scree.
+- **Debris follows rocky regions.** The 0.5–32 km stoniness field rises on scree, dry bare ground and slopes. A separate sparse woodland term adds partly buried boulders to damp, sheltered soil and shares the existing stone queue. See `spec-diversite-vegetale.md`.
 - **A recipe per soil, where it is stony:**
   - sand and bare soil: mostly small pebbles of 3 to 6 cm, less of 6 to 12 cm, few larger; the finer gravel is the texture of the soil; some tufts dry;
   - grass: tufts everywhere, pebble or not; rocks half buried, rare, by spots;

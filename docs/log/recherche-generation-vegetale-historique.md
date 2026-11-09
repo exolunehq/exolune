@@ -255,3 +255,52 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours to
 - Release x64 and `tools/tests/check_local3d.py` pass; no engine change, benchmark, commit, tag or publication.
 - Immutable job identifiers, model fingerprints and artifact references: `tools/foliage/local3d/trials/2026-11-02-oak.json`.
 - Current workflow: `../spec-pipeline-creation3d.md`.
+
+**2026-11-04 · Downloaded library and purchase comparisons archived**
+
+**Libraries checked as references**
+
+- [Quaternius Stylized Nature MegaKit](https://quaternius.com/packs/stylizednaturemegakit.html) has a CC0 standard edition and a consistent game vocabulary.
+- The standard archive was retrieved from the creator's [Godot store listing](https://store.godotengine.org/asset/quaternius/stylized-nature-megakit/); hash `298f6732b872e4cf7b30e6e7abf9641c7f6dc6b326df37ac089533ed7e3d58c9`.
+- Its preview is substantially more stylized and saturated than the boards; do not silently adopt it as the new art direction.
+- [NatureManufacture](https://naturemanufacture.artstation.com/projects/2xbJ3y) offers scanned, atlased game vegetation; a useful visual comparison, with finite authored variants and package-specific integration.
+- [Globe Plants](https://globeplants.com/blogs/news/how-to-import-and-optimize-globe-plants-3d-models-in-unreal-engine-for-architectural-visualization) supports vegetation import and optimization; verify each product's game geometry rather than assuming every architectural plant is suitable.
+- [Botaniq](https://polygoniq.com/3d/botaniq/) is primarily a plant library for Blender; its existence does not supply the desired editable species generator.
+- [PhytoEngine](https://phytoengine.com/llms.txt) has a public query API and cached procedural GLBs; its read API responded locally, but descriptions of current features and licensing differ across its pages.
+- The sampled PhytoEngine query included a fallen birch and a grass tuft in a generic forest result; resolve explicit asset metadata before judging biome suitability.
+- No library sample above has been promoted into Exolune's default catalogue during this survey.
+
+**Premium game vegetation, rechecked 2026-11-02**
+
+- The user explicitly requests a parallel reassessment of FoliMesh and premium paid libraries.
+- Prices below are displayed USD prices before taxes; confirm the selected offer at checkout.
+- Counts describe advertised contents, not verified independent species or accepted structural variants.
+- No premium pack was acquired or inspected as exported geometry during this reassessment.
+
+| Candidate | Verified advertised diversity | Displayed cost | Exolune assessment |
+|---|---|---|---|
+| [NatureManufacture Forest](https://assetstore.unity.com/packages/3d/vegetation/forest-environment-dynamic-nature-150668) | 13 beech tree objects, 10 shrubs, 29 herb/plant objects, 16 mushrooms | USD 60 | First authored game-pack comparison; mature trees, modular roots, atlases and LODs; a complete temperate scene does not imply many tree species |
+| [NatureManufacture Environment Bundle](https://assetstore.unity.com/packages/3d/vegetation/environment-bundle-dynamic-nature-199045) | 56 tree objects, 27 shrubs in 8 types, 180+ grass variants; 1,400+ prefabs include non-plant scenery and systems | USD 343; [Mountain](https://assetstore.unity.com/packages/3d/vegetation/mountain-environment-dynamic-nature-191851) alone USD 75 | Broader library to consider after one source model is validated; total prefabs are not botanical diversity |
+| [BK Pure Nature 2 Swamp](https://assetstore.unity.com/packages/3d/environments/pure-nature-2-swamp-324967) and [Jungle](https://assetstore.unity.com/packages/3d/environments/pure-nature-2-jungle-296552) | Swamp 88 meshes / 84 prefabs; Jungle 102 meshes / 112 prefabs; whole environments, not tree counts | USD 50 per biome | Substantial rooted game forms, but fantasy styling may depart from the boards; Unity package, raw source formats and conversion unverified |
+| [MAWI Redwood](https://www.mawiunited.com/fab/rw/mw_rw_description.html), [Broadleaf](https://www.mawiunited.com/fab/bf/mw_bf_description.html), [Conifer](https://www.mawiunited.com/fab/cf/mw_cf_description.html) | Respectively 2 species / 19 tree forms, 2 / 23 and 1 / 15; saplings included | From USD 249.99 per biome on the [official Fab shop](https://www.fab.com/sellers/MAWI%20United?lang=fr) | Premium visual comparison, deferred for native integration; Unreal delivery, Nanite/Lumen/VSM/RVT dependencies, no independent GLB/FBX delivery verified |
+
+- SpeedTree's editable Games library provides randomisation and seasons; no verified current inventory supports an exact species count here.
+- Its advertised FBX/OBJ, atlases and LOD exports suit an independent engine; proprietary wind still needs a compatible implementation.
+- [Current SpeedTree terms](https://unity.com/legal/professional-artistry-additional-terms), section 2.7, restrict new distributions/platforms after termination unless the applicable offer states otherwise.
+- Do not budget a single month as perpetual authoring and release rights without verifying that offer.
+- [Unity's official guidance](https://support.unity.com/hc/en-us/articles/34387186019988-Can-I-use-assets-from-the-Asset-Store-with-other-engines) permits other engines subject to the EULA and separately licensed components.
+- NatureManufacture lists some wind files under Unity Companion License; keep Exolune's own shaders instead of copying those files into the native engine.
+- MAWI's procedural features concern biome placement; do not count them as an exportable species-variation generator.
+- Keep source packages and cooked proprietary assets outside the public repository; track licence references and import manifests.
+
+**MAWI testability before purchase**
+
+- The user finds the rendering compelling but needs evidence of native integration and performance before buying.
+- Official [Broadleaf V4](https://mawiunited.artstation.com/projects/qQlnky) and [Redwood UE5.1 V4.1.0](https://mawiunited.artstation.com/projects/yJ8qxx) announcements describe free runtime demos.
+- No working direct demo download or freely exportable representative tree was verified in the current survey.
+- A compiled Unreal demo can assess that scene's appearance and behaviour; Exolune needs a separate representative mesh/material import trial.
+- The old Redwood announcement lists 2–5 million triangles per large sequoia; this is version-specific evidence, not a count for every current MAWI tree.
+- [Current Redwood delivery](https://www.fab.com/listings/ff5dbf6c-f88c-4bd9-846b-5a739fdc3058) lists Unreal Engine and Nanite/Lumen/VSM/RVT requirements; an independent FBX/GLB delivery is not promised there.
+- A useful evaluation sample includes one mature tree and one understory plant, their source geometry, textures, material layout and permission to evaluate a native-engine conversion.
+- Inspect topology, foliage coverage, root volume, material reconstruction, wind and reduction before committing to a pack.
+- Keep MAWI as a visual comparison until an export trial establishes that enough of its close quality survives Exolune's representations and budgets.

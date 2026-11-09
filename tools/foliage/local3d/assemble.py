@@ -202,7 +202,8 @@ for name,kind,values,prop in [('_WIND_WEIGHT','FLOAT',wind,'value'),('_WIND_PHAS
     a=mesh.attributes.new(name,kind,'POINT');a.data.foreach_set(prop,np.array(values,dtype=np.float32).ravel())
 c=mesh.color_attributes.new(name='FoliageTint',type='FLOAT_COLOR',domain='POINT');c.data.foreach_set('color',np.array(tints,dtype=np.float32).ravel())
 leaves['wind_description']='Shoot bending: _WIND_PIVOT, _WIND_WEIGHT, _WIND_PHASE. Individual leaf flutter: _LEAF_PIVOT, _LEAF_WEIGHT.'
-wood['provenance']='Local FLUX references; '+recipe['geometry_backend']+'; native remesh, reduction, UV and material baking.'
+wood['provenance']=('Seeded shrub scaffold and procedural stem maps' if recipe.get('shrub_scaffold')
+                    else 'Local FLUX references; '+recipe['geometry_backend']+'; native remesh, reduction, UV and material baking.')
 assert len(mesh.polygons)+len(wood.data.polygons)<=recipe['max_triangles']
 
 # Normalize final canopy height and convert custom pivot coordinates for export.
@@ -235,10 +236,13 @@ scene.world.use_nodes = True; scene.world.node_tree.nodes['Background'].inputs[0
 bpy.ops.mesh.primitive_plane_add(size=100,location=(0,0,-0.02)); floor=bpy.context.object; floor.name='Review floor'
 floor_mat = bpy.data.materials.new('Review floor'); floor_mat.diffuse_color=(.14,.14,.14,1); floor.data.materials.append(floor_mat)
 for name, loc, power, size in [('Key',(-5,-7,11),1800,6),('Fill',(5,-2,7),650,5),('Rim',(2,6,10),1600,5)]:
-    data=bpy.data.lights.new(name,'AREA');data.energy=power;data.shape='DISK';data.size=size
-    obj=bpy.data.objects.new(name,data);scene.collection.objects.link(obj);obj.location=loc;obj.rotation_euler=(Vector((0,0,4))-obj.location).to_track_quat('-Z','Y').to_euler()
-data=bpy.data.cameras.new('Review camera'); camera=bpy.data.objects.new('Review camera',data);scene.collection.objects.link(camera);scene.camera=camera;data.type='ORTHO';data.ortho_scale=11
-target=Vector((0,0,4.3));camera.location=target+Vector((16,-16,3));camera.rotation_euler=(target-camera.location).to_track_quat('-Z','Y').to_euler()
+    scale=recipe['height_m']/8
+    data=bpy.data.lights.new(name,'AREA');data.energy=power*scale**2;data.shape='DISK';data.size=size*scale
+    obj=bpy.data.objects.new(name,data);scene.collection.objects.link(obj);obj.location=Vector(loc)*scale;obj.rotation_euler=(Vector((0,0,4))*scale-obj.location).to_track_quat('-Z','Y').to_euler()
+data=bpy.data.cameras.new('Review camera'); camera=bpy.data.objects.new('Review camera',data);scene.collection.objects.link(camera);scene.camera=camera;data.type='ORTHO'
+preview_width=max(max(v.co[i] for obj in [wood,leaves] for v in obj.data.vertices)-min(v.co[i] for obj in [wood,leaves] for v in obj.data.vertices) for i in [0,1])
+data.ortho_scale=max(recipe['height_m']*1.375,preview_width*1.3)
+target=Vector((0,0,4.3))*scale;camera.location=target+Vector((16,-16,3))*scale;camera.rotation_euler=(target-camera.location).to_track_quat('-Z','Y').to_euler()
 bpy.ops.wm.save_as_mainfile(filepath=str(out/'review.blend'))
 scene.render.filepath=str(out/'quarter.png');bpy.ops.render.render(write_still=True)
 report={'wood_triangles':len(wood.data.polygons),'leaf_triangles':len(mesh.polygons),'total_triangles':len(wood.data.polygons)+len(mesh.polygons),'wood_vertices':len(wood.data.vertices),'leaf_vertices':len(mesh.vertices),'clusters':len(anchors),'foliage_distribution':mode,'discarded_disconnected_wood_faces':removed,'retained_wood_surface_fraction':retained_area,'source_height_scale':scale*final_scale,'final_height_m':recipe['height_m'],'leaf_count':len(anchors)*12,'pivot_coordinate_space':'glTF Y-up; Blender Z-up in review.blend','root_uv':root_uv,'leaf_transparency_fraction':float((rgba[:,:,3]<0.1).mean()),'asset':str(dest),'preview':scene.render.filepath,'wind_attributes':['_WIND_WEIGHT','_WIND_PHASE','_WIND_PIVOT','_LEAF_PIVOT','_LEAF_WEIGHT'],'leaf_representation':'Individual curved leaf cutouts on small 3D shoots, with shoot and leaf pivots.'}

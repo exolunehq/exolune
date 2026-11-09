@@ -53,6 +53,8 @@ struct Settings
     // gives them before it measures, MYPLANETENGINE_FOLIAGE_WARMUP, then measures, MYPLANETENGINE_FOLIAGE_SAMPLES.
     bool noPlants = false;
     std::wstring foliageAssets;
+    // Optional authored city bank and a hidden terrain export for its planner.
+    std::wstring cityAssets, cityProbe;
     UINT foliageWarm = 120, foliageSamples = 120;
     int foliageTestLod = -1; // offscreen validation only
 
@@ -87,7 +89,7 @@ struct Settings
     UINT cineFirst = 0, cineCount = 0, cineWarm = 120; // count 0: to the end
 
     // The benches render without showing the window, in the free camera, the sea on a fixed clock.
-    bool Automated() const { return batch || !capturePath.empty() || !tremblePath.empty() || !cinePath.empty(); }
+    bool Automated() const { return batch || !capturePath.empty() || !tremblePath.empty() || !cinePath.empty() || !cityProbe.empty(); }
 };
 
 // The profile MyPlanetEngine.ini beside the executable, if any: it sets the variables still unset, so that hidden

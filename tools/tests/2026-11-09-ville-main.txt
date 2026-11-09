@@ -1,0 +1,14 @@
+# City/main integration: manufactured ground, shadows, distance and terrestrial/airless isolation.
+# Select the city bank with -Ville. F1-F6 city; F7-F8 moons; F9-F12 erosion, clouds and night.
+House source | 38.3 -11.0375987636 49.7799555445 4.856287106815936 -154.96109274039455 | -6.04 19.784
+House entry and walking | 34.5 -11.0377466198 49.7798867462 2.416991530354414 -128.36029872359074 marche | -6.04 19.784
+Civic forum | 43.8 -11.0439383637 49.7836458132 4.0675513705767985 124.42905584523291 | -6.04 19.784
+Greenhouse | 38.6 -11.0360086591 49.7855370835 3.95366100582276 -94.25643648714885 | -6.04 19.784
+Whole city | 585.6 -11.0471866167 49.7900409487 31 -38 | -6.04 19.784
+City approach and distance | 715.8 -11.0597633600 49.7840000000 18 0 | -6.04 19.784
+Moon 3 walking and rocks | 1.68 20 60 0 -92 lune3 marche | -25 55
+Moon 2 orbital craters | 250000 20 15 90 0 lune2 | -25 55
+Earth rivers and screen relief | 1230920.1 -9.148316 124.767492 71.08 20.70 | 20 120
+Earth near cliff materials | 12 -26.501266 166.745418 35 315 | -46.50 -158.25
+Cloud transition | 2000000 12 -89 90 0 | 10 -100
+Night atmosphere and stars | 12000 -12 -25 -55 90 | 10 155

@@ -51,11 +51,12 @@ def save(path, data):
     Path(path).write_text(json.dumps(data, indent=2, ensure_ascii=False)+'\n', encoding='utf8')
 
 
-def prepared_references(path):
+def prepared_references(path, *, shrub=False):
     """Reuse a pinned art review across geometry backends without regenerating images."""
     path=path.resolve();bundle=json.loads(path.read_text(encoding='utf8'))
-    names=['reference','wood_reference','cluster_reference','leaf_reference']
-    if set(bundle.get('images',{}))!=set(names):raise ValueError('The reference review must pin all four art images')
+    names=['reference','cluster_reference','leaf_reference']
+    if not shrub:names.append('wood_reference')
+    if set(bundle.get('images',{}))!=set(names):raise ValueError('The reference review must pin all images required by the recipe')
     images={}
     for name in names:
         entry=bundle['images'][name];image=Path(entry['path'])
@@ -223,7 +224,7 @@ def stage(name, body, roles, args, comfy, schema, models):
         if state['prompt_id'] not in known:
             state.update({'status':'error', 'details':'Previous server no longer knows this prompt; submitting the saved graph again.'})
     if not state.get('prompt_id') or state.get('status')=='error':
-        required=7.25 if name=='wood_mesh' else 2.0 if name=='leaf_alpha' else 7.0
+        required=getattr(args,'minimum_free_vram_gib',7.25) if name=='wood_mesh' else 2.0 if name=='leaf_alpha' else 7.0
         no_game(required,args.allow_shared_gpu,args.yield_if_gpu_busy)
         if not comfy.idle():raise GpuBudgetUnavailable('ComfyUI is busy with another queued job; resume when it is idle.')
         response=comfy.call('prompt',body);save(folder/'submission.json',response)
@@ -296,7 +297,10 @@ def main():
     if not recipe.get('description','').strip():raise ValueError('A text art brief is required')
     for field in ['leaf_length_m','shoot_length_m']:
         if len(recipe[field])!=2 or not 0 < recipe[field][0] <= recipe[field][1]:raise ValueError('Invalid '+field)
-    pinned,reference_set=prepared_references(args.prepared_references) if args.prepared_references else ({},None)
+    shrub=bool(recipe.get('shrub_scaffold'))
+    if shrub and not recipe.get('wood_source'):
+        raise ValueError('Build the shrub scaffold first and pass it with --wood-source')
+    pinned,reference_set=prepared_references(args.prepared_references,shrub=shrub) if args.prepared_references else ({},None)
     comfy=Comfy(args.comfy_url,args.comfy_root);schema=comfy.call('object_info');models=model_manifest(args,schema);save(args.out/'recipe.json',recipe)
     environment={'comfyui':comfy.call('system_stats')['system'], 'runner_sha256':fingerprint(Path(__file__)), 'assembler_sha256':fingerprint(HERE/'assemble.py'),'branch_volume_sha256':fingerprint(HERE/'branch_volume.py')}
     try:environment['comfyui_revision']=subprocess.check_output(['git','rev-parse','HEAD'],cwd=args.comfy_root,text=True,stderr=subprocess.DEVNULL,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0).strip()
@@ -307,26 +311,31 @@ def main():
     if reference and not reference.is_file():raise FileNotFoundError(reference)
     full=pinned['reference'] if pinned else image_stage('reference',reference,args,comfy,schema,models)
     wood_input=Path(recipe['wood_reference_source']) if recipe.get('wood_reference_source') else None if recipe.get('independent_wood_reference') else full
-    wood_ref=pinned['wood_reference'] if pinned else image_stage('wood_reference',wood_input,args,comfy,schema,models)
-    reference_check=wood_reference_check(wood_ref,recipe.get('allow_green_stems',False));save(args.out/'wood-reference-check.json',reference_check)
-    if recipe.get('require_leafless_wood') and reference_check['status']!='pass':
-        raise ValueError('Wood reference still contains foliage; regenerate the bare structure before spending GPU time on reconstruction')
+    wood_ref=None
+    if not shrub:
+        wood_ref=pinned['wood_reference'] if pinned else image_stage('wood_reference',wood_input,args,comfy,schema,models)
+        reference_check=wood_reference_check(wood_ref,recipe.get('allow_green_stems',False));save(args.out/'wood-reference-check.json',reference_check)
+        if recipe.get('require_leafless_wood') and reference_check['status']!='pass':
+            raise ValueError('Wood reference still contains foliage; regenerate the bare structure before spending GPU time on reconstruction')
     cluster=pinned['cluster_reference'] if pinned else image_stage('cluster_reference',full,args,comfy,schema,models)
     leaf=pinned['leaf_reference'] if pinned else image_stage('leaf_reference',cluster,args,comfy,schema,models)
     if args.references_only:
         review={'status':'reference art review; no 3D inference requested','prepared_source':reference_set,
                 'images':{label:{'path':str(path),'sha256':fingerprint(path)} for label,path in
-                          [('reference',full),('wood_reference',wood_ref),('cluster_reference',cluster),('leaf_reference',leaf)]}}
+                          [('reference',full),('wood_reference',wood_ref),('cluster_reference',cluster),('leaf_reference',leaf)] if path is not None}}
         save(args.out/'reference-review.json',review)
         print(json.dumps(review,indent=2),flush=True)
         return
-    body=json.loads((HERE/('templates/wood_'+recipe['geometry_backend']+'.json')).read_text());p=body['prompt'];p['122']['inputs']['image']=upload_reference(wood_ref,args)
-    p['351']['inputs']['target_face_count']=recipe['wood_triangles']
-    if 'geometry_seed' in recipe:
-        for node in p.values():
-            if 'seed' in node['inputs']:node['inputs']['seed']=(int(node['inputs']['seed'])+recipe['geometry_seed'])%(2**31)
-    for identifier,field in [('353','resolution'),('354','texture_size'),('355','resolution')]:p[identifier]['inputs'][field]=recipe['texture_resolution']
-    wood={'low_pbr':Path(recipe['wood_source'])} if recipe.get('wood_source') else stage('wood_mesh',body,{'342':'high_raw','343':'high_colour','358':'low_pbr','360':'basecolor','361':'normal','362':'roughness','363':'metallic'},args,comfy,schema,models)
+    if recipe.get('wood_source'):
+        wood={'low_pbr':Path(recipe['wood_source'])}
+    else:
+        body=json.loads((HERE/('templates/wood_'+recipe['geometry_backend']+'.json')).read_text());p=body['prompt'];p['122']['inputs']['image']=upload_reference(wood_ref,args)
+        p['351']['inputs']['target_face_count']=recipe['wood_triangles']
+        if 'geometry_seed' in recipe:
+            for node in p.values():
+                if 'seed' in node['inputs']:node['inputs']['seed']=(int(node['inputs']['seed'])+recipe['geometry_seed'])%(2**31)
+        for identifier,field in [('353','resolution'),('354','texture_size'),('355','resolution')]:p[identifier]['inputs'][field]=recipe['texture_resolution']
+        wood=stage('wood_mesh',body,{'342':'high_raw','343':'high_colour','358':'low_pbr','360':'basecolor','361':'normal','362':'roughness','363':'metallic'},args,comfy,schema,models)
     topology_folder=args.out/'wood_source'/fingerprint(wood['low_pbr'])[:16] if recipe.get('wood_source') else wood['low_pbr'].parent
     topology_folder.mkdir(parents=True,exist_ok=True);topology_file=topology_folder/'topology.json'
     if recipe.get('reject_branch_cycles'):

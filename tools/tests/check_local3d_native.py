@@ -17,6 +17,7 @@ def assets(catalogue):
     data=(folder/'lods.bin').read_bytes();magic,count,original=struct.unpack_from('<8s2I',data)
     assert magic==b'FOLLOD02' and count in [5,7] and original==nv
     at=16
+    shrub=report.get('shrub_family') is not None
     def floats(rows,width):
         nonlocal at
         result=np.frombuffer(data,dtype='<f4',count=rows*width,offset=at).reshape(-1,width);at+=rows*width*4;return result
@@ -39,13 +40,19 @@ def assets(catalogue):
         assert v[:,8].min()>=0 and v[:,8].max()<materials
         assert e[:,:4].min()>=0 and e[:,:4].max()<=1
         assert e[:,[7,11]].min()>=0 and e[:,[7,11]].max()<=1
-        assert v[:,1].min()<0,'Root ends must extend beneath the ground origin'
         assert np.all(v[:,:3].min(0)>=np.array(bounds[:3])-2e-4) and np.all(v[:,:3].max(0)<=np.array(bounds[3:])+2e-4),'LOD exceeds the source bounds'
-        root=np.mod(v[:,8],1)>.125
-        assert root.any() and np.all(e[root,7]==0) and np.all(e[root,11]==0),'A root must remain fixed'
+        if shrub:
+            wood=((int(report['leaf_mask'])>>v[:,8].astype(int))&1)==0
+            collar=wood & (v[:,1]<.03)
+            assert collar.any() and v[collar,1].min()<=.01,'Shrub collar must reach placement ground'
+            assert np.all(e[collar,7]==0) and np.all(e[collar,11]==0),'Shrub collar must remain fixed'
+        else:
+            assert v[:,1].min()<0,'Root ends must extend beneath the ground origin'
+            root=np.mod(v[:,8],1)>.125
+            assert root.any() and np.all(e[root,7]==0) and np.all(e[root,11]==0),'A root must remain fixed'
         if level:assert len(i)<len(levels[level-1][1])*(.9 if count==7 else .8),'Insufficient LOD reduction'
         summary.append({'level':level,'vertices':len(v),'triangles':len(i)//3,'texture_size':res or 'shared master'})
-    assert summary[-1]['triangles']<=3000,'Last tree LOD exceeds the witness budget'
+    assert summary[-1]['triangles']<=(750 if shrub else 3000),'Last LOD exceeds the plant budget'
     assert (folder/'material.bin').stat().st_size==16+w*h*8
     assert (folder/'impostor.bin').read_bytes()[:8]==b'FOLIMP01'
     assert (folder/'impostor_light.bin').read_bytes()[:8]==b'FOLIL001'

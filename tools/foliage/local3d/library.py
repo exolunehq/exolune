@@ -15,6 +15,7 @@ import time
 import urllib.request
 
 HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[2]
+BLENDER=Path('C:/Program Files/Blender Foundation/Blender 5.2/blender.exe')
 sys.path.insert(0,str(ROOT/'tools'));sys.path.insert(0,str(ROOT/'tools/tests'))
 from banc_local3d import freeze_catalogue,sha
 from check_local3d_native import assets
@@ -46,6 +47,19 @@ BIOMES={
 'tropical':{
  'trees':[('kapok','kapok','massive warm grey trunk, low broad buttress roots merging into the soil, lofty umbrella canopy with separate major branches','one complete palmate kapok leaf with a short petiole'),('rainforest_fig','rainforest fig','broad substantial flared trunk, separate sinuous supporting limbs, dense uneven rounded crown; no strangler loops or hanging aerial roots','one large oval leathery tropical fig leaf'),('mahogany','big-leaf mahogany','tall warm brown straight bole, several powerful separate ascending limbs and a high irregular domed crown','one large elongated pointed mahogany leaflet'),('cecropia','cecropia','strong pale trunk with distinct tiered horizontal limbs, open umbrella crown of large separated leaves','one large deeply palmate lobed cecropia leaf'),('inga','inga','broad warm grey trunk, long separate arching limbs and a low layered spreading canopy','one large elliptical inga leaflet')],
  'shrubs':[('psychotria','Psychotria','upright dark woody shrub with broad glossy leaves in opposite pairs','one glossy elliptical tropical understory leaf'),('piper','Piper aduncum','airy arching woody shrub, slender green-brown stems and large soft foliage','one large pointed asymmetric heart-based Piper leaf'),('miconia','Miconia','strong multi-stem tropical shrub with a full irregular crown','one large oval matte tropical leaf with three prominent longitudinal veins'),('palicourea','Palicourea','open branching understory shrub with upright stems and opposite foliage','one large smooth elongated glossy green leaf'),('isertia','Isertia','broad uneven woody shrub with sturdy branch forks and soft full foliage','one broad oval softly textured green tropical leaf')]}}
+
+SHRUB_SCAFFOLDS = {
+    'temperate_shrub_hazel': dict(stems=7, spread=.64, arch=.18, bend=.24, flare=.38, bark=[.22, .133, .085]),
+    'temperate_shrub_dogwood': dict(stems=6, spread=.42, arch=.23, bark=[.31, .113, .074]),
+    'tropical_shrub_psychotria': dict(stems=5, spread=.36, arch=.055, bark=[.19, .14, .083]),
+    'tropical_shrub_piper': dict(stems=5, spread=.62, arch=.22, bark=[.20, .19, .084]),
+}
+SHRUB_LEAVES = {
+    'temperate_shrub_hazel': [.10, .17],
+    'temperate_shrub_dogwood': [.085, .14],
+    'tropical_shrub_psychotria': [.14, .24],
+    'tropical_shrub_piper': [.16, .27],
+}
 
 SOURCES=['https://science.nasa.gov/kids/earth/mission-biomes/biotemperate/',
          'https://www.nps.gov/im/sodn/ecosystems.htm',
@@ -90,6 +104,12 @@ def plan(out):
                       'leaf_reference':f'Exactly {leaf}, matching <ref_image_0>. Isolated flat botanical game cutout with its complete short brown petiole pointing straight down and leaf tip at top. Deep natural green, olive highlights, weak shading, no other leaves, no branch network. {style} {framing}'}}
                 if slug in ['cecropia','kapok']:recipe['leaf_length_m']=[.32,.52]
                 if biome=='desert':recipe.update(cluster_limit=260 if tree else 120,cluster_spacing_m=.45 if tree else .14)
+                if name in SHRUB_SCAFFOLDS:
+                    recipe.update(shrub_scaffold=SHRUB_SCAFFOLDS[name], wood_triangles=750,
+                                  max_triangles=7000, cluster_limit=80, leaf_length_m=SHRUB_LEAVES[name],
+                                  min_foliage_height=.28, foliage_distribution='surface',
+                                  cluster_spacing_m=.085, shoot_length_m=[.12,.23],
+                                  shoot_upward_bias=.17, branch_alignment=.55)
                 relative='recipes/'+name+'.json';save(out/relative,recipe)
                 jobs.append({'name':name,'biome':biome,'family':family,'kind':kind,'variant':variant,
                              'slot':31+family*10+(0 if tree else 5)+variant,'recipe':relative,'botanical_inspiration':species})
@@ -145,11 +165,13 @@ def structural_variants(out,job,state):
     manifest=json.loads((Path(state['authoring'])/'manifest.json').read_text())
     source=Path(manifest['asset']);recipe=json.loads((out/job['recipe']).read_text())
     if sha(source)!=manifest['sha256']:raise ValueError('Plant master fingerprint changed')
+    cook={'tile':recipe['texture_resolution']}
+    if job['kind']=='shrubs':cook['shrub_family']=job['family']
     # Masters and derivatives enter the same complete acceptance chain. The
     # library queue only cooks candidates; it never starts benchmark campaigns.
     master_production={'name':job['name'],'height_m':recipe['height_m'],'source_triangle_budget':recipe['max_triangles'],
                        'target_fps':60,'source':{'glb':str(source),'sha256':manifest['sha256'],'art_approved':False},
-                       'cook':{'tile':recipe['texture_resolution']}}
+                       'cook':cook}
     save(out/'plants'/job['name']/'production.json',master_production)
     spec={'master':manifest['sha256'],'profiles':list(PROFILES),'seed':recipe['seed'],'script':sha(HERE/'variations.py')}
     signature=hashlib.sha256(json.dumps(spec,sort_keys=True).encode()).hexdigest()[:16]
@@ -163,7 +185,7 @@ def structural_variants(out,job,state):
             raise ValueError('Structural variant cache changed')
         production={'name':job['name']+'_'+profile,'height_m':recipe['height_m'],'source_triangle_budget':recipe['max_triangles'],
                     'target_fps':60,'source':{'glb':str(source),'sha256':manifest['sha256'],'art_approved':False},
-                    'variation':{'profile':profile,'seed':seed,'art_approved':False,'approved_sha256':info['sha256']},'cook':{'tile':recipe['texture_resolution']}}
+                    'variation':{'profile':profile,'seed':seed,'art_approved':False,'approved_sha256':info['sha256']},'cook':cook}
         production_file=asset.parent/'production.json';save(production_file,production)
         variants.append({'profile':profile,'asset':str(asset),'sha256':info['sha256'],'production_recipe':str(production_file),
                          'status':'derived; own native LODs, impostor and acceptance required','production_ready':False})
@@ -228,8 +250,10 @@ def bank(out,allow_fallback=False):
     return target
 
 
-def run(out,minutes,limit,allow_shared,comfy_url='http://127.0.0.1:8188'):
+def run(out,minutes,limit,allow_shared,comfy_url='http://127.0.0.1:8188',plant=None):
     inventory=json.loads((out/'plan.json').read_text());base=out/'_baseline'
+    jobs=[job for job in inventory['jobs'] if not plant or job['name']==plant]
+    if not jobs:raise ValueError('Plant does not appear in the library plan: '+plant)
     if not (base/'biomes.txt').exists():freeze_catalogue(ROOT/'assets/foliage/game_biomes_v1',base,{})
     deadline=time.monotonic()+minutes*60;completed=0
     with (out/'library.lock').open('a+b') as lock:
@@ -238,7 +262,7 @@ def run(out,minutes,limit,allow_shared,comfy_url='http://127.0.0.1:8188'):
             lock.seek(0);lock.write(b'0');lock.flush();lock.seek(0);msvcrt.locking(lock.fileno(),msvcrt.LK_NBLCK,1)
         while time.monotonic()<deadline:
             progressed=False
-            for job in inventory['jobs']:
+            for job in jobs:
                 if (out/'pause.flag').exists():
                     save(out/'progress.json',{'status':'paused for native functional checks; no asset is lost'});time.sleep(5);break
                 if not comfy_available(comfy_url):
@@ -261,6 +285,21 @@ def run(out,minutes,limit,allow_shared,comfy_url='http://127.0.0.1:8188'):
                 log=attempt/'authoring.log';save(state_file,state|{'status':'authoring','log':str(log)})
                 start_offset=log.stat().st_size if log.exists() else 0
                 command=['E:/ComfyUI/.venv/Scripts/python.exe',HERE/'pipeline.py',attempt/'recipe.json','--out',authoring,'--yield-if-gpu-busy','--comfy-url',comfy_url]
+                if recipe.get('shrub_scaffold'):
+                    identity=sha(attempt/'recipe.json')[:16]+'-'+sha(HERE/'shrub_scaffold.py')[:16]
+                    candidates=sorted(attempt.glob(f'scaffold-{identity}-*/scaffold-report.json'))
+                    if candidates:
+                        scaffold=candidates[-1].parent
+                        report=json.loads(candidates[-1].read_text())
+                        if report['wood_sha256']!=sha(scaffold/'wood.glb'):
+                            raise ValueError('Cached shrub scaffold changed: '+str(scaffold))
+                    else:
+                        scaffold=attempt/f'scaffold-{identity}-{time.time_ns()}'
+                        code=run_job([BLENDER,'--background','--factory-startup','--threads','4',
+                                      '--python-exit-code','1','--python',HERE/'shrub_scaffold.py',
+                                      '--',attempt/'recipe.json','--out',scaffold],attempt/'scaffold.log')
+                        if code:raise RuntimeError('Shrub scaffold failed; see '+str(attempt/'scaffold.log'))
+                    command+=['--wood-source',scaffold/'wood.glb']
                 if allow_shared:command+=['--allow-shared-gpu']
                 code=run_job(command,log)
                 if code:
@@ -279,7 +318,10 @@ def run(out,minutes,limit,allow_shared,comfy_url='http://127.0.0.1:8188'):
                 if not (native/'biomes.txt').exists():
                     # An interrupted cook is retained; retry into a fresh directory.
                     if native.exists():native=attempt/f'native_retry_{time.time_ns()}'
-                    code=run_job([sys.executable,HERE/'native.py','--source',manifest['asset'],'--out',native,'--base',base,'--lods','--name',job['name'],'--tile',str(recipe['texture_resolution'])],attempt/'native.log')
+                    cook=[sys.executable,HERE/'native.py','--source',manifest['asset'],'--out',native,
+                          '--base',base,'--lods','--name',job['name'],'--tile',str(recipe['texture_resolution'])]
+                    if job['kind']=='shrubs':cook+=['--shrub-family',str(job['family'])]
+                    code=run_job(cook,attempt/'native.log')
                     if code:save(state_file,state|{'status':'cook failed; retained for review','authoring':str(authoring),'log':str(attempt/'native.log')});continue
                 try:audit=assets(native)
                 except Exception as error:save(state_file,state|{'status':'native audit failed','error':str(error),'native':str(native)});continue
@@ -294,7 +336,7 @@ def run(out,minutes,limit,allow_shared,comfy_url='http://127.0.0.1:8188'):
                 if limit and completed>=limit:return
             else:
                 pending=[]
-                for job in inventory['jobs']:
+                for job in jobs:
                     f=out/'plants'/job['name']/'state.json';s=json.loads(f.read_text()) if f.exists() else {'status':'queued'}
                     if s['status'] in ['queued','waiting for GPU','waiting for service','authoring']:pending.append(job)
                 if not pending:return
@@ -307,7 +349,7 @@ def run(out,minutes,limit,allow_shared,comfy_url='http://127.0.0.1:8188'):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['plan','run','bank','variants']);p.add_argument('--out',type=Path,default=Path('E:/ExoluneAssets/biome-library'))
-    p.add_argument('--plant',help='Restrict offline variant derivation to one cooked plant')
+    p.add_argument('--plant',help='Restrict generation or variant derivation to one plant')
     p.add_argument('--comfy-url',default='http://127.0.0.1:8188',help='Local ComfyUI endpoint; forwarded to each checkpointed stage')
     p.add_argument('--watch-minutes',type=float,default=720);p.add_argument('--limit',type=int,default=0)
     p.add_argument('--allow-shared-gpu',action='store_true');a=p.parse_args();out=a.out.resolve()
@@ -327,7 +369,7 @@ def main():
             processed.append(job['name'])
         if a.plant and not processed:raise ValueError('Plant has no successfully cooked master: '+a.plant)
         print(json.dumps({'plants':processed,'variants_per_plant':len(PROFILES),'native_cook_and_acceptance':'required for every selected variation'},indent=2))
-    else:run(out,a.watch_minutes,a.limit,a.allow_shared_gpu,a.comfy_url)
+    else:run(out,a.watch_minutes,a.limit,a.allow_shared_gpu,a.comfy_url,a.plant)
 
 
 if __name__=='__main__':main()
