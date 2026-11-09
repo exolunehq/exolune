@@ -1,0 +1,12 @@
+# Seed 0, clouds hidden. Prototype: the screen relief, the true relief under each texel recomputed every frame, from
+# 400 km up; and the exposure (bare ridges, wooded hollows) widened by the height spread.
+# F1: high orbit; descend continuously: sharp from the start, no blur in squares, no sudden sharpening near 1,400 km.
+# F2-F4: the reported massif; move sideways: no crawling. F5-F6: a second range. F7-F8: close up, unchanged.
+Descente : orbite 3000 km | 2978803 -7.780824 122.187982 84.18 32.79 | -26.95 106.61
+Massif signale : orbite 1673 km | 1673620.9 -7.138614 122.604860 84.18 32.74 | -26.95 106.61
+Meme massif : 1000 km | 1000000 -7.138614 122.604860 84.18 32.74 | -26.95 106.61
+Meme massif : 300 km | 300000 -7.138614 122.604860 84.18 32.74 | -26.95 106.61
+Autre chaine : orbite 1200 km | 1200000 -25.6 -26.94 84 0 | -25 -25
+Autre chaine : vallees a 60 km | 64126.747 -25.566 -26.916 70 0 | -25 -25
+Autre chaine : cretes proches | 6760.919 -25.6 -26.94 25 0 | -25 -25
+Foret et crete de pres : 500 m | 500 -12.406891 52.928246 35 -118.93 | -10 50

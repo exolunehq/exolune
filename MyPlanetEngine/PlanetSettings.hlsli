@@ -102,6 +102,195 @@ static const float3 VOLCANO_LOBES           = float3(0.12, 0.1, 0.35);
 // of the soil it covers where the ground is wholly fresh. Its rock is basalt (VertexShader.hlsl).
 static const float3 VOLCANIC_ASH            = float3(0.075, 0.07, 0.068);
 static const float VOLCANIC_COVER           = 0.85;
+
+// The erosion (Erosion.hlsli, docs/spec-erosion.md). Each level 0 cell's node moves within it by up to EROSION_JITTER of
+// a cell; a link's valley reaches EROSION_REACH cells at most.
+static const float EROSION_JITTER           = 0.3;
+static const float EROSION_REACH            = 0.6;
+// The fluvial floor's half-width: x sqrt(Q) (m, Q in m3/s), widened under a slope of y up to z times.
+static const float3 EROSION_FLOOR           = float3(2.0, 0.002, 15.0);
+// Inland water uses the drainage network. Hydraulic-geometry power laws; coefficients are engine calibration.
+// x: channel half-width / sqrt(Q), y: depth at Q=1 m3/s, z: depth exponent, w: maximum depth (m).
+static const float EROSION_WATER           = 1.0;
+static const float4 EROSION_RIVER_SHAPE     = float4(2.4, 0.35, 0.3, 20.0);
+// Half-width of the continuous reconstruction between distinct level-0 terminal stages (m).
+static const float EROSION_LAKE_TRANSITION = 2000.0;
+// The walls' slope, on soft ground to the young chains.
+static const float2 EROSION_WALLS           = float2(0.25, 0.65);
+// The glacial trough: transverse scale W=x (m) at an ice flux of 1e8 m3/yr, growing with its power y; curvature z/W
+// above its drained floor. Glacial from log2 of the flux w on. Its tangent walls' slope.
+static const float4 EROSION_GLACIER         = float4(600.0, 0.4, 0.3, 22.0);
+static const float EROSION_GLACIER_WALLS    = 0.85;
+// The final cut blends over this height difference (m), without raising the full ground. Its guide's coarse parent:
+// the large forms and the detail's octaves wider than EROSION_COARSE (km).
+static const float EROSION_SMOOTH           = 60.0;
+static const float EROSION_COARSE           = 20.0;
+// The gullies, from the detail's octave EROSION_GULLY_FIRST on, 11 km: EROSION_GULLY_SHARE of each octave's pattern on a
+// steep ground; on a slope from x to y (m/m); none under z km. Their stripes keep their phase over EROSION_GULLY_PERIODS
+// periods, 2: their lattice is the octave's, halved (Relief.hlsli).
+static const int   EROSION_GULLY_FIRST      = 2;
+static const float EROSION_GULLY_SHARE      = 0.85;
+static const float3 EROSION_GULLY           = float3(0.02, 0.15, 0.1);
+static const int   EROSION_GULLY_PERIODS    = 2;
+// The stripes fade around their forks, where the sum of their waves, of unit weight, falls under this.
+static const float EROSION_GULLY_FORK       = 0.3;
+// Soil-mantled hillslopes: Roering, Kirchner and Dietrich 1999, Sc = 1.25 +- 0.10.
+static const float EROSION_GULLY_CRITICAL   = 1.25;
+// Strong exposed rock can sustain 70 degrees; the equilibrium-line share opens this bound continuously.
+static const float EROSION_GULLY_ROCK       = 2.74747742;
+// Soil hillslopes, then rock gullies: full soil below 300 m, full scale transition at 1 km, regardless of the mesh.
+static const float2 EROSION_GULLY_MANTLE    = float2(0.3, 1.0);
+static const float2 EROSION_GULLY_ROCK_RELIEF = float2(600.0, 1400.0);
+// Above the ice, a monotone quadratic sharpens crests, with finite slope and the crease's rounding; 0 disables it.
+static const float EROSION_GLACIAL_SHARPEN  = 0.2;
+// The sharpening over EROSION_GLACIAL_BAND m around the glacial maximum's equilibrium line; the folds fade where the level
+// 0's valleys are deeper than x to y (m), in the chains' core.
+static const float EROSION_GLACIAL_BAND     = 600.0;
+// The valleys are read at a point warped by up to y km at one deviation, from x km down, so that the level 0's straight
+// links wander; on a valley's walls, the detail's relief is at least EROSION_WALL_RELIEF of its depth.
+// 7 km folded the angular map (negative Jacobian on about 13% of two global samples), duplicating valleys.
+static const float2 EROSION_WARP            = float2(40.0, 2.0);
+static const float EROSION_WALL_RELIEF      = 0.35;
+// A delta at a mouth whose discharge exceeds EROSION_DELTA_DISCHARGE (m3/s): its lobe x sqrt(Q) (m) seaward, y of that
+// landward, z of it across; its plain w (m) above the sea, its front falling EROSION_DELTA_FRONT of its length per length.
+static const float4 EROSION_DELTA           = float4(60.0, 0.3, 1.6, 3.0);
+static const float EROSION_DELTA_DISCHARGE  = 300.0;
+static const float EROSION_DELTA_FRONT      = 0.05;
+// A fan at the mountain front: x sqrt(Q) (m) down its valley, y of that back up it, its cone falling z per length.
+static const float3 EROSION_FAN             = float3(120.0, 0.2, 0.03);
+// Wave erosion: x enables it; y is the accumulated retreat (km) at unit wave force and unit erodibility; z its maximum
+// (km); w the along-coast variation, as a fraction of that distance (Sunamura 1992, force over rock resistance).
+static const float4 EROSION_CLIFF_RETREAT   = float4(1.0, 1.2, 3.0, 0.45);
+// The retreat noise's wavelength (km); bays displaced inland by x to y km lose their incoming waves entirely.
+static const float EROSION_CLIFF_NOISE      = 2.4;
+static const float2 EROSION_CLIFF_BAY       = float2(-12.0, -6.0);
+// The inland reach adds x km and the detail's shoreline displacement to the retreat, capped by z km, fading over y km.
+// Seaward, only the original proxy's absolute z km bound applies, with the same fade. No mesh-dependent reach.
+static const float3 EROSION_CLIFF_REACH     = float3(1.0, 0.5, 8.0);
+// The marine witness is at RETREAT.z km seaward on the uneroded terrain. x is its minimum water depth (m), the -50 m
+// deep-sea criterion of the reach check; y is its smooth transition distance (km), converted by that coast's slope.
+static const float2 EROSION_CLIFF_SEA       = float2(50.0, 0.25);
+// The coastal height contour (m), from width times slope, bounded for common sea cliffs. 400 m is a calibration below
+// Conachair's 426 m (NatureScot, Coastal cliffs); it is not a universal geological maximum.
+static const float2 EROSION_CLIFF_HEIGHT    = float2(8.0, 400.0);
+// Physical scale of the cliff's slope (km): three maximum retreats. Detail retains the first three octaves,
+// 50, 23.7 and 11.2 km; the coast's gradient also filters its octaves and rounds its ria cusps at this scale.
+// The full ground is remapped; a fine coastal fold cannot move the whole cliff's height contour.
+static const float EROSION_CLIFF_SLOPE_KM   = 9.0;
+// The face's transition interval, as a share of its height, at least the height spanned by two cells on the coast.
+static const float EROSION_CLIFF_FACE       = 0.1;
+// Scree at 35 degrees, up to y of the contour's height, in discontinuous patches.
+static const float2 EROSION_CLIFF_SCREE     = float2(0.7002, 0.22);
+// The platform's foot (m), its nominal seaward slope (m/m), and maximum drop to the old shoreline (m), Trenhaile 1987.
+static const float3 EROSION_CLIFF_PLATFORM = float3(-1.0, 0.02, 4.0);
+// Remnants keep the original ground: half-width and noise wavelength (km), regional threshold in noise deviations.
+static const float3 EROSION_CLIFF_STACK    = float3(0.065, 0.8, 1.4);
+// The swell from every side, plus the directional waves; the westerlies' peak strength relative to the trades.
+static const float2 EROSION_CLIFF_WAVES    = float2(0.28, 1.6);
+// Step A of the erosion's replacement (docs/spec-erosion.md, the ravines): true, the pre-erosion form and its ravines; the
+// network's valleys, gullies, channels, lakes, deltas and fans off, the wave-cut cliffs kept. false, the network as before.
+// The level 0 reads the pre-erosion form, the same either way.
+static const bool  EROSION_RAVINES          = true;
+// The ravines (ReliefDetail): RAVINE_OCTAVES octaves of period RAVINE_TOP (m) halving, 5 km to 4.9 m, each stripes down
+// the slope of the relief keeping wavelengths from 2 periods and of the coarser ravines at RAVINE_STEER.x of theirs, their
+// troughs rounded over RAVINE_STEER.y of its period: branching by cascade. RAVINE_SHAPE: amplitude x times the period times
+// the steering slope saturated at y (tanh); z the pivots' jitter, a share of a period; w the warp, in periods at one
+// deviation, its wavelength 2 periods. The trough rounded over RAVINE_ROUNDING.x mesh cells or y of the period, the wider.
+// The amplitude fades in over RAVINE_LAND (m) of the steering ground above the sea, times the square root of the
+// erodibility clipped to RAVINE_ROCK, RAVINE_WET.x in a desert to y in the wet, RAVINE_PLAINS on plains to 1 in mountains.
+static const float RAVINE_TOP               = 5000.0;
+static const int   RAVINE_OCTAVES           = 11;
+// Those finer than x (m) fade on the slopes from y to z, where the rock bares: on the cliffs they drew parallel grooves of
+// 5 and 10 m; on the snow and the grass, their absence left a hole in the ladder of scales (docs/journal-planete.md).
+static const float3 RAVINE_CLIFF            = float3(15.0, 0.5, 0.8);
+// No ravine on the flat: they rise over slopes from x to y. Water spreads in sheets there; their stripes, regular on the
+// plains, left a hole in the soil's ladder of scales.
+static const float2 RAVINE_SLOPE            = float2(0.05, 0.3);
+static const float4 RAVINE_SHAPE            = float4(0.15, 0.8, 0.8, 0.2);
+static const float2 RAVINE_STEER            = float2(0.5, 1.0);
+static const float2 RAVINE_ROUNDING         = float2(2.0, 0.1);
+static const float2 RAVINE_LAND             = float2(0.0, 50.0);
+static const float2 RAVINE_ROCK             = float2(0.5, 2.0);
+static const float2 RAVINE_WET              = float2(0.6, 1.0);
+static const float RAVINE_PLAINS            = 0.6;
+// Step B (docs/spec-erosion.md, the corridors), on step A: true, the level 0's rivers in corridors, with their water and
+// the terminal lakes; false, step A exactly. Ported from the CPU prototype tools/hydro/couloirs.py, sized by discharge.
+// Their stages are conditioned at startup (Erosion.cpp, ErosionStages.hlsl); per point, ErosionRivers.
+static const bool  EROSION_RIVERS           = true;
+// A dry course from RIVER_Q.x m3/s; depth and width grow together by ErosionCourseShare. A shallow onset on existing
+// tributaries precedes the large valley, with no view-dependent head extension. Water still starts at y, full at z.
+// These thresholds and the onset polynomial are engine calibration, not measured outlet spacing (docs/spec-erosion.md).
+static const float3 RIVER_Q                 = float3(100.0, 300.0, 450.0);
+// The valley floor's width (Brocard and van der Beek 2006, Clubb et al. 2022): x Q^y m at a factor 1, at most 2 z m. The
+// factor, per node: the rock's erodibility to the power RIVER_FLOOR_ROCK, times w in mountains; stored as its log2 in
+// RIVER_FLOOR_LOG2's range. The meander belt stays inside it.
+static const float4 RIVER_FLOOR             = float4(230.0, 0.4, 4000.0, 0.35);
+static const float RIVER_FLOOR_ROCK         = 0.5;
+static const float2 RIVER_FLOOR_LOG2        = float2(-3.0, 1.0);
+// Along a course, its floor times exp2(+- y) and its walls' width times exp2(+- z), by a noise of wavelength x m: gorges
+// and basins. A corridor's half-width stays under RIVER_REACH m, within the 4 x 4 nodes read.
+static const float3 RIVER_VALLEY_NOISE      = float3(12000.0, 1.0, 0.5);
+static const float RIVER_REACH              = 8500.0;
+// The walls' profile: a ramp at constant slope, rounded into the floor and the relief over a share x of its width for
+// rivers of RIVER_Q.y m3/s, straight V sides, to y from z m3/s, the broad footslopes of large valleys.
+static const float3 RIVER_WALL              = float3(0.15, 0.5, 3000.0);
+// Preserve positive terrain residuals from RELIEF_DETAIL_TOP down on valley sides, including inside the old flat floor.
+// x: recovery distance as a share of its half-width; y: C1 rounding in metres; z: retained-height envelope per metre
+// beyond the dry bank. This bounds only recovered spurs, not the original valley walls. The wet banks stay clear.
+static const float3 RIVER_SPURS             = float3(0.6, 60.0, 0.6);
+// Each mountain mass contracts its local floor and wall widths: minimum factor x, relief sensitivity y.
+// Read on the terrain point so opposite flanks advance independently; the wet bank remains the minimum width.
+static const float2 RIVER_CONFINEMENT       = float2(0.25, 3.0);
+// Meanders (Leopold and Wolman 1960): octaves of wavelength RIVER_MEANDER.x m halving, faded in from 0.7 to 1.4 of the
+// finest, y channel widths; amplitude per wavelength z on the two finest, w on the coarser. Octaves under RIVER_SPLIT
+// finest wavelengths bend the channel within its floodplain, the coarser ones the valley, bounded by RIVER_OFFSET_MAX m.
+static const float4 RIVER_MEANDER           = float4(40000.0, 12.0, 0.1, 0.05);
+// The pixel contour's channel band, in samples of the grid (PixelShader.hlsl, bandScale): x where its samples are under
+// y metres, z from w metres up, where the grid's distance is the samples' own and the channels far narrower than them.
+static const float4 CONTOUR_CHANNEL_BAND    = float4(0.3, 100.0, 0.15, 200.0);
+// Inland water covering less of the pixel than this is dry (PixelShader.hlsl): rivers filtered at wide footprints spread
+// their wetness thin over whole valleys, each pixel shading the water for a share under 1/64: 6/255 at most, along the
+// valleys' floors, from 250 to 1,231 km (docs/diagnostic-orbite.md, 2026-11-09).
+static const float INLAND_MIN_COVERAGE      = 1.0 / 64.0;
+// Wavelengths from x to 2x transfer fully to the bounded valley offset, even on the largest rivers.
+static const float RIVER_CHANNEL_WAVE       = 10000.0;
+static const float RIVER_SPLIT              = 6.0;
+static const float RIVER_OFFSET_MAX         = 2500.0;
+// Sinuosity falls where the 25 km forms are steeper than x, to y, down to z of it.
+static const float3 RIVER_SINUOUS           = float3(0.02, 0.15, 0.3);
+// Width modulation: finest pair's larger wavelength (m), maximum fractional amplitude (<1). The valley's opening
+// contributes 0.5, noises of x and x/4 contribute 0.3 and 0.2. Linear centred octaves retain the nominal mean width.
+static const float2 RIVER_WIDTH_NOISE       = float2(1500.0, 0.9);
+// The banks stand RIVER_BANK channel depths above the stage; past its edge a channel's banks rise at RIVER_STEEP_BANK.
+static const float RIVER_BANK               = 0.5;
+// World-fixed bank-height octaves, centred on the existing bank height; wavelength (m), relative amplitude.
+static const float2 RIVER_BANK_DETAIL        = float2(180.0, 0.7);
+// Wet/dry bank shoulders: minimum run (m), run per metre of depth/height; at most one channel half-width.
+static const float2 RIVER_BANK_SHOULDER      = float2(2.0, 4.0);
+// Fine shoreline displacement: maximum metres and share of the nominal half-width. Gentle reaches retain 60%: the
+// Isere's banks at Bourg-Saint-Maurice wander by tens of metres along gravel bars (spec-erosion.md, the references).
+static const float2 RIVER_BANK_EDGE          = float2(25.0, 0.25);
+// Tributary opening: downstream-bank share of the width deficit (at most 0.5), approach in combined half-widths.
+static const float2 RIVER_CONFLUENCE         = float2(0.5, 9.0);
+// A mouth adds x half-widths over the last y nominal half-widths before first water, at most z metres.
+// The same y also retains the low-bank fallback in channel depths when no cached contact is in this part.
+static const float3 RIVER_MOUTH              = float3(2.0, 8.0, 600.0);
+// Cached first-water contacts: maximum longitudinal probe spacing, terrain cell, submerged fade length (m).
+static const float3 RIVER_CONTACT            = float3(256.0, 25.0, 80.0);
+// Low-gradient marine fans: discharge onset/full (m3/s), side-branch offset in channel half-widths, maximum offset (m).
+static const float4 RIVER_DELTA              = float4(800.0, 2500.0, 14.0, 1800.0);
+static const float RIVER_STEEP_BANK         = 3.0;
+// Outlets continue x m past their node at their level, to the detailed coast; above a head its dry valley rises over y m
+// at the slope z. Both where the level 0's cells are widest, in proportion to them elsewhere.
+static const float3 RIVER_EXTEND            = float3(15000.0, 12000.0, 0.15);
+// A tributary's arrival angle bounds (degrees), about Howard's.
+static const float2 RIVER_JUNCTION          = float2(12.0, 55.0);
+// The floodplain keeps x of the relief finer than 2 y m.
+static const float2 RIVER_FLOODPLAIN        = float2(0.2, 200.0);
+// At startup, the stage is capped by the relief filtered at RIVER_CAP_CELL m, sampled at RIVER_CAP_SAMPLES points along
+// each course (Erosion.cpp adds its fill and spreads its drops).
+static const float RIVER_CAP_CELL           = 500.0;
+static const int   RIVER_CAP_SAMPLES        = 33;
 // Highest possible terrain (m).
 static const float MAX_TERRAIN_HEIGHT       = 10000.0;
 
@@ -197,6 +386,14 @@ static const float4 GRASS_BANDS = float4(-2.0, 7.0, 0.06, 0.2);
 // over thirteen octaves, 0.12 per axis and octave, the noise's gradient 0.5 per axis. Far away, the rule takes those octaves
 // as there (RockShares); at 0.05 near the camera, they were not, and every face was its photo's even carpet.
 static const float4 ROCK_BANDS = float4(3.0, 6.0, 0.24, 0.06);
+// The rock's face photo near the ground (Materials.hlsli, PIXEL_NEAR_DETAIL). Its joints run straight across its 12.7 m:
+// at a few centimetres a pixel, a straight joint matched itself along its length, repetition p95 0.22 to 0.27 against the
+// photos' 0.18 (docs/diagnostic-orbite.md, 2026-11-09). Read aside by a noise of FACE_WARP.x (m), y m per unit of its
+// gradient, about 2 cm at one deviation, while the noise spans 16 pixels, gone at 8: its joints wander as real ones do.
+// Then bands of 25 and 50 cm, colour only, 4 % at one deviation each, as weathering shades a wall: the rock had no detail
+// under 8 m. Wider, the warp swirled the photo up close; at 8 cm, a 50 m view's rock repeated more.
+static const float2 FACE_WARP = float2(0.5, 0.04);
+static const float4 FACE_BANDS = float4(-2.0, -1.0, 0.0, 0.2);
 // Scree, 4 to 64 m: its tile stops at 4 m.
 static const float4 SCREE_BANDS = float4(2.0, 6.0, 0.05, 0.06);
 // Bare soil, 50 cm to 64 m, over the sandy gravel's photo: where it is too dry for grass and too damp or cold for sand,

@@ -72,8 +72,8 @@ void D3DApp::UpdateShip(float dt) {
     // height, and up high a single notch is already fast.
     mPlume += (mThrottle / 30.0 - mPlume) * (1.0 - std::exp(-dt / response));
     Vec3d newPos = mShipPos + mShipVelocity * dt;
-    // Above the ground and the sea, with the hull's 2 m under its centre and a margin.
-    double minRadius = PlanetRadius + mGroundHeight + 2.5;
+    // The flight corridor sweeps the hull before this candidate pose is accepted. Keep only the sea floor here.
+    double minRadius = PlanetRadius + (mFlightContactPSO ? 0.0 : mGroundHeight) + 2.5;
     if (mOcean && !mWaveReset && mGroundHeight <= 0.0)
         minRadius = std::max(minRadius, PlanetRadius + double(mOcean->SurfaceHeight()) + 2.5);
     if (Length(newPos) < minRadius) {
@@ -140,7 +140,8 @@ void D3DApp::UpdateShip(float dt) {
         const Vec3d wantedOffset = look * -15.0 + headUp * 6.5;
         mChaseOffset = mChaseOffset + (wantedOffset - mChaseOffset) * (1.0 - std::exp(-dt / 0.12));
         mCamPos = mShipPos + mChaseOffset;
-        if (Length(mCamPos) < PlanetRadius + mGroundHeight + 1.0) mCamPos = Normalize(mCamPos) * (PlanetRadius + mGroundHeight + 1.0);
+        const double cameraFloor=PlanetRadius+(mFlightContactPSO?0.0:mGroundHeight)+1.0;
+        if (Length(mCamPos) < cameraFloor) mCamPos=Normalize(mCamPos)*cameraFloor;
         mCamForward = Normalize(mShipPos + mShipForward * 2.0 - mCamPos);
         mCamUp = Normalize(headUp - mCamForward * Dot(headUp, mCamForward));
     }
@@ -184,6 +185,7 @@ void D3DApp::HoldMouse(bool hold) {
 }
 
 void D3DApp::SetView(View view) {
+    ResetFlightContact();
     if (mView == View::Walk) { mWalkProbePending=mWalkPatchValid=false; mWalkJump=false; }
     if (view != View::Free && view != View::Walk && mView == View::Free) PlaceShipAtCamera(); // the ship comes to the free camera
     mView = view;

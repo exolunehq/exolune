@@ -1,0 +1,11 @@
+# Seed 0: Hc comes from the sole main terrain evaluation, valleys always on the sphere; no automatic launch. Before/after measurements in docs/spec-erosion.md.
+First coast: cliff height and continuity | 3000 8.54005 -103.23344 40 180 | 10 -100
+Second coast: low cliffs and platform | 3000 -23.01696 158.00809 40 180 | -25 155
+Third coast: increased maximum Hc, sea access to check | 3000 -3.34285 169.01181 40 180 | -5 165
+Cold coast: wall and platform | 3000 -51.89165 -40.94037 40 180 | -40 -10
+Active coast: no cut beyond marine reach | 3000 -8.11021 131.04460 40 180 | -10 130
+Tropical cape: coastal contour and sea in front of the foot | 3000 8.76166 -103.24998 40 180 | 10 -100
+First fixed section: 378 m wall and platform | 1000 8.72580 -103.29430 30 180 | 10 -100
+Second fixed section: 42 m wall and platform | 1000 -23.18981 157.86949 30 180 | -25 155
+Third fixed section: 43 m wall and platform | 1000 -3.21302 169.26372 30 180 | -5 165
+Flat coast: unchanged control | 1000 16.71 -89.28 45 180 | 15 -85

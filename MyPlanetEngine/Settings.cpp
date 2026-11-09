@@ -52,6 +52,13 @@ float DiagnosticView(const wchar_t* name) {
 
 Settings ReadSettings() {
     Settings s;
+    wchar_t erosionMode[32] = {};
+    if (GetEnvironmentVariableW(L"MYPLANETENGINE_EROSION_MODE", erosionMode, _countof(erosionMode))) {
+        int mode; wchar_t extra;
+        if (swscanf_s(erosionMode, L"%d %lc", &mode, &extra, 1u) != 1 || mode < 0 || mode > 2)
+            throw std::runtime_error("MYPLANETENGINE_EROSION_MODE expects 0, 1 or 2.");
+        s.erosionMode = UINT(mode);
+    }
     wchar_t cine[32768] = {};
     if (GetEnvironmentVariableW(L"MYPLANETENGINE_CINE", cine, _countof(cine))) s.cinePath = cine;
     if (!s.cinePath.empty()) {

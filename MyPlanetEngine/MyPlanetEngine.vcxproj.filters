@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Fichiers sources">
@@ -28,6 +28,9 @@
       <Filter>Fichiers sources</Filter>
     </ClCompile>
     <ClCompile Include="Climate.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="Erosion.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
     <ClCompile Include="D3DAppBench.cpp">
@@ -73,14 +76,32 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="ScreenRelief.hlsl" />
+    <FxCompile Include="ScreenRivers.hlsl" />
+    <FxCompile Include="ScreenRiverTexel.hlsl" />
+    <FxCompile Include="ErosionActivity.hlsl" />
+    <FxCompile Include="ErosionCourseBuild.hlsl" />
+    <FxCompile Include="ErosionCourseWet.hlsl" />
+    <FxCompile Include="PlanetPlantGround.hlsl" />
+    <FxCompile Include="ErosionActivityTiles.hlsl" />
+    <FxCompile Include="ErosionRiverMap.hlsl" />
+    <FxCompile Include="ScreenRiverArgs.hlsl" />
     <FxCompile Include="VertexShader.hlsl" />
     <FxCompile Include="PixelShader.hlsl" />
+    <FxCompile Include="PixelShaderScreen.hlsl" />
+    <FxCompile Include="PixelShaderNear.hlsl" />
+    <FxCompile Include="PixelShaderScreenNear.hlsl" />
+    <FxCompile Include="TerrainContourCells.hlsl" />
     <FxCompile Include="TerrainCompute.hlsl" />
     <FxCompile Include="TerrainComputePairs.hlsl" />
     <FxCompile Include="Horizon.hlsl" />
     <FxCompile Include="FineTerrain.hlsl" />
     <FxCompile Include="FineNormals.hlsl" />
     <FxCompile Include="PlanetMap.hlsl" />
+    <FxCompile Include="ErosionForm.hlsl" />
+    <FxCompile Include="ErosionNodes.hlsl" />
+    <FxCompile Include="ErosionStages.hlsl" />
+    <FxCompile Include="ErosionContacts.hlsl" />
     <FxCompile Include="MaterialGenerator.hlsl" />
     <FxCompile Include="ObjectPlacement.hlsl" />
     <FxCompile Include="ObjectCandidates.hlsl" />

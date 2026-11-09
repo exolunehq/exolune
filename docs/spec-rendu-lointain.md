@@ -89,6 +89,7 @@ Status: chosen the 2026-10-21; first version made, the face only.
 
 - **A grid 4 times thinner than the face of the mesh,** 768 × 768 grid cells, recalculated at each frame by complexplanet, filtered to its own grid cell as the mesh is to its own.
 - **Two pass calculation:** the heights of the fine grid, then its normals.
+- **Its culling margin, since 2026-11-07:** 6 fine cells, what a visible pixel's B-spline and normals read, 3 cells, and as many again. It was the mesh's 6 cells, which also cover the shadows' vertices. Images identical; 97 km's fine grid 0.28 ms faster.
 - **The pixel reconstructs the fine height with a positive 4 by 4 cubic B-spline and derives its normal from that surface,** instead of independently interpolating linear heights and normals. It fades on the last eight face cells; see `spec-normales-spline.md` for the 2026-11-01 correction and its limits.
 - **The grain of the lighting and the dispersion of slopes** are adjusted on the grid cell fine: the invented grain starts only below it.
 - **Up to 160 m from the ground for material decisions:** active from grid cells face of 3,4 m, `FineMinCell`, fully to 6,8 m, or 320 m high. Lower, the mesh carries the thinnest octave of the relief, 13,5 m, on its 4 grid cells. It stopped first at 20 m from grid cell, towards 1 km: see the correction of the 2026-10-24 below.
@@ -295,26 +296,41 @@ Status: validated in flight by the user on the erosion branch, tag `piste/relief
 - The per-pixel detail took over later, its widest octave 6 km: the ground sharpened at once.
 - Fields interpolated on the mesh's sliding triangles crawled the same way: roughness, fresh volcanic ground, geology.
 
-**The change: `ScreenRelief.hlsl`, a compute pass at every frame.**
+**The change: screen relief, refreshed when its inputs change.**
+- Since 2026-11-05, ground preparation, sparse river enumeration, node evaluation, reduction, complete overflow fallback and finish schedule the same physical queries in separate passes. The conditioned network supplies exact activity masks and conservative projected bounds (`spec-erosion.md`).
+- The original distance gate also bounds enumeration by a spherical cap, including cube-face seams. Four adjacent lanes share each result reduction; the existing native tolerances bound wet-sum rounding differences. Filter width and resolution remain unchanged.
+- Identical camera/frame/FOV, double nadir, sampling layout and erosion mode retain the exact previous result. There is no history reprojection or approximate motion reuse.
+- Both ray evaluations remain; a nonpositive first height reuses the identical sea-level query. At full weight, above 400 km, the first only places the ground, without its rivers; the river query runs once, at the second point or at the kept sea-level one. Crossfaded with the fine grid, both keep their rivers, so that both grids place a valley floor at the same spot. Correctness, moving-camera performance and remaining cost: `diagnostic-orbite.md`.
+- Footprints wider than a level-0 cell, about 25 km, read the rivers on a startup map instead of their courses: mesh vertices, distant texels and the limb (`spec-erosion.md`).
 - **One texel per 2 × 2 pixels** (`ScreenReliefScale`), at most 1920 × 1080 texels.
 - **Each texel finds its ground:** the view ray meets the sphere at sea level, then again at the elevation found there, for the parallax of summits seen aslant.
-- **The relief is filtered to 4 texels** (`SCREEN_BAND_LIMIT`), as the mesh is filtered to 2 cells (`MESH_BAND_LIMIT`).
-- **Each texel stores 24 bytes** (`ScreenSample`): camera-relative position and elevation, roughness and fresh volcanic ground.
-- **Its weight rises with camera altitude,** smoothstep from 150 to 400 km (`ScreenReliefLow`, `ScreenReliefHigh`). Below, the fine grid and the per-pixel detail carry the relief to the pixel.
-- **Nothing is kept between frames:** the texels follow the view, as the pixels do.
+- **The relief is filtered to 4 texels** (four-texel bandwidth), as the mesh is filtered to 2 cells (`MESH_BAND_LIMIT`).
+- **Each texel stores 64 bytes** (`ScreenSample`): camera-relative position and elevation, premultiplied inland water and flow, roughness and fresh volcanic ground.
+- **Step-B water, since 2026-11-03:** wet fraction, fraction times stage and mean depth come from the physical channel section. The wider support of an averaged cut is not full water presence. The mesh, fine grid, screen grid and pixel contour query share this representation (`spec-erosion.md`).
+- **Its weight rises with camera altitude,** smoothstep from 150 to 200 km since 2026-11-07, formerly 400 km (`ScreenReliefLow`, `ScreenReliefHigh`). Below, the fine grid and the per-pixel detail carry the relief to the pixel. Crossfaded, the screen relief, the fine grid and the pixel contour all ran their rivers.
+- **Direct path:** when every texel's river footprint reads the rivers' map, or no river is drawn, both rays and their finish run in the ground pass, without the river passes or their scratch (`ScreenRelief.hlsl`, screen pass bit 1). At full weight otherwise, the first ray, which queries no river, is finished in its own pass (bit 2).
+- **Rivers, one query per texel in a kernel of their own** (`ScreenRiverTexel.hlsl`, since 2026-11-07): a wave's texels list their nodes together (`spec-erosion.md`, shared listings). Inlined in the ground pass, the corridors cost thirty times more; the former queue of node tasks, their results and their reduction cost three times more at 250 km.
+- **A wide search goes to a wave of its own** (`ScreenRivers.hlsl`): a window of more than 8 × 8 nodes, at the limb. Its wave's other texels keep their shared listing.
+- **Each texel's finish follows its query in the same kernel** (`ScreenFinishTexel`, `ScreenReliefWork.hlsli`): no finish pass, no dispatch of its own.
+- **The fine grid and the mesh by 8 × 8 tiles of samples** (`FineTerrain.hlsl`, `TerrainCompute.hlsl`): a wave's samples are neighbours on both axes. A row of 32 fine samples spanned 16 km at 97 km and shared no course.
+- **Every changed query is refreshed:** the texels follow the view; only identical inputs retain their exact previous result.
 
 **The pixel reads it in B-spline,** `ScreenNormal` (`PixelShader.hlsl`).
 - A smoothing cubic B-spline over the 4 × 4 nearest texels; positions taken relative to the first, without cancellation.
+- Inland coverage, stage/depth moments and flow use the same positive weights on both the screen and fine grids. Flow is divided by coverage only after reconstruction; dry samples cannot rotate or slow the wet current during the crossfade.
 - The normal is the cross product of the surface's derivatives.
 - Slope variation as the texels slide: 9 % with a bilinear tent at 4 texels, 3 % with the B-spline, 0.4 % at 8 texels (`log/pistes-glissement.md`).
 - Any texel without ground, at the limb, sets the weight to 0: the mesh and the fine grid take over.
+- At full weight on every row, the fine grid computes only what those limb pixels read: its samples within 8 pixels and 4 fine cells of the sea-level limb (`FineNearLimb`, `FineTerrain.hlsl`). The others stay off screen.
+- Their rivers are filtered at the reading texel's footprint, as the screen relief's, never finer than their own cell (`FineLimbFootprint`).
+- Pixel contour refinement follows global screen activation, not this local stencil weight. A missing limb stencil cannot restart a full planetary river search per fragment; this caused the reproduced GPU timeout.
 
 **What the screen relief drives, where its weight is on:**
 - the lighting normal, the decision normal and the shore normal;
-- the elevation and the 3D point where material noises are read;
+- the elevation, the inland water and the 3D point where material noises are read;
 - the ocean's edge, its contour at the texels antialiased across the pixel;
 - the slopes hidden below the texel, from its own roughness (`SlopeSpread`), and the light the finer relief leaves (`FinerReliefLit`), about its own normal;
-- no per-pixel coast query and no invented `DetailSlope` grain under it.
+- no per-pixel water contour query and no invented `DetailSlope` grain under it.
 
 **Fields moved from the mesh to the texel or the pixel:**
 - **roughness and fresh volcanic ground:** read in the texel, with the relief;
@@ -328,28 +344,7 @@ Status: validated in flight by the user on the erosion branch, tag `piste/relief
 
 **Limits:**
 - **Shading only:** the mesh still gives geometry, depth and silhouettes (`geometrie.md`).
-- **Cost:** not measured; no benchmark was run. Between 150 and 400 km, the pixel coast query below still runs with the remaining weight.
-- **Memory:** 24 bytes per texel, about 47 MiB for the 4K maximum.
-- **Port to `main`:** the inland water fields of the erosion branch's texel are left out; `CLOUD_BAND_LIMIT` was validated before `main`'s per-point cloud light, and is checked again in flight.
-
-## The coast's contour at the pixel, 2026-11-01
-
-Status: accepted in flight by the user on the erosion branch, with the river contours; ported to `main` for the ocean alone, without inland water, on 2026-11-02.
-
-**Symptom:** from orbit, below the screen relief, the coast was polygonal and moved with the fine grid as it slid.
-
-**Cause:** the coast was where the samples' interpolated heights crossed 0. Their cells, wider than the pixel, drew it in their own segments.
-
-**The change, in `PSMain`:**
-- **Candidates:** pixels whose samples' cells are wider than the pixel (`unresolved`) and whose height lies within a band around sea level, from the sample size and the height's screen derivatives.
-- **The terrain at the pixel:** for those, the shared `ReliefElevation`, filtered at half the pixel footprint, with the 2 m physical floor (`CREASE_MIN_CELL`).
-- **Its contour, antialiased across the pixel,** replaces the spread coverage there.
-- **Every lane of a derivative quad evaluates together:** two fine-derivative reductions broadcast a candidate across its quad, without wave operations.
-- **The water only:** the contour's height sets the sea's coverage and its bed; land materials, normals, depth and silhouettes keep their sampling.
-- **Never under the screen relief,** which holds the contour at its texels.
-
-**What it needs:** the noise's gradient table in the frame constants (`reliefGradients`, `ReliefGradients.inl`, `RELIEF_PIXEL` in `Noise.hlsli`), shared bit for bit with the compute shaders; the terrain vertex and pixel shaders compiled by DXC, shader model 6.0.
-
-**Limits:**
-- **Cost:** extra terrain evaluations near the coast, highest between 150 and 400 km; not measured, no benchmark.
-- **The coast's shape:** the contour follows the terrain as it is; it does not repair the mesh's silhouette.
+- **Cost:** not measured; no benchmark was run. Between 150 and 400 km, the pixel water contour query still runs with the remaining weight.
+- **Memory:** 64 bytes per texel, about 127 MiB for the 4K maximum; fine-grid samples are 48 bytes, about 27 MiB for 768 × 768.
+- **Erosion valleys still appear suddenly** between 1,400 and 1,800 km (`spec-eaux-interieures.md`).
+- **Two rejected options** are in [the history](log/spec-rendu-lointain-historique.md#2026-11-02-rejected-options-of-the-screen-relief).

@@ -1,0 +1,13 @@
+# Crests and climate: user flight review, without automatic launch. Altitudes above sea level; seed 0. Continuous ground, no blade under ice; rounded arêtes still visible above the equilibrium line. See docs/spec-erosion.md for CPU measurements.
+Forest at eye level, looking north: former wall at 13 m | 2120.066 34.1611352 -73.72443 0 0 | 25 -65
+Same forest from 200 m: continuity over several crests | 2318 34.1611352 -73.72443 45 0 | 25 -65
+Snowy slope at eye level: former blade, looking north | 2166.836 -48.3497 -44.8221 0 0 | -40 -10
+Range above the equilibrium line: arêtes preserved | 5792 -46.9 -33.8 15 200 | -40 -10
+Same range up close: cusp-free crests | 3100 -46.9 -33.8 30 200 relief | -40 -10
+Tropical cliff: new exposure to computed wind | 3000 8.54005 -103.23344 40 180 | 10 -100
+Cliff at 23° S: calibration preserved | 3000 -23.01696 158.00809 40 180 | -20 150
+Volcanic coast: wind can move the active face | 3000 -3.34285 169.01181 40 180 | -5 160
+Cold coast: neither landlocked cut nor trough wall | 3000 -51.89165 -40.94037 40 180 | -40 -10
+Active coast: limited reach and computed climate | 3000 -8.11021 131.04460 40 180 | -5 125
+Tropical cape: exposure and shore continuity | 3000 8.76166 -103.24998 40 180 | 10 -100
+Flat-coast control: unchanged ground | 1000 16.71 -89.28 45 180 | 15 -85

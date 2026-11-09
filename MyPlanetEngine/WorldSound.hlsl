@@ -15,6 +15,7 @@
 #include "SurfaceWeights.hlsli"
 RWStructuredBuffer<float4> habitat : register(u0);
 groupshared float e[9];
+groupshared float waterDepth;
 
 [numthreads(64,1,1)]
 void CSMain(uint lane : SV_GroupIndex) {
@@ -27,10 +28,11 @@ void CSMain(uint lane : SV_GroupIndex) {
         gExactLattice = true; gMaxFrequency = NO_LIMIT;
         gCreaseMaxFrequency = PLANET_RADIUS_KM * 1000.0 / (MESH_BAND_LIMIT * CREASE_MIN_CELL);
         e[lane] = ReliefElevation(d);
+        if (lane == 0) waterDepth = gWaterLevel - e[lane];
     }
     GroupMemoryBarrierWithGroupSync();
     if (lane != 0) return;
-    if (e[0] <= 0.15) {
+    if (e[0] <= 0.15 || waterDepth > 0.02) {
         const float4 climate = ClimateAt(materialSampler,(float3)nadir.xyz,0.5);
         habitat[0] = 0.0;
         habitat[1] = float4(0.0,ClimateHumidity(climate.x),climate.y,e[0]);

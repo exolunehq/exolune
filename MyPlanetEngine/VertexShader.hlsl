@@ -99,7 +99,7 @@ PSInput VSMain(uint id : SV_VertexID)
 
     const float2 rest=float2(dot(v.pos,waveAxisX.xyz),dot(v.pos,waveAxisY.xyz));
     float3 displacement=0.0;
-    if(v.elevation<0.0) displacement=OceanGeometry(rest,cellSize,v.elevation);
+    if(v.elevation<0.0 && v.water.w<=0.0) displacement=OceanGeometry(rest,cellSize,v.elevation);
     float3 horizontal=waveAxisX.xyz*displacement.x+waveAxisY.xyz*displacement.z;
     horizontal-=dot(horizontal,v.dir)*v.dir;
     float3 renderPos=v.pos+v.dir*displacement.y+horizontal;
@@ -110,6 +110,9 @@ PSInput VSMain(uint id : SV_VertexID)
     output.seaHeight=displacement.y;
     output.dir = v.dir;
     output.elevation = v.elevation;
+    output.water = v.water;
+    output.inland = float4(InlandSample(v.water.w, v.waterDepth, v.waterCoverage), v.waterDistance);
+    output.water.xyz *= output.inland.x;
     output.normal = unit;
     output.decision = decision;
     output.shore = shore;

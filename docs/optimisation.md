@@ -225,6 +225,7 @@
 - **A hash table on the GPU keeps them:** whole key, tile, slice, plane, first cell; 2²⁰ bytes of 32 cells, four per bucket.
 - **Read in the table of the previous image, written in this one:** two tables alternately; each box claimed by a single writer. No thread reads a box that another writes.
 - **A key without a box is recalculated,** and retries its chance at the next frame.
+- **The tiles without a kept ground get it in a pass of their own,** since 2026-11-07: the light pass lists them (`ListGroundMiss`), `PlanetPlantGround.hlsl` computes them by full waves into this frame's table, the heavy pass reads it there (`GroundKept`). Inline, one or two lanes per wave held it: 0.5 ms more at 2,200 m in motion. Images within 1/255 on 8 pixels: the same function, compiled in another kernel.
 - **A jump of the camera erases the tables** (`Reset`: every view of the benchmark, every button of the “Tests” palette): a view does not depend, at the last bit, on those seen before. Without this, `tropical_sol` after `tropical_150`, 300 m further, changed on 2 965 pixels, 38 of more than one level.
 - **64 MB** of tables, 4 MB of claims erased at each frame; 32 MB of zeros to erase them.
 - **Immobile:** heavy pass 6,2 → 1,9 ms in forest, 7,6 → 1,7 in mountain.

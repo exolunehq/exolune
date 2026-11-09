@@ -1,0 +1,13 @@
+# Seed 0. Sea-level altitudes. First composition correction, not a complete drainage revision. F1-F12; N toggles clouds.
+Riviere : anciens fosses lateraux, vue basse | 150.9 -12.406891 52.928246 26.44 -118.93 | -10 50
+Meme riviere : berges et continuite depuis 500 m | 500 -12.406891 52.928246 35 -118.93 | -10 50
+Confluence : traces geometriques encore a reprendre | 3602.1 -12.486714 52.694265 25.40 103.43 | -10 50
+Riviere de plaine : eau et berges temoins | 650 7.967792903 -84.518564462 65 0 | 10 -85
+Meme region depuis 18 km : affichage tardif encore ouvert | 18045.3 7.953168 -84.525373 84 24.75 | 10 -85
+Chaine de collision : incisions et caractere du massif | 30901.875 -7.5 117 40 20 | -5 125
+Chaine enneigee : cretes et auges | 6760.919 -25.6 -26.94 25 0 | -25 -25
+Caldeira jeune : integration volcanisme et drainage a reprendre | 6140 9.25 -50.04 25 0 | 9 -10
+Stratovolcan : cratere et exutoires a verifier | 15000 11.68268449 -51.41928304 80 0 | 11 -5
+Embouchure signalee : raccord a la mer encore ouvert | 1351 -1.882499 69.597920 23.37 -15.30 | -2 70
+Lac temoin : rive et vegetation | 963.25 42.513100842 -24.531474493 20 -42.49 | 40 -20
+Falaise signalee : dents de scie encore ouvertes | 31.5 -46.984989 -32.983334 3.29 -149.4 | -40 -10

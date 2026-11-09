@@ -1,0 +1,10 @@
+# Seed 0. Distant river evaluation and preserved nearby confluence geometry.
+# Backspace leaves the cockpit. F1-F8 select views; the palette requires windowed mode.
+Orbital : massif du signalement | 1230920.1 -9.148316 124.767492 71.08 20.70 | 20 120
+Haute altitude : cote | 863385.4 -11.180370 124.914240 65.06 30.66 | 20 120
+Orbital : autre hemisphere | 3000000 42.693130 -175.950838 90 0 | 40 -170
+Approche : tete de vallee | 96901 -6.185543 125.892589 71.08 20.55 | 20 120
+Confluence : pointe et rive aval | 2200 -6.250434328 125.346558807 70 180 | 20 120
+Confluence : autre region | 4000 -32.328588383 85.669690200 90 0 | -20 80
+Amont : pres du sol | 3840.6 -5.038412 124.886462 13.17 -102.18 | 20 120
+Vue planetaire : 10 000 km | 10000000 -0.5 -18.225 90 0 | 10 -5

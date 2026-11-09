@@ -1,0 +1,24 @@
+# Seed 0. Ravines by slope, the contour's channel band at altitude (docs/journal-planete.md, 2026-11-09).
+# Ravines back down to 4.9 m: none on the flat (slope under 0.05), the finer than 15 m fading on the cliffs (0.5 to 0.8).
+# To judge: no regular stripes on the plains, snow and grass with their fine gullies again, cliffs without parallel grooves.
+# At 97 km the channel band is narrower: rivers continuous, no gap along a channel. The contour's cells: nothing to see.
+# Lakes read once by the pixels: exact, nothing to see. From orbit, river water covering under 1/64 of a pixel is dry
+# (INLAND_MIN_COVERAGE): at 250 km and 1,231 km the valleys' floors may lose a faint tint; the rivers themselves stay.
+# The cliff photo near the ground (FACE_WARP, FACE_BANDS), under 1 km above it: its straight joints wander by about
+# 2 cm over 50 cm, and the wall takes shades of 25 and 50 cm, 4 %. To judge at 12, 5 and 2 m: joints wavy, never
+# melted; no blotches like light through leaves. Above 1 km, nothing changes.
+# The quality bench's places, at its heights and its camera (35 degrees down). Backspace leaves the cockpit.
+Plaine sans stries : sol 50 m | 50 41.494616 -48.296329 35 0 | 21.49 -13.30
+Plaine sans stries : sol 50 m | 50 42.79437 -161.397382 35 0 | 22.79 -126.40
+Prairie et neige : sol 50 m | 50 -45.397405 -84.949768 35 0 | -60 -49.95
+Neige et ravines fines : 50 m | 50 -26.575325 167.121241 35 315 | -46.58 -157.88
+Herbe : 200 m | 200 -12.700276 160.976084 35 135 | -32.70 -164.02
+Falaises : roche 12 m | 12 -26.501266 166.745418 35 315 | -46.50 -158.25
+Falaises : roche 50 m | 50 -26.501266 166.745418 35 315 | -46.50 -158.25
+Falaise de pres : roche 5 m | 5 -26.501266 166.745418 15 315 | -46.50 -158.25
+Falaise au pied : roche 2 m | 2 -26.501266 166.745418 5 315 | -46.50 -158.25
+Tetes de vallees : bande du chenal 97 km | 96901 -6.185543 125.892589 71.08 20.55 | 20 120
+Confluence : berges 2 200 m | 2200 -6.250434328 125.346558807 70 180 | 20 120
+Vallee amont : 3 840 m | 3840.6 -5.038412 124.886462 13.17 -102.18 | 20 120
+Approche : rivieres 250 km | 250000 -7.489828 125.499386 65.74 -9.13 | 20 120
+Massif : rivieres 1 231 km | 1230920.1 -9.148316 124.767492 71.08 20.70 | 20 120

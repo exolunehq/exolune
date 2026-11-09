@@ -10,6 +10,23 @@
 
 ## What it contains
 
+- **High-altitude performance, 2026-11-04–05:** `spec-erosion-historique.md` preserves the original diagnosis, former precision claims and rejected serial, striped, low-threshold, cooperative-mesh and mask-first schedules, plus superseded comparison tables. Current indexed evaluation is in `../spec-erosion.md`; measurements and limitations are in `../diagnostic-orbite.md`.
+
+- **Confluence banks, 2026-11-04:** `spec-erosion-historique.md` preserves the symmetric width addition and its misleading mandatory-widening check. Current receiving-section matching is in `../spec-erosion.md`.
+
+- **Dry valley onset, 2026-11-04:** `spec-erosion-historique.md` preserves the former 200–300 m³/s activation, its density figures and the limits of the initial distant-head diagnosis. Current physical onset and estuary scale references are in `../spec-erosion.md`.
+
+- **Mouth/bank follow-up, 2026-11-04:** `spec-erosion-historique.md` records the superseded contact review and the rejected false-pool/dry-stripe candidate; current universal composition rules are in `../spec-erosion.md`.
+- **Approach and bank refinements, 2026-11-03:** `spec-erosion-historique.md` preserves the upstream baseline and the rejected cancellation-prone vector filter. Current geometry and checks remain in `../spec-erosion.md`.
+
+- **Erosion continuation, 2026-11-03–04:** `spec-erosion-historique.md` preserves earlier corridor measurements, superseded sizing, rejected coastal channels and the discontinuous absolute-bed union. Current rules and review are in `spec-erosion.md`.
+- **River distance filtering, 2026-11-03:** the same log preserves the widened-bank construction, approach/coast reproductions, preceding sizing-review results and the verified baseline before valley-morphology changes.
+- **Valley morphology, 2026-11-03:** the erosion log preserves the limited-height candidates, unchanged corridor outlines and displaced-bank confinement failure; current formulas and checks remain in `../spec-erosion.md`.
+- **Upstream slot canyons, 2026-11-03:** the same log records the width-only recovery failure, its preceding verification and the discarded height-dependent recovery interval.
+- **`spec-normales-spline-historique.md`:** retired cardinal prefilter and the replaced fine-grid height/normal interpolation; current reconstruction in `../spec-normales-spline.md`.
+- **`spec-marche-ambiances-historique.md`:** replaced prototype contact recordings and material selector; current rules in `../spec-marche-ambiances.md`.
+- **`spec-vaisseau-historique.md`:** the replaced clearance-dependent near plane and nadir-only interactive contact; current projection and sweep limits in `../spec-vaisseau.md`.
+- **`spec-erosion-historique.md`:** old coastal profiles, comparison of the 9 km filter and expected slope; superseded symmetric band and reach without a sea probe; singular crests, provisional climate, gullies without a slope reserve and their old measurements; C and D measurements before scale separation and spherical valley projection; removed duplicate coastal estimator from E; flattened glacial profiles and measurements from `14c99ec`; the rock-only slope budget, valley dilation, symmetric coastal talus and mesh-scale metric, signed-detail composition, rejected incision cap and archive-worktree closure, superseded on 2026-11-01; current rules in `../spec-erosion.md` and `../spec-eaux-interieures.md`.
 - **`spec-pipeline-creation3d-historique.md`:** superseded authoring, torn roots, branch reduction, close-detail iterations and rejected tropical reconstructions; current contracts in `../spec-pipeline-creation3d.md` and `../spec-rendu-vegetation.md`.
 - **`spec-diversite-vegetale-historique.md`:** superseded scanned-fir catalogue, density choices and replaced cold-site witnesses; current scope in `../spec-diversite-vegetale.md`.
 - **`recherche-generation-vegetale-historique.md`:** rejected native FoliMesh POC and acquisition recommendations; local 3D trials, rejected foliage assemblies and superseded plans; current research in `../recherche-comfyui-vegetation.md` and pipeline in `../spec-pipeline-creation3d.md`.
@@ -40,7 +57,7 @@
 |  `spec-relief-reel.md`  | The relief of materials carried by the mesh: disabled the 2026-10-23, removed from the code the 2026-10-30, tag `piste/parois-gradins` ; geometry track (`../geometrie.md`). |
 |  `spec-parois.md`  | The walls in grades: disabled the 2026-10-23, removed from the code the 2026-10-30, tag `piste/parois-gradins`. |
 |  `spec-normales-spline-historique.md`  | The cardinal spline prefilter and `SPLINE_SHARPENING`, removed the 2026-10-30, tag `jalon/09-normales-spline`; the fine-grid reconstruction's captures, 2026-11-01. |
-|  `spec-rendu-lointain-historique.md`  | Two fixes of the relief pass of materials, removed the 2026-10-30. |
+|  `spec-rendu-lointain-historique.md`  | Two fixes of the relief pass of materials, removed the 2026-10-30; the screen relief's rejected options, 2026-11-02. |
 |  `spec-parois-minerales-historique.md`  | Render path options, broken strips and their patches, removed the 2026-10-24; erosion filter, tag `piste/erosion-filtre`. |
 |  `spec-relief-tectonique-historique.md`  | The replaced versions of the board and cords of the 2026-10-31, their measurements and their defects. |
 |  `spec-parallaxe.md`  | The parallax of the rock relief: removed the 2026-10-24, the relief that she read no longer displays. |

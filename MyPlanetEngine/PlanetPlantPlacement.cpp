@@ -17,6 +17,14 @@ void PlanetPlantPlacement::Initialize(ID3D12Device* device,ID3D12RootSignature* 
     mTiles=Buffer(device,UINT64(TileCapacity)*16); mTileDispatch=Buffer(device,16);
     mMasks=Buffer(device,UINT64(TileCapacity)*8); mScratch=Buffer(device,UINT64(TileCapacity)*16*64);
     mGround=Buffer(device,UINT64(GroundSlots)*2*32); mGroundClaims=Buffer(device,UINT64(GroundSlots)*4); mGroundZero=Buffer(device,UINT64(GroundSlots)*32); // committed: zeroed
+    mMisses=Buffer(device,UINT64(MissCapacity)*16); mMissArgs=Buffer(device,16);
+    mMissArgsReset=CreateBuffer(device,16,D3D12_HEAP_TYPE_UPLOAD,D3D12_RESOURCE_STATE_GENERIC_READ);
+    {
+        UINT* reset=nullptr; CD3DX12_RANGE none(0,0);
+        Check(mMissArgsReset->Map(0,&none,reinterpret_cast<void**>(&reset)),"Plant ground reset mapping failed.");
+        reset[0]=0; reset[1]=1; reset[2]=1; reset[3]=0; // no group, 1, 1; no tile
+        mMissArgsReset->Unmap(0,nullptr);
+    }
     CD3DX12_ROOT_PARAMETER sp[4]; sp[0].InitAsUnorderedAccessView(0); sp[1].InitAsUnorderedAccessView(1);
     sp[2].InitAsUnorderedAccessView(2); sp[3].InitAsConstants(1,0);
     mScanRoot=CreateRootSignature(device,CD3DX12_ROOT_SIGNATURE_DESC(4,sp));
@@ -27,6 +35,7 @@ void PlanetPlantPlacement::Initialize(ID3D12Device* device,ID3D12RootSignature* 
         Check(device->CreateComputePipelineState(&desc,IID_PPV_ARGS(&out)),"Planet plant pipeline creation failed.");
     };
     make(L"PlanetPlantCandidates.cso",objectRoot,mCull); make(L"PlanetPlantPlacement.cso",objectRoot,mPlacement);
+    make(L"PlanetPlantGround.cso",objectRoot,mGroundPass);
     make(L"PlanetPlantScan.cso",mScanRoot.Get(),mScan); make(L"PlanetPlantScanAdd.cso",mScanRoot.Get(),mAdd);
     make(L"PlanetPlantCompact.cso",mCompactRoot.Get(),mCompact); make(L"PlanetPlantClear.cso",mCompactRoot.Get(),mClear);
     make(L"PlanetPlantScatter.cso",mCompactRoot.Get(),mScatter);
@@ -65,7 +74,22 @@ void PlanetPlantPlacement::Run(ID3D12GraphicsCommandList* list,ID3D12RootSignatu
         list->SetComputeRootUnorderedAccessView(11,mRecords->GetGPUVirtualAddress()); list->SetComputeRootUnorderedAccessView(12,mValues->GetGPUVirtualAddress());
         list->SetComputeRootUnorderedAccessView(13,mScratch->GetGPUVirtualAddress()); list->SetComputeRootUnorderedAccessView(14,mMasks->GetGPUVirtualAddress());
     };
-    bindObject(false); list->SetPipelineState(mCull.Get()); list->Dispatch(512/8,512/8,7*planes); Barrier(list);
+    // The light pass reads the kept ground, last frame's, and lists the tiles without one (u2, u3: PlanetPlantGround).
+    const UINT64 groundTable=UINT64(GroundSlots)*32;
+    auto bindGround=[&]() {
+        list->SetComputeRootUnorderedAccessView(15,mGround->GetGPUVirtualAddress()+groundTable*mGroundParity);
+        list->SetComputeRootUnorderedAccessView(16,mGround->GetGPUVirtualAddress()+groundTable*(mGroundParity^1u));
+        list->SetComputeRootUnorderedAccessView(17,mGroundClaims->GetGPUVirtualAddress());
+    };
+    {
+        auto toCopy=CD3DX12_RESOURCE_BARRIER::Transition(mMissArgs.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_STATE_COPY_DEST);
+        list->ResourceBarrier(1,&toCopy); list->CopyBufferRegion(mMissArgs.Get(),0,mMissArgsReset.Get(),0,16);
+        auto toWrite=CD3DX12_RESOURCE_BARRIER::Transition(mMissArgs.Get(),D3D12_RESOURCE_STATE_COPY_DEST,D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        list->ResourceBarrier(1,&toWrite);
+    }
+    bindObject(false); bindGround();
+    list->SetComputeRootUnorderedAccessView(6,mMisses->GetGPUVirtualAddress()); list->SetComputeRootUnorderedAccessView(7,mMissArgs->GetGPUVirtualAddress());
+    list->SetPipelineState(mCull.Get()); list->Dispatch(512/8,512/8,7*planes); Barrier(list);
     Scan(list,tileCount);
     auto bindCompact=[&](UINT length,UINT capacity) {
         list->SetComputeRootSignature(mCompactRoot.Get());
@@ -94,11 +118,21 @@ void PlanetPlantPlacement::Run(ID3D12GraphicsCommandList* list,ID3D12RootSignatu
         list->ResourceBarrier(barriers,toWrite);
         mGroundReset=false;
     }
-    list->ResourceBarrier(2,beforeHeavy); bindObject(true); list->SetPipelineState(mPlacement.Get());
-    const UINT64 table=UINT64(GroundSlots)*32;
-    list->SetComputeRootUnorderedAccessView(15,mGround->GetGPUVirtualAddress()+table*mGroundParity);
-    list->SetComputeRootUnorderedAccessView(16,mGround->GetGPUVirtualAddress()+table*(mGroundParity^1u));
-    list->SetComputeRootUnorderedAccessView(17,mGroundClaims->GetGPUVirtualAddress()); mGroundParity^=1u;
+    // The listed tiles' exact ground, by full waves, kept in this frame's table for the heavy pass.
+    const D3D12_RESOURCE_BARRIER missesToRead[2]={
+        CD3DX12_RESOURCE_BARRIER::Transition(mMisses.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
+        CD3DX12_RESOURCE_BARRIER::Transition(mMissArgs.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT) };
+    list->ResourceBarrier(2,missesToRead);
+    bindObject(false); bindGround();
+    list->SetComputeRootShaderResourceView(8,mMisses->GetGPUVirtualAddress()); list->SetComputeRootShaderResourceView(9,mMissArgs->GetGPUVirtualAddress());
+    list->SetPipelineState(mGroundPass.Get());
+    list->ExecuteIndirect(dispatchSignature,1,mMissArgs.Get(),0,nullptr,0); Barrier(list);
+    const D3D12_RESOURCE_BARRIER missesToWrite[2]={
+        CD3DX12_RESOURCE_BARRIER::Transition(mMisses.Get(),D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
+        CD3DX12_RESOURCE_BARRIER::Transition(mMissArgs.Get(),D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT,D3D12_RESOURCE_STATE_UNORDERED_ACCESS) };
+    list->ResourceBarrier(2,missesToWrite);
+    list->ResourceBarrier(2,beforeHeavy); bindObject(true); bindGround(); list->SetPipelineState(mPlacement.Get());
+    mGroundParity^=1u;
     list->ExecuteIndirect(dispatchSignature,1,mTileDispatch.Get(),0,nullptr,0); Barrier(list);
     const D3D12_RESOURCE_BARRIER afterHeavy[2]={
         CD3DX12_RESOURCE_BARRIER::Transition(mTiles.Get(),D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,D3D12_RESOURCE_STATE_UNORDERED_ACCESS),

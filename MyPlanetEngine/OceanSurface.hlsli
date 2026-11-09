@@ -21,18 +21,26 @@ float3 OceanGeometry(float2 rest,float cell,float elevation) {
     }
     return displacement;
 }
-struct OceanSurfaceData { float2 slope;float3 jacobian;float3 lost;float3 whole; };
+struct OceanSurfaceData {
+    float2 slope;float3 jacobian;float3 lost;float3 whole;
+    float incidentHeight, heightLost, heightWhole; // before shoaling damping; shared FFT means and moments
+};
 OceanSurfaceData OceanRead(float2 rest,float2 dx,float2 dy,float elevation) {
     OceanSurfaceData r=(OceanSurfaceData)0;
     [unroll]for(uint c=0;c<OCEAN_CASCADES;++c) {
         float inv=1.0/oceanLengths[c], fade=OceanDepthFade(c,elevation);
         float3 uv=float3(rest*inv+oceanOrigin[c].xy,c);
         float4 d=oceanDerivatives.SampleGrad(oceanSampler,uv,dx*inv,dy*inv)*fade;
-        float4 a=oceanDisplacement.SampleGrad(oceanSampler,uv,dx*inv,dy*inv)*fade;
-        float3 m=oceanMoments.SampleGrad(oceanSampler,uv,dx*inv,dy*inv).xyz*fade*fade;
+        float4 incident=oceanDisplacement.SampleGrad(oceanSampler,uv,dx*inv,dy*inv), a=incident*fade;
+        float4 moments=oceanMoments.SampleGrad(oceanSampler,uv,dx*inv,dy*inv);
+        float4 total=oceanMoments.SampleLevel(oceanSampler,float3(0.5,0.5,c),8.0);
+        float3 m=moments.xyz*fade*fade;
         r.slope+=d.xy;r.jacobian+=float3(d.z,a.w,d.w);
         r.lost+=float3(max(m.x-d.x*d.x,0.0),max(m.y-d.y*d.y,0.0),m.z-d.x*d.y);
-        r.whole+=oceanMoments.SampleLevel(oceanSampler,float3(0.5,0.5,c),8.0).xyz*fade*fade;
+        r.whole+=total.xyz*fade*fade;
+        r.incidentHeight+=incident.y;
+        r.heightLost+=max(moments.w-incident.y*incident.y,0.0);
+        r.heightWhole+=total.w;
     }
     return r;
 }

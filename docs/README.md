@@ -14,8 +14,10 @@
 
 
 **Terrain and materials**
-- **`spec-rendu-lointain.md`:** the same planet from orbit to ground, the universal boundary rule; the screen relief above 150 to 400 km and the coast's contour at the pixel, 2026-11-02.
-- **`spec-normales-spline.md`:** per-pixel B-spline normals; one B-spline height surface and its normal on the fine grid.
+- **`diagnostic-orbite.md`:** requested comparison against clean `main`; exact activity indexing, spherical-cap pruning, bounded GPU scheduling and the limb fallback fix; since 2026-11-05 night, the fine grid computed only at the limb in orbit, one river query per screen texel, and a startup map of the rivers for footprints wider than 25 km. Erosion costs under 1 ms from 10,000 km; the per-texel river query in mid orbit remains, located by pass. Since 2026-11-07, the erosion against `main`'s frame rate: within 15 % of `main` at every view, the cost split by pass and what remains; review route `2026-11-07.txt`. Moving-camera measurements, native precision limits, material quality comparison and review route `2026-11-05-orbite-correction.txt`.
+- **`spec-erosion.md`:** asymmetric valleys, stable water reconstruction, physical banks and first-water contacts. Confluence banks match the receiving section and local flow. River queries share exact activity masks and conservative bounds; screen work uses bounded node queues and complete overflow fallback. Restart state: `../PASSATION-erosion.md`. Orbital corridor regularity remains only partly improved. Confluence sediment bars, long estuaries, independent distributary contacts, lake boundaries and finer tributaries remain open. Earlier evidence is in `log/spec-erosion-historique.md`.
+- **`spec-rendu-lointain.md`:** the same planet from orbit to ground, the universal boundary rule; the screen relief above 150 to 400 km, validated in flight on 2026-11-02.
+- **`spec-normales-spline.md`:** per-pixel B-spline normals; coherent fine-grid height and slope reconstruction under mountain flight review.
 - **`spec-textures-generees.md`:** material tiles generated at startup and their tiling; rock has used a photo since 2026-10-24.
 - **`spec-texturage-universel.md`:** each material's detail scale, from texel to kilometer, and the quality benchmark that checks it; step 3 in progress.
 - **`spec-photos-par-echelle.md`:** real photos recomposed by our noise functions; biome palette and photo ground materials done, patterns seen from an aircraft taken over by universal texturing.
@@ -33,7 +35,8 @@
 - **The game's air is rendered through cloud compositing** (`spec-nuages.md`): rays and regional-ground mist rendered there since 2026-10-30, awaiting in-flight review; the halo is disabled by default.
 
 **Sea, clouds and vegetation**
-- **`spec-mer-fft-spike.md`:** FFT sea, normals and persistent foam, integrated into main; physical limitations and connection to planetary wind documented.
+- **`spec-eaux-interieures.md`:** rivers and terminal lakes; reported side trenches, coastal contours and river contours accepted; earlier river visibility sufficient for this stage. Coarse routing, volcanic integration, ribbon widths and full approach stability remain open.
+- **`spec-mer-fft-spike.md`:** FFT sea, normals and persistent foam, integrated into main; local depth-limited coastal foam under review; physical limitations and connection to planetary wind documented.
 - **`spec-nuages.md`:** the game's clouds, from orbit to ground: model, passes, resources, data and provenance, known defects; their shadow on land and sea; their weather map derived from climate since 2026-10-31.
 - **`recherche-vegetation.md`:** trees, shrubs and forests from orbit to undergrowth; state of the art; climate, placement and ground canopy implemented; generated plants v1 to v3, removed on 2026-10-30, archived in the log.
 - **`vegetation-planetaire.md`:** the game's trees and shrubs, the only foliage, enabled by default; nearby meshes and distant impostors, deterministic population; leaf clusters, precomputed lighting.
@@ -59,6 +62,7 @@
 - **`spec-relief-tectonique.md`:** the game's terrain since 2026-10-31: a tectonic map computed at startup, continents, plates and boundaries; large shapes as profiles, detail modulated by geology; CPU port using a cache; steps 1 to 3 done, awaiting in-flight review.
 - **`spec-climat.md`:** the game's climate since 2026-10-31: three-cell winds, vapor carried from the seas, windward rainfall and rain shadows, continentality and cold currents, computed at startup from the tectonic terrain; the map read by materials, plants, sea and ship, and by the erosion port; step 1 done, awaiting in-flight review.
 - **`spec-volcanisme.md`:** volcanoes derived from the tectonic map, listed at startup and evaluated point by point: arcs, hotspots and their chains, atolls and guyots, rifts, calderas, flows, cones and flood basalts; basalt and ash; experiment `piste/volcanisme`, awaiting in-flight review.
+- **`spec-erosion.md`:** replacement of the frozen network-valley stage by ravines and river corridors; current flight route `2026-11-04-confluents.txt`. Earlier trough-stage observations are preserved in the erosion log.
 - **`recherche-relief.md`:** planetary terrain, tectonics, erosion, eroded noise and games; licenses; the four-layer architecture and plan behind the spec.
 - **`optimisation.md`:** at least 60 fps at 1080p, targeting 120, preserving perceived quality; performance benchmark, baseline and rounds.
 - **`recherche-nuages.md`:** cloud cover, weather map, types and rendering from orbit to ground; state of the art and plan; the old volume is in the log.

@@ -135,9 +135,20 @@ void D3DApp::SumBatchTimes(const LARGE_INTEGER (&cpuMarks)[5], bool usePlantHiZ)
     }
     if (mPlanetFoliage.Enabled() && !mBatch.empty() && mBatchFrame > BatchSettle + mSettings.foliageWarm)
         mPlanetFoliageSamples.push_back({ mFoliagePlaceMs, mFoliageDrawMs, mFrameGpuMs, mPlantPlacementMs, mHiZBuildMs, mHiZCullMs, usePlantHiZ });
-    if (!mBatch.empty() && mBatchFrame == 1) { std::fill_n(mPerfSum, PerfPasses, 0.0); mPerfFrames = 0; }
+    if (!mBatch.empty() && mBatchFrame == 1) {
+        std::fill_n(mPerfSum, PerfPasses, 0.0);
+        mPerfFrames = 0;
+        mPerfSamples.clear();
+        mPerfSamples.reserve(mSettings.foliageSamples);
+    }
     if (!mBatch.empty() && mBatchFrame > BatchSettle + mSettings.foliageWarm) {
         for (UINT i = 0; i < PerfPasses; ++i) mPerfSum[i] += mPerfLast[i];
+        std::array<double, PerfPasses + 11> row;
+        std::copy_n(mPerfLast, PerfPasses, row.begin());
+        row[PerfPasses] = mPerfScreenLast;
+        std::copy_n(mPerfScreenParts, 6, row.begin() + PerfPasses + 1);
+        std::copy_n(mPerfTerrainParts, 4, row.begin() + PerfPasses + 7);
+        mPerfSamples.push_back(row);
         ++mPerfFrames;
     }
 }
@@ -146,7 +157,9 @@ void D3DApp::SumBatchTimes(const LARGE_INTEGER (&cpuMarks)[5], bool usePlantHiZ)
 // next job, or the window closed.
 void D3DApp::SaveCapture(bool batchCapture, UINT trembleIndex) {
     BYTE* pixels = nullptr;
-    CD3DX12_RANGE captureRange(0, SIZE_T(mCaptureFootprint.Footprint.RowPitch) * mClientHeight);
+    // The last row need not include its pitch padding in GetCopyableFootprints' allocation.
+    // Mapping pitch * height could exceed the buffer for window widths not aligned to 64 pixels.
+    CD3DX12_RANGE captureRange(0, SIZE_T(mCaptureBuffer->GetDesc().Width));
     if (!mCine.empty()) {
         Check(mCaptureBuffer->Map(0, &captureRange, reinterpret_cast<void**>(&pixels)), "Cine capture map failed.");
         wchar_t name[64]; swprintf_s(name, L"\\frame_%05u.bmp", mCineIndex);
@@ -166,6 +179,20 @@ void D3DApp::SaveCapture(bool batchCapture, UINT trembleIndex) {
         }
         SaveBmp(path, pixels + mCaptureFootprint.Offset, mClientWidth, mClientHeight,
             mCaptureFootprint.Footprint.RowPitch);
+        if (mScreenCaptureBuffer && mConstants->screenRelief.z > 0.0f) {
+            const UINT dimensions[] = { UINT(mConstants->screenRelief.x), UINT(mConstants->screenRelief.y), 16u };
+            const SIZE_T bytes = SIZE_T(ScreenSampleBytes) * dimensions[0] * dimensions[1];
+            void* fields = nullptr;
+            const CD3DX12_RANGE range(0, bytes), noWrite(0, 0);
+            Check(mScreenCaptureBuffer->Map(0, &range, &fields), "Screen field capture map failed.");
+            FILE* file = nullptr;
+            if (_wfopen_s(&file, (path + L".screen").c_str(), L"wb") == 0 && file) {
+                fwrite(dimensions, sizeof(UINT), 3, file);
+                fwrite(fields, 1, bytes, file);
+                fclose(file);
+            }
+            mScreenCaptureBuffer->Unmap(0, &noWrite);
+        }
         mPlanetFoliage.SaveStats(path, mFoliagePlaceMs, mFoliageDrawMs, mFrameGpuMs, mPlanetFoliageSamples);
         {
             FILE* contactFile=nullptr;
@@ -197,6 +224,19 @@ void D3DApp::SaveCapture(bool batchCapture, UINT trembleIndex) {
             if (_wfopen_s(&f, (path + L".perf").c_str(), L"wb") == 0 && f) {
                 for (UINT i = 0; i < PerfPasses; ++i) fprintf(f, "%.4f ", mPerfSum[i] / std::max(mPerfFrames, 1u));
                 fprintf(f, "%u\n", mPerfFrames);
+                fclose(f);
+            }
+            // Keep every measured frame: an average conceals stalls. Buffer in memory; write only after sampling.
+            if (_wfopen_s(&f, (path + L".frames.csv").c_str(), L"wb") == 0 && f) {
+                fprintf(f, "mer_fft,terrain_calc,objets_place,plantes_place,copies,feuillage_tri,terrain_dessin,"
+                    "objets_dessin,feuillage_dessin,nuages_aux,nuages_trace,atmosphere,post,total,"
+                    "cpu_prep,cpu_liste,cpu_present,cpu_attente,cadence,gpu_inactif,relief_ecran,"
+                    "ecran_sol,ecran_rivieres,ecran_args,ecran_repli,ecran_fin,ecran_reste,"
+                    "terrain_maillage,terrain_horizon,terrain_fin,terrain_normales\n");
+                for (const auto& row : mPerfSamples) {
+                    for (UINT i = 0; i < row.size(); ++i) fprintf(f, i ? ",%.6f" : "%.6f", row[i]);
+                    fprintf(f, "\n");
+                }
                 fclose(f);
             }
             // Each object drawn, stones then tufts: its seed, which names it, its width on screen (px) and its place on

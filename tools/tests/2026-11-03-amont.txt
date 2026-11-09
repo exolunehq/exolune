@@ -1,0 +1,15 @@
+# Seed 0. Keep broad gorges and ordinary beds; inspect prolonged narrow slots upstream.
+# F1 reproduces the report. F2-F4 follow its course. F5-F9 check other valleys and confluences.
+# F10-F11 retain the distance approach. F12 checks the regional coastal pattern.
+Amont : capture signalee | 3840.6 -5.038412 124.886462 13.17 -102.18 | 20 120
+Amont : ensemble du cours | 24000 -5.04663913 124.84344153 90 0 | 20 120
+Amont : petit lit vers la source | 2600 -4.98205101 124.86830604 65 190 | 20 120
+Amont : lit en aval | 2600 -5.11491990 124.81286525 65 20 | 20 120
+Vallee : eperons et berges | 9700 -6.7137 125.2637 35 22.58 | 20 120
+Confluence : vue d'ensemble | 8000 -6.251531 125.325826 90 0 | 20 120
+Confluence : rive proche | 2200 -6.250434328 125.346558807 70 180 | 20 120
+Vallee australe : autre chaine | 40227 -26.288373626 -36.520005922 90 0 | -10 -60
+Bassin occidental : autre massif | 40143 -6.716592420 122.439919710 90 0 | 20 100
+Riviere : capture a 250 km | 250325.2 -7.489828 125.499386 65.74 -9.13 | 20 120
+Riviere : capture a 173 km | 172718.8 -7.189383 125.450731 65.74 -9.12 | 20 120
+Cote : capture a 863 km | 863385.4 -11.180370 124.914240 65.06 30.66 | 20 120

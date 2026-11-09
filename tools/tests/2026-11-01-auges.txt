@@ -1,0 +1,13 @@
+# Seed 0, resumed from 14c99ec; altitudes above sea level. F1 to F12, Tests palette. N hides clouds.
+Trough from 60 km: curved profile, network without flat ribbons | 64126.747 -25.566 -26.916 70 0 relief | -25 -25
+Same range from 15 km: valley joins and slopes | 19126.747 -25.566 -26.916 60 0 relief | -25 -25
+Snowy range from 3 km: terrain and materials | 6760.919 -25.6 -26.94 25 0 | -25 -25
+Cold range: crests and valleys from 5.8 km | 8530.567 -46.9 -33.8 45 0 | -40 -10
+Tropical trough from 5 km: floor shape | 6972.581 -5.6 127.9 40 0 relief | -5 125
+Collision range from 30 km: tributaries and folds | 30900.835 -7.5 117 40 20 | -5 125
+Forest: ground check at 1.8 m | 2193.116 34.1611352 -73.72443 0 0 | 25 -65
+Snowy slope: no trenches in the ground | 2083.012 -48.3497 -44.8221 0 0 | -40 -10
+Wooded canyon: ground check at 1.8 m | 1837.680 -38.108 166.4916 0 0 | -35 160
+Control plain: ordinary terrain | 111.082 44.16 -60.08 0 0 | 35 -55
+Tropical cliff: shoreline join | 2937.571 8.54005 -103.23344 40 180 | 10 -100
+River mouth: delta control, to revisit separately | 25003.348 -7.815 27.188 75 0 relief | -5 20

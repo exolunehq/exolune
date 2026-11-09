@@ -2,6 +2,8 @@
 
 **The player pilots a ship, seen from the cockpit or from behind.** The free camera remains available for the benchmarks and focus.
 
+**J disembarks instantly onto dry terrain; J returns to the saved ship.** Walking controls and environmental audio are specified in [spec-marche-ambiances.md](spec-marche-ambiances.md).
+
 **Try, in the game (`AGENTS.md`, `lancement.md`):** from the root of the worktree,
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours tools\tests\2026-11-01-modeles-vaisseau.txt
@@ -80,7 +82,49 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
   - Kept out of history, nothing drags.
   - Without ship, the layer is (0, 0, 0, 1): render identical to the bit.
 - **Time smoothing reprojects the pixels of the ship with it.** In its sphere, a fixed point in its reference frame is carried from the current ship to the previous (`reprojectShip`, `shipSphere`).
-- **The close-up moves to 5 cm** as soon as the ship is drawn. The reversed Z keeps the depth of the distant field.
+- **All views use a 5 cm near plane,** independent of ground clearance; reversed Z keeps distant depth precision. The previous altitude-dependent free-camera plane is [archived](log/spec-vaisseau-historique.md).
+
+**Cliff approach, 2026-11-01:**
+- `Draw` uses the same near plane for free, hidden-ship, cockpit and chase views; the far plane stays at 1e9 m.
+- A cliff one metre from the eye must remain visible even when the ground below lies tens of metres away.
+- Release x64 builds; numerical projection checks remain finite and monotone from ground to orbital distances.
+- Paired native captures at `77.5 8.488890670 -103.555961023 0 -154.17278` show the near wall filling the former clipping hole.
+- Projection and physical contact are separate; neither establishes that distant crest shimmer is fixed.
+
+**Interactive terrain contact, 2026-11-01 (`D3DAppContact.cpp`, `FlightGround.hlsl`):**
+- Sweep the proposed displacement before accepting it; the replaced nadir-only clamp is [archived](log/spec-vaisseau-historique.md).
+- Free and chase cameras use a 0.25 m sphere; the hull uses a fixed sphere around `mShipPos`, radius `Ship::Radius + hypot(CentreY, CentreZ)`, about 8.851 m.
+- The hull envelope contains every intermediate attitude; the cockpit eye remains attached inside it, including when translation stops.
+- Chase mode tests the hull and external eye separately, then accepts their common first-contact fraction; it is a constrained rig, not an independently retracting boom.
+- Sample shared `ReliefElevation` with exact lattice coordinates and the physical 2 m crease floor; contact uses the maximum of terrain, inland water stage and sea level.
+- Sweep each sphere continuously against the sampled triangles, including faces, edges and vertices; keep a 2 mm separation and remove velocity into the contact normal.
+- Retain the last tangent for sliding over at most 1 m, rechecking every proposed movement; moving away and tangency remain free.
+- After placement or a view change, initialize a valid pose with conservative local vertical recovery; ordinary travel never uses this recovery to climb a wall.
+- Queue probes in the existing command list and read them after the ordinary frame fence; no extra GPU wait or terrain-field readback.
+- Reuse a validated stationary body's clearance; looking around only resamples an external eye if its position changes.
+- Near terrain, translation is accepted one frame later; free-camera look remains immediate.
+- An accepted stationary sphere requires no new probe; chase still checks its eye when it moves around a stationary hull.
+- The cockpit's display and speed reference still use the delayed nadir height; collision does not use it.
+
+**Coverage and cost:**
+- Test the complete chord and its body radius against `PLANET_RADIUS + MAX_TERRAIN_HEIGHT`; clear endpoints alone do not prove the path clear.
+- Probe from the outer-envelope entry to its exit, or to the first analytic sea-sphere contact if earlier; convert local contacts back to the original movement fraction.
+- From a valid flight pose, this interval stays in one tangent hemisphere; a planet-spanning chord stops on its near side without a clamped projection.
+- An existing sea overlap permits outward or tangent movement; only inward travel is blocked, with placement recovery handled separately.
+- Ordinary grid spacing is 0.5 m for the camera and about 0.59 m for the hull; projected sphere bounds include curvature at long range.
+- Each body uses at most 33 columns and 8,192 cell rows; exceptionally long corridors increase the longitudinal spacing instead of skipping the remaining path or adding a budget wall.
+- The bound is 270,369 distinct vertices, or 278,785 height evaluations including shared group edges and the endpoint; a zero-length hull placement probe uses about 1,090 evaluations.
+- At most two bodies return 8,224 bytes in total: group contact fractions, normals and support metadata.
+- Sweeps are exact against this triangulated contact field, not a proof of the continuous terrain between samples; very long chords can miss features below their larger sample spacing.
+- The hull sphere is conservative, not mesh collision; trees, individual rocks and FFT wave displacement are outside this contact field.
+- Walking retains its own controller; automated captures and cinematic routes retain their existing positioning path and do not validate this interactive solver.
+
+**Review:**
+- `powershell -NoProfile -ExecutionPolicy Bypass -File tools/tests/check_flight_contact.ps1` checks the production sweep algebra, overlap retreat, sea tangency, planet-spanning chords and projected bounds on 52 shell cases.
+- `tools/tests/2026-11-01-contacts-vol.txt` covers several coasts, steep slopes, snow, plain, sea and orbit; try approach, retreat, lateral sliding and turning in free, cockpit and chase views.
+- F1 retains `96.7 -46.990030 -32.992581 12.92 70.17`; placement recovery may raise a ship whose hull initially intersects the terrain.
+- CPU checks, Release x64 and interactive startup pass. The near-wall hull placement exercised recovery; free-camera mode and the orbital view work. Continuous wall approach, retreat and sliding remain for flight review.
+- Crest shimmer is not isolated or claimed fixed by this contact work.
 
 ## The canopy glass and the time
 

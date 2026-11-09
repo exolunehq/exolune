@@ -91,6 +91,10 @@ Which makes a mineral wall from 100 m to 1 km without touching the shape. Pixels
   - jitter with smoothing 0,40 → 0,43, 0,19 → 0,23, 0,17 → 0,16 to the cornice;
   - cost of rendering unchanged;
   - Rock descent unchanged from 800 to 8 km.
+- **Near the ground, since 2026-11-09:** its straight joints matched themselves along their length, repetition p95 0.22 to 0.28 at a few centimetres a pixel against the photos' 0.18.
+  - The photo is read aside by about 2 cm, faded in between 6 and 3 cm a pixel (`FACE_WARP`): its joints wander.
+  - The wall takes shades of 25 and 50 cm, 4 % each (`FACE_BANDS`).
+  - Only under 1,000 m above the ground, in their own shader permutations, so no cost higher up (`diagnostic-orbite.md`).
 
 ### The geometry track, apart
 

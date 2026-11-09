@@ -5,6 +5,7 @@
 // Vertex layout, matching the index buffer built in D3DApp.cpp:
 // - the face: (n + 1) x (n + 1) vertices, row by row;
 // - then each ring: 4n vertices around a square, in the same order as the face's border.
+#define EROSION_WAVE_LIST // neighbouring samples list their rivers' nodes together (Erosion.hlsli)
 #include "Planet.hlsli"
 #include "Relief.hlsli"
 #include "Terrain.hlsli"
@@ -13,12 +14,26 @@
 RWStructuredBuffer<FaceVertex> outVerts : register(u0);
 
 [numthreads(64, 1, 1)]
-void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
+void CSMain(uint3 groupId : SV_GroupID, uint threadInGroup : SV_GroupIndex)
 {
     LoadGradients(threadInGroup, 64); // before any return: every thread must reach the barrier
-    const uint id = threadId.x;
     const uint n = (uint)faceParams.w;
     const uint faceVertexCount = (n + 1) * (n + 1);
+    // By 8 x 8 tiles (D3DApp::Draw): the face's grid by squares, its rings by 8 vertices along 8 of them. A wave's
+    // vertices are then neighbours on both axes and list their rivers' nodes together (Erosion.hlsli).
+    uint id;
+    const uint across = (n + 8u) / 8u, faceTiles = across * across, group = groupId.x;
+    if (group < faceTiles)
+    {
+        const uint2 ij = uint2(group % across, group / across) * 8u + uint2(threadInGroup % 8u, threadInGroup / 8u);
+        id = any(ij > n) ? 0xffffffffu : ij.y * (n + 1) + ij.x;
+    }
+    else
+    {
+        const uint g = group - faceTiles, alongTiles = n / 2u; // 4 n vertices a ring, by 8
+        const uint ring = (g / alongTiles) * 8u + threadInGroup / 8u, along = (g % alongTiles) * 8u + threadInGroup % 8u;
+        id = ring >= (uint)ringParams.x ? 0xffffffffu : faceVertexCount + ring * 4u * n + along;
+    }
     if (id >= faceVertexCount + (uint)ringParams.x * 4 * n) return;
 
     const float halfWidth = faceParams.x;
@@ -83,9 +98,17 @@ void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupI
 #ifdef LATTICE_PAIRS
     gLatticePairs = true; // in a flight (TerrainComputePairs.hlsl), the split in pairs of floats
 #endif
+    // Under a full screen relief the mesh gives only depth, the silhouette and the sun's horizon: its rivers come from
+    // the rivers' map, the rung above its own footprint (Erosion.hlsli, ErosionRiverMapShare).
+    // Cells of a quarter of the map's and wider: finer ones still cast the valleys' shadows seen from 250 km.
+    [branch] if (screenRelief.z >= 1.0 && ErosionRiverMapReady() && cellSize >= 0.25 * ErosionRiverMapCell())
+        gRiverCellKm = 0.0015 * ErosionRiverMapCell();
 
     FaceVertex v;
     v.elevation = TerrainAt(xy, R, camAltitude, v.dir, v.pos);
+    v.water = float4(gWaterFlow, gWaterLevel);
+    v.waterDistance = gWaterDistance;
+    v.waterDepth = gWaterDepth, v.waterCoverage = gWaterCoverage;
     v.roughness = gRoughness;
     v.volcanic = gVolcanic;
     v.horizon = -1.5707964; // the horizon pass's (Horizon.hlsl)

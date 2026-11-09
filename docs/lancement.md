@@ -41,10 +41,11 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 - **`-Resolution '1920 1080'`** by default, full screen; `fenetre` for a 1280x720 window, where the palette is visible.
 - **`-ModeleVaisseau chasseur|classique`:** the approved fighter by default; `classique` loads the preserved triangular ship. Direct executable launches use `MYPLANETENGINE_MODELE_VAISSEAU`; without it, the fighter.
 - **`-PassePleine`:** clouds in a single pass, without their temporal pass (`optimisation.md`); for comparison.
+- **`-SansNuages`:** start with clouds hidden for terrain review; N toggles them during flight. Use this option for the current erosion review.
 - **`-Scans <dossier>`:** ground photos.
 - **`-Plantes <catalogue>`:** explicitly select an external asset catalogue for an authoring POC; the default game catalogue is unchanged.
 
-**The launcher clears the session's `MYPLANETENGINE_*` variables during launch, then restores them.** It sets only `MYPLANETENGINE_TESTS`, `_SUN`, `_RESOLUTION` and `_FULLSCREEN`, `_SCANS`, `_MODELE_VAISSEAU`, and `_CLOUD_FULL` with `-PassePleine`, and `_FOLIAGE_ASSETS` with an explicit `-Plantes`.
+**The launcher clears the session's `MYPLANETENGINE_*` variables during launch, then restores them.** It sets only `MYPLANETENGINE_TESTS`, `_SUN`, `_RESOLUTION` and `_FULLSCREEN`, `_SCANS`, `_MODELE_VAISSEAU`, and `_CLOUD_FULL` with `-PassePleine`, `_NO_CLOUDS` with `-SansNuages`, and `_FOLIAGE_ASSETS` with an explicit `-Plantes`.
 
 ## Default game and benchmark variables
 

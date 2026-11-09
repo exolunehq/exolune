@@ -45,14 +45,15 @@ def sites(n, seed):
     return [(math.degrees(math.asin(2 * a - 1)), 360 * b - 180, 360 * c) for a, b, c in zip(u, v, h)]
 
 
-def run(exe, jobs, path, sun):
+def run(exe, jobs, path, sun, per_view=4):
     with open(path, "w") as f:
         for j in jobs:
             f.write(" ".join(str(x) for x in j) + "\n")
     env = dict(os.environ, MYPLANETENGINE_BATCH=path, MYPLANETENGINE_SUN=sun, **ENGINE)
     for k in ("MYPLANETENGINE_VIEW", "MYPLANETENGINE_CAPTURE", "MYPLANETENGINE_TREMBLE"):
         env.pop(k, None)
-    subprocess.run([exe], env=env, timeout=600)
+    # A run's time grows with its views: about 1.3 s each with the erosion's rivers, 1,440 to pick 30 places.
+    subprocess.run([exe], env=env, timeout=max(600, per_view * len(jobs)))
 
 
 def luminance(img):

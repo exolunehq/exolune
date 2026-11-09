@@ -83,6 +83,7 @@
     <ClCompile Include="D3DApp.cpp" />
     <ClCompile Include="D3DAppBench.cpp" />
     <ClCompile Include="D3DAppCine.cpp" />
+    <ClCompile Include="D3DAppContact.cpp" />
     <ClCompile Include="D3DAppShip.cpp" />
     <ClCompile Include="D3DAppWalk.cpp" />
     <ClCompile Include="D3DAppTests.cpp" />
@@ -116,12 +117,20 @@
       <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ProgramDatabase</DebugInformationFormat>
       <SupportJustMyCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</SupportJustMyCode>
     </ClCompile>
+    <!-- Optimised even in Debug: the erosion's level 0 floods 1.6 million cells twice at every startup. -->
+    <ClCompile Include="Erosion.cpp">
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MaxSpeed</Optimization>
+      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Default</BasicRuntimeChecks>
+      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ProgramDatabase</DebugInformationFormat>
+      <SupportJustMyCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</SupportJustMyCode>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio.h" />
     <ClInclude Include="WorldAudio.h" />
     <ClInclude Include="FootContact.h" />
     <ClInclude Include="WalkController.h" />
+    <ClInclude Include="FlightContact.h" />
     <ClInclude Include="D3DApp.h" />
     <ClInclude Include="GpuHelpers.h" />
     <ClInclude Include="Glare.h" />
@@ -134,6 +143,7 @@
     <ClInclude Include="PlanetMap.h" />
     <ClInclude Include="Tectonics.h" />
     <ClInclude Include="Climate.h" />
+    <ClInclude Include="Erosion.h" />
     <ClInclude Include="Ocean.h" />
     <ClInclude Include="Ship.h" />
     <ClInclude Include="ShipProfiles.h" />
@@ -151,6 +161,7 @@
     <None Include="Coordinates.hlsli" />
     <None Include="WorldWeather.hlsli" />
     <None Include="SurfaceProbe.hlsli" />
+    <None Include="FlightSweep.hlsli" />
     <None Include="SurfaceWeights.hlsli" />
     <None Include="PlanetFoliageCommon.hlsli" />
     <None Include="PlanetFoliageLod.hlsli" />
@@ -179,6 +190,7 @@
     <None Include="Tectonics.hlsli" />
     <None Include="Climate.hlsli" />
     <None Include="Volcanoes.hlsli" />
+    <None Include="Erosion.hlsli" />
     <None Include="Sea.hlsli" />
     <None Include="OceanCompute.hlsl" />
     <None Include="OceanUniform.hlsli" />
@@ -217,6 +229,12 @@
       <ShaderType>Compute</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>CullMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PlanetPlantGround.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>GroundMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
     </FxCompile>
     <FxCompile Include="PlanetPlantPlacement.hlsl">
@@ -307,6 +325,36 @@
       <!-- Optimised even in Debug, for the fine detail's noise loop. -->
       <DisableOptimizations>false</DisableOptimizations>
     </FxCompile>
+    <FxCompile Include="PixelShaderScreen.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <AdditionalOptions>-HV 2018 %(AdditionalOptions)</AdditionalOptions>
+      <EntryPointName>PSMain</EntryPointName>
+      <!-- Optimised even in Debug, for the fine detail's noise loop. -->
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PixelShaderNear.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <AdditionalOptions>-HV 2018 %(AdditionalOptions)</AdditionalOptions>
+      <EntryPointName>PSMain</EntryPointName>
+      <!-- Optimised even in Debug, for the fine detail's noise loop. -->
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PixelShaderScreenNear.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <AdditionalOptions>-HV 2018 %(AdditionalOptions)</AdditionalOptions>
+      <EntryPointName>PSMain</EntryPointName>
+      <!-- Optimised even in Debug, for the fine detail's noise loop. -->
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="TerrainContourCells.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
     <FxCompile Include="MaterialGenerator.hlsl">
       <ShaderType>Compute</ShaderType>
       <ShaderModel>6.0</ShaderModel>
@@ -325,6 +373,30 @@
       <EntryPointName>CSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
     </FxCompile>
+    <FxCompile Include="ErosionForm.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ErosionNodes.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ErosionStages.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ErosionContacts.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
     <FxCompile Include="FineNormals.hlsl">
       <ShaderType>Compute</ShaderType>
       <ShaderModel>6.0</ShaderModel>
@@ -332,6 +404,54 @@
       <DisableOptimizations>false</DisableOptimizations>
     </FxCompile>
     <FxCompile Include="ScreenRelief.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ScreenRivers.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ScreenRiverTexel.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ErosionCourseWet.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ErosionActivityTiles.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ErosionRiverMap.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ErosionActivity.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ErosionCourseBuild.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="ScreenRiverArgs.hlsl">
       <ShaderType>Compute</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>CSMain</EntryPointName>
@@ -395,6 +515,11 @@
       <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel>
       <EntryPointName>CSMain</EntryPointName><DisableOptimizations>false</DisableOptimizations>
       <AdditionalInputs>SurfaceProbe.hlsli;Relief.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="FlightGround.hlsl">
+      <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName><DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>SurfaceProbe.hlsli;FlightSweep.hlsli;Relief.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="WorldSound.hlsl">
       <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel>

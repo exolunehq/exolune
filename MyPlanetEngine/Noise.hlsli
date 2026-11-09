@@ -227,15 +227,10 @@ float RlGradientNoise(int3 cell, float3 q, uint seed, bool best)
     return RlCorners(h0, h1, seed, q, RlFade(q, best)) * (best ? RL_SCALE_BEST : RL_SCALE_STANDARD);
 }
 
-// One octave and its gradient against the lattice coordinates, best quality: x the value, deviation RL_SIGMA; yzw its
-// derivatives, exact, continuous from cell to cell with the quintic blend. The relief's slopes and erosion (Relief.hlsli).
-float4 RlGradientNoiseD(int3 cell, float3 q, uint seed)
+// The eight corners' gradients against the point, blended, and the blend's gradient against q; unscaled, the weights of
+// either quality.
+float4 RlCornersD(uint4 h0, uint4 h1, uint seed, float3 q, bool best)
 {
-    const float3 fl = floor(q);
-    cell += (int3)fl;
-    q -= fl;
-    uint4 h0, h1;
-    RlCornerHashes(cell, h0, h1);
     const uint k = seed * 0x27D4EB2Fu;
     const uint4 i0 = RlMix4(h0 + k) >> 24, i1 = RlMix4(h1 + k) >> 24;
     const float3 g000 = rlGradients[i0.x].xyz, g100 = rlGradients[i0.y].xyz, g010 = rlGradients[i0.z].xyz, g110 = rlGradients[i0.w].xyz;
@@ -244,7 +239,7 @@ float4 RlGradientNoiseD(int3 cell, float3 q, uint seed)
     const float n000 = dot(g000, q), n100 = dot(g100, float3(r.x, q.y, q.z)), n010 = dot(g010, float3(q.x, r.y, q.z));
     const float n110 = dot(g110, float3(r.x, r.y, q.z)), n001 = dot(g001, float3(q.x, q.y, r.z));
     const float n101 = dot(g101, float3(r.x, q.y, r.z)), n011 = dot(g011, float3(q.x, r.y, r.z)), n111 = dot(g111, r);
-    const float3 s = RlFade(q, true), ds = 30.0 * q * q * r * r;
+    const float3 s = RlFade(q, best), ds = best ? 30.0 * q * q * r * r : -6.0 * q * r;
     // The trilinear blend as a polynomial in the weights, for the values and for the corners' gradients.
     const float k1 = n100 - n000, k2 = n010 - n000, k3 = n001 - n000, k4 = n000 - n100 - n010 + n110;
     const float k5 = n000 - n010 - n001 + n011, k6 = n000 - n100 - n001 + n101;
@@ -258,7 +253,19 @@ float4 RlGradientNoiseD(int3 cell, float3 q, uint seed)
                           + a7 * s.x * s.y * s.z
                           + ds * float3(k1 + k4 * s.y + k6 * s.z + k7 * s.y * s.z, k2 + k5 * s.z + k4 * s.x + k7 * s.z * s.x,
                                         k3 + k6 * s.x + k5 * s.y + k7 * s.x * s.y);
-    return float4(value, gradient) * RL_SCALE_BEST;
+    return float4(value, gradient);
+}
+
+// One octave and its gradient against the lattice coordinates, best quality: x the value, deviation RL_SIGMA; yzw its
+// derivatives, exact, continuous from cell to cell with the quintic blend. The relief's slopes and erosion (Relief.hlsli).
+float4 RlGradientNoiseD(int3 cell, float3 q, uint seed)
+{
+    const float3 fl = floor(q);
+    cell += (int3)fl;
+    q -= fl;
+    uint4 h0, h1;
+    RlCornerHashes(cell, h0, h1);
+    return RlCornersD(h0, h1, seed, q, true) * RL_SCALE_BEST;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -420,6 +427,35 @@ RlPoint RlTurbulence(RlPoint pt, double f, float power, int octaves, uint seed)
         amplitude *= 0.5;
     }
     return RlMakePoint(pt.p + (double3)(power * d));
+}
+
+// RlTurbulence's Jacobian: the displaced point's derivatives, row i its axis i, along the point's axes.
+float3x3 RlTurbulenceJacobian(RlPoint pt, double f, float power, int octaves, uint seed)
+{
+    float3x3 j = float3x3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+    [branch] if (RlWeight((float)f) <= 0.0)
+        return j;
+    float amplitude = RL_SCALE_STANDARD;
+    [loop] for (int o = 0; o < octaves; ++o)
+    {
+        const float w = RlWeight((float)f);
+        [branch] if (w <= 0.0)
+            break;
+        const RlCell l = RlSplit(pt, f);
+        float3 q = l.q + RlShift(o);
+        const float3 fl = floor(q);
+        q -= fl;
+        uint4 h0, h1;
+        RlCornerHashes(l.cell + (int3)fl, h0, h1);
+        const uint so = seed + (uint)o;
+        const float k = power * amplitude * w * (float)f;
+        j[0] += k * RlCornersD(h0, h1, so, q, false).yzw;
+        j[1] += k * RlCornersD(h0, h1, so + 16u, q, false).yzw;
+        j[2] += k * RlCornersD(h0, h1, so + 32u, q, false).yzw;
+        f *= 2.0;
+        amplitude *= 0.5;
+    }
+    return j;
 }
 
 #endif

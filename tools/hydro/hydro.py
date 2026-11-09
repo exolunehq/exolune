@@ -43,7 +43,7 @@ def d8_accumulation(f, outlet):
     return acc.reshape(n, m), rec
 
 
-def components(mask):
+def components(mask, steps=N8[:4]):
     n, m = mask.shape
     lab = -np.ones(mask.shape, int); sizes = []
     for i, j in zip(*np.nonzero(mask)):
@@ -51,7 +51,7 @@ def components(mask):
         k = len(sizes); st = [(i, j)]; lab[i, j] = k; s = 0
         while st:
             a, b = st.pop(); s += 1
-            for da, db in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            for da, db in steps:
                 x, y = a + da, b + db
                 if 0 <= x < n and 0 <= y < m and mask[x, y] and lab[x, y] < 0:
                     lab[x, y] = k; st.append((x, y))

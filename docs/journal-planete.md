@@ -2,6 +2,547 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-09 · The cliff photo near the ground**
+- **Report:** the 30 places against `main`, rock 12 m at place 4, gap p95 +17 % and repeat +27 %. Its worst crops lie on a cliff the erosion bared, under the face photo, whose straight joints repeat along their length (`diagnostic-orbite.md`).
+- **Settings:** `FACE_WARP` (0.5 m, 0.04): the face photo read aside by about 2 cm, faded in between 6 and 3 cm a pixel; `FACE_BANDS`: shades of 25 and 50 cm, 4 % at one deviation each (`PlanetSettings.hlsli`, `Materials.hlsli`). Only under `NearDetailClearance`, 1,000 m above the ground (`D3DApp.h`).
+- **Gain, 30 places against `main`:** rock 12 m gap +8 %, repeat −4 %; every p95 within 10 %. Over 24 views around place 4, gap p95 2.55 and repeat 0.193 against `main`'s 2.59 and 0.210. Frame time unchanged at the eight views: the far shaders are the same bytes as before.
+- **Review:** `tools/tests/2026-11-09.txt`, the cliff at 5 and 2 m.
+- **To go back:** `FACE_WARP.y` 0 and `FACE_BANDS.w` 0.
+- **Milestone:** no commit, tag or push requested.
+
+**2026-11-09 · Faint river water dry; lakes read once**
+- **Report:** in the final bench against `main`, the erosion's own cost (on minus off) over its 15 % share at 250 km (2.36 ms against 2.25) and 1,231 km (1.86 against 1.81); 2,200 m at the limit.
+- **Setting:** `INLAND_MIN_COVERAGE` 1/64 (`PlanetSettings.hlsli`, `PixelShader.hlsl`): inland water covering less of the pixel is dry. Rivers filtered at wide footprints spread their wetness thin over whole valleys, and every pixel shaded the water for it.
+- **Gain:** 0.15 ms at 250 km and 1,231 km; at most 6/255 along the valleys' floors there, within 2/255 at 97 km and 2,200 m.
+- **Quality, 30 places against `main`:** every p95 as before the setting (`qualite-final`); all within 10 % but rock 12 m, below.
+- **Exact, no setting:** the pixels read the terminal lake's level once (`PixelShader.hlsl`), 0.1 ms at 97 km and 2,200 m (`spec-eaux-interieures.md`).
+- **Rock 12 m, place 4:** measured over 24 views around the place, the build equals `main` (gap p95 2.59 both, repeat 0.220 against 0.210); the bench's one view ranges from 1.5 to 4.2 dB of gap by heading alone (`principes.md`). No setting changed.
+- **To go back:** `INLAND_MIN_COVERAGE` 0.
+- **Milestone:** no commit, tag or push requested.
+
+**2026-11-09 · Ravines by slope; the contour's channel band at altitude**
+- **Report:** the quality bench against `main`, 13 places: grass 200 m gap +19 %, snow 50 m gap +15 %, soil 50 m gap +35 %, rock 12 m repeat +13 %.
+- **Settings:** `RAVINE_OCTAVES` back to 11 (4.9 m); `RAVINE_SLOPE` (0.05, 0.3): no ravine on the flat; `RAVINE_CLIFF` (15 m, 0.5, 0.8): the finer ones fade on the cliffs (`PlanetSettings.hlsli`, `Relief.hlsli`, `tools/hydro/cp.py`). `CONTOUR_CHANNEL_BAND.z` from 0.2 to 0.15.
+- **Gain, 30 places against `main`:** grass, snow and soil within 10 % at every height (soil 50 m +7 %, snow 200 m +9 %); places 26, 28 and 29 give exactly `main`'s soil. Left: rock 12 m, place 4 alone, gap +17 % and repeat +27 %. 97 km 0.2 ms faster with the band.
+- **To go back:** `RAVINE_OCTAVES` 9 without `RAVINE_SLOPE` and `RAVINE_CLIFF`; `CONTOUR_CHANNEL_BAND.z` 0.2.
+- **Milestone:** no commit, tag or push requested.
+
+**2026-11-08 · Ravines down to 19.5 m**
+- **Report:** place 4 of the quality bench, at 12 m: a gully's walls striped by the ravines' cascade, parallel grooves of 5 and 10 m.
+- **Setting:** `RAVINE_OCTAVES` from 11 to 9, the finest period 19.5 m instead of 4.9 m (`PlanetSettings.hlsli`, `tools/hydro/cp.py`). The rock's photos carry the detail below.
+- **Gain, place 4's rock:** at 12 m, the gap's p95 from 2.81 to 2.18 (`main` 2.07) and the repetition's from 0.22 to 0.205 (`main` 0.18); at 50 m, the repetition's from 0.184 to 0.140 (`main` 0.16). Frame time unchanged at 97 km, 2,200 m, 250 km and 1,231 km.
+- **To go back:** `RAVINE_OCTAVES` 11.
+- **Milestone:** no commit, tag or push requested.
+
+**2026-11-07 · Erosion against main's frame rate**
+- **Goal set by the user:** the erosion costs `main` at most 15 % of its frame rate.
+- **Settings:** `ScreenReliefHigh` from 400 to 200 km; the contour's river band from 2–3 samples to 0.6–0.9, no grid water past it outside lakes; partly wet samples for lake shores only; the inland reflection's sky in 3 steps instead of 6.
+- **Banks, after the Isere's photographs:** `RIVER_WIDTH_NOISE.x` from 3,000 to 1,500 m; `RIVER_BANK_EDGE` from (12 m, 0.16) to (25 m, 0.25); gentle reaches keep 60 % of their bank displacement instead of 30 % (`Erosion.hlsli`, `tools/hydro/cp.py`). To go back: those values.
+- **Evaluation:** courses built at startup (14 MB), shared node listings, direct screen relief, mesh rivers from the map at mid orbit.
+- **Exact:** screen rivers per texel, each texel's finish in their kernel; fine grid and mesh by tiles; the contour lists wet nodes; the fine grid's culling margin at 6 fine cells; the plants' missing exact grounds in their own pass, within 1/255.
+- **Result, corrected on 2026-11-08:** against `main` measured in the same window, 97 km and 2,200 m lose 21 %, 250 km and 1,231 km 11 to 13 %. The "14 % at worst" compared with a `main` measured in a busier window. `diagnostic-orbite.md`.
+- **Review:** pending, `tools/tests/2026-11-07.txt`; the crossfade, the bands and the banks change images slightly.
+- **Milestone:** no commit, tag or push requested.
+
+**2026-11-06 · Water contour rungs**
+- **Report:** rivers and erosion are convincing, but the frame rate collapses below 400 km. The pixel water contour cost 21.6 ms at 250 km and 11.1 ms at 97 km.
+- **Change:** a channel's contour no longer evaluates the whole terrain and every valley at the pixel. Away from a shore's level, the grid's ground and the channels alone (`gErosionWater`); near the sea's or a lake's level, the whole relief as before. One rung per GPU wave.
+- **Settings:** none changed; no geometry, width, filter, resolution or storage.
+- **Gain:** 250 km 17.8 to 20.5 FPS, 97 km 37.1 to 49.6, 2,200 m 34.6 to 39.4; moving camera, `diagnostic-orbite.md`.
+- **Evidence:** `verifie_contours.py`, `water_rung`: the full query's water on the CPU port. Images within 7/255 of the whole relief in four views.
+- **Review:** `tools/tests/2026-11-06-contour.txt`, pending.
+- **Return:** run every candidate through the whole relief, `wholeRelief` in `PixelShader.hlsl`.
+- **Milestone:** no commit, tag or push requested.
+
+**2026-11-05 evening · Remaining river evaluation cost**
+- **Report:** full erosion remains much slower than the same executable with rendered erosion disabled.
+- **Change:** conservative spherical-cap clipping of candidate rectangles; direct merge of the unchanged physical section boundaries; four-lane screen reduction.
+- **Settings:** no geometry, discharge, width, filter, resolution or distance cutoff changed. No additional GPU storage.
+- **Diagnostics:** per-frame mesh, horizon, fine-grid and fine-normal times supplement the six screen phases.
+- **Evidence:** candidate-cap and section-partition proofs, native field/image comparisons and the requested moving-camera/material benchmarks; current results in `diagnostic-orbite.md`.
+- **Return:** `x64/erosion-reprise/source-before-cap-window/` and `diagnostic-orbit-before-cap-window/` retain the preceding sources/runtime. Rejected schedules stay in `log/spec-erosion-historique.md`.
+- **Milestone:** no commit, tag or push requested; tagging remains deferred.
+
+**2026-11-05 · Orbit river evaluation and missing-stencil fallback**
+- **Change:** index exact conditioned-node eligibility and projected support; skip zero contributions; schedule bounded GPU node work with complete overflow fallback.
+- **Timeout:** a missing screen stencil at the limb keeps the existing filtered mesh/fine water instead of restarting per-fragment river evaluation.
+- **Settings:** no terrain, width, discharge, filter or sampling-resolution change. Sparse scheduling thresholds affect execution only; both parallax queries remain.
+- **Memory:** 24 MiB of GPU index/bounds; at most 256 MiB of task/results scratch plus 12 bytes per screen texel. Physical disk cache unchanged.
+- **Evidence:** requested moving-camera benchmarks, native index/bounds checks, odd-size and forced-overflow captures, and a paired 30-site material survey. Exact results and limitations: `diagnostic-orbite.md`.
+- **Review:** `tools/tests/2026-11-05-orbite-correction.txt`. Prior experiments and measurements moved to `log/spec-erosion-historique.md`.
+- **Milestone:** no commit, tag or push is authorized. Tagging remains deferred to a requested reviewable commit.
+
+**2026-11-04 · Confluence banks follow the receiving section**
+- **Report:** satellite references show pointed land tongues and asymmetric confluence banks; the engine's symmetric widening leaves rounded bulbs.
+- **Change:** replace the unconditional 1.15 receiving-half-width addition. `RIVER_CONFLUENCE` becomes (0.5, 9): match the receiving physical width, then allocate half the positive width deficit to a one-sided downstream opening. Width and centre shift share it, preserving the opposite bank.
+- **Direction:** use receiving flow including its meander slope. A signed smoothstep over turning sine 0–sin(12 degrees) removes the opening continuously at parallel alignment. Three of 584 sampled joins needed the opposite side from the coarse heading; twenty-four have a partial angular opening.
+- **Extent:** nine combined nominal half-widths, bounded by the connector's own length. A short connector cannot change its upstream join. The shifted endpoint fits inside the receiving width, with the existing bounded bank octaves added separately.
+- **Preserved:** drainage controls, stages, flow, first-water contacts and fan controls. Bed, bank geometry, water support, floor clearance and conservative search share the physical section. No location-dependent conditions.
+- **Scope:** geometry calibration, not sediment transport. Bars, scour and seasonal exposed sediment remain open. Primary confluence references and verification are in `spec-erosion.md`.
+- **Checks:** final Release build, 240 section tests, 584 connector orientations, regional continuity and retained geometry/water suites pass. Seven native views inspected; the compared round protrusions are removed. Native cache payload remains bit-identical. Logs `x64/erosion-confluence-flow-banks-*`; no benchmark.
+- **Review:** `tools/tests/2026-11-04-confluents.txt`; four confluence poses plus eight retained receiving-water/mountain/approach witnesses.
+- **Return:** ignored `source-before-confluence-banks/` and `erosion-before-confluence-banks.bin` in `x64/erosion-reprise/`.
+- **Tag:** `piste/confluents-berges-2026-11-04` deferred to the next requested commit. No benchmark, commit, tag or push.
+
+**2026-11-04 · Progressive valley heads and estuary scale references**
+- **Report:** heads taper nearby but retain blunt silhouettes from orbit; mouth openings lack a credible physical scale.
+- **Change:** `RIVER_Q.x` 200 to 100 m³/s. Use `smoothstep(100, 300, Q)` in discharge, replacing the former log-discharge smoothstep over 200–300. Depth and width share this onset at all viewing distances. Dry branches taper in width and depth; the share is exactly one above 300 m³/s. Water thresholds remain 300–450 m³/s.
+- **Reason:** the old narrow activation range compressed the growth into a short part of the coarse course. A point must grow through the physical drainage hierarchy, not through an orbital mask. The polynomial is an engine calibration, not an empirical erosion law.
+- **References:** Google Earth inspection of Gironde and Somme; approximate 5.2 km ruler across Somme's entrance. Primary sources give Gironde over 75 km long and up to 12 km wide. These envelopes include bays, sediment banks and tidal flats. Sources and limits are in `spec-erosion.md`; mouth coefficients are unchanged pending a model of upstream receiving-water influence.
+- **Checks:** Release x64 succeeds (`x64/erosion-head-growth-build.log`). Final native/cache verification is recorded in `spec-erosion.md`.
+- **Review:** `tools/tests/2026-11-04-tetes-estuaires.txt`, two reported distances, closer head views, two other massifs and retained river/mouth/lake witnesses.
+- **Return:** ignored `x64/erosion-reprise/source-before-head-scale/` and `erosion-before-head-scale.bin`.
+- **Tag:** `piste/tetes-vallees-echelles-2026-11-04` deferred to the next requested commit. No benchmark, commit, tag or push.
+
+**2026-11-04 · Surviving inflow, mouth approach and wet banks**
+- **Report:** a river vanishes before reaching coastal water, returns as an isolated strip, and has no mouth flare; river and sea edges remain visually flat.
+- **Flow:** decode the existing interrupted-edge bit. Both sides of a surviving midpoint retain the source discharge; the receiver's remaining local runoff is a separate catchment.
+- **Mouth:** retain `RIVER_MOUTH` (2, 8, 600), with eight nominal half-widths of longitudinal approach to the cached contact. The original low-bank fallback remains. Lower stage and bank height continuously to receiving water.
+- **Wet bank:** reuse `RIVER_BANK_SHOULDER` (2 m, 4 times depth) for the submerged shoulder. Replace the broad quartic shelf with a flat core and cubic shoulders; width and maximum depth stay fixed. Velocity uses area `depth * (2 halfWidth - shoulder)`.
+- **Native review correction:** the first candidate exposed coastal erosion being reapplied to a river floor, manufacturing a marine pool. Coastal and river envelopes now meet on their common substrate; contacts read the actual coast without the probing river.
+- **Fan coverage:** replace centre-ordered interval accumulation with exact inclusion/exclusion. A narrow side branch contained by the trunk no longer turns part of the main water bed into dry coverage.
+- **Coastal foam:** use existing FFT height means and the spare fourth moment for incident height energy. Breaking crest threshold is 0.39 water depth; maximum coverage 0.75; energy activation over 0.02–0.08 m RMS. These are a calibrated local foam approximation, not resolved wave transformation.
+- **Checks:** Release x64 succeeds; shared midpoint invariants, physical section quadrature, receiving-level translation, retained morphology and continuity pass. Twelve native views and a sampled 224-frame descent confirm the reported pool/stripe correction. Remaining delta/lake defects and the pre-existing inactive talus fixture are recorded in `spec-erosion.md`.
+- **Review:** `tools/tests/2026-11-04-embouchures.txt`; twelve locations/distances. Previous evidence is in the erosion log. No benchmark requested.
+- **Return:** ignored `x64/erosion-reprise/source-before-mouth-banks/` and `erosion-before-mouth-banks.bin`.
+- **Tag:** `piste/embouchures-berges-2026-11-04` deferred to the next requested commit. No commit, tag or push.
+
+**2026-11-04 · Open junctions and terrain-defined river ends**
+- **Report:** sharp confluence corners, pale closing sills, straight fine banks, blunt valley heads and rivers continuing across standing water.
+- **Junctions:** `RIVER_JUNCTION` (30, 75) to (12, 55) degrees; `RIVER_CONFLUENCE` (0.7, 6) to (1.15, 9).
+- **Fine banks:** `RIVER_BANK_EDGE` (12 m, 0.16 nominal half-width), bounded additionally by one quarter of local width. Existing bank octaves move the actual shoreline; gentle grades retain 30% of their displacement.
+- **Bank shoulder:** `RIVER_BANK_SHOULDER` (2 m minimum, four times bank height), bounded by channel half-width. The physical rise occupies this shoulder, followed by the existing terrace and outer slope; the clipped profile remains integrated analytically.
+- **Mouths:** `RIVER_MOUTH` (2 half-widths, 8 channel depths, 600 m maximum); mouth width and fan spread share one aperture budget. Fill fades over 0–50 m above standing water and is zero below it.
+- **Fans:** eligible sea-bound courses open towards their first cached shoreline, including contacts before the coarse sea node. The low-gradient and low-wall eligibility gates remain; short runs fade over four to twelve channel half-widths.
+- **Heads:** dry extensions multiply both corridor width and incision by `smoothstep(0, 1, t)`.
+- **Contacts:** `RIVER_CONTACT` (256 m probe spacing, 25 m terrain cell, 80 m submerged fade); seven bisection steps refine a detected crossing. Cached limits retain the original meander trace.
+- **Flow:** retain original local runoff; stop accumulation at a detected water contact. Independent sources remain active. The original level-0 words remain unchanged.
+- **Wet support:** remove the longitudinal stage/current handoff at confluences. Actual wet-section weights retain the tributary until overlap; the independent continuity test exposed a 1.207 m jump with the former handoff after discharge changed.
+- **Cache:** `EXOEROS6`, 24 RG32 slices, 48 MiB at 512 cells per face. The additional 24 MiB stores four contact limits, effective discharge and local runoff. Three startup shader binaries enter the key.
+- **Validation:** Release x64, CPU correctness suites, twelve native poses and a 224-frame descent. The reported coastal continuations and confluence fragments are removed. Distributary contacts, basin-stage boundaries and bank finish remain open; details in `spec-erosion.md`. Review route: `tools/tests/2026-11-04-approche-berges.txt`.
+- **Tag:** `piste/rivieres-jonctions-contacts-2026-11-04` reserved for the next requested commit; no commit or tag created.
+
+**2026-11-03 · Approach continuity, confluences and banks**
+- **Request:** remove crawling and mutation between orbit and ground; open tributary junctions and deltas; give banks real relief and grounded detail.
+- **Filtering:** integrate the composed corridor; reconstruct water and premultiplied flow with the terrain's positive B-spline; blend water moments across resolution changes.
+- **Settings:** `RIVER_CONFLUENCE` (0.7, 6), extra receiving half-width and transition in combined half-widths; water handoff inside half the receiving half-width.
+- **Banks:** `RIVER_BANK_DETAIL` (180 m, 0.7), octave weights (0.55, 0.30, 0.15) at (180, 45, 11.25) m. Existing bank height remains the unresolved mean.
+- **Fans:** `RIVER_DELTA` (800, 2500, 14, 1800), discharge onset/full, offset in nominal half-widths, maximum offset in metres. Eligibility fades over grade 0.002–0.01 and terminal wall scale 600–1600 m. A 2.4 km field varies side shares by ±60% and offset factors within 0.7–1.
+- **Objects:** 40 m bank band; gravel share at least 0.6 of loose ground there, stoniness driver up to 2.5; bare-bank tuft coefficient approaches the existing grass coefficient outside canopy. Existing candidate bounds, wet rejection and burial remain in use.
+- **Memory:** fine samples 32 to 48 bytes; screen samples 48 to 64 bytes for premultiplied flow. Screen storage at its 4K maximum is about 127 MiB.
+- **Checks and review:** `spec-erosion.md`; route `tools/tests/2026-11-03-approche-berges.txt`. No performance or quality benchmark requested or run.
+- **Return:** ignored baseline source copies in `x64/erosion-reprise/source-before-refinements/`; previous upstream correction retained.
+- **Tag:** `piste/rivieres-approche-berges-2026-11-03` reserved for the next requested commit; no commit or tag created.
+
+**2026-11-03 · Horizontal room for upstream spurs**
+- **Report:** the previous morphology is better, but small upstream channels acquire very long, deep slot canyons; broad gorges returning to ordinary beds remain acceptable.
+- **Cause:** recovered terrain height used only a width-based transition. At the reported course, it restores several hundred metres close to a channel only a few tens of metres wide.
+- **Change:** bound only the recovered spur height by a smooth envelope from the physical dry bank; preserve small lifts with ample room and the base valley profile.
+- **Settings:** `RIVER_SPURS` (0.6, 60 m, 0.6), adding a retained-height envelope of 0.6 m per metre, rounded over 100 m. Discharge, water widths and stage conditioning are unchanged.
+- **Checks and review:** `spec-erosion.md`, `verifie_amont.py`, `tools/tests/2026-11-03-amont.txt`; Release, four correctness suites and thirteen native views checked. User flight review of this correction remains pending.
+- **Return:** ignored source snapshots in `x64/erosion-reprise/source-before-amont/`.
+- **Tag:** `piste/amont-eperons-2026-11-03` deferred to the next requested commit; no commit or tag is created here.
+
+**2026-11-03 · Valley spurs and river-width variation**
+- **Report:** valleys and water repeat as uniform brush strokes, with parallel mountain flanks and systematic coastal cuts.
+- **Cause:** the corridor's symmetric ramp suppresses intermediate terrain everywhere inside its floor.
+- **Change:** retain the positive two-dimensional terrain residual, bounded by the original terrain, outside the wet bank; contract each flank around its mountain masses; add larger valley bends and couple multiscale water widths to valley openings.
+- **Settings:** `RIVER_SPURS` (0.6, 60 m); `RIVER_CONFINEMENT` (0.25, 3), minimum local width factor and terrain sensitivity; `RIVER_MEANDER.x` 10 to 40 km; `RIVER_CHANNEL_WAVE` 10 km; `RIVER_WIDTH_NOISE.y` 0.3 to 0.9, with weights (0.5, 0.3, 0.2) at (12 km, 3 km, 750 m).
+- **Map:** the graph and cache format stay unchanged; changed meanders invalidate the conditioned-stage cache through its compiled shader key.
+- **Scope:** this preserves asymmetric relief; it does not generate a connected hierarchy of new side valleys or reduce the graph's density.
+- **Bank correction:** the minimum floor contains the displaced channel and its banks in the valley metric; spur recovery keeps the uncontracted floor scale. A width about the axis alone could exclude the displaced banks. Narrow exposed strips in the native confluence view remain under review.
+- **Checks and review:** the user reports a substantial improvement; upstream slots and water-width behaviour still need work. Current follow-up: `spec-erosion.md`, `tools/tests/2026-11-03-amont.txt`.
+- **Return:** local source snapshots in ignored `x64/erosion-reprise/source-before-morphology/`; distance-filter corrections precede this experiment.
+- **Tag:** `piste/vallees-eperons-2026-11-03` deferred to the next requested commit; no commit or tag is created here.
+
+**2026-11-03 · River distance filtering: physical incision and wet area**
+- **Reports:** wide water disappears and returns thin between the 250 km and 173 km views; repeated brush-like cuts on the coast at 863 km.
+- **Cause:** channel banks moved outward with sampling radius; every positive filtered depth became full water coverage; the whole footprint could be lowered to a subpixel river's stage.
+- **Change:** integrate the positive physical bank incision after clipping it against the supporting ground; carry wet fraction and mean depth independently through all terrain samples.
+- **Settings:** no change to discharge thresholds, physical width/depth laws, valley sizing or cache version.
+- **Checks:** independent quadrature and area conservation on 103 sections pass; full CPU and native review status is in `spec-erosion.md`.
+- **Review:** `tools/tests/2026-11-03-eau-distance.txt`. The user's separate objection to systematic valleys and parallel flanks remains in scope.
+- **Tag:** `piste/rivieres-filtre-2026-11-03` deferred to the next requested commit; no commit or tag is created during this continuation.
+
+**2026-11-03 · Erosion handoff: bound water after combining channel beds**
+- **Failure:** `verifie_couloirs.py` found a 0.660 m water-depth jump beside a confluence on the wet plateau.
+- **Cause:** a neighbouring channel's dry bank lowered the composed bed below the entering wet channel's stage.
+- **Change:** cap the final river surface at the composed bed plus the existing blended compact cut, in `Relief.hlsli` and the CPU mirror.
+- **Scope:** no terrain-bed or settings change; lakes retain their existing stage. The rule applies to every river overlap.
+- **Verification:** the complete default CPU check passes, including 22 corridor edges, 22 joins and four confluence lines; native review status is in `spec-erosion.md`. Saved sheet comparisons now require explicit paths because they do not test current code.
+- **Documentation:** reconcile the interrupted sizing draft with `RIVER_Q` (200, 300, 450), `RIVER_REACH` 8500 m and cache `EXOEROS5`; distinguish calibrated density from observed outlet spacing.
+- **Tag:** deferred to the next requested commit, together with `piste/couloirs-tailles`; this continuation does not create a commit or tag.
+
+**2026-11-03 · Erosion step B: valleys sized by their river**
+- **Symptom:** from 465 km over the wet plateau, a valley of one width and depth on nearly every 20 km link; without erosion, smooth.
+- **Cause, measured:** every link from 10 m³/s drawn, 48 % of land links, 14 km apart on the plateau; floors set by the meander belt alone, ±4 % at a given discharge; walls at their 6 km bound across the plateau; stages lowered on 71 % of river cells, p95 568 m, small courses' caps included.
+- **Change:** courses from 200 m³/s, dry notches faded in up to 300; water and full corridors from 300; floors 230 Q^0.4 m by rock and relief (Brocard and van der Beek 2006, Clubb et al. 2022), 2^±1 along the course; the valley follows channel bends that exceed its floor; walls steeper in resistant rock, 2^±0.5 along the course, a straight ramp for small rivers to broad footslopes for large ones; stages capped only where water runs (`spec-erosion.md`, step B).
+- **Settings:** `RIVER_Q` (200, 300, 450) m³/s, was (10, 15); `RIVER_FLOOR` (230 m, 0.4, 4000 m, 0.35), `RIVER_FLOOR_ROCK` 0.5, `RIVER_FLOOR_LOG2` (−3, 1), `RIVER_VALLEY_NOISE` (12000 m, 1, 0.5), `RIVER_REACH` 8500 m, `RIVER_WALL` (0.15, 0.5, 3000 m³/s); in `Erosion.cpp`, `kWallRock` −0.25. Mirrored in `tools/hydro/cp.py`.
+- **Map:** the sinuosity and the floor's factor share the course byte, 4 bits each; cache `EXOEROS5`.
+- **Results:** inverse drainage density 232 km over all land; floors spread within each discharge band; stages lowered on 58 % of river cells, p95 265 m. This density metric does not measure outlet spacing. Current checks and review status are in `spec-erosion.md`, step B. No performance or quality benchmark.
+- **Cost:** rivers below 300 m³/s carry no water; the five harness sites keep only their sea and lakes. A tag `piste/couloirs-tailles` to set with the commit.
+- **To return:** `EROSION_RIVERS = false` restores step A. The first corridors were not committed; changing thresholds alone does not restore that implementation.
+
+**2026-11-03 · Erosion step B: river corridors from level 0**
+- **Why:** step A has no rivers; on the CPU, the `couloirs` prototype draws the level 0's rivers as corridors with continuous water (`tools/hydro/couloirs.py`).
+- **Change:** per point, `ErosionRivers` draws each course, its meandered channel, floodplain, walls and water, on step A's relief; at startup, when the cache is stale, two GPU passes measure the courses where they are drawn and `Erosion::Condition` conditions their stages (`spec-erosion.md`, step B). Terminal lakes from their existing stage slices.
+- **Beyond the prototype:** a course's stage continues past its ends along its slope; a wet channel is cut into the composed ground, its stage never above it. Both remove water steps the checks found at joins and perched water at edges.
+- **Settings:** `EROSION_RIVERS = true`; `RIVER_Q` (10, 15) m³/s, `RIVER_MEANDER` (10000 m, 12, 0.1, 0.05), `RIVER_SPLIT` 6, `RIVER_OFFSET_MAX` 2500 m, `RIVER_SINUOUS` (0.02, 0.15, 0.3), `RIVER_WIDTH_NOISE` (3000 m, 0.3), `RIVER_BANK` 0.5, `RIVER_STEEP_BANK` 3, `RIVER_EXTEND` (15000 m, 12000 m, 0.15), `RIVER_JUNCTION` (30, 75)°, `RIVER_FLOODPLAIN` (0.2, 200 m), `RIVER_CAP_CELL` 500 m, `RIVER_CAP_SAMPLES` 33; in `Erosion.cpp`, fill 15 m, drops 3 %, walls 0.2 to 0.5 and 300 m to 6 km: the prototype's. Mirrored in `tools/hydro/cp.py`.
+- **Map:** the course words in the terminal-lake slice's free high halves; cache `EXOEROS4`, its key with both passes' code. The level 0's own words unchanged.
+- **Checks, review, cost:** first-corridor measurements are archived in `log/spec-erosion-historique.md`; route `tools/tests/2026-11-03-rivieres.txt`. The user reviewed this version in flight before sizing, according to the handoff. No performance or quality benchmark.
+- **Tag:** none yet, to set with the commit.
+- **To return:** `EROSION_RIVERS = false`, step A.
+
+**2026-11-02 · Erosion step A: ravines on the pre-erosion form**
+- **Why:** the network's valleys drew a geometry worse than none; on the CPU, the `ravines` prototype adds erosion-like gullies down to metres (`tools/hydro/etude_relief.py`).
+- **Change:** 11 ravine octaves inside `ReliefDetail`, steered per point by the true slope of everything coarser; the network's valleys, gullies, channels, lakes, deltas and fans off; wave-cut cliffs kept; level 0 and its cache unchanged (`spec-erosion.md`, step A).
+- **Settings:** `EROSION_RAVINES = true`; `RAVINE_TOP` 5000 m, `RAVINE_OCTAVES` 11, `RAVINE_SHAPE` (0.15, 0.8, 0.8, 0.2), `RAVINE_STEER` (0.5, 1), `RAVINE_ROUNDING` (2, 0.1), `RAVINE_LAND` (0, 50) m, `RAVINE_ROCK` (0.5, 2), `RAVINE_WET` (0.6, 1), `RAVINE_PLAINS` 0.6: the prototype's. Mirrored in `tools/hydro/cp.py`.
+- **Checks:** `verifie_ravines.py` passes; the pre-erosion form identical, CPU to the byte, `ErosionForm`'s DXIL the same computation; steering 3 to 14° median from the prototype's.
+- **Cost:** per visible ravine octave, 2 lattice cells and 3 derivative noises plus 8 phasor corners; per point, the detail warp's Jacobian, 3 cells and 9 derivative noises. The network's valleys are no longer evaluated.
+- **Review:** `tools/tests/2026-11-02-ravines.txt`; geometry accepted in flight according to the 2026-11-03 handoff. No performance or quality benchmark.
+- **Tag:** none yet, to set with the commit.
+- **To return:** `EROSION_RAVINES = false`.
+
+**2026-11-02 · Valleys kept from orbit: clip, then average**
+- **Symptom:** from orbit, valleys absent at 2,400 km, then appearing between 2,000 and 1,400 km.
+- **Cause:** each valley section was averaged over the sample before the ground clipped it; once the sample outgrew the valley, its averaged floor stood above the ground and the valley vanished.
+- **Change:** the box mean of each section clipped by the point's own ground, in closed form (`ErosionClippedSection`); the two lowest links, combined by their plain minimum (`spec-erosion.md`).
+- **Settings:** none; radius and walls unchanged. Mirrored in `tools/hydro/cp.py`.
+- **Checks:** `verifie_vallees_lointaines.py`: 3.2e-7 m against quadrature, area kept to 4e-9, close range unchanged to 1e-13 m, terrain windows to 0.17 mm at 1 m; the existing checks pass, the composition bound moved to the clipped mean.
+- **Captures:** two ranges from 2,400 to 900 km; valleys present at 2,400 km as broad soft bands, sharpening continuously, identical by 900 km.
+- **Seen in passing:** a snowy range's snow still appears with descent, now between 1,600 and 1,200 km; separate defect.
+- **Review:** `tools/tests/2026-11-02-vallees-orbite.txt`; validated in flight by the user, cliff contact F11-F12 included. No performance or quality benchmark.
+- **Tag:** `piste/vallees-orbite-2026-11-02`.
+- **To return:** `ErosionCarve` back to `v.surface + lift`.
+
+**2026-11-02 · Screen relief from orbit**
+- **Symptom:** from orbit, mountains blurred into squares, crawled when the camera moved, then sharpened suddenly near 1,400 km.
+- **Cause:** from orbit the fine grid's cells span several pixels; it and the mesh's triangles slide with the view, and every field interpolated on them moved.
+- **Change:** `ScreenRelief.hlsl` recomputes the true relief under each 2 × 2-pixel texel at every frame; the pixel reads it in a 4 × 4 B-spline for light, materials, coasts and water (`spec-rendu-lointain.md`).
+- **Settings:** `ScreenReliefScale` = 2 pixels; `SCREEN_BAND_LIMIT` = 4 texels; weight from `ScreenReliefLow` = 150 km to `ScreenReliefHigh` = 400 km (`D3DApp.h`, `ScreenRelief.hlsl`).
+- **Same family:** roughness and fresh volcanic ground read in the texel, geology at the pixel; the grid's reconstruction gap widens height limits; exposure widened by the height spread (factor 5); volcanic cones keep their area, edge ≥ 2 cells; `CLOUD_BAND_LIMIT` = 4 pixels per noise texel.
+- **Storage:** one 48-byte texel buffer, sized for 4K, about 95 MiB; one root SRV, `t52`.
+- **Review:** `tools/tests/2026-11-02-montagnes-exposition.txt`; validated in flight by the user. No performance or quality benchmark.
+- **Tag:** `piste/relief-ecran-2026-11-02`.
+- **Rejected:** the footprint mean of `min(ground, profile)` for valleys, and a statistical lake coverage (`log/spec-rendu-lointain-historique.md`).
+- **Open:** valleys still appear suddenly between 1,400 and 1,800 km; cost near 300 km.
+- **To return:** raise `ScreenReliefLow` and `ScreenReliefHigh` above any camera altitude; `CLOUD_BAND_LIMIT` = 1.
+
+**2026-11-02 · Erosion review checkpoint**
+- **Branch:** `codex/erosion-eaux-contours-2026-11-02`; tag `piste/erosion-eaux-contours-2026-11-02`.
+- **Saved state:** inland rivers and lakes, bounded valley composition, coastal filtering, water contour refinement and coherent mountain shading.
+- **Integrated dependencies:** coordinate HUD, swept flight contacts, walking and contextual audio with credited recordings.
+- **Accepted:** reported side trenches, coastal contours and river contours; earlier river visibility is sufficient for this stage.
+- **Open:** mountain flight acceptance, repeated incisions, channel shape, detailed outlet connectivity, volcanic integration and orbital GPU cost.
+- **Validation:** Release x64 passes; previous targeted checks and native flight reproductions are recorded below. No new performance/quality benchmark.
+- **History:** checkpoint based on public ancestry; preserve the separately advanced remote erosion documentation branch.
+- **Stop:** work ends at this checkpoint; it does not mark the remaining erosion revision complete.
+
+**2026-11-01 · Coherent mountain height and slope reconstruction**
+- **Review:** the user accepts coastal contours and river contours; earlier river visibility is sufficient for this stage. Mountain transitions remain reported from orbit.
+- **Cause addressed:** bilinear fine-grid heights have slope jumps at cell borders; independently interpolated normals describe another reconstruction.
+- **Change:** one positive cubic B-spline height surface and its analytic normal on the spherical chart; retain the existing fade and invalid-sample fallback.
+- **Cost:** additional height reads and arithmetic; no extra terrain evaluation, pass, buffer or generation setting. The previous pixel contour-query cost remains open.
+- **Terrain and water:** mesh geometry and drainage are unchanged; existing water reconstruction and physical contour queries are retained.
+- **Checks:** Release x64, paired native 120-frame motion reproductions and four additional mountain/water captures; transitions soften and broad forms remain. No performance/quality benchmark.
+- **Review route:** `tools/tests/2026-11-01-montagnes-distance.txt`, F1-F6 for mountain approach; F7-F12 preserve water witnesses.
+- **Limits:** global temporal stability, silhouettes, repeated incisions, channel shape and outlet connectivity remain open.
+- **Status:** uncommitted correction awaiting flight review; no tag or publication.
+
+**2026-11-01 · Resolve water contours and preserve coastal sections**
+- **Cause:** dry grid samples could miss a narrow river; interpolated wetness exposed the sliding grid. Coastal filtering also widened the physical cliff landward.
+- **Water:** retain contour candidates in dry samples; evaluate the shared terrain near unresolved boundaries at half the pixel footprint, with the existing 2 m floor.
+- **Classification:** derivative lanes evaluate together; zero-depth floodplains remain dry. Refined water supplies stage, depth and flow without changing land-material bandwidth or mesh geometry.
+- **Coast:** compose the fixed physical cliff and connected talus before averaging their incision over a symmetric footprint.
+- **Settings:** no new terrain parameter, map or simulation; the physical coastal face remains `0.1 Hc`.
+- **Storage:** +4 bytes per mesh vertex and fine sample relative to the preceding water reconstruction; fine samples now use 32 bytes. The immutable shared gradient table adds 4 KiB to frame constants.
+- **Shaders:** terrain VS and PS use matching DXC compilation; noise gradients retain their values and no wave-operation support is required.
+- **Cost:** extra terrain evaluations near contours noticeably increase orbital GPU rendering time; optimization remains open. Live title observations are not controlled benchmarks.
+- **Checks:** Release x64, contour algebra, independent coastal quadrature, talus sections and shader-interface validation pass.
+- **Review:** two native 120-frame approach sequences reduce the broad bank steps and orbital fringe; interactive F7/F8 retain no side trenches. The lake and mountain witnesses remain visible.
+- **Limits:** a real river gap, regular paths, subpixel coverage, upstream valley filtering and silhouette stability remain unresolved; broader flight acceptance is pending.
+- **Route:** `tools/tests/2026-11-01-eau-orbite.txt`, clouds hidden; observations and rejected prototypes are in `log/spec-erosion-historique.md`.
+- **Status:** uncommitted work; no tag, publication or performance/quality benchmark.
+
+**2026-11-01 · Swept flight contact**
+- **Cause:** the previous frame's nadir height could let the camera or ship enter a steep wall, then lift it radially onto the plateau.
+- **Change:** GPU triangle sweeps of each proposed displacement; first contact, tangent sliding and separate recovery after placement.
+- **Envelopes:** camera radius 0.25 m; fixed hull sphere about 8.851 m, covering every attitude; cockpit eye stays attached when translation stops.
+- **Long paths:** intersect the whole chord with the terrain envelope, keep its near-side contact interval, and retain an analytic sea stop with globally remapped fractions.
+- **Settings:** contact sampling 0.5 m for the camera, about 0.59 m for the hull; up to 33 by 8,193 vertices; 2 mm contact separation and 1 m tangent retention.
+- **Cost:** GPU sampling and reduction, at most 8,224 readback bytes for two bodies; existing frame fence, one-frame translation latency, no additional wait.
+- **Idle:** a validated stationary sphere needs no new probe; chase still tests a moving eye around a stopped hull.
+- **Checks:** shared production algebra passes CPU fixtures, including 52 oblique shell cases and inward/outward/tangent overlap rules; packed-model maximum radius 5.710 m about its declared centre, inside `Ship::Radius = 6.7 m`.
+- **Review:** `tools/tests/2026-11-01-contacts-vol.txt`; Release x64 and interactive startup pass. Placement recovery, free-camera switch and orbital view exercised; continuous approach/retreat remains open. Six contact buttons are also in the water/orbit review route.
+- **Limits:** sampled contact geometry, conservative hull, coarser exceptional long paths; automated captures do not exercise this solver; crest shimmer remains unisolated.
+- **Terrain:** no geometry or generation setting changes; no commit, tag, publication or performance/quality benchmark.
+
+**2026-11-01 · Water reconstruction and orbital coast classification**
+- **Cause:** positive interpolated dry-land heights selected the inland-water shader over whole coastal mesh triangles; coarse dry vertices also suppressed fine water.
+- **Change:** separate ocean/inland coverages; premultiply wet stage and depth by presence; carry the same quantities through the existing fine grid.
+- **Settings and geometry:** unchanged; no additional terrain evaluation or resource binding.
+- **Storage:** fine samples grow from 16 to 28 bytes in the two buffers, +13.54 MiB at the existing resolution.
+- **Review:** `tools/tests/2026-11-01-eau-orbite.txt`; same-pose native capture removes the reported orbital diamonds. River water is present at both reported 18 km and 14 km views; serrated banks and interrupted reaches remain. Continuous flight, path shape, width law and sub-footprint wet-area conservation remain open.
+- **Status:** uncommitted work; no tag, publication or performance/quality benchmark.
+
+**2026-11-01 · Clear-sky erosion review**
+- **Request:** hide clouds while inspecting erosion and rivers, including at high altitude.
+- **Review:** eighteen flight views; six new views target three rivers at 4,678–4,915 m, with overview and close approach pairs.
+- **Launch:** `tools/lance.ps1 -SansNuages`; N restores cloud visibility during flight. The ordinary game default remains unchanged.
+- **Terrain:** no generation, geometry or climate setting changes; no milestone tag or publication.
+
+**2026-11-01 · Valley and channel composition**
+- **Change:** stop negative residual detail from excavating below a valley; bound the later water cut by its compact depth.
+- **Coupling:** the fluvial floor includes the channel width and keeps its mask at terminal nodes; the shoulder join vanishes on the floor so shallow cuts reach their stage.
+- **Settings:** unchanged; the C1 positive-part rounding reuses `EROSION_SMOOTH = 60 m`.
+- **Data and runtime:** no new map, simulation or terrain query; pre-erosion terrain and drainage inputs retain their definitions.
+- **Rejected prototype:** an absolute coarse-incision cap exposed mismatched support heights and erased river witnesses; it is not integrated.
+- **Review:** `tools/tests/2026-11-01-composition.txt`; routing, volcanic integration, width regularity and distant visibility remain open.
+- **Status:** uncommitted work, no milestone tag or publication; no performance/quality benchmark run.
+
+**2026-11-01 · Match foot contacts to exposed ground**
+- **Report:** weak footstep quality and contacts that did not match the visible material.
+- **Change:** six real banks for soil, grass, loose gravel, hard rock, sand and snow; six takes per bank, no immediate repeat.
+- **Selection:** textured material heights at 0.12 m; shared coating order, normalized base shares and at most two contact voices.
+- **Settings:** second material threshold 15%; equal-power layer gains; pitch ±1.5%; rain dampens the same material.
+- **Preparation:** 55 Hz high-pass, 16 kHz low-pass; bank RMS targets soil 0.09, grass 0.055, gravel/rock 0.10, sand 0.065, snow 0.095; peak ceiling 0.72.
+- **Scheduling:** probe each walking frame; flight retains the 10 Hz limit; no new GPU wait.
+- **Assets:** 42 PCM16 files, 2,283,646 bytes; CC0 and CC BY 3.0 credits in `assets/audio/README.md`; birds unchanged.
+- **Review:** dominant-material label and `tools/tests/2026-11-01-pas.txt`; isolated auditions under `x64/WalkingChecks`.
+- **Checks:** Release x64 and targeted controller, coating, wet/dry and mixed-contact PCM checks pass; listening remains with the user.
+- **Terrain:** no geometry or generation setting change; 0.12 m is only the acoustic sampling footprint.
+- **Status:** uncommitted correction, no milestone tag or publication; no performance/quality benchmark run.
+
+**2026-11-01 · Rivers and terminal lakes**
+- **Change:** visible water shares the erosion network; terminal lake stages propagate through their catchments.
+- **Settings:** `EROSION_WATER = 1`; `EROSION_RIVER_SHAPE = (2.4, 0.35, 0.3, 20)` for half-width and depth versus discharge.
+- **Section:** compact quartic, local box mean at the existing 2 m minimum; discharge fades from 0.05 to 0.5 m³/s.
+- **Lake reconstruction:** `EROSION_LAKE_TRANSITION = 2000 m` half-width; constant interiors, continuous transitions between coarse basin stages.
+- **Rendering:** two 64-second ripple phases; 1–4 m wavelengths, slope scale 0.11; wet threshold 2 cm, minimum shore transition 5 cm.
+- **Optics:** shared water attenuation with type 0.85; reflection variance `(0.002, 0.003)` plus `0.0005 × speed`, speed capped at 4 m/s.
+- **Storage:** `EXOEROS3`; 12 to 24 MiB for erosion, no extra runtime simulation.
+- **Return:** `EROSION_WATER = 0`; the pre-erosion form and original drainage solve remain unchanged.
+- **Checks:** Release x64, profile quadrature, network invariants, tributary overlap and terrain approach checks.
+- **Review:** `tools/tests/2026-11-01-rivieres-lacs.txt`; limitations in `spec-eaux-interieures.md`.
+- **Status:** uncommitted work, no milestone tag or publication; no performance/quality benchmark run.
+
+**2026-11-01 · Walking and contextual sound**
+- **Change:** instant ground placement and saved-ship return; direct FPS look, walk, run, crouch, jump and terrain contact.
+- **Settings:** eye 1.68/1.05 m; pace 1.5/3.6/0.75 m/s; gravity 9.81 m/s²; 45-degree ascent limit; 0.5 m contact grid.
+- **Sound:** world-driven wind, leaves, rain, surf and fauna; grounded-distance foot contacts; independent category gains.
+- **Assets:** 1.24 MB of redistributed CC0 recordings, loaded once; remaining continuous layers synthesized.
+- **Terrain:** unchanged; no new map or relief setting.
+- **Checks:** Release x64 and focused controller/PCM regressions pass; forest, desert, snow, coastal plain, ship return, mute and submerged-placement refusal visually checked.
+- **Input:** F10 remains a route key; Windows menu activation no longer captures it or suspends the game loop.
+- **Review:** `tools/tests/2026-11-01-marche.txt`; full listening and movement review remain with the user.
+- **Limits:** height-field footprint, no object collisions or swimming; sand and snow use filtered gravel.
+- **Status:** uncommitted work, no milestone tag or publication; no performance/quality benchmark run.
+
+
+## 2026-11-01 · Keep nearby cliffs inside the camera projection
+
+- **Change:** use the existing cockpit near plane, 5 cm, in every view; retain reversed Z and the 1e9 m far plane.
+- **Cause:** deriving the free-camera near plane from nadir clearance removed nearby walls when the ground below was distant.
+- **Terrain:** unchanged; no material, erosion or smoothing adjustment.
+- **Checks:** Release x64 builds; numerical depth checks and paired native close-wall captures pass.
+- **Flight:** F12 in `tools/tests/2026-11-01-metrique-cotiere.txt`; F5 retains the user's separate collision report.
+- **Open:** previous-nadir radial clamping is not swept wall collision; distant crest shimmer remains unisolated.
+- **Status:** uncommitted correction; no tag or publication.
+
+## 2026-11-01 · Measure coastal erosion at its physical scale
+
+- **Report:** pose `254.1 34.983719 88.511430 43.46 -106.41`, seed 0; straight cliff wall with thin needles.
+- **Cause:** metre-wide cusps in the coastal noise derivative moved the entire cliff-height contour; one 10 m crossing changed Hc from 56.89 to 258.82 m.
+- **Rule:** filter both coastal octaves and their crease derivatives at the wave-erosion scale, not only at the rendering mesh scale.
+- **Scope:** shared `ReliefCoastGradient` and its CPU counterpart; uncut source terrain and maps remain unchanged.
+- **Settings:** no numerical change; reuse the existing `EROSION_CLIFF_SLOPE_KM = 9`; no new query or noise octave.
+- **Checks:** 576 finite-difference derivatives over three seeds; six fixed terrain windows; resolved mesh invariance, bounded cuts and unchanged flat coast.
+- **Evidence:** the reported cusp's maximum 1 m step changes from 172.67 to 0.176 m; its 1-to-4 m mesh difference is below 0.187 m.
+- **Other coasts:** three witness windows still contain cuts over 10 m; the earlier cold talus location was also an invalid cut and now remains original ground.
+- **Build:** Release x64 passes; valley-filter and talus-profile checks pass.
+- **Flight:** `tools/tests/2026-11-01-metrique-cotiere.txt`; the second reported camera is lifted above the restored terrain.
+- **Native review:** the reported wall and needles disappear; the southern witness loses its visible inland pits; a wider view still shows an overly straight incision and a serrated bank.
+- **Status:** uncommitted correction awaiting flight review; no tag, push or performance/quality benchmark.
+- **Separate investigation:** a rendering/collision agent found an altitude-dependent near plane and confirmed that the current radial height clamp is not swept wall collision; see `spec-vaisseau.md`.
+
+## 2026-11-01 · Connect coastal talus to the cliff face
+
+- **Report:** pose `28.7 -47.008952 -32.993928 62.67 -50.35`, seed 0; false groove beneath a coastal cliff.
+- **Cause:** a symmetric talus mound fell again towards the wall; snow exposed its two artificial ridges.
+- **Rule:** solve the talus contact on the cliff face, then extend its apron seaward; a supported section must not reverse slope towards its wall.
+- **Scope:** the shared coastal profile in HLSL and the CPU port; coordinates occur only in regression cases and the flight route.
+- **Settings:** unchanged; no new terrain query, map, noise octave or material adjustment.
+- **Checks:** 384 sections, independent contact oracle, four coastal windows; no reverse slope, no uplift above source terrain, flat coast unchanged.
+- **Evidence:** the reported section's 7.39 m back slope is removed; matching native captures show the false groove and snow ribbons disappear.
+- **Build:** Release x64 passes; previous blade and valley-filter regressions pass.
+- **Flight:** `tools/tests/2026-11-01-pieds-falaises.txt`, close and wider views, other coasts, mountain and blade witnesses.
+- **Status:** uncommitted correction awaiting flight review; no tag, publication or performance/quality benchmark.
+- **Still open:** coastal sensitivity to filtered input heights, the earlier unlocated green scar, useful gully strength and distant repetition.
+
+## 2026-11-01 · Coordinates inside review screenshots
+
+- **Request:** recover an exact camera pose from an ordinary screenshot; the window title was truncated.
+- **Change:** a two-line overlay in the final image gives latitude, longitude, sea-level altitude, pitch, heading and seed.
+- **Controls:** visible by default in interactive flight; I toggles it; automated renders omit it unless `MYPLANETENGINE_COORDINATES=1`.
+- **Rendering:** after tone mapping, outside temporal history; text wraps at small resolutions and remains visible in full screen.
+- **Terrain:** unchanged by this display feature; no new asset, font dependency or simulation.
+- **Checks:** Release x64 builds; native captures at 1280x720 and 320x180 contain readable coordinates; an automated capture without the override omits them.
+- **Status:** uncommitted review aid on the erosion branch; no publication or milestone tag.
+
+## 2026-11-01 · Stabilize valley profiles during approach
+
+- **Cause:** profile dilation divided by a near-zero coarse reference depth, moving entire valley banks as mesh spacing changed.
+- **Change:** local analytic mean of the fixed fluvial/glacial section; physical floor masks remain fixed.
+- **Settings:** unchanged; the minimum radius reuses `CREASE_MIN_CELL = 2 m`.
+- **Evidence:** fixed snowy 4 km window, maximum 1-to-4 m mesh change 220.85 to 1.06 m; 1-to-16 m change 417.73 to 9.55 m.
+- **Checks:** 240 independent profile-integral samples, three terrain windows, previous profile/curve checks and four blade regressions pass; Release x64 builds.
+- **Flight:** `tools/tests/2026-11-01-mutations.txt`; the two native snowy captures retain their main cliff shape.
+- **Open:** exact green-scar position missing; a separate coastal remap amplifies input-height filtering, unchanged here. Distant repetition and useful gully amplitude remain open.
+- **Status:** uncommitted working correction; no milestone tag, publication or performance/quality benchmark.
+- **History:** previous closure checks and the rejected area-preserving dilation are in `log/spec-erosion-historique.md`.
+
+## 2026-11-01 · Resume erosion in Exolune: rock-gully blades
+
+- **Working branch:** the existing `claude/erosion-globale-b42982`, copied from its public-history replay at `7187c1b` into the Exolune clone.
+- **Cause:** rock gullies used a nominal wave slope while ignoring rapid changes of direction and forks.
+- **Change:** one conservative envelope for soil and rock; their admissible slopes remain different.
+- **Settings:** unchanged; the terrain before erosion and the valley profiles are unchanged.
+- **Build:** Release x64 through `tools/lance.ps1 -Build -NoLaunch`, exit 0; existing warnings in unrelated shader modules.
+- **Checks:** four close CPU regression windows; one-metre steps below 1.64 m, previously up to 514.73 m; resolved mesh independence and unchanged parent terrain.
+- **Tradeoff:** the conservative envelope nearly removes rock-gully replacement in these windows; useful amplitude needs a coherent direction field at the octave's scale.
+- **Flight:** `tools/tests/2026-11-01-lames.txt`, four close regressions and eight wider witnesses.
+- **Visual checks:** four native color captures and one relief diagnostic; nearby slopes are continuous, distant serrations and regular drainage remain. Windows activation failed; the engine capture path was used.
+- **Status:** uncommitted working correction; no milestone tag or publication; global geometry, useful gully strength and distant repetition remain under review.
+
+## 2026-11-01 · Curved troughs and a network without folding in checks
+
+- **The experiment:** existing `piste/erosion-globale`, resumed from `14c99ec`; stage frozen and local commit requested for migration to `C:\Users\etien\Documents\repos\Exolune`, without push or integration.
+- **The U:** coefficient 0.3 defines curvature above the drained floor; overdeepening followed by flattening at water level is removed.
+- **The joins:** quadratic position and height; discharge and ice shared at midpoints; distance to the actual curve in the tangent plane.
+- **The sources:** direct solution for spans with repeated control points; quadratic flux interpolation and regular slope limit, without the width jumps found in renders.
+- **The cut:** the envelope cuts the full terrain; detail suppression raises no hollows, so it no longer creates a rim.
+- **Detail suppressed once:** the preliminary mesa mask is removed; 3 908 points outside incisions retain bit-identical detail.
+- **The filter:** exact cross-section width; reciprocal horizontal expansion and vertical contraction, area preserved and profile carried by two grid cells.
+- **The warp:** amplitude from 7 to 2 km, same wavelengths; around 13 % folding before, none in 100 000 probes per seed after correction.
+- **The support:** its two coarse octaves remain intact before deciding incision; reinforcement at 0.35 of depth applies only to subsequent octaves.
+- **The folds:** `EROSION_FOLD_DEPTH` and its preliminary attenuation removed; bit-identical support with and without erosion on 4 010 points, two seeds.
+- **The soils:** gullies active only under a profile that actually incises; maxima in the four windows below the 51.34° threshold.
+- **The floors:** flat areas from 31.60 / 33.53 % to 0.47 / 0.96 % in the two 4 km windows; six traces of 11 to 23 km follow their profile, without residual detail.
+- **Verification:** `tools/hydro/verifie_auges.py`, two seeds, 200 joins and 840 boundaries; successful build and twelve flight views rendered without a window.
+- **Measured cost:** over three 1080p flights, terrain computation +0.08 to +0.27 ms; total GPU +4.2 to +8.5 %, averages of 120 frames per view.
+- **Initial benchmark:** 3 254 crops; `14c99ec` already exceeds the threshold on 22 p95 measurements against the preserved 2026-10-24 baseline.
+- **Final benchmark:** 2 535 crops; 19 historical exceedances and thirteen regressed p95 values out of 47 comparable to the current control. No control family disappears; scree at 50 m is new and not comparable.
+- **Mutation:** p95 falls at all five heights, notably 0.205 → 0.146 at 50 m and 0.216 → 0.168 at 200 m.
+- **Main discrepancy:** bare soil at 50 m, gap from 2.20 → 5.73 dB; the dominant site is outside incision on 1 681 probes, ground bit-identical with or without erosion. Its material rendering remains insufficient on the restored support.
+- **Status:** CPU checks pass on their samples, quality not accepted; user flight feedback still shows major geometry defects.
+- **Flight feedback:** five captures preserved in `docs/images/erosion-2026-11-01`; blades, spikes and jagged joins between 40 and 79 m height, overly regular patterns at 417.5 km. The cause of the breaks remains to isolate; first priority in the new clone.
+- **Flight:** `tools/tests/2026-11-01-auges.txt`, with `tools/lance.ps1`; unincised shapes may lose E's artificial bands.
+- **Rollback:** profiles and settings in `14c99ec`; old details and measurements archived in `log/spec-erosion-historique.md`.
+- **Continuation:** this worktree becomes a local archive after its commit; continue only in the public Exolune clone, on the branch replayed by the coordinating session.
+- **Closing build:** `tools/lance.ps1 -Build -NoLaunch`, Release x64, successful without errors; warnings in unchanged shaders, local log `x64/erosion-2026-11-01/build-cloture.log`.
+
+
+## 2026-10-31 · Cliffs: only the main terrain evaluation
+
+- **The experiment:** existing `piste/erosion-globale`; simplification of E requested by the user, no commit or new tag.
+- **Removed:** the second off-sphere valley query and three octaves recalculated to freeze Hc; `cliffSlope` comes from the sole main call. Parameters `sphere` and `project` removed.
+- **Measurements:** Hc changes little at the median and p90; third-window maximum 255.085 → 343.741 m. The three sections retain their walls, angles and platforms; land in front 0 m, landlocked share of the three windows 0 % before and after.
+- **Targets:** no cliff target fails; port, before/after comparison and full cliff check report `ok`. Release x64 without errors or new warnings in modified files.
+- **Cost:** one fewer valley call and three fewer octaves at coastal points; no engine or benchmark run, GPU gain unmeasured.
+- **Awaiting in-flight review:** `tools/tests/2026-10-31-cotes-sans-recalcul.txt`; full record in `spec-erosion.md`.
+
+## 2026-10-31 · Broad rock gullies, troughs open on the sphere
+
+- **The experiment:** existing `piste/erosion-globale`, after D committed by the user as `1ca9743`; no new commit or tag.
+- **Flight feedback:** forest, trench, canyon, lakes and flat forest clean; mountain ranges softened at a distance, glacial ovals still closed.
+- **Gullies:** soil at Sc = 1.25 below 300 m and outside mountains; transition to rock up to 1 km, according to mountain share, amplitude from 600 to 1 400 m and equilibrium-line reinforcement. Rock budget at octave scale, Sc = tan(70°), zero mean and finite rounding preserved.
+- **Ranges at 25 m:** above 35 / 45 / 60°, integration 56.867 / 40.472 / 7.039 %, D 45.595 / 26.715 / 0.196 %, E 51.432 / 44.746 / 6.307 %; arêtes, integration 26.390 / 9.784 / 1.017 %, D 5.745 / 0.183 / 0 %, E 27.645 / 11.599 / 2.193 %.
+- **Cause of the ovals:** the warped point had left the sphere; its radial offset counted as distance to the river. Double-precision projection before the query: coarse-cut closure depths of 72.964 and 441.570 m reduced to zero; full floors open too. The floor no longer calms ground the valley does not incise.
+- **Downstream:** thalwegs traced over more than 5 km; ground and coarse cut at water level with 5 and 200 m grid spacing. Sixteen lake outlets retain their level.
+- **Controls:** four C windows still zero above 45°; `valleys=false` and flat coast bit-identical. Hc identical at the same points on the six coasts, its estimator separated from the new geometry; extra valley query and three octaves in this band alone.
+- **Checks:** `cp.py`, cliffs and E checks report `ok`; Release x64 without errors or new warnings in modified files. No engine or benchmark run; current GPU cost unmeasured.
+- **Awaiting in-flight review:** `tools/tests/2026-10-31-ravines-roche-auges.txt`; measurements, command and limitations in `spec-erosion.md`.
+
+## 2026-10-31 · Floors at water level; separate rock bound
+
+- **The experiment:** existing `piste/erosion-globale`; no commit or new tag.
+- **Feedback:** keep C's soils; arêtes have lost their walls. Two glacial ovals contain depressions caused by fine detail on the floor.
+- **The join:** `ErosionCarve` removes both signs of the residual on the plateau bounded by water; the calm middle `floorShare` alone did not cover this plateau. Continuous transition to walls and at the start of incision, without changing profiles or ground outside incision; line-by-line port.
+- **Rock:** threshold from 1.25 toward tan(70°), according to `gullies.glacial` alone; strong-rock choice within Selby 1980's framework, not a universal slope.
+- **Measurements:** full floors at their level, versus residuals of −67 to +191 m and −155 to +164 m. Maximum closure depths of the two squares: 77.010 → 72.964 m and 734.793 → 681.453 m; coarse incision alone already encloses 72.964 m and 441.570 m.
+- **Unresolved limitations:** new baseline differs from the 84 m integration depression; cause of coarse closures remains to investigate. The rock bound alone does not restore walls: arêtes still 0 % above 60°, maximum 47.432°.
+- **Controls:** forest, slope and canyon windows preserved within 0.001°; Hc identical on the six coasts; `valleys=false`, flat coast and unincised ground bit-identical.
+- **Checks:** detailed measurements and commands in `spec-erosion.md`; Release x64 successful without new warnings in modified files, through `tools/lance.ps1 -Build -NoLaunch`. No engine or benchmark run.
+- **Awaiting in-flight review:** `tools/tests/2026-10-31-fonds-vallees.txt`.
+
+## 2026-10-31 · Gullies respect the soil's critical slope
+
+- **The experiment:** existing `piste/erosion-globale`; no commit or new tag.
+- **Flight feedback:** A and B kept; forest cutoff removed, lakes and unglaciated forest clean, climate then erosion without errors. Remaining trenches and palisades came from gullies, without valley or deposit.
+- **The rule:** `EROSION_GULLY_CRITICAL = 1.25`, Roering et al. 1999; no glacial exemption for mobile soil, noise of rocky crests remains intact.
+- **The calculation:** reserve for larger octaves and ordinary noise; continuous gain for replacement alone; band period, weights, bifurcations and rotation included; zero mean preserved and no current grid spacing in the budget.
+- **Caution:** conservative bounds; gullies canceled in the reported forest and canyon, millimeter-scale on the slope; rocky crests in the arête window remain at 47.432°.
+- **The four windows:** shares above 45° reduced from 10.460 / 5.784 / 74.640 / 0 % to 0 %; details and controls in `spec-erosion.md`.
+- **Northward transects:** forest 40.624° → 17.267°, slope 34.412° → 13.486°; maximum variation over 0.5 m, 0.424922 → 0.155406 m and 0.341587 → 0.119753 m.
+- **Coasts:** Hc preserved at the same points in the six windows; `valleys=false`, noise without gullies and flat coast bit-identical.
+- **Awaiting in-flight review:** `tools/tests/2026-10-31-pentes-ravines.txt`; no engine or benchmark run during C.
+- **Checks:** Release x64 successful without new warnings in modified files; port, critical slope, cliffs and crests report `ok`.
+
+## 2026-10-31 · Rounded glacial crests, erosion on computed climate
+
+- **The experiment:** existing `piste/erosion-globale`, without commit or new tag.
+- **Where:** only the equilibrium-line band activates arêtes; trough ice no longer sharpens them.
+- **How:** power 0.7 removed; monotone quadratic profile, `EROSION_GLACIAL_SHARPEN = 0.2`, slope amplified by at most 15.1 %, original rounding and mean preserved; zero stops sharpening.
+- **Climate:** annual precipitation and temperature from the map, kept on CPU before level 0; equilibrium-line formula unchanged.
+- **Waves:** east/north wind from cube 1, strength from 1 to 1.6 between 5 and 8 m/s, continuous calms; same reference frame as climate.
+- **Resources:** t20 bound with s4 in terrain and placement passes; t23 preserved.
+- **Cache:** CPU climate map added to the key, explicit invalidation on every change.
+- **Forest:** maximum northward slope 82.110° → 40.624°, rise over 0.5 m 2.888525 → 0.424922 m; remaining steep slopes in the three windows quantified in the spec.
+- **Measurements and limitations:** `spec-erosion.md`, reproducible CPU check `tools/hydro/verifie_cretes_climat.py`; existing level 0 preserved, no engine or benchmark run.
+- **Awaiting user flight review:** `tools/tests/2026-10-31-cretes-climat.txt`.
+- **Verification:** Release x64 successful without warnings in modified files; all three CPU checks report `ok`; no engine or benchmark run, erosion cache and glaciated share of the new level 0 to renew at next startup.
+
+## 2026-10-31 · Erosion joined to climate and volcanism
+
+- **The connection:** existing experiment `piste/erosion-globale` joins `integration`, without new settings or tag.
+- **Resources:** tectonics and views at t18–t19, climate at t20, volcanoes and index at t21–t22, erosion at t23.
+- **Terrain:** volcanic edifices before detail; valleys, deposits and cliffs before smoothed coastal barriers; reef finishing last. The sea-probe read preserves the main point's volcanic material.
+- **Preserved fixes:** double-precision distances and phases, quintic uplift, no transform offset, `ReliefSeaProfile`, decision and shore normals, shared catalog.
+- **The port:** same composition; volcanic and hydrological profiles distinguished in Python. `cp.py` reports `ok` with build caches; before erosion, zero difference from HEAD on 70 points and three grid spacings.
+- **The build:** Release x64 isolated in `x64/Verif`, zero errors; no change to `x64/Release`. Provisional erosion climate functions remain to connect to computed climate (`spec-erosion.md`).
+- **Awaiting in-flight review:** `tools/tests/2026-10-31-integration-erosion.txt`; check renders in `x64/Verif/rendus`.
+- **Renders:** ten 960 × 540 captures inspected, including two `relief` diagnostics to read the valley and volcano under the weather; reef, barriers, cliffs and forest visible. No title reports missing vegetation.
+- **The merge remains uncommitted;** the sandbox prevents writing its Git index outside the worktree.
+
+## 2026-10-31 · Coastal cliffs from a full-ground contour
+
+**Abrasion joins erosion after valleys and deposits, before coastal barriers.** Experiment `piste/erosion-globale`, no new tag.
+- **The contour:** `Hc = clamp(1000 W G, 8, 400)` m; G comes from large shapes and detail above 9 km, with coastal slope as a floor.
+- **The shape:** wall on the full-ground contour; platform at −1 m, nominal 2 % slope, at most 4 m height difference; scree at 35° and rare remnants of the original ground.
+- **The bound:** maximum lowering Hc + 1 m; no ground raised; face transition widened over two grid cells.
+- **Rock:** erodibility converted per texel before B-spline; no new GPU channel.
+- **Waves:** one zonal wind, `ErosionWaveWind`, to replace with climate; flat coasts and sheltered bays excluded.
+- **Reach:** open seaward within the 8 km proxy; inland, `min(W + 1 + relief / coastSlope, 8)` km, fading over 500 m; contour and 9 km filter preserved.
+- **Sea access:** pre-erosion ground probe at `RETREAT.z = 3 km` offshore; below −50 m, presence blended over 250 m of coastal distance; read only for a potential cut, without a second valley search.
+- **Settings `EROSION_CLIFF_*`:** `RETREAT = (1, 1.2, 3, 0.45)`, `NOISE = 2.4`, `BAY = (-12, -6)`, `REACH = (1, 0.5, 8)`, `SEA = (50, 0.25)`, `HEIGHT = (8, 400)`, `SLOPE_KM = 9`, `FACE = 0.1`, `SCREE = (0.7002, 0.22)`, `PLATFORM = (-1, 0.02, 4)`, `STACK = (0.065, 0.8, 1.4)`, `WAVES = (0.28, 1.6)`; units in the spec.
+- **The three fixed sections:** walls 252.295 / 42.020 / 121.945 m; angles 80.95 / 67.38 / 83.76°; platforms −1.157 / −1.242 / −1.939 m; land in front of the foot 0 m.
+- **The six windows:** seed 0, sea p99 604 / 400 / 550 m, landlocked 0 %; seed 1, glacial plain entirely unchanged, then coasts at 1 388 / 559 m and 0.113 / 0 % landlocked; maximum distances from 502 to 1 656 m on the five active coasts.
+- **Verified cause on the plain:** the symmetric band already cut 15.720 % of the surface by more than 10 m; seaward opening alone 16.121 %, inland extension alone 16.198 %, together 16.200 %; no level 0 link incised these points.
+- **The two additional shores:** cold coast, 86.900 m wall at 75.62°; active coast, no face, proxy at 11.407 km beyond the 8 km cap.
+- **Checks:** both CPU scripts report `ok`; pre-erosion form identical for both seeds and flat coast unchanged; measured lowering at most Hc + 0.998 m; Release x64 build successful, no warnings in modified files. Renders from the sea on seeds 0 and 1: walls and platforms on steep coasts, glacial plain and flat coast intact; no benchmark.
+- **Details and distributions:** `spec-erosion.md`, “Coastal cliffs”; old models, symmetric band and fifth pass without a probe in the [history](log/spec-erosion-historique.md).
+- **Rollback:** `EROSION_CLIFF_RETREAT.x = 0` removes abrasion alone; `valleys = false` preserves the pre-erosion form.
+
+## 2026-10-31 · Global erosion
+
+- **What changes:** at startup, after the tectonic map, erosion level 0: drainage to the sea, lakes by water balance, discharge, stream-power water level from uplift and erodibility, finite knickpoint retreat, ice from the last glacial maximum, fans and deltas (`Erosion.cpp`). Each link carves its valley by lowering the coarse ground, U-shaped under ice (`Erosion.hlsli`); detail octaves from 11 km to 100 m become gullies along the slope, with blade crests under ice. `spec-erosion.md`; new rules in `principes.md`.
+- **New settings:** `EROSION_JITTER` 0.3, `EROSION_REACH` 0.6, `EROSION_FLOOR`, `EROSION_WALLS` 0.25 to 0.65, `EROSION_GLACIER`, `EROSION_GLACIER_WALLS` 0.85, `EROSION_SMOOTH` 60 m, `EROSION_COARSE` 20 km, `EROSION_GULLY_FIRST` 2, `EROSION_GULLY_SHARE` 0.85, `EROSION_GULLY`, `EROSION_GULLY_PERIODS` 2, `EROSION_GULLY_FORK` 0.3, `EROSION_GLACIAL_POWER` 0.7, `EROSION_GLACIAL_BAND` 600 m, `EROSION_FOLD_DEPTH` 0.8 to 2 km, `EROSION_WARP` 7 km, `EROSION_WALL_RELIEF` 0.35, `EROSION_DELTA`, `EROSION_FAN`. In `Erosion.cpp`: steepness, knickpoint reach, ice, fans.
+- **The network,** seeds 0, 1 and 2: all land reaches the sea or a terminal lake, 13.6 to 18.8 % toward lakes; lakes 0.8 to 1.9 % of land; largest basins 4.6 to 7.7 Mkm².
+- **Cost:** level 0, 0.54 s cold, 0.03 s from cache `erosion-<graine>.bin`; 12 MB on the GPU. Terrain computation in motion 0.67 to 1.46 ms versus 0.28 to 0.95 ms, shared GPU.
+- **The port:** against the planet map, median difference 0.6 cm, p99 0.22 m; on ground under the camera, at most 0.5 m over 7 sites.
+- **Known defects:** overly regular slopes, small deltas and one false delta, gullies barely visible at a distance; `spec-erosion.md`.
+- **Awaiting in-flight review:** `tools/tests/2026-10-31-erosion.txt`.
+- **Rollback:** commit `fd92705`; `valleys = false` in `TerrainAt` renders the pre-erosion form.
 **2026-11-03 · Close trunks, filtered silhouettes and forest skylight**
 
 - **Report:** planar tropical crown, faceted close trunks, soft bark maps, noisy cutout outlines and almost black forest ground.

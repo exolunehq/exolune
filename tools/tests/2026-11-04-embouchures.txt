@@ -1,0 +1,14 @@
+# Seed 0. Universal discharge continuity, lake/sea apertures, wet-bank geometry and coastal foam.
+# Backspace leaves the cockpit. F1-F12 select these views; the palette requires windowed mode.
+Embouchure : nouveau signalement | 3226 -9.027692 127.426786 70.69 -165.64 | 20 120
+Embouchure : ensemble et amont | 15000 -9.027692 127.426786 90 0 | 20 120
+Embouchure : contact de pres | 600 -9.0403 127.415 65 0 | 20 120
+Cote : premiere traversee corrigee | 18000 -9.040512300 127.244378813 90 0 | 20 120
+Confluence : ensemble | 8000 -6.251531 125.325826 90 0 | 20 120
+Confluence : berges et ouverture | 2200 -6.250434328 125.346558807 70 180 | 20 120
+Amont : canyon corrige | 3840.6 -5.038412 124.886462 13.17 -102.18 | 20 120
+Delta : contacts des branches | 12000 -13.260094611 136.819890967 90 0 | 20 120
+Berge : au sol, galets et touffes | 1523.460598 -6.295048419 125.338208320 15 -65.67863 | 20 120
+Lac terminal : arrivee du cours d'eau | 3530.75 33.024598821 54.893928890 90 0 | 30 50
+Approche : orbite 1200 km | 1200000 -6.250434328 125.346558807 90 0 | 20 120
+Approche : 173 km | 172718.8 -7.189383 125.450731 65.74 -9.12 | 20 120

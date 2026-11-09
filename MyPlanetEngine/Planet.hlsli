@@ -32,9 +32,12 @@ cbuffer Frame : register(b0)
     float4x4 shipSunShadow; // face-local point -> the ship's map towards the sun, for its shadow on the ground
     uint4    coordinateInfo; // lengths of the two screenshot-coordinate lines; zero disables the overlay
     uint4    coordinateText[8]; // two rows of 64 ASCII bytes, packed little-endian
-    float4   reliefGradients[256]; // immutable noise table (Noise.hlsli); the pixel's coast contour uses the same literals as compute
+    float4   reliefGradients[256]; // immutable noise table; pixel contours use the same literals as compute
     float4   screenRelief; // the screen relief (ScreenRelief.hlsl): xy its texels across, z its weight (0: off),
                            // w the pixels per texel side
+    uint4    erosionMode;  // x: the erosion shown, key 1 (Relief.hlsli, ErosionMode): 2 full, 1 ravines only, 0 none;
+                           // y: 1 when the screen relief covers every pixel at full weight (FineTerrain.hlsl);
+                           // z: 1 once the rivers' map for wide footprints is computed (Erosion.hlsli)
     float4   foliageWind; // xyz: local climate wind in the face frame (m/s); w: shared weather clock (s)
 };
 
@@ -47,17 +50,38 @@ struct FaceVertex
     float  volcanic;  // the fresh volcanic ground, 0 to 1: bare lava, scoria and ash (Volcanoes.hlsli, gVolcanic)
     float  horizon;   // the terrain's horizon toward the sun (rad), for its cast shadow (Horizon.hlsl)
     float  shadow;    // its column's shadow height (m above the sea), for the sun's shafts in the air (Horizon.hlsl)
+    float4 water;     // xyz: downstream velocity, planet frame; w: water stage above sea level
+    float waterDistance; // conservative candidate distance for contour refinement
+    float waterDepth, waterCoverage; // mean depth and physical wet fraction of the footprint
 };
 
-// The screen relief's texel (ScreenRelief.hlsl): the ground's position and elevation, and its own fields there, which the
+// One shared sample layout for the fine terrain and its normals. Water quantities are premultiplied by wet presence:
+// dry mountain heights must never become lake stages, and a coarse dry vertex must not veto fine water.
+struct FineSample
+{
+    float4 terrain; // xyz: position or normal; w: raw bed elevation
+    float4 inland;  // wet presence, presence * stage/depth, candidate distance
+    float4 flow;    // xyz: wet presence * velocity; decoded only after reconstruction
+};
+
+// The screen relief's texel (ScreenRelief.hlsl): the fine grid's sample, and the ground's own fields there, which the
 // vertices carried before: interpolated on triangles sliding under the view, a feature smaller than them changed its
 // shape as they slid.
 struct ScreenSample
 {
-    float4 terrain; // xyz: position relative to the camera, face-local; w: elevation (m)
-    float2 ground;  // x: roughness (gRoughness), sets the slopes hidden below the texel (SlopeSpread); y: fresh volcanic
-                    // ground (gVolcanic)
+    float4 terrain;
+    float4 inland;
+    float4 flow;
+    float4 ground; // x: roughness (gRoughness), sets the slopes hidden below the texel (SlopeSpread); y: fresh volcanic
+                   // ground (gVolcanic)
 };
+
+float3 InlandSample(float stage, float depth, float coverage)
+{
+    const float wet = stage > 0.0 && depth > 0.0 ? saturate(coverage) : 0.0;
+    // Depth already includes dry area. Dividing this moment by wet gives depth conditional on water being present.
+    return float3(wet, wet * stage, wet > 0.0 ? depth : 0.0);
+}
 
 struct PSInput
 {
@@ -76,6 +100,8 @@ struct PSInput
     float3 shore     : TEXCOORD8; // the beach's normal, across SHORE_BASELINE at least (VertexShader.hlsl)
     float2 seaParam : TEXCOORD12;
     float seaHeight : TEXCOORD13;
+    float4 water : TEXCOORD14; // drainage stage and downstream velocity, shared with terrain
+    float4 inland : TEXCOORD15; // premultiplied stage/depth and candidate distance, at shading resolution
     float  horizon   : TEXCOORD11; // the terrain's horizon toward the sun (rad): the shadow it casts (Shadows.hlsli)
 };
 

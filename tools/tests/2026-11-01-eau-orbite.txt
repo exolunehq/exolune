@@ -1,0 +1,23 @@
+# Seed 0. Launch with -SansNuages -Resolution fenetre. F1-F12 match the buttons.
+# F1-F3: pixel contour refinement. Move sideways and approach: coast blocks must not follow the sliding grid.
+# F4-F6: compare the same reach through descent; banks must not jump in grid-sized steps. Physical paths, widths and dry gaps remain under review.
+# F7-F8 retain the user-validated side-trench views. F9-F10: mountain water. F11-F12: lake shore.
+# Six extra palette buttons exercise interactive camera/hull contact; Backspace selects free camera, Tab cycles ship views.
+Orbite signalee : stabilite en mouvement | 4957836.7 -13.909648 124.644062 84.18 43.05 | -26.95 106.61
+Orbite : approcher sans bord qui scintille | 4500000 -13.747632 124.791150 84.18 43.01 | -26.95 106.61
+Autre cote : verifier le meme raccord | 5000000 34.983719 88.511430 84 0 | 35 70
+Riviere a 18 km : presence de l'eau | 18045.3 7.953168 -84.525373 84 24.75 | 10 -85
+Meme riviere a 14 km : transition | 14271 7.956553 -84.523890 84 24.75 | 10 -85
+Meme region a 6 km : continuite | 6000 7.967792903 -84.518564462 65 -160.65 | 10 -85
+Fosses laterales : regression vue basse | 150.9 -12.406891 52.928246 26.44 -118.93 | -10 50
+Meme riviere : regression depuis 500 m | 500 -12.406891 52.928246 35 -118.93 | -10 50
+Haute montagne : eau vue d'ensemble | 6715.25 -3.678786174 124.087242123 56.31 -92.2583 | 6.32 149.08
+Meme riviere : eau pres du lit | 5075.25 -3.679140115 124.078247216 38.66 -92.2577 | 6.32 149.08
+Lac : conserver une rive nette | 963.25 42.513100842 -24.531474493 20 -42.49 | 40 -20
+Meme lac : approche de la rive | 543.25 42.510673943 -24.535069417 12 -42.49 | 40 -20
+Contact : falaise signalee | 96.7 -46.990030 -32.992581 12.92 70.17 | -40 -10
+Contact : paroi tres proche | 77.5 8.488890670 -103.555961023 0 -154.17278 | 10 -100
+Contact : paroi de ria | 254.1 34.983719 88.511430 43.46 -106.41 | 35 90
+Contact : pente enneigee | 4065 -46.85004 -33.85772 31.9 -63.4 | -40 -10
+Contact : crete tropicale | 3520.171 -7.3762949296 116.9875262922 12 -135.978 | -5 125
+Contact : descente vers la mer | 100 -20.47 -75.45 45 160 | -50 -75

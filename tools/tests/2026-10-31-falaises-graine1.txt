@@ -1,0 +1,5 @@
+# Coastal cliffs, seed 1 (docs/spec-erosion.md): launch on a seed 1 build, this route does not change it; seed 0 views are in 2026-10-31-erosion.txt.
+Glacial plain: no channels in the platform or rings around lakes | 1500 -65.00789 -113.42094 65 90 relief | -50 -100
+Same plain at the second point: preserve hills and lakes | 1500 -65.01216 -113.39521 60 270 | -50 -100
+Tropical coast: keep abrasion close to the sea | 1800 23.78161 -126.35919 50 270 relief | 20 -120
+Temperate coast: keep the wall and its platform | 1500 40.46592 -84.75513 50 270 relief | 30 -80

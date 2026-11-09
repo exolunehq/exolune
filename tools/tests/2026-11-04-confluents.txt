@@ -1,0 +1,14 @@
+# Seed 0. Asymmetric confluence banks; independent junction and receiving-water regressions.
+# Backspace leaves the cockpit. F1-F12 select views; the palette requires windowed mode.
+Confluence : vue d'ensemble | 8000 -6.251531 125.325826 90 0 | 20 120
+Confluence : pointe et rive aval | 2200 -6.250434328 125.346558807 70 180 | 20 120
+Autre confluent : bassin voisin | 3500 -7.173005 125.036219 90 0 | 20 120
+Confluence : virage presque parallele | 4000 -32.328588383 85.669690200 90 0 | -20 80
+Embouchure : contact du signalement | 3226 -9.027692 127.426786 70.69 -165.64 | 20 120
+Delta : contacts des branches | 12000 -13.260094611 136.819890967 90 0 | 20 120
+Lac terminal : arrivee du cours d'eau | 3530.75 33.024598821 54.893928890 90 0 | 30 50
+Tete : nouveau signalement 97 km | 96901 -6.185543 125.892589 71.08 20.55 | 20 120
+Tetes : signalement orbital | 1230920.1 -9.148316 124.767492 71.08 20.70 | 20 120
+Vallee australe : autre chaine | 40227 -26.288373626 -36.520005922 90 0 | -10 -60
+Amont : canyon corrige | 3840.6 -5.038412 124.886462 13.17 -102.18 | 20 120
+Approche : riviere 173 km | 172718.8 -7.189383 125.450731 65.74 -9.12 | 20 120

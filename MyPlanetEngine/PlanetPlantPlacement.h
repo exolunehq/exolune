@@ -28,9 +28,12 @@ private:
     // written in turn, and this frame's claims of their slots, cleared from a zeroed buffer.
     static const UINT GroundSlots = 1u << 20;
     Resource mGround, mGroundClaims, mGroundZero;
+    // The light pass's tiles without a kept ground, and their dispatch (groups, 1, 1, count), reset from an upload buffer.
+    static const UINT MissCapacity = 262144; // ObjectPlacement.hlsl, CANDIDATES
+    Resource mMisses, mMissArgs, mMissArgsReset;
     UINT mGroundParity = 0;
     bool mGroundReset = true;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> mScanRoot, mCompactRoot;
-    Pso mCull, mPlacement, mScan, mAdd, mCompact, mClear, mScatter;
+    Pso mCull, mGroundPass, mPlacement, mScan, mAdd, mCompact, mClear, mScatter;
     void Scan(ID3D12GraphicsCommandList*, UINT length);
 };
