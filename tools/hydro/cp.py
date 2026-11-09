@@ -87,6 +87,8 @@ EROSION_CLIFF_WAVES = (0.28, 1.6)
 # Step A (PlanetSettings.hlsli): the ravines on the pre-erosion form, the network's valleys, water and deposits off.
 EROSION_RAVINES = True
 RAVINE_PERIODS = (5000.0, 11)
+RAVINE_CLIFF = (15.0, 0.5, 0.8)
+RAVINE_SLOPE = (0.05, 0.3)
 RAVINE_SHAPE = (0.15, 0.8, 0.8, 0.2)
 RAVINE_STEER = (0.5, 1.0)
 RAVINE_ROUNDING = (2.0, 0.1)
@@ -2512,7 +2514,8 @@ def detail(ctx, oriented, plain, oriented_octaves, top_km, octaves, relief, shar
                 level = gullies["ground"] + relief * (value_before + kept * (rnd + (rid - rnd) * sharp - value_before))
                 S = np.linalg.norm(steer[0], axis=1)
                 height = (RAVINE_SHAPE[0] * P * RAVINE_SHAPE[1] * np.tanh(S / RAVINE_SHAPE[1]) * gullies["ravines"]
-                       * _smooth(*RAVINE_LAND, level) * _weight(ctx, R / P))
+                       * _smooth(*RAVINE_LAND, level) * _weight(ctx, R / P) * _smooth(*RAVINE_SLOPE, S)
+                       * (1.0 - _smooth(RAVINE_CLIFF[1], RAVINE_CLIFF[2], S) if P < RAVINE_CLIFF[0] else 1.0))
                 sel = np.flatnonzero(height > 0.0)
                 if len(sel):
                     G = steer[0][sel]

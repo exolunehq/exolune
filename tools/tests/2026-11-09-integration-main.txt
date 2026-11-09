@@ -1,0 +1,14 @@
+# Main integration: shared lunar terrain, cloud transition and upstream erosion shader variants.
+# F1-F3 moons; F4-F6 clouds; F7-F11 terrestrial orbit, contour classification and near materials; F12 night.
+Moon 2: orbital craters | 250000 20 15 90 0 lune2 | -25 55
+Moon 3: walking, rocks and Exolune | 1.68 20 60 0 -92 lune3 marche | -25 55
+Moon 1: original surface control | 2500000 20 15 90 0 lune1 | -25 55
+Clouds: far globe 20000 km | 20000000 12 -89 90 0 | 10 -100
+Clouds: transition 7000 km | 7000000 12 -89 90 0 | 10 -100
+Clouds: near globe 2000 km | 2000000 12 -89 90 0 | 10 -100
+Earth: rivers and full screen relief 1231 km | 1230920.1 -9.148316 124.767492 71.08 20.70 | 20 120
+Earth: channel band and contour cells 97 km | 96901 -6.185543 125.892589 71.08 20.55 | 20 120
+Earth: river junction 2200 m | 2200 -6.250434328 125.346558807 70 180 | 20 120
+Earth: near cliff material 12 m | 12 -26.501266 166.745418 35 315 | -46.50 -158.25
+Earth: plain and near shading 50 m | 50 41.494616 -48.296329 35 0 | 21.49 -13.30
+Night: atmosphere and stars | 12000 -12 -25 -55 90 | 10 155

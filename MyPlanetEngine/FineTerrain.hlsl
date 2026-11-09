@@ -91,7 +91,12 @@ void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupI
     sample.inland = float4(InlandSample(gWaterLevel, gWaterDepth, gWaterCoverage), gWaterDistance);
 #ifdef AIRLESS_SURFACE
     sample.inland.w = gAirlessAlbedo; // dry profile: the unused water-distance channel carries material reflectance
-#endif
     sample.flow = float4(sample.inland.x * gWaterFlow, asfloat(gErosionNear));
+#else
+    // Bit 7 of the near word: no terminal lake within the pixels' reach of the sample, a fine cell and a half; it spares
+    // them the lake's lookups (PixelShader.hlsl, lakeFree).
+    const bool lakeFree = ErosionLakeFree(dir.x * faceX.xyz + dir.y * faceY.xyz + dir.z * faceZ.xyz, 1.5 * cellSize);
+    sample.flow = float4(sample.inland.x * gWaterFlow, asfloat(gErosionNear | (lakeFree ? 0x80u : 0u)));
+#endif
     outFine[id] = sample;
 }

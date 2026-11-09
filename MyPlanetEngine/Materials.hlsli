@@ -1038,6 +1038,24 @@ Materials GroundMaterials(float3 q, float elevation, float3 up, float3 normal, f
     const float3 slopeShares = SlopeShares3(meshSlope, slopeSigma, float4(0.65, 1.0, 0.43, 0.75) * limitShift,
                                             float2(1.0, 1.7) * limitShift);
     const float rockBase = slopeShares.x, screeBase = TEXTURE_DETAIL * slopeShares.y;
+#ifdef PIXEL_NEAR_DETAIL
+    // The face photo's near detail (FACE_WARP, FACE_BANDS), here, before the textures, where few values are live: read
+    // with the photos, the same noises cost 0.1 ms at 97 km, in registers, never run. Only the near permutations of the
+    // terrain's pixels hold it (PixelShaderNear.hlsl), drawn under NearDetailClearance (D3DApp.h).
+    float3 faceShift = 0.0; // q's shift for the face photo (m)
+    Texture faceBands = FlatTexture();
+    [branch] if (TEXTURE_DETAIL > 0.0 && rockBase > 0.01 && gMaterialTextures > 0.0 && pixel < log2(FACE_WARP.x) - 1.0)
+    {
+        if (log2(FACE_WARP.x) > pixel + 3.0)
+        {
+            uint3 cell;
+            float3 w;
+            LatticePoint(q, (int)round(log2(detailOrigin.w) - log2(FACE_WARP.x)), cell, w);
+            faceShift = smoothstep(pixel + 3.0, pixel + 4.0, log2(FACE_WARP.x)) * FACE_WARP.y * NoiseValueGradient(cell + 0x5BD1E995u, w).xyz;
+        }
+        faceBands = DetailBands(q, pixel, FACE_BANDS.x, FACE_BANDS.y, FACE_BANDS.z, FACE_BANDS.w, 0x51A7u);
+    }
+#endif
     const float grassAmount = TEXTURE_DETAIL * SpreadStep(0.20, 0.45, humidity, localRain.y) * SpreadStep(-2.0, 6.0, temperature, coldSigma);
     Texture grass = FlatTexture();
     if (grassAmount > 0.01 && rockBase < 0.99 && gMaterialTextures > 0.0)
@@ -1136,9 +1154,15 @@ Materials GroundMaterials(float3 q, float elevation, float3 up, float3 normal, f
         const Texture bands = DetailBands(q, pixel, ROCK_BANDS.x, ROCK_BANDS.y, ROCK_BANDS.z, ROCK_BANDS.w, 0x3E71u);
         stone.color = 0.0; stone.cavity = 0.0;
         if (face > 0.0)
+#ifdef PIXEL_NEAR_DETAIL
+            stone = AddTexture(stone, WithBands(GeneratedTexture(MATERIAL_ROCK, ROCK_TILE, MATERIAL_FINE + MATERIAL_ROCK, q + faceShift, dqdx,
+                                                                 dqdy, normalPlanet, upPlanet, 8.0 * regional.y, true),
+                                                WithBands(bands, faceBands)), face);
+#else
             stone = AddTexture(stone, WithBands(GeneratedTexture(MATERIAL_ROCK, ROCK_TILE, MATERIAL_FINE + MATERIAL_ROCK, q, dqdx, dqdy,
                                                                  normalPlanet, upPlanet, 8.0 * regional.y, true),
                                                 bands), face);
+#endif
         if (face < 1.0)
             stone = AddTexture(stone, WithBands(GeneratedTexture(MATERIAL_ROCK_TOP, ROCK_TOP_TILE, MATERIAL_FINE + MATERIAL_ROCK, q,
                                                                  dqdx, dqdy, normalPlanet, upPlanet, 8.0 * regional.y, false),

@@ -1,8 +1,154 @@
 # High-orbit performance correction
 
-**Status, 2026-11-07: against `main` itself, the erosion costs under 15 % of its frame rate at every view, 14 % at worst. Against erosion off, seven views of eight; 97 km loses 15.6 %.**
+**Status, 2026-11-09 evening: against `main` in the same window, all eight views within 15 % on both counts (`near2`); 2,200 m at the limit, 13.9 to 15.1 % from one window to the next (ten windows). Quality within 10 % of `main` on the 30 places, every material and height (`qualite-near`).**
 
-## Against main, 2026-11-07
+## The cliff photo's near detail, 2026-11-09 afternoon
+
+**Against `main` in one window, the build of 2026-11-09 15:44** (`near2-*`, median of three runs alternated; erosion off is the same executable, mode 0). The build of 08:20, measured alongside, gives the same within 0.02 ms at every view:
+
+| View | `main`, ms | Erosion, ms | FPS lost | On minus off, ms | Allowed, ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Approach, 250 km | 12.26 | 13.61 | 9.9 % | 2.05 | 2.16 |
+| Valley heads, 97 km | 10.69 | 12.38 | 13.7 % | 1.58 | 1.89 |
+| Upstream valley, 3,840 m | 48.17 | 51.83 | 7.1 % | 2.56 | 8.50 |
+| Confluence, 2,200 m | 16.48 | 19.34 | 14.8 % | 2.88 | 2.91 |
+| Massif, 1,231 km | 9.83 | 11.03 | 10.9 % | 1.49 | 1.73 |
+| Hemisphere, 3,000 km | 8.80 | 9.78 | 10.0 % | 1.04 | 1.55 |
+| Globe, 10,000 km | 5.67 | 5.96 | 4.9 % | 0.23 | 1.00 |
+| Far, 40,000 km | 2.92 | 3.23 | 9.8 % | 0.06 | 0.52 |
+
+**The 30 places against `main`** (`qualite-near`): every p95 within 10 %.
+- **Rock 12 m:** gap +8 %, repeat −4 %, from +17 % and +27 %.
+- **Rock 50 m:** gap +1 %, repeat +9 %.
+- **The tightest, snow 800 m's repeat:** +9.97 %, as with the build of 08:20; the near detail acts only under 25 cm a pixel.
+
+**Place 4's rock at 12 m over 24 views** (`multi-near2`, 620 crops): gap p95 2.55, repeat 0.193, against `main`'s 2.59 and 0.210; the build of 08:20 gave 2.59 and 0.220. Close up at 12, 5 and 2 m against that build: the joints wave, never melt; no blotches.
+
+**The change** (`journal-planete.md`):
+- **The face photo read aside** by a noise of 50 cm, about 2 cm at one deviation, faded in between 6 and 3 cm a pixel (`FACE_WARP`): its straight joints wander as real ones do.
+- **Shades of 25 and 50 cm,** colour only, 4 % at one deviation each (`FACE_BANDS`).
+- **Only near the ground:** two permutations of the terrain's colour shaders hold it (`PixelShaderNear.hlsl`, `PixelShaderScreenNear.hlsl`), drawn under 1,000 m of clearance (`NearDetailClearance`, `D3DApp.h`). The other shaders are byte for byte the build of 08:20.
+
+**Measured, not retained** (`site4-*`: place 4 alone, against `main`):
+- **The warp alone, 5 to 12 cm:** rock 50 m repeat +22 to +36 %, or rock 12 m gap +11 to +12 %; from 8 cm, the photo swirls up close.
+- **The shades alone:** rock 12 m gap +10 %, repeat +25 %.
+- **The near detail in every permutation:** never run above 1 km, its code still cost 0.09 ms at 97 km, in registers (`near1`); read before the textures, 0.04 ms at 97 km and 0.05 at 2,200 m (`early1`).
+- **The fine grid's ravines one octave coarser above 1 km of clearance:** the grid 0.05 ms faster at 2,200 m; place 4's snow 800 m repeat +42 % against +35 % (`fin2`).
+
+## Lakes read once, faint river water dry, 2026-11-09 morning
+
+**Against `main` in one window, the build of 2026-11-09 08:20** (`final4-*`, median of three runs alternated; erosion off is the same executable, mode 0):
+
+| View | `main`, ms | Erosion, ms | FPS lost | On minus off, ms | Allowed, ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Approach, 250 km | 12.28 | 13.60 | 9.7 % | 2.04 | 2.17 |
+| Valley heads, 97 km | 10.69 | 12.39 | 13.7 % | 1.57 | 1.89 |
+| Upstream valley, 3,840 m | 48.21 | 51.76 | 6.9 % | 2.15 | 8.51 |
+| Confluence, 2,200 m | 16.45 | 19.25 | 14.5 % | 2.82 | 2.90 |
+| Massif, 1,231 km | 9.84 | 11.02 | 10.7 % | 1.50 | 1.74 |
+| Hemisphere, 3,000 km | 8.82 | 9.81 | 10.1 % | 1.15 | 1.56 |
+| Globe, 10,000 km | 5.69 | 5.95 | 4.4 % | 0.18 | 1.00 |
+| Far, 40,000 km | 2.92 | 3.24 | 10.1 % | 0.07 | 0.52 |
+
+The same build in the window before (`final3`): the same within 0.6 %, but 2,200 m at 15.1 %, its own cost 2.96 ms against 2.94. 2,200 m in the other windows of the morning: 13.9 % (`final2`), 14.5 % (`splits1`), 14.9 % (`facecut1`), 14.7 % (`ravband1`). The erosion's own cost there, 2.8 to 3.0 ms, is its whole share: `main` itself measures from 16.4 to 17.4 ms from one window to the next.
+
+**Kept:**
+- **The terminal lake's level read once per pixel** (`PixelShader.hlsl`), by the pixels a fine sample's certificate leaves unsure (`FineTerrain.hlsl`, `ErosionLakeFree`). Exact, images identical to the bit. 97 km and 2,200 m −0.1 ms: three reads in the code cost as much, though seldom run (the certificate alone gained nothing).
+- **Inland water under 1/64 of the pixel is dry** (`INLAND_MIN_COVERAGE`, `journal-planete.md`): rivers filtered at wide footprints spread their wetness thin over whole valleys. 250 km and 1,231 km −0.15 ms; at most 6/255, along the valleys' floors; within 2/255 at 97 km and 2,200 m.
+
+**Where 2,200 m's erosion cost is** (`modes1`, ms over erosion off):
+- **The fine grid 1.15:** its ravines 0.51, its rivers 0.66.
+- **The pixels 1.07:** the contour's execution 0.22; the rest follows the content, more rock on the ravines' slopes (0.59 with the ravines alone).
+- **The plants 0.6:** the rivers' wet ground grows more of them (placement 0.45, drawing 0.16); the mesh 0.2.
+- **The clouds and the air 0.4 cheaper** with the rivers at 2,200 m, 0.5 dearer at 97 km; not understood, not the contour's doing (unchanged when it never runs).
+
+**Measured, not retained:**
+- **`CONTOUR_CHANNEL_BAND.z` 0.12:** 97 km −0.32 ms, but the rivers fade and break there, plain once the contrast is stretched.
+- **The meanders' and course noises' lattice split once per query,** each octave derived from it in floats: no gain (`splits1`).
+- **The screen relief's first ray without the valleys,** where it only places the second ray's parallax: −0.035 ms at 250 km (`ray1`).
+- **The rock's face and top photos cut under 1 % of the pixel:** no gain (`facecut1`).
+- **The fine grid's ravines one octave coarser:** 2,200 m −0.1 ms, a quarter of its pixels changed, up to 34/255 (`ravband1`).
+- **Diagnostics:** the pixels without the grid's uncertainty, no change; without inland water, −0.6 ms, but the compiler then drops the contour's river query too; with the inland water's code present and never run, no change (`psdiag1`, `psdiag2`).
+
+**The rock of place 4 at 12 m, measured over 24 views around it** (12 headings, at the place and 40 m east; `tools/banc_qualite_vues.py`, 530 to 620 crops): the build equals `main`, gap p95 2.59 both, repeat 0.220 against 0.210. The bench's one view gave +17 % and +27 %: one view's 30 crops make the p95 of its two or three worst, and that rock's gap ranges from 1.5 to 4.2 dB by heading alone, for `main` as for the build (`principes.md`). Tried on its photos, not retained: the top photo's share kept on the walls (contrary to a photo's orientation, and the walls washed out); each copy of the wall photo mirrored, resized and turned, gap −7 % but repeat +3 to +8 % over the 24 views.
+
+**The 30 places against `main`, the build of 08:20** (`qualite-final`): every p95 as in `qualite-full-cg50`, the build before the lakes and the threshold; all within 10 % of `main` but that one view of rock 12 m.
+
+**That view's rock is the cliff photo's own** (`noise4-*`, place 4 alone, three runs each):
+- **The bench is exact there:** `main` and the build each give the same p95 three times, to the digit; the +17 % and +27 % are no noise.
+- **Its worst crops lie on a cliff the erosion bared,** under the face photo (`marble_cliff_04`); `main`'s view there shows the gentler rock, under the top photo.
+- **The face photo's own crops repeat as much:** repetition p95 0.22 at 2.5 cm a pixel, 0.25 at 1.2 cm, from its straight joints; the top photo's 0.10 and 0.13. The build's 0.232 is the photo's, not the erosion's drawing.
+- **Resolved the same day** on the photo, near the ground: its joints wander, its wall takes shades (above).
+
+## The contour's cells, its band and its cost, 2026-11-08 afternoon to night
+
+**Against `main` in one window, the build of 2026-11-09** (`final-*`, median of three runs alternated; erosion off is the same executable, mode 0):
+
+| View | `main`, ms | Erosion, ms | FPS lost | On minus off, ms | Allowed, ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Approach, 250 km | 12.32 | 13.83 | 10.9 % | 2.12 | 2.17 |
+| Valley heads, 97 km | 10.74 | 12.67 | 15.3 % | 1.73 | 1.90 |
+| Upstream valley, 3,840 m | 49.70 | 52.83 | 5.9 % | 1.90 | 8.77 |
+| Confluence, 2,200 m | 16.66 | 19.73 | 15.5 % | 3.05 | 2.94 |
+| Massif, 1,231 km | 9.87 | 11.31 | 12.7 % | 1.74 | 1.74 |
+| Hemisphere, 3,000 km | 8.87 | 10.01 | 11.4 % | 1.24 | 1.57 |
+| Globe, 10,000 km | 5.71 | 6.09 | 6.3 % | 0.29 | 1.01 |
+| Far, 40,000 km | 2.92 | 3.29 | 11.2 % | 0.12 | 0.52 |
+
+Missing: 0.04 ms at 97 km, 0.13 ms at 2,200 m. The same window's `main` varies by 3 % from one evening to the next: only a run of the same window compares.
+
+**Kept:**
+- **The face's cells in two lists** (`TerrainContourCells.hlsl`): those where a pixel may refine take the whole shader, the others the one without the contour. Exact. 2,200 m from 20.4 to 16.2 % lost, 97 km from 21.3 to 19.2 % (`cells1`).
+- **The coast's band from the fine grid's uncertainty** (`PixelShader.hlsl`, `heightBand`): a valley's steep flanks are no coast's candidates. Within 1/255; 97 km −0.25 ms.
+- **A channel's band narrower for wide samples** (`CONTOUR_CHANNEL_BAND`, `spec-eaux-interieures.md`): 97 km −0.4 ms with 0.15 against 0.3, about 1,000 pixels over 2/255 along the channels.
+- **The channels' loop leaves a far branch early** (`Erosion.hlsli`): exact.
+- **At the fine grid's full weight, the cells read its samples alone,** not the mesh's coarser water and heights: exact. The whole shader from 20.4 to 17.4 % of the frame at 97 km, 7.4 to 6.7 % at 2,200 m; within the noise, 0.1 ms at most.
+
+**Where the contour's cost is, 97 km** (`diag2` to `diag5`, one view, three runs each):
+- **Its code costs nothing by its presence:** a variant whose contour never runs, the code kept, is as fast as one without it (`Ghost`, `Never`). Its whole cost, 1.0 ms, is its execution on the 2 % of the pixels that refine.
+- **0.4 ms up to each course's distance** (the near nodes, their records, the curve), **0.6 ms after its meanders** (`Early3`). The meanders, the banks' and the widths' noises cost nothing measurable; the rivers' own shading 0.13 ms (`CheapWater`).
+
+**Measured, not retained:**
+- **The cells' channel test on the pixels' own B-spline** (bounded on a grid of points), **the coast's test on the pixels' own height spread, and the mixed shores left to the lakes:** exact, the whole shader still 16.8 % of the frame at 97 km, 4.8 % at 2,200 m; no measurable gain (`diag7`). At 97 km the cells, 2 km wide, set the limit.
+- **The pixel shader without the wave's shared river listing:** the same images; 0.1 ms faster at 97 km, as much slower at 2,200 m, 1 ms slower in orbit with the screen permutation (`nolist1`).
+- **The inland reflection in one step instead of three:** no gain (`Water1`).
+- **The plants' exact grounds without the rivers:** 2,200 m −0.25 ms, but far fewer plants drawn (foliage 0.25 to 0.09 ms): the valleys' vegetation is the rivers' (`diag8`).
+- **The plants' exact grounds split in pairs of floats instead of doubles:** 0.1 ms slower at 2,200 m, 3,500 pixels over 2/255 (`pairs1`).
+- **The contour's meanders, one octave in four** (a measurement, `mstride`): no gain at 97 km or 2,200 m.
+- **The meanders' coarse octaves shared by a wave's lanes in the fine grid** (one evaluation per lane, cubic interpolation along the course; images within the plants' noise): 0.12 ms slower at 97 km and 2,200 m (`comb1`). The cross-lane reads cost as much as the noise they spare.
+
+## Against main in one window, 2026-11-07 evening to 2026-11-08
+
+**`main` merged into the branch (9780367), then both measured in one window, runs alternated** (`principes.md`). The 2026-11-07 morning's `main2/` ran in a busier window: `main` measured 5 to 6 % slower than in the evening. Median of three runs, `E:/Exolune-diagnostics/goal-20261106/b3-*` (2026-11-08); erosion off is the same executable, mode 0, from `new1-*` (2026-11-07 evening).
+
+| View | `main`, ms | Erosion, ms | FPS lost | Erosion's cost, 11-07, ms | Allowed |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Approach, 250 km | 12.92 | 14.51 | 10.9 % | 2.26 | 2.20 |
+| Valley heads, 97 km | 11.16 | 14.21 | 21.5 % | 2.34 | 1.92 |
+| Confluence, 2,200 m | 17.41 | 21.94 | 20.6 % | 3.33 | 2.97 |
+| Massif, 1,231 km | 10.34 | 11.83 | 12.6 % | 1.76 | 1.78 |
+
+The other views, 2026-11-07 evening (`new1-*`): 3,840 m 6.8 %, 3,000 km 12.0 %, 10,000 km 5.4 %, 40,000 km 11.3 %.
+
+**Kept:**
+- **The terrain's colour under a full screen relief in a permutation without the pixel contour** (`PixelShaderScreen.hlsl`, `D3DApp::Draw`): exact. 1,231 km from 23.6 to 11.3 % lost, 3,000 km from 24.2 to 12.0 %, 10,000 km from 15.5 to 5.4 %.
+- **The level 0's network and its gullies out of every kernel,** a constant since the ravines replace them in every mode (`Relief.hlsli`): within 1/255.
+- **The ravines steer only the octaves their footprint draws** (`ravineDrawn`): exact.
+- **The ravines down to 19.5 m instead of 4.9 m** (`RAVINE_OCTAVES` 9): a setting, for quality (`journal-planete.md`); no change of frame time.
+
+**Where the cost stays, ms over `main`:**
+- **97 km:** the pixel contour 1.9 (its work 1.4, the rest the code that decides it); the fine grid 0.5, its rivers 0.43, their meanders 0.15; clouds and air 0.5 over the eroded relief.
+- **2,200 m:** the pixel contour 1.3 (its work 0.2); the fine grid 1.5, its rivers 0.74 of which the meanders 0.47 and the channels 0.29, the ravines 0.4; plants 0.5, foliage 0.2, the mesh 0.3.
+- **Erosion off, the branch already costs 0.5 to 0.9 ms more than `main`:** the fine grid's samples of 48 B instead of 16, the water fields of the mesh and the pixels.
+
+**Measured, not retained (2026-11-07 evening to 2026-11-08):**
+- **The terrain's colour in two passes:** a light one without the contour's code, marking its pixels, then the contour's quads alone. 0.9 ms slower at 97 km and in orbit.
+- **The contour's region closed on itself,** its precise fields no longer live past it: within noise over three runs (`closed1`, `b3`).
+- **The contour in a pass of its own before the colour** (`PixelShaderWater.hlsl`, per pixel records read by the colour): images identical to the bit, but no gain. The pass repays the pixel's prologue and the vertices, 0.9 ms at 97 km, as much as the colour saves (`water2`).
+- **The orbit permutation without the contour's dead code:** 0.6 ms slower in orbit, three times; a small dead branch in its place does not bring it back. The compiler's schedule of the shading depends on that code; kept as it was.
+- **Without `discard`, without the mask, depth tested before the shader:** no change.
+
+## Against main, 2026-11-07 morning
 
 **Goal: the erosion costs `main` at most 15 % of its frame rate.** Its cost is measured in its own executable, erosion on against erosion off (`principes.md`): `main` has heavier clouds, 0.5 to 1 ms, that the branch lacks. Moving camera, same protocol, eight views, two runs each; `E:/Exolune-diagnostics/goal-20261106/`: `main` (dc24e0b) in `main2/`, the erosion before this work in `erosion/`, after batch 1 in `it14/`, batch 2 in `it21/`, now in `fin1/` and `fin2/`, erosion off in `fin1-off/` and `fin2-off/`.
 

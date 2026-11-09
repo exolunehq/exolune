@@ -228,6 +228,11 @@ protected:
     ComPtr<ID3D12PipelineState> mAirlessComputePSO,mAirlessFinePSO,mAirlessHorizonPSO,mAirlessScreenPSO;
     ComPtr<ID3D12PipelineState> mAirlessDepthPSO,mAirlessShadePSO,mAirlessWirePSO;
     ComPtr<ID3D12PipelineState> mAirlessObjectCandidatesPSO,mAirlessObjectPlacementPSO,mAirlessObjectPSO;
+    ComPtr<ID3D12PipelineState> mTerrainShadeScreenPSO; // the same under a full screen relief, without its contour
+    // Both near the ground, with the rock's near detail (PixelShaderNear.hlsl): under NearDetailClearance (m) above it,
+    // where its pixels come under 25 cm; higher up its code, never run, cost up to 0.1 ms.
+    ComPtr<ID3D12PipelineState> mTerrainShadeNearPSO, mTerrainShadeScreenNearPSO;
+    static constexpr double NearDetailClearance = 1000.0;
     ComPtr<ID3D12PipelineState> mComputePSO;
     ComPtr<ID3D12PipelineState> mComputePairsPSO; // the same, in a flight: the lattice in pairs of floats (round 8)
 
@@ -337,6 +342,12 @@ protected:
     ComPtr<ID3D12RootSignature> mFineRootSignature;
     ComPtr<ID3D12PipelineState> mFineTerrainPSO;
     ComPtr<ID3D12PipelineState> mFineNormalsPSO;
+    // The face's cells sorted by the pixel shader they need (TerrainContourCells.hlsl): their indices, the whole shader's,
+    // then from 6 n^2 the others'; their two indexed draws' arguments, and those arguments' starting values.
+    ComPtr<ID3D12RootSignature> mContourCellsRootSignature;
+    ComPtr<ID3D12PipelineState> mContourCellsPSO;
+    ComPtr<ID3D12Resource> mContourCellLists, mContourCellArgs, mContourCellArgsStart;
+    D3D12_INDEX_BUFFER_VIEW mContourCellView = {};
     // The screen relief (ScreenRelief.hlsl): the relief under each texel of ScreenReliefScale pixels.
     ComPtr<ID3D12Resource> mScreenPositions;
     ComPtr<ID3D12PipelineState> mScreenReliefPSO, mScreenRiversPSO, mScreenRiverTexelPSO;

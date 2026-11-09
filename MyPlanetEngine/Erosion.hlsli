@@ -326,6 +326,28 @@ float ErosionLakeLevel(uint face, float2 x, uint n, float cellM)
     return level;
 }
 
+// Whether no terminal lake reaches the unit direction d, nor any point within reach (m) of it: none among the level 0's
+// cells their stages blend (ErosionLakeLevel), the sample's and its neighbours' within that reach. Near a face's edge,
+// or beyond 2 cells' reach, undecided: false.
+bool ErosionLakeFree(float3 d, float reach)
+{
+    if (!(EROSION_WATER > 0.0))
+        return true;
+    const uint n = ErosionSize();
+    uint face;
+    float2 x;
+    ErosionLocate(d, n, face, x);
+    const float margin = reach * n / (2000.0 * PLANET_RADIUS_KM);
+    const int2 lo = (int2)floor(x - margin), hi = (int2)floor(x + margin) + 1;
+    if (any(lo < 1) || any(hi > (int)n - 2) || any(hi - lo > 2))
+        return false;
+    [loop] for (int j = lo.y; j <= hi.y; ++j)
+        [loop] for (int i = lo.x; i <= hi.x; ++i)
+            if ((erosionMap.Load(int4(i, j, face + 6u, 0)).y & 0xffffu) != 0u)
+                return false;
+    return true;
+}
+
 // The terminal lakes' stage at the unit direction p, as ErosionRivers reads it.
 float ErosionLakeLevelAt(float3 p)
 {
@@ -1607,10 +1629,28 @@ void ErosionCorridor(ErosionCourse k, float reach, RlPoint ref, float3 pf, float
         [loop] for (int branch = (fan > 0.0 ? -1 : 0); branch <= (fan > 0.0 ? 1 : 0); ++branch)
         {
             const float fraction = branch == 0 ? 1.0 - 0.5 * fan : 0.25 * fan * (1.0 + branch * 0.6 * asymmetry);
-            const float width = max(W * sqrt(fraction), 1e-3), cutDepth = depth * pow(fraction, EROSION_RIVER_SHAPE.z);
+            const float width = max(W * sqrt(fraction), 1e-3);
             const float spreadFactor = 0.85 + branch * 0.15 * asymmetry;
             const float offset = lateral - branch * spread * spreadFactor, distance = length(float2(along, offset));
             const float edge = width + radius;
+            // Past its water, its banks' cut (ErosionChannelBankCut: a terrace to 2 widths, then the rise above the bank at
+            // RIVER_STEEP_BANK; no bed for the water contour) and their 40 m, filtered over the radius, a branch only bounds the
+            // water's edge and distance, the bed keeping the corridor's ground: the same sums, without the rest.
+            const float signedDistance = offset < 0.0 ? -distance : distance;
+            const float banks = gErosionWater ? 0.0
+                              : 2.0 * width + max(max(S - z, 0.0) - bankHeight, 0.0) / RIVER_STEEP_BANK + radius;
+            [branch] if (distance >= max(max(edge, width + 40.0), banks))
+            {
+                [branch] if (!gErosionWater)
+                    river.bed = min(river.bed, S);
+                intervalsLo[branch + 1] = clamp(-signedDistance - width, -radius, radius);
+                intervalsHi[branch + 1] = clamp(-signedDistance + width, -radius, radius);
+                river.edge = max(river.edge, edge - distance);
+                river.distance = min(river.distance, distance - width);
+                gErosionNodeChannel = min(gErosionNodeChannel, distance - width);
+                continue;
+            }
+            const float cutDepth = depth * pow(fraction, EROSION_RIVER_SHAPE.z);
             const float inside = distance < edge ? ErosionChannelMean(distance, width, cutDepth, radius) : 0.0;
             [branch] if (!gErosionWater)
                 river.bed = min(river.bed, S - ErosionChannelBankCut(distance, width, bankHeight, max(S - z, 0.0), radius) - inside);
@@ -1625,7 +1665,6 @@ void ErosionCorridor(ErosionCourse k, float reach, RlPoint ref, float3 pf, float
             river.flow += w * normalize(T + (slope + branch * fanSlope * spreadFactor) * N)
                           * min(q * fraction / max((2.0 * width - wetShoulder) * cutDepth, 1e-3), 4.0);
             // Integrate the union, not the sum, of overlapping wet intervals at the fan apex.
-            const float signedDistance = offset < 0.0 ? -distance : distance;
             intervalsLo[branch + 1] = clamp(-signedDistance - width, -radius, radius);
             intervalsHi[branch + 1] = clamp(-signedDistance + width, -radius, radius);
             river.edge = max(river.edge, edge - distance);

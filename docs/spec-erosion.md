@@ -288,6 +288,7 @@
 
 **The ravines, inside `ReliefDetail`,** ported from the CPU prototype `tools/hydro/ravines.py`, its settings unchanged:
 - 11 octaves of period 5 km down to 4.9 m, halving; each a phasor blend of stripes across its steering slope, a pivot jittered at each lattice corner, the point bent by one warp octave of 2 periods.
+- None on the flat, rising over slopes of 0.05 to 0.3 (`RAVINE_SLOPE`); those under 15 m fade on slopes from 0.5 to 0.8, where the rock bares (`RAVINE_CLIFF`). 2026-11-09, after the quality bench: on the plains their regular stripes left a hole in the soil's scales; on the cliffs, parallel grooves; without them anywhere (9 octaves, 2026-11-08), snow and grass lacked their scales.
 - Profile 2 |cos(u/2)| m (2 − m), its trough rounded over 2 mesh cells or 10 % of the period, less its exact mean, an elliptic integral.
 - Amplitude 0.15 × period × 0.8 tanh(S / 0.8), times rock, humidity and relief, faded in over the first 50 m of the steering ground.
 - Filtered by the footprint like any octave (`RlWeight`); added to the whole ground, after the mesas and badlands.

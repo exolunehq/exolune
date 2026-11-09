@@ -91,6 +91,10 @@
     <FxCompile Include="ScreenRiverArgs.hlsl" />
     <FxCompile Include="VertexShader.hlsl" />
     <FxCompile Include="PixelShader.hlsl" />
+    <FxCompile Include="PixelShaderScreen.hlsl" />
+    <FxCompile Include="PixelShaderNear.hlsl" />
+    <FxCompile Include="PixelShaderScreenNear.hlsl" />
+    <FxCompile Include="TerrainContourCells.hlsl" />
     <FxCompile Include="TerrainCompute.hlsl" />
     <FxCompile Include="TerrainComputePairs.hlsl" />
     <FxCompile Include="Horizon.hlsl" />

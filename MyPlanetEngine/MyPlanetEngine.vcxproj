@@ -335,6 +335,36 @@
       <!-- Optimised even in Debug, for the fine detail's noise loop. -->
       <DisableOptimizations>false</DisableOptimizations>
     </FxCompile>
+    <FxCompile Include="PixelShaderScreen.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <AdditionalOptions>-HV 2018 %(AdditionalOptions)</AdditionalOptions>
+      <EntryPointName>PSMain</EntryPointName>
+      <!-- Optimised even in Debug, for the fine detail's noise loop. -->
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PixelShaderNear.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <AdditionalOptions>-HV 2018 %(AdditionalOptions)</AdditionalOptions>
+      <EntryPointName>PSMain</EntryPointName>
+      <!-- Optimised even in Debug, for the fine detail's noise loop. -->
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="PixelShaderScreenNear.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <AdditionalOptions>-HV 2018 %(AdditionalOptions)</AdditionalOptions>
+      <EntryPointName>PSMain</EntryPointName>
+      <!-- Optimised even in Debug, for the fine detail's noise loop. -->
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
+    <FxCompile Include="TerrainContourCells.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+    </FxCompile>
     <FxCompile Include="MaterialGenerator.hlsl">
       <ShaderType>Compute</ShaderType>
       <ShaderModel>6.0</ShaderModel>
