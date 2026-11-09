@@ -2,6 +2,8 @@
 // input. The benches, the test views and the ship are in D3DAppBench.cpp, D3DAppTests.cpp and D3DAppShip.cpp.
 #include "D3DApp.h"
 #include "ObserverExposure.hlsli"
+#include "CelestialSystem.h"
+#include <d3d12sdklayers.h>
 #include "Ocean.h"
 #include "GpuHelpers.h"
 #include "d3dx12.h"
@@ -46,13 +48,15 @@ namespace
                              ShipSrv = CloudTemporalSrv + 14, TectonicSrv = ShipSrv + Ship::DescriptorCount, // its views, the climate,
                              ContactSrv = TectonicSrv + 7, ContactUav = ContactSrv + 1, // after the volcanoes, their index, erosion and its courses
                              ContactHdrUav = ContactSrv + 2, ContactSunUav = ContactSrv + 3,
-                             DescriptorCount = ContactSrv + 4 };
+                             SkyTransportSrv = ContactSrv + 4, CelestialSrv = SkyTransportSrv + 1,
+                             AirlessMaterialSrv = CelestialSrv + 1,
+                             DescriptorCount = AirlessMaterialSrv + Celestial::AirlessAtlasSlots };
     // Render target views: the back buffers, then the HDR image, the composite image, the two histories and the terrain's
     // sunlit part, for the clouds' shade.
     // Then the cloud temporal pass's fresh light and data, its two histories, light, data and offset each, and the light
     // and data of its drifted pixels.
     enum RenderTarget : UINT { HdrRtv = 2, CompositeRtv = 3, HistoryRtv = 4, SunRtv = 6, CloudFreshRtv = 7,
-                               CloudHistoryRtv = 9, CloudHalfRtv = 15, RtvCount = 17 };
+                               CloudHistoryRtv = 9, CloudHalfRtv = 15, SkyTransportRtv = 17, CelestialRtv = 18, RtvCount = 19 };
     // Must match Atmosphere.hlsli: each table's size, and its slices for the haze's ground, GROUND_SLICES.
     const UINT kLutSizes[3][2] = { { 256, 64 }, { 32, 32 }, { 64, 16 } }, kLutGroundSlices = 25;
 
@@ -354,14 +358,14 @@ D3DApp::D3DApp(HINSTANCE hInstance, double startAltitude, double latitude, doubl
     PlaceCamera(latitude, longitude, pitchDown, heading, startAltitude);
 
     // The first view: the cockpit when flown, the free camera for the benches, unless MYPLANETENGINE_VAISSEAU says.
-    mView = mSettings.Automated() ? View::Free : View::Cockpit;
+    mView = mSettings.Automated() ? View::Free : mShip.Profile().cockpit ? View::Cockpit : View::Chase;
     if (mSettings.shipSet) {
         const wchar_t* choice = mSettings.ship.c_str();
         mStartWalking = !wcscmp(choice, L"marche");
         mView = !wcscmp(choice, L"poursuite") ? View::Chase : !wcscmp(choice, L"libre") ? View::Free
               : !wcscmp(choice, L"sans") ? View::Bare : View::Cockpit;
     }
-    mCamUp = Normalize(mCamPos);
+    if (mView == View::Cockpit && !mShip.Profile().cockpit) mView = View::Chase;
     PlaceShipAtCamera();
 }
 
@@ -370,13 +374,12 @@ D3DApp::D3DApp(HINSTANCE hInstance, double startAltitude, double latitude, doubl
 void D3DApp::PlaceCamera(double latitude, double longitude, double pitchDown, double heading, double altitude) {
     ResetFlightContact();
     const Vec3d up = LatLonToDir(latitude, longitude);
-    Vec3d north = kNorth - up * Dot(kNorth, up);
-    north = Normalize(Length(north) > 1e-6 ? north : Vec3d{ 1.0, 0.0, 0.0 });
-    const double lon = longitude * XM_PI / 180.0, cap = heading * XM_PI / 180.0;
+    const double lat=latitude*XM_PI/180.0,lon=longitude*XM_PI/180.0,cap=heading*XM_PI/180.0;
+    const Vec3d north={-std::sin(lat)*std::cos(lon),std::cos(lat),-std::sin(lat)*std::sin(lon)};
     const Vec3d east = { -std::sin(lon), 0.0, std::cos(lon) }; // towards growing longitudes
     const double pitch = pitchDown * XM_PI / 180.0;
     mCamPos = up * (PlanetRadius + altitude);
-    mCamForward = Normalize((north * std::cos(cap) + east * std::sin(cap)) * std::cos(pitch) - up * std::sin(pitch));
+    FlightFrame::FromHeading(up,north*std::cos(cap)+east*std::sin(cap),pitch,mCamForward,mCamUp);
     mWaveReset = true;
     mWorldPending = mWorldValid = mWalkProbePending = mWalkPatchValid = false;
     mAudio.ResetWorld();
@@ -430,6 +433,8 @@ D3DApp::~D3DApp() {
 bool D3DApp::Initialize() {
     if (!InitWindow()) return false;
     if (!InitDirect3D()) return false;
+    UpdateCelestialFrame();
+    if(mSettings.firstTest && mSettings.firstTest<=mTests.size())GoToTest(mSettings.firstTest-1);
     if (!mSettings.Automated()) mAudioReady = mAudio.Initialize(); // offline films stay silent
     mAudio.SetMix(mSettings.audioMaster,mSettings.audioFootsteps,mSettings.audioAmbience,mSettings.audioShip);
     return true;
@@ -531,6 +536,8 @@ void D3DApp::ToggleFullscreen() {
 bool D3DApp::InitDirect3D() {
     mGpuBreadcrumbs = GetEnvironmentVariableW(L"MYPLANETENGINE_GPU_BREADCRUMBS", nullptr, 0) != 0;
     if (mGpuBreadcrumbs) {
+        ComPtr<ID3D12Debug> debug;
+        if(SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug))))debug->EnableDebugLayer();
         ComPtr<ID3D12DeviceRemovedExtendedDataSettings1> dred;
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&dred)))) {
             dred->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
@@ -630,6 +637,14 @@ bool D3DApp::InitDirect3D() {
         md3dDevice->CreateShaderResourceView(image.Get(), nullptr, cpuDescriptor(srv));
     };
     createImage(mComposite, D3D12_RESOURCE_STATE_RENDER_TARGET, CompositeRtv, CompositeSrv);
+    createImage(mSkyTransport, D3D12_RESOURCE_STATE_RENDER_TARGET, SkyTransportRtv, SkyTransportSrv);
+    createImage(mCelestialTarget, D3D12_RESOURCE_STATE_RENDER_TARGET, CelestialRtv, CelestialSrv);
+    const auto airlessDesc=CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM,2048,1024,1,12);
+    for(unsigned i=0;i<Celestial::MoonCount;++i) {
+        Check(md3dDevice->CreateCommittedResource(&hdrHeapProps,D3D12_HEAP_FLAG_NONE,&airlessDesc,
+            D3D12_RESOURCE_STATE_COPY_DEST,nullptr,IID_PPV_ARGS(&mAirlessMaterial[i])),"Airless material creation failed.");
+        md3dDevice->CreateShaderResourceView(mAirlessMaterial[i].Get(),nullptr,cpuDescriptor(AirlessMaterialSrv+i));
+    }
     createImage(mHistory[0], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, HistoryRtv, HistorySrv);
     createImage(mHistory[1], D3D12_RESOURCE_STATE_RENDER_TARGET, HistoryRtv + 1, HistorySrv + 1);
 
@@ -666,7 +681,7 @@ bool D3DApp::InitDirect3D() {
 
     // Atmosphere tables: written once by compute shaders, read by the terrain and the sky. A slice per haze's ground.
     for (UINT i = 0; i < 3; ++i) {
-        CD3DX12_RESOURCE_DESC lutDesc = CD3DX12_RESOURCE_DESC::Tex3D(DXGI_FORMAT_R16G16B16A16_FLOAT, kLutSizes[i][0],
+        CD3DX12_RESOURCE_DESC lutDesc = CD3DX12_RESOURCE_DESC::Tex3D(i==2?HdrFormat:DXGI_FORMAT_R16G16B16A16_FLOAT, kLutSizes[i][0],
             kLutSizes[i][1], kLutGroundSlices, 1, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
         Check(md3dDevice->CreateCommittedResource(&hdrHeapProps, D3D12_HEAP_FLAG_NONE, &lutDesc,
             D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr, IID_PPV_ARGS(&mAtmosphereLuts[i])), "Atmosphere table creation failed.");
@@ -871,13 +886,29 @@ bool D3DApp::InitDirect3D() {
     // tables (the exposure's daylight).
     CD3DX12_DESCRIPTOR_RANGE compositeRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0), historyRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4),
         glassRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5);
-    CD3DX12_ROOT_PARAMETER resolveParams[5];
+    CD3DX12_DESCRIPTOR_RANGE celestialRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 6);
+    CD3DX12_ROOT_PARAMETER resolveParams[6];
     resolveParams[0].InitAsConstantBufferView(0);
     resolveParams[1].InitAsDescriptorTable(1, &compositeRange, D3D12_SHADER_VISIBILITY_PIXEL);
     resolveParams[2].InitAsDescriptorTable(1, &historyRange, D3D12_SHADER_VISIBILITY_PIXEL);
     resolveParams[3].InitAsDescriptorTable(1, &lutRange, D3D12_SHADER_VISIBILITY_PIXEL);
     resolveParams[4].InitAsDescriptorTable(1, &glassRange, D3D12_SHADER_VISIBILITY_PIXEL); // the ship's glass (Ship.h)
-    mResolveRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(5, resolveParams, 1, &linearClamp));
+    resolveParams[5].InitAsDescriptorTable(1, &celestialRange, D3D12_SHADER_VISIBILITY_PIXEL);
+    mResolveRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(6, resolveParams, 1, &linearClamp));
+    CD3DX12_DESCRIPTOR_RANGE skyTransportRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
+    CD3DX12_DESCRIPTOR_RANGE lunarRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,8);
+    CD3DX12_DESCRIPTOR_RANGE distantPlanetRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,29),distantClimateRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,20);
+    CD3DX12_ROOT_PARAMETER celestialParams[7];
+    celestialParams[0].InitAsConstantBufferView(0);
+    celestialParams[1].InitAsDescriptorTable(1, &compositeRange);
+    celestialParams[2].InitAsDescriptorTable(1, &skyTransportRange);
+    celestialParams[3].InitAsDescriptorTable(1,&lunarRange,D3D12_SHADER_VISIBILITY_PIXEL);
+    celestialParams[4].InitAsConstants(2,4,0,D3D12_SHADER_VISIBILITY_PIXEL);
+    celestialParams[5].InitAsDescriptorTable(1,&distantPlanetRange,D3D12_SHADER_VISIBILITY_PIXEL);
+    celestialParams[6].InitAsDescriptorTable(1,&distantClimateRange,D3D12_SHADER_VISIBILITY_PIXEL);
+    const CD3DX12_STATIC_SAMPLER_DESC lunarSampler(0,D3D12_FILTER_MIN_MAG_MIP_LINEAR,
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP,D3D12_TEXTURE_ADDRESS_MODE_CLAMP,D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
+    mCelestialRoot = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(7, celestialParams, 1, &lunarSampler));
     // Atmosphere tables: the ones already computed, and the three outputs.
     CD3DX12_DESCRIPTOR_RANGE lutUavRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 3, 0); // u0..u2
     CD3DX12_ROOT_PARAMETER lutParams[2];
@@ -940,6 +971,18 @@ bool D3DApp::InitDirect3D() {
         Check(md3dDevice->CreateGraphicsPipelineState(&shadeDesc, IID_PPV_ARGS(&mTerrainShadeScreenNearPSO)),
             "Terrain screen near shade PSO creation failed.");
     }
+    { // Same topology, resources and depth/shading schedule; only the physical surface program differs.
+        auto lunar=psoDesc;
+        const auto av=LoadShader(L"AirlessVertex.cso"),ap=LoadShader(L"AirlessPixel.cso");
+        lunar.VS=CD3DX12_SHADER_BYTECODE(av.Get());lunar.PS=CD3DX12_SHADER_BYTECODE(ap.Get());
+        lunar.DepthStencilState.DepthFunc=D3D12_COMPARISON_FUNC_EQUAL;lunar.DepthStencilState.DepthWriteMask=D3D12_DEPTH_WRITE_MASK_ZERO;
+        Check(md3dDevice->CreateGraphicsPipelineState(&lunar,IID_PPV_ARGS(&mAirlessShadePSO)),"Impact surface shading failed.");
+        lunar.DepthStencilState=psoDesc.DepthStencilState;lunar.RasterizerState.FillMode=D3D12_FILL_MODE_WIREFRAME;
+        Check(md3dDevice->CreateGraphicsPipelineState(&lunar,IID_PPV_ARGS(&mAirlessWirePSO)),"Impact wireframe failed.");
+        lunar.RasterizerState.FillMode=D3D12_FILL_MODE_SOLID;lunar.PS={};lunar.NumRenderTargets=0;
+        lunar.RTVFormats[0]=lunar.RTVFormats[1]=DXGI_FORMAT_UNKNOWN;
+        Check(md3dDevice->CreateGraphicsPipelineState(&lunar,IID_PPV_ARGS(&mAirlessDepthPSO)),"Impact surface depth failed.");
+    }
     psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
     Check(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mWirePSO)), "Wireframe PSO creation failed.");
     // The objects: the terrain's signature, their instances in place of its vertices (t0), their shapes at t8.
@@ -948,6 +991,11 @@ bool D3DApp::InitDirect3D() {
     psoDesc.VS = CD3DX12_SHADER_BYTECODE(objectVs.Get());
     psoDesc.PS = CD3DX12_SHADER_BYTECODE(objectPs.Get());
     Check(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mObjectPSO)), "Object PSO creation failed.");
+    {
+        const auto shader=LoadShader(L"AirlessObjectPixel.cso");auto objects=psoDesc;
+        objects.PS=CD3DX12_SHADER_BYTECODE(shader.Get());
+        Check(md3dDevice->CreateGraphicsPipelineState(&objects,IID_PPV_ARGS(&mAirlessObjectPSO)),"Impact debris shading failed.");
+    }
     ComPtr<ID3DBlob> tuftVs = LoadShader(L"TuftVertex.cso"), tuftPs = LoadShader(L"TuftPixel.cso");
     psoDesc.VS = CD3DX12_SHADER_BYTECODE(tuftVs.Get());
     psoDesc.PS = CD3DX12_SHADER_BYTECODE(tuftPs.Get());
@@ -965,8 +1013,9 @@ bool D3DApp::InitDirect3D() {
     postDesc.DepthStencilState.DepthEnable = FALSE;
     postDesc.SampleMask = UINT_MAX;
     postDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    postDesc.NumRenderTargets = 1;
+    postDesc.NumRenderTargets = 2;
     postDesc.RTVFormats[0] = HdrFormat;
+    postDesc.RTVFormats[1] = HdrFormat;
     postDesc.SampleDesc.Count = 1;
     Check(md3dDevice->CreateGraphicsPipelineState(&postDesc, IID_PPV_ARGS(&mAtmospherePSO)), "Atmosphere PSO creation failed.");
     if (mLocalContactsEnabled) {
@@ -996,14 +1045,15 @@ bool D3DApp::InitDirect3D() {
         Check(md3dDevice->CreateGraphicsPipelineState(&postDesc, IID_PPV_ARGS(&mCloudHalfPSO)),
             "Cloud half trace PSO creation failed.");
         postDesc.PS = CD3DX12_SHADER_BYTECODE(resolvePs.Get());
-        postDesc.NumRenderTargets = 4;
+        postDesc.NumRenderTargets = 5;
         postDesc.RTVFormats[0] = HdrFormat;
         postDesc.RTVFormats[1] = DXGI_FORMAT_R16G16B16A16_FLOAT;
         postDesc.RTVFormats[2] = DXGI_FORMAT_R32G32B32A32_FLOAT;
         postDesc.RTVFormats[3] = DXGI_FORMAT_R16G16_FLOAT;
+        postDesc.RTVFormats[4] = HdrFormat;
         Check(md3dDevice->CreateGraphicsPipelineState(&postDesc, IID_PPV_ARGS(&mCloudResolvePSO)),
             "Cloud resolve PSO creation failed.");
-        postDesc.RTVFormats[2] = postDesc.RTVFormats[3] = DXGI_FORMAT_UNKNOWN;
+        postDesc.RTVFormats[2] = postDesc.RTVFormats[3] = postDesc.RTVFormats[4] = DXGI_FORMAT_UNKNOWN;
     }
     postDesc.pRootSignature = mResolveRootSignature.Get();
     postDesc.PS = CD3DX12_SHADER_BYTECODE(toneMap.Get());
@@ -1011,6 +1061,39 @@ bool D3DApp::InitDirect3D() {
     postDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
     postDesc.RTVFormats[1] = HdrFormat;
     Check(md3dDevice->CreateGraphicsPipelineState(&postDesc, IID_PPV_ARGS(&mToneMapPSO)), "Tone map PSO creation failed.");
+    {
+        const auto galaxy = LoadShader(L"CelestialSky.cso"), starsVS = LoadShader(L"Stars.cso"), starsPS = LoadShader(L"StarsPixel.cso");
+        const auto bodies=LoadShader(L"CelestialBodies.cso");
+        auto bodyDesc=postDesc;
+        bodyDesc.pRootSignature=mCelestialRoot.Get(); bodyDesc.PS=CD3DX12_SHADER_BYTECODE(bodies.Get());
+        bodyDesc.RTVFormats[0]=HdrFormat; bodyDesc.RTVFormats[1]=SunFormat;
+        bodyDesc.DepthStencilState=CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+        bodyDesc.DepthStencilState.DepthFunc=D3D12_COMPARISON_FUNC_GREATER;
+        bodyDesc.DSVFormat=DXGI_FORMAT_D32_FLOAT;
+        auto& bodyBlend=bodyDesc.BlendState.RenderTarget[0];bodyBlend.BlendEnable=TRUE;
+        bodyBlend.SrcBlend=D3D12_BLEND_BLEND_FACTOR;bodyBlend.DestBlend=D3D12_BLEND_INV_BLEND_FACTOR;
+        // Alpha is a physical distance, sometimes signed for ocean motion, never an interpolated colour.
+        bodyBlend.SrcBlendAlpha=D3D12_BLEND_ONE;bodyBlend.DestBlendAlpha=D3D12_BLEND_ZERO;
+        // The second target contains light/adaptation coverage, not distance; retain its gradual blend.
+        bodyDesc.BlendState.IndependentBlendEnable=TRUE;
+        bodyDesc.BlendState.RenderTarget[1]=bodyBlend;
+        bodyDesc.BlendState.RenderTarget[1].SrcBlendAlpha=D3D12_BLEND_BLEND_FACTOR;
+        bodyDesc.BlendState.RenderTarget[1].DestBlendAlpha=D3D12_BLEND_INV_BLEND_FACTOR;
+        Check(md3dDevice->CreateGraphicsPipelineState(&bodyDesc,IID_PPV_ARGS(&mCelestialBodiesPSO)),"Celestial body pipeline failed.");
+        // The expanded transition envelope covers detailed terrain but must not replace its depth buffer.
+        bodyDesc.DepthStencilState.DepthWriteMask=D3D12_DEPTH_WRITE_MASK_ZERO;
+        Check(md3dDevice->CreateGraphicsPipelineState(&bodyDesc,IID_PPV_ARGS(&mEarthProxyBlendPSO)),"Planet transition pipeline failed.");
+        postDesc.pRootSignature = mCelestialRoot.Get();
+        postDesc.NumRenderTargets = 1; postDesc.RTVFormats[0] = HdrFormat; postDesc.RTVFormats[1] = DXGI_FORMAT_UNKNOWN;
+        postDesc.PS = CD3DX12_SHADER_BYTECODE(galaxy.Get());
+        Check(md3dDevice->CreateGraphicsPipelineState(&postDesc, IID_PPV_ARGS(&mGalaxyPSO)), "Galaxy pipeline creation failed.");
+        postDesc.VS = CD3DX12_SHADER_BYTECODE(starsVS.Get()); postDesc.PS = CD3DX12_SHADER_BYTECODE(starsPS.Get());
+        postDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+        auto& blend = postDesc.BlendState.RenderTarget[0]; blend.BlendEnable = TRUE;
+        blend.SrcBlend = blend.DestBlend = D3D12_BLEND_ONE; blend.BlendOp = D3D12_BLEND_OP_ADD;
+        blend.SrcBlendAlpha = D3D12_BLEND_ONE; blend.DestBlendAlpha = D3D12_BLEND_ZERO; blend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+        Check(md3dDevice->CreateGraphicsPipelineState(&postDesc, IID_PPV_ARGS(&mStarsPSO)), "Stellar pipeline creation failed.");
+    }
     if (mSettings.glare) mGlare.Initialize(md3dDevice.Get(), mClientWidth, mClientHeight, HdrFormat, mComposite.Get());
 
     D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc = {};
@@ -1066,6 +1149,18 @@ bool D3DApp::InitDirect3D() {
     ComPtr<ID3DBlob> candidatesCs = LoadShader(L"ObjectCandidates.cso");
     computeDesc.CS = CD3DX12_SHADER_BYTECODE(candidatesCs.Get());
     Check(md3dDevice->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(&mObjectCandidatesPSO)), "Candidates PSO creation failed.");
+    auto surfaceProgram=[&](const wchar_t* name,ID3D12RootSignature* root,ComPtr<ID3D12PipelineState>& pipeline) {
+        const auto shader=LoadShader(name);auto program=computeDesc;program.pRootSignature=root;
+        program.CS=CD3DX12_SHADER_BYTECODE(shader.Get());
+        Check(md3dDevice->CreateComputePipelineState(&program,IID_PPV_ARGS(&pipeline)),"Surface stack pipeline failed.");
+    };
+    surfaceProgram(L"AirlessCompute.cso",mComputeRootSignature.Get(),mAirlessComputePSO);
+    surfaceProgram(L"AirlessFine.cso",mComputeRootSignature.Get(),mAirlessFinePSO);
+    surfaceProgram(L"AirlessHorizon.cso",mComputeRootSignature.Get(),mAirlessHorizonPSO);
+    surfaceProgram(L"AirlessScreen.cso",mScreenRootSignature.Get(),mAirlessScreenPSO);
+    surfaceProgram(L"AirlessObjectCandidates.cso",mObjectRootSignature.Get(),mAirlessObjectCandidatesPSO);
+    surfaceProgram(L"AirlessObjectPlacement.cso",mObjectRootSignature.Get(),mAirlessObjectPlacementPSO);
+
     // One indirect draw of the objects: its instance count written by the placement.
     D3D12_INDIRECT_ARGUMENT_DESC drawArgument = {};
     drawArgument.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
@@ -1348,6 +1443,20 @@ bool D3DApp::InitDirect3D() {
     const std::wstring cloudAssets = FindAbove(L"assets\\clouds");
     if (cloudAssets.empty()) throw std::runtime_error("The clouds' textures are missing: assets/clouds.");
     std::vector<ComPtr<ID3D12Resource>> cloudUploads;
+    for(unsigned i=0;i<Celestial::MoonCount;++i) {
+        const std::string name=Celestial::Moons[i].atlas;
+        const auto path=FindAbove((L"assets\\celestial\\"+std::wstring(name.begin(),name.end())).c_str());
+        ComPtr<ID3DBlob> bytes;
+        Check(D3DReadFileToBlob(path.c_str(),&bytes),"Airless proxy missing: run tools/prepare_airless.ps1.");
+        const auto expected=Celestial::AtlasHeader(Celestial::Moons[i]);
+        if(bytes->GetBufferSize()!=sizeof(expected)+Celestial::AirlessAtlasBytes ||
+            std::memcmp(bytes->GetBufferPointer(),&expected,sizeof(expected))!=0)
+            throw std::runtime_error("Airless proxy does not match its body manifest; run tools/prepare_airless.ps1.");
+        const auto begin=static_cast<const uint8_t*>(bytes->GetBufferPointer())+sizeof(expected);
+        UploadCloudMap(md3dDevice.Get(),mCommandList.Get(),std::vector<uint8_t>(begin,begin+Celestial::AirlessAtlasBytes),2048,1024,12,mAirlessMaterial[i].Get(),cloudUploads);
+        const auto ready=CD3DX12_RESOURCE_BARRIER::Transition(mAirlessMaterial[i].Get(),D3D12_RESOURCE_STATE_COPY_DEST,D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        mCommandList->ResourceBarrier(1,&ready);
+    }
     UploadCloudVolume(md3dDevice.Get(), mCommandList.Get(), cloudAssets + L"\\shape128.rgba8mips", 128u, 8u, mCloudShape.Get(), cloudUploads, true);
     UploadCloudVolume(md3dDevice.Get(), mCommandList.Get(), cloudAssets + L"\\detail32.rgba8mips", 32u, 6u, mCloudDetail.Get(), cloudUploads, true);
     UploadCloudVolume(md3dDevice.Get(), mCommandList.Get(), cloudAssets + L"\\weather64.rgba8mips", 64u, 7u, mCloudProfiles.Get(), cloudUploads, false, true);
@@ -1890,30 +1999,23 @@ void D3DApp::CreateClimateMap(const Tectonics::Map& tectonics, uint32_t seed, co
 }
 
 void D3DApp::UpdateCamera(float dt) {
-    Vec3d up = Normalize(mCamPos);
-
-    // Mouse look: yaw around the local vertical, pitch around the camera's right axis, kept 6Â° off the vertical; from a
-    // test view's nadir, beyond that limit, the pitch still comes back towards the horizon.
-    mCamForward = Rotate(mCamForward, up, mMouseDx * 0.003);
-    Vec3d right = Normalize(Cross(up, mCamForward));
-    const Vec3d pitched = Rotate(mCamForward, right, mMouseDy * 0.003);
-    if (std::fabs(Dot(pitched, up)) < std::max(0.995, std::fabs(Dot(mCamForward, up)))) mCamForward = pitched;
-    mMouseDx = mMouseDy = 0.0;
-    right = Normalize(Cross(up, mCamForward));
-
     // Keys only count when the window has the focus; the ground clamp below always applies.
     const bool focused = GetForegroundWindow() == mhMainWnd;
     auto held = [focused](UINT vk) { return focused && (GetAsyncKeyState(vk) & 0x8000) ? 1.0 : 0.0; };
+    const double arrows=held(VK_RIGHT)-held(VK_LEFT),rolling=held(VK_SHIFT);
+    FlightFrame::Turn(mCamForward,mCamUp,mMouseDx*.003,mMouseDy*.003,rolling*arrows*1.8*dt);
+    mMouseDx=mMouseDy=0;
+    const Vec3d right=Normalize(Cross(mCamUp,mCamForward));
     const double forward = held(mMoveKeys[0]) + held(VK_UP) - held(mMoveKeys[1]) - held(VK_DOWN);
-    const double strafe = held(mMoveKeys[3]) + held(VK_RIGHT) - held(mMoveKeys[2]) - held(VK_LEFT);
+    const double strafe = held(mMoveKeys[3]) - held(mMoveKeys[2]) + (1-rolling)*arrows;
     const double rise = held(mMoveKeys[5]) + held(VK_PRIOR) - held(mMoveKeys[4]) - held(VK_NEXT);
 
     // Keys O and P: the sun turns around the planet's axis, a full day in about 30 seconds.
     mSunDir = Rotate(mSunDir, kNorth, (held('P') - held('O')) * 0.2 * dt);
 
     // Speed proportional to the height above the ground: from orbit to the ground in a few seconds.
-    const double clearance = std::max(Length(mCamPos) - PlanetRadius - mGroundHeight, 1.0);
-    const Vec3d move = mCamForward * forward + right * strafe + up * rise;
+    const double clearance = std::max(SurfaceAltitude(mCamPos) - mGroundHeight, 1.0);
+    const Vec3d move = mCamForward * forward + right * strafe + mCamUp * rise;
     Vec3d newPos = mCamPos + move * (mSpeedFactor * clearance * dt);
 
     // Terrain contact is swept before accepting the candidate pose. Only the global sea floor is local here.
@@ -1922,11 +2024,7 @@ void D3DApp::UpdateCamera(float dt) {
         minRadius=std::max(minRadius,PlanetRadius+double(mOcean->SurfaceHeight())+0.75); // the ground with the materials' relief
     if (Length(newPos) < minRadius) newPos = Normalize(newPos) * minRadius;
 
-    // Carry the view direction along the sphere, so that the horizon stays level.
-    const Vec3d axis = Cross(up, Normalize(newPos));
-    const double sinAngle = Length(axis);
-    if (sinAngle > 1e-12)
-        mCamForward = Normalize(Rotate(mCamForward, axis * (1.0 / sinAngle), std::asin(std::min(sinAngle, 1.0))));
+    // Translation does not steer the observer toward any planetary horizon.
     mCamPos = newPos;
 }
 
@@ -1967,7 +2065,7 @@ void D3DApp::Draw() {
     CD3DX12_RANGE readRange(0, sizeof(FaceVertex));
     if (SUCCEEDED(mReadbackBuffer->Map(0, &readRange, reinterpret_cast<void**>(&nadir)))) {
         // A teleport invalidates the previous frame's nadir as well as the cached CPU height.
-        if (!mMeshFrozen && !trembleTest && !mWaveReset && std::isfinite(nadir->elevation)) {
+        if (!NearMoon(mCamPos) && !mMeshFrozen && !trembleTest && !mWaveReset && std::isfinite(nadir->elevation)) {
             mGroundHeight = std::max({0.0, (double)nadir->elevation, (double)nadir->water.w});
             mOceanElevation=nadir->elevation;
         }
@@ -1979,7 +2077,9 @@ void D3DApp::Draw() {
     ReadFlightContact();
     ReadWalkGround();
     ReadWorldSound();
-    if (mStartWalking) { mStartWalking = false; ToggleWalking(); }
+    if (mStartWalking) {
+        mStartWalking = false; ToggleWalking();
+    }
 
     LARGE_INTEGER now;
     QueryPerformanceCounter(&now);
@@ -1987,6 +2087,7 @@ void D3DApp::Draw() {
     const float dt = (float)(!mCine.empty() ? 1.0 / mCineFps : std::min(elapsed, 0.1));
     mLastTime = now;
     if (!mSettings.Automated() && !mWeatherPaused) mWeatherTime += elapsed * mWeatherRate;
+    UpdateCelestialFrame();
     mClock += dt;
     const FlightPose flightBefore=FlightPoseNow();
     if (mCine.empty()) {
@@ -2002,9 +2103,22 @@ void D3DApp::Draw() {
     // The mesh reaches the horizon, plus the highest mountains that can rise above it, capped at what
     // one face plane can cover. The face is centred on the nadir, its half-width proportional to the
     // height above the ground; the rings fill the rest.
-    const Vec3d up = Normalize(mCamPos); // the camera's vertical
-    const double camAltitude = Length(mCamPos) - PlanetRadius;
-    const double clearance = std::max(camAltitude - mGroundHeight, 0.01);
+    const bool airless=NearMoon(mCamPos);
+    const Vec3d bodyCamera=mCamPos-(airless?mMoonCentre:Vec3d{});
+    const double bodyRadius=airless?mMoonSurface.radius:PlanetRadius;
+    const double heightEnvelope=airless?16000:kMaxElevation;
+    const Vec3d up=Normalize(bodyCamera);
+    const double camAltitude=Length(bodyCamera)-bodyRadius;
+    const double clearance=std::max(camAltitude-mGroundHeight,.01);
+    const double pixelAngle=2*std::tan(mCineFov*XM_PI/360)/mClientHeight;
+    const double reliefPixels=kMaxElevation/(Length(mCamPos)*pixelAngle);
+    const double proxyRise=mDiagnosticView!=0?0:std::min(std::max((.5-reliefPixels)/.25,0.0),1.0);
+    const float earthProxy=airless?1.0f:float(proxyRise*proxyRise*(3-2*proxyRise));
+    const bool earthDetailed=!airless && earthProxy<1;
+    D3D12_RECT bodyBounds;
+    const bool surfaceDetailed=earthDetailed || (airless && CelestialRect(mMoonCentre,bodyRadius+heightEnvelope,bodyBounds));
+    if(mMoonMesh!=mActiveMoon){mTerrainKept=mScreenKept=mHistoryValid=false;mMeshFrozen=false;}
+    mMoonMesh=mActiveMoon;
 
     // Tremble test: the mesh is placed as if the camera flew forward, while the camera stays still.
     Vec3d meshUp = up;
@@ -2015,9 +2129,9 @@ void D3DApp::Draw() {
     }
 
     if (!mMeshFrozen) {
-        const double horizon = std::acos(PlanetRadius / Length(mCamPos));
-        const double mountains = std::acos(PlanetRadius / (PlanetRadius + kMaxElevation));
-        const double extent = PlanetRadius * std::tan(std::min(horizon + mountains, kMaxCoverage));
+        const double horizon = std::acos(std::min(1.0,(bodyRadius-(airless?16000:0))/Length(bodyCamera)));
+        const double mountains = std::acos(bodyRadius / (bodyRadius + heightEnvelope));
+        const double extent = bodyRadius * std::tan(std::min(horizon + mountains, kMaxCoverage));
 
         // The face: centred on the nadir, half-width proportional to the height above the ground. It slides
         // continuously with the camera: this is what refines the mesh progressively, without any step.
@@ -2040,8 +2154,8 @@ void D3DApp::Draw() {
         return XMVectorSet((float)Dot(v, faceX), (float)Dot(v, faceY), (float)Dot(v, faceZ), 0.0f);
     };
     // Camera on the face frame, in double precision: right above the face's centre unless the mesh is frozen.
-    const double camHeight = Dot(mCamPos, faceZ) - PlanetRadius;
-    mConstants->camPlane = { (float)Dot(mCamPos, faceX), (float)Dot(mCamPos, faceY), 0.0f, 0.0f };
+    const double camHeight = Dot(bodyCamera, faceZ) - bodyRadius;
+    mConstants->camPlane = { (float)Dot(bodyCamera, faceX), (float)Dot(bodyCamera, faceY), 0.0f, 0.0f };
     const float observerTarget=mWorldValid && Length(mCamPos-mWorldProbePos)<250
         ? ObserverCanopy(mHabitat[5].x,float(clearance),mHabitat[5].y) : 0.0f;
     // Hidden stills use the settled world value. Interactive response converges
@@ -2052,11 +2166,11 @@ void D3DApp::Draw() {
 
     // Anchor of the fine detail drawn in the pixels: the multiple of kDetailUnit closest to the camera.
     // Pixels work from it in float, with exact lattice indices at the planet's scale.
-    const double ax = std::round(mCamPos.x / kDetailUnit), ay = std::round(mCamPos.y / kDetailUnit),
-        az = std::round(mCamPos.z / kDetailUnit);
+    const double ax = std::round(bodyCamera.x / kDetailUnit), ay = std::round(bodyCamera.y / kDetailUnit),
+        az = std::round(bodyCamera.z / kDetailUnit);
     mConstants->detailAnchor = { (int32_t)ax, (int32_t)ay, (int32_t)az, 0 };
-    mConstants->detailOrigin = { (float)(mCamPos.x - ax * kDetailUnit), (float)(mCamPos.y - ay * kDetailUnit),
-        (float)(mCamPos.z - az * kDetailUnit), (float)kDetailUnit };
+    mConstants->detailOrigin = { (float)(bodyCamera.x - ax * kDetailUnit), (float)(bodyCamera.y - ay * kDetailUnit),
+        (float)(bodyCamera.z - az * kDetailUnit), (float)kDetailUnit };
 
     // Rendering happens in the face frame with the camera at the origin: no large float coordinates.
     // Screenshot coordinates use the actual camera, updated every frame, including while the clock is paused.
@@ -2069,6 +2183,7 @@ void D3DApp::Draw() {
         mConstants->coordinateInfo.w=surface<FootContact::Count?surface+1:0;
     }
     if (mCoordinates) {
+        const Vec3d up=SurfaceUp(mCamPos);
         const double lon = std::atan2(up.z, up.x), toDegrees = 180.0 / XM_PI;
         const Vec3d north = { -up.y * std::cos(lon), std::hypot(up.x, up.z), -up.y * std::sin(lon) };
         const Vec3d east = { -std::sin(lon), 0.0, std::cos(lon) };
@@ -2077,9 +2192,11 @@ void D3DApp::Draw() {
         const double heading = std::atan2(Dot(forward, east), Dot(forward, north)) * toDegrees;
         char lines[2][64] = {};
         snprintf(lines[0], sizeof(lines[0]), "LAT %.6f  LON %.6f  GRAINE %u",
-            std::asin(std::min(std::max(up.y, -1.0), 1.0)) * toDegrees, lon * toDegrees, mSettings.seed);
+            std::asin(std::min(std::max(up.y, -1.0), 1.0)) * toDegrees, lon * toDegrees, airless?mMoonSurface.seed:mSettings.seed);
         snprintf(lines[1], sizeof(lines[1]), "ALT MER %.1f M  TANGAGE %.2f  CAP %.2f",
             Length(mCamPos) - PlanetRadius, pitch, heading);
+        if(airless)snprintf(lines[1],sizeof(lines[1]),"LUNE %d ALT SOL %.1f M  TANGAGE %.2f  CAP %.2f",
+            mActiveMoon+1,SurfaceAltitude(mCamPos)-mGroundHeight,pitch,heading);
         mConstants->coordinateInfo.x = UINT(std::strlen(lines[0]));
         mConstants->coordinateInfo.y = UINT(std::strlen(lines[1]));
         static_assert(sizeof(lines) == sizeof(mConstants->coordinateText), "Coordinate text packing must match HLSL.");
@@ -2087,13 +2204,15 @@ void D3DApp::Draw() {
     }
     const float fovY = XMConvertToRadians((float)mCineFov);
     const float aspect = float(mClientWidth) / float(mClientHeight);
-    // The view's up is the vertical, or the ship's: it rolls with it.
-    const Vec3d viewUp = mView == View::Free ? up : mCamUp;
+    // Flight keeps its own attitude; the walking controller supplies its surface vertical.
+    const Vec3d viewUp = mCamUp;
     const XMMATRIX view = XMMatrixLookToLH(XMVectorZero(), toLocal(mCamForward), toLocal(viewUp));
-    // A nearby cliff is independent of the ground below the camera. Keep the same 5 cm near plane in every view;
-    // scaling it by nadir clearance clipped whole walls during a close approach. Reversed Z preserves distant depth.
-    const float nearZ = 0.05f;
-    const XMMATRIX proj = XMMatrixPerspectiveFovLH(fovY, aspect, 1e9f, nearZ); // near and far swapped: reversed Z
+    const auto celestialBodies=Celestial::System(mWeatherTime,{mSunDir.x,mSunDir.y,mSunDir.z});
+    const Celestial::Vector celestialCamera={mCamPos.x*.001,mCamPos.y*.001,mCamPos.z*.001};
+    // Fixed 5 cm near plane preserves nearby cliffs; infinite reversed Z also preserves astronomical bodies.
+    const float nearZ=0.05f;
+    const float focal=1.0f/std::tan(fovY*.5f);
+    const XMMATRIX proj=XMMatrixSet(focal/aspect,0,0,0, 0,focal,0,0, 0,0,0,1, 0,0,nearZ,0);
 
     // Camera axes, as XMMatrixLookToLH builds them, for the culling in the compute shader.
     const XMVECTOR camForward = XMVector3Normalize(toLocal(mCamForward));
@@ -2157,6 +2276,20 @@ void D3DApp::Draw() {
         const Vec3d wind=east*climate[Climate::WindEast]+north*climate[Climate::WindNorth];
         XMStoreFloat4(&mConstants->foliageWind,toLocal(wind));
         mConstants->foliageWind.w=float(std::fmod(mWeatherTime,4096.0));
+    }
+    {
+        const auto& bodies = celestialBodies;
+        const auto& camera = celestialCamera;
+        for (unsigned i=0;i<Celestial::BodyCount;++i) {
+            const auto& body=bodies[i]; const auto offset=body.position-camera;
+            XMStoreFloat4(&mConstants->celestialPosition[i],toLocal({offset.x,offset.y,offset.z}));
+            mConstants->celestialPosition[i].w=float(body.radius);
+            mConstants->celestialSurface[i]={float(body.albedo.x),float(body.albedo.y),float(body.albedo.z),float(body.kind)};
+            XMStoreFloat4(&mConstants->celestialLight[i],toLocal({body.toSun.x,body.toSun.y,body.toSun.z}));
+            mConstants->celestialLight[i].w=float(body.sunlight);
+            const auto flux=Celestial::Illuminance(body,camera);
+            mConstants->celestialFlux[i]={float(flux.x),float(flux.y),float(flux.z),0.0f};
+        }
     }
     mConstants->taa = { TemporalAA() && mHistoryValid ? 0.1f : 1.0f, mDiagnosticView,
                         (mSettings.noPlants || !mPlanetFoliage.Enabled() ? 1.0f : 0.0f) + (mFoliageFade ? 2.0f : 0.0f)
@@ -2244,9 +2377,9 @@ void D3DApp::Draw() {
     mConstants->faceX = { (float)faceX.x, (float)faceX.y, (float)faceX.z, 0.0f };
     mConstants->faceY = { (float)faceY.x, (float)faceY.y, (float)faceY.z, 0.0f };
     mConstants->faceZ = { (float)faceZ.x, (float)faceZ.y, (float)faceZ.z, 0.0f };
-    mConstants->faceParams = { (float)halfWidth, (float)PlanetRadius, (float)camHeight, (float)FaceCells };
+    mConstants->faceParams = { (float)halfWidth, (float)bodyRadius, (float)camHeight, (float)FaceCells };
     const double faceCell = 2.0 * halfWidth / FaceCells, fineRise = std::min(std::max(faceCell / FineMinCell - 1.0, 0.0), 1.0);
-    const float fineWeight = (float)(fineRise * fineRise * (3.0 - 2.0 * fineRise));
+    const float fineWeight = surfaceDetailed?(float)(fineRise * fineRise * (3.0 - 2.0 * fineRise)):0.0f;
     mConstants->ringParams = { (float)ringCount, (float)RingGrowth, fineWeight, (float)FineSubdivision };
     // The screen relief, from orbit down to where the fine grid and the per-pixel detail carry the relief to the pixel.
     bool screenCovers = false;
@@ -2254,20 +2387,20 @@ void D3DApp::Draw() {
         const UINT across = (mClientWidth + ScreenReliefScale - 1) / ScreenReliefScale;
         const UINT down = std::min((mClientHeight + ScreenReliefScale - 1) / ScreenReliefScale, ScreenReliefMaxTexels / across);
         const double rise = std::min(std::max((camAltitude - ScreenReliefLow) / (ScreenReliefHigh - ScreenReliefLow), 0.0), 1.0);
-        const float weight = (float)(rise * rise * (3.0 - 2.0 * rise));
+        const float weight = surfaceDetailed?(float)(rise * rise * (3.0 - 2.0 * rise)):0.0f;
         mConstants->screenRelief = { (float)across, (float)down, weight, (float)ScreenReliefScale };
         // At full weight on every row, the pixel reads the fine grid only at the limb (FineTerrain.hlsl).
         screenCovers = weight >= 1.0f && down * ScreenReliefScale >= mClientHeight;
     }
-    mConstants->erosionMode = { mErosionMode, screenCovers ? 1u : 0u, mErosionRiverMap ? 1u : 0u, 0u };
+    mConstants->erosionMode = { mErosionMode, screenCovers ? 1u : 0u, mErosionRiverMap ? 1u : 0u, unsigned(mActiveMoon+1) };
     XMStoreFloat4(&mConstants->lightDir, toLocal(mSunDir));
-    XMStoreFloat4(&mConstants->camVertical, toLocal(up));
-    mConstants->camVertical.w = (float)(camAltitude / 1000.0);
+    XMStoreFloat4(&mConstants->camVertical, toLocal(Normalize(mCamPos)));
+    mConstants->camVertical.w = (float)((Length(mCamPos)-PlanetRadius) / 1000.0);
     mConstants->lightDir.w = mWireframe ? 2.0f : mFaceted ? 1.0f : 0.0f; // shading mode, see Planet.hlsli
     mConstants->nadir[0] = faceZ.x;
     mConstants->nadir[1] = faceZ.y;
     mConstants->nadir[2] = faceZ.z;
-    mConstants->nadir[3] = 0.0;
+    mConstants->nadir[3] = airless?double(mMoonSurface.seed):0.0;
     // The sea's time: the clock's, or a 60 fps frame's when frames are captured, so that captures repeat.
     const bool oceanReset=mWaveReset;
     UpdateOceanPlane(!mCine.empty() ? 1.0 / mCineFps : mSettings.Automated() ? 1.0 / 60.0 : dt, faceX, faceY, faceZ);
@@ -2286,7 +2419,7 @@ void D3DApp::Draw() {
     // the camera aside (round 8), where some vertices split it in doubles, cells under EXACT_LATTICE_MAX_CELL, 4 m
     // (PlanetSettings.hlsli). Not after a jump: a still view is the exact one from its first frame. Stopped after a
     // flight, the mesh is computed again in doubles, all of it: what is kept is always exact.
-    const bool latticePairs = !sameMesh && mTerrainSlid && faceCell < 4.0;
+    const bool latticePairs = !airless && !sameMesh && mTerrainSlid && faceCell < 4.0;
     mTerrainSlid = !sameMesh;
     if (mTerrainPairs && sameMesh)
         sameMesh = sameTerrain = false;
@@ -2306,10 +2439,11 @@ void D3DApp::Draw() {
 
     const double oceanStep=!mCine.empty()?1.0/mCineFps:mSettings.Automated()?1.0/60.0:dt;
     mCommandList->EndQuery(mTimestampHeap.Get(),D3D12_QUERY_TYPE_TIMESTAMP,6);
-    mOcean->Update(mCommandList.Get(),mWaveOrigin[0],mWaveOrigin[1],mSeaTime,float(oceanStep*mSeaTimeRate),oceanReset,mOceanElevation);
+    if(earthDetailed)mOcean->Update(mCommandList.Get(),mWaveOrigin[0],mWaveOrigin[1],mSeaTime,float(oceanStep*mSeaTimeRate),oceanReset,mOceanElevation);
     mCommandList->EndQuery(mTimestampHeap.Get(),D3D12_QUERY_TYPE_TIMESTAMP,7);
 
     // 1. Compute: elevations of the whole mesh, every frame its inputs change. Buffers are back to COMMON after each frame.
+    if(surfaceDetailed) {
     gpuStage(L"Terrain mesh");
     auto toUav = CD3DX12_RESOURCE_BARRIER::Transition(mFaceVertexBuffer.Get(),
         D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -2317,7 +2451,7 @@ void D3DApp::Draw() {
     ID3D12DescriptorHeap* terrainHeaps[] = { mSrvHeap.Get() }; // the ocean's pass set its own
     mCommandList->SetDescriptorHeaps(1, terrainHeaps);
     mCommandList->SetComputeRootSignature(mComputeRootSignature.Get());
-    mCommandList->SetPipelineState(latticePairs ? mComputePairsPSO.Get() : mComputePSO.Get());
+    mCommandList->SetPipelineState(airless?mAirlessComputePSO.Get():latticePairs?mComputePairsPSO.Get():mComputePSO.Get());
     mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
     mCommandList->SetComputeRootUnorderedAccessView(1, mFaceVertexBuffer->GetGPUVirtualAddress());
     mCommandList->SetComputeRootDescriptorTable(2, GpuDescriptor(TectonicSrv));
@@ -2342,7 +2476,7 @@ void D3DApp::Draw() {
     // for the air (Shadows.hlsli).
     auto terrainWritten = CD3DX12_RESOURCE_BARRIER::UAV(mFaceVertexBuffer.Get());
     mCommandList->ResourceBarrier(1, &terrainWritten);
-    mCommandList->SetPipelineState(mHorizonPSO.Get());
+    mCommandList->SetPipelineState(airless?mAirlessHorizonPSO.Get():mHorizonPSO.Get());
     if (!sameTerrain) mCommandList->Dispatch((vertexCount + 63) / 64, 1, 1);
     auto toRead = CD3DX12_RESOURCE_BARRIER::Transition(mFaceVertexBuffer.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
         D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_COPY_SOURCE);
@@ -2355,7 +2489,7 @@ void D3DApp::Draw() {
         auto fineToWrite = CD3DX12_RESOURCE_BARRIER::Transition(mFinePositions.Get(), D3D12_RESOURCE_STATE_COMMON,
             D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
         mCommandList->ResourceBarrier(1, &fineToWrite);
-        mCommandList->SetPipelineState(mFineTerrainPSO.Get());
+        mCommandList->SetPipelineState(airless?mAirlessFinePSO.Get():mFineTerrainPSO.Get());
         gpuStage(L"Terrain fine grid");
         mCommandList->SetComputeRootUnorderedAccessView(1, mFinePositions->GetGPUVirtualAddress());
         // By 8 x 8 tiles of samples (FineTerrain.hlsl).
@@ -2398,6 +2532,15 @@ void D3DApp::Draw() {
             D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
         mCommandList->ResourceBarrier(1, &toWrite);
         if (on && !sameScreen) {
+            if(airless) {
+                mCommandList->SetComputeRootSignature(mScreenRootSignature.Get());
+                mCommandList->SetComputeRootConstantBufferView(0,mConstantBuffer->GetGPUVirtualAddress());
+                mCommandList->SetComputeRootUnorderedAccessView(1,mScreenPositions->GetGPUVirtualAddress());
+                mCommandList->SetPipelineState(mAirlessScreenPSO.Get());
+                mCommandList->Dispatch((across+7)/8,(down+7)/8,1);
+                for(UINT stamp=23;stamp<35;++stamp)mCommandList->EndQuery(mTimestampHeap.Get(),D3D12_QUERY_TYPE_TIMESTAMP,stamp);
+            } else {
+
             // Allocate only the current view's work, not a full 4K scratch buffer for every window.
             // The previous frame has completed before recording this one.
             if (across * down > mScreenWorkTexels) {
@@ -2488,6 +2631,7 @@ void D3DApp::Draw() {
             auto workToCommon = CD3DX12_RESOURCE_BARRIER::Transition(mScreenWork.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
                 D3D12_RESOURCE_STATE_COMMON);
             mCommandList->ResourceBarrier(1, &workToCommon);
+            }
         }
         auto toRead = CD3DX12_RESOURCE_BARRIER::Transition(mScreenPositions.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
             D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -2501,15 +2645,15 @@ void D3DApp::Draw() {
     // Objects near the camera (docs/spec-objets-proximite.md): placed afresh every frame on the planet's lattice, in the
     // windows of cells around the camera, on the planes of the planet axes that can be the vertical's largest there.
     PlacementConstants placement = {};
-    const Vec3d foot = up * PlanetRadius;
+    const Vec3d foot = up * bodyRadius;
     for (int i = 0; i < 3; ++i) {
-        placement.cam[i] = (&mCamPos.x)[i];
+        placement.cam[i] = (&bodyCamera.x)[i];
         placement.foot[i] = (&foot.x)[i];
     }
     placement.pixelAngle = 2.0f * std::tan(fovY * 0.5f) / float(mClientHeight);
     placement.flags = (mSettings.objectPop ? 1u : 0u) | (mSettings.objectCensus && mSettings.batch ? 2u : 0u);
     const double plantReach = 0.5 * PlanetPlantWindow * 32.0; // the plants' windows' half width (m): tiles of 32 m
-    const double reach = 2.0 * plantReach / PlanetRadius;
+    const double reach = 2.0 * plantReach / bodyRadius;
     for (int axis = 0; axis < 3; ++axis) {
         const double a = std::fabs((&up.x)[axis]);
         const double others = std::max(std::fabs((&up.x)[(axis + 1) % 3]), std::fabs((&up.x)[(axis + 2) % 3]));
@@ -2535,7 +2679,7 @@ void D3DApp::Draw() {
     ID3D12DescriptorHeap* computeHeaps[] = { mSrvHeap.Get() };
     mCommandList->SetDescriptorHeaps(1, computeHeaps);
     mCommandList->SetComputeRootSignature(mObjectRootSignature.Get());
-    mCommandList->SetPipelineState(mObjectCandidatesPSO.Get());
+    mCommandList->SetPipelineState(airless?mAirlessObjectCandidatesPSO.Get():mObjectCandidatesPSO.Get());
     mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
     mCommandList->SetComputeRootShaderResourceView(1, mFaceVertexBuffer->GetGPUVirtualAddress());
     mCommandList->SetComputeRootUnorderedAccessView(2, mObjectInstances->GetGPUVirtualAddress());
@@ -2555,12 +2699,12 @@ void D3DApp::Draw() {
         CD3DX12_RESOURCE_BARRIER::Transition(mObjectCandidates.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
             D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE) };
     mCommandList->ResourceBarrier(2, candidatesToRead);
-    mCommandList->SetPipelineState(mObjectPlacementPSO.Get());
+    mCommandList->SetPipelineState(airless?mAirlessObjectPlacementPSO.Get():mObjectPlacementPSO.Get());
     mCommandList->ExecuteIndirect(mObjectDispatchSignature.Get(), 1, mObjectDispatch.Get(), 0, nullptr, 0);
     if (mSettings.batch) mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 12);
     // The plants, in windows of their own (docs/recherche-vegetation.md): their slices after the stones' and the tufts'.
     // None can be in reach from higher than their windows' half width.
-    if (mPlanetFoliage.Enabled() && clearance < plantReach && !mSettings.noPlants) {
+    if (earthDetailed && mPlanetFoliage.Enabled() && clearance < plantReach && !mSettings.noPlants) {
         placement.sliceBase = ObjectSlices;
         mPlanetPlantPlacement.Run(mCommandList.Get(), mObjectRootSignature.Get(), mObjectDispatchSignature.Get(),
             mConstantBuffer->GetGPUVirtualAddress(), mFaceVertexBuffer.Get(), mObjectInstances.Get(), mObjectCounters.Get(),
@@ -2578,9 +2722,15 @@ void D3DApp::Draw() {
     if (mObjectInstancesReadback)
         mCommandList->CopyBufferRegion(mObjectInstancesReadback.Get(), 0, mObjectInstances.Get(), 0, sizeof(ObjectInstance) * ObjectCapacity);
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 8);
-    mPlanetFoliage.Classify(mCommandList.Get(), mConstantBuffer->GetGPUVirtualAddress(), mObjectInstances.Get(), mObjectCounters.Get());
+    if(earthDetailed)mPlanetFoliage.Classify(mCommandList.Get(), mConstantBuffer->GetGPUVirtualAddress(), mObjectInstances.Get(), mObjectCounters.Get());
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 9);
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 3);
+
+    } else {
+        mTerrainKept=false;mScreenUpdated=false;
+        for(UINT query:{1u,3u,8u,9u,22u,35u,36u,37u,38u})mCommandList->EndQuery(mTimestampHeap.Get(),D3D12_QUERY_TYPE_TIMESTAMP,query);
+        if(mSettings.batch)for(UINT query:{12u,13u})mCommandList->EndQuery(mTimestampHeap.Get(),D3D12_QUERY_TYPE_TIMESTAMP,query);
+    }
 
     // 2. Draw the face, in linear light, into the HDR image (render target since the end of the last frame).
     CD3DX12_CPU_DESCRIPTOR_HANDLE hdrRtv(mRtvHeap->GetCPUDescriptorHandleForHeapStart(), HdrRtv, mRtvDescriptorSize);
@@ -2602,7 +2752,8 @@ void D3DApp::Draw() {
     CD3DX12_RECT scissor(0, 0, LONG(mClientWidth), LONG(mClientHeight));
     mCommandList->RSSetViewports(1, &viewport);
     mCommandList->RSSetScissorRects(1, &scissor);
-    if (shipDrawn) mShip.DrawOpaque(mCommandList.Get(), shipTables); // first: it hides much of the scene from the cockpit
+    if (shipDrawn)
+        mShip.DrawOpaque(mCommandList.Get(), shipTables); // cockpit first; mirror skins need the world behind them
 
     ID3D12DescriptorHeap* heaps[] = { mSrvHeap.Get() };
     const auto bindTerrain = [&](ID3D12PipelineState* pso) {
@@ -2616,7 +2767,7 @@ void D3DApp::Draw() {
         mCommandList->SetGraphicsRootDescriptorTable(4, GpuDescriptor(MaterialSrv));
         mCommandList->SetGraphicsRootShaderResourceView(5, mFineNormals->GetGPUVirtualAddress());
         mCommandList->SetGraphicsRootShaderResourceView(12, mScreenPositions->GetGPUVirtualAddress());
-        mCommandList->SetGraphicsRootDescriptorTable(7, GpuDescriptor(PlanetMapSrv));
+        mCommandList->SetGraphicsRootDescriptorTable(7, GpuDescriptor(airless?AirlessMaterialSrv+unsigned(mActiveMoon):PlanetMapSrv));
         mCommandList->SetGraphicsRootConstantBufferView(8,mOcean->ConstantsAddress());
         mCommandList->SetGraphicsRootDescriptorTable(9,GpuDescriptor(OceanSrv));
         mCommandList->SetGraphicsRootDescriptorTable(10, mShip.SunMapSrv());
@@ -2629,31 +2780,33 @@ void D3DApp::Draw() {
         mCommandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
     };
     // The terrain's depth alone (docs/optimisation.md, round 2): its colour waits for the plants, below. The wireframe, at once.
-    const bool terrainDepthFirst = !mWireframe;
+    const bool terrainDepthFirst = surfaceDetailed && !mWireframe;
     if (terrainDepthFirst) {
         mCommandList->OMSetRenderTargets(0, nullptr, FALSE, &dsvHandle);
-        drawTerrain(mTerrainDepthPSO.Get());
+        drawTerrain(airless?mAirlessDepthPSO.Get():mTerrainDepthPSO.Get());
         mCommandList->OMSetRenderTargets(2, sceneRtvs, FALSE, &dsvHandle);
-    } else
-        drawTerrain(mWirePSO.Get());
+    } else if(surfaceDetailed)
+        drawTerrain(airless?mAirlessWirePSO.Get():mWirePSO.Get());
     // The objects, over the ground, but in the materials' diagnostic views.
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 4);
     mCommandList->IASetIndexBuffer(&mShapeIndexView);
-    if (mDiagnosticView == 0.0f || mDiagnosticView == ObjectsView || mDiagnosticView >= HeightView) {
-        mCommandList->SetPipelineState(mObjectPSO.Get());
+    if (surfaceDetailed && (mDiagnosticView == 0.0f || mDiagnosticView == ObjectsView || mDiagnosticView >= HeightView)) {
+        mCommandList->SetPipelineState(airless?mAirlessObjectPSO.Get():mObjectPSO.Get());
         mCommandList->SetGraphicsRootShaderResourceView(1, mObjectInstances->GetGPUVirtualAddress());
         mCommandList->SetGraphicsRootShaderResourceView(6, mShapeVertices->GetGPUVirtualAddress());
         mCommandList->ExecuteIndirect(mObjectCommandSignature.Get(), 1, mObjectCounters.Get(), 0, nullptr, 0);
+        if(!airless) {
         mCommandList->SetPipelineState(mTuftPSO.Get());
         mCommandList->SetGraphicsRootShaderResourceView(1, mObjectInstances->GetGPUVirtualAddress() + sizeof(ObjectInstance) * ObjectClassCapacity);
         mCommandList->SetGraphicsRootShaderResourceView(6, mShapeVertices->GetGPUVirtualAddress() + mTuftShapeOffset);
         mCommandList->ExecuteIndirect(mObjectCommandSignature.Get(), 1, mObjectCounters.Get(), TuftArguments * sizeof(UINT), nullptr, 0);
+        }
     }
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 5);
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 10);
     // The plants: the near ones' meshes, the depth pyramid they leave, then the far ones' impostors it does not hide
     // (docs/vegetation-hiz.md); in the diagnostic views, all of them.
-    const bool usePlantHiZ = mPlanetFoliage.Enabled() && mDiagnosticView == 0.0f;
+    const bool usePlantHiZ = earthDetailed && mPlanetFoliage.Enabled() && mDiagnosticView == 0.0f;
     if (usePlantHiZ) {
         mPlanetFoliage.DrawOccluders(mCommandList.Get(), mConstantBuffer->GetGPUVirtualAddress(), GpuDescriptor(LutSrv), GpuDescriptor(PlanetMapSrv));
         mCommandList->OMSetRenderTargets(0, nullptr, FALSE, nullptr);
@@ -2670,7 +2823,7 @@ void D3DApp::Draw() {
     } else {
         if (mSettings.batch) for (UINT query = 14; query < 18; ++query)
             mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, query);
-        mPlanetFoliage.Draw(mCommandList.Get(), mConstantBuffer->GetGPUVirtualAddress(), GpuDescriptor(LutSrv), GpuDescriptor(PlanetMapSrv));
+        if(earthDetailed)mPlanetFoliage.Draw(mCommandList.Get(), mConstantBuffer->GetGPUVirtualAddress(), GpuDescriptor(LutSrv), GpuDescriptor(PlanetMapSrv));
     }
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 11);
     // The terrain's colour, on the pixels its depth still holds: those neither the plants, the objects nor the terrain
@@ -2679,52 +2832,87 @@ void D3DApp::Draw() {
         mCommandList->OMSetRenderTargets(2, sceneRtvs, FALSE, &dsvHandle);
         mCommandList->RSSetViewports(1, &viewport);
         mCommandList->RSSetScissorRects(1, &scissor);
-        // Under the screen relief at full weight, no pixel refines its contour (PixelShaderScreen.hlsl). Elsewhere the face's
-        // cells where none may refine take that shader too, the others and the rings the whole one (TerrainContourCells.hlsl).
-        // Near the ground, both with the rock's near detail (PixelShaderNear.hlsl).
-        const bool nearDetail = clearance < NearDetailClearance;
-        ID3D12PipelineState* const shadePso = nearDetail ? mTerrainShadeNearPSO.Get() : mTerrainShadePSO.Get();
-        ID3D12PipelineState* const screenPso = nearDetail ? mTerrainShadeScreenNearPSO.Get() : mTerrainShadeScreenPSO.Get();
-        if (mConstants->screenRelief.z >= 1.0f)
-            drawTerrain(screenPso);
+        if (airless)
+            drawTerrain(mAirlessShadePSO.Get());
         else {
-            const UINT faceIndices = 6 * FaceCells * FaceCells;
-            const CD3DX12_RESOURCE_BARRIER toSort[2] = {
-                CD3DX12_RESOURCE_BARRIER::Transition(mContourCellArgs.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST),
-                CD3DX12_RESOURCE_BARRIER::Transition(mContourCellLists.Get(), D3D12_RESOURCE_STATE_COMMON,
-                    D3D12_RESOURCE_STATE_UNORDERED_ACCESS) };
-            mCommandList->ResourceBarrier(2, toSort);
-            mCommandList->CopyBufferRegion(mContourCellArgs.Get(), 0, mContourCellArgsStart.Get(), 0,
-                2 * sizeof(D3D12_DRAW_INDEXED_ARGUMENTS));
-            const auto argsToWrite = CD3DX12_RESOURCE_BARRIER::Transition(mContourCellArgs.Get(), D3D12_RESOURCE_STATE_COPY_DEST,
-                D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-            mCommandList->ResourceBarrier(1, &argsToWrite);
-            mCommandList->SetComputeRootSignature(mContourCellsRootSignature.Get());
-            mCommandList->SetPipelineState(mContourCellsPSO.Get());
-            mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
-            mCommandList->SetComputeRootShaderResourceView(1, mFaceVertexBuffer->GetGPUVirtualAddress());
-            mCommandList->SetComputeRootShaderResourceView(2, mFineNormals->GetGPUVirtualAddress());
-            mCommandList->SetComputeRootUnorderedAccessView(3, mContourCellLists->GetGPUVirtualAddress());
-            mCommandList->SetComputeRootUnorderedAccessView(4, mContourCellArgs->GetGPUVirtualAddress());
-            mCommandList->Dispatch((FaceCells * FaceCells + 63) / 64, 1, 1);
-            const CD3DX12_RESOURCE_BARRIER toDraw[2] = {
-                CD3DX12_RESOURCE_BARRIER::Transition(mContourCellArgs.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-                    D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT),
-                CD3DX12_RESOURCE_BARRIER::Transition(mContourCellLists.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-                    D3D12_RESOURCE_STATE_INDEX_BUFFER) };
-            mCommandList->ResourceBarrier(2, toDraw);
-            bindTerrain(shadePso);
-            if (indexCount > faceIndices) // the rings, from the mesh's own indices
-                mCommandList->DrawIndexedInstanced(indexCount - faceIndices, 1, faceIndices, 0, 0);
-            mCommandList->IASetIndexBuffer(&mContourCellView);
-            mCommandList->ExecuteIndirect(mObjectCommandSignature.Get(), 1, mContourCellArgs.Get(), 0, nullptr, 0);
-            mCommandList->SetPipelineState(screenPso);
-            mCommandList->ExecuteIndirect(mObjectCommandSignature.Get(), 1, mContourCellArgs.Get(),
-                sizeof(D3D12_DRAW_INDEXED_ARGUMENTS), nullptr, 0);
-            mCommandList->IASetIndexBuffer(&mIndexBufferView);
+            // Under the screen relief at full weight, no pixel refines its contour (PixelShaderScreen.hlsl). Elsewhere the face's
+            // cells where none may refine take that shader too, the others and the rings the whole one (TerrainContourCells.hlsl).
+            // Near the ground, both with the rock's near detail (PixelShaderNear.hlsl).
+            const bool nearDetail = clearance < NearDetailClearance;
+            ID3D12PipelineState* const shadePso = nearDetail ? mTerrainShadeNearPSO.Get() : mTerrainShadePSO.Get();
+            ID3D12PipelineState* const screenPso = nearDetail ? mTerrainShadeScreenNearPSO.Get() : mTerrainShadeScreenPSO.Get();
+            if (mConstants->screenRelief.z >= 1.0f)
+                drawTerrain(screenPso);
+            else {
+                const UINT faceIndices = 6 * FaceCells * FaceCells;
+                const CD3DX12_RESOURCE_BARRIER toSort[2] = {
+                    CD3DX12_RESOURCE_BARRIER::Transition(mContourCellArgs.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST),
+                    CD3DX12_RESOURCE_BARRIER::Transition(mContourCellLists.Get(), D3D12_RESOURCE_STATE_COMMON,
+                        D3D12_RESOURCE_STATE_UNORDERED_ACCESS) };
+                mCommandList->ResourceBarrier(2, toSort);
+                mCommandList->CopyBufferRegion(mContourCellArgs.Get(), 0, mContourCellArgsStart.Get(), 0,
+                    2 * sizeof(D3D12_DRAW_INDEXED_ARGUMENTS));
+                const auto argsToWrite = CD3DX12_RESOURCE_BARRIER::Transition(mContourCellArgs.Get(), D3D12_RESOURCE_STATE_COPY_DEST,
+                    D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+                mCommandList->ResourceBarrier(1, &argsToWrite);
+                mCommandList->SetComputeRootSignature(mContourCellsRootSignature.Get());
+                mCommandList->SetPipelineState(mContourCellsPSO.Get());
+                mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
+                mCommandList->SetComputeRootShaderResourceView(1, mFaceVertexBuffer->GetGPUVirtualAddress());
+                mCommandList->SetComputeRootShaderResourceView(2, mFineNormals->GetGPUVirtualAddress());
+                mCommandList->SetComputeRootUnorderedAccessView(3, mContourCellLists->GetGPUVirtualAddress());
+                mCommandList->SetComputeRootUnorderedAccessView(4, mContourCellArgs->GetGPUVirtualAddress());
+                mCommandList->Dispatch((FaceCells * FaceCells + 63) / 64, 1, 1);
+                const CD3DX12_RESOURCE_BARRIER toDraw[2] = {
+                    CD3DX12_RESOURCE_BARRIER::Transition(mContourCellArgs.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                        D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT),
+                    CD3DX12_RESOURCE_BARRIER::Transition(mContourCellLists.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                        D3D12_RESOURCE_STATE_INDEX_BUFFER) };
+                mCommandList->ResourceBarrier(2, toDraw);
+                bindTerrain(shadePso);
+                if (indexCount > faceIndices) // the rings, from the mesh's own indices
+                    mCommandList->DrawIndexedInstanced(indexCount - faceIndices, 1, faceIndices, 0, 0);
+                mCommandList->IASetIndexBuffer(&mContourCellView);
+                mCommandList->ExecuteIndirect(mObjectCommandSignature.Get(), 1, mContourCellArgs.Get(), 0, nullptr, 0);
+                mCommandList->SetPipelineState(screenPso);
+                mCommandList->ExecuteIndirect(mObjectCommandSignature.Get(), 1, mContourCellArgs.Get(),
+                    sizeof(D3D12_DRAW_INDEXED_ARGUMENTS), nullptr, 0);
+                mCommandList->IASetIndexBuffer(&mIndexBufferView);
+            }
         }
     }
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 21);
+
+    // Finite bodies share depth with the world: a foreground moon can occult the planet, and its finite distance
+    // reaches the cloud clipping and temporal reprojection paths. Solar alpha identifies local bright-disc adaptation.
+    if(mDiagnosticView==0.0f) {
+        mCommandList->OMSetRenderTargets(2,sceneRtvs,FALSE,&dsvHandle);
+        mCommandList->RSSetViewports(1,&viewport); mCommandList->RSSetScissorRects(1,&scissor);
+        mCommandList->SetGraphicsRootSignature(mCelestialRoot.Get());
+        mCommandList->SetGraphicsRootConstantBufferView(0,mConstantBuffer->GetGPUVirtualAddress());
+        mCommandList->SetGraphicsRootDescriptorTable(3,GpuDescriptor(AirlessMaterialSrv));
+        mCommandList->SetGraphicsRootDescriptorTable(5,GpuDescriptor(PlanetMapSrv));
+        mCommandList->SetGraphicsRootDescriptorTable(6,GpuDescriptor(TectonicSrv+2));
+        mCommandList->SetPipelineState(mCelestialBodiesPSO.Get());
+        mCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        for(unsigned body=0;body<8;++body) {
+            if((int(body)==mMoonMesh) || (body==7 && earthProxy==0))continue;
+            const Vec3d centre=body==7?Vec3d{}:Vec3d{celestialBodies[body].position.x*1000,celestialBodies[body].position.y*1000,celestialBodies[body].position.z*1000};
+            const double radius=body==7?PlanetRadius+(earthDetailed?kMaxElevation:0):celestialBodies[body].radius*1000;
+            D3D12_RECT bounds;
+            if(!CelestialRect(centre,radius,bounds))continue;
+            if(body<Celestial::MoonCount)mCommandList->SetGraphicsRootDescriptorTable(3,GpuDescriptor(AirlessMaterialSrv+body));
+            if(body==7 && earthDetailed)mCommandList->SetPipelineState(mEarthProxyBlendPSO.Get());
+            mCommandList->RSSetScissorRects(1,&bounds);
+            const unsigned selected[]={body,body==7 && earthDetailed?unsigned(kMaxElevation):0u};
+            mCommandList->SetGraphicsRoot32BitConstants(4,2,selected,0);
+            const float opacity=body==7?earthProxy:1.0f,blend[]={opacity,opacity,opacity,opacity};
+            mCommandList->OMSetBlendFactor(blend);
+            mCommandList->DrawInstanced(3,1,0,0);
+        }
+        mCommandList->RSSetScissorRects(1,&scissor);
+
+    }
 
     // 3. The atmosphere over the scene, into the composite image.
     const D3D12_RESOURCE_STATES sceneRead = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
@@ -2735,7 +2923,9 @@ void D3DApp::Draw() {
     ApplyLocalContacts();
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 18);
     CD3DX12_CPU_DESCRIPTOR_HANDLE compositeRtv(mRtvHeap->GetCPUDescriptorHandleForHeapStart(), CompositeRtv, mRtvDescriptorSize);
-    mCommandList->OMSetRenderTargets(1, &compositeRtv, FALSE, nullptr);
+    const CD3DX12_CPU_DESCRIPTOR_HANDLE skyTransportRtv(mRtvHeap->GetCPUDescriptorHandleForHeapStart(), SkyTransportRtv, mRtvDescriptorSize);
+    const D3D12_CPU_DESCRIPTOR_HANDLE atmosphereTargets[2] = {compositeRtv, skyTransportRtv};
+    mCommandList->OMSetRenderTargets(2, atmosphereTargets, FALSE, nullptr);
     mCommandList->SetGraphicsRootSignature(mPostRootSignature.Get());
     mCommandList->SetPipelineState(mAtmospherePSO.Get());
     mCommandList->SetGraphicsRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
@@ -2781,9 +2971,9 @@ void D3DApp::Draw() {
             freshToRead[i] = CD3DX12_RESOURCE_BARRIER::Transition(mCloudFresh[i].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
                 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         mCommandList->ResourceBarrier(4, freshToRead);
-        const D3D12_CPU_DESCRIPTOR_HANDLE resolveTargets[4] = { compositeRtv, rtv(CloudHistoryRtv + 3 * write),
-            rtv(CloudHistoryRtv + 3 * write + 1), rtv(CloudHistoryRtv + 3 * write + 2) };
-        mCommandList->OMSetRenderTargets(4, resolveTargets, FALSE, nullptr);
+        const D3D12_CPU_DESCRIPTOR_HANDLE resolveTargets[5] = { compositeRtv, rtv(CloudHistoryRtv + 3 * write),
+            rtv(CloudHistoryRtv + 3 * write + 1), rtv(CloudHistoryRtv + 3 * write + 2), skyTransportRtv };
+        mCommandList->OMSetRenderTargets(5, resolveTargets, FALSE, nullptr);
         mCommandList->SetPipelineState(mCloudResolvePSO.Get());
         mCommandList->DrawInstanced(3, 1, 0, 0);
         CD3DX12_RESOURCE_BARRIER afterClouds[10];
@@ -2806,7 +2996,8 @@ void D3DApp::Draw() {
         mCommandList->DrawInstanced(3, 1, 0, 0);
     }
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 19);
-    if (mSettings.glare) mGlare.Draw(mCommandList.Get(), compositeRtv, mSrvHeap.Get()); // over the composite image
+    if (mSettings.glare && mDiagnosticView == 0.0f)
+        mGlare.Draw(mCommandList.Get(), compositeRtv, mSrvHeap.Get()); // physical optics, before stellar visibility
 
     // 4. Temporal smoothing and tone map: the composite and the previous result, to the screen and to the
     // other history image.
@@ -2815,8 +3006,26 @@ void D3DApp::Draw() {
         CD3DX12_RESOURCE_BARRIER::Transition(mComposite.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
             D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
         CD3DX12_RESOURCE_BARRIER::Transition(mRenderTargets[mFrameIndex].Get(), D3D12_RESOURCE_STATE_PRESENT,
-            D3D12_RESOURCE_STATE_RENDER_TARGET) };
-    mCommandList->ResourceBarrier(2, toResolve);
+            D3D12_RESOURCE_STATE_RENDER_TARGET),
+        CD3DX12_RESOURCE_BARRIER::Transition(mSkyTransport.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) };
+    mCommandList->ResourceBarrier(_countof(toResolve), toResolve);
+    // Diffuse galactic light and point images share the exact resolved atmospheric/cloud transport.
+    const CD3DX12_CPU_DESCRIPTOR_HANDLE celestialRtv(mRtvHeap->GetCPUDescriptorHandleForHeapStart(), CelestialRtv, mRtvDescriptorSize);
+    mCommandList->OMSetRenderTargets(1,&celestialRtv,FALSE,nullptr);
+    mCommandList->SetGraphicsRootSignature(mCelestialRoot.Get());
+    mCommandList->SetGraphicsRootConstantBufferView(0,mConstantBuffer->GetGPUVirtualAddress());
+    mCommandList->SetGraphicsRootDescriptorTable(1,GpuDescriptor(CompositeSrv));
+    mCommandList->SetGraphicsRootDescriptorTable(2,GpuDescriptor(SkyTransportSrv));
+    mCommandList->SetPipelineState(mGalaxyPSO.Get());
+    mCommandList->DrawInstanced(3,1,0,0);
+    if(mDiagnosticView<0.5f) {
+        mCommandList->SetPipelineState(mStarsPSO.Get());
+        mCommandList->DrawInstanced(6,Celestial::StarCount+6,0,0);
+    }
+    const auto celestialToRead=CD3DX12_RESOURCE_BARRIER::Transition(mCelestialTarget.Get(),
+        D3D12_RESOURCE_STATE_RENDER_TARGET,D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    mCommandList->ResourceBarrier(1,&celestialToRead);
     // The ship's glass, over the composite read as an image, into the overlay the tone map applies after the smoothing.
     mShip.ClearOverlay(mCommandList.Get());
     if (shipDrawn) {
@@ -2843,9 +3052,12 @@ void D3DApp::Draw() {
     mCommandList->SetGraphicsRootDescriptorTable(2, GpuDescriptor(HistorySrv + mHistoryIndex));
     mCommandList->SetGraphicsRootDescriptorTable(3, GpuDescriptor(LutSrv));
     mCommandList->SetGraphicsRootDescriptorTable(4, mShip.OverlaySrv());
+    mCommandList->SetGraphicsRootDescriptorTable(5, GpuDescriptor(SkyTransportSrv));
     mCommandList->DrawInstanced(3, 1, 0, 0);
     mShip.OverlayToTarget(mCommandList.Get());
     CD3DX12_RESOURCE_BARRIER afterResolve[] = {
+        CD3DX12_RESOURCE_BARRIER::Transition(mSkyTransport.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET),
+        CD3DX12_RESOURCE_BARRIER::Transition(mCelestialTarget.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET),
         CD3DX12_RESOURCE_BARRIER::Transition(mHdrTarget.Get(), sceneRead, D3D12_RESOURCE_STATE_RENDER_TARGET),
         CD3DX12_RESOURCE_BARRIER::Transition(mSunPart.Get(), sceneRead, D3D12_RESOURCE_STATE_RENDER_TARGET),
         CD3DX12_RESOURCE_BARRIER::Transition(mComposite.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
@@ -2921,7 +3133,7 @@ void D3DApp::Draw() {
     ReadGpuTimes();
     mPlanetFoliage.ReadStats();
     SumBatchTimes(cpuMarks, usePlantHiZ);
-    UpdateTitle(dt, clearance, halfWidth, ringCount);
+    UpdateTitle(dt, NearMoon(mCamPos)?std::max(.01,SurfaceAltitude(mCamPos)-mGroundHeight):clearance, halfWidth, ringCount);
 
     if (capture) SaveCapture(batchCapture, trembleIndex);
     if (!mCine.empty()) EndCineFrame();
@@ -3221,9 +3433,10 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         if (wParam == 'L' || wParam == VK_ADD) mFaceFactor = std::min(mFaceFactor * 2.0, 64.0);
         if (wParam >= VK_F1 && wParam <= VK_F12 && size_t(wParam - VK_F1) < mTests.size()) GoToTest(wParam - VK_F1);
         if (wParam == VK_TAB && mShip.Ready()) // the cockpit, the chase view, the ship hidden
-            SetView(mView == View::Cockpit ? View::Chase : mView == View::Chase ? View::Bare : View::Cockpit);
-        if (wParam == VK_BACK && mShip.Ready()) // the free camera, the orbital view, and back to the cockpit
-            SetView(mView == View::Free ? View::Cockpit : View::Free);
+            SetView(mView == View::Cockpit ? View::Chase : mView == View::Chase ? View::Bare
+                : mShip.Profile().cockpit ? View::Cockpit : View::Chase);
+        if (wParam == VK_BACK && mShip.Ready()) // independent free camera and back to the cockpit
+            SetView(mView == View::Free ? (mShip.Profile().cockpit ? View::Cockpit : View::Chase) : View::Free);
         if (wParam == VK_ESCAPE) { if (mFullscreen) ToggleFullscreen(); else DestroyWindow(hwnd); }
         return 0;
     case WM_DESTROY:

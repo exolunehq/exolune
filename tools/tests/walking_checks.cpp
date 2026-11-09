@@ -1,6 +1,7 @@
 // Focused behavioural checks. No renderer, GPU, audio device, or performance/quality benchmark.
 #include "../../MyPlanetEngine/WalkController.h"
 #include "../../MyPlanetEngine/WorldAudio.h"
+#include "../../MyPlanetEngine/CelestialManifest.h"
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
@@ -72,6 +73,18 @@ int wmain(int argc,wchar_t** argv) {
     Trial jump; jump.Frame(1.0/60,{0,0,false,false,true}); jump.Run(2,60,{});
     Require(jump.apex>0.75&&jump.apex<0.83,"jump follows gravity with an approximately 0.8 m apex");
     Require(jump.walker.grounded&&std::abs(jump.walker.elevation-10)<0.001&&jump.steps==0,"landing settles without airborne footsteps");
+    Trial lunarJump;lunarJump.walker.gravity=1.62;
+    lunarJump.Frame(1.0/60,{0,0,false,false,true});lunarJump.Run(6,60,{});
+    Require(lunarJump.apex>4.85 && lunarJump.apex<5.0 && lunarJump.walker.grounded,"airless gravity gives a longer jump and a stable landing");
+    for(const auto& body:Celestial::Moons) {
+        Trial bodyJump;bodyJump.walker.gravity=body.gravity;
+        bodyJump.Frame(1.0/60,{0,0,false,false,true});bodyJump.Run(2*4.0/body.gravity+1,60,{});
+        const double expected=4.0*4.0/(2*body.gravity);
+        Require(std::abs(bodyJump.apex-expected)<.08 && bodyJump.walker.grounded,"each manifest's gravity gives the expected ballistic arc and landing");
+    }
+    Trial lunarCrater;lunarCrater.ground=[](double,double){return -500.0;};lunarCrater.walker.elevation=-500;
+    lunarCrater.walker.gravity=1.62;lunarCrater.walker.waterFloor=-1e10;lunarCrater.Run(2,60,{1,0});
+    Require(lunarCrater.x>2.7 && lunarCrater.walker.elevation==-500,"an airless crater below the datum is walkable dry ground");
     for(int hz:{30,60,240}) {
         Trial wall; wall.ground=[](double x,double){return 10+3*std::max(x-0.5,0.0);};
         wall.Run(2,hz,{1,0}); Require(wall.x<0.55&&wall.walker.elevation<10.06,"steep ascent blocks at every frame rate");

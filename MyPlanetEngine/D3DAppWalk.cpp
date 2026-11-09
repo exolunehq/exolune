@@ -45,11 +45,21 @@ void D3DApp::InitializeWorld(D3D12_GPU_DESCRIPTOR_HANDLE tectonics,D3D12_GPU_DES
 }
 
 void D3DApp::QueueWalkGround() {
-    const Vec3d up=Normalize(mWalkFoot);
-    mWalkPatchCentre=up*PlanetRadius;
+    const Vec3d up=SurfaceUp(mWalkFoot);
+    const Vec3d centre=SurfaceCentre(mWalkFoot);
+    mWalkPatchCentre=centre+up*SurfaceRadius(mWalkFoot);
     Vec3d east=Cross(kNorth,up);
     mWalkPatchX=Normalize(Length(east)>1e-6?east:Cross(Vec3d{1,0,0},up));
     mWalkPatchY=Cross(up,mWalkPatchX);
+    if(NearMoon(mWalkFoot)) {
+        const auto surface=Airless::MoonSurface(unsigned(MoonAt(mWalkFoot)));
+        for(int y=0;y<WalkTerrain::Side;++y)for(int x=0;x<WalkTerrain::Side;++x) {
+            const Vec3d p=mWalkPatchCentre-centre+mWalkPatchX*((x-WalkTerrain::Side/2)*WalkTerrain::Cell)
+                +mWalkPatchY*((y-WalkTerrain::Side/2)*WalkTerrain::Cell);
+            mWalkTerrain.heights[y*WalkTerrain::Side+x]=float(surface.Height({p.x,p.y,p.z}));
+        }
+        mWalkPatchValid=true;mWalkProbePending=false;return;
+    }
     const Vec3d axes[]={mWalkPatchCentre,mWalkPatchX,mWalkPatchY};
     double* points=nullptr; CD3DX12_RANGE noRead(0,0);
     Check(mWalkPoints->Map(0,&noRead,reinterpret_cast<void**>(&points)),"Walking points map failed.");
@@ -87,10 +97,13 @@ void D3DApp::ToggleWalking() {
         mWaveReset=true; mGroundHeight=0; mWorldValid=mWorldPending=false; mAudio.ResetWorld();
         return;
     }
-    mWalkFoot=Normalize(mCamPos)*PlanetRadius;
+    const Vec3d centre=SurfaceCentre(mCamPos);
+    const double radius=SurfaceRadius(mCamPos);
+    const bool moon=NearMoon(mCamPos);
+    mWalkFoot=centre+SurfaceUp(mCamPos)*radius;
     if (mView!=View::Free) {
-        const Vec3d up=Normalize(mShipPos), right=Normalize(Cross(mShipUp,mShipForward));
-        mWalkFoot=Normalize(up*PlanetRadius+right*8.0)*PlanetRadius;
+        const Vec3d up=SurfaceUp(mShipPos), right=Normalize(Cross(mShipUp,mShipForward));
+        mWalkFoot=centre+Normalize(up*radius+right*8.0)*radius;
     }
     // One query on disembarkation prevents a frame underground after a descent from orbit.
     Check(mCommandAllocator->Reset(),"Walking allocator reset failed.");
@@ -100,14 +113,15 @@ void D3DApp::ToggleWalking() {
     ID3D12CommandList* lists[]={mCommandList.Get()}; mCommandQueue->ExecuteCommandLists(1,lists); WaitForPreviousFrame();
     ReadWalkGround();
     double h=0,sx=0,sy=0;
-    if (!mWalkPatchValid || !mWalkTerrain.Sample(0,0,h,sx,sy) || h<0.15 || std::hypot(sx,sy)>Walker::MaxSlope) {
+    if (!mWalkPatchValid || !mWalkTerrain.Sample(0,0,h,sx,sy) || (!moon && h<0.15) || std::hypot(sx,sy)>Walker::MaxSlope) {
         mWalkNoticeUntil=mClock+5.0; mWalkPatchValid=false; return;
     }
     mWalkReturnView=mView; mWalkReturnPos=mCamPos; mWalkReturnForward=mCamForward; mWalkReturnUp=mCamUp;
     mShipVelocity=mShipRate={}; mThrottle=mPlume=0; for (double& jet:mJets) jet=0;
     mWalker={}; mWalker.elevation=h; mWalkVelocity={};
-    mWalkFoot=Normalize(mWalkFoot)*(PlanetRadius+h);
-    const Vec3d up=Normalize(mWalkFoot);
+    if(moon){mWalker.gravity=Celestial::Moons[MoonAt(mCamPos)].gravity;mWalker.waterFloor=-1e10;}
+    mWalkFoot=centre+Normalize(mWalkFoot-centre)*(radius+h);
+    const Vec3d up=SurfaceUp(mWalkFoot);
     Vec3d forward=mCamForward-up*Dot(mCamForward,up);
     if (Length(forward)<1e-6) forward=mWalkPatchY;
     mCamForward=Normalize(forward);
@@ -118,6 +132,7 @@ void D3DApp::ToggleWalking() {
 }
 
 FootContact D3DApp::CurrentFootContact() const {
+    if(NearMoon(mCamPos))return FootContact(FootSurface::Gravel);
     FootContact contact;
     if (mWorldValid) {
         contact.shares={{mHabitat[3].x,mHabitat[3].y,mHabitat[3].z,mHabitat[3].w,mHabitat[4].x,mHabitat[4].y}};
@@ -131,7 +146,8 @@ void D3DApp::EmitFootstep(float strength) {
 }
 
 void D3DApp::UpdateWalking(float dt) {
-    const Vec3d up=Normalize(mWalkFoot);
+    const Vec3d up=SurfaceUp(mWalkFoot),centre=SurfaceCentre(mWalkFoot);
+    const double radius=SurfaceRadius(mWalkFoot);
     mCamForward=Normalize(Rotate(mCamForward,up,mRawDx*0.002));
     Vec3d right=Normalize(Cross(up,mCamForward));
     const double pitch=std::asin(std::min(std::max(Dot(mCamForward,up),-1.0),1.0));
@@ -143,12 +159,12 @@ void D3DApp::UpdateWalking(float dt) {
     const double strafe=held(mMoveKeys[3])+held(VK_RIGHT)-held(mMoveKeys[2])-held(VK_LEFT);
     const Vec3d ahead=Normalize(mCamForward-up*Dot(mCamForward,up)), move=ahead*forward+right*strafe;
     if (mWalkPatchValid) {
-        const Vec3d foot=up*PlanetRadius-mWalkPatchCentre;
+        const Vec3d foot=centre+up*radius-mWalkPatchCentre;
         mWalker.x=Dot(foot,mWalkPatchX); mWalker.y=Dot(foot,mWalkPatchY);
         mWalker.vx=Dot(mWalkVelocity,mWalkPatchX); mWalker.vy=Dot(mWalkVelocity,mWalkPatchY);
         mWalker.Advance(dt,{Dot(move,mWalkPatchX),Dot(move,mWalkPatchY),held(VK_SHIFT)>0,held(VK_CONTROL)>0,mWalkJump&&focused},mWalkTerrain);
-        const Vec3d next=Normalize(mWalkPatchCentre+mWalkPatchX*mWalker.x+mWalkPatchY*mWalker.y);
-        mWalkFoot=next*(PlanetRadius+mWalker.elevation);
+        const Vec3d next=Normalize(mWalkPatchCentre-centre+mWalkPatchX*mWalker.x+mWalkPatchY*mWalker.y);
+        mWalkFoot=centre+next*(radius+mWalker.elevation);
         mWalkVelocity=mWalkPatchX*mWalker.vx+mWalkPatchY*mWalker.vy;
         mWalkVelocity=mWalkVelocity-next*Dot(mWalkVelocity,next);
         const Vec3d axis=Cross(up,next); const double sine=Length(axis);
@@ -158,7 +174,7 @@ void D3DApp::UpdateWalking(float dt) {
         if (mWalker.landing>0.25f) EmitFootstep(mWalker.landing);
     }
     mWalkJump=false;
-    const Vec3d vertical=Normalize(mWalkFoot);
+    const Vec3d vertical=SurfaceUp(mWalkFoot);
     const double bob=mWalkBob&&mWalker.grounded?0.009*std::sin(mWalker.distance*2*XM_PI/0.78)*std::min(Length(mWalkVelocity)/1.5,1.0):0;
     mCamPos=mWalkFoot+vertical*(mWalker.eye+bob); mCamUp=vertical;
     double floor=mWalker.elevation,sx=0,sy=0;
@@ -168,6 +184,7 @@ void D3DApp::UpdateWalking(float dt) {
 }
 
 void D3DApp::QueueWorldSound() {
+    if(NearMoon(mCamPos))return;
     if (!mWorldSoundPSO) return;
     if(mSettings.Automated()) {
         if(mDiagnosticView>0.5f || Length(mCamPos)-PlanetRadius-mGroundHeight>96) return;
@@ -204,6 +221,7 @@ void D3DApp::ToggleAudio() {
 }
 
 void D3DApp::UpdateWorldSound(float dt) {
+    if(NearMoon(mCamPos)){mWorldValid=mWorldPending=false;mAudio.ResetWorld();return;}
     if (mSettings.Automated()) return;
     const bool focused=GetForegroundWindow()==mhMainWnd;
     const Vec3d up=Normalize(mCamPos);

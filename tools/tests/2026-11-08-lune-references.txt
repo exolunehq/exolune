@@ -1,0 +1,15 @@
+# Same landing region and solar position across distances; no benchmark or exposure override.
+Moon: far approach | 15000000 20 15 90 0 lune | -25 55
+Moon: detailed approach | 12000000 20 15 90 0 lune | -25 55
+Moon: full disc | 2500000 20 15 90 0 lune | -25 55
+Moon: 250 km | 250000 20 15 55 -102 lune | -25 55
+Moon: 20 km | 20000 20 15 35 -102 lune | -25 55
+Moon: 1 km | 1000 20 15 18 -102 lune | -25 55
+Moon: landing | 25 20 15 0 -102 lune | -25 55
+Moon: walking | 1.68 20 15 -8 -102 lune marche | -25 55
+Moon: young crater, oblique approach | 20000 31.18 18.72 35 232 lune | -25 55
+Moon: young crater, walk toward Exolune | 1.68 31.18 18.72 -3 232 lune marche | -25 55
+Exolune: atmospheric daylight | 12000 -8 145 55 90 | -8 145
+Exolune: orbital sunrise | 1815422.6 38.566571 -169.098266 52.59 -27.91 | 10 -5
+Moon: old basin, low sun | 30000 5.056673 -11.864309 35 0 lune | -25 55
+Moon: polar highlands | 1500 72 46 20 100 lune | 65 -10

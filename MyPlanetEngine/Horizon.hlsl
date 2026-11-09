@@ -5,7 +5,7 @@
 // vertices: the air below it scatters only the sky's light (docs/recherche-rayons.md).
 #include "Planet.hlsli"
 #include "PlanetSettings.hlsli"
-#include "Relief.hlsli" // for Terrain.hlsli, not called
+#include "SurfaceStack.hlsli" // for Terrain.hlsli, not called
 #include "Terrain.hlsli"
 #include "Mesh.hlsli"
 #include "Materials.hlsli"
@@ -34,14 +34,14 @@ void CSMain(uint3 threadId : SV_DispatchThreadID)
     float3 d;
     float r2, L;
     PlanePoint(xy, R, d, r2, L);
-    if (!MaybeVisible(RelativePosition(d, r2, L, R, camAltitude, 0.0),
-                      RelativePosition(d, r2, L, R, camAltitude, MAX_TERRAIN_HEIGHT), 0.0, 6.0 * cellSize))
+    if (!MaybeVisible(RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MIN_HEIGHT),
+                      RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MAX_HEIGHT), 0.0, 6.0 * cellSize))
     {
         verts[id].horizon = -1.5707964; // as TerrainCompute.hlsl leaves it
         verts[id].shadow = 0.0;
         return;
     }
     float shadow;
-    verts[id].horizon = SunHorizon(verts, xy, v.pos, v.dir, max(v.elevation, 0.0), shadow);
+    verts[id].horizon = SunHorizon(verts, xy, v.pos, v.dir, max(v.elevation, TERRAIN_MIN_HEIGHT), shadow);
     verts[id].shadow = shadow;
 }

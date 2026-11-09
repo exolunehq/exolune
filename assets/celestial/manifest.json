@@ -1,0 +1,22 @@
+{
+  "credit": "NASA's Scientific Visualization Studio; Ernie Wright; LRO/LROC/LOLA instrument teams",
+  "page": "https://svs.gsfc.nasa.gov/4720/",
+  "usage": "https://svs.gsfc.nasa.gov/help/",
+  "sources": [
+    {
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg",
+      "sha256": "f7130a1822681fa7512d7dcfd40db8c10b9ba4f06777910348698260ed7a2170"
+    },
+    {
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/ldem_4_uint.tif",
+      "sha256": "e6668bec27fc9b8fbb02d198c7ddfb08eedeeb790167b494f95e6b34201da05e"
+    }
+  ],
+  "width": 2048,
+  "height": 1024,
+  "mips": 12,
+  "bytes": 11184812,
+  "source_linear_mean": 0.4821744655478717,
+  "runtime_sha256": "539f15e6f83da45db7f6d9d4133189d9e084025ef00823d1864ab2dbcb94810e",
+  "format": "RGBA8_UNORM: R relative linear albedo / 2; GB tangent slopes (byte-128)/127; A elevation preview. Mips average linear fields."
+}

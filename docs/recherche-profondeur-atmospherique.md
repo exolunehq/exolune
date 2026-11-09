@@ -310,7 +310,7 @@ Status: research, the 2026-10-24. No code changed, engine not started: everythin
 - **Physical:** Scatter in the eye or lens adds a halo around the sun and very clear sky, and lowers contrast near it (Spencer et al. 1995).
 - **Who:** Unreal, a halo by convolution.
 - **Low impact,** only towards the sun. After the rest.
-- **Make the 2026-10-24:** a halo in 1/θ², that of a recent objective, before the tone curve (`recherche-halo.md`). Off by default; `MYPLANETENGINE_GLARE` enables it.
+- **Make the 2026-10-24:** a halo in 1/θ², that of a recent objective, before the tone curve (`recherche-halo.md`). Enabled by default since 2026-11-07; `MYPLANETENGINE_GLARE=0` disables it.
 
 ### 3.12 The atmospheric blur
 

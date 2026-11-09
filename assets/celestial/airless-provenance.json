@@ -1,0 +1,37 @@
+﻿{
+    "sources":  [
+                    {
+                        "sha256":  "AE805BFEB75745E97CC3AA45D39A89501DFF0222D46EC3C4BA865E76F4417623",
+                        "path":  "MyPlanetEngine\\CelestialManifest.h"
+                    },
+                    {
+                        "sha256":  "CCF6DE64FAB138ABF019FD9EF246DC3854A04FF6B1E03F0D616325F18DFFA866",
+                        "path":  "MyPlanetEngine\\AirlessField.hlsli"
+                    },
+                    {
+                        "sha256":  "25A5DB6E860F5C1997C441250CF85D71AAC0C95E62448911E39F354F3A85B47A",
+                        "path":  "MyPlanetEngine\\AirlessTerrain.cpp"
+                    },
+                    {
+                        "sha256":  "D2EE509DC71612CF703781CF45121535497ED13DBE2092F692935FAAAF3F3D0D",
+                        "path":  "tools\\prepare_airless.cpp"
+                    }
+                ],
+    "atlases":  [
+                    {
+                        "sha256":  "8433AB8CBF0F41D550C25196EE5ED3D6803B8BAC41095C572BC644B7B9E3D29D",
+                        "file":  "airless-2.rgba8mips",
+                        "bytes":  11184844
+                    },
+                    {
+                        "sha256":  "C4C08FFDA5801F580E57455FF878CF727C674E21155515E083A463A6F6C0D1FF",
+                        "file":  "airless-3.rgba8mips",
+                        "bytes":  11184844
+                    },
+                    {
+                        "sha256":  "1A4ED91C1087DFE1F3FA2A8581181D5383EF68C3442768D97AA7A2D074A46678",
+                        "file":  "airless.rgba8mips",
+                        "bytes":  11184844
+                    }
+                ]
+}

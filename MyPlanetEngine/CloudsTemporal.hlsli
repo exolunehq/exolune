@@ -486,6 +486,7 @@ struct CloudResolveOutput
     float4 history0 : SV_TARGET1;
     float4 history1 : SV_TARGET2;
     float2 history2 : SV_TARGET3;
+    float4 skyTransport : SV_TARGET4;
 };
 
 CloudResolveOutput PSCloudResolve(float4 position : SV_POSITION)
@@ -616,7 +617,7 @@ CloudResolveOutput PSCloudResolve(float4 position : SV_POSITION)
     clouds.depthSpreadKm = spreadKm;
     clouds.surfaceShadowT = shadowT >= 0.0 ? shadowT : 1.0;
     CloudResolveOutput output;
-    output.composite = PreserveOceanMotion(CloudComposite(cloudScene, position.xy, size, clouds), scene.a);
+    output.composite = PreserveOceanMotion(CloudComposite(cloudScene, position.xy, size, clouds, output.skyTransport), scene.a);
     output.history0 = light;
     output.history1 = float4(depthKm, rayEnd, shadowT, cloudEnd);
     output.history2 = float2(spreadKm, driftPx);

@@ -1,0 +1,14 @@
+# First airless moon. With 'lune', altitude is clearance above the shared terrain; lat/lon belong to the moon.
+# Existing terrestrial views keep their sea-level altitude. J disembarks; F1..F12 select a view.
+Moon: orbital approach | 2500000 20 15 90 0 lune | -25 55
+Moon: crater descent | 20000 20 15 35 -102 lune | -25 55
+Moon: landing, Exolune above the horizon | 25 20 15 0 -102 lune | -25 55
+Moon: walk under Exolune | 1.68 20 15 -8 -102 lune marche | -25 55
+Moon: night hemisphere | 3000 -20 -165 20 80 lune | -25 55
+Moon: polar highlands | 1500 72 46 20 100 lune | 65 -10
+Moon: Exolune overhead | 120 -6.314 -58.042 -75 0 lune | -25 55
+Exolune: sunrise from orbit | 1815422.6 38.566571 -169.098266 52.59 -27.91 | 10 -5
+Exolune: atmospheric daylight | 12000 -8 145 55 90 | -8 145
+Exolune: atmospheric moonlight | 12000 -8 145 -60 90 | 10 -5
+Exolune: former white-screen view | 19810521.3 -20.915709 157.285984 82.53 -126.67 | 10 -5
+Exolune: orbital day side | 13545630.4 19.751087 -65 84.22 55.72 | 10 -5

@@ -1,5 +1,7 @@
 # The player's ship
 
+**Night instrument lighting, 2026-11-07:** screens, HUD, cockpit indicators and Navigator cabin fixtures automatically dim from the common incident meter; exterior navigation beacons keep their emission (`spec-ciel-celeste.md`).
+
 **The player pilots a ship, seen from the cockpit or from behind.** The free camera remains available for the benchmarks and focus.
 
 **J disembarks instantly onto dry terrain; J returns to the saved ship.** Walking controls and environmental audio are specified in [spec-marche-ambiances.md](spec-marche-ambiances.md).
@@ -39,12 +41,14 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 |---|---|---|---|---|---|---|
 | `chasseur` (default) | `assets/vaisseau/chasseur/` | VSX3 | 1.03 m | 4 | 6 | 1684 × 2450 |
 | `classique` | `assets/vaisseau/` | VSX2 | 1.07 m | 3 | 2 | 1584 × 3660 |
+| `navigateur` (cabin prototype) | `assets/vaisseau/navigateur/` | VSX3 | 0.70 m | 0 | 0 | disabled |
 
 - The executable alone selects the approved fighter.
 - `tools/lance.ps1 -ModeleVaisseau classique` selects the original triangular ship.
-- Direct launches can use `MYPLANETENGINE_MODELE_VAISSEAU=classique` or `chasseur`.
+- Direct launches can use `MYPLANETENGINE_MODELE_VAISSEAU=classique`, `chasseur` or `navigateur`.
+- The Navigator starts in its cabin, with eye offsets 0.65 m ahead and 0.70 m up. Tab cycles cockpit/chase/bare. Its panoramic field has no canopy weather simulation; see `spec-navigateur-cockpit-son.md` and `spec-reflets-vaisseau.md`.
 - `MYPLANETENGINE_VAISSEAU` still selects the camera view, independently of the model.
-- Both source sets, Blender scenes, GLBs, textures and cooked packages remain in the repository.
+- Each model retains its own source, Blender scene, GLB and cooked package.
 - `ShipProfiles.h` selects the package, pilot eye, shadow centre, water-map dimensions, jets and pivots.
 - `ShipClassique.hlsli` retains the original folded canopy and jet positions.
 - `ShipChasseur.hlsli` describes the curved canopy and four nozzles from `chasseur/forme_chasseur.py`.
@@ -118,6 +122,8 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - Sweeps are exact against this triangulated contact field, not a proof of the continuous terrain between samples; very long chords can miss features below their larger sample spacing.
 - The hull sphere is conservative, not mesh collision; trees, individual rocks and FFT wave displacement are outside this contact field.
 - Walking retains its own controller; automated captures and cinematic routes retain their existing positioning path and do not validate this interactive solver.
+- A spherical free-camera contact never restores an older look direction, including during placement recovery or invalid-query rollback.
+- Airless contact applies the same outward/slide policy through its shared physical field; its bounded support and checks are in `spec-lune-terrain.md`.
 
 **Review:**
 - `powershell -NoProfile -ExecutionPolicy Bypass -File tools/tests/check_flight_contact.ps1` checks the production sweep algebra, overlap retreat, sea tangency, planet-spanning chords and projected bounds on 52 shell cases.
@@ -185,7 +191,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
   - it retracts by 12° when the nose rises, leans by 12° on the side of the roll, and turns by 15° with the lacing, like a twist handle;
   - the pitch and the lacing come from the virtual mouse handle, the rolling of the keys, softened in a tenth of a second;
   - **the throttle handle** swings 40° on its thirty steps, forward with the throttle.
-- **The ship is carried along the sphere:** flying around the planet keeps the plate.
+- **Flight keeps its own attitude:** translation and body-frame changes do not rotate the ship or curve its velocity around a planet.
 - **The head follows the acceleration,** as in flight simulators: a dampened spring, according to [MSFS Physics Camera](https://flightsim.to/addon/114953/msfs-physics-camera).
   - **The sense:** the eye retreats when accelerating, moves forward when braking, leans at the opposite corners. The parallax with the cockpit gives the depth.
   - **The measure:** the acceleration is compressed by its logarithm, because the ship is going at the speed of light. About 1,5 cm to 0,2 g, 4 cm to 2 g, at most 6 cm forward and 3 cm side.
@@ -197,8 +203,15 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - **Tab:** cockpit, chase, hidden ship.
   - **Then,** the right click rotates the camera all around the ship, from below to above, and all the way up to the front of it.
   - **The hidden ship** keeps the pilot's eye and the same controls, without hull or canopy glass: the widest view.
-- **Backward:** the camera free, with its own controls, then back to the cockpit. Switching from free camera to ship brings the ship to the camera.
+- **Backspace:** toggle free camera and cockpit. The ship inherits the free camera's frame, including roll, before applying its normal cockpit head offset.
+- **Free camera:** right drag looks around its own axes; pitch has no vertical limit or horizon correction.
+- **Free-camera translation:** WASD/ZQSD or arrows move forward/back and sideways; Q/E (A/E on AZERTY) or Page Down/Up move along the camera's down/up axis. The wheel adjusts speed.
+- **Free-camera roll:** Shift + left/right arrow; unmodified arrows retain translation.
+- **Walking:** the surface vertical remains active only for the grounded controller.
 - **`MYPLANETENGINE_VAISSEAU=cockpit`, `poursuite`, `sans` or `libre` selects the first view.** The benchmarks are going free camera.
+- **Launcher:** `-Camera libre` starts directly in the independent camera; the omitted option retains the normal cockpit default.
+- **Review:** `tools/tests/2026-11-08-vol-libre.txt` covers both bodies, nadir, zenith, inverted pitch, a geographic pole and walking.
+- **Checks:** `tools/tests/check_flight_frame.ps1` exercises full turns, idle roll and 225 geographic/look placements; collision and walking checks retain their own suites.
 
 ## Jets and shadows
 

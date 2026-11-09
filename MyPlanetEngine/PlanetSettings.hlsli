@@ -604,7 +604,7 @@ static const float  GLARE_STRAYLIGHT       = 0.3;
 // Tones: from the scene's light to the screen (ToneMap.hlsl, docs/recherche-tons-exposition.md).
 // ---------------------------------------------------------------------------------------------
 
-// The exposure follows the daylight under the camera, as an incident light meter turned towards the sun: a grey card
+// Exposure follows incident daylight: the ground reference gives way to the observer's direct sun above the air. A grey card
 // facing the sun shows its reflectance, then this compensation, in stops, as on a camera. One stop brings the median
 // ground of our day views to that of the sunny photos, docs/images/cible-*.jpg (tools/banc_tons.py).
 static const float  EXPOSURE_COMPENSATION  = 1.0;

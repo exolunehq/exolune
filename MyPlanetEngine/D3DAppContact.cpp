@@ -13,7 +13,9 @@ D3DApp::FlightPose D3DApp::FlightPoseNow() const {
     return {mCamPos,mCamForward,mCamUp,mShipPos,mShipForward,mShipUp};
 }
 void D3DApp::SetFlightPose(const FlightPose& p) {
-    mCamPos=p.camera; mCamForward=p.forward; mCamUp=p.up;
+    mCamPos=p.camera;
+    // A spherical free-camera contact constrains position, never the user's current look.
+    if(mView!=View::Free) {mCamForward=p.forward;mCamUp=p.up;}
     mShipPos=p.ship; mShipForward=p.shipForward; mShipUp=p.shipUp;
 }
 void D3DApp::ResetFlightContact() {
@@ -33,6 +35,8 @@ void D3DApp::InitializeFlightContact() {
 }
 
 void D3DApp::PrepareFlightContact(const FlightPose& before) {
+    MoonFlightContact(before);
+    if(NearMoon(mCamPos) || NearMoon(before.camera)) {mFlightPending=mFlightQueued=false;return;}
     if (!mFlightContactPSO || mView==View::Walk || !mCine.empty()) return;
     mFlightBefore=before; mFlightAfter=FlightPoseNow(); mFlightView=mView;
     const bool ship=mView!=View::Free;
@@ -73,7 +77,6 @@ void D3DApp::PrepareFlightContact(const FlightPose& before) {
     }
     if (!mFlightQueued) { SetFlightPose(mFlightAfter); mFlightRecovery=false; return; }
     SetFlightPose(before);
-    if (!ship) { mCamForward=mFlightAfter.forward; mCamUp=mFlightAfter.up; } // free look has no contact latency
 }
 
 void D3DApp::QueueFlightContact() {

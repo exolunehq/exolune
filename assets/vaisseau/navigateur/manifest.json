@@ -1,0 +1,382 @@
+{
+  "date": "2026-11-03",
+  "modelling_revision": 6,
+  "status": "integrated; native stills reviewed; interactive flight available for user review",
+  "source": "E:\\ExoluneAssets\\navigateur-normal-v2-smooth\\navigateur-normal-lisse.blend",
+  "source_fingerprint": {
+    "bytes": 271287,
+    "sha256": "37a189f12a3961edbe1432422b52c7ef5ae818ab28211901872b7d1a2fbeb79d"
+  },
+  "scale": 4,
+  "rotation_z_degrees": 180,
+  "frame": "metres; nose -Y; up +Z; pilot left +X",
+  "vertices": 459757,
+  "triangles": 723264,
+  "draw_ranges": 12,
+  "materials": 12,
+  "images": 0,
+  "bounds_m": {
+    "minimum": [
+      -3.9941248893737793,
+      -3.9191322326660156,
+      -2.1780893802642822
+    ],
+    "maximum": [
+      3.9941246509552,
+      3.715710163116455,
+      2.1757330894470215
+    ]
+  },
+  "exterior": {
+    "vertices": 98306,
+    "triangles": 196608,
+    "metallic": 1,
+    "roughness": 0.075,
+    "base_colour_linear": [
+      0.84,
+      0.87,
+      0.91
+    ],
+    "preservation": {
+      "hull_vertices": 98306,
+      "hull_triangles": 196608,
+      "maximum_position_change_m": 1.066240299940009e-06,
+      "maximum_normal_vector_change": 0.00014140272148727436,
+      "maximum_normal_angle_degrees": 0.008101779205784051,
+      "method": "nearest-neighbour bijection after the authored x4 scale and half-turn"
+    }
+  },
+  "cockpit": true,
+  "canopy_glass": false,
+  "canopy_weather": false,
+  "pilot_eye_m": [
+    0,
+    -0.65,
+    0.7
+  ],
+  "cabin": {
+    "closed_connected_solids": 6,
+    "formed_wall_panels": 139,
+    "rear_assembly": {
+      "shape": "octagonal mounting flange and integrated domed optical core",
+      "diameter_m": 1.56,
+      "patch_clearance_scale": 1
+    },
+    "primitive_meshes": 0,
+    "hull_inset_fraction": 0.125,
+    "console_instruments": [
+      {
+        "dial_count": 3,
+        "live_dial_center": [
+          -0.82,
+          -0.65,
+          0.067
+        ],
+        "live_dial_radius": 0.131,
+        "live_arc_radii": [
+          0.143,
+          0.148
+        ],
+        "tactile_wells": 1,
+        "engraved_legend_strips": 1,
+        "integrated_captive_seats": 4,
+        "maximum_landing_error_m": 8.326672684688674e-17
+      },
+      {
+        "dial_count": 3,
+        "live_dial_center": [
+          0.82,
+          -0.65,
+          0.067
+        ],
+        "live_dial_radius": 0.131,
+        "live_arc_radii": [
+          0.143,
+          0.148
+        ],
+        "tactile_wells": 1,
+        "engraved_legend_strips": 1,
+        "integrated_captive_seats": 4,
+        "maximum_landing_error_m": 8.326672684688674e-17
+      }
+    ],
+    "instrument_state": "runtime heading and propulsion dials; rotary and palm controls remain static",
+    "evaluated_vertices_checked": 263340,
+    "mounting_points_checked": 1876,
+    "maximum_actual_mount_gap_m": 1.017749309539795e-05
+  },
+  "sound": {
+    "source": "MyPlanetEngine/NavigatorSound.h",
+    "version": 3,
+    "design": "quiet levitation resonance; no RPM sweep or exhaust layer",
+    "film_samples": false,
+    "listening_approval": "pending",
+    "fingerprint": {
+      "bytes": 5044,
+      "sha256": "0d058d1b6bdcd2c322965de7e3f84d9969f69bd9bf1f6ebd2604b97c28314036"
+    }
+  },
+  "validation": {
+    "release_x64_build": "passed with -Build -NoLaunch",
+    "native_packet_checks": "passed",
+    "geometry_checks": "passed",
+    "pilot_instrument_visibility": [
+      {
+        "console": -1,
+        "control": "readout",
+        "blocked": false
+      },
+      {
+        "console": -1,
+        "control": "forward trim",
+        "blocked": false
+      },
+      {
+        "console": -1,
+        "control": "forward field",
+        "blocked": false
+      },
+      {
+        "console": -1,
+        "control": "palm",
+        "blocked": false
+      },
+      {
+        "console": 1,
+        "control": "readout",
+        "blocked": false
+      },
+      {
+        "console": 1,
+        "control": "forward trim",
+        "blocked": false
+      },
+      {
+        "console": 1,
+        "control": "forward field",
+        "blocked": false
+      },
+      {
+        "console": 1,
+        "control": "palm",
+        "blocked": false
+      }
+    ],
+    "glb_reimport_review": "v5 physical fittings inspected in background Blender; v6 packet checked in native renderer",
+    "standalone_sound_checks": "passed; synth unchanged",
+    "current_geometry_game_review": true,
+    "native_stills": [
+      {
+        "view": "pilote-ocean",
+        "image": {
+          "bytes": 669548,
+          "sha256": "a3ca10d5d35c01839bc536d0390c26a4712387ef375bd7ad54c70e7ac8ce3111"
+        },
+        "expected": {
+          "heading_deg": 160,
+          "propulsion_percent": 0,
+          "native_cine_frame": 0
+        }
+      },
+      {
+        "view": "pilote-foret",
+        "image": {
+          "bytes": 650833,
+          "sha256": "248c3e5802239e3874adc69ad31d5ce135721d1be796e8a7084146a57236861f"
+        },
+        "expected": {
+          "heading_deg": 40,
+          "propulsion_percent": 0,
+          "native_cine_frame": 0
+        }
+      },
+      {
+        "view": "pilote-orbite",
+        "image": {
+          "bytes": 367387,
+          "sha256": "26a18d196203330c8fffa22d64e9aa6b369d271ad0d34c943dd6283e69664967"
+        },
+        "expected": {
+          "heading_deg": 90,
+          "propulsion_percent": 0,
+          "native_cine_frame": 0
+        }
+      },
+      {
+        "view": "exterieur",
+        "image": {
+          "bytes": 1093487,
+          "sha256": "14e1e2563b0b530d5385a6dd7949af11a32df7b366a07ac17b0d0953241b7b11"
+        },
+        "expected": {
+          "heading_deg": 160,
+          "propulsion_percent": 0,
+          "native_cine_frame": 0
+        }
+      },
+      {
+        "view": "coupe-cabine",
+        "image": {
+          "bytes": 947509,
+          "sha256": "48fe44dcf39accda3a91d7fbb8c9c3f0aa5aadbc2828c46d8fddf3c271537993"
+        },
+        "expected": {
+          "heading_deg": 160,
+          "propulsion_percent": 0,
+          "native_cine_frame": 0
+        }
+      },
+      {
+        "view": "puissance-repos",
+        "image": {
+          "bytes": 306302,
+          "sha256": "bbc3067f206a8803f01c2b64bbab1b9ac63904b690615d59083a44876f1ec3ca"
+        },
+        "expected": {
+          "heading_deg": 0,
+          "propulsion_percent": 0,
+          "native_cine_frame": 0
+        }
+      },
+      {
+        "view": "puissance-vol",
+        "image": {
+          "bytes": 387576,
+          "sha256": "602c99ea891dd3eea157291835b78529721bf4475efaf32965f2415c2d27b801"
+        },
+        "expected": {
+          "heading_deg": 90,
+          "propulsion_percent": 60,
+          "native_cine_frame": 24
+        }
+      },
+      {
+        "view": "cap-repos",
+        "image": {
+          "bytes": 317140,
+          "sha256": "947e456f81625e49dc529e6f25499089d5908bf3811a77f3a652575e3570c24d"
+        },
+        "expected": {
+          "heading_deg": 0,
+          "propulsion_percent": 0,
+          "native_cine_frame": 0
+        }
+      },
+      {
+        "view": "cap-vol",
+        "image": {
+          "bytes": 313600,
+          "sha256": "8d00505d9b94906b22f758133c95950c887605d033d508176c625422f81a01bb"
+        },
+        "expected": {
+          "heading_deg": 90,
+          "propulsion_percent": 60,
+          "native_cine_frame": 24
+        }
+      },
+      {
+        "view": "pilote-nuit",
+        "image": {
+          "bytes": 74986,
+          "sha256": "ffd5c80c21cf6fc3718c8710c364e71d02e79e624289476af4aff161f972a347"
+        },
+        "expected": {
+          "heading_deg": 90,
+          "propulsion_percent": 0,
+          "native_cine_frame": 0
+        }
+      },
+      {
+        "view": "puissance-nuit",
+        "image": {
+          "bytes": 105951,
+          "sha256": "7d57570b5f358539f8c98e07ef376547f85957054cfba926115dfcfe9f356016"
+        },
+        "expected": {
+          "heading_deg": 90,
+          "propulsion_percent": 0,
+          "native_cine_frame": 0
+        }
+      },
+      {
+        "view": "exterieur-foret",
+        "image": {
+          "bytes": 919875,
+          "sha256": "75844bb9ae778099fc281aea7508dc11ba42ea2819be16d8a06dc7e75f670469"
+        },
+        "expected": {
+          "heading_deg": 40,
+          "propulsion_percent": 0,
+          "native_cine_frame": 0
+        }
+      }
+    ],
+    "runtime_sources": {
+      "ShipNavigator.hlsli": {
+        "bytes": 5069,
+        "sha256": "d794483e5015869f1934ddfa9ed8ebc58354e2099a66406fc25bac38d357b597"
+      },
+      "ShipNavigatorFixtures.hlsli": {
+        "bytes": 554,
+        "sha256": "df2cf09aaf74baa572ad70e8663aea417479d05c3f963e8c48f10c885625e87e"
+      },
+      "ShipPixel.hlsl": {
+        "bytes": 7170,
+        "sha256": "bc80ca21501c7bd6b5fe40e34abd761704734166e4935908c75d4a83cec4514e"
+      },
+      "ShipProfiles.h": {
+        "bytes": 1176,
+        "sha256": "fb638a7e4f7ac5be0fbeebf8b6c4ad710e592f246925658d8c3da7bcc9944631"
+      }
+    },
+    "review_renderer": "Release x64 normal game renderer, offscreen CINE; no UI automation or benchmark",
+    "instrument_review": "heading 000/090 degrees and propulsion 000/060 percent compared from ordinary CINE flight state",
+    "game_launch": "warn the user first"
+  },
+  "outputs": {
+    "vaisseau_travail.blend": {
+      "bytes": 5256364,
+      "sha256": "3da36c69c94a377a1259992cb8694fc0442987bbfb37e4f2606aba5e335cfc0a"
+    },
+    "navigateur-cockpit.glb": {
+      "bytes": 19193096,
+      "sha256": "2ca115ac5898bd8a82850b61f79fc61fc0ed531b01efac5f8ab00a0d8b5f6a4d"
+    },
+    "vaisseau.vsx": {
+      "bytes": 36265916,
+      "sha256": "33b76f6584075c7c697c2790f5de5a8e005cf1ba8227a4b133685e41c248e4a6"
+    },
+    "preparer.py": {
+      "bytes": 2510,
+      "sha256": "6f74d461ad7af85a2ceff86f543cc5a12d63d8a9429ebe4ee9cdd8bdcbd03a25"
+    },
+    "cabine_maillage.py": {
+      "bytes": 20723,
+      "sha256": "f13fd7678c0336e400754d97793a8a876a7cc126f2c001cea4be35f735af8e2b"
+    },
+    "instruments.py": {
+      "bytes": 12949,
+      "sha256": "5140c7a317c62f1b429b747f37783a2a319e1e5c076b52cc74e4cf314a4c14fc"
+    },
+    "controler.py": {
+      "bytes": 5159,
+      "sha256": "271b64e18c886de7b89ab2175d62733e9888d11c45e7a78d69f1ee3586105215"
+    },
+    "paquet_moteur.py": {
+      "bytes": 1310,
+      "sha256": "4f62d2669cf3397f294e2e3c27d141329a22bf1a914c410abb8189d7daddb60b"
+    },
+    "rendus.py": {
+      "bytes": 4365,
+      "sha256": "2057e8179f6ac079c32aeb05f798507a63718ce12a7606621e3ac90b94097fda"
+    },
+    "clearance.json": {
+      "bytes": 2481,
+      "sha256": "638a91a45594aae0756daca425540a2f7abe79a92224375757a24692a81e6ea8"
+    },
+    "cockpit-inspection.json": {
+      "bytes": 1961,
+      "sha256": "9c03b31321ec287705ddd2b4e2a4d66f3afa5d63291157f87494d166e61e43bf"
+    }
+  }
+}

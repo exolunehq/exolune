@@ -1,5 +1,18 @@
 # Ship and camera history
 
+**2026-11-08 · Free look preserved during contact recovery**
+- Terrestrial contact recovery and invalid-query rollback restored the complete saved camera pose.
+- Repeated recovery could discard accumulated mouse look even though the free-camera contact shape is spherical.
+- Contact now restores position alone for free camera; ship pose correction retains its existing behavior.
+
+**2026-11-08 · Removed implicit orbital steering**
+- The old update rotated the camera, ship and ship velocity whenever the local vertical changed with position.
+- The free camera rebuilt its up axis from the nearby body and clamped pitch at a dot product of 0.995, about six degrees short of vertical.
+- Switching between Exolune and the Moon blended those verticals and could steer the observer without input.
+- Exact nadir and zenith depended on a nearly zero cross product; initial frames now retain an explicit heading-derived up axis.
+- The replacement keeps a world-space flight attitude; walking retains the surface vertical.
+- The near-Moon translating reference frame remains; this change removes steering, not the prototype's orbital translation.
+
 ## 2026-11-01: rejected clearance-dependent near plane
 
 - The ship used a 5 cm near plane; views without the drawn ship used `max(0.01, 0.1 * clearance)` metres.

@@ -6,6 +6,13 @@
 #include "Materials.hlsli"
 #include "Objects.hlsli"
 #include "CanopyLighting.hlsli"
+#ifdef AIRLESS_SURFACE
+#include "AirlessMaterial.hlsli"
+#include "Mesh.hlsli"
+#include "Shadows.hlsli"
+#include "TerrainShipShadow.hlsli"
+StructuredBuffer<FaceVertex> objectGround : register(t4);
+#endif
 
 float4 PSMain(ObjectPixel input, out float4 sunOut : SV_TARGET1) : SV_TARGET0
 {
@@ -47,6 +54,15 @@ float4 PSMain(ObjectPixel input, out float4 sunOut : SV_TARGET1) : SV_TARGET0
     normal = normalize(normal - (bumpFace - dot(bumpFace, normal) * normal));
     const float3 albedo = saturate(input.albedo * colour);
 
+#ifdef AIRLESS_SURFACE
+    const float3 radial=normalize(input.up);
+    uint4 groundIds; float2 groundWeights; float horizon=0;
+    if(MeshCell(radial.xy*(faceParams.y/radial.z),groundIds,groundWeights))
+        horizon=Bilinear(float4(objectGround[groundIds.x].horizon,objectGround[groundIds.y].horizon,
+            objectGround[groundIds.z].horizon,objectGround[groundIds.w].horizon),groundWeights);
+    const float sunlight=SunAboveHorizon(dot(radial,lightDir.xyz),horizon,0)*ShipShadowOn(input.pos);
+    return float4(albedo*AirlessIrradiance(normal,radial,-normalize(input.pos),sunlight,lerp(.5,1,smoothstep(0,.3,input.rise))),length(input.pos)*.001);
+#else
     // Lit like the ground (PixelShader.hlsl): the sun through the air above, the whole sky's light, less where the
     // stone meets the ground, which hides the sky from its foot; and the light the ground sends back on its sides and
     // underside, GROUND_ALBEDO of what reaches the ground. Without it, the faces in the shade were black.
@@ -62,4 +78,5 @@ float4 PSMain(ObjectPixel input, out float4 sunOut : SV_TARGET1) : SV_TARGET0
     const float3 skyLight = ((sky+bounce) * (0.5 + 0.5 * dot(normal, up)) + GROUND_ALBEDO * ground * (0.5 - 0.5 * dot(normal, up))) * foot;
     sunOut=float4(albedo/PI*(sunLight+(bounce*(0.5+0.5*dot(normal,up))+GROUND_ALBEDO*solarGround*(0.5-0.5*dot(normal,up)))*foot),0.0);
     return float4(albedo / PI * (sunLight + skyLight), length(input.pos) / 1000.0);
+#endif
 }

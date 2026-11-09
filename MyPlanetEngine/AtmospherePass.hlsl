@@ -15,13 +15,13 @@ float4 PreserveOceanMotion(float4 result, float inputAlpha)
     return result;
 }
 
-float4 PSMain(float4 position : SV_POSITION) : SV_TARGET
+float4 PSMain(float4 position : SV_POSITION, out float4 skyTransport : SV_TARGET1) : SV_TARGET0
 {
     const float4 scene = hdr.Load(int3(position.xy, 0));
     const float4 cloudScene = float4(scene.rgb, abs(scene.a)); // cloud rays always consume a positive distance
     float2 size;
     hdr.GetDimensions(size.x, size.y);
-    return PreserveOceanMotion(RenderClouds(cloudScene, position.xy, size), scene.a);
+    return PreserveOceanMotion(RenderClouds(cloudScene, position.xy, size, skyTransport), scene.a);
 }
 
 #include "CloudsTemporal.hlsli"

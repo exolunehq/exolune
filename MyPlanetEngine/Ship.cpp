@@ -73,8 +73,9 @@ Ship::Ship()
     const DWORD size = GetEnvironmentVariableW(L"MYPLANETENGINE_MODELE_VAISSEAU", model, _countof(model));
     if (size == 0) return; // The executable alone starts with the fighter.
     if (size < _countof(model) && _wcsicmp(model, L"classique") == 0) mProfile = ClassicShip;
+    else if (size < _countof(model) && _wcsicmp(model, L"navigateur") == 0) mProfile = NavigatorShip;
     else if (size >= _countof(model) || _wcsicmp(model, L"chasseur") != 0)
-        throw std::runtime_error("MYPLANETENGINE_MODELE_VAISSEAU must be chasseur or classique.");
+        throw std::runtime_error("MYPLANETENGINE_MODELE_VAISSEAU must be chasseur, classique or navigateur.");
 }
 
 bool Ship::Load(const std::wstring& path)
@@ -115,6 +116,9 @@ bool Ship::Load(const std::wstring& path)
         uint32_t mode;
         std::memcpy(&mode, material + 11 * 4, 4);
         mModes.push_back(mode);
+        uint32_t role;
+        std::memcpy(&role, material + 92, 4);
+        mRoles.push_back(role);
     }
     at += materials * materialSize;
     for (uint32_t i = 0; i < images; ++i) {
@@ -227,8 +231,13 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
                                                               D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
     }
     // Unused image slots still need a valid view: the first image again.
+    D3D12_SHADER_RESOURCE_VIEW_DESC nullImage = {};
+    nullImage.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    nullImage.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    nullImage.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    nullImage.Texture2D.MipLevels = 1;
     for (size_t i = mImages.size(); i < MaxImages; ++i)
-        device->CreateShaderResourceView(mTextures[0].Get(), nullptr, Cpu(UINT(i)));
+        device->CreateShaderResourceView(mTextures[0].Get(), mImages.empty() ? &nullImage : nullptr, Cpu(UINT(i)));
     const D3D12_RESOURCE_STATES readable = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
     toRead.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mVertices.Get(), D3D12_RESOURCE_STATE_COPY_DEST, readable));
     toRead.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mIndexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
@@ -353,6 +362,15 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
     desc.SampleDesc.Count = 1;
     Check(device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&mOpaquePSO)), "Ship PSO creation failed.");
 
+    // Reflective opaque skins read the complete world, then write their own overlay and the scene depth.
+    const ComPtr<ID3DBlob> reflectionPs = LoadShader(L"ShipReflection.cso");
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC reflection = desc;
+    reflection.PS = CD3DX12_SHADER_BYTECODE(reflectionPs.Get());
+    reflection.NumRenderTargets = 1;
+    reflection.RTVFormats[0] = OverlayFormat;
+    reflection.RTVFormats[1] = DXGI_FORMAT_UNKNOWN;
+    Check(device->CreateGraphicsPipelineState(&reflection, IID_PPV_ARGS(&mReflectionPSO)), "Ship reflection PSO creation failed.");
+
     // The shadow maps: standard Z, nearer is smaller, a slope-scaled bias against acne.
     D3D12_GRAPHICS_PIPELINE_STATE_DESC shadow = desc;
     shadow.VS = CD3DX12_SHADER_BYTECODE(shadowVs.Get());
@@ -476,10 +494,12 @@ void Ship::DrawShadows(ID3D12GraphicsCommandList* list, const Tables& t)
 
 void Ship::DrawOpaque(ID3D12GraphicsCommandList* list, const Tables& t)
 {
+    // An opaque exterior hides the whole cabin. Leave all ship geometry out of its scene-reflection source.
+    if (mProfile.sceneReflections && mConstants->options.y < 0.5f) return;
     Bind(list, t, false);
     list->SetPipelineState(mOpaquePSO.Get());
     for (const Draw& d : mDraws)
-        if (mModes[d.material] == 0) {
+        if (mModes[d.material] == 0 && !(mProfile.sceneReflections && mRoles[d.material] == 10)) {
             list->SetGraphicsRoot32BitConstant(2, d.material, 0);
             list->DrawIndexedInstanced(d.count, 1, d.first, 0, 0);
         }
@@ -497,6 +517,14 @@ void Ship::UpdateWeather(ID3D12GraphicsCommandList* list, const Tables& t)
     list->Dispatch(1, 1, 1);
     const auto uavDone = CD3DX12_RESOURCE_BARRIER::UAV(nullptr);
     list->ResourceBarrier(1, &uavDone);
+
+    if (!mProfile.canopyWeather) {
+        const auto toRead = CD3DX12_RESOURCE_BARRIER::Transition(mWeather.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        list->ResourceBarrier(1, &toRead);
+        mWeatherReadable = true;
+        return;
+    }
 
     // The canopy's water (ShipWater.hlsli): move the drops, clear the map, draw them into it; the glass then reads it.
     const D3D12_RESOURCE_STATES read = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
@@ -535,6 +563,18 @@ void Ship::DrawGlass(ID3D12GraphicsCommandList* list, const Tables& t, D3D12_CPU
     const D3D12_CPU_DESCRIPTOR_HANDLE rtv = mRtvHeap->GetCPUDescriptorHandleForHeapStart();
     list->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
     Bind(list, t, false);
+    if (mProfile.sceneReflections) {
+        // The forward field is a virtual view through an opaque outer shell, not weather-exposed glazing.
+        // The modelled cabin supplies its side walls, ceiling, floor and aperture boundary.
+        if (mConstants->options.y > 0.5f) return;
+        list->SetPipelineState(mReflectionPSO.Get());
+        for (const Draw& d : mDraws)
+            if (mModes[d.material] == 0 && mRoles[d.material] == 10) {
+                list->SetGraphicsRoot32BitConstant(2, d.material, 0);
+                list->DrawIndexedInstanced(d.count, 1, d.first, 0, 0);
+            }
+        return;
+    }
     list->SetPipelineState(mGlassPSO.Get());
     for (uint32_t mode : { 2u, 1u }) // the canopy, then the combiner under it
         for (const Draw& d : mDraws)

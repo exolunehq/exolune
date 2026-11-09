@@ -77,6 +77,7 @@ void Audio::Update(const ShipSound& s) {
     mWind = std::max(s.wind, 0.0f);
     mDensity = std::min(std::max(s.air, 0.0f), 1.0f);
     mCockpit = s.cockpit ? 1.0f : 0.0f;
+    mNavigator = s.navigator;
     mLastUpdate = GetTickCount64();
 }
 
@@ -112,9 +113,15 @@ void Audio::Render(float* out, UINT frames) {
         kBurst = std::exp(-1.0f / (0.07f * 48000.0f)), kHold = Smoothing(0.04f);
     constexpr double Tau = 6.283185307179586, Dt = 1.0 / 48000.0;
     float low, band, high;
+    const bool navigator = mNavigator.load();
+    if (navigator) {
+        mNavigatorSound.Render(out, frames, { thrust, keys[0], keys[1], keys[2], wind, density, cockpit > 0.5f, alive });
+        const float gain = MasterGain * mShipGain.load(std::memory_order_relaxed);
+        for (UINT i = 0; i < frames * 2; ++i) out[i] *= gain;
+    }
     const bool dormant = !alive && mOn < 1e-5f;
-    if (dormant) std::fill(out,out+2*frames,0.0f);
-    for (UINT i = 0; !dormant && i < frames; ++i) {
+    if (!navigator && dormant) std::fill(out,out+2*frames,0.0f);
+    for (UINT i = 0; !navigator && !dormant && i < frames; ++i) {
         mOn += (on - mOn) * kOn;
         mPower += (thrust - mPower) * (thrust > mPower ? kRise : kFall);
         mAir += (wind - mAir) * kAir;

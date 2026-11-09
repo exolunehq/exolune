@@ -37,8 +37,12 @@ cbuffer Frame : register(b0)
                            // w the pixels per texel side
     uint4    erosionMode;  // x: the erosion shown, key 1 (Relief.hlsli, ErosionMode): 2 full, 1 ravines only, 0 none;
                            // y: 1 when the screen relief covers every pixel at full weight (FineTerrain.hlsl);
-                           // z: 1 once the rivers' map for wide footprints is computed (Erosion.hlsli)
+                           // z: 1 once the rivers' map is computed; w: nearby airless body index + 1, or 0 for Exolune
     float4   foliageWind; // xyz: local climate wind in the face frame (m/s); w: shared weather clock (s)
+    float4   celestialPosition[7]; // camera-relative face frame, km; radius in w
+    float4   celestialSurface[7]; // linear diffuse reflectance; body kind in w
+    float4   celestialLight[7]; // direction to the finite sun; solar irradiance / pi in w
+    float4   celestialFlux[7]; // received irradiance at the camera, including phase and planet eclipse
 };
 
 struct FaceVertex

@@ -41,6 +41,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR cmdLine, int)
             }
             return 1;
         }
+        if (GetEnvironmentVariableW(L"MYPLANETENGINE_CAPTURE", batch, MAX_PATH)>0) {
+            FILE* log=nullptr;
+            if(_wfopen_s(&log,(std::wstring(batch)+L".error.txt").c_str(),L"w")==0 && log) {
+                fprintf(log,"%s\n",e.what());fclose(log);
+            }
+        }
         if (GetEnvironmentVariableW(L"MYPLANETENGINE_CAPTURE", nullptr, 0) ||
             GetEnvironmentVariableW(L"MYPLANETENGINE_TREMBLE", nullptr, 0))
             fprintf(stderr, "MyPlanetEngine: %s\n", e.what());

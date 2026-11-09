@@ -3,7 +3,7 @@
 // the mesh's cells, so that nothing mutates as the mesh refines on the way down. No rings, no geometry.
 #define EROSION_WAVE_LIST // neighbouring samples list their rivers' nodes together (Erosion.hlsli)
 #include "Planet.hlsli"
-#include "Relief.hlsli"
+#include "SurfaceStack.hlsli"
 #include "Terrain.hlsli"
 
 RWStructuredBuffer<FineSample> outFine : register(u0); // position/elevation and the same evaluation's inland water
@@ -18,7 +18,7 @@ bool FineNearLimb(float3 d, float r2, float L, float R, float camAltitude, float
     const float limb = asin(min(R / D, 1.0));
     [unroll] for (int k = 0; k < 2; ++k)
     {
-        const float3 p = RelativePosition(d, r2, L, R, camAltitude, k == 0 ? 0.0 : MAX_TERRAIN_HEIGHT);
+        const float3 p = RelativePosition(d, r2, L, R, camAltitude, k == 0 ? TERRAIN_MIN_HEIGHT : TERRAIN_MAX_HEIGHT);
         const float distance = length(p);
         const float angle = acos(clamp(dot(p, centre) / (distance * D), -1.0, 1.0));
         if (angle >= limb - 8.0 * taa.w - 4.0 * cellSize / distance)
@@ -31,7 +31,7 @@ bool FineNearLimb(float3 d, float r2, float L, float R, float camAltitude, float
 // distance, stretched by the incidence. Only limb pixels read the sample then; its rivers are filtered at it.
 float FineLimbFootprint(float3 d, float r2, float L, float R, float camAltitude)
 {
-    const float3 p = RelativePosition(d, r2, L, R, camAltitude, 0.0);
+    const float3 p = RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MIN_HEIGHT);
     const float t = length(p);
     const float3 up = normalize(p + float3(camPlane.xy, R + camAltitude)); // from the planet's centre
     return t * taa.w * screenRelief.w / max(-dot(p, up) / t, 0.1);
@@ -57,8 +57,8 @@ void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupI
     missing.terrain = asfloat(0x7fc00000u).xxxx; // NaN: off screen
     // Its margin: the samples a visible pixel reads, its B-spline's 4 x 4 and FineNormals' differences, 3 cells, and as many
     // again; the mesh's 6 cells cover its shadows' vertices too (TerrainCompute.hlsl), none of which read this grid.
-    if (!MaybeVisible(RelativePosition(d, r2, L, R, camAltitude, 0.0),
-                      RelativePosition(d, r2, L, R, camAltitude, MAX_TERRAIN_HEIGHT), 0.0, 6.0 * cellSize))
+    if (!MaybeVisible(RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MIN_HEIGHT),
+                      RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MAX_HEIGHT), 0.0, 6.0 * cellSize))
     {
         outFine[id] = missing;
         return;
@@ -89,9 +89,14 @@ void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupI
     FineSample sample;
     sample.terrain = float4(pos, elevation);
     sample.inland = float4(InlandSample(gWaterLevel, gWaterDepth, gWaterCoverage), gWaterDistance);
+#ifdef AIRLESS_SURFACE
+    sample.inland.w = gAirlessAlbedo; // dry profile: the unused water-distance channel carries material reflectance
+    sample.flow = float4(sample.inland.x * gWaterFlow, asfloat(gErosionNear));
+#else
     // Bit 7 of the near word: no terminal lake within the pixels' reach of the sample, a fine cell and a half; it spares
     // them the lake's lookups (PixelShader.hlsl, lakeFree).
     const bool lakeFree = ErosionLakeFree(dir.x * faceX.xyz + dir.y * faceY.xyz + dir.z * faceZ.xyz, 1.5 * cellSize);
     sample.flow = float4(sample.inland.x * gWaterFlow, asfloat(gErosionNear | (lakeFree ? 0x80u : 0u)));
+#endif
     outFine[id] = sample;
 }

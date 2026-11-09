@@ -1,0 +1,14 @@
+# One shared terrain renderer, three manifests. F1-F12 select views; J walks, Backspace returns to free camera.
+# Lunar altitude is clearance above the body's own physical surface. Z/S approach/retreat, right drag looks around.
+Moon 2: orbital craters | 250000 20 15 90 0 lune2 | -25 55
+Moon 2: descent | 20000 20 15 65 0 lune2 | -25 55
+Moon 2: surface and contact | 1 20 15 25 0 lune2 | -25 55
+Moon 2: walking, rocks and Exolune | 1.68 20 40 0 -88 lune2 marche | -25 55
+Moon 3: distant physical surface | 2600000 20 40 90 0 lune3 | -25 55
+Moon 3: orbital craters | 90000 20 40 90 0 lune3 | -25 55
+Moon 3: surface and contact | 1 20 40 25 0 lune3 | -25 55
+Moon 3: walking, rocks and Exolune | 1.68 20 60 0 -92 lune3 marche | -25 55
+Moon 1: original surface control | 2500000 20 15 90 0 lune1 | -25 55
+Moon 2: distant physical surface | 6300000 20 15 90 0 lune2 | -25 55
+Exolune: shared terrain control | 250 12.044015 -89.362108 35 -124 | 10 -100
+Moon 2: polar terrain | 10000 72 46 55 100 lune2 | 65 -10

@@ -24,6 +24,62 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 
 ## The established rules
 
+**Flight attitude is independent of planetary coordinates** (`spec-vaisseau.md`).
+- Translating a free camera or spacecraft does not rotate its attitude or bend its velocity around a body.
+- Choosing the nearby body for terrain, contact or altitude does not steer the observer.
+- Camera movement follows its own orthonormal axes; pitch and roll can cross nadir, zenith and a full turn.
+- Do not level the view when switching between free camera and ship; explicit test placement supplies a complete frame.
+- Walking alone follows the local gravity vertical; terrain contact remains active in flight.
+
+**The celestial sky belongs to the lit world** (`spec-ciel-celeste.md`).
+- Finite bodies share positions, radii, phases and illumination; their angular size and parallax follow distance.
+- Depth remains ordered across astronomical distances; terrain clipping limits must not remove celestial sources.
+- Point sources preserve integrated flux across pixel footprints and remain outside terrain temporal history.
+- Air, clouds and solid bodies attenuate or occult celestial light through the actual rendering paths.
+- Optical glare redistributes the received HDR light before point-source visibility; its veiling luminance affects stellar contrast.
+- Derive point visibility from background luminance; do not switch all stars by time of day or camera altitude.
+- Build galactic emission and dust in a common spatial frame; do not invent observable parallax at astronomical distances.
+- Keep perceptual display response distinct from physical light received by surfaces.
+- The night meter reads night illumination; exposure must not turn darkness into daylight.
+- Above the air, meter direct sunlight at the observer and use the planet horizon seen from that altitude; ground sunset is not orbital eclipse.
+- A partially occulted finite source contributes its visible area; hiding its centre does not extinguish its remaining crescent.
+- Dimmable cockpit emitters use the same incident meter so night adaptation keeps instruments readable.
+
+**One rendering technology, descriptive manifests for every celestial body** (`spec-manifestes-corps.md`).
+- Every terrestrial planet, moon, gas giant and star has its own versioned manifest, including Exolune and the Sun.
+- The manifest composes physical properties, noise layers, tectonic rules, materials, object populations and optional media or emission.
+- A new body changes that description, not the renderer.
+- All solid surfaces use the existing camera-following sliding planes and rings, continuous per-frame refinement, fine grid and screen reconstruction.
+- Do not introduce a separate terrain mesher, quadtree, LOD transition system or renderer for a moon or another planet.
+- Shared modules may implement different physical phenomena; manifests select and parameterize them without body-identity branches in rendering code.
+- A gas giant or star uses the same visibility, detail allocation, lighting, depth and compositing framework with appropriate shared volume or emission modules.
+- Absence of a solid surface means no invented landing surface, not a separate rendering engine.
+- A simpler physical stack must retain the same realism at every scale, especially on the ground.
+- Regolith, exposed rock, pebbles and boulders use the shared material, anchored placement, contact and shadow systems where the body's description calls for them.
+- A missing atmosphere, hydrology or vegetation disables that contribution; it does not remove unrelated surface detail.
+- Geometry, material, contact, shadows and distant representations derive from the same body description and deterministic fields.
+- A body change invalidates cached terrain, placement and contact state; cooked surface data must match the manifest's radius, seed and field version.
+- Bound impact sizes by host-body size while retaining the shared stack and footprint filtering.
+- Review body materials against references across orbital, approach and ground footprints; geological marks must retain their relation to the relief.
+- Unresolved flux and resolved surface illumination use compatible reflectance laws; a representation change must not invent brightness.
+- Blend surface colour independently of geometric depth. A signed distance, such as ocean-motion metadata, must never be interpolated as opacity.
+- Raster coverage envelopes do not occlude participating media; air and clouds consume the filtered physical surface distance through every representation transition.
+
+**Celestial rendering cost follows visible detail, not catalogue size** (`spec-manifestes-corps.md`, `spec-lune-terrain.md`).
+- A distant body must not instantiate a complete nearby terrain, water, weather and vegetation stack.
+- Select points, filtered surface proxies and detailed geometry by projected physical footprint and visibility.
+- Derive all representations and contact from the same body-fixed surface; a distant texture is not a second world.
+- Reuse the common rendering hierarchy; a far proxy is its distant representation, not another planet engine.
+- Bound resident memory, submitted geometry, generated samples and pending preparation across all bodies.
+- Keep descriptor storage separate from active simulation and rendering resources; catalogue entries do not eagerly allocate terrain stacks.
+- Spatially select candidates before detailed evaluation; do not scan and shade the whole catalogue per pixel.
+- Retain a coherent filtered representation while more detail is unavailable.
+- Share the detailed-body budget when extending the catalogue; increasing body count must not multiply near-surface budgets.
+- Cull invisible bodies before shading their rectangles or requesting their terrain.
+- Expensive work becomes active only when approach, projected detail and visibility justify it.
+- Distant work must be negligible and bounded in practice; this is not a promise of literal zero cost or infinitely many visible bodies.
+- Evaluate regression in motion as well as at fixed locations; work bounds alone are not proof of frame-rate preservation.
+
 **Evaluate only contributions that can survive their physical filter** (`spec-erosion.md`).
 - Validate flight performance with an identical moving-camera path and per-frame GPU/cadence distributions. A stationary cache hit cannot establish flight performance; isolate the costly pass and retain failed runs as failures (`diagnostic-orbite.md`).
 - Read an octave's bandwidth weight before splitting its lattice or hashing its corners. A zero-weight, zero-mean octave returns zero without evaluating noise.
@@ -123,6 +179,10 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - A radial height clamp does not establish safe wall contact; proper contact must test the travelled segment for each body.
 
 **Flight contact checks the swept body before accepting its motion** (`spec-vaisseau.md`).
+- Contact rejects inward movement only; retreat and tangential movement remain available from an already touching or recovered pose.
+- Placement and movement use the same collision support; recovery cannot create a pose that the next sweep locks in place.
+- Redirected sliding segments retain the original query budget and must be swept again against subsequent relief.
+- Free-camera contact constrains position only; collision, recovery and invalid-query rollback never restore an older look direction.
 - Query shared relief at the moving body's position; a previous nadir height or another camera's height is not collision evidence.
 - Bound every intermediate attitude; a centre's final displacement alone does not bound its rotational arc.
 - Test the complete chord and radius against the terrain envelope; reparameterize contact fractions after clipping the query interval.
@@ -158,14 +218,22 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 **Selecting a manufactured asset selects its complete geometry profile** (`spec-vaisseau.md`).
 - Keep each selectable model's source and delivery files in its own asset directory.
 - Match the pilot eye, canopy weather surface, shadow centre, engine mouths and animation pivots to that model.
+- Supply the pilot eye's fore/aft and vertical offsets from the selected geometry profile.
+- Model a panoramic viewing field with explicit interior, exterior and weather behavior.
 - Change the default through model selection; retain previous models and their packet compatibility.
 
 **Manufactured parts derive their interfaces from the visible support mesh** (`spec-vaisseau.md`).
+- Build continuous walls, floors and rooted supports from shared boundaries; details must belong to their supporting surface.
+- Fit separate manufactured solids to explicit docking surfaces and verify contact on the evaluated meshes.
+- Keep planar instrument decks flat in both geometry and shading; neighbouring bevels must not bend their reflection normals.
+- Verify control sightlines against the evaluated cabin from the actual pilot eye, including recessed faces and raised rims.
+- Check each manufactured solid is connected and closed; disconnected primitive assemblies do not establish coherent construction (`spec-navigateur-cockpit-son.md`).
 - Design the common fascia and instrument depth together; cut actual recesses for installed equipment.
 - Derive panel outlines from the usable support surface, with metric edge clearance; validate the actual control hardware against each outline.
 - The usable outline ends at the visible intersection with neighbouring parts, not at the hidden tub wall; check visibility from the pilot eye and its travel limits.
 - Console returns share their dashboard boundary and join the console tangentially; their sections must advance monotonically.
 - Keep fitted control positions and printed legends in the same coordinate mapping.
+- Derive live display coordinates from the authored instrument patches; read actual flight state for needles and values, never an independent playback clock.
 - Cut each support's complete pocket layout together so adjacent coplanar floors remain closed.
 - Keep printed instrument faces below the fascia and exposed rims thin; mounting contact alone does not establish a coherent design.
 - Join coaming sheets at the chassis return instead of overlapping its top face.
@@ -176,6 +244,18 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Preserve a finite orthogonal tangent frame at UV poles in both GLB and cooked packets.
 - Inspect the reimported asset from several viewpoints and retain the in-flight review route.
 - Solve nose visibility in the physical hull shape; keep the glazing contact, external paint layout and attitude-jet origins consistent with it.
+
+**Reflective manufactured skins use smooth control surfaces** (`recherche-vaisseau-navigateur.md`).
+- Fit the intended silhouette and broad folds with a regular editable cage and smooth surface evaluation.
+- Keep acquisition wear and reconstruction irregularities out of the base skin unless damage is requested.
+- Retain the acquired mesh separately; a final projection must not reintroduce its surface noise.
+- Inspect exported geometry in neutral shading and under reflection stripes from several directions, including the underside.
+
+**A reflective material uses the scene's light** (`spec-reflets-vaisseau.md`).
+- Keep photographed lighting out of albedo and geometry.
+- Trace against a read-only scene without the receiving hull; composite the opaque result before temporal smoothing.
+- Complete missing directions with a coherent sky and planet; state which off-screen objects the fallback cannot reflect.
+- Use the world's exposure, shadows and atmospheric attenuation for the reflective surface.
 
 **Out-of-real-time rendering follows the movie clock, never the time of the calculation** (`lancement.md`, the cinematic mode).
 - **A common step to everything that advances:** sea, plants, glass and histories; poses and the weather moment come from the course.
@@ -419,7 +499,8 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - **Normal and foam are derived from the actual displaced surface:** a phase mask is not sufficient. Displacement, slope and compression share their source; see `spec-mer-fft-spike.md`.
 
 **The screen shows the light, not the framing** (`recherche-tons-exposition.md`).
-- **The exposure follows the light that falls, never the image:** the one that receives, under the camera, a map facing the sun. Turning the camera does not change anything; snow remains white, a forest remains dark.
+- **The exposure follows incident light, never the image:** retain the ground reference in the air and meter direct sunlight at the observer above it, with the altitude-dependent planetary horizon. Turning the camera does not change anything; snow remains white, a forest remains dark.
+- **Apply the shared incident meter without a global temporal filter:** the asymmetric smoothing experiment was rejected in flight. Scene and cockpit use current illumination; preserve the altitude-aware orbital meter.
 - **One curve, on the strongest channel:** the shades do not turn. Clarity is regulated by exposure, before it, never by a gamma after.
 **An object has a fixed place on the planet** (`spec-objets-proximite.md`).
 - **An object is the detail of the ground, laid:** a pebble, a tuft. The bedrock and its relief are geometry.

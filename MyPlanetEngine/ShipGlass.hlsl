@@ -7,6 +7,7 @@
 #include "Planet.hlsli"
 #include "PlanetSettings.hlsli"
 #include "Atmosphere.hlsli"
+#include "SceneExposure.hlsli"
 #include "Ship.hlsli"
 
 Texture2D<float4> sceneComposite : register(t47); // the world under its atmosphere, before the smoothing
@@ -103,7 +104,7 @@ float4 PSMain(ShipPixel input) : SV_Target
     if (m.mode == 1)
     {
         // The combiner: a faint green, and its symbols' light.
-        rgb += float3(0.25, 1.0, 0.45) * 1.4 * HudSymbols(-v, taa.w) * shipOptions.x;
+        rgb += float3(0.25, 1.0, 0.45) * 1.4 * HudSymbols(-v, taa.w) * shipOptions.x * NightInstrumentGain();
         return float4(rgb, alpha * 0.96);
     }
 
@@ -147,7 +148,7 @@ float4 PSMain(ShipPixel input) : SV_Target
     // own combiner sits below the eye, there is no room under the roof.
     const float3 nose = mul(float4(0.0, -1.0, 0.0, 0.0), shipModel).xyz;
     if (inside && dot(-v, nose) > cos(radians(24.0)))
-        rgb += float3(0.25, 1.0, 0.45) * 1.2 * HudSymbols(-v, taa.w) * shipOptions.x * (1.0 - frost);
+        rgb += float3(0.25, 1.0, 0.45) * 1.2 * HudSymbols(-v, taa.w) * shipOptions.x * NightInstrumentGain() * (1.0 - frost);
     alpha *= (1.0 - drop.z) * (1.0 - 0.85 * frost);
     return float4(rgb, alpha);
 }

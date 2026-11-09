@@ -1,0 +1,7 @@
+# Smooth Navigator: chase camera, chrome, actual scene reflections and spherical fallback.
+Forest: trees and ground in the chrome | 65 -11.039991 49.783625 0 40 | -10 60
+Tropical canopy: alternate vegetation | 90 -7.75 -37.25 0 130 | -5 -20
+Ocean: water, sky and horizon | 14 -20.47 -75.45 0 160 | -50.47 -75.45
+Mountain: terrain and atmospheric haze | 9000 38.1445 103.5352 0 90 | 38.1445 128.5352
+Low sun: warm metal and highlights | 1500 30.68685 120.10788 0 -64.7 | 0 -165
+Orbit: planet curvature in the chrome | 150000 38.1445 103.5352 0 90 | 38.1445 128.5352

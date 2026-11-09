@@ -1,0 +1,14 @@
+# F1-F6: the three seeded surfaces. F7-F12: fixed-light approach through the planetary cloud transition.
+# Right drag looks; Z/S approach/retreat; J walks or boards; Backspace toggles free camera/cockpit.
+Moon 2: orbital craters | 250000 20 15 90 0 lune2 | -25 55
+Moon 2: surface and contact | 1 20 15 25 0 lune2 | -25 55
+Moon 3: distant physical surface | 2600000 20 40 90 0 lune3 | -25 55
+Moon 3: orbital craters | 90000 20 40 90 0 lune3 | -25 55
+Moon 3: walking, rocks and Exolune | 1.68 20 60 0 -92 lune3 marche | -25 55
+Moon 1: original surface control | 2500000 20 15 90 0 lune1 | -25 55
+Clouds: far globe 20000 km | 20000000 12 -89 90 0 | 10 -100
+Clouds: approach 14000 km | 14000000 12 -89 90 0 | 10 -100
+Clouds: transition 10000 km | 10000000 12 -89 90 0 | 10 -100
+Clouds: transition 7000 km | 7000000 12 -89 90 0 | 10 -100
+Clouds: transition 4000 km | 4000000 12 -89 90 0 | 10 -100
+Clouds: near globe 2000 km | 2000000 12 -89 90 0 | 10 -100

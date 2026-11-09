@@ -2,6 +2,18 @@
 
 **The executable alone runs the game:** `x64\Release\MyPlanetEngine.exe`, without any environment variables. For an in-flight review, `tools/lance.ps1` builds it if needed, then opens it with the “Tests” palette.
 
+**Three-moon review:** `tools/tests/2026-11-08-trois-lunes.txt`. Launch with `-DepartTest 1 -Resolution fenetre -Camera libre` to begin at moon 2. F1–F8 cover orbit, approach, contact and walking on the new surfaces; F9–F12 cover moon 1, distant moon 2, Exolune and polar terrain. `J` disembarks. `lune` / `lune1`, `lune2` and `lune3` select a body; lunar altitude means clearance above its own terrain. `marche` explicitly selects walking for a route row. Cook all atlases with `tools/prepare_airless.ps1` in a fresh worktree. See `spec-lune-terrain.md` for limits.
+
+**Cloud continuity review:** `tools/tests/2026-11-08-transition-nuages.txt` holds geography and sunlight fixed from 40,000 km to 500 km. The distant terrain blend must preserve the same cloud layers.
+
+**Combined handoff:** `tools/tests/2026-11-08-lunes-et-nuages.txt`, with `-Camera libre -DepartTest 1 -Resolution fenetre`; F1–F6 visit the three moons and F7–F12 cross the cloud transition.
+
+**Direct exposure review:** `tools/tests/2026-11-07-exposition-sans-lissage.txt`. F1 returns just before the reported orbital sunrise; F2 reveals the Sun. The remaining views cover orbit, atmospheric day/night and a lunar approach. The temporal filter was reverted; the previous orbital luminosity corrections remain active.
+
+**Orbital exposure review:** `tools/tests/2026-11-07-exposition-orbite.txt` starts at the two reported overexposed views, then covers neighbouring phases, planetary shadow, atmosphere and celestial controls.
+
+**Celestial review:** `tools/tests/2026-11-07-ciel.txt` covers orbital depth, moonless and moonlit nights, twilight, noon, clouds, lunar approaches and the Sun. F1--F12 select the first twelve views; the last two use the windowed palette. Optical glare is part of normal rendering. The three cooked airless atlases supply lunar surface detail without runtime downloads; `spec-ciel-celeste.md`.
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Build -NoLaunch
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours tools\tests\<date>.txt
@@ -39,19 +51,20 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 - **`-Position '<alt> <lat> <lon> <tangage> <cap>'`:** starting view, the globe by default.
 - **`-Soleil '<lat> <lon>'`:** sun position, `10 -5` by default.
 - **`-Resolution '1920 1080'`** by default, full screen; `fenetre` for a 1280x720 window, where the palette is visible.
-- **`-ModeleVaisseau chasseur|classique`:** the approved fighter by default; `classique` loads the preserved triangular ship. Direct executable launches use `MYPLANETENGINE_MODELE_VAISSEAU`; without it, the fighter.
+- **`-ModeleVaisseau chasseur|classique|navigateur`:** the approved fighter by default; `classique` loads the preserved triangular ship; `navigateur` loads the smooth chrome ship and its panoramic cockpit. Direct executable launches use `MYPLANETENGINE_MODELE_VAISSEAU`; without it, the fighter. Navigator review: `tools/tests/2026-11-03-navigateur-cockpit.txt`; details: `spec-navigateur-cockpit-son.md`.
+- **`-Camera cockpit|poursuite|sans|libre|marche`:** explicitly select the initial camera mode; omitted, retain the normal cockpit default. Backspace toggles free camera and cockpit. Free camera supports right-drag look and Shift + left/right arrow roll without orbital steering.
 - **`-PassePleine`:** clouds in a single pass, without their temporal pass (`optimisation.md`); for comparison.
 - **`-SansNuages`:** start with clouds hidden for terrain review; N toggles them during flight. Use this option for the current erosion review.
 - **`-Scans <dossier>`:** ground photos.
 - **`-Plantes <catalogue>`:** explicitly select an external asset catalogue for an authoring POC; the default game catalogue is unchanged.
 
-**The launcher clears the session's `MYPLANETENGINE_*` variables during launch, then restores them.** It sets only `MYPLANETENGINE_TESTS`, `_SUN`, `_RESOLUTION` and `_FULLSCREEN`, `_SCANS`, `_MODELE_VAISSEAU`, and `_CLOUD_FULL` with `-PassePleine`, `_NO_CLOUDS` with `-SansNuages`, and `_FOLIAGE_ASSETS` with an explicit `-Plantes`.
+**The launcher clears the session's `MYPLANETENGINE_*` variables during launch, then restores them.** It sets only `MYPLANETENGINE_TESTS`, `_SUN`, `_RESOLUTION` and `_FULLSCREEN`, `_SCANS`, `_MODELE_VAISSEAU`, `_VAISSEAU` with `-Camera`, and `_CLOUD_FULL` with `-PassePleine`, `_NO_CLOUDS` with `-SansNuages`, and `_FOLIAGE_ASSETS` with an explicit `-Plantes`.
 
 ## Default game and benchmark variables
 
 - **Clouds:** always present, using their temporal pass. Weather starts paused at time 0.
 - **Temporal antialiasing:** enabled at startup; T toggles it. `MYPLANETENGINE_TAA=0` disables it explicitly.
-- **Lens halo:** disabled.
+- **Lens halo:** enabled; linear energy-conserving response before tone mapping.
 - **Override variables** for benchmarks and comparisons:
 
 | Variable | Effect |
@@ -60,7 +73,7 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 | `MYPLANETENGINE_CLOUD_FULL=1` | Clouds in a single pass |
 | `MYPLANETENGINE_WEATHER_TIME` | Weather time, in seconds |
 | `MYPLANETENGINE_TAA` | Temporal antialiasing; default enabled, explicit `0` disables it |
-| `MYPLANETENGINE_GLARE` | Lens halo |
+| `MYPLANETENGINE_GLARE` | `0` disables optical glare; enabled by default |
 | `MYPLANETENGINE_VIEW` | Diagnostic view; terrain views are raw, without clouds or air, except `ground`, the cloud silhouette |
 | `MYPLANETENGINE_SEED` | Another seed for tectonic map and climate, to compare planets; detail noise retains its seed |
 
@@ -96,7 +109,7 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 index vue navLat navLon navAlt navCap navTangage navRoulis camLat camLon camAlt camCap camTangage camRoulis fov meteo
 ```
 
-- **Contiguous indices, starting at 0;** `vue` is `exterieur`, `cockpit` or `pleine` (the pilot's eye without cockpit or hull, using the `cam*` pose).
+- **Contiguous indices, starting at 0;** `vue` is `exterieur`, `cockpit`, `pleine` (the ship hidden, using `cam*`) or `cabine` (explicit `cam*` inspection pose with cockpit surface behavior). Ordinary `cockpit` uses the selected profile's pilot eye.
 - **Angles in degrees:** north latitude positive, east longitude positive, heading from north toward east, pitch positive upward, roll positive rightward.
 - **Altitudes in meters above sea level 0;** vertical `fov`, between 5 and 150°; `meteo` in seconds, nonnegative.
 - **In exterior mode,** each pose is independent; hull, shadows and plume follow the ship; throttle is inferred from movement.

@@ -29,9 +29,10 @@ void D3DApp::ReadCine() {
         } else {
             CineFrame f = {}; std::string view;
             valid = token == std::to_string(mCine.size()) && bool(in >> view)
-                && (view == "exterieur" || view == "cockpit" || view == "pleine");
+                && (view == "exterieur" || view == "cockpit" || view == "pleine" || view == "cabine");
             f.cockpit = view == "cockpit";
             f.bare = view == "pleine";
+            f.cabin = view == "cabine";
             for (double& x : f.nav) valid = bool(in >> x) && std::isfinite(x) && valid;
             for (double& x : f.cam) valid = bool(in >> x) && std::isfinite(x) && valid;
             valid = bool(in >> f.fov >> f.weather) && valid && std::isfinite(f.fov) && std::isfinite(f.weather)
@@ -81,7 +82,9 @@ bool D3DApp::BeginCineFrame() {
     if (mCine.empty()) return true;
     if (mCineIndex >= mCineEnd) { DestroyWindow(mhMainWnd); return false; }
     const CineFrame& f = mCine[mCineIndex];
-    const View view = f.cockpit ? View::Cockpit : f.bare ? View::Bare : View::Chase;
+    if ((f.cockpit || f.cabin) && !mShip.Profile().cockpit)
+        throw std::runtime_error("The selected exterior-only ship has no cockpit CINE view.");
+    const View view = f.cockpit || f.cabin ? View::Cockpit : f.bare ? View::Bare : View::Chase;
     if (view != mView) { mHistoryValid = mCloudHistoryValid = false; }
     mView = view;
     const Vec3d previous = mShipPos;
@@ -103,7 +106,7 @@ bool D3DApp::BeginCineFrame() {
     mPlume = mThrottle / 30.0;
     if (f.cockpit) {
         // Same eye and resting head as UpdateShip, without interactive head inertia.
-        mCamPos = mShipPos + mShipForward * 0.9192 + mShipUp * mShip.Profile().eyeUp;
+        mCamPos = mShipPos + mShipForward * mShip.Profile().eyeAhead + mShipUp * mShip.Profile().eyeUp;
         const Vec3d right = Normalize(Cross(mShipUp, mShipForward));
         mCamForward = Rotate(mShipForward, right, 0.08);
         mCamUp = Rotate(mShipUp, right, 0.08);

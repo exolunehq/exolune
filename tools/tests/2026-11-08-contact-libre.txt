@@ -1,0 +1,10 @@
+# Free camera: right drag to look, Z/S toward/away from the viewed ground, E/Page Up to rise.
+# Touch the ground, keep pushing briefly, then retreat, slide sideways and turn without changing test.
+Moon: immediate contact and retreat | 0.65 20 15 60 0 lune | -25 55
+Moon: crater slope and diagonal slide | 1.0 31.18 18.72 30 232 lune | -25 55
+Moon: basin placement recovery | 0 5.056673 -11.864309 25 0 lune | -25 55
+Moon: polar contact | 0.65 72 46 45 100 lune | 65 -10
+Exolune: cliff recovery and free look | 96.7 -46.990030 -32.992581 12.92 70.17 | -40 -10
+Exolune: near wall and retreat | 77.5 8.488890670 -103.555961023 0 -154.17278 | 10 -100
+Moon: walking control | 1.68 20 15 -8 -102 lune marche | -25 55
+Moon: orbital chord control | 2500000 20 15 90 0 lune | -25 55

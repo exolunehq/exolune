@@ -13,7 +13,7 @@
 #define EROSION_WAVE_LIST // neighbouring candidates list their rivers' nodes together (Erosion.hlsli)
 #include "Planet.hlsli"
 #include "PlanetSettings.hlsli"
-#include "Relief.hlsli"
+#include "SurfaceStack.hlsli"
 #include "Terrain.hlsli"
 #include "Mesh.hlsli"
 #include "Materials.hlsli"
@@ -49,7 +49,11 @@ static const int WINDOW = 224; // cells per side of the tufts' windows, the ston
 // D3DApp::PlanetPlantWindow.
 static const int PLANET_PLANT_WINDOW = 512;
 
-static const double INV_R = 1.0L / 6378000.0L; // 1 / D3DApp::PlanetRadius, folded by the compiler
+#ifdef AIRLESS_SURFACE
+#define INV_R (1.0L / (double)faceParams.y)
+#else
+static const double INV_R = 1.0L / 6378000.0L;
+#endif // 1 / D3DApp::PlanetRadius, folded by the compiler
 
 double3 Double3(uint2 x, uint2 y, uint2 z)
 {
@@ -137,7 +141,7 @@ bool MeshElevationAt(float2 xy, out float elevation, out float horizon, out floa
         const FaceVertex v = mesh[ids[k]];
         if ((asuint(v.pos.x) & 0x7fffffffu) > 0x7f800000u) // culled: NaN
             return false;
-        elevation += bary[k] * max(v.elevation, 0.0);
+        elevation += bary[k] * max(v.elevation, TERRAIN_MIN_HEIGHT);
         waterLevel += bary[k] * v.water.w;
         horizon += bary[k] * v.horizon;
         corners[k] = v.pos;
@@ -160,7 +164,7 @@ float ExactElevation(double3 u)
     gMaxFrequency = NO_LIMIT;
     gCreaseMaxFrequency = faceParams.y / (MESH_BAND_LIMIT * CREASE_MIN_CELL);
     gExactLattice = true;
-    return max(ReliefElevation(u), 0.0);
+    return max(ReliefElevation(u), TERRAIN_MIN_HEIGHT);
 }
 
 // The lattice's slices: one per class and octave, stones (OBJECT_OCTAVES), tufts (TUFT_OCTAVES), then plants (PLANT_OCTAVES).
@@ -218,6 +222,9 @@ bool MakeCandidate(uint slice, uint plane, int2 index, out Candidate k)
 {
     const int4 pl = planes[plane];
     k.kind = SliceClass(slice);
+#ifdef AIRLESS_SURFACE
+    if(k.kind!=STONES)return false;
+#endif
     k.octave = SliceOctave(slice);
     k.axis = pl.x;
     k.b = (pl.x + 1) % 3;
@@ -320,13 +327,13 @@ void CullMain(uint3 id : SV_DispatchThreadID)
     const bool census = (flags & 2u) != 0;
     if (MeshCell(xy) > OBJECT_CELLS.y * k.size && !census) // the mesh cannot carry its foot (OBJECT_CELLS)
         return;
-    float low = 0.0, high = MAX_TERRAIN_HEIGHT, meshElevation, horizon;
+    float low = TERRAIN_MIN_HEIGHT, high = TERRAIN_MAX_HEIGHT, meshElevation, horizon;
     float3 meshNormal;
     const bool onMesh = MeshElevationAt(xy, meshElevation, horizon, meshNormal);
     if (onMesh)
     {
         const float margin = 1.0 + 0.05 * length(sea + upFace * meshElevation);
-        low = max(meshElevation - margin, 0.0);
+        low = max(meshElevation - margin, TERRAIN_MIN_HEIGHT);
         high = meshElevation + margin;
     }
     const float reach = min(k.size / (OBJECT_PIXELS.x * pixelAngle), (window / 2 - 1) * k.cell);
@@ -390,7 +397,7 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
     r.burial = (float)((record.x & 0xFFFFu) / 4); // the slice
     r.elevation = e0;
     r.axisY = up;
-    if (e0 <= 0.0 || e0 < waterLevel - 0.02) // dry floodplains at the drainage stage remain land
+    if (e0 <= TERRAIN_MIN_HEIGHT || e0 < waterLevel - 0.02) // dry floodplains at the drainage stage remain land
     {
         if (census)
             instances[id.x] = r;
@@ -433,6 +440,14 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
     const float sinLat = dot(upLocal, north);
     const float3 tangentNorth = north - sinLat * upLocal;
     const float3 poleward = (sinLat < 0.0 ? -1.0 : 1.0) * tangentNorth * rsqrt(max(dot(tangentNorth, tangentNorth), 1e-12));
+#ifdef AIRLESS_SURFACE
+    // Impact ejecta and regolith support the same deterministic size populations as terrestrial debris.
+    const float repose=1-smoothstep(.45,.85,steepness);
+    // Airless regolith has impact debris even where terrestrial soil would not be stony.
+    const float presence=.35+.65*smoothstep(-.3,.3,k.stony+steepness);
+    const float scree=saturate(.2+uphill),sand=1-scree,soil=0,grass=0;
+    const float share=presence*repose*(k.patches*GolombekShare(DEBRIS_ABUNDANCE.x*scree+DEBRIS_ABUNDANCE.y*.25,k.d)+k.clumps*PebbleShare(k.d));
+#else
     gHeightBlend = 0.0;
     gBedLens = BedLenses(q, k.cell);
     gCellSize = k.cell;
@@ -467,6 +482,7 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
     }
     else // tufts, in grass and a few dry ones on sand and bare soil, clumped
         share = k.clumps * (TUFT_COVER.x * grass + lerp(TUFT_COVER.y, TUFT_COVER.x, riverBank * (1.0 - TreesHere(v))) * bare);
+#endif
     const float chance = share * k.chance;
     if (census)
     {
@@ -486,6 +502,10 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
     const float3 axisX = cos(turn) * side + sin(turn) * cross(axisY, side);
     float3 albedo;
     float burial;
+#ifdef AIRLESS_SURFACE
+    burial=max(.18,OBJECT_BURIAL.z/(.6*k.size));
+    albedo=AirlessAlbedo(u,faceParams.y,uint(nadir.w))*(celestialSurface[erosionMode.w-1].rgb/.145)*(1+.15*LatticeRandom(k.looks).z);
+#else
     if (stone)
     {
         // Partly buried in soft ground, barely seated on rock (OBJECT_BURIAL); the colour of the ground's scree there.
@@ -500,6 +520,7 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
         albedo = ClimateColor(m) * m.grass.color * (1.0 + 0.2 * LatticeRandom(k.looks).z);
     }
 
+#endif
     // Store cover separately from reflectance; the material pass transports
     // actual sun and sky independently, including under clouds and at night.
 
@@ -533,7 +554,11 @@ void CSMain(uint3 id : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
     o.axisY = axisY;
     o.elevation = e0;
     o.albedo = saturate(albedo);
+    #ifdef AIRLESS_SURFACE
+    o.albedo.b=PackObjectCanopy(o.albedo.b,0);
+#else
     o.albedo.b=PackObjectCanopy(o.albedo.b,GroundLightCover(v));
+#endif
     o.seed = k.looks.z;
     instances[(stone ? 0 : CLASS_CAPACITY) + slot] = o;
 }

@@ -120,8 +120,8 @@ def normaliser_tangentes_glb(path):
         start = 28+json_length; data[start:start+len(mutable)] = mutable; path.write_bytes(data)
     print('GLB tangent poles repaired:', repaired)
 
-def cuire():
-    gltf, binary = lire_glb(ROOT / 'vaisseau.glb')
+def cuire(glb_path=None, vsx_path=None):
+    gltf, binary = lire_glb(glb_path or ROOT / 'vaisseau.glb')
     # glTF (x, y, z) vers Blender (x, -z, y).
     axes = np.array([[1, 0, 0, 0], [0, 0, -1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], np.float64)
     blocs = []   # (matériau, sommets, indices)
@@ -185,7 +185,7 @@ def cuire():
         traces.append((sum(len(i) for i in indices), len(idx), mat)); sommets.append(v); indices.append(idx + base); base += len(v)
     sommets = np.vstack(sommets); indices = np.concatenate(indices)
     assert len(images) <= 12, 'Ship::MaxImages exceeded'
-    with open(ROOT / 'vaisseau.vsx', 'wb') as f:
+    with open(vsx_path or ROOT / 'vaisseau.vsx', 'wb') as f:
         f.write(b'VSX1' + struct.pack('<6I', 3, len(sommets), len(indices), len(traces), len(materiaux), len(images)))
         f.write(sommets.tobytes()); f.write(indices.tobytes())
         for t in traces: f.write(struct.pack('<3I', *t))

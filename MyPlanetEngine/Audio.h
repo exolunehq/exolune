@@ -7,6 +7,7 @@
 #include <atomic>
 #include <cstdint>
 #include "WorldAudio.h"
+#include "NavigatorSound.h"
 
 // What the ship sounds like this frame, filled in D3DApp::UpdateShip (docs/recherche-son.md).
 struct ShipSound {
@@ -17,6 +18,7 @@ struct ShipSound {
     float wind = 0.0f;    // the airspeed brought to sea level, m/s
     float air = 0.0f;     // the air's density, 1 at sea level: thin air carries little sound, none in space
     bool cockpit = true;  // heard through the hull: muffled
+    bool navigator = false; // the original antigravity voice, selected with the Navigator profile
 };
 
 // The ship's sound, synthesized: engine, thrusters and wind, played by XAudio2. The game only sets targets; XAudio2's
@@ -66,6 +68,8 @@ private:
     Svf mRumbleFilter, mRoar[2], mWindBand[2], mWindLow, mHull[2], mEngineHull[2], mHumFilter;
     Jet mJets[3]; // roll, strafe, lift
     WorldAudio mWorld;
+    NavigatorSound mNavigatorSound;
+    std::atomic<bool> mNavigator{false};
     std::atomic<float> mMasterGain{1.0f}, mShipGain{1.0f};
     float mMasterLevel = 1.0f;
 };

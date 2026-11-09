@@ -554,7 +554,7 @@ float3 CloudAirPiece(float3 view, float3 viewFace, float3 sun, float beginKm, fl
     const float mu = clamp((r0 * mu0 + beginKm) / r, -1.0, 1.0);
     const float muSun = clamp((r0 * muSun0 + beginKm * nu) / r, -1.0, 1.0);
     ShadowRay shadow;
-    shadow.origin = float3(camPlane.xy, faceParams.y + faceParams.z) / 1000.0 + beginKm * viewFace;
+    shadow.origin = camVertical.xyz * (BOTTOM + camVertical.w) + beginKm * viewFace;
     shadow.direction = viewFace;
     shadow.on = true;
     float3 airTransmission;
@@ -1123,8 +1123,9 @@ CloudPixel CloudTracePixel(float4 scene, float2 pixel, float2 size, bool withClo
 }
 
 // The atmosphere over the scene with the clouds at their distance, at the pixel's centre.
-float4 CloudComposite(float4 scene, float2 pixel, float2 size, CloudPixel clouds)
+float4 CloudComposite(float4 scene, float2 pixel, float2 size, CloudPixel clouds, out float4 skyTransport)
 {
+    skyTransport=0.0;
     if (abs(taa.y - CLOUD_OPACITY_VIEW) < 0.5)
         return float4((1.0 - dot(clouds.transmission, 1.0 / 3.0)).xxx, 0.0);
     // The terrain's diagnostic views are measures, not light: neither clouds nor air over them (the benches), but the
@@ -1189,17 +1190,18 @@ float4 CloudComposite(float4 scene, float2 pixel, float2 size, CloudPixel clouds
         airTransmission *= clouds.transmission;
         light += CloudAirPiece(view, viewFace, sun, 0.0, endKm, steps, airTransmission, hitsGround);
     }
-    if (scene.a > 0.0)
+    if (scene.a > 0.0) {
         light += airTransmission * surfaceSceneRgb;
-    else if (!seesGround && dot(view, sun) > 0.0) // the sun's disc behind the clouds and the air, by the share of the
-        light += airTransmission * SUN_ILLUMINANCE / (PI * SUN_ANGULAR_RADIUS * SUN_ANGULAR_RADIUS) // pixel it covers
-               * saturate((SUN_ANGULAR_RADIUS - length(cross(view, sun))) * size.y / (2.0 * camUp.w) + 0.5);
+        skyTransport.a=-min(sunPart.Load(int3(pixel,0)).a,0.0)*dot(airTransmission,1.0/3.0);
+    } else if (!seesGround)
+        skyTransport=float4(airTransmission,0.0);
     return float4(light, scene.a);
 }
 
 // The clouds and the air over the scene, the single full-resolution pass; or one of the clouds' diagnostic views.
-float4 RenderClouds(float4 scene, float2 pixel, float2 size)
+float4 RenderClouds(float4 scene, float2 pixel, float2 size, out float4 skyTransport)
 {
+    skyTransport=0.0;
     if (abs(taa.y - CLOUD_WEATHER_VIEW) < 0.5)
     {
         // North up, the whole planet: blue to orange the low clouds' coverage by their kind, magenta the cirrus.
@@ -1214,7 +1216,7 @@ float4 RenderClouds(float4 scene, float2 pixel, float2 size)
     const CloudPixel clouds = CloudTracePixel(scene, pixel, size, true, true, shadowView);
     if (shadowView)
         return float4(clouds.surfaceShadowT.xxx, scene.a);
-    return CloudComposite(scene, pixel, size, clouds);
+    return CloudComposite(scene, pixel, size, clouds, skyTransport);
 }
 
 #endif // CLOUDS_HLSLI

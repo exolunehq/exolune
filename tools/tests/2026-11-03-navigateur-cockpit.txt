@@ -1,0 +1,7 @@
+# Navigator: detailed cabin, live blue heading/amber power dials, reflective exterior and original field sound.
+Ocean: cabin, live heading and propulsion | 30 -20.47 -75.45 0 160 | -50.47 -75.45
+Forest: vegetation through the panoramic field | 80 -11.039991 49.783625 0 40 | -10 60
+Tropical canopy: another environment | 100 -7.75 -37.25 0 130 | -5 -20
+Low sun: metallic cabin and internal lights | 1500 30.68685 120.10788 0 -64.7 | 0 -165
+Orbit: planet below, cabin sound in vacuum | 150000 38.1445 103.5352 0 90 | 38.1445 128.5352
+Night: readable dials, blue fixtures and amber sensor | 5000 38.1445 103.5352 0 90 | -38.1445 -76.4648

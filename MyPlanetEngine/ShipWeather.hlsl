@@ -10,7 +10,12 @@ TextureCubeArray<float4> shipClimate : register(t10);
 #include "Relief.hlsli" // for Terrain.hlsli, not called
 #include "Terrain.hlsli"
 #include "Mesh.hlsli"
+// The ship follows the active surface buffer, including impact basins below its reference sphere.
+#define TERRAIN_MIN_HEIGHT (erosionMode.w == 0u ? 0.0 : -16000.0)
+#define TERRAIN_MAX_HEIGHT (erosionMode.w == 0u ? MAX_TERRAIN_HEIGHT : 16000.0)
 #include "Shadows.hlsli"
+#undef TERRAIN_MIN_HEIGHT
+#undef TERRAIN_MAX_HEIGHT
 #include "Ship.hlsli"
 #include "Clouds.hlsli"
 #include "WorldWeather.hlsli"
@@ -60,5 +65,6 @@ void CSMain()
     else if (shipAir.w > 0.5) s = float4(0.95, 1.0, 0.0, 0.0);
     weatherState[0] = s;
     weatherState[1] = float4(cloud, temperature, extinction, fmod(t.w + dt, 3600.0));
-    weatherState[2] = float4(catching, ShipReliefSun(), 0.0, 0.0);
+    const float cloudSun = ShipNavigator() ? CloudTraceShadow(cloudCameraKm.xyz, (double3)PlanetDirection(lightDir.xyz)) : 1.0;
+    weatherState[2] = float4(catching, ShipReliefSun(), cloudSun, 0.0);
 }

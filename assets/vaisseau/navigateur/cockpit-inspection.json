@@ -1,0 +1,77 @@
+{
+  "construction": "continuous quilted wall, coved floor, rooted station and swept sensor; fitted seat and console solids",
+  "pilot_eye": [
+    0,
+    -0.65,
+    0.7
+  ],
+  "hull_role": 10,
+  "cabin_role": 11,
+  "fitted_panels": 139,
+  "rear_assembly": {
+    "shape": "octagonal mounting flange and integrated domed optical core",
+    "diameter_m": 1.56,
+    "patch_clearance_scale": 1
+  },
+  "primitive_meshes": 0,
+  "maximum_mount_gap_m": 8.326672684688674e-17,
+  "fixture_positions": [
+    [
+      -1.3281282186508179,
+      0.6395928263664246,
+      1.179915189743042
+    ],
+    [
+      1.3281266689300537,
+      0.6395920515060425,
+      1.1799137592315674
+    ],
+    [
+      -1.5321890309121373e-16,
+      1.2511272430419922,
+      1.6602174043655396
+    ]
+  ],
+  "instruments": [
+    {
+      "dial_count": 3,
+      "live_dial_center": [
+        -0.82,
+        -0.65,
+        0.067
+      ],
+      "live_dial_radius": 0.131,
+      "live_arc_radii": [
+        0.143,
+        0.148
+      ],
+      "tactile_wells": 1,
+      "engraved_legend_strips": 1,
+      "integrated_captive_seats": 4,
+      "maximum_landing_error_m": 8.326672684688674e-17
+    },
+    {
+      "dial_count": 3,
+      "live_dial_center": [
+        0.82,
+        -0.65,
+        0.067
+      ],
+      "live_dial_radius": 0.131,
+      "live_arc_radii": [
+        0.143,
+        0.148
+      ],
+      "tactile_wells": 1,
+      "engraved_legend_strips": 1,
+      "integrated_captive_seats": 4,
+      "maximum_landing_error_m": 8.326672684688674e-17
+    }
+  ],
+  "instrument_state": "runtime heading and propulsion dials; rotary and palm controls remain static",
+  "canopy_glass": false,
+  "canopy_weather": false,
+  "room_margin_scale": 0.875,
+  "projection": "clear forward field with opaque exterior in external views",
+  "approximation": "Reference-led reconstruction, without authenticated production dimensions."
+}

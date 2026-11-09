@@ -5,13 +5,20 @@
 #include "Planet.hlsli"
 #include "PlanetSettings.hlsli"
 #include "Atmosphere.hlsli"
+#include "SceneExposure.hlsli"
 #include "Ship.hlsli"
 #include "ShipScreens.hlsli"
+#include "ShipNavigator.hlsli"
+#ifdef SHIP_SCENE_REFLECTIONS
+#include "ShipReflections.hlsli"
+#endif
 
 struct Output
 {
     float4 radiance : SV_Target0; // alpha: distance (km), for the atmosphere and the temporal smoothing
+#ifndef SHIP_SCENE_REFLECTIONS
     float4 sunPart  : SV_Target1;
+#endif
 };
 
 Output PSMain(ShipPixel input)
@@ -22,7 +29,11 @@ Output PSMain(ShipPixel input)
     float3 image = ShipImage(m.image[0], m.uv[0], input.uv, 1.0).rgb;
     [branch] if (screen)
         image = ShipScreen(m.role, input.uv.xy, image);
-    const float3 albedo = m.color.rgb * image;
+    float3 albedo = m.color.rgb * image;
+    float3 instrumentEmission = 0.0;
+    const bool navigatorDial = ShipNavigator() && m.role == 12;
+    [branch] if (navigatorDial)
+        NavigatorInstrument(input.local, albedo, instrumentEmission);
     const float4 metalRough = ShipImage(m.image[1], m.uv[1], input.uv, 1.0);
     const float roughness = clamp(m.roughness * metalRough.g, 0.05, 1.0), metallic = saturate(m.metallic * metalRough.b);
     const float occlusion = lerp(1.0, ShipImage(m.image[3], m.uv[3], input.uv, 1.0).r, m.occlusion);
@@ -55,7 +66,10 @@ Output PSMain(ShipPixel input)
     const float3 fresnel = f0 + (1.0 - f0) * pow(1.0 - saturate(dot(hv, v)), 5.0);
     // The relief's shadow too, from the weather pass (ShipWeather.hlsl), one frame late.
     const float shadow = nl > 0.0 ? ShipLight(0, input.local, 0.0004, 1.5) * shipWeather[2].y : 0.0;
-    const float3 sunLit = (diffuse + d * visibility * fresnel) * beam * nl * shadow;
+    float3 sunLit = (diffuse + d * visibility * fresnel) * beam * nl * shadow;
+#ifdef SHIP_SCENE_REFLECTIONS
+    sunLit *= shipWeather[2].z;
+#endif
 
     // The sky: from above where the hull does not hide it, the ground's light from below, as on the objects. Under the
     // hull, a fifth of it still comes in, bounced by the cockpit itself.
@@ -67,10 +81,15 @@ Output PSMain(ShipPixel input)
     // The sky's mirror image along the reflection, as on the canopy (ShipGlass.hlsl): brighter towards the horizon, the
     // ground below it. Rough surfaces blur it into the sky's light; under the hull it dims with the sky.
     const float3 r = reflect(-v, n);
+#ifdef SHIP_SCENE_REFLECTIONS
+    const float3 env = ShipReflectedEnvironment(input.pos, n, r, roughness);
+    const float3 skyLit = diffuse * skyE + sheen * env * occlusion * (1.0 - 0.28 * roughness);
+#else
     const float ru = dot(r, up);
     const float3 env = lerp(GROUND_ALBEDO * ground / PI, sky / PI * (1.4 - 0.9 * saturate(ru)), smoothstep(-0.08, 0.08, ru));
     const float3 skyLit = diffuse * skyE
                         + sheen * lerp(env * lerp(0.2, 1.0, open) * occlusion, skyE / PI, sqrt(roughness)) * (1.0 - 0.5 * roughness);
+#endif
 
     // The lights that the flight animates (Ship.hlsli's roles): the nozzles' cores with the gas, the white strobes'
     // double flash every 1.3 s, the red beacons' pulse, the top and the bottom one in turn.
@@ -87,8 +106,21 @@ Output PSMain(ShipPixel input)
         glow = 0.03 + pow(saturate(sin(2.0 * PI * (clock * 0.8 + (input.local.z < 0.0 ? 0.5 : 0.0)))), 6.0);
 
     Output o;
-    o.radiance = float4(sunLit + skyLit + glow * m.emission * (screen ? image : ShipImage(m.image[4], m.uv[4], input.uv, 1.0).rgb),
+    const bool dimmable=screen || navigatorDial || (m.role==0 && shipOptions.y>.5) || (ShipNavigator() && m.role==11);
+    const float panelGain=dimmable?NightInstrumentGain():1.0;
+    o.radiance = float4(sunLit + skyLit + panelGain*(instrumentEmission + glow * m.emission * (screen ? image : ShipImage(m.image[4], m.uv[4], input.uv, 1.0).rgb)),
                         length(input.pos) / 1000.0);
+    if (ShipNavigator() && (m.role == 11 || navigatorDial))
+    {
+        const float3 localN = float3(dot(n, shipModel[0].xyz), dot(n, shipModel[1].xyz), dot(n, shipModel[2].xyz));
+        const float3 localV = float3(dot(v, shipModel[0].xyz), dot(v, shipModel[1].xyz), dot(v, shipModel[2].xyz));
+        o.radiance.rgb += panelGain*NavigatorCabinLights(input.local, localN, localV, albedo, metallic, roughness);
+    }
+#ifdef SHIP_SCENE_REFLECTIONS
+    o.radiance.rgb = ReflectionAerial(o.radiance.rgb, input.pos);
+    o.radiance.a = -max(o.radiance.a, 1e-6); // opaque overlay, included in the ship's temporal reprojection
+#else
     o.sunPart = float4(sunLit, 0.0);
+#endif
     return o;
 }

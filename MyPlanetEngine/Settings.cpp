@@ -105,6 +105,7 @@ Settings ReadSettings() {
     if (GetEnvironmentVariableW(L"MYPLANETENGINE_VIEW", view, 16) > 0) s.view = DiagnosticView(view);
     wchar_t tests[MAX_PATH] = {};
     if (GetEnvironmentVariableW(L"MYPLANETENGINE_TESTS", tests, MAX_PATH) > 0) s.tests = tests;
+    if (GetEnvironmentVariableW(L"MYPLANETENGINE_FIRST_TEST", tests, MAX_PATH) > 0) s.firstTest=unsigned(std::max(0,_wtoi(tests)));
     wchar_t batch[MAX_PATH] = {};
     if (GetEnvironmentVariableW(L"MYPLANETENGINE_BATCH", batch, MAX_PATH) > 0) {
         s.batch = true;
@@ -168,7 +169,9 @@ Settings ReadSettings() {
     wchar_t map[MAX_PATH] = {};
     if (GetEnvironmentVariableW(L"MYPLANETENGINE_MAP", map, MAX_PATH) > 0) s.map = map;
     if (GetEnvironmentVariableW(L"MYPLANETENGINE_SEED", map, MAX_PATH) > 0) s.seed = uint32_t(_wtoi(map));
-    s.glare = GetEnvironmentVariableW(L"MYPLANETENGINE_GLARE", nullptr, 0) > 0;
+    wchar_t glare[8] = {};
+    if (GetEnvironmentVariableW(L"MYPLANETENGINE_GLARE", glare, _countof(glare)))
+        s.glare = wcscmp(glare, L"0") != 0;
     if (!s.cinePath.empty()) s.vsync = false;
     s.coordinates = !s.Automated();
     wchar_t coordinates[8] = {};

@@ -17,7 +17,7 @@ struct Settings
     bool faceted = false;   // MYPLANETENGINE_FACETED: key R at startup
     bool taa = true;        // MYPLANETENGINE_TAA=0 disables temporal smoothing; diagnostics bypass it; key T
     bool foliageWhiteNoise = false; // functional control for the coverage sequence
-    bool glare = false;     // MYPLANETENGINE_GLARE: the lens's glare
+    bool glare = true;      // The lens's glare; MYPLANETENGINE_GLARE=0 disables it for inspection.
     float view = 0.0f;      // MYPLANETENGINE_VIEW: a diagnostic view (DiagnosticView), 0 for none
     // MYPLANETENGINE_FACE_FACTOR: the face's half-width over the height above the ground (keys K, L).
     double faceFactor = 2.0;
@@ -65,6 +65,7 @@ struct Settings
     uint32_t seed = 0;
     // MYPLANETENGINE_TESTS: the test views' file (D3DApp::ReadTests).
     std::wstring tests;
+    unsigned firstTest=0; // optional one-based starting view from the review route
 
     // The benches (D3DApp.h): MYPLANETENGINE_CAPTURE, a .bmp path, and MYPLANETENGINE_CAPTURE_FRAME, the frame saved
     // there; MYPLANETENGINE_TREMBLE, a path prefix, its speed, MYPLANETENGINE_TREMBLE_SPEED, and frames,
