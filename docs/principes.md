@@ -24,12 +24,14 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 
 ## The established rules
 
-**Flight attitude is independent of planetary coordinates** (`spec-vaisseau.md`).
-- Translating a free camera or spacecraft does not rotate its attitude or bend its velocity around a body.
-- Choosing the nearby body for terrain, contact or altitude does not steer the observer.
-- Camera movement follows its own orthonormal axes; pitch and roll can cross nadir, zenith and a full turn.
-- Do not level the view when switching between free camera and ship; explicit test placement supplies a complete frame.
-- Walking alone follows the local gravity vertical; terrain contact remains active in flight.
+**The observer chooses the flight reference frame** (`spec-vaisseau.md`).
+- Free flight and spacecraft retain their world-space attitude through translation and terrain handovers.
+- Horizon and Fixed altitude use the body with the nearest surface on entry and keep that reference when switching between them.
+- Horizon alignment preserves position and aim and levels the screen against the local vertical.
+- In Horizon, forward and reverse follow the full sightline. Pitch sets the angle of descent or climb.
+- Fixed altitude carries forward and sideways movement around the body at the current radius. Radial input adjusts that radius.
+- Transport the orbit heading to the position accepted by terrain contact, including at the poles.
+- Releasing orbit keeps the current view. Walking uses the local gravity vertical.
 
 **The celestial sky belongs to the lit world** (`spec-ciel-celeste.md`).
 - Finite bodies share positions, radii, phases and illumination; their angular size and parallax follow distance.

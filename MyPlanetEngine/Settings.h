@@ -36,7 +36,7 @@ struct Settings
     double seaTime = 0.0, seaTimeRate = 1.0;
     float oceanSpeed = 12.0f, oceanDirection = 70.0f, oceanSwell = 1.8f;
 
-    // The ship: MYPLANETENGINE_VAISSEAU=cockpit, poursuite, sans, libre or marche, the first view, when shipSet; the glass's
+    // MYPLANETENGINE_VAISSEAU selects the first view (cockpit, poursuite, sans, libre, orbite, altitude-fixe or marche); the glass's
     // weather forced for the captures, MYPLANETENGINE_VERRIERE=pluie, nuage or givre (1, 2, 3).
     std::wstring ship;
     bool shipSet = false;

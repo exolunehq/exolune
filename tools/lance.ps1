@@ -6,7 +6,7 @@
 # powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 [-Build] [-NoLaunch] [-Parcours tools\tests\<date>.txt]
 #     [-Position '<alt> <lat> <lon> <tangage> <cap>'] [-Soleil '<lat> <lon>'] [-Resolution '1920 1080' | fenetre]
 #     [-ModeleVaisseau chasseur | classique | navigateur] [-PassePleine] [-SansNuages] [-Exe <exécutable>] [-Scans <dossier>] [-Plantes <catalogue>]
-#     [-Camera cockpit | poursuite | sans | libre | marche]
+#     [-Camera cockpit | poursuite | sans | libre | orbite | altitude-fixe | marche]
 param(
     [switch]$Build,
     [switch]$NoLaunch,
@@ -22,7 +22,7 @@ param(
     [switch]$SansNuages,
     [ValidateSet('chasseur', 'classique', 'navigateur')]
     [string]$ModeleVaisseau = 'chasseur',
-    [ValidateSet('cockpit', 'poursuite', 'sans', 'libre', 'marche')]
+    [ValidateSet('cockpit', 'poursuite', 'sans', 'libre', 'orbite', 'altitude-fixe', 'marche')]
     [string]$Camera,
     # Un autre exécutable que x64\Release, par exemple une compilation à part (x64\Verif).
     [string]$Exe = '',

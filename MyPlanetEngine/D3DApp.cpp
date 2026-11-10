@@ -362,7 +362,9 @@ D3DApp::D3DApp(HINSTANCE hInstance, double startAltitude, double latitude, doubl
     if (mSettings.shipSet) {
         const wchar_t* choice = mSettings.ship.c_str();
         mStartWalking = !wcscmp(choice, L"marche");
-        mView = !wcscmp(choice, L"poursuite") ? View::Chase : !wcscmp(choice, L"libre") ? View::Free
+        if (!wcscmp(choice, L"orbite")) mCameraMode = CameraMode::Horizon;
+        if (!wcscmp(choice, L"altitude-fixe")) mCameraMode = CameraMode::FixedAltitude;
+        mView = !wcscmp(choice, L"poursuite") ? View::Chase : (mCameraMode != CameraMode::Free || !wcscmp(choice, L"libre")) ? View::Free
               : !wcscmp(choice, L"sans") ? View::Bare : View::Cockpit;
     }
     if (mView == View::Cockpit && !mShip.Profile().cockpit) mView = View::Chase;
@@ -373,6 +375,7 @@ D3DApp::D3DApp(HINSTANCE hInstance, double startAltitude, double latitude, doubl
 // pitchDown degrees below the horizon.
 void D3DApp::PlaceCamera(double latitude, double longitude, double pitchDown, double heading, double altitude) {
     ResetFlightContact();
+    mCameraBody = -1;
     const Vec3d up = LatLonToDir(latitude, longitude);
     const double lat=latitude*XM_PI/180.0,lon=longitude*XM_PI/180.0,cap=heading*XM_PI/180.0;
     const Vec3d north={-std::sin(lat)*std::cos(lon),std::cos(lat),-std::sin(lat)*std::sin(lon)};
@@ -2007,29 +2010,44 @@ void D3DApp::UpdateCamera(float dt) {
     // Keys only count when the window has the focus; the ground clamp below always applies.
     const bool focused = GetForegroundWindow() == mhMainWnd;
     auto held = [focused](UINT vk) { return focused && (GetAsyncKeyState(vk) & 0x8000) ? 1.0 : 0.0; };
-    const double arrows=held(VK_RIGHT)-held(VK_LEFT),rolling=held(VK_SHIFT);
-    FlightFrame::Turn(mCamForward,mCamUp,mMouseDx*.003,mMouseDy*.003,rolling*arrows*1.8*dt);
-    mMouseDx=mMouseDy=0;
-    const Vec3d right=Normalize(Cross(mCamUp,mCamForward));
+    const double arrows = held(VK_RIGHT) - held(VK_LEFT);
+    const bool freeLook = mCameraMode == CameraMode::Free;
+    const bool rolling = freeLook && held(VK_SHIFT);
     const double forward = held(mMoveKeys[0]) + held(VK_UP) - held(mMoveKeys[1]) - held(VK_DOWN);
-    const double strafe = held(mMoveKeys[3]) - held(mMoveKeys[2]) + (1-rolling)*arrows;
+    const double strafe = held(mMoveKeys[3]) - held(mMoveKeys[2]) + (rolling ? 0.0 : arrows);
     const double rise = held(mMoveKeys[5]) + held(VK_PRIOR) - held(mMoveKeys[4]) - held(VK_NEXT);
 
-    // Keys O and P: the sun turns around the planet's axis, a full day in about 30 seconds.
-    mSunDir = Rotate(mSunDir, kNorth, (held('P') - held('O')) * 0.2 * dt);
+    const Vec3d offset = mCamPos - mCameraCentre;
+    const bool localTerrain = mCameraBody == (mActiveMoon >= 0 ? mActiveMoon : Celestial::Exolune);
+    const double clearance = Length(offset) - mCameraRadius - (localTerrain ? mGroundHeight : 0.0);
+    const double step = mSpeedFactor * std::max(clearance, 1.0) * dt;
+    if (freeLook) {
+        FlightFrame::Turn(mCamForward, mCamUp, mMouseDx * .003, mMouseDy * .003, rolling ? arrows * 1.8 * dt : 0.0);
+    } else {
+        mOrbitFrame.Follow(offset); // include the previous frame's accepted terrain contact
+        mOrbitFrame.Look(mMouseDx * .003, mMouseDy * .003);
+        mOrbitFrame.View(mCamForward, mCamUp);
+    }
+    mMouseDx = mMouseDy = 0;
 
-    // Speed proportional to the height above the ground: from orbit to the ground in a few seconds.
-    const double clearance = std::max(SurfaceAltitude(mCamPos) - mGroundHeight, 1.0);
-    const Vec3d move = mCamForward * forward + right * strafe + mCamUp * rise;
-    Vec3d newPos = mCamPos + move * (mSpeedFactor * clearance * dt);
+    Vec3d newPos;
+    if (mCameraMode == CameraMode::FixedAltitude) {
+        const bool visualPlanet = mCameraBody >= int(Celestial::MoonCount) && mCameraBody != Celestial::Exolune;
+        newPos = mCameraCentre + mOrbitFrame.MoveAtFixedAltitude(offset, forward * step, strafe * step, rise * step,
+            visualPlanet ? mCameraRadius + 1.0 : 1.0);
+    } else {
+        const Vec3d liftAxis = freeLook ? mCamUp : mOrbitFrame.vertical;
+        newPos = mCamPos + FlightFrame::ViewTravel(mCamForward, mCamUp, liftAxis, forward, strafe, rise) * step;
+    }
 
     // Terrain contact is swept before accepting the candidate pose. Only the global sea floor is local here.
     double minRadius = PlanetRadius + (mFlightContactPSO ? 0.0 : mGroundHeight) + 1.0;
     if(mOcean && !mWaveReset && mGroundHeight<=0.0 && mSettings.tremblePath.empty())
         minRadius=std::max(minRadius,PlanetRadius+double(mOcean->SurfaceHeight())+0.75); // the ground with the materials' relief
-    if (Length(newPos) < minRadius) newPos = Normalize(newPos) * minRadius;
+    const double newRadius = Length(newPos);
+    if (newRadius < minRadius)
+        newPos = (newRadius > 0 ? newPos * (1.0 / newRadius) : Normalize(mCamPos)) * minRadius;
 
-    // Translation does not steer the observer toward any planetary horizon.
     mCamPos = newPos;
 }
 
@@ -2092,6 +2110,11 @@ void D3DApp::Draw() {
     const float dt = (float)(!mCine.empty() ? 1.0 / mCineFps : std::min(elapsed, 0.1));
     mLastTime = now;
     if (!mSettings.Automated() && !mWeatherPaused) mWeatherTime += elapsed * mWeatherRate;
+    // Sun input also moves the outer planets. Resolve their positions before moving an attached camera.
+    if (mView == View::Free && GetForegroundWindow() == mhMainWnd) {
+        const int turn = int(GetAsyncKeyState('P') < 0) - int(GetAsyncKeyState('O') < 0);
+        mSunDir = Rotate(mSunDir, kNorth, turn * 0.2 * dt);
+    }
     UpdateCelestialFrame();
     mClock += dt;
     const FlightPose flightBefore=FlightPoseNow();
@@ -2101,6 +2124,10 @@ void D3DApp::Draw() {
         else UpdateShip(dt);
     }
     PrepareFlightContact(flightBefore);
+    if (mView == View::Free && mCameraMode != CameraMode::Free) {
+        mOrbitFrame.Follow(mCamPos - mCameraCentre);
+        mOrbitFrame.View(mCamForward, mCamUp);
+    }
     UpdateWorldSound(dt);
     const bool shipDrawn = mView != View::Free && mView != View::Bare && mShip.Ready()
         && (mView != View::Walk || Length(mShipPos-mCamPos)<250.0);
@@ -2182,26 +2209,41 @@ void D3DApp::Draw() {
     // Keep the text out of temporal history and the terrain; ToneMap draws it after the film curve.
     mConstants->coordinateInfo = {};
     mConstants->coordinateInfo.z = mSettings.Automated() ? 0u : 1u | (mView==View::Walk ? 2u : 0u)
-        | (mAudioMuted || !mAudioReady ? 4u : 0u) | (mClock<mWalkNoticeUntil ? 8u : 0u);
+        | (mAudioMuted || !mAudioReady ? 4u : 0u) | (mClock<mWalkNoticeUntil ? 8u : 0u)
+        | (mView == View::Free ? unsigned(mCameraMode) << 4 : 0u);
     if (mView==View::Walk) {
         const unsigned surface=CurrentFootContact().Primary();
         mConstants->coordinateInfo.w=surface<FootContact::Count?surface+1:0;
     }
     if (mCoordinates) {
-        const Vec3d up=SurfaceUp(mCamPos);
+        const bool orbit = mView == View::Free && mCameraMode != CameraMode::Free;
+        const int body = orbit ? mCameraBody : (airless ? mActiveMoon : Celestial::Exolune);
+        const bool lunar = body >= 0 && body < int(Celestial::MoonCount);
+        const Vec3d up = orbit ? mOrbitFrame.vertical : SurfaceUp(mCamPos);
         const double lon = std::atan2(up.z, up.x), toDegrees = 180.0 / XM_PI;
         const Vec3d north = { -up.y * std::cos(lon), std::hypot(up.x, up.z), -up.y * std::sin(lon) };
         const Vec3d east = { -std::sin(lon), 0.0, std::cos(lon) };
         const Vec3d forward = Normalize(mCamForward);
         const double pitch = -std::asin(std::min(std::max(Dot(forward, up), -1.0), 1.0)) * toDegrees;
-        const double heading = std::atan2(Dot(forward, east), Dot(forward, north)) * toDegrees;
+        const Vec3d facing = orbit ? mOrbitFrame.heading : forward;
+        const double heading = std::atan2(Dot(facing, east), Dot(facing, north)) * toDegrees;
         char lines[2][64] = {};
-        snprintf(lines[0], sizeof(lines[0]), "LAT %.6f  LON %.6f  GRAINE %u",
-            std::asin(std::min(std::max(up.y, -1.0), 1.0)) * toDegrees, lon * toDegrees, airless?mMoonSurface.seed:mSettings.seed);
-        snprintf(lines[1], sizeof(lines[1]), "ALT MER %.1f M  TANGAGE %.2f  CAP %.2f",
-            Length(mCamPos) - PlanetRadius, pitch, heading);
-        if(airless)snprintf(lines[1],sizeof(lines[1]),"LUNE %d ALT SOL %.1f M  TANGAGE %.2f  CAP %.2f",
-            mActiveMoon+1,SurfaceAltitude(mCamPos)-mGroundHeight,pitch,heading);
+        const double lat = std::asin(std::min(std::max(up.y, -1.0), 1.0)) * toDegrees;
+        if (lunar || body == Celestial::Exolune)
+            snprintf(lines[0], sizeof(lines[0]), "LAT %.6f  LON %.6f  GRAINE %u",
+                lat, lon * toDegrees, lunar ? Celestial::Moons[body].seed : mSettings.seed);
+        else
+            snprintf(lines[0], sizeof(lines[0]), "LAT %.6f  LON %.6f", lat, lon * toDegrees);
+        if (body == Celestial::Exolune)
+            snprintf(lines[1], sizeof(lines[1]), "ALT MER %.1f M  TANGAGE %.2f  CAP %.2f",
+                Length(mCamPos) - PlanetRadius, pitch, heading);
+        else if (lunar && body == mActiveMoon)
+            snprintf(lines[1], sizeof(lines[1]), "LUNE %d ALT SOL %.1f M  TANGAGE %.2f  CAP %.2f",
+                body + 1, SurfaceAltitude(mCamPos) - mGroundHeight, pitch, heading);
+        else
+            snprintf(lines[1], sizeof(lines[1]), "%s %d ALT %.1f M  TANGAGE %.2f  CAP %.2f",
+                lunar ? "LUNE" : "PLANETE", lunar ? body + 1 : body - int(Celestial::MoonCount) + 1,
+                Length(mCamPos - mCameraCentre) - mCameraRadius, pitch, heading);
         mConstants->coordinateInfo.x = UINT(std::strlen(lines[0]));
         mConstants->coordinateInfo.y = UINT(std::strlen(lines[1]));
         static_assert(sizeof(lines) == sizeof(mConstants->coordinateText), "Coordinate text packing must match HLSL.");
@@ -2209,7 +2251,6 @@ void D3DApp::Draw() {
     }
     const float fovY = XMConvertToRadians((float)mCineFov);
     const float aspect = float(mClientWidth) / float(mClientHeight);
-    // Flight keeps its own attitude; the walking controller supplies its surface vertical.
     const Vec3d viewUp = mCamUp;
     const XMMATRIX view = XMMatrixLookToLH(XMVectorZero(), toLocal(mCamForward), toLocal(viewUp));
     const auto celestialBodies=Celestial::System(mWeatherTime,{mSunDir.x,mSunDir.y,mSunDir.z});
@@ -3223,15 +3264,30 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
         wchar_t ship[80];
         swprintf_s(ship, L" | %s : %s, %.0f m/s (Tab)", mShip.Profile().name, mView == View::Cockpit ? L"cockpit" : mView == View::Chase ? L"poursuite" : L"sans vaisseau", Length(mShipVelocity));
         wcscat_s(title, ship);
+    } else if (!mSettings.Automated()) {
+        const wchar_t* camera = mCameraMode == CameraMode::Horizon ? L" | Cam\u00e9ra horizon (D\u00e9but)"
+            : mCameraMode == CameraMode::FixedAltitude ? L" | Cam\u00e9ra altitude fixe (D\u00e9but)"
+            : L" | Cam\u00e9ra libre (D\u00e9but)";
+        wcscat_s(title, camera);
+        if (mCameraMode != CameraMode::Free) {
+            if (mCameraBody == Celestial::Exolune) wcscat_s(title, L" Exolune");
+            else {
+                wchar_t target[32];
+                const bool lunar = mCameraBody < int(Celestial::MoonCount);
+                swprintf_s(target, L" %s %d", lunar ? L"Lune" : L"Plan\u00e8te",
+                    lunar ? mCameraBody + 1 : mCameraBody - int(Celestial::MoonCount) + 1);
+                wcscat_s(title, target);
+            }
+        }
     }
     // The camera as the command line takes it: altitude, latitude, longitude, pitch down, heading.
     const Vec3d up = Normalize(mCamPos);
-    const double lat = std::asin(up.y), lon = std::atan2(up.z, up.x);
-    const Vec3d north = Normalize(kNorth - up * Dot(kNorth, up)), east = { -std::sin(lon), 0.0, std::cos(lon) };
+    const double lat = std::atan2(up.y, std::hypot(up.x, up.z)), lon = std::atan2(up.z, up.x);
+    const Vec3d east = { -std::sin(lon), 0.0, std::cos(lon) }, north = Cross(east, up);
     const double toDegrees = 180.0 / XM_PI;
     wchar_t position[96];
     swprintf_s(position, L" | position %.1f %.5f %.5f %.1f %.1f", Length(mCamPos) - PlanetRadius, lat * toDegrees,
-        lon * toDegrees, -std::asin(Dot(mCamForward, up)) * toDegrees,
+        lon * toDegrees, -std::asin(std::min(std::max(Dot(mCamForward, up), -1.0), 1.0)) * toDegrees,
         std::atan2(Dot(mCamForward, east), Dot(mCamForward, north)) * toDegrees);
     wcscat_s(title, position);
     wchar_t clouds[160];
@@ -3400,6 +3456,13 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         return 0;
     case WM_KEYDOWN:
         if (lParam & (1 << 30)) break; // ignore auto-repeat
+        if (wParam == VK_HOME && mView == View::Free) {
+            mCameraMode = FlightFrame::NextCameraMode(mCameraMode);
+            if (mCameraMode == CameraMode::Horizon) {
+                mCameraBody = -1; // acquire the local horizon once, then keep it when changing to fixed altitude
+                mHistoryValid = mCloudHistoryValid = false;
+            }
+        }
         if (wParam == 'J') ToggleWalking();
         if (wParam == 'Y') ToggleAudio();
         if (wParam == VK_SPACE && mView == View::Walk) mWalkJump = true;

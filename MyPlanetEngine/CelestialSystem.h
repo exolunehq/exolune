@@ -9,6 +9,7 @@
 namespace Celestial {
 constexpr double Pi = 3.14159265358979323846, AU = 149597870.7, PlanetRadius = 6378.0;
 constexpr unsigned MoonCount = unsigned(Moons.size()), BodyCount = 7, Sun = 6, StarCount = 42000;
+constexpr int Exolune = BodyCount; // the primary is at the origin, outside the ephemeris array
 struct Vector {
     double x, y, z;
     Vector operator+(Vector b) const { return {x+b.x,y+b.y,z+b.z}; }
@@ -22,6 +23,20 @@ struct Body {
     Vector position, albedo, toSun;
     double radius, sunlight, kind;
 };
+// Select by distance to the surface in kilometres. Orbit mode holds this selection until released.
+inline int NearestOrbitBody(const std::array<Body,BodyCount>& bodies, Vector observer) {
+    int nearest = Exolune;
+    double clearance = Length(observer) - PlanetRadius;
+    for (unsigned i = 0; i < bodies.size(); ++i) {
+        if (i == Sun) continue;
+        const double distance = Length(observer - bodies[i].position) - bodies[i].radius;
+        if (distance < clearance) {
+            nearest = int(i);
+            clearance = distance;
+        }
+    }
+    return nearest;
+}
 inline double Clamp(double x,double lo,double hi) { return std::max(lo,std::min(hi,x)); }
 inline double Phase(double cosine) {
     cosine=Clamp(cosine,-1.0,1.0);

@@ -110,11 +110,16 @@ float3 ActionOverlay(float3 color, int2 pixel, int2 size)
     const uint mute[12] = {89,32,32,83,79,78,32,67,79,85,80,69};
     const uint cursor[18] = {65,76,84,32,67,85,82,83,69,85,82,32,32,32,32,32,32,32};
     const uint blocked[18] = {83,79,76,32,73,77,80,82,65,84,73,67,65,66,76,69,32,32};
+    const uint freeCam[18] = {67,65,77,32,76,73,66,82,69,32,45,32,68,69,66,85,84,32}; // CAM LIBRE - DEBUT
+    const uint horizonCam[18] = {72,79,82,73,90,79,78,32,45,32,68,69,66,85,84,32,32,32}; // HORIZON - DEBUT
+    const uint fixedCam[18] = {65,76,84,32,70,73,88,69,32,45,32,68,69,66,85,84,32,32}; // ALT FIXE - DEBUT
+    const uint cameraMode = flags >> 4;
     const uint c = q.x/6;
     if (c >= (hint?18u:12u) || q.x%6>=5) return background;
-    const uint ch = hint ? ((flags&8u)!=0u?blocked[c]:(flags&2u)!=0u?ContactCharacter(coordinateInfo.w,c):cursor[c])
+    const uint ch = hint ? ((flags&8u)!=0u?blocked[c]:(flags&2u)!=0u?ContactCharacter(coordinateInfo.w,c):
+                            cameraMode==3u?fixedCam[c]:cameraMode==2u?horizonCam[c]:cameraMode==1u?freeCam[c]:cursor[c])
         : button0 ? ((flags&2u)!=0u?ship[c]:walk[c]) : ((flags&4u)!=0u?mute[c]:sound[c]);
-    const uint glyph = ch>=65u && ch<=90u ? ch-65u+10u : 38u;
+    const uint glyph = ch>=65u && ch<=90u ? ch-65u+10u : ch==45u ? 37u : 38u;
     const uint bit = uint(q.y*5+q.x%6);
     return ((COORDINATE_GLYPHS[glyph][bit/32u]>>(bit%32u))&1u)!=0u ? float3(0.9,0.95,1.0) : background;
 }
