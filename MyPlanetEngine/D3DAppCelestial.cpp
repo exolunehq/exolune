@@ -65,6 +65,8 @@ bool D3DApp::CelestialRect(Vec3d centre,double radius,D3D12_RECT& rectangle) con
 }
 void D3DApp::UpdateCelestialFrame() {
     const auto bodies=Celestial::System(mWeatherTime,{mSunDir.x,mSunDir.y,mSunDir.z});
+    const bool levelCamera = mView == View::Free && mCameraMode != CameraMode::Free;
+    const bool orbitLocked = levelCamera && mCameraBody >= 0;
     // Each observer follows its own nearby body; a free camera cannot tow a ship on another moon.
     // Distant spacecraft keep their inertial position. Cine supplies an explicit pose each frame.
     if(mMoonFrameValid && mCine.empty()) {
@@ -74,8 +76,28 @@ void D3DApp::UpdateCelestialFrame() {
             const Vec3d motion=Vec3d{p.x*1000,p.y*1000,p.z*1000}-WorldVec(mMoonCentres[moon]);
             position=position+motion;if(previous)*previous=*previous+motion;
         };
-        transport(mCamPos,&mPrevCamPos);transport(mShipPos,&mPrevShipPos);
+        if (!orbitLocked) transport(mCamPos,&mPrevCamPos);
+        transport(mShipPos,&mPrevShipPos);
         transport(mWalkFoot);transport(mWalkReturnPos);transport(mWalkPatchCentre);
+    }
+    if (mView == View::Free) {
+        if (!orbitLocked)
+            mCameraBody = Celestial::NearestOrbitBody(bodies, {mCamPos.x*.001, mCamPos.y*.001, mCamPos.z*.001});
+        Vec3d centre = {};
+        mCameraRadius = PlanetRadius;
+        if (mCameraBody != Celestial::Exolune) {
+            const auto& body = bodies[mCameraBody];
+            centre = {body.position.x*1000, body.position.y*1000, body.position.z*1000};
+            mCameraRadius = body.radius * 1000;
+        }
+        if (orbitLocked) {
+            const Vec3d motion = centre - mCameraCentre;
+            mCamPos = mCamPos + motion;
+            mPrevCamPos = mPrevCamPos + motion;
+        } else if (levelCamera) {
+            mOrbitFrame.Align(mCamPos - centre, mCamForward, mCamUp);
+        }
+        mCameraCentre = centre;
     }
     for(unsigned i=0;i<Celestial::MoonCount;++i) {
         const auto& p=bodies[i].position;mMoonCentres[i]={p.x*1000,p.y*1000,p.z*1000};

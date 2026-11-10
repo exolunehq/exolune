@@ -2,6 +2,16 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-10 · Free flight, horizon lock and fixed altitude**
+
+- Home cycles the detached camera through Free, Horizon and Fixed altitude.
+- Horizon restores the former sightline movement with level roll. Forward dives or climbs with the camera pitch.
+- Fixed altitude keeps forward and sideways travel at constant radius. Page Up/Down sets the radius.
+- Both level modes transport heading along the displacement accepted by terrain contact.
+- Review `tools/tests/2026-11-10.txt` with `-Camera orbite -DepartTest 1`. F1 approaches the coast and F5 looks straight down at Moon 2.
+- Release x64 opens at F1 in Horizon. CPU checks cover pitched approaches and fixed-radius passes at four radii, body selection and terrain contact.
+- Milestone `jalon/modes-camera-2026-11-10` marks the integration into main.
+
 **2026-11-09 · Integrate the generated city with current main**
 
 - **Parents.** Public main `b9d0b94` and city `289f4e9`, including its generated undergrowth dependency.

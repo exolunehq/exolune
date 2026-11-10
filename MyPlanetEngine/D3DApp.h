@@ -559,6 +559,12 @@ protected:
     // Camera, in planet coordinates (planet centre at the origin).
     Vec3d mCamPos = {};
     Vec3d mCamForward = {};
+    using CameraMode = FlightFrame::CameraMode;
+    CameraMode mCameraMode = CameraMode::Free;
+    int mCameraBody = -1;      // reacquire on entry or placement
+    Vec3d mCameraCentre = {};
+    double mCameraRadius = PlanetRadius;
+    FlightFrame::Orbit mOrbitFrame;
     double mGroundHeight = 0.0; // terrain height under the camera, read back from the GPU
     double mFaceFactor = 2.0;   // face half-width = factor x height above the ground
     double mSpeedFactor = 0.1;  // speed = factor x height above the ground, per second: a few hundred m/s at cloud height
@@ -575,8 +581,8 @@ protected:
     POINT mLastMouse = {};
 
     // The player's ship (Ship.h, assets/vaisseau; D3DAppShip.cpp): flown with keyboard and mouse, seen from its cockpit
-    // or from behind; Tab goes from the cockpit to the chase view, then to the free camera.
-    // MYPLANETENGINE_VAISSEAU=cockpit, poursuite or libre chooses the first view (the benches start free);
+    // or from behind. Tab cycles ship views. Backspace detaches the camera.
+    // MYPLANETENGINE_VAISSEAU selects the initial view (the benches start free);
     // MYPLANETENGINE_VERRIERE=pluie, nuage or givre forces the glass's weather, for the captures. See UpdateShip.
     enum class View { Free, Cockpit, Chase, Bare, Walk }; // Walk leaves the stationary ship at its saved pose
     View mView = View::Free;
@@ -600,7 +606,7 @@ protected:
     double mHeadTilt = 0.0, mHeadTiltRate = 0.0; // the head's roll behind the ship's, towards the left (rad)
     double mPlume = 0.0;    // the engines' plume, 0 to 1: the gas, following it as the speed does (ShipPlume.hlsli)
     double mJets[5] = {};   // the attitude jets' commands, -1 to 1: slide right, lift, roll right, pitch up, yaw right
-    Vec3d mCamUp = {};             // independent flight attitude; walking alone follows the surface vertical
+    Vec3d mCamUp = {};             // screen up supplied by the current controller
     Vec3d mChaseOffset = {};       // the chase camera from the ship, lagging behind its turns
     Vec3d mPrevShipPos = {}, mPrevShipForward = {}, mPrevShipUp = {};
     double mRawDx = 0.0, mRawDy = 0.0; // raw mouse motion, the ship's views

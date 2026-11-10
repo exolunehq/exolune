@@ -1,0 +1,15 @@
+# Start in Horizon with -Camera orbite -DepartTest 1. Home cycles Free -> Horizon -> Fixed altitude -> Free.
+# F1: hold forward (Z/W or Up) to descend along the view. Look up with right drag and advance to climb.
+# Press Home once and use F1 again. The same forward input now holds altitude. Page Up/Down changes it.
+# F5: looking straight down at Moon 2, compare a direct approach in Horizon with travel across the surface at fixed altitude.
+Exolune - approche de la cote | 12000 12.044015 -89.362108 25 -124 | 10 -100
+Exolune - horizon a 400 km | 400000 -0.5 -18.225 20 85 | 10 -5
+Exolune - franchir le pole Nord | 2000000 88 37 39 0 | 65 35
+Lune 1 - horizon du cratere | 250000 20 15 29 -102 lune1 | -25 55
+Lune 2 - explorer au nadir | 250000 20 15 90 0 lune2 | -25 55
+Lune 3 - pres du sol | 150 20 60 2 -92 lune3 | -25 55
+# At the paused starting epoch, this zenith points straight at Moon 3. Switch to free, fly forward,
+# use the wheel for speed, then switch to orbit on approach and move sideways around the moon.
+Transfert libre - depart vers la lune 3 | 8000000 -1.155833 159.603080 -90 0 | 5 -20
+# Sunny side of the first outer planet at the starting epoch, with the Sun at 10, -5.
+Planete exterieure 1 - disque eclaire | 94824955761.37 13.986923287 -47.976928958 9.07311638 -89.51792524 | 10 -5

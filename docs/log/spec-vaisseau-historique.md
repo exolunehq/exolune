@@ -1,5 +1,15 @@
 # Ship and camera history
 
+**2026-11-10 · First orbit control trial**
+
+- Forward input originally followed the surface at every pitch in the horizon-aligned camera.
+- This behaviour became Fixed altitude when Horizon regained the earlier sightline movement.
+
+**2026-11-10 · Detached camera before selectable orbit**
+
+- Free flight was the only detached mode. Pilots aligned the horizon with manual roll.
+- Walking was the only controller that aligned the observer to a local vertical.
+
 **2026-11-08 · Free look preserved during contact recovery**
 - Terrestrial contact recovery and invalid-query rollback restored the complete saved camera pose.
 - Repeated recovery could discard accumulated mouse look even though the free-camera contact shape is spherical.

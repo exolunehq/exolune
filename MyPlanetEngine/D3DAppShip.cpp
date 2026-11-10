@@ -169,6 +169,7 @@ void D3DApp::HoldMouse(bool hold) {
 
 void D3DApp::SetView(View view) {
     ResetFlightContact();
+    mCameraBody = -1;
     if (view == View::Cockpit && !mShip.Profile().cockpit) view = View::Chase;
     if (mView == View::Walk) { mWalkProbePending=mWalkPatchValid=false; mWalkJump=false; }
     if (view != View::Free && view != View::Walk && mView == View::Free) PlaceShipAtCamera(); // the ship comes to the free camera

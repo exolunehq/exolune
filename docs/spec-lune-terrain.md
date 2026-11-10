@@ -71,8 +71,9 @@
 
 **Landing and reference frames**
 - Positions and body-relative subtraction use doubles; the common renderer uses camera-relative coordinates.
-- Flight up, speed scaling, altimeters and walking use the nearby body's centre.
-- Near any moon, the observer and landed ship follow that body's orbital translation.
+- Horizon and Fixed altitude share the selected body's local vertical. Forward follows the sightline in Horizon and the surface in Fixed altitude.
+- Free-camera attitude follows its own axes. Its speed scales with clearance to the nearest surface.
+- Near a moon the free camera and landed ship follow its orbital translation. An orbit camera follows its selected body at any distance.
 - The prototype does not rotate the lunar surface or integrate spacecraft orbital dynamics.
 - Flight sweeps the travelled segment through the shared relief field, including orbital chords.
 - The swept spherical hull is conservative; exhausting the query budget stops motion at the last tested position.

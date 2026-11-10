@@ -2,6 +2,8 @@
 
 **The executable alone runs the game:** `x64\Release\MyPlanetEngine.exe`, without any environment variables. For an in-flight review, `tools/lance.ps1` builds it if needed, then opens it with the “Tests” palette.
 
+**Camera review** uses `tools/tests/2026-11-10.txt` with `-Camera orbite -DepartTest 1`. At F1, hold forward to descend towards the coast in Horizon. Press Home, select F1 again and repeat in Fixed altitude. F5 points straight down at Moon 2.
+
 **Three-moon review:** `tools/tests/2026-11-08-trois-lunes.txt`. Launch with `-DepartTest 1 -Resolution fenetre -Camera libre` to begin at moon 2. F1–F8 cover orbit, approach, contact and walking on the new surfaces; F9–F12 cover moon 1, distant moon 2, Exolune and polar terrain. `J` disembarks. `lune` / `lune1`, `lune2` and `lune3` select a body; lunar altitude means clearance above its own terrain. `marche` explicitly selects walking for a route row. Cook all atlases with `tools/prepare_airless.ps1` in a fresh worktree. See `spec-lune-terrain.md` for limits.
 
 **Cloud continuity review:** `tools/tests/2026-11-08-transition-nuages.txt` holds geography and sunlight fixed from 40,000 km to 500 km. The distant terrain blend must preserve the same cloud layers.
@@ -52,7 +54,7 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 - **`-Soleil '<lat> <lon>'`:** sun position, `10 -5` by default.
 - **`-Resolution '1920 1080'`** by default, full screen; `fenetre` for a 1280x720 window, where the palette is visible.
 - **`-ModeleVaisseau chasseur|classique|navigateur`:** the approved fighter by default; `classique` loads the preserved triangular ship; `navigateur` loads the smooth chrome ship and its panoramic cockpit. Direct executable launches use `MYPLANETENGINE_MODELE_VAISSEAU`; without it, the fighter. Navigator review: `tools/tests/2026-11-03-navigateur-cockpit.txt`; details: `spec-navigateur-cockpit-son.md`.
-- **`-Camera cockpit|poursuite|sans|libre|marche`:** explicitly select the initial camera mode; omitted, retain the normal cockpit default. Backspace toggles free camera and cockpit. Free camera supports right-drag look and Shift + left/right arrow roll without orbital steering.
+- **`-Camera cockpit|poursuite|sans|libre|orbite|altitude-fixe|marche`** selects the initial view. `orbite` starts in Horizon. The default is the cockpit.
 - **`-PassePleine`:** clouds in a single pass, without their temporal pass (`optimisation.md`); for comparison.
 - **`-SansNuages`:** start with clouds hidden for terrain review; N toggles them during flight. Use this option for the current erosion review.
 - **`-Scans <dossier>`:** ground photos.
@@ -149,6 +151,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/cine/rendre.ps1 -Parco
 
 ## In-flight keys
 
+- **Backspace** detaches the camera or returns to the cockpit.
+- **Home (Début)** cycles the detached camera through Free, Horizon and Fixed altitude.
+- **Horizon** keeps the horizon level. Right-drag to look down and hold W/Z or Up to descend along the view. Look up and advance to climb.
+- **Fixed altitude** carries the arrows or WASD/ZQSD around the body at constant radius. Page Up/Down changes altitude in both horizon-aligned modes.
+- **Free flight** uses the same movement keys along the camera's own axes. Shift + Left/Right rolls. The wheel adjusts speed in all three modes.
 - **J / Marcher button:** instant ground placement; J again returns to the saved ship. Hold Alt or toggle M to click the upper-left buttons.
 - **Walking:** WASD/ZQSD or arrows; Shift runs, Ctrl crouches, Space jumps, H toggles bob. Y / Son button mutes audio.
 - **Walking route:** `tools/tests/2026-11-02-marche-main.txt`; an optional `marche` pose token places a test on current terrain.

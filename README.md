@@ -112,14 +112,17 @@ The game starts in the cockpit. Key positions are physical: on AZERTY, W A S D a
 | Shift, X | Boost, brake |
 | Right mouse button held | Free look |
 | Tab | Cockpit, chase view, ship hidden |
-| Backspace | Free camera, and back to the cockpit |
+| Backspace | Detach the camera or return to the cockpit |
 | Alt held | Releases the mouse, to reach the Tests palette |
 
-| Free camera | |
+| Detached camera | |
 |---|---|
+| Home (Début) | Cycle through Free, Horizon and Fixed altitude |
 | Right mouse button held | Look around |
-| W A S D, arrows | Move |
-| E / Q, Page Up / Page Down | Up / down |
+| W / S, Up / Down | Fly along the sightline in Free and Horizon. Follow the surface in Fixed altitude. |
+| A / D, Left / Right | Strafe |
+| E / Q, Page Up / Page Down | Rise or descend along the camera axis in Free or the local vertical in either level mode |
+| Shift + Left / Right | Roll in free flight |
 | Mouse wheel | Speed, proportional to the height above the ground |
 
 | Everywhere | |

@@ -30,6 +30,14 @@ int main() {
     assert(previous>0.999);
     const auto system=System(0,{1,0,0});
     const auto later=System(86400,{1,0,0});
+    for (const auto& epoch : {system, later}) {
+        assert(NearestOrbitBody(epoch, {PlanetRadius+400,0,0}) == Exolune);
+        assert(NearestOrbitBody(epoch, epoch[Sun].position) != int(Sun));
+        for (unsigned i=0; i<Sun; ++i) {
+            const auto& body = epoch[i];
+            assert(NearestOrbitBody(epoch, body.position+Vector{0,body.radius+800,0}) == int(i));
+        }
+    }
     for(unsigned i=0;i<BodyCount;++i) {
         const auto& b=system[i];
         assert(b.radius>0 && Length(b.position)>PlanetRadius+b.radius);
@@ -51,5 +59,5 @@ int main() {
     const Vector a={system[0].position.x*.90,system[0].position.y*.90,system[0].position.z*.90};
     const Vector b=a+Vector{1000,0,0};
     assert(Length(Unit(system[0].position-a)-Unit(system[0].position-b))>0.001);
-    std::cout<<"PASS: phase, finite solar penumbra, circular orbits, inverse-square flux, parallax, finite values\n";
+    std::cout<<"PASS: phase, finite solar penumbra, circular orbits, inverse-square flux, parallax and camera targets\n";
 }

@@ -203,15 +203,19 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - **Tab:** cockpit, chase, hidden ship.
   - **Then,** the right click rotates the camera all around the ship, from below to above, and all the way up to the front of it.
   - **The hidden ship** keeps the pilot's eye and the same controls, without hull or canopy glass: the widest view.
-- **Backspace:** toggle free camera and cockpit. The ship inherits the free camera's frame, including roll, before applying its normal cockpit head offset.
-- **Free camera:** right drag looks around its own axes; pitch has no vertical limit or horizon correction.
-- **Free-camera translation:** WASD/ZQSD or arrows move forward/back and sideways; Q/E (A/E on AZERTY) or Page Down/Up move along the camera's down/up axis. The wheel adjusts speed.
-- **Free-camera roll:** Shift + left/right arrow; unmodified arrows retain translation.
-- **Walking:** the surface vertical remains active only for the grounded controller.
-- **`MYPLANETENGINE_VAISSEAU=cockpit`, `poursuite`, `sans` or `libre` selects the first view.** The benchmarks are going free camera.
-- **Launcher:** `-Camera libre` starts directly in the independent camera; the omitted option retains the normal cockpit default.
-- **Review:** `tools/tests/2026-11-08-vol-libre.txt` covers both bodies, nadir, zenith, inverted pitch, a geographic pole and walking.
-- **Checks:** `tools/tests/check_flight_frame.ps1` exercises full turns, idle roll and 225 geographic/look placements; collision and walking checks retain their own suites.
+- **Backspace** detaches the camera or returns to the cockpit. The ship takes the camera's attitude before applying its cockpit head offset.
+- **Home** cycles the detached camera through Free, Horizon and Fixed altitude. The upper-left hint shows the active mode.
+- **Free flight** uses the camera's own axes for right-drag look and translation. Shift + Left/Right rolls through a full turn.
+- **Horizon** restores the original exploration controls. Forward and reverse follow the sightline, so holding forward while looking down descends towards the surface.
+- **Fixed altitude** moves forward and sideways along the surface at constant radius, even while looking straight down.
+- **Both level modes** follow the planet or moon selected on entry. Right drag yaws around its vertical and pitches from nadir to zenith. Switching between them keeps the same position and aim.
+- **Altitude** uses E/Q (E/A on AZERTY) or Page Up/Down. Lift follows the local vertical in the two level modes and the screen's up axis in free flight.
+- **The wheel** scales movement speed with clearance in all three modes.
+- **Terrain contact** applies to Exolune and all three moons. The three outer planets support orbit around their visible spheres.
+- **Walking** uses the local gravity vertical.
+- **Launch** with `-Camera libre`, `-Camera orbite` (Horizon) or `-Camera altitude-fixe`. The game starts in the cockpit by default.
+- **Review** the coastal approach at F1 and the downward lunar view at F5 in `tools/tests/2026-11-10.txt`. The same forward input distinguishes Horizon from Fixed altitude.
+- **Checks** in `tools/tests/check_flight_frame.ps1` cover the mode cycle, climbs and dives, fixed-radius travel and free attitude. `tools/tests/check_celestial.ps1` checks target selection across the system.
 
 ## Jets and shadows
 
