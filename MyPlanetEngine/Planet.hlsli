@@ -46,6 +46,18 @@ cbuffer Frame : register(b0)
     float4x4 cityFromFace,citySunShadow;
     float4 cityLandGrid; // xy origin, z cell size, w enabled
     uint4 cityLandBits[512]; // 256 x 256 occupied cells, natural-object exclusion only
+    // City earthworks (CityGrade.hlsli): the anchor direction, east and north in the planet frame.
+    double4 cityUp;       // w: edge rounding (m): the talus reaches its slope over this distance
+    float4 cityEast;      // w: talus knee (m)
+    float4 cityNorth;     // w: pad count, 0 without earthworks
+    float4 cityGradeGrid; // xy: index origin (m, city frame), z: cell size (m), w: default talus slope
+    float4 cityPads[1800]; // per pad: centre xy, yaw, talus slope; half extents, corner radius, height
+    uint4 cityGradeCells[256]; // 32 x 32 cells: first index | count << 16
+    uint4 cityGradeIndex[768]; // pad indices, 16 bits each
+    // The guideway's corridor beyond the land grid (CityLand.hlsli): no tree within its half width of the line.
+    float4 cityCorridorInfo;       // x: segment count, y: half width (m), z: box count
+    float4 cityCorridorBoxes[24];  // per 8 segments: min xy, max xy (city frame), widened by the half width
+    float4 cityCorridor[192];      // segments: start xy, end xy (city frame)
 };
 
 struct FaceVertex

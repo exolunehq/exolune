@@ -161,6 +161,7 @@
   <ItemGroup>
     <None Include="Atmosphere.hlsli" />
     <None Include="Relief.hlsli" />
+    <None Include="CityGrade.hlsli" />
     <None Include="Noise.hlsli" />
     <None Include="Planet.hlsli" />
     <None Include="FoliageCatalog.hlsli" />
@@ -186,6 +187,7 @@
     <None Include="Ship.hlsli" />
     <None Include="City.hlsli" />
     <None Include="CityInteriors.hlsli" />
+    <None Include="CityGenerated.hlsli" />
     <None Include="CityLand.hlsli" />
     <None Include="ShipClassique.hlsli" />
     <None Include="ShipChasseur.hlsli" />
@@ -531,17 +533,17 @@
     <FxCompile Include="WalkGround.hlsl">
       <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel>
       <EntryPointName>CSMain</EntryPointName><DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>Celestial.hlsli;SurfaceProbe.hlsli;Relief.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>Celestial.hlsli;SurfaceProbe.hlsli;Relief.hlsli;CityGrade.hlsli;CityGrade.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="FlightGround.hlsl">
       <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel>
       <EntryPointName>CSMain</EntryPointName><DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>SurfaceProbe.hlsli;FlightSweep.hlsli;Relief.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>SurfaceProbe.hlsli;FlightSweep.hlsli;Relief.hlsli;CityGrade.hlsli;CityGrade.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="WorldSound.hlsl">
       <ShaderType>Compute</ShaderType><ShaderModel>6.0</ShaderModel>
       <EntryPointName>CSMain</EntryPointName><DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>Celestial.hlsli;SurfaceProbe.hlsli;SurfaceWeights.hlsli;WorldWeather.hlsli;Materials.hlsli;Vegetation.hlsli;Planet.hlsli;Atmosphere.hlsli;Clouds.hlsli;Relief.hlsli;Terrain.hlsli;Mesh.hlsli;Shadows.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>Celestial.hlsli;SurfaceProbe.hlsli;SurfaceWeights.hlsli;WorldWeather.hlsli;Materials.hlsli;Vegetation.hlsli;Planet.hlsli;Atmosphere.hlsli;Clouds.hlsli;Relief.hlsli;CityGrade.hlsli;Terrain.hlsli;Mesh.hlsli;Shadows.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="TerrainComputePairs.hlsl">
       <ShaderType>Compute</ShaderType>
@@ -795,7 +797,7 @@
     </FxCompile>
     <FxCompile Include="CityPixel.hlsl">
       <ShaderType>Pixel</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>PSMain</EntryPointName>
-      <AdditionalInputs>City.hlsli;CityInteriors.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>City.hlsli;CityInteriors.hlsli;CityGenerated.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -1,3 +1,5 @@
+// The erosion and planet-map passes read the natural relief, never the city earthworks.
+#define CITY_NATURAL_RELIEF
 // The rivers' map for footprints wider than the level 0's cells (Erosion.hlsli, ErosionRiverMapRead), computed once at
 // startup after the activity index. Each texel of each padded face: the complete evaluation at its direction, filtered over
 // one of its cells, on the ground the rivers are drawn on, its channel beds folded into the ground's change.

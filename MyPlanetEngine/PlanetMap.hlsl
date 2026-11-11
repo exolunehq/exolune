@@ -1,3 +1,5 @@
+// The erosion and planet-map passes read the natural relief, never the city earthworks.
+#define CITY_NATURAL_RELIEF
 // The planet map (PlanetMap.hlsli), once at startup: the relief's elevation at the centre of every texel of the cube
 // (m), its octaves filtered to two texels, as the mesh's to two cells (TerrainCompute.hlsl). PlanetMap.cpp drains it.
 #include "Relief.hlsli"

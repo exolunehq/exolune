@@ -166,7 +166,28 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Compose habitat groups and planted commons before pedestrian connections.
 - Do not default to private frontage plots or vehicular grids for solarpunk settlements.
 - Sample the existing terrain; reject unsupported sites instead of silently flattening them.
-- Keep building access and manufactured foundations consistent with walking contact.
+- Seat every building, plaza, field and transport footing on an earthwork: a level pad at its median ground, cut and fill with banks of 1:2 at most that leave the pad without a crease. Beyond the banks the relief is untouched (`spec-ville-procedurale.md#earthworks`, 2026-11-11).
+- Grade once, for everyone: the terrain, its texture, vegetation, walking, flight contact and paths read the same graded ground. Passes that model the natural planet (erosion, planet map, city probe) read the natural relief.
+- A later earthwork never enters an earlier pad's level: bound its own level by what its bank allows at their distance.
+- A bank keeps the ground it was cut from: classify its materials by that ground, light it by its true slope. A built slope must not turn into scree because it is steeper than the hill.
+- Bound a pad's level against every earlier pad its bank could reach: the reach grows with their difference in level, never a fixed radius.
+- A path ramps up to 8 %, then climbs by steps up to 30 %. Steeper ground is not a path.
+- Plan water as an edge: keep a margin from every water surface. Until the engine exports rivers, a site states its river surface.
+- A fixed-height structure needs level ground along its whole line. On a slope it stays off; it never floats or buries. Its footings are pads at its datum.
+- A cable clears the graded ground between its supports: add pylons until it does. A pylon footing may cross a nature corridor; a building never does.
+- A path is built: level across, above the highest ground across it, with a curb and a stone side into the ground. Never drape a flat strip on a slope.
+- On a hill, the guideway follows a contour: its line stays level and its rings stand on short footings. A cable line never crosses it.
+- Plan fields, workshops and the spaceport first, where the terrain accepts them; crowns and gardens fill around them.
+- A district may be reached by cable car alone; its paths then form their own network.
+- Keep earthworks local: a bank twice as steep as its ground meets it within about half the pad's depth. Never grade a slope with a bank no steeper than it: it regrades the whole slope.
+- On a cliff, grade only at the scale of what stands there: a house, a pylon. Houses climb the face along a stair path, each on its own terrace.
+- Where neighbouring pads stand at different levels, steepen the bank between them as a terrace's retaining bank, never move the neighbour.
+- Nothing floats: set furniture into its lowest ground or on the paving it stands on, and keep the city's frame on the planet's curvature.
+- A transport line beyond the city keeps its own tree-free corridor; reaching another place is a branch of the same line, not a new grammar.
+- Keep trees out of transport lines: crowns must never cross a guideway or a cable.
+- A site's chosen places (farms, a cliff, the city's region) are stated beside its export, never coded as coordinates.
+- Only top surfaces are walkable; step risers and cables are structure.
+- Keep building access and earthworks consistent with walking contact.
 - Apply ground-occupation exclusion to natural objects through one shared mask.
 - Preserve exact source provenance and reject reduced shells that fail surface or visual review.
 - Approve a manufactured master against the original design in neutral views before production promotion. Explicitly requested exploratory series may compare variants while that art gate remains open; review every exact source before cooking it.
@@ -592,7 +613,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Design ecological corridors, shared destinations and density fields before individual buildings.
 - Review alternative masterplans before scaling a composition into a city.
 - Density comes from collective form and stacked uses, never an automatic private-plot frontage grammar.
-- Variants change wings, floors, terraces and access while retaining shared material and transport interfaces.
+- Form variety comes from distinct generated families. Procedural instance variation never changes a generated form, and neighbouring placements do not share a family (`spec-ville-procedurale.md`, 2026-11-11).
 - Union manufactured path surfaces before partitioning their materials; a junction must not contain doubled ground faces.
 - Bake only local ambient visibility into assets; never bake the current sun or multiply direct light by ambient occlusion.
 - Cull ground in bounded chunks and batch repeated shadow casters as well as visible geometry.
@@ -622,6 +643,13 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Verify design fidelity before material finishing, variants and LOD production. Compare silhouette, volume depth, overhangs, opening proportions and junction curvature with the canonical art reference; closed topology cannot compensate for architectural drift.
 - Keep art references and cleaned generation inputs distinct. Record design changes introduced by image preparation; a cleaner conditioning image does not replace the original design without review.
 - Derive close surface laminates from the actual supporting triangles. Matching sampled points on two independently tessellated curves does not prevent crossings between those points.
+- Keep a generated furnished interior as a baked room behind its glazing, never as geometry: colour and depth seen from the window plane, drawn by parallax (`spec-ville-procedurale.md`, 2026-11-11).
+- Reduce a generated draft ourselves to the asset's full budget. A hosted reduction capped below that budget discards detail the budget pays for (`spec-ville-procedurale.md#generated-first-draft-buildings`, 2026-11-11).
+- Block-compress displayed colour and normal atlases; keep data layers uncompressed. Signed-distance masks and split 16-bit depth do not survive block compression.
+- A generated atlas names materials; the runtime does not display it. Read one class per texel and render each class with a shared metric material. Close-range sharpness must not depend on the atlas resolution.
+- A material border is painted: another colour or the island edge lies just across it. A highlight or a shadow fades; return it to the surface around it.
+- A draft paints light and shadow into its colour. Read a generated material from hue first; lightness says little.
+- Judge a painted border on colour, then split by orientation. Classes that wear one colour do not bound each other.
 - Preserve declared assembly contacts at every LOD. Check projected triangle intersections, not only sampled points. Bound outward correction in metres and screen pixels; retain the preceding accepted level when the bound fails.
 - Preserve authored material semantics across export display-name changes. A structural variant must not silently fall back to untextured generic shading.
 - Derive virtual-room dimensions from the authored metric UV span. Glazing mullions do not necessarily delimit independent rooms.

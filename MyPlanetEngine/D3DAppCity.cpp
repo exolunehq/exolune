@@ -4,7 +4,9 @@
 #include <cstring>
 
 void D3DApp::UpdateCityFrame(const Vec3d& faceX,const Vec3d& faceY,const Vec3d& faceZ,FXMMATRIX viewProj) {
-    mConstants->cityLandGrid={};
+    mConstants->cityLandGrid={};mConstants->cityCorridorInfo={};
+    // No earthworks unless a city is loaded here: the frame and the flight contact read the pad count first.
+    mCityGrade.north.w=mConstants->cityGrade.north.w=0;
     if(!mCity.Ready())return;
     const double a=mCity.Latitude()*XM_PI/180.0,b=mCity.Longitude()*XM_PI/180.0;
     const Vec3d up={cos(a)*cos(b),sin(a),cos(a)*sin(b)},east={-sin(b),0,cos(b)},north={-sin(a)*cos(b),cos(a),-sin(a)*sin(b)};
@@ -20,6 +22,23 @@ void D3DApp::UpdateCityFrame(const Vec3d& faceX,const Vec3d& faceY,const Vec3d& 
     XMStoreFloat4x4(&mConstants->citySunShadow,XMMatrixTranspose(inverse*mCity.Shadow()));
     mConstants->cityLandGrid=mCity.LandGrid();
     memcpy(mConstants->cityLandBits,mCity.LandBits().data(),sizeof(mConstants->cityLandBits));
+    mConstants->cityCorridorInfo=mCity.CorridorInfo();
+    if(!mCity.Corridor().empty()){
+        memcpy(mConstants->cityCorridorBoxes,mCity.CorridorBoxes().data(),mCity.CorridorBoxes().size()*sizeof(XMFLOAT4));
+        memcpy(mConstants->cityCorridor,mCity.Corridor().data(),mCity.Corridor().size()*sizeof(XMFLOAT4));
+    }
+    // Earthworks: the relief shaders grade the ground under the city (CityGrade.hlsli).
+    const auto& pads=mCity.Pads();
+    if(pads.empty())return;
+    auto& g=mCityGrade;
+    g.up[0]=up.x;g.up[1]=up.y;g.up[2]=up.z;g.up[3]=mCity.Round();
+    g.east={float(east.x),float(east.y),float(east.z),mCity.Knee()};
+    g.north={float(north.x),float(north.y),float(north.z),float(pads.size()/2)};
+    g.grid=mCity.GradeGrid();
+    memcpy(g.pads,pads.data(),pads.size()*sizeof(XMFLOAT4));
+    memcpy(g.cells,mCity.GradeCells().data(),sizeof(g.cells));
+    memcpy(g.index,mCity.GradeIndex().data(),mCity.GradeIndex().size()*sizeof(UINT16));
+    memcpy(&mConstants->cityGrade,&g,sizeof(g));
 }
 
 void D3DApp::ApplyCityWalking() {
@@ -29,8 +48,10 @@ void D3DApp::ApplyCityWalking() {
     const Vec3d origin=up*PlanetRadius;
     for(int y=0;y<WalkTerrain::Side;++y)for(int x=0;x<WalkTerrain::Side;++x){
         const Vec3d point=mWalkPatchCentre+mWalkPatchX*((x-WalkTerrain::Side/2)*WalkTerrain::Cell)+mWalkPatchY*((y-WalkTerrain::Side/2)*WalkTerrain::Cell);
-        const Vec3d offset=point-origin;double height=mWalkTerrain.heights[y*WalkTerrain::Side+x];
-        if(mCity.Surface(Dot(offset,east),Dot(offset,north),height,height))mWalkTerrain.heights[y*WalkTerrain::Side+x]=float(height);
+        const Vec3d offset=point-origin;const double cx=Dot(offset,east),cy=Dot(offset,north);
+        // The walking probe reads the natural relief: grade it as the rendered ground, then add paths and decks.
+        double height=mCity.Grade(cx,cy,mWalkTerrain.heights[y*WalkTerrain::Side+x]);
+        mCity.Surface(cx,cy,height,height);mWalkTerrain.heights[y*WalkTerrain::Side+x]=float(height);
     }
 }
 

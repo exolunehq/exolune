@@ -110,6 +110,19 @@ protected:
     void WaitForPreviousFrame();
     D3D12_GPU_DESCRIPTOR_HANDLE GpuDescriptor(UINT index) const; // in mSrvHeap
 
+    // The city's earthworks (CityGrade.hlsli, City::Grade): anchor direction, frame, pads and their cell index. The same
+    // bytes end the frame constants and follow the flight contact's probe (FlightGround.hlsl).
+    struct CityGradeConstants
+    {
+        double up[4];       // w: edge rounding (m)
+        XMFLOAT4 east;      // w: talus knee (m)
+        XMFLOAT4 north;     // w: pad count, 0 without earthworks
+        XMFLOAT4 grid;      // xy: index origin (m), z: cell size (m), w: talus slope
+        XMFLOAT4 pads[1800];  // 900 pads (grading.MAX_PADS)
+        XMUINT4 cells[256];
+        XMUINT4 index[768];   // 6,144 entries (grading.MAX_INDEX)
+    };
+
     // Shared by the three shaders: must match Planet.hlsli.
     struct FrameConstants
     {
@@ -147,7 +160,12 @@ protected:
         XMFLOAT4X4 cityFromFace,citySunShadow;
         XMFLOAT4 cityLandGrid;
         XMUINT4 cityLandBits[512];
+        CityGradeConstants cityGrade;
+        XMFLOAT4 cityCorridorInfo;      // the guideway's tree-free corridor (CityLand.hlsli)
+        XMFLOAT4 cityCorridorBoxes[24];
+        XMFLOAT4 cityCorridor[192];
     };
+    static_assert(sizeof(FrameConstants) <= 65536, "The frame constants must fit one constant buffer view.");
 
     // The clouds' frame, b1 (Clouds.hlsli): the camera and the view in the planet frame (km), in double precision.
     struct CloudFrame
@@ -653,6 +671,7 @@ protected:
     void QueueFlightContact();
     ComPtr<ID3D12PipelineState> mFlightContactPSO;
     ComPtr<ID3D12Resource> mFlightPoints[2],mFlightContacts[2],mFlightReadback[2];
+    CityGradeConstants mCityGrade={}; // this frame's earthworks, for the frame and the flight contact
     FlightContact::Probe mFlightProbes[2];
     FlightContact::Span mFlightSpans[2];
     FlightPose mFlightBefore,mFlightAfter;

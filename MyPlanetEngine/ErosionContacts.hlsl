@@ -1,3 +1,5 @@
+// The erosion and planet-map passes read the natural relief, never the city earthworks.
+#define CITY_NATURAL_RELIEF
 // First standing-water contacts, prepared once after stage conditioning and stored with the drainage cache.
 // Each half of a main course is independent: a drowned incoming river must not erase a separate dry catchment.
 #include "Relief.hlsli"

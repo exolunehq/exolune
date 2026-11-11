@@ -1,3 +1,5 @@
+// The erosion and planet-map passes read the natural relief, never the city earthworks.
+#define CITY_NATURAL_RELIEF
 // Step B's first startup pass (docs/spec-erosion.md, the corridors), when the level 0 is computed: at each cell's node,
 // its meanders' sinuosity, falling on the steep 25 km forms, its valley floor's factor, wider in erodible rock and narrower
 // in mountains, and the forms' relief amplitude and the rock's erodibility, which set its corridor's walls

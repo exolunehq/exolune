@@ -1,0 +1,16 @@
+# Hill city on earthworks: level pads with grassy 1:2 banks instead of stilts and plinths; the spaceport, field terraces and the cable car.
+# Launch with -Ville E:/ExoluneAssets/city-tripo-2026-11-11/delivery-05/bank. F1-F2 city-wide, F3-F6 banks, F7-F9 cable car, F10-F11 spaceport, F12 and the palette's last button fields.
+# The free camera's contact meets the graded ground: the cut view stands on the building's apron, below the natural slope.
+Ville depuis la rivière | 420.451 -10.9909333271 63.6840250000 3.485 180.000 | -5.995425 33.684025
+Ville, flanc est | 416.169 -10.9940774728 63.6879600592 3.307 -100.685 | -5.995425 33.684025
+Remblai sous une tour | 363.183 -10.9935461035 63.6858143057 -18.859 179.992 | -5.995425 33.684025
+Talus de remblai, vu de haut | 371.575 -10.9934023699 63.6858142836 6.075 179.992 | -5.995425 33.684025
+Déblai derrière un hangar | 350.612 -10.9925638183 63.6884690434 -30.946 -173.576 | -5.995425 33.684025
+Place en pente | 383.513 -10.9946267363 63.6825456438 -2.901 -135.830 | -5.995425 33.684025
+Téléphérique, pylône et câbles | 378.500 -10.9944184849 63.6824369784 -27.835 -61.421 | -5.995425 33.684025
+Téléphérique, vue haute | 440.682 -10.9939693079 63.6811100427 22.348 116.565 | -5.995425 33.684025
+Gare du téléphérique | 333.951 -10.9923792839 63.6814949304 -4.616 -56.310 | -5.995425 33.684025
+Astroport, plateforme | 491.335 -10.9931173629 63.6866490978 47.488 30.751 | -5.995425 33.684025
+Aire d'atterrissage et navette | 344.057 -10.9924694626 63.6871133965 8.903 -60.000 | -5.995425 33.684025
+Terrasses de cultures | 400.839 -10.9920461677 63.6821181447 45.008 -53.130 | -5.995425 33.684025
+Terrasse cultivée, de près | 327.421 -10.9916734380 63.6817807763 2.308 -57.265 | -5.995425 33.684025

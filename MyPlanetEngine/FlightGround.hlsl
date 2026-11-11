@@ -1,12 +1,17 @@
 // Sample and sweep a bounded terrain corridor. Only per-group first contacts reach the CPU through the frame fence.
-#include "Relief.hlsli"
-#include "SurfaceProbe.hlsli"
-#include "FlightSweep.hlsli"
+// The probe, then the city's earthworks as the frame carries them: the contact meets the graded ground (CityGrade.hlsli).
 cbuffer FlightPoints : register(b0) {
     double4 probeUp,probeAcross,probeAlong,probeGrid,probeShape;
     float4 movement;
     uint4 probeCount;
+    double4 cityUp; float4 cityEast,cityNorth,cityGradeGrid;
+    float4 cityPads[1800]; uint4 cityGradeCells[256]; uint4 cityGradeIndex[768];
 }
+#define CITY_GRADE_FIELDS
+#define CITY_GRADE_RADIUS (PLANET_RADIUS_KM*1000.0)
+#include "Relief.hlsli"
+#include "SurfaceProbe.hlsli"
+#include "FlightSweep.hlsli"
 RWStructuredBuffer<float4> contacts : register(u0); // fraction, outward normal in the probe's local frame
 groupshared float3 patch[33*33];
 groupshared float4 candidates[64];

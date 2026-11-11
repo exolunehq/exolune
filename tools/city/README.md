@@ -7,6 +7,87 @@
 - All generated files belong outside Git.
 - The existing ComfyUI and model paths are documented in [local3d](../foliage/local3d/README.md).
 
+<a id="generated-first-draft-building"></a>
+
+**Generated first-draft building**
+
+- Contract and limits: [generated first-draft buildings](../../docs/spec-ville-procedurale.md#generated-first-draft-buildings).
+- The form comes from a hosted generator. Install `tripo-cli` and sign in with `tripo login --region ov`; `tripo balance` shows the credits.
+- One asset costs 50 credits: H3.1 with detailed geometry. The user makes the input images with ChatGPT; spend no Tripo credits on images.
+- The draft is reduced locally, not by Tripo retopology: that service stops at 20,000 triangles and bakes normal and metal-roughness at 1,024 pixels.
+- Result URLs expire after five minutes; the CLI downloads at once. Keep every run folder and task ID on E:.
+
+```powershell
+tripo make '<clean-view.png>' --model H3.1 -p geometry_quality=detailed -p enable_image_autofix=true -p pbr=true `
+  --name '<name>' -o '<run>/draft' --json --yes
+& 'C:/Program Files/Blender Foundation/Blender 5.2/blender.exe' --background --factory-startup --python-exit-code 1 `
+  --python tools/city/generated_source.py -- --asset shell_house `
+  --model '<run>/draft/tripo-out/<folder>/model.glb' --out '<delivery>/models'
+& C:/Python313/python.exe tools/city/integrate_generated.py `
+  --base E:/ExoluneAssets/city-series-2026-11-08/candidate-02 --out '<delivery>' --assets shell_house `
+  --terrain '<current-terrain>.request.bin'
+& C:/Python313/python.exe tools/city/review_native.py --houses --bank '<delivery>/bank' --out '<delivery>/native-houses' `
+  --plants E:/ExoluneAssets/understory-2026-11-04/review-bank-generated-ground
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 `
+  -Parcours tools/tests/2026-11-10-maison-generee.txt -Ville '<delivery>/bank' `
+  -Plantes E:/ExoluneAssets/understory-2026-11-04/review-bank-generated-ground -Resolution fenetre
+```
+
+- The clean view comes from ChatGPT: same architecture and camera, plants and outdoor props removed, the furnished interior visible behind the glazing, plain background.
+- The user validated this route on 2026-11-11: clean view, H3.1 draft, `generated_source.py`, common cooker. The same day the user validated the local reduction in place of the retopology, for close-range detail.
+- `generated_batch.py --out '<delivery>/models' <asset>...` builds several sources from `draft.model_path` in the spec. It retries an obstructed open entrance 2 m apart along the front and records the passing position.
+- `generated_source.py` options for assets without a door: no `entry`; `length_m` for a beam segment; `anchor` `top` or `centre`; `align` to square a turned draft to its smallest rectangle.
+- A second bank on another terrain reuses the cooked files: copy `library.*`, `materials.json`, `texture*.bin`, `atlas*.bin`, `cook-state.json` and `overrides.json` into a new bank folder, then run `produce.py` with `--bank` and the other `--terrain`. The cook is skipped.
+- `bc.py` compresses displayed atlases at cook time; run it alone for its self-check.
+
+<a id="clean-views-and-variants-with-chatgpt"></a>
+
+**Clean views and variants with ChatGPT**
+
+- The agent drives the user's ChatGPT through Claude in Chrome. It needs the user's go-ahead for the session and spends no Tripo credits.
+- Crop each board panel at full resolution from the user's downloads. Keep the board hash and the crop hash in `assets/city/generated-buildings.json`.
+- Open one new chat per image; three tabs run in parallel. Attach the panel through the hidden file input named "Joindre des photos", then send the prompt.
+- Cleaning prompt:
+
+```text
+Edit this image. Keep the building exactly the same: same architecture, shapes, proportions, camera angle,
+materials, colours, glazing, and the furnished, lit interiors visible behind the glass. Remove every person, tree,
+plant, flower, pot, planter, outdoor furniture, pond, waterfall, rock, path, lamp, label and text, including the
+plants on the balconies and terraces. Show the whole building isolated on a plain light grey background with a margin
+around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce.
+```
+
+- A new variant uses the same frame: name the family's language (shells, ribbons, solar roofs, timber fins), state what changes (massing, storeys, wings, patio, cantilever), and ask for the same isolated, interior-visible view.
+- The result is ready when an image whose alternative text starts with "Image générée" appears, after about a minute. ChatGPT returns about 1,700 × 900 pixels, larger than a board panel.
+- Fetch the image's blob in the page and download it. Chrome keeps the file as `.crdownload` in the downloads folder, but complete: copy it to `inputs/<asset>-clean.png` and open it once to check it.
+- Review each clean view against its panel before spending credits on a draft.
+- Review the edited image against the board before generating. It must keep shapes, proportions and camera.
+- Use `--dry-run --json` on `tripo make` to validate a request and read its credit estimate without spending.
+- Pin the board, edited image, draft and retopology hashes and task IDs in `assets/city/generated-buildings.json`.
+- Measure `yaw_degrees`, `height_m` and the `entry` rectangle on an orthographic front view of the mesh. Take the scale from a human-scale feature such as the door.
+- `generated_source.py` refuses a blocked standing approach and an entrance rectangle that matches no door surface. An entrance without a separable leaf, such as a patio or a glazed lobby, sets `"open": true` in its `entry`: the tool fits a glazed leaf, a pull and a threshold instead.
+- A draft made from a view with visible interiors sets `"surface": false`: its glazing is painted with rooms, which the class reading takes for timber or shell.
+- The atlas names materials and is not displayed; see [generated shell surfaces](../../docs/spec-ville-procedurale.md#generated-shell-surfaces).
+- The shared rule sits under `surface` in `assets/city/generated-buildings.json`: reference colours, allowed orientations, `mullion_m` and `storey_m`. `integrate_generated.py` copies it into the recipe.
+- Review the classes before cooking. This writes the atlas beside its classes; without arguments the tool runs its self-check:
+
+```powershell
+& C:/Python313/python.exe tools/city/surface_classes.py --source '<delivery>/models/shell_house/master.glb' --preview '<review>/classes.png'
+```
+
+- Review near and far, by day and at dusk: `tools/tests/2026-11-10-maison-de-pres.txt`.
+- Reject foliage-obstructed cameras. `review_native.py --poses <file>` captures other placements of the same model.
+- A bank placed on another terrain export floats or sinks. Export the terrain with the current executable first; see [probe the planet](#probe-the-planet).
+- Keep a furnished room as a [baked interior](../../docs/spec-ville-procedurale.md#baked-interiors), never as geometry. Bake it from a draft that shows it, then pin the image hash and the window box under `interiors`:
+
+```powershell
+& 'C:/Program Files/Blender Foundation/Blender 5.2/blender.exe' --background --factory-startup --python-exit-code 1 `
+  --python tools/city/interior_bake.py -- --draft '<draft>/model.glb' --box '<room>.box.json' `
+  --out '<delivery>/interiors/<asset>-<room>.png'
+```
+
+- The box holds `origin`, `u`, `v` and `depth` in the draft's imported space; `u x v` faces outwards. A depth map along the facade normal finds the window. `-- --check` runs the tool's self-check.
+
 <a id="integrate-a-neutral-series-into-the-city"></a>
 
 **Integrate a neutral series into the city**
@@ -233,11 +314,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Build -NoLa
 - Judge each capture before selecting a bank for user review. Counts alone do not establish art or performance acceptance.
 - `finish_shell_house.py` retains the superseded separate-loft experiment and shared surface helpers. Do not use its authoring command for a new production house.
 
+<a id="probe-the-planet"></a>
+
 **Probe the planet**
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Build -NoLaunch
-'-11.04 49.784 513 2' | Set-Content E:/ExoluneAssets/city-site.request -Encoding ASCII
+'-11.04 49.7776 513 2' | Set-Content E:/ExoluneAssets/city-site.request -Encoding ASCII
 $env:MYPLANETENGINE_CITY_PROBE='E:/ExoluneAssets/city-site.request'
 & ./x64/Release/MyPlanetEngine.exe
 Remove-Item Env:MYPLANETENGINE_CITY_PROBE
@@ -247,6 +330,68 @@ Remove-Item Env:MYPLANETENGINE_CITY_PROBE
 - Use a clean launcher environment and record the selected planet seed.
 - The result is `city-site.request.bin`.
 - A terrain change requires another probe and layout.
+- The former anchor, 49.784, now holds a river. The anchor above lies about 700 m west.
+
+<a id="place-the-city-on-a-hill-site"></a>
+
+**Place the city on a hill site**
+
+```powershell
+'-10.955 63.749 1025 20' | Set-Content E:/ExoluneAssets/city-hills-2026-11-11/site-b.request -Encoding ASCII
+$env:MYPLANETENGINE_CITY_PROBE='E:/ExoluneAssets/city-hills-2026-11-11/site-b.request'
+& ./x64/Release/MyPlanetEngine.exe
+Remove-Item Env:MYPLANETENGINE_CITY_PROBE
+python tools/city/site_search.py E:/ExoluneAssets/city-hills-2026-11-11/site-b.request.bin
+```
+
+- The survey covers 20 km at 20 m. `site_search.py` ranks 1 km windows and prints each one's probe request.
+- Probe the chosen window at 513 × 2 m, as above.
+- Read the river bed in the export and state the water surface beside it: `<export>.bin.json` holding `{"water_level_m": 324.0}`. The engine does not export river water yet.
+- Copy the generated sources into `<out>/models`, then integrate on the new terrain:
+
+```powershell
+python tools/city/integrate_generated.py `
+  --base E:/ExoluneAssets/city-tripo-2026-11-11/delivery-01 `
+  --out E:/ExoluneAssets/city-tripo-2026-11-11/delivery-02-collines `
+  --assets patio_house,shell_tall,shell_duplex,shell_crescent,ribbon_apartments,ribbon_tall,ribbon_garden_steps,ribbon_crown `
+  --terrain E:/ExoluneAssets/city-hills-2026-11-11/terrain.request.bin
+```
+
+- The ground rules are in the [city spec](../../docs/spec-ville-procedurale.md#earthworks): earthwork pads, stepped paths, water margins.
+- `grading.py` grades the pads into the relief and writes `grading.bin`. Run it alone for its self-check.
+- `layout.json` records each building's `pad`, every pad under `earthworks`, the step count, the cables and the ground policy.
+- `foundations.py` builds steps and cables into the ground mesh. Run it alone for its self-check.
+- A site without the guideway gets the cable car; the spaceport and field terraces need `landing_pad`, `space_terminal` and `growing_bed` in the kit. A new generated asset joins the recipe through `integrate_generated.py`.
+- A site wider than 1 km, or whose 1 km spine is not level, lays the braid along a contour (`settlement.contour_spine`, `masterplan.braid_along`); `contourpy` finds the contour.
+- A site's chosen places go in its sidecar, `<export>.bin.json`: `spine_region` `[x0, y0, x1, y1]`, `farmland` `[{"centre": [x, y], "radius": r}]`, `cliff` `{"foot": [x, y], "top": [x, y]}`, all in the export's frame. The 3 km hill site states all three.
+- `regional_export` names a wider export of the same anchor, seed and frame; `Terrain.height` falls back on it beyond the site. The guideway's branches follow it to its edge. Probe it like the site, e.g. `'-10.996997 63.681051 1025 16'`.
+- The extended hill city reuses a cooked kit: copy `library.*`, `materials.json`, `texture*.bin`, `atlas*.bin`, `cook-state.json` and `overrides.json` into the new bank, then:
+
+```powershell
+'-10.999018 63.684025 1025 2' | Set-Content E:/ExoluneAssets/city-hills-2km-2026-11-11/terrain.request -Encoding ASCII
+$env:MYPLANETENGINE_CITY_PROBE='E:/ExoluneAssets/city-hills-2km-2026-11-11/terrain.request'
+& ./x64/Release/MyPlanetEngine.exe
+Remove-Item Env:MYPLANETENGINE_CITY_PROBE
+python tools/city/produce.py --recipe E:/ExoluneAssets/city-tripo-2026-11-11/delivery-05/recipe.json `
+  --overrides E:/ExoluneAssets/city-tripo-2026-11-11/delivery-05/overrides.json `
+  --out E:/ExoluneAssets/city-tripo-2026-11-11/delivery-06 --bank E:/ExoluneAssets/city-tripo-2026-11-11/delivery-06/bank `
+  --terrain E:/ExoluneAssets/city-hills-2km-2026-11-11/terrain.request.bin
+```
+
+- The 3 km site with its regional export lives on G: (E: is full). Probe the region, state it in the site's sidecar as `regional_export`, then produce from a copy of the previous delivery's `models`, `recipe.json`, `overrides.json` and cooked bank files:
+
+```powershell
+'-10.996997 63.681051 1025 16' | Set-Content G:/ExoluneAssets/city-hills-16km-2026-11-11/terrain.request -Encoding ASCII
+$env:MYPLANETENGINE_CITY_PROBE='G:/ExoluneAssets/city-hills-16km-2026-11-11/terrain.request'
+& ./x64/Release/MyPlanetEngine.exe
+Remove-Item Env:MYPLANETENGINE_CITY_PROBE
+python tools/city/produce.py --recipe G:/ExoluneAssets/city-tripo-2026-11-11/delivery-08/recipe.json `
+  --overrides G:/ExoluneAssets/city-tripo-2026-11-11/delivery-08/overrides.json `
+  --out G:/ExoluneAssets/city-tripo-2026-11-11/delivery-08 --bank G:/ExoluneAssets/city-tripo-2026-11-11/delivery-08/bank `
+  --terrain G:/ExoluneAssets/city-hills-3km-2026-11-11/terrain.request.bin
+```
+
+- Keep the older deliveries on E:: their `overrides.json` name sources inside them.
 
 **Produce and review**
 
@@ -290,7 +435,10 @@ Remove-Item Env:MYPLANETENGINE_CITY_PROBE
 
 - `CITYLIB1` version 3: model names, bounds, LOD index ranges, 48-byte material records, 40-byte vertices including ambient visibility and 32-bit indices.
 - `CITYTEX1`: square RGBA8 mip chains, layer-major; colour is sRGB, normal and metal/roughness are linear.
-- `CITYSCN1` version 3: planet seed, anchor, 256 × 256 occupancy bits, 24-byte placements and manufactured ground triangles.
+- `CITYATL1`: displayed draft atlases, block compressed, layer-major mip chains: `atlas0` BC1 sRGB colour, `atlas1` BC5 normal (X, Y), `atlas2` BC1 linear metal-roughness.
+- `CITYSCN1` version 4: planet seed, anchor, 256 × 256 occupancy bits, 24-byte placements, manufactured ground triangles and the walkable index count. Step risers and cables follow the walkable triangles.
+- `CITYPAD2` (`grading.bin`): pad and index counts, default talus slope, knee, edge rounding, index origin and cell; per pad, centre, yaw, its own talus slope, half extents, corner radius and level; 32 × 32 cells (first entry, count); 16-bit pad indices. `CITYPAD1` stored the frame's cosine and sine and one slope for all; the engine still loads it. Optional: a bank without it keeps the natural relief.
+- `CITYCOR1` (`corridor.bin`): segment count, half width (m), then each segment's start and end in the city frame; at most 192. The vegetation keeps clear of it beyond the land grid. Optional.
 - `CITYGRD1`: planet seed, anchor, grid spacing and floating-point ground samples.
 - Native readers bound dimensions and reject truncated payloads.
 - Legacy library v1/v2 and scene v1/v2 remain readable; missing ambient visibility becomes 1, and old mask cells expand losslessly.

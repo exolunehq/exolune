@@ -24,6 +24,7 @@
 #include "Tectonics.hlsli"
 #include "Volcanoes.hlsli"
 #include "Erosion.hlsli"
+#include "CityGrade.hlsli"
 
 // The erosion shown, to compare in flight (key 1, D3DApp): 2 ravines and rivers, 1 ravines only, 0 none, the form before
 // erosion. From the frame's constants where a pass has them; the passes without them (flight contact, walking, the
@@ -1007,7 +1008,7 @@ float ReliefFinish(double3 position, float h, float near, float rocky, float smo
 // Elevation in the planet's fixed frame, with the primary point's roughness. Without valleys this is the unchanged
 // pre-erosion form read by the level 0. Only a potential cut reads a second terrain point. Its witness has no valleys,
 // deposits or wave erosion, so its query cannot recurse or add another read of the erosion network.
-float ReliefFinishGround(double3 position, ReliefGround ground, bool valleys, bool courses)
+float ReliefFinishGroundNatural(double3 position, ReliefGround ground, bool valleys, bool courses)
 {
     float h = ground.height;
     [branch] if (valleys)
@@ -1080,6 +1081,12 @@ float ReliefFinishGround(double3 position, ReliefGround ground, bool valleys, bo
     // Candidate support, not wetness: a river between all four dry grid samples must still be refined.
     gWaterDistance = min(ground.channelDistance, ground.lakeLevel > 0.0 ? abs(ground.lakeLevel - h) : 1e9);
     return h;
+}
+
+// The finished ground, with the city's earthworks graded in (CityGrade.hlsli).
+float ReliefFinishGround(double3 position, ReliefGround ground, bool valleys, bool courses)
+{
+    return CityGrade(position, ReliefFinishGroundNatural(position, ground, valleys, courses));
 }
 
 float ReliefElevation(double3 position, bool valleys, bool courses)

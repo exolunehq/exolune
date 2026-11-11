@@ -13,6 +13,7 @@
 - The approved braided-archipelago plan has 23 sectors and three stations. Exact model and placement counts belong to the current external production report.
 - Release x64 builds; CPU placement checks cover four seeds; hidden native views cover dense housing, paths, common gardens, transport and distance.
 - No downloaded architectural mesh is used.
+- Since 2026-11-10 a building's form comes from a generated first draft; see [generated first-draft buildings](#generated-first-draft-buildings). Since 2026-11-11 every city asset follows it, furniture and transport included. None is accepted.
 - Main integration initializes erosion before city terrain exports and preserves the separate lunar contact frame. The integration route is `tools/tests/2026-11-09-ville-main.txt`.
 - Native evidence certifies its recorded executable and terrain snapshot. Re-export support and repeat placement/review when the terrain field changes; merging renderer code does not update an existing bank.
 - This extends the [local production contract](spec-pipeline-creation3d.md); it does not route buildings through botanical leaf, root or wind processing.
@@ -91,12 +92,108 @@
 - Art acceptance, requested performance measurement, city impostors and planetwide streaming remain separate gates.
 - Reproduction: [integration command](../tools/city/README.md#integrate-a-neutral-series-into-the-city).
 
+<a id="generated-first-draft-buildings"></a>
+
+**Generated first-draft buildings**
+
+- The user requires this route since 2026-11-10. A generative 3D model supplies the form; local passes only clean, scale, reduce and fit it.
+- Directed and procedural Blender authoring is no longer a source of form. The neutral series stays in the bank until generated sources replace it.
+- `assets/city/generated-buildings.json` pins each board or variant reference, edited input image and draft with their hashes; the first batch also pins its retopology.
+- Clean the board view first. An image edit removes plants and outdoor props and keeps shapes, proportions and camera. It keeps the furnished interior visible behind the glazing, for [baked interiors](#baked-interiors); the current house predates this and used closed glazing.
+- Generate with Tripo H3.1 and detailed geometry. Keep the dense draft, about 1.95 M triangles, as the immutable form master.
+- Since 2026-11-11 `generated_source.py` reduces the draft itself in Blender: 56,000 triangles for a building, 11,000 for furniture. The draft keeps its 2,048-pixel colour, normal and metal-roughness maps.
+- Tripo retopology v3.0 is no longer used: its limit is 20,000 triangles, and it bakes normal and metal-roughness at 1,024 pixels. The first batch's eight families were rebuilt from their drafts. The user validated this change on 2026-11-11.
+- Reserve: on 2026-11-10 a plain collapse of the closed-glazing house draft to 60,000 triangles dented panes and shells. On the interior-visible families at 56,000, street-distance captures show no dent; review grazing light up close.
+- `generated_source.py` turns that mesh into a city source: entrance towards local −Y, metric height, ground datum, separated door leaf, fitted threshold and pull.
+- Furniture, canopies and transport structures carry no entrance. `length_m` scales a beam segment by its length; `anchor` `top` hangs a cabin from its beam datum, `centre` centres a beam on it.
+- Set the metric height from a human-scale feature. The house uses a 2.2 m door, giving 8.1 m overall. The service's own size estimate ranged from 3.5 m to 7 m.
+- A generated wall is rarely square to the facade. Put the standing datum in front of its nearest point, then run the common nine-ray approach audit.
+- `integrate_generated.py` pins every other source, reuses verified caches and runs the common producer.
+- The source enters the common cooker unchanged: five LODs and ambient visibility.
+- A displayed draft atlas is block compressed (`bc.py`): 2,048-pixel BC1 colour and BC5 normal, 1,024-pixel BC1 metal-roughness, about 9 MB per building with mips. The 1,024-pixel RGBA8 layers it used took 16.8 MB.
+- These atlases sit in their own arrays (`atlas0-2.bin`, `CITYATL1`); a material names them with `texture.w` −1. Class masks, interiors and depth stay uncompressed: block compression would break their signed distances and 16-bit depth.
+- Rejected on the house board: P2 native low-poly, a hollow shell with an open rear; and a plain local collapse of the dense draft, which dents the panes.
+- Current witness: `shell_house` at 17,546 / 10,545 / 5,296 / 2,147 / 798 triangles. Its source is unchanged since `candidate-01`.
+- In game the house matches the board at street distance, from the board's own angle and from the rear.
+- Variation rule, decided 2026-11-11:
+  - Form variety comes from families. Each family starts from its own generated image, made ready for reconstruction: the isolated building without plants or outdoor props, its furnished interior visible behind the glazing.
+  - The user makes these images with ChatGPT. Spend no Tripo credits on images.
+  - Draw one draft per family. Draw again only after a failed review; do not buy several candidates up front.
+  - Families need not share an architectural language.
+  - Instances vary procedurally and never change a generated form: orientation and mirror, garden and vegetation, colour within the material classes, solar panels, lighting and terrain fit.
+  - Neighbouring placements never share a family.
+- New families use H3.1 with detailed geometry and image autofix. Standard texture suffices: the city reads the atlas as material classes.
+- The user validated the generated route on 2026-11-11, including clean views and variants made in ChatGPT by the agent ([procedure](../tools/city/README.md#clean-views-and-variants-with-chatgpt)). Open: close-range detail, too soft on every generated family.
+- First family batch, 2026-11-11: four houses and four collectives replace neutral sources. Houses: `patio_house` (patio central), `shell_tall` (tour panoramique), `shell_duplex` (maison en terrasses), `shell_crescent` (maison en aile). Collectives: `ribbon_apartments`, `ribbon_tall`, `ribbon_garden_steps`, `ribbon_crown`.
+- Each family had one clean view made in ChatGPT, one H3.1 draft and one retopology: 680 credits for the batch.
+- Tripo returns these drafts with the image's facade towards +X: `yaw_degrees` −90 turns it towards −Y.
+- Retopology at 20,000 triangles keeps a four-storey collective's ribbons, balconies and glazing at street distance. The texture carries railings and mullions.
+- An entrance without a separable leaf, such as a patio or a glazed lobby, sets `"open": true`. The source fits a glazed leaf, a pull and a threshold at the nearest facade point: the detail contract requires a door on every accessible entrance.
+- The entrance probe ignores rays that pass through small holes in a reduced glazed front; it needs three hits of fifteen.
+- The class reading assumes closed, opaque glazing. A draft made from a view with visible interiors paints rooms on its glazing, and those texels read as timber or shell: 59 % timber on `shell_tall`. These sources set `"surface": false` and display their atlas until their windows are found and their rooms baked.
+- Still open: the user's judgement. Art and performance acceptance stay false.
+- Routes: `tools/tests/2026-11-10-maison-generee.txt` and `tools/tests/2026-11-10-maison-de-pres.txt`. Method and pilot results: [architecture method decision](recherche-generation-architecture.md).
+- Second batch, 2026-11-11: every remaining recipe asset is generated. 33 clean views made in ChatGPT, 18 from board panels and 15 as family variants, then one H3.1 draft each: 1,650 credits.
+  - Public: `civic_petals`, `civic_workshop`, `community_market`, `nested_greenhouse`, `greenhouse_long`, `space_terminal`, `asymmetric_hangar`, `water_tower`.
+  - Housing: `shell_courtyard` and seven collectives, `ribbon_cascade`, `ribbon_compact`, `ribbon_fan`, `ribbon_low`, `ribbon_helix`, `ribbon_lantern`, `ribbon_twin_loft`.
+  - Transport: `interlaced_station`, `garden_station`, `panoramic_train`, `viaduct_ring`, `canopy_guideway`.
+  - Furniture: `solar_canopy`, `agri_canopy`, `planted_bench`, `planted_bench_wild`, `petal_lamp`, `wayfinding_leaf`, `drinking_fountain`, `rain_garden`, `rain_garden_long`, `growing_bed`, `irrigation_node`, `service_cabinet`.
+- Furniture sets `align`: a three-quarter draft can come out turned, so the source squares it to its smallest rectangle, long side along X.
+- The viaduct ring keeps yaw 0: its plane must face along the beam. `canopy_guideway` is now a 13.5 m segment; the planner repeats it along the rail, one length of arc apart. A continuous guideway model, longer than 200 m, is still placed once.
+- The procedural kit stays the reproducible control; no city asset in the bank comes from it any more.
+- Banks: `delivery-04` on the hill site, 127 buildings; `delivery-04-plat` on the flat site, 134 buildings, three stations, 69 beam segments, 14 rings, 4 cabins. Routes: `tools/tests/2026-11-11-ville-generee.txt`, `tools/tests/2026-11-11-metro-aeroport.txt`.
+- Limits: station platforms are not yet fitted to the beam datum; the beam passes over their roofs. The 65 m terminal, the long greenhouse and the stations find no place on the hill site. Glazing still displays the draft's painted rooms.
+
+<a id="baked-interiors"></a>
+
+**Baked interiors**
+
+- A draft made from a view with visible interiors keeps furnished rooms behind its glazing. The city shows them as baked rooms, never as geometry: the tested living room alone holds 313,000 triangles, 17 % of its draft.
+- `tools/city/interior_bake.py` looks into one room orthogonally from its window plane, inside an oriented box. The layer's RGB holds the draft's colour; A holds the first-hit depth over the box depth.
+- The cooker also packs that depth on 16 bits into the normal layer: high byte in R, low byte in G. Eight bits step by 2.7 cm over a 7 m room, and a grazing ray turns those steps into rings.
+- Crop the box inside the room. A curved shell surface grazing the window plane leaves rings too: the current bake skips the sibling draft's curved end and stretches by 1.18 into the window.
+- `assets/city/generated-buildings.json` pins each bake under `interiors`: image hash, draft box, and window box in the source's metric model space.
+- The cooker stores each bake as one texture layer and one record after the shell's class materials. The shell names its first record and their count.
+- On a glazing pixel inside a window, the shader marches the room's height field: 12 to 96 steps by incidence, 4 bisections and a linear intersection, filtered by the window's screen gradients. Panes outside every window keep the procedural rooms.
+- A ray leaving through a side, the floor or the ceiling meets the shaded mean colour of the bake's edge.
+- Daylight through the tinted pane scales the draft's painted room. A lit room adds a warm lamp at dusk.
+- Current witness: `shell_house`, living room, bank `candidate-03`. Prototype only: the bake comes from a sibling draft of the same board, task `3fb50153`, because the house in game was drafted from a view with closed glazing.
+- Still open: automatic window detection, removing the interior from the shell before retopology, the bedroom, and the user's review in game.
+
+<a id="generated-shell-surfaces"></a>
+
+**Generated shell surfaces**
+
+- A displayed atlas is blurred at walking distance: the house has about 4 cm per packed texel. Its glazing was paint and its light lines were dark.
+- The atlas now names materials and is not displayed. `surface_classes.py` reads one class per texel: shell, timber, glazing, light, solar and cladding.
+- `assets/city/generated-buildings.json` holds the shared rule under `surface`: a reference colour and an allowed orientation per class. A building may override it.
+- Read hue first: lightness weighs a quarter. A draft paints light and shadow into its colour.
+- A painted region has a painted border. A region that fades on more than 60 % of its border is a highlight or a shadow and returns to the unread set.
+- A wide unread zone continues the readable surface it touches most. Strokes thinner than 8 texels are shared out from both sides.
+- Orientation decides last. Glazing needs a wall; the glazing colour on a soffit or a reveal is cladding. Solar skin faces the sky. No class is asserted as a second choice.
+- Borders are then smoothed by a majority window. Light lines keep their width.
+- `integrate_generated.py` copies the rule into the recipe entry. The source and its hash do not change; the cook stamp includes `surface_classes.py`.
+- `materials.py` packs one signed-distance mask per class over ±4 texels: four in the third map of the building's layer, cladding in the alpha of its colour map.
+- The building's material has role 24. Its class materials follow the kit, so existing material slots keep their numbers.
+- Each class keeps the draft's median colour, bounded as an albedo. Two shared 2 m detail tiles modulate it: `plank_timber` and `shell_plaster`, generated with matching height, normal and roughness.
+- `CityGenerated.hlsli` thresholds the masks with one pixel of antialiasing, so borders stay sharp at any magnification.
+- Detail is projected in model space on three axes. Boards stand upright on walls and run along X on floors and soffits.
+- Glazing reflects as an insulated unit and shows rooms by interior mapping in model space. Rooms are three bays wide and one storey high.
+- Glazing frames are metric: a 6 cm border from the mask's slope, 5 cm mullions on a 1.4 m structural grid and a floor edge at each storey.
+- Light lines emit; they stay lit in the shade of their own shell. Solar skin draws cells and module frames in plan.
+- The atlas normal map is kept at reduced strength: 0.6 on timber, 0.2 to 0.3 on shell and solar, none on glass.
+- Witness: `E:/ExoluneAssets/city-tripo-2026-11-10/candidate-02`, captures under `native-final`, `native-dusk-final` and `before-after.png`.
+- Cost: two more 1,024-pixel layers, 33.6 MB. Single captures show no frame-time change; this is not a benchmark.
+- Limits: a border follows the painted outline and still wavers by a few centimetres. The draft's dark soffits become cladding where the board shows lit timber.
+- Limits: the small basin of the board is lost, since the glazing colour is refused on floors. Rooms are generic. Reflections use the analytic sky, not the scene.
+- Limits: the detail tiles are generated, not scanned. Reduced LODs carry the class borders through their own reduced UVs.
+
 **Composition**
 
 - The user selected the braided archipelago after comparing three explicit planning diagrams.
 - `masterplan.py` produces braided, island and delta proposals before footprint placement.
 - `settlement.py` implements the approved braided plan.
-- Plan 23 shared sectors and three transport stations across a 1,024 m site.
+- Plan 23 shared sectors and three transport stations across a 1,024 m site. On a hill site, sectors on wet or steep ground drop out and the guideway stays off sloping ground.
 - Six dense cores use collective buildings of three to nine floors.
 - Mixed sectors and lower inhabited garden edges surround them.
 - Productive gardens, civic workshops and arrival facilities occupy distinct outer commons.
@@ -109,6 +206,8 @@
 - Partitioned surfaces do not overlap at junctions.
 - Planted islands interrupt common surfaces without becoming private gardens.
 - The natural-object exclusion mask is 256 × 256, at 4 m per cell on this site.
+- Trees keep 8 m from every building: its garden.
+- Inside a district, three cells in four refuse natural objects: an open garden with scattered trees. Corridors and the land between districts keep their forest.
 - The mask never defines geometry, collision or terrain height.
 - No private cadastral plots, parking grids, vehicle roads or detached-house frontage rows are generated.
 - This is a bounded composition grammar, not a social growth or hydrology simulation.
@@ -236,19 +335,141 @@
 - Its request is `latitude longitude odd-grid-side cell-metres`.
 - The output appends `.bin` and includes the planet seed and anchor.
 - The city site samples 513 × 513 points at 2 m spacing.
-- The planner rejects water below the 2 m margin and path slopes above 8%.
-- Building support variation must not exceed 0.5 m.
-- Manufactured foundations follow the projected source hull and access threshold, with buried terrain skirts.
-- Conservative rectangular collision bounds do not become rectangular landscape aprons.
-- Paths follow the sampled terrain without flattening the underlying planet.
-- Path and foundation triangles also supply walking height.
+- Paths ramp up to 8 %, then climb by steps up to 30 %. Lots and furniture keep 10 m from water, paths 6 m.
+- Every building, plaza, field terrace and transport footing stands on an earthwork pad. See [earthworks](#earthworks).
+- A building's pad is its bounding rectangle plus a 1.5 m level apron, with 3 m rounded corners. It is ground, in the terrain's own materials, not a paved apron.
+- A path is built, not draped: level across, 0.15 m above the highest graded ground across it, at its station on its centre line (`layout.py`). The relief never shows through it.
+- A 0.06 m stone curb runs along every path and common edge; a stone side runs from the curb down 0.35 m into the ground. Across a slope, that side becomes a low retaining wall.
+- Steps stand at the same level, level across their width.
+- Path and step triangles supply walking height; curbs' steps and sides are structure.
 - Segment polygon boundaries before triangulation; split only long edges, with a maximum 4.5 m span.
 - Thin stone borders must not trigger uniform four-way triangle subdivision.
 - Buildings taller than 6 m use conservative exterior bounding hulls for walking collision.
 - Those hulls deliberately do not model interior openings, porches or accessible hangar interiors.
 - Small furniture currently has no detailed collision hull.
 - Terrain frequency changes can invalidate a cooked site; regenerate the probe and scene.
+- Erosion routes a 36 m river through the former site at −11.04, 49.784. The flat review bank of 2026-11-10 uses the anchor −11.04, 49.7776, about 700 m west.
+- The engine does not export river water yet. Without a stated water level, the planner sees only the sea.
 - The present scene header enforces the planet seed, but does not enforce a complete runtime terrain-shader hash.
+
+**Hill sites**
+
+- The user asked for a city on hills, with a river, terraces, stilts and verticality (2026-11-11). They then asked for much more scale, denser places, the elevated metro, visible fields, built paths and more furniture (2026-11-11).
+- The extended hill site spans 2 km, centred on −10.999018, 63.684025, 400 m south of the first one: 1,025 × 2 m from 311 to 569 m, the river along its north edge (`city-hills-2km-2026-11-11`).
+- A site wider than 1 km, or whose 1 km spine is not level, lays its braid along a contour (`contour_spine`, `masterplan.braid_along`): the longest contour of the dry ground between its 35th and 65th percentiles, smoothed over 160 m, cut where it turns back, with its ground within 12 m.
+- Along that spine: stations at a sixth, a half and five sixths; crowns every 120 m, on both sides in the middle third, overlapping by a quarter; garden rows at 275 and 430 m; fields, workshops and the spaceport first, at the edges, wherever the terrain accepts them (fields 25 % at most, the spaceport 12 %).
+- Districts hold up to 15 stacked habitats in a crown, 11 in a mixed one, 8 houses in a garden edge.
+- The 3 km hill site, 2.9 m cells, centred on −10.996997, 63.681051, keeps the 2 km city and adds the escarpment north-west of it and a meadow south-west (`city-hills-3km-2026-11-11`).
+- A site states its places beside its export, in `<export>.bin.json`: `spine_region` keeps the contour spine and the braid in a box; `farmland` lists meadows for farms; `cliff` gives a foot and a top. These are the user's choices (2026-11-11), not terrain rules.
+- `regional_export` names a wider, coarser export of the same anchor: 16.4 km at 16 m (`city-hills-16km-2026-11-11`). The guideway's branches read it beyond the site.
+- E: is full since 2026-11-11: this site, its regional export and `delivery-08` live under `G:/ExoluneAssets`.
+
+**Cliff and farms**
+
+- The user asked for houses on the face itself, higher up, and for no large earthworks on the cliff: grading only at the scale of a house or a pylon (2026-11-11).
+- At the cliff's foot, a district 45 m off the face: the cable car's lower station and up to four habitats on its gentle ground.
+- A stair path climbs the face in switchbacks, from the foot's court to the top's (`settlement.switchback`). Its legs cross the slope at 25 % and turn back 30 to 210 m from the cable car's line, on the side whose face is gentler, so the line stays free for pylons.
+- Houses stand above its legs, each on its own small terrace: long side along the contour, front and terrace to the valley, the door a short flight above the leg, at most 1:1. Up to 22; they settle where the face allows, mostly on its upper half.
+- On its top, a district 70 m back from the edge: up to twelve houses and low habitats, fronts to the valley.
+- The cable car runs from the foot to the top. A district reached by cable alone keeps its own paths: four spokes from its court.
+- A meadow's farms: greenhouses, water towers and hangars round a court, its fields around them. A farm's fields lie on its meadow up to 35 %, as hillside fields do; the meadow chosen here has a median slope of 29 %. The same day, earthworks replaced the stilts and terraces at the user's request; see [earthworks](#earthworks) and [the history](log/ville-procedurale-historique.md).
+- The hill review site lies on the south bank of a river valley, centred on −10.995425, 63.684025.
+- Its ground spans 318–489 m. The median slope is 15–17 %; no cell exceeds 35 %.
+- `tools/city/site_search.py` ranks 1 km windows of a 20 km survey by relief, buildable slope and river channel.
+- A site states its river surface beside its export, in `<export>.bin.json` as `water_level_m`. Here 324 m, read from the channel bed at 318.5 m.
+- A district survives on dry ground with a median slope of at most 30 %. A site needs three.
+- Foot links join districts along dry chords no steeper than 30 %. A curve that would leave that envelope falls back to its chord.
+- Each lot is tried in four quarter turns. The least earthwork wins; facing the shared court breaks ties.
+- A lot's natural relief may span 10 m at most; 14 m for a house or a pylon on a face steeper than 1:2, whose bank keeps the earthworks local.
+- A path run steeper than 8 %, on the finished graded ground, becomes solid steps of about 0.17 m, flush with the ground at each upper edge. Grass links stay trails; plazas keep their paving.
+- An access leaves the door on its pad and steps down or up the bank to the shared path.
+- Treads are paved; risers are coursed stone drawn in the shader (role 26), on box-projected UVs. The ground roles project from above, so a wall in them streaks.
+- Only tread tops are walkable: `CITYSCN1` version 4 stores risers and cables after the walkable triangles.
+- The guideway stands on fixed 27 m rings. It needs a dry line whose ground varies by at most 12 m; otherwise the site has no stations, rings or cabins, and a [cable car](#cable-car) serves it.
+- A city needs at least 20 buildings on stable ground.
+- The city's vertical bounds follow its placements. The local shadow volume centres on the viewer, clamped to them.
+- The city's frame bends onto the planet (`City.hlsli`, `CityBend`): a point r m from the anchor stands r²/2R lower than the tangent plane, as the terrain export samples it; 18 cm at 1.5 km, 5 m at 8 km. The flat frame lifted the outer districts' furniture off the ground.
+- Placements reach 12 km from the anchor, up to 8,192 of them; culling and level of detail go by model.
+- Limits: steps are solid blocks, without handrails or collision.
+
+**Earthworks**
+
+- The user asked for earthworks in place of stilts and plinths, in the texture of the ground they stand on, harmonious, not cubic, following the ground (2026-11-11).
+- A pad is a rounded rectangle at one level (`tools/city/grading.py`).
+- Around it, the ground departs from that level by at most its bank slope. A cut rises uphill; a fill falls downhill.
+- Earthworks stay local. On gentle ground a bank keeps 1:2; on steeper ground it is twice as steep as the ground, up to 2:1, so it meets the natural ground within about half the pad's depth (`grading.bank`). No earthwork shows more than 24 m beyond its pad.
+- A bank no steeper than its ground never meets it: it regrades the whole slope. On 2026-11-11 two towers at the cliff's foot regraded 88 m of the face that way.
+- Where a close neighbour stands at another level, a bank steepens as a terrace's retaining bank would, up to 2:1; so does a bank that would run along a neighbour's bank.
+- The bank leaves the pad level and reaches its slope over 2 m. Its crest and toe round over 1.5 m of height. No crease marks the pad's edge.
+- Beyond the bank, the natural relief is untouched.
+- A pad takes the median ground under it, at least 1 m above water.
+- Pads apply in plan order. A new pad's level stays within what its bank allows at its distance from each earlier pad: a later bank never enters an earlier level.
+- A neighbour may hold a pad at most 5 m from its median ground, 1.5 m for a field terrace; beyond, that orientation fails.
+- Order: guideway footings at their datum, the spaceport, plazas, the cable car, buildings, field terraces.
+- The engine grades its relief with the same function: `CityGrade.hlsli` for the terrain mesh, pixels, screen relief, vegetation and horizons; `City::Grade` for walking.
+- Erosion, the planet map and the city probe read the natural relief (`CITY_NATURAL_RELIEF`).
+- `grading.bin` (`CITYPAD2`) carries up to 900 pads, each with its yaw and its own bank slope, and 6,144 index entries, a 32 × 32 cell index over the land grid. A `CITYPAD1` bank loads with one slope for all.
+- Validation re-grades the natural relief point by point, as the engine does, and checks that every building's footprint is level on its pad.
+- A bank keeps the ground it was cut from: the terrain classifies it at 40 % of its slope, so a 1:2 bank is soil and grass, not scree. Its light takes its whole slope (`CityBank`, `Materials.hlsli`).
+- A point is on a bank where its graded elevation stands within the knee of the bank's envelope, less 0.4 m for the pixel's interpolation.
+- Steps are the only masonry left.
+- The flight contact meets the graded ground too: its constants carry the same earthworks after its probe (`FlightGround.hlsl`). A free camera descends into a cut and stops on a fill.
+- The batch cameras' ground (`MYPLANETENGINE_BATCH`) stays the natural relief: a capture states its height above it.
+
+**Spaceport**
+
+- One 170 × 90 m platform around the arrival court, at the position and heading that move the least earth.
+- The terminal stands at one end, its entrance toward two 30 m landing pads. A shuttle rests on each deck.
+- Runway beacons line both long edges every 16 m, off paths and the court.
+- Hangars line the platform, beyond it.
+
+**Field terraces**
+
+- Food districts on slopes up to 25 % carry terraces of 24 × 8 m along the contours.
+- The gap between rows grows with the slope, so the 1:2 bank between two terraces takes their difference in height.
+- Each row packs its terraces into free ground, sliding 3 m at a time.
+- Crops cover each terrace: rows 0.75 m apart along it, drawn in the shader (role 27). Each 40 m of field ripens on its own.
+- An agrivoltaic canopy covers every third terrace; growing benches and irrigation stand on the others.
+- The terraces make one open farmland: no forest between or around them, 10 m beyond their outline.
+- Ground gentler than 6 % needs no terrace: fields of 48 × 10 m lie on it, with 3 m grass strips between them.
+
+**Furniture and density**
+
+- Each court: two shades, eight benches round it, six rain gardens beyond, four lamps, a fountain, a sign and a cabinet.
+- Along every path, every 21 m: a lamp, then a bench facing the path with a planter beside it.
+- Each building's pad keeps a 2.5 m level apron: a bench and a planter stand on it, either side of the door.
+- Nothing floats. A building sits 1 cm above its pad. Furniture is set 3 cm into its lowest ground, with at most 20 cm of relief under it; on a court's paving it stands on the paving; across the paving's edge it is refused. On a field lying on the meadow, each canopy and bed is set into its own lowest ground.
+- That ground is measured every metre under the piece as the engine grades it (`Grading.exact`): the planner's 2.9 m grid smooths a steep bank's crest and toe by up to 0.8 m.
+- Pieces on their own pads are placed before the small furniture, so no later bank cuts the ground from under a bench.
+- Validation checks every piece of furniture against its lowest graded ground, plus its 3 cm.
+- Garden districts share growing beds and rain gardens between their houses.
+- Six generated pieces join the kit (2026-11-11, 300 credits): a bicycle shelter, a kiosk, a pergola, a play sculpture, a sorting and compost station, an insect hotel.
+- The four larger pieces stand on their own small level pads beside each court: kiosks and shelters in crowns, pergolas and play sculptures in gardens, a shelter beside every station.
+- A sorting station stands by every court; insect hotels in gardens, farms, fields and on the cliff's top.
+- No tree crown crosses a transport line: the forest keeps 16 m from the guideway's line and 12 m beyond the outer cable.
+
+**Cable car**
+
+- A hill site without the guideway gets a cable car through its lowest, a middle and its highest district.
+- Each station stands beside its court, 30 to 62 m away, on its own pad, with its own access. Stations stand 250 m apart at least.
+- A stated cliff takes the cable car: from its foot district to its top district.
+- A guideway station below the farms takes one up to their court: there the lower station has no court and no path, reached by the guideway.
+- With the guideway on the site, the cable line keeps to one side of it, the side whose districts span the most height; it never crosses the guideway.
+- Each pylon stands as far along as its span from the last support still clears the graded ground by 7 m, 20 m from every support, and at most 150 m on: the fewest pylons, each where a rim or a bulge needs one.
+- A pylon stands on its own small pad, off paths and commons, its bank as steep as the face needs. Its pad may stand in a nature corridor; buildings never do.
+- Two cables sag 1/60 of each span. Their gauge is the pylon's sheave spacing, 21 m; they narrow to the station's bullwheel.
+- Cabins hang by their grip every 55 m, each cable travelling its own way. They are static.
+- A corridor of the gauge plus 6 m stays free of buildings and trees under the cables.
+- Sheaves, bullwheel and landing deck are measured once on their generated sources (`settlement.py`).
+
+**Earthwork banks**
+
+- `delivery-05` (hills): 133 buildings on 161 pads; a 797 m cable car with 3 stations, 10 pylons and 27 cabins, 7.5 m of least clearance; the spaceport; 9 field terraces. Route: `tools/tests/2026-11-11-terrassements.txt`.
+- `delivery-05-plat` (flat site): 134 buildings on 208 pads, the guideway's 14 rings and 3 stations on their footings, the spaceport, 35 field terraces. Route: `tools/tests/2026-11-11-astroport-plat.txt`.
+- Both pass validation on four seeds. Art and performance remain open.
+- `delivery-08` (3 km, on G:): 428 buildings on 677 pads, banks up to 2:1, none showing beyond 24 m; 13 houses on the cliff's face along its stair path; the cliff's cable car (639 m, 4 pylons on small pads, 11 m of least clearance) and the farms' (276 m, 1 pylon) from their station on the guideway; the guideway's branches, 8.8 km west and 7.8 km south on 366 piers, in a 27 m tree-free corridor; 228 fields. Validation passes four seeds (393 to 428 buildings). Route: `tools/tests/2026-11-11-paroi-ligne.txt`.
+- `delivery-07` (3 km): 377 buildings on 730 pads in 49 districts, the cliff's foot and top joined by a 637 m cable car (8 pylons, 22 cabins), farms with 183 fields, 184 new pieces of furniture, the metro and the spaceport. Validation passes four seeds (347 to 377 buildings). Route: `tools/tests/2026-11-11-falaise-fermes.txt`.
+- `delivery-06` (2 km): 353 buildings on 486 pads in 44 districts; a 2.3 km elevated metro along a contour, with 3 stations, 40 rings and 4 trains; a 1.1 km cable car with 10 pylons and 40 cabins; the spaceport; 45 field terraces; over 500 benches, planters and lamps. Validation passes four seeds (315 to 353 buildings). Route: `tools/tests/2026-11-11-ville-etendue.txt`.
 
 **Runtime**
 
@@ -282,7 +503,12 @@
 - Align the horizontal principal axis before checking vehicle width against lane spacing.
 - The neural train candidate remains outside the bank because its rear and suspension are malformed.
 - The active train is a generated procedural assembly.
-- Station and ring footings reach sampled terrain below the common guideway datum.
+- Station and ring footings are earthwork pads at the common guideway datum: fills where the ground lies lower.
+- The user asked for the guideway to reach the farms and to go on far beyond the city on both sides, as if towards other cities (2026-11-11).
+- Beyond the city's last ring the guideway goes on from both ends, level at the city's beam, on steel piers every 45 m beside the line: a column on the higher side, set 1.5 m into the ground, an arm over the beam, a hanger and a brace. The train passes between column and line.
+- Each 10 m the line turns at most 1.2 degrees: the turn whose next 120 m keep the ground nearest its target, 23 m below the beam on the site and 42 m beyond it, never within 12 m of the beam (`settlement.intercity`). It ends at the regional export's edge.
+- A station stands where a branch passes nearest a farm, within 600 m, on its pad at the datum.
+- No tree stands within the corridor's half width of a branch, 24 m plus the line's simplification: `corridor.bin` (`CITYCOR1`) carries up to 192 segments, which the vegetation tests in boxes of 8 (`CityLand.hlsli`). Plants over 3 m give way; ground flora and stones stay. The land grid's mask keeps the city's own clearings.
 - A beautiful reference image is still only an intermediate image, not a validated mesh.
 
 **Operator procedure**

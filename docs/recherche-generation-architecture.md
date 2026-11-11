@@ -18,6 +18,60 @@
 - This is a production-method decision, not acceptance of the current house or an AAA-quality claim.
 - ComfyUI is the workflow runner; changing nodes without changing the underlying model, conditioning or reduction does not by itself improve architectural modelling.
 
+**Hosted first draft, 2026-11-10**
+
+- The user rejects directed and procedural Blender authoring as the source of form. It does not capture the boards' subtleties.
+- The first draft must come from a generative model that outputs 3D directly. Optimization, polygon reduction and cleaning follow.
+- The user accepts a hosted generator for that draft. Cooking, LODs and native review stay local.
+- Tripo is the first candidate. Its H3.1 generator comes with retopology, UV, segmentation and texturing services that also accept an imported mesh.
+- Seed3D 2.0 remains a geometry comparison candidate. Its only verified API is Volcano Engine Ark in mainland China; account access from France is unverified.
+- No hosted model has been tested on the boards. Architecture quality stays unproven until the house pilot passes the same source gate.
+- A procedural shell prototype, fused superellipsoid masses with cut openings, was shown on 2026-11-10 and rejected by the user. It is not a production route.
+
+| Candidate | Verified capability | Access and tooling | Cost |
+|---|---|---|---|
+| Tripo H3.1, `v3.1-20260211` | Text, one image or four views; up to 1.5 M triangles, 2 M with detailed geometry; PBR up to 8K; optional parts | API v3 at `openapi.tripo3d.ai/v3`; official `tripo-cli` 0.9 with a bundled agent skill and an MCP mode; Python, JS, Go and Rust SDKs | 20–50 credits per model; detailed geometry +20; one credit is $0.01 |
+| Tripo mesh services | Retopology v3.0 with quads, smart UV and bake; segmentation v2.0 beta; part completion; texturing | Same key; accept an uploaded GLB, FBX or OBJ up to 150 MB | 35–40, 40, 30–50 and 10–30 credits |
+| Seed3D 2.0, `doubao-seed3d-2-0-260328` | One image; PBR mesh at 100 k, 500 k or 1 M faces; GLB, OBJ, USD; stated gains on sharp edges and thin walls | Volcano Engine Ark only; absent from the BytePlus ModelArk list; no CLI, MCP or retopology service found | 2.40 CNY per generation |
+
+- Tripo result URLs expire after five minutes. Download at once and retain the task IDs with the source hashes.
+- Tripo's terms give paid users the rights to their outputs and exclude them from training. A private-by-default statement and EU-specific terms were not found.
+- Tripo announced the end of its v2 endpoints for 2026-11-01. Use v3 only.
+- `generate_parts` excludes texture, quads and smart low-poly in the same request. Segment or retopologize in a later call.
+- The H series targets dense detail; the P series targets controlled polygon counts and native quads. Compare both on the pilot before fixing the reduction route.
+- Variation rule, decided 2026-11-11: one generated image per family supplies new form; procedural passes vary instances without changing form. See [generated first-draft buildings](spec-ville-procedurale.md#generated-first-draft-buildings).
+- Tripo's inexpensive variation tools act on images only. The `variants` image template costs 5 to 10 credits per call; its output count is undocumented. `edit-multiview` costs 5 credits per edited view.
+- Re-texturing costs 10 credits but changes only the atlas, which the city reads as material classes. A new 3D draw costs the full generation price.
+
+**House pilot, 2026-11-10**
+
+- Five Tripo tasks ran on the house board for 195 credits. Task IDs, hashes and review images are in `E:/ExoluneAssets/tripo-pilot-2026-11-10`.
+- H3.1 with detailed geometry reproduces the board's canonical view closely: shells, elliptical eyes, porch, terrace and a coherent invented rear.
+- Each draft is one fused surface of about 1.95 M triangles with 2048-pixel colour, normal and ORM maps.
+- The raw board view also yields plants, furniture and an open interior, all fused into that surface. Component removal cannot separate them.
+- Clean the image first. A Tripo image edit removed plants and furniture and closed the glazing while keeping proportions; the earlier FLUX clean-up had narrowed the house.
+- The draft from that edited view has closed panes, mullions, sun blades, a door and steps. Use this input form.
+- `auto_size` returned 7 m, 5 m and 3.5 m heights for the three drafts. Set the metric scale locally.
+- A plain local collapse to 60,000 triangles dents panes and shells. It is not a production reduction.
+- Tripo retopology v3.0 returns 17,498 triangles with rebaked colour and a baked normal map. Surfaces stay clean; rims soften. It caps at 20,000 triangles.
+- P2 at a 50,000-triangle limit returned 45,306 triangles as a hollow shell with open glazing and an open rear. H3.1 with retopology is the retained route.
+- The retopologized house runs in game through the common cooker; see the [city specification](spec-ville-procedurale.md#generated-first-draft-buildings). It matches the board at street distance.
+- At walking distance its one baked atlas is blurred and smeared along the rims. Higher texture tiers do not solve this: the engine stores 1,024-pixel layers.
+- The smears are the draft's own painting: soft highlights and shadows in recessed zones. They are not a retopology bake error.
+- Tested and rejected: repainting the reduced atlas from the dense draft by nearest facing surface. It changed the class of 2.6 % of texels, mostly at borders.
+- The draft's texture is a clean material map: about 90 % of its texels sit near five flat colours. The city now reads it as classes and renders shared materials; see [generated shell surfaces](spec-ville-procedurale.md#generated-shell-surfaces).
+- The board holds a sixth material the first reading missed: opaque cladding in the glazing colour, on reveals and soffits.
+- The user judged a web-studio draft of the same raw board view more precise. Its three settings, Ultra mesh, AI completion and 8K texture, map to `geometry_quality=detailed`, `enable_image_autofix=true` and `texture_quality=extreme`.
+- A rerun with those settings, task `3fb50153`, cost 70 credits. It kept the density and returned an 8,192-pixel colour map, but its geometry was not more precise: the living room closed, the rear came back plain and one shell rim broke. The remaining gap is the draw, not a setting.
+- The studio's Smart Mesh is P2. From the raw board view it gave 4,718 clean quads, but the furnished interior stays visible behind the glazing, props float as separate pieces and the rear is simplified. The user judged the H3.1 and retopology chain better. Through the API, P2 costs 110 credits per draft against 85 for that chain.
+- Interior test, 2026-11-11: a depth map taken along the facade normal finds the openings, and a six-plane crop isolates the room behind one.
+- The raw-view draft holds a coherent furnished living room of about 7 × 6 × 2.7 m: sofa, dining set, shelves, a rear window and a lit ceiling cove.
+- That room alone takes 313,000 triangles, 17 % of the draft, at about 210 texels per metre. Kept as geometry it would consume the 20,000-triangle reduction; baked behind the glazing it costs none.
+- Its furniture is soft at close range, and its rear window opens onto nothing. Review images are in `E:/ExoluneAssets/tripo-pilot-2026-11-10/review/interior`.
+- The pilot and its extensions cost 375 credits in total. The surface work spent none.
+- Still open: scanned or generated detail tiles of higher quality, and reflections of the scene in glazing.
+- The user has not yet judged the drafts in game. Art acceptance stays false.
+
 **What the current evidence establishes**
 
 - The retained original house control originated in local FLUX image preparation and TRELLIS.2 reconstruction.
@@ -101,7 +155,7 @@
 - The separate-loft attempt was rejected for modelling-clay forms and disconnected junctions. The replacement reconstructs the house as one structural domain before adding functional parts; segmentation is not the design objective.
 - Prefer the reviewed part-budgeted QEM control over LATO.2 for this house until a new result passes the same source gate. This is a decision on the tested asset and settings, not a general model ranking.
 - Retain LATO.2 as a component research route. Inspect both sides and winding, preserve intentional apertures and re-bake maps onto accepted geometry. A closed result alone is not a success criterion.
-- Remote Meshy/HY partner nodes inside ComfyUI are not local inference. Their presence in the template library does not meet the local-production requirement.
+- Remote Meshy/HY partner nodes inside ComfyUI are not local inference. The local-only requirement held until 2026-11-10; the user now accepts a hosted first draft, see above.
 - Global city streaming, HLOD, building interiors and transport simulation remain separate runtime work.
 
 **Next proof and stop condition**
@@ -133,3 +187,9 @@
 - [Nova3D project](https://github.com/RareSense/Nova3D): programmable construction approach.
 - [Sparse2Solid](https://github.com/mattlmccoy/Sparse2Solid): architectural component reconstruction and explicit limits.
 - [3Ts architectural research](https://github.com/11-685-Team-52/3Ts-Model-for-Architectural-design-process): available experimental notebooks.
+- [Tripo H3.1](https://developers.tripo3d.ai/en/models/v3-1) and [image-to-model](https://developers.tripo3d.ai/en/docs/generation-image-to-model/standard): model identifiers, parameters and limits.
+- [Tripo CLI](https://developers.tripo3d.ai/en/docs/cli) and [authentication](https://developers.tripo3d.ai/en/docs/authentication): installation, login, bundled agent skill and MCP mode.
+- [Tripo pricing](https://developers.tripo3d.ai/en/pricing) and [terms](https://developers.tripo3d.ai/en/terms): credits, output rights and training exclusion.
+- [Seed3D 2.0 release](https://seed.bytedance.com/en/blog/seed3d-2-0-released-higher-precision-and-greater-usability): inputs, outputs and stated gains.
+- [Volcano Ark 3D generation](https://docs.volcengine.com/docs/ark/3d-generation?lang=zh): model identifier, endpoint and parameters.
+- [BytePlus ModelArk model list](https://docs.byteplus.com/en/docs/ModelArk/model-list): no Seed3D entry found on 2026-11-10.
