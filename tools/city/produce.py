@@ -67,9 +67,10 @@ def main():
     if a.overrides:audit_command+=['--overrides',a.overrides]
     run(audit_command,'manufacturing-audit')
     signature=hashlib.sha256(json.dumps({'sources':inputs,'recipe':recipe,'materials':sha(HERE/'materials.py'),
+        'surface_classes':sha(HERE/'surface_classes.py'),
         'cooker':sha(HERE/'cook.py'),'surface_contacts':sha(HERE/'surface_contacts.py')},sort_keys=True).encode()).hexdigest()
     stamp=bank/'cook-state.json';old=json.loads(stamp.read_text()) if stamp.exists() else {}
-    expected=['library.bin','library.json','materials.json','texture0.bin','texture1.bin','texture2.bin']
+    expected=['library.bin','library.json','materials.json','texture0.bin','texture1.bin','texture2.bin','atlas0.bin','atlas1.bin','atlas2.bin']
     if old.get('signature')!=signature or any(not (bank/f).is_file() or old.get('files',{}).get(f)!=sha(bank/f) for f in expected):
         prepare(recipe,sources,bank,overrides=overrides)
         run(blender('cook.py','--recipe',a.recipe,'--sources',sources,'--out',bank),'cook')

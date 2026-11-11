@@ -58,8 +58,8 @@
 - **`optimisation-vegetation.md`:** vegetation culling and GPU timings, preserving appearance, density and distance; memory optimization remains.
 
 **Ship and execution**
-- **`spec-ville-procedurale.md`:** generated architecture, neutral house/public-building series and native integration, shared junctions and bounded variants, braided-archipelago masterplan, shared paths, suspended transport, five LODs and native validation.
-- **`recherche-generation-architecture.md`:** tested local methods, rejected house reconstructions, original-reference master and exploratory series, separate technical/artistic promotion gates.
+- **`spec-ville-procedurale.md`:** generated architecture, neutral house/public-building series and native integration, generated first-draft buildings whose atlas is read as material classes, shared junctions and bounded variants, braided-archipelago masterplan, shared paths, suspended transport, five LODs and native validation.
+- **`recherche-generation-architecture.md`:** tested local methods, rejected house reconstructions, original-reference master and exploratory series, hosted first-draft decision and house pilot, separate technical/artistic promotion gates.
 - **`spec-marche-ambiances.md`:** instant disembarkation, FPS walking, contextual foot contacts, environmental audio and shared keyboard/button controls.
 - **`spec-vaisseau.md`:** default fighter, model selection, cockpit, independent flight/free-camera controls and canopy weather; history in `log/spec-vaisseau-historique.md`.
 - **`recherche-vaisseau-navigateur.md`:** Trimaxion references, smooth editable v2 exterior and provenance of the selectable runtime derivative.

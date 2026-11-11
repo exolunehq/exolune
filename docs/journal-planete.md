@@ -2,6 +2,129 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-11 · Houses on the cliff's face, local earthworks, the guideway towards other cities, anchored furniture**
+
+- **Why.** The user rejects the large earthworks cut into the cliff and asks for houses on the face itself, higher up; for the guideway to reach the farms and go on far beyond the city on both sides; and points at furniture floating slightly above the ground.
+- **Earthworks.** A bank is 1:2 on gentle ground and twice the ground's slope on steeper ground, up to 2:1; it steepens further where a neighbour stands at another level. No earthwork shows more than 24 m beyond its pad. `grading.bin` becomes `CITYPAD2`: each pad carries its yaw and its own slope.
+- **Cliff.** A stair path in switchbacks beside the cable car's line; houses above its legs on their own terraces; pylons on small pads, each as far along as its span still clears 7 m.
+- **Guideway.** Two branches on steel piers, level at the city's beam, following the hillside to the regional export's edge; a station below the farms and a cable car up to them; a tree-free corridor of 27 m each side (`corridor.bin`, `CITYCOR1`).
+- **Furniture.** Set 3 cm into its lowest ground, or on the court's paving; buildings 1 cm above their pad. The city's frame now bends onto the planet: the flat frame lifted everything by r²/2R, 18 cm at the city's edge.
+- **Fixed on the way.** The farm's fields had lain on its meadow only because its court flattened the slope measured at its centre: the meadow's median slope is 29 %, and a farm's fields now lie on it up to 35 % by rule.
+- **Result.** `delivery-08`: 428 buildings, 13 on the face, two cable cars, 16.6 km of guideway beyond the city on 366 piers, 228 fields; validation passes four seeds. Earthworks: 677 pads, index 1,816 entries (2,218 in `delivery-07`), none showing beyond 24 m.
+- **Go back.** `delivery-07` keeps the towers at the cliff's foot.
+- **Milestone.** `jalon/ville-collines-main-2026-11-11`: the hill city, its earthworks, its cliff and its guideway merged into `main`.
+
+**2026-11-11 · Cliff dwellings, farms in the meadow, six new pieces of furniture**
+
+- **Why.** The user asks for dwellings on top of and against the escarpment north-west of the city, served by the cable car; for farms in the meadow south-west; for trees out of the cable and metro lines; and approves six new furniture types (about 300 credits).
+- **Site.** 3 km at 2.9 m: the 2 km city, the escarpment (foot 337 m, top 621 m) and the meadow (`city-hills-3km-2026-11-11`). The sidecar states the city's region, the farms and the cliff.
+- **Cliff.** Nine towers at the foot, backs to the face; twelve houses on the top, facing the valley; the cable car between them, 637 m, 8 pylons set into the face.
+- **Farms.** Greenhouses, water towers and hangars round a court; fields of 48 × 10 m lying on the meadow.
+- **Furniture.** Bicycle shelter, kiosk, pergola, play sculpture, sorting station, insect hotel: drawn in ChatGPT, one H3.1 draft each (300 credits), reduced locally.
+- **Corridors.** No tree within 16 m of the guideway's line or 12 m beyond the outer cable.
+- **Fixed on the way.** Pylon pads on the face regraded each other: pylons now stand on footings set into the slope. Meadow fields read as grass: a quarter are now tilled and the ripest gold.
+- **Result.** `delivery-07`: 377 buildings on 730 pads, 49 districts, the cliff's cable car (637 m, 8 pylons), 183 fields, 184 new pieces of furniture. Validation passes four seeds.
+- **Go back.** `delivery-06` keeps the 2 km city.
+
+**2026-11-11 · A 2 km hill city: the metro on a contour, built paths, furniture, open fields**
+
+- **Why.** The user finds the result convincing, but the elevated metro is missing, the fields stay hidden in the forest, paths and steps sink into the ground, furniture is scarce and the space between houses empty. They ask for much more scale and denser places.
+- **Site.** 2 km, 400 m south of the first site: the river stays along the north edge (`city-hills-2km-2026-11-11`).
+- **Masterplan.** The braid follows a contour: crowns along it, both sides in its middle third; gardens beyond; fields, workshops and the spaceport placed first where the terrain accepts them.
+- **Metro.** A level guideway along the contour, 2.3 km, 3 stations and 40 rings on short footings. The cable car keeps to one side of it.
+- **Paths.** Level across, 0.15 m above the highest ground across them, a 0.06 m stone curb and a stone side 0.35 m into the ground. Steps at the same level.
+- **Furniture.** Courts, paths every 21 m, building aprons of 2.5 m, garden beds: over 500 benches, planters and lamps.
+- **Fields.** The terraces make one open farmland: no forest around them.
+- **Engine.** Earthworks hold 900 pads (was 384); the frame's constants grow to 58 KB.
+- **Result.** `delivery-06`: 353 buildings, 486 pads, 45 terraces, metro and cable car, the spaceport. Validation passes four seeds.
+- **Fixed on the way.** A district filter dropped the spaceport off steep ground: the masterplan now asks the terrain. The contour made a hairpin: it is cut where it turns back. A middle cable station fell 89 m from the top one: 250 m apart now.
+- **Go back.** `delivery-05` keeps the 1 km hill city.
+- **Milestone.** `jalon/ville-collines-main-2026-11-11`, with the later stages: this stage was never committed alone; `delivery-06` keeps it.
+
+**2026-11-11 · Earthworks under the city, a spaceport, field terraces and a cable car**
+
+- **Why.** The user asks for earthworks in place of stilts and plinths, in the texture of the ground, harmonious, not cubic, following the ground. The spaceport, the fields and public transport were still missing.
+- **Change.** Level pads graded into the relief with 1:2 banks, entering over 2 m and rounded over 1.5 m (`grading.py`, `CityGrade.hlsli`, `City::Grade`). Stilts, terraces, walls and railings are gone; steps remain.
+- **Bank texture.** The first captures showed grey scree on every bank: a 1:2 slope falls in the scree band (0.43 to 0.75). The materials now classify a bank at 40 % of its slope, so it keeps the soil and grass it was cut from; its light keeps the whole slope.
+- **Spaceport.** A 170 × 90 m platform: terminal, two landing pads, two shuttles and runway beacons.
+- **Fields.** Terraces of 24 × 8 m along the contours of food districts, crop rows drawn in the shader (role 27).
+- **Cable car.** On the hill site: three stations, pylons until both cables clear 7 m, cabins every 55 m.
+- **Assets.** Six H3.1 drafts reduced locally: shuttle, beacon, landing pad, cabin, pylon, station (300 credits, already spent).
+- **Fixed on the way.** A neighbour's bound stopped at 40 m, while a 28 m difference in level needs a 60 m bank: the reach now grows with the difference. Pylons were checked against the stations they are built with.
+- **Result.** `delivery-05` (hills): 133 buildings on 161 pads, a 797 m cable car (3 stations, 10 pylons, 27 cabins, 7.5 m least clearance), the spaceport, 9 field terraces. `delivery-05-plat`: 134 buildings on 208 pads, 14 rings and 3 stations on their footings, the spaceport, 35 terraces. Validation passes four seeds on both.
+- **Flight contact.** It read the natural relief: a free camera stopped above a cut and sank into a fill. Its constants now carry the same earthworks after its probe.
+- **Known limits.** The pylon's 21 m gauge comes from the generated crossarm. Cabins and shuttles are static.
+- **Milestone.** `jalon/ville-collines-main-2026-11-11`, with the later stages: this stage was never committed alone; `delivery-05` keeps it.
+- **Go back.** `delivery-04` and `delivery-04-plat` keep the built supports.
+
+**2026-11-11 · Crafted supports, sharper generated buildings, every city asset generated**
+
+- **Why.** The user asks for more care on stilts and plinths, for close-range refinement of the generated houses, then for every remaining asset through the pipeline: suspended metro, airport, lamps, everything.
+- **Supports.** Stilts become a timber frame: posts on stone footings, beams under a 0.35 m deck, tie beams every 2.4 m, stone piers and sills where the ground rises. Terraces lean 0.12 m per metre under a coping. A 0.7 m walkway and 1 m railings close every edge higher than 1 m (`foundations.py`).
+- **Walking.** `CITYSCN1` version 4 keeps posts, beams, rails and walls out of the walking surface.
+- **Stone.** Coursed masonry is drawn in the shader (role 26) on box-projected UVs; the ground roles projected from above and streaked walls.
+- **Sources.** The H3.1 draft is reduced locally to 56,000 triangles (furniture 11,000) with its 2,048 maps. Tripo retopology stopped at 20,000 triangles and baked normal and roughness at 1,024. The eight families were rebuilt; `shell_crescent` moved its entrance to x = 1.6.
+- **Textures.** Displayed atlases are block compressed (`bc.py`, `CITYATL1`): 2,048 BC1 colour and BC5 normal, 1,024 BC1 roughness. With the eight families the city textures fell from 370 MB to 324 MB.
+- **Batch.** 33 assets drawn in ChatGPT, 18 from board panels and 15 as family variants, then one H3.1 draft each: 1,650 credits of the 2,800 approved, the retopology being dropped. `generated_batch.py` builds the sources and searches an open entrance along the front.
+- **Result.** `delivery-04` (hills): 127 buildings, 70 terraces and 57 decks on stilts, every asset generated; 41 compressed atlases and 10 RGBA layers, about 540 MB of city textures. `delivery-04-plat` (flat site): 134 buildings, three stations, the beam in 69 segments, 14 rings, 4 cabins. Validation passes four seeds on both sites.
+- **Fixed on the way.** A fully generated kit has no procedural stone: the supports fall back on the cooker's masonry. A furniture draft could come out turned: `align`. The ring needed yaw 0.
+- **Known limits.** Station platforms are not fitted to the beam datum. Glazing still shows painted rooms. Railings have no collision.
+- **Go back.** `delivery-02-collines` keeps the plain supports and the retopologised families; `delivery-03` the eight families alone.
+
+**2026-11-11 · The city moves to a hill site: terraces, stilts and steps**
+
+- **Why.** The user finds a city set on flat ground uninteresting and asks for hills, a river and verticality.
+- **Site.** South bank of a river valley, centred on −10.995425, 63.684025: ground from 318 to 489 m, median slope 15–17 %. `site_search.py` ranks windows of a 20 km survey.
+- **Water.** The engine does not export rivers: `terrain.request.bin.json` states a 324 m surface, read from the 318.5 m channel bed. Margin 10 m for lots, 6 m for paths.
+- **Change.** Relief chooses the foundation: slab to 0.5 m, terrace to 4 m, deck on stilts to 10 m. Paths ramp to 8 %, then climb by solid steps to 30 %. Entrance stairs descend from the deck edge. Each lot tries four quarter turns (`spec-ville-procedurale.md#hill-sites`).
+- **Materials.** Paved decks and treads, stone walls and risers, timber posts. The first stone walls in the ground roles streaked: those roles project from above.
+- **Vegetation.** The site is dense forest and hid the city. Trees now keep 8 m from buildings, and three district cells in four refuse natural objects: the stacked city reads from the valley.
+- **Transport.** The guideway needs level ground; it stays off this site. Cable cars are the requested next step.
+- **Engine.** The city's vertical bounds follow its placements; the shadow volume centres on the viewer, clamped to them.
+- **Result.** 119 buildings from 326 to 450 m: 59 terraces, 58 decks on stilts, 2 slabs, 3,753 steps. 20 of 23 districts remain. Validation passes four seeds; sea and a 60 % plane are rejected.
+- **Flat site.** `site-west` still plans 127 buildings on slabs with its three stations.
+- **Evidence.** `E:/ExoluneAssets/city-hills-2026-11-11` (surveys, export, sidecar) and `E:/ExoluneAssets/city-tripo-2026-11-11/delivery-02-collines`.
+- **Go back.** Launch with `-Ville` on `delivery-01`: the flat site and its bank are unchanged.
+- **Milestone.** `jalon/ville-collines-main-2026-11-11`, with the later stages: this stage was never committed alone; `delivery-02-collines` keeps it.
+
+**2026-11-11 · First generated family batch: four houses, four collectives**
+
+- **Why.** The variation rule takes form variety from generated families. The user supplied variant boards for the shell house and the ribbon collective.
+- **Change.** Eight neutral sources are replaced by generated ones: `patio_house`, `shell_tall`, `shell_duplex`, `shell_crescent`, `ribbon_apartments`, `ribbon_tall`, `ribbon_garden_steps`, `ribbon_crown` (`spec-ville-procedurale.md#generated-first-draft-buildings`).
+- **Method.** One clean view per family in ChatGPT, one H3.1 draft with detailed geometry and image autofix, one 20,000-triangle retopology, then `generated_source.py`. 680 credits.
+- **Settings.** `assets/city/generated-buildings.json`: yaw −90, metric heights from storeys of about 3.2 m, `"surface": false`. Patios and lobbies use open entrances: a fitted timber leaf, pull and threshold, placed by a probe above furniture height.
+- **Placement.** 43 placements: 6 patio, 6 tall, 8 terraced and 6 winged houses; 5, 3, 7 and 2 collectives.
+- **Known limit.** These drafts show furnished rooms behind their glazing, so the class reading fails on them: their atlas is displayed and stays soft at walking distance.
+- **Evidence.** `E:/ExoluneAssets/city-tripo-2026-11-11`: boards, clean views, drafts, retopologies, measurements and `delivery-01`.
+- **Go back.** Integrate from `candidate-03` without these assets: the neutral sources return.
+- **Review.** The user validates the pipeline, ChatGPT step included. Close-range detail stays too soft.
+- **Milestone.** The tag waits for the commit: the work is uncommitted.
+
+**2026-11-11 · Generated house: a baked room behind the living-room glazing**
+
+- **Why.** The user wants to keep the interior detail of the high-definition draft. As geometry, the living room alone holds 313,000 triangles, 17 % of the draft.
+- **Change.** `tools/city/interior_bake.py` stores the room seen from its window: colour, and depth over the box depth. The shader marches that height field behind the panes; other windows keep the procedural rooms (`spec-ville-procedurale.md#baked-interiors`).
+- **Settings.** `assets/city/generated-buildings.json`, `shell_house.interiors`: window origin, width and height axes, 6.8 m depth. Shader: 12 to 96 steps by incidence, 4 bisections, daylight 0.9, depth fade 0.05 per metre, lamp 0.10. Depth on 16 bits in the normal layer.
+- **Tried and replaced.** Eight-bit depth and a fixed 24-step march left rings and terraces at grazing views. The sibling's curved shell end left rings too: the box now starts after it.
+- **Runtime.** Interior records use role 25 in the material buffer. The shell names them through `color.w` and `properties.z`. One more 1,024-pixel layer, 16.8 MB across the three arrays.
+- **Prototype.** The bake comes from a sibling draft of the same board, task `3fb50153`. The house in game was drafted with closed glazing and holds no room of its own.
+- **Unchanged.** The house source and its hash, its LODs, the layout and every other source.
+- **Evidence.** `E:/ExoluneAssets/city-tripo-2026-11-10/candidate-03`; route `tools/tests/2026-11-11-interieur-salon.txt`.
+- **Go back.** Remove `interiors` from the asset: the shell then keeps procedural rooms everywhere.
+- **Milestone.** None yet: the work is uncommitted and awaits the user's review.
+
+**2026-11-10 · Generated house: material classes replace the displayed atlas**
+
+- **Why.** At walking distance the generated house showed one blurred atlas, about 4 cm per texel, painted glazing and dark light lines.
+- **Change.** The atlas names six classes per texel. Each renders with a shared city material in model space: boards, mineral shell, glazing with rooms and metric frames, lit lines, solar cells and cladding (`spec-ville-procedurale.md`).
+- **Settings.** `assets/city/generated-buildings.json`, block `surface`: confidence 0.06, lightness weight 0.25, 1.4 m mullions, 3.2 m storeys. Kit values in `tools/city/materials.py`, `SHELL_KIT`.
+- **Runtime.** City material role 24, `CityGenerated.hlsli`; three model-space interpolants in `CityPixel`. Other roles are unchanged.
+- **Cost.** Two more 1,024-pixel texture layers, 33.6 MB. Single hidden captures show no frame-time change; no benchmark ran.
+- **Unchanged.** The house source and its hash, its five LODs, the layout and every other source of the review bank.
+- **Evidence.** `E:/ExoluneAssets/city-tripo-2026-11-10/candidate-02`; route `tools/tests/2026-11-10-maison-de-pres.txt`.
+- **Go back.** Remove `surface` from the recipe entry: the building then cooks with role 100 and displays its atlas.
+- **Milestone.** None yet: the work is uncommitted and awaits the user's review.
+
 **2026-11-10 · Free flight, horizon lock and fixed altitude**
 
 - Home cycles the detached camera through Free, Horizon and Fixed altitude.

@@ -1,0 +1,10 @@
+# Flat site on earthworks: the spaceport platform, the guideway's rings and stations on their footings, field terraces.
+# Launch with -Ville E:/ExoluneAssets/city-tripo-2026-11-11/delivery-05-plat/bank. F1 city-wide, F2-F3 spaceport, F4-F5 guideway footings, F6-F7 fields, F8 a building's pad.
+Ville vue du ciel | 190.337 -11.0437729929 49.7803458539 17.154 -35.538 | -6.04 19.7776
+Astroport, plateforme | 170.648 -11.0376025316 49.7799499148 44.356 30.751 | -6.04 19.7776
+Aire d'atterrissage et navette | 39.569 -11.0365046393 49.7813015520 8.903 -30.000 | -6.04 19.7776
+Anneau du métro sur son remblai | 32.020 -11.0399288817 49.7752788343 -4.071 -157.430 | -6.04 19.7776
+Station sur sa plateforme | 32.162 -11.0397298818 49.7748734804 -4.667 -177.986 | -6.04 19.7776
+Terrasses de cultures | 105.476 -11.0370047039 49.7775610600 44.974 -53.130 | -6.04 19.7776
+Terrasse cultivée, de près | 32.351 -11.0367338916 49.7757321638 2.771 -57.265 | -6.04 19.7776
+Remblai sous une tour | 32.715 -11.0398219040 49.7775076523 -5.596 -55.279 | -6.04 19.7776

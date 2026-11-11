@@ -1,3 +1,5 @@
+// The erosion and planet-map passes read the natural relief, never the city earthworks.
+#define CITY_NATURAL_RELIEF
 // Step B's second startup pass (docs/spec-erosion.md, the corridors), when the level 0 is computed: the relief each
 // cell's courses cross where they are drawn (Erosion.hlsli, the same courses as ErosionRivers), for Erosion::Condition.
 // Along its main course, and along its re-routed course when it is a minor inflow of its receiver: RIVER_CAP_SAMPLES

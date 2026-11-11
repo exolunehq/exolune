@@ -13,12 +13,26 @@
 
 class City {
 public:
-    static constexpr UINT DescriptorCount=4, ShadowSize=4096, MaskSide=256;
+    static constexpr UINT DescriptorCount=7, ShadowSize=4096, MaskSide=256;
+    static constexpr float PlanetRadiusM=6378000.0f; // D3DApp::PlanetRadius
     bool Ready() const { return mReady; }
     double Latitude() const { return mLatitude; }
     double Longitude() const { return mLongitude; }
     const DirectX::XMFLOAT4& LandGrid() const { return mLandGrid; }
     const std::array<DirectX::XMUINT4,512>& LandBits() const { return mLandBits; }
+    // Earthworks (grading.bin): pads graded into the relief. The shaders apply them in CityGrade.hlsli;
+    // Grade applies the same function to a natural height, for walking.
+    const std::vector<DirectX::XMFLOAT4>& Pads() const { return mPads; }
+    const std::array<UINT,1024>& GradeCells() const { return mGradeCells; }
+    const std::vector<UINT16>& GradeIndex() const { return mGradeIndex; }
+    const DirectX::XMFLOAT4& GradeGrid() const { return mGradeGrid; }
+    // The guideway's tree-free corridor (corridor.bin, CITYCOR1): info (count, half width, boxes), boxes, segments.
+    const DirectX::XMFLOAT4& CorridorInfo() const { return mCorridorInfo; }
+    const std::vector<DirectX::XMFLOAT4>& CorridorBoxes() const { return mCorridorBoxes; }
+    const std::vector<DirectX::XMFLOAT4>& Corridor() const { return mCorridor; }
+    float Knee() const { return mKnee; }
+    float Round() const { return mRound; }
+    double Grade(double x,double y,double height) const;
     DirectX::XMMATRIX Shadow() const;
     void Initialize(ID3D12Device*,ID3D12GraphicsCommandList*,ID3D12DescriptorHeap*,UINT,const std::wstring&,UINT worldSeed,DXGI_FORMAT,DXGI_FORMAT);
     void ReleaseUploads() { mUploads.clear(); }
@@ -47,6 +61,15 @@ private:
     std::vector<Batch> mShadowBatches;
     std::vector<Vertex> mRoadVertices;
     std::vector<UINT> mRoadIndices;
+    UINT mWalkIndices=0; // the walkable prefix of mRoadIndices
+    std::vector<DirectX::XMFLOAT4> mPads; // two per pad: centre xy, yaw, bank slope; half extents, radius, height
+    std::array<UINT,1024> mGradeCells={};
+    std::vector<UINT16> mGradeIndex;
+    DirectX::XMFLOAT4 mGradeGrid={};
+    DirectX::XMFLOAT4 mCorridorInfo={};
+    std::vector<DirectX::XMFLOAT4> mCorridorBoxes,mCorridor;
+    std::vector<std::vector<UINT>> mByModel; // placement indices per model
+    float mKnee=0,mRound=0;
     std::vector<std::vector<UINT>> mRoadCells;
     std::array<DirectX::XMUINT4,512> mLandBits={};
     DirectX::XMFLOAT4 mLandGrid={};
@@ -54,7 +77,7 @@ private:
     double mLatitude=0,mLongitude=0;
     bool mReady=false,mVisible=false,mShadowReadable=false;
     UINT mCapacity=0,mVisibleCount=0;UINT64 mTriangles=0,mShadowTriangles=0,mBytes=0;
-    Resource mVertices,mIndices,mMaterials,mInstances,mShadow,mConstants,mTextures[3];
+    Resource mVertices,mIndices,mMaterials,mInstances,mShadow,mConstants,mTextures[3],mAtlases[3];
     std::vector<Resource> mUploads;
     Instance* mInstanceData=nullptr;Frame* mFrame=nullptr;
     D3D12_INDEX_BUFFER_VIEW mIndexView={};

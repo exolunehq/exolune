@@ -127,3 +127,19 @@
 - Twelve district views and twelve close views were bound to the exact executable, shaders, textures and placement scene.
 - The original neural house remained a rejected FPS-quality witness. The shell-house finishing work replaces that review role with a directed reconstruction and structural variant.
 - Old palettes remain historical witnesses for that bank; they do not certify the later house bank.
+
+**Flat ground rule · until 2026-11-11**
+
+- The planner rejected water below 2 m, path slopes above 8 % and building support relief above 0.5 m.
+- It therefore rejected the former site at −11.04, 49.784: its fixed network would cross the new river banks above the 8 % grade.
+- The 2026-11-10 bank moved 700 m west, to −11.04, 49.7776, where no probe cell exceeds an 8 % slope.
+- The hill-site rule replaces it: graded foundations, stepped paths up to 30 % and a stated river surface (`../spec-ville-procedurale.md#hill-sites`).
+
+**Built supports on hill sites · 2026-11-11, replaced by earthworks the same day**
+
+- The deck stood at the footprint's highest ground. The planet's relief was never cut; the downhill side rose on walls or posts.
+- Foundation by relief: a slab up to 0.5 m; a terrace up to 4 m, its stone wall leaning 0.12 m per metre under a 0.12 m coping; stilts up to 10 m, a timber frame in the manner of a hillside temple stage.
+- The frame: a 0.35 m deck; 0.28 × 0.40 m beams along every grid line; octagonal posts on a grid of at most 4.2 m, thickening with height; 0.8 m stone footings; tie beams every 2.4 m down. Stone piers and sills closed the edge where the ground met the deck.
+- A 0.7 m walkway and 1 m timber railings closed every edge higher than 1 m. An entrance stair left the deck where the access line crossed its edge.
+- `delivery-02-collines` placed 119 buildings: 59 terraces, 58 decks on stilts, 2 slabs, 3,753 steps. `delivery-04` placed 127: 70 terraces, 57 decks on stilts.
+- The user found them too cubic and asked for earthworks in the texture of the ground (`../spec-ville-procedurale.md#earthworks`).

@@ -345,7 +345,7 @@ void PlacePlantTile(uint4 record, uint tileIndex)
             continue;
         float e = drawn;
         float3 pos = FaceLocal((float3)(k.p + (double3)(k.up * e) - cam));
-        if(CityOccupied(pos))continue;
+        if(CityOccupied(pos)||(k.size>3.0&&CityCorridor(pos)))continue; // the guideway's corridor: trees and tall shrubs only
         float span = k.size / (length(pos) * pixelAngle);
         if (span > PLANT_LOD_PIXELS.y)
         {

@@ -6,6 +6,7 @@
 #include "BiomePalette.hlsli"
 #include "Climate.hlsli"
 #include "PlanetMap.hlsli"
+#include "CityGrade.hlsli"
 
 // ---------------------------------------------------------------------------------------------
 // Noises drawn per pixel in the planet's fixed frame: they do not move with the mesh, so they do not
@@ -1034,8 +1035,11 @@ Materials GroundMaterials(float3 q, float elevation, float3 up, float3 normal, f
     // the rock where it breaks up. Where rock covers everything, no soil textures.
     // Rock past slopes of 0.65 to 1.0 (33 to 45 degrees), scree past 0.43 to 0.75, both limits moved by the noise.
     const float meshSlope = SlopeOf(dot(normal, up));
+    // A city earthwork's bank keeps the ground it was cut from: its materials take 40 % of its slope, its light the
+    // whole of it (CityGrade.hlsli). A 1:2 bank is soil and grass, not scree.
+    const float groundSlope = meshSlope * (1.0 - 0.6 * CityBank(upPlanet, elevation));
     // On the same slopes, the snow's: shed past 1.0 to 1.7 (below).
-    const float3 slopeShares = SlopeShares3(meshSlope, slopeSigma, float4(0.65, 1.0, 0.43, 0.75) * limitShift,
+    const float3 slopeShares = SlopeShares3(groundSlope, slopeSigma, float4(0.65, 1.0, 0.43, 0.75) * limitShift,
                                             float2(1.0, 1.7) * limitShift);
     const float rockBase = slopeShares.x, screeBase = TEXTURE_DETAIL * slopeShares.y;
 #ifdef PIXEL_NEAR_DETAIL

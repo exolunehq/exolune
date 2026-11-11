@@ -1,0 +1,2248 @@
+{
+  "schema": 1,
+  "stage": "Generated first drafts fitted for the city; art and performance acceptance remain open",
+  "surface": {
+    "classes": {
+      "shell": {
+        "reference": [
+          243,
+          231,
+          216
+        ]
+      },
+      "timber": {
+        "reference": [
+          178,
+          130,
+          78
+        ],
+        "thin_texels": 5
+      },
+      "glazing": {
+        "reference": [
+          46,
+          79,
+          88
+        ],
+        "up": [
+          -0.35,
+          0.7
+        ],
+        "else": "cladding"
+      },
+      "light": {
+        "reference": [
+          250,
+          238,
+          170
+        ],
+        "thin_texels": 1
+      },
+      "solar": {
+        "reference": [
+          20,
+          50,
+          104
+        ],
+        "up": [
+          0.45,
+          1.0
+        ]
+      },
+      "cladding": {
+        "up": [
+          -1.0,
+          0.7
+        ]
+      }
+    },
+    "confidence": 0.06,
+    "lightness_weight": 0.25,
+    "stroke_lightness": 0.22,
+    "thin_texels": 3,
+    "smooth_texels": 9,
+    "mullion_m": 1.4,
+    "storey_m": 3.2
+  },
+  "assets": {
+    "shell_house": {
+      "kind": "house",
+      "floors": 2,
+      "label": "Maison à coques habitées",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/01 — Maison à coques habitées-1.png",
+        "sha256": "656a48197ee9accebd1dfc1613d848cb25cb7f0d3ea54e8493540412fbd2ce88",
+        "canonical_view": "large upper-left exterior"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit_model": "chat_image_2.5_sunburst",
+          "edit_task_id": "4084134c-8b8d-4ef4-87a1-b1aba9bf67ef",
+          "image_sha256": "0def905622faaf52b423c25cba456260bd4c35771272438b8c8dee5900b2b352",
+          "intent": "same architecture and view; plants, furniture and props removed; glazing closed and opaque"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "a4cb17a1-fda4-48ee-bb67-3ea5f3ae3567",
+          "geometry_quality": "detailed",
+          "texture_version": "v3.5-20260815",
+          "model_sha256": "282e4439cf66a3c1664cbe07861553d67ca75e18efcd21951c70529b668832cd"
+        },
+        "retopology": {
+          "model": "v3.0",
+          "task_id": "c53bd67b-69ff-4f66-b397-1bed1d9699a0",
+          "face_limit": 20000,
+          "smart_uv": true,
+          "model_sha256": "babdd44aca412b9a16c5b271f8a62cafc41413b57692ef9c83e3b6407d1a7dcd"
+        }
+      },
+      "interiors": [
+        {
+          "name": "living_room",
+          "bake": "E:/ExoluneAssets/city-tripo-2026-11-10/interiors/shell_house-salon.png",
+          "bake_sha256": "d5ec1b86b62b70eff95a43f98cb765f5c675b874a8348947f648a4556a7c4274",
+          "bake_depth": "E:/ExoluneAssets/city-tripo-2026-11-10/interiors/shell_house-salon.depth.npy",
+          "bake_depth_sha256": "fb5e0c5d61376550753ce2f5794f8aadcdce6fb7ca7fb375da588797fd0f4122",
+          "baked_from": {
+            "status": "prototype: a sibling draft of the same board, made from the raw view with its interior",
+            "task_id": "3fb50153-d844-467b-98ef-66570b88aaa3",
+            "draft_sha256": "a58b3b6b57e1aaf9c6b5811876660922e0ecff8ab8a2ecd2b3f2d3366811b284",
+            "box": {
+              "origin": [
+                0.03,
+                -0.38,
+                -0.152
+              ],
+              "u": [
+                0,
+                0.41,
+                0
+              ],
+              "v": [
+                0,
+                0,
+                0.143
+              ],
+              "depth": 0.38
+            },
+            "note": "The box starts after the sibling's curved shell end, whose grazing surface left rings; the window stretches it by 1.18"
+          },
+          "origin": [
+            -7.4,
+            -2.39,
+            0.75
+          ],
+          "u": [
+            8.3,
+            2.49,
+            0.0
+          ],
+          "v": [
+            0.0,
+            0.0,
+            2.55
+          ],
+          "depth": 6.8
+        }
+      ],
+      "yaw_degrees": -135.0,
+      "height_m": 8.1,
+      "entry": {
+        "x": 2.96,
+        "z_floor": 0.72,
+        "width": 1.5,
+        "height": 2.15
+      },
+      "triangles": 56000
+    },
+    "patio_house": {
+      "kind": "house",
+      "floors": 1,
+      "label": "B — Patio central",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Maison à coques _ quatre variantes habitées-1.png",
+        "sha256": "3d0e966304c6e999dd37a4a4b1dc0bdf0568e3ac50acf4a8b90f67b2bcc2d821",
+        "panel": "tr",
+        "crop_sha256": "0237a254d7d190d68dd841edd06dc24a207708269e3675cf3244e08cb642d0d8"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\patio_house-clean.png",
+          "image_sha256": "57a0ad8f4c390dc77011b01d720f32f35054207385b87f7d7f033c740089e3c9",
+          "intent": "same architecture and camera; people, plants and outdoor props removed; furnished interior visible; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "f541b281-44db-4f1d-b2f4-a35174280113",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "884bd41bd3423d37c98e805fc1e710c47a229af1033d6037949f7096e9845161"
+        },
+        "retopology": {
+          "model": "v3.0",
+          "task_id": "cac8b9f4-4270-43eb-8db1-1985b6f7f8a0",
+          "face_limit": 20000,
+          "smart_uv": true,
+          "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\retopo\\patio_house\\tripo-out\\decimate-cac8b9f4\\model.glb",
+          "model_sha256": "37acb5b1a4baeed88bcaee25c563a954fb18ed69f9164be1fafc55ea9878f244"
+        },
+        "source_mesh": "draft, reduced by generated_source.py; retopology kept as history",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\patio_house\\tripo-out\\patio-house-f541b281\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "height_m": 5.0,
+      "entry": {
+        "x": 3.6,
+        "z_floor": 0.3,
+        "width": 1.0,
+        "height": 2.3,
+        "open": true
+      },
+      "triangles": 56000,
+      "surface": false
+    },
+    "shell_tall": {
+      "kind": "house",
+      "floors": 3,
+      "label": "C — Tour panoramique",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Maison à coques _ quatre variantes habitées-1.png",
+        "sha256": "3d0e966304c6e999dd37a4a4b1dc0bdf0568e3ac50acf4a8b90f67b2bcc2d821",
+        "panel": "bl",
+        "crop_sha256": "430029e71590a729de20160377cdb26eae9c19a8ee10a14d027b3ea140826e33"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\shell_tall-clean.png",
+          "image_sha256": "1772827652cff4dd92b87582247c2f12579e5da6dc52578188efd58146ba4b54",
+          "intent": "same architecture and camera; people, plants and outdoor props removed; furnished interior visible; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "63856295-b8d6-4a5e-b8e5-d5982fc803b5",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "113ad5c4d31326bb6a0a40997cd469c31c04b61632f2e5fa63673af8995ce850"
+        },
+        "retopology": {
+          "model": "v3.0",
+          "task_id": "f8edb21b-2b3a-4133-ab68-51608e35c029",
+          "face_limit": 20000,
+          "smart_uv": true,
+          "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\retopo\\shell_tall\\tripo-out\\decimate-2-f8edb21b\\model.glb",
+          "model_sha256": "dca66d8b404ba0022d9fdf5e0e8a9117636f8b2a5d8866d0a7e8a924617d49b9"
+        },
+        "source_mesh": "draft, reduced by generated_source.py; retopology kept as history",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\shell_tall\\tripo-out\\shell-tall-63856295\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "height_m": 9.0,
+      "entry": {
+        "x": 2.8,
+        "z_floor": 0.15,
+        "width": 0.9,
+        "height": 2.3
+      },
+      "triangles": 56000,
+      "surface": false
+    },
+    "shell_crescent": {
+      "kind": "house",
+      "floors": 2,
+      "label": "04 — Maison en aile",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Quatre variations de maisons futuristes-4.png",
+        "sha256": "95822a57a3030bafe72c80db0ce87d14e000e4b9067df89f84698fbe84a60224",
+        "panel": "br",
+        "crop_sha256": "e85415c90f3385ff1a05686c33aecf62bba1299d7104f55e1ef184cee354dc11"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\shell_crescent-clean.png",
+          "image_sha256": "26b09863596857015a357302abe93b176029f2f473510547b27349ed68760183",
+          "intent": "same architecture and camera; people, plants and outdoor props removed; furnished interior visible; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "fd799cda-de38-4f7c-b163-f4a95a43f0b6",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "bdcb9766d6402c96340996cc1e105ab193bc8f4a834953fa86700fefa9dd9a0c"
+        },
+        "retopology": {
+          "model": "v3.0",
+          "task_id": "a993e939-0509-47a3-9a3d-30353584d806",
+          "face_limit": 20000,
+          "smart_uv": true,
+          "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\retopo\\shell_crescent\\tripo-out\\decimate-3-a993e939\\model.glb",
+          "model_sha256": "a1d0bc3b5c24f01ea0b5693cecbfcd929e454cd3dfd9455788c93aaba9c67de6"
+        },
+        "source_mesh": "draft, reduced by generated_source.py; retopology kept as history",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\shell_crescent\\tripo-out\\shell-crescent-fd799cda\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "height_m": 7.0,
+      "entry": {
+        "x": 1.6,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      },
+      "triangles": 56000,
+      "surface": false
+    },
+    "shell_duplex": {
+      "kind": "house",
+      "floors": 3,
+      "label": "02 — Maison en terrasses",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Quatre variations de maisons futuristes-4.png",
+        "sha256": "95822a57a3030bafe72c80db0ce87d14e000e4b9067df89f84698fbe84a60224",
+        "panel": "tr",
+        "crop_sha256": "c230c0cb89e62e3d9c21ddd4c4fa218de66301ec8f380adfd1ff85ce12a47acf"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\shell_duplex-clean.png",
+          "image_sha256": "05f43fc9a5eba704aafa1cec733f66e5dd4ec5f20e23cfdeb11253b06ff3044b",
+          "intent": "same architecture and camera; people, plants and outdoor props removed; furnished interior visible; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "99037a55-28e8-490d-82f3-d740969c6a61",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "b498f87830e54aa24c5a617814edee68da7efe45cc03fc2817f034f9ca4342d5"
+        },
+        "retopology": {
+          "model": "v3.0",
+          "task_id": "55cc116b-e119-486e-a697-420e53cedd82",
+          "face_limit": 20000,
+          "smart_uv": true,
+          "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\retopo\\shell_duplex\\tripo-out\\decimate-4-55cc116b\\model.glb",
+          "model_sha256": "eee593fa1bf89833f3d0112070de19f0351069a6680ec4974ca64e38b9b1eebb"
+        },
+        "source_mesh": "draft, reduced by generated_source.py; retopology kept as history",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\shell_duplex\\tripo-out\\shell-duplex-99037a55\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "height_m": 10.0,
+      "entry": {
+        "x": 4.5,
+        "z_floor": 0.4,
+        "width": 2.0,
+        "height": 2.3,
+        "open": true
+      },
+      "triangles": 56000,
+      "surface": false
+    },
+    "ribbon_apartments": {
+      "kind": "ribbon_habitat",
+      "floors": 4,
+      "label": "Immeuble à rubans, quatre niveaux",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Image ChatGPT 11 nov. 2026, 02_19_28-4.png",
+        "sha256": "89c6803ac34bd35895999fa1bfd9d718d156552505ec6abe063fdc11830f72ec",
+        "panel": null,
+        "crop_sha256": "ed62a76429be7bb9454436c5bbb78ab14a686dcf80289ee4558c40cf7d7041db"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\ribbon_apartments-clean.png",
+          "image_sha256": "e600f19a6ff4dc02e309e3d2bd7a362c284400710a3022cf036f30bd1fa5e6dc",
+          "intent": "same architecture and camera; people, plants and outdoor props removed; furnished interior visible; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "620d7652-6d40-488c-b273-b88787154451",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "1d93c2b92401dbe3d6408f41e9a9eb1d3f151800d251a825ee53f8b952feb781"
+        },
+        "retopology": {
+          "model": "v3.0",
+          "task_id": "740fdce3-115b-4cc9-b934-dcf65d81efd0",
+          "face_limit": 20000,
+          "smart_uv": true,
+          "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\retopo\\ribbon_apartments\\tripo-out\\decimate-5-740fdce3\\model.glb",
+          "model_sha256": "90f1ebb4cca0876b3482189e1e078e7723967526b013a0e0d596980f43fc0a6f"
+        },
+        "source_mesh": "draft, reduced by generated_source.py; retopology kept as history",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\ribbon_apartments\\tripo-out\\ribbon-apartments-620d7652\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "height_m": 17.0,
+      "entry": {
+        "x": 0.0,
+        "z_floor": 0.3,
+        "width": 3.0,
+        "height": 2.6,
+        "open": true
+      },
+      "triangles": 56000,
+      "surface": false
+    },
+    "ribbon_garden_steps": {
+      "kind": "ribbon_habitat",
+      "floors": 5,
+      "label": "02 — Variante 2, élargie et terrassée",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Image ChatGPT 11 nov. 2026, 02_19_27-2.png",
+        "sha256": "7533a0ab00904f5d726b49f16f04d6bd4833840cfad0a454e80c6737d13f47c2",
+        "panel": null,
+        "crop_sha256": "6cf98a6f9fe6eee452eac973ed027486fc20bbc58e11b944c785669910e34cd0"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\ribbon_garden_steps-clean.png",
+          "image_sha256": "cef7ad8363ec616bcfae03304d2c7529024f59ca1c0a7e491afe172d300e3366",
+          "intent": "same architecture and camera; people, plants and outdoor props removed; furnished interior visible; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "c7ad2720-5e52-4d34-a015-ac0904b31949",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "c81d4fa9c506db871abaaa5c98dabefd3d183e5b408d0541ec8989b3bc479601"
+        },
+        "retopology": {
+          "model": "v3.0",
+          "task_id": "9a317553-e9a8-4576-b295-0f057e43e1f8",
+          "face_limit": 20000,
+          "smart_uv": true,
+          "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\retopo\\ribbon_garden_steps\\tripo-out\\decimate-7-9a317553\\model.glb",
+          "model_sha256": "63152d72fd374dafa26f5cebd209e8c2e702a4b724539324571e2fdfae50f243"
+        },
+        "source_mesh": "draft, reduced by generated_source.py; retopology kept as history",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\ribbon_garden_steps\\tripo-out\\ribbon-garden-steps-c7ad2720\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "height_m": 19.0,
+      "entry": {
+        "x": 0.5,
+        "z_floor": 0.6,
+        "width": 3.0,
+        "height": 2.6,
+        "open": true
+      },
+      "triangles": 56000,
+      "surface": false
+    },
+    "ribbon_tall": {
+      "kind": "ribbon_habitat",
+      "floors": 8,
+      "label": "Immeuble à rubans, tour",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Image ChatGPT 11 nov. 2026, 02_19_26-1.png",
+        "sha256": "a7166a648297f3554c0efffd1fdb47b0b31fccbddee19dd0cfc544e2e9402e8a",
+        "panel": null,
+        "crop_sha256": "566e09f178b7e2cdbe5825ce5fb906e8764fe0fc51c93457142db42ba77457af"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\ribbon_tall-clean.png",
+          "image_sha256": "b46e71c147dbfff7c01868a9b95e5dea1e2a0a2f71bcb4ba75d8122a19d5dcdb",
+          "intent": "same architecture and camera; people, plants and outdoor props removed; furnished interior visible; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "f7e94798-2b31-444a-830c-201c3ce8d827",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "fda227aa4cfc53a37ff2c6b01064727d7ddff7b670a8f6a459ed8318ef4b5410"
+        },
+        "retopology": {
+          "model": "v3.0",
+          "task_id": "3b1f16c9-2489-42e1-af25-55c77dbb6890",
+          "face_limit": 20000,
+          "smart_uv": true,
+          "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\retopo\\ribbon_tall\\tripo-out\\decimate-8-3b1f16c9\\model.glb",
+          "model_sha256": "374bf03295c94ee7108760bc598e57cd7a49f8fc0452a846ca4b99d0453a9a92"
+        },
+        "source_mesh": "draft, reduced by generated_source.py; retopology kept as history",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\ribbon_tall\\tripo-out\\ribbon-tall-f7e94798\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "height_m": 30.0,
+      "entry": {
+        "x": 1.0,
+        "z_floor": 0.3,
+        "width": 3.0,
+        "height": 2.6,
+        "open": true
+      },
+      "triangles": 56000,
+      "surface": false
+    },
+    "ribbon_crown": {
+      "kind": "ribbon_habitat",
+      "floors": 7,
+      "label": "Variant 3 — Dynamic asymmetric design",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Image ChatGPT 11 nov. 2026, 02_19_27-3.png",
+        "sha256": "a247584074cee7a0118b76d0aa96180ae1d1e5fe86dba6cc0fa96071bfaeddb2",
+        "panel": null,
+        "crop_sha256": "92abb420889b8d2bb48066141b15e0f901514bbc5766eb4a1680891c35a6886d"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\ribbon_crown-clean.png",
+          "image_sha256": "f7793552ff615c17a43701609d327afc016c7df7c77dff6d7576a35876fc221b",
+          "intent": "same architecture and camera; people, plants and outdoor props removed; furnished interior visible; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "68ece134-6015-477e-b6f3-cd38abbf49cc",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "5baa522196d49c966fd56a4b8bfec2c4a30f03d5133d2f9bbebc492ce65c481b"
+        },
+        "retopology": {
+          "model": "v3.0",
+          "task_id": "a10677ed-87c9-454a-a99e-4fa0a3bcaad7",
+          "face_limit": 20000,
+          "smart_uv": true,
+          "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\retopo\\ribbon_crown\\tripo-out\\decimate-6-a10677ed\\model.glb",
+          "model_sha256": "cd5b45f6e10f40edb36c5008a5ce84cecdbc345d6d25aaa8aa718598d8d46331"
+        },
+        "source_mesh": "draft, reduced by generated_source.py; retopology kept as history",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\ribbon_crown\\tripo-out\\ribbon-crown-68ece134\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "height_m": 24.0,
+      "entry": {
+        "x": 8.0,
+        "z_floor": 0.1,
+        "width": 3.0,
+        "height": 2.6,
+        "open": true
+      },
+      "triangles": 56000,
+      "surface": false
+    },
+    "civic_petals": {
+      "kind": "civic",
+      "floors": 2,
+      "label": "Maison commune aux trois pétales",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Maison commune aux trois pétales-4.png",
+        "sha256": "28ed26509bd2197524f3d588b332fc0c90d47ab05761aa45d16483fe40bd1a8b",
+        "panel": [
+          0,
+          5,
+          72,
+          63.5
+        ],
+        "crop_sha256": "865a848a00db5431fba89e754c31da1af7831d7d7dfdcb710a0166dac19c6f6a"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\civic_petals-clean.png",
+          "image_sha256": "1e44f8936d48806ada5f36c89ccb7108e2dea561c819e510e3fa176546810218",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "68ba3507-31d0-4456-900e-f6b117bb5c26",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "3ba0a442b9865aa2e847655242072faf5b4e88acf0df5c6dedf4c2a39e47c832"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\civic_petals\\tripo-out\\civic-petals-68ba3507\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 12.0,
+      "entry": {
+        "x": -2,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "nested_greenhouse": {
+      "kind": "greenhouse",
+      "floors": 1,
+      "label": "Serre à enveloppes imbriquées",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/06 — Serre à enveloppes imbriquées-5.png",
+        "sha256": "b29fb4f668d85748c187cd14cd3449f180e829c65ef5d7934ed493ec2646e6a7",
+        "panel": [
+          0,
+          5,
+          69.5,
+          63.5
+        ],
+        "crop_sha256": "96c0efc1f85c6e29517033c2ae5cc4da4acf3fc35911cb4f904270583ee54565"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\nested_greenhouse-clean.png",
+          "image_sha256": "a44b2e69b311b8ad4f8528f5f83f4fd7e7dd0f3a55ac50fd507eed9ed96eeca4",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "269e9a8e-7c64-4011-9ef5-4ae4ccf744b0",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "cbe3a7f9ea12d2d4cc02613bbdf3120bb6454edb31d49b32a869a86e56e3c464"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\nested_greenhouse\\tripo-out\\nested-greenhouse-269e9a8e\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 9.0,
+      "entry": {
+        "x": 0.0,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "space_terminal": {
+      "kind": "terminal",
+      "floors": 2,
+      "label": "Terminal de l’aéroport spatial",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/03 — Aéroport spatial solarpunk-7.png",
+        "sha256": "300ad19f72a9709a7d845dc2e001daf9129f85aa4b23da3fc4c263e8bd412cc4",
+        "panel": [
+          1,
+          25,
+          72,
+          65
+        ],
+        "crop_sha256": "8da9f476f1e5fdb56bd71b9a553bd430b4a64b826aa7687ad78fe88094caf2d9"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\space_terminal-clean.png",
+          "image_sha256": "2458f8b5de399b83027ab2478510fd61395d2d81c981d66e63ae7626e91ee6cf",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "9f3e54d9-8aef-4efd-ae54-0137d5102a9f",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "2fffe5899481b92a5ff2079150c51d672bb882deef3226cf5c36e0d5c871bca3"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\space_terminal\\tripo-out\\space-terminal-9f3e54d9\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 13.0,
+      "entry": {
+        "x": -2,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "asymmetric_hangar": {
+      "kind": "hangar",
+      "floors": 2,
+      "label": "Hangar à coque asymétrique",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Hangar spatial à coque asymétrique-8.png",
+        "sha256": "330c15aadd65cecb3144a356c159ed0dda407ca09a9bbaf3ef92fb375cfe39e1",
+        "panel": [
+          0,
+          5,
+          66.5,
+          64.5
+        ],
+        "crop_sha256": "8970a1a371b6f53ac64e744a95c79ef7e2323494871da95d7a6035dafc5c838c"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\asymmetric_hangar-clean.png",
+          "image_sha256": "f976c4acddf7eafb69579753da5e6c4a7536851121588ec5c4e8f5b70defb476",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "1301d455-3bcd-448f-bd38-5f9005740a5b",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "294d40b5cacea236f404e9d25faf78e257e99e438b3c32a0fa1722dfd211939f"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\asymmetric_hangar\\tripo-out\\asymmetric-hangar-1301d455\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 14.0,
+      "entry": {
+        "x": 0.0,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "interlaced_station": {
+      "kind": "station",
+      "floors": 3,
+      "label": "Station à coques entrelacées",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/10 — Station à coques entrelacées-3.png",
+        "sha256": "5793e95734e280dbf896aa666b6c463a39c4997338f21bffbab7f5b12e153eab",
+        "panel": [
+          0,
+          4,
+          70.5,
+          68.5
+        ],
+        "crop_sha256": "57939975d914116b8a4d18eab6da3f3a44b65f0304416f42329f0ca154945a71"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\interlaced_station-clean.png",
+          "image_sha256": "dd925b43619e1245e83cb272bd7a62c76fc5b48c5a4eb2798b896373b0bdbc36",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "50caf45f-b424-483c-999e-e8d0a4357299",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "11564ceab79af75e2e9792ae69bd9494d3f5378c8e5d5288d19faed95f4220e8"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\interlaced_station\\tripo-out\\interlaced-station-50caf45f\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 30.0,
+      "entry": {
+        "x": 0.0,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "garden_station": {
+      "kind": "station",
+      "floors": 3,
+      "label": "Station-jardin",
+      "reference": {
+        "variant_of": "interlaced_station-clean.png",
+        "sha256": "dd925b43619e1245e83cb272bd7a62c76fc5b48c5a4eb2798b896373b0bdbc36",
+        "prompt": "Create a new variant in exactly the same architectural language as this image: a smaller garden station for the same suspended train: a single interlaced white shell ring carrying one curved, glazed platform pod, a spiral access ramp and planted roof terraces, about 27 metres wide and 30 metres high, without train cabins and with guide beams cut at the structure. Same rendering style, materials, colours and a similar three-quarter camera, with furnished, lit interiors visible behind the glass where there is glazing. No people, plants, trees, vehicles or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\garden_station-clean.png",
+          "image_sha256": "2356a6633e5bd308663a0619926511b2e22e383732c4053d2faa011589f8ca3d",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "75b70293-a4aa-460f-9755-51a4552577a3",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "5db9ead989dd41a0ac1820267374519fd573c24ca0bd5ed2189125ccfd02d742"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\garden_station\\tripo-out\\garden-station-75b70293\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 30.0,
+      "entry": {
+        "x": 0.0,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "agri_canopy": {
+      "kind": "canopy",
+      "floors": 1,
+      "label": "Ombrière agrivoltaïque",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Champs solarpunk et infrastructures en boucle-6.png",
+        "sha256": "2102e85d6bd2bd7df63188afc30b72c95ebf841cabb56740f8fd0814cee60a47",
+        "panel": [
+          39,
+          65,
+          72,
+          94.5
+        ],
+        "crop_sha256": "ba49a748f09d9e471321b8617782a019953507cfa6c91dfef7221ecea2ccac0f"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\agri_canopy-clean.png",
+          "image_sha256": "33f380585d955f652518796b68c2bc38fdadec2d189b835c30b88c765d836b6d",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "69b34ce1-2b5f-44e6-b6ef-414091a9d4d9",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "f6236ab24141259aa1bcdfce489693dbea11db7e8ac167397cfe8c2cc3214e84"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\agri_canopy\\tripo-out\\agri-canopy-69b34ce1\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 11000,
+      "surface": false,
+      "height_m": 6.0,
+      "align": true
+    },
+    "irrigation_node": {
+      "kind": "irrigation",
+      "floors": 1,
+      "label": "Jonction d'irrigation",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Champs solarpunk et infrastructures en boucle-6.png",
+        "sha256": "2102e85d6bd2bd7df63188afc30b72c95ebf841cabb56740f8fd0814cee60a47",
+        "panel": [
+          76.5,
+          42,
+          100,
+          63.5
+        ],
+        "crop_sha256": "2bdeb71727d1813cab18d58725a773d95438bf5b9fd41ab61d0dcba3e3c02307"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\irrigation_node-clean.png",
+          "image_sha256": "79dd6badb3e7291dc32e5c5eac4febbfd77a7dee328a344df1cf1d497c1f866f",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "58b5546d-0b4e-44de-a767-b8de4a3df3a1",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "0234d5037b148d9ef6d2e566b81643a6d38ef61d29ad603b66d7ff6e6fc7d0cc"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\irrigation_node\\tripo-out\\irrigation-node-58b5546d\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 11000,
+      "surface": false,
+      "height_m": 1.3,
+      "align": true
+    },
+    "civic_workshop": {
+      "kind": "civic",
+      "floors": 2,
+      "label": "Atelier civique",
+      "reference": {
+        "variant_of": "civic_petals-clean.png",
+        "sha256": "1e44f8936d48806ada5f36c89ccb7108e2dea561c819e510e3fa176546810218",
+        "prompt": "Create a new variant in exactly the same architectural language as this image: a civic workshop of about 26 by 24 metres: two interlaced shells over a tall glazed fabrication hall with workbenches, tools and a mezzanine visible inside, a solar roof and a wide glazed entrance. Same rendering style, materials, colours and a similar three-quarter camera, with furnished, lit interiors visible behind the glass where there is glazing. No people, plants, trees, vehicles or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\civic_workshop-clean.png",
+          "image_sha256": "3906281d0152fa1c183663b4b55f9b9f719f8d6828d4c3da58e8f7be8c63f08f",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "606b9f13-53ba-4064-8ea6-d4b2e97dfd5e",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "9dfa402ede0707f2dc5d2976b46b85d62137f2f112a8654c89b850816ddd2dc2"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\civic_workshop\\tripo-out\\civic-workshop-606b9f13\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 11.0,
+      "entry": {
+        "x": 0.0,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "greenhouse_long": {
+      "kind": "greenhouse",
+      "floors": 1,
+      "label": "Longue serre",
+      "reference": {
+        "variant_of": "nested_greenhouse-clean.png",
+        "sha256": "a44b2e69b311b8ad4f8528f5f83f4fd7e7dd0f3a55ac50fd507eed9ed96eeca4",
+        "prompt": "Create a new variant in exactly the same architectural language as this image: a long single-nave greenhouse, about 40 metres long and 18 metres wide: a tunnel of repeated glazed structural spans under one continuous white solar shell, a small entrance pavilion at one end, growing benches and crops inside. Same rendering style, materials, colours and a similar three-quarter camera, with furnished, lit interiors visible behind the glass where there is glazing. No people, plants, trees, vehicles or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\greenhouse_long-clean.png",
+          "image_sha256": "a830f41aa95a74b84ac85cd3d22d1af2e27a36eccf26b705e2b3b5a0d99a6a1a",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "8a104ca1-8420-4d7d-8e80-cc6733228edf",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "db583931d88f737f93168e0a36a3db16ba6381e34deecfb450ae940eeee9b1a1"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\greenhouse_long\\tripo-out\\greenhouse-long-8a104ca1\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 8.5,
+      "entry": {
+        "x": 0.0,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "panoramic_train": {
+      "kind": "suspended_train",
+      "floors": 1,
+      "label": "Rame panoramique suspendue",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/09 — Rame panoramique suspendue-1.png",
+        "sha256": "47f1dc663d678439256d9b53f97090bde3fe31d4ee6d2c7b79c761ed1a73c706",
+        "panel": [
+          4,
+          2,
+          75.5,
+          69
+        ],
+        "crop_sha256": "ea1471dc2e428a54986ae12c9935b505112c2b1dd6c0ce2a3ebfb6b2b632f43a"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\panoramic_train-clean.png",
+          "image_sha256": "1a6b0723aec60d3f6102d28c2b9d09dd2ec35464af2897ac5471ac4c1b6f0cdd",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "95c5949c-e87d-4b08-9a1e-8d86f5321ccc",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "02fceaa731f85560ee4819bbdfb1a3b2329d4133970faf961bf6cd14479decb6"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\panoramic_train\\tripo-out\\panoramic-train-95c5949c\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 5.3,
+      "anchor": "top"
+    },
+    "solar_canopy": {
+      "kind": "canopy",
+      "floors": 1,
+      "label": "Auvent solaire et banc",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Rue solarpunk et mobilier sculpté-3.png",
+        "sha256": "c190102777e0e267ad96f5addbfa5b993a972b341e5d2fb187973cdefa51541e",
+        "panel": [
+          71.5,
+          33.5,
+          99.5,
+          63.5
+        ],
+        "crop_sha256": "0b6d5948ed053cbc511dccf407d50be3a2fa5857cccb8b701037d3677ea6bc88"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\solar_canopy-clean.png",
+          "image_sha256": "377cb9f753c974078b0f25aaf096caa495e028443b527d699d64a0447ce76e49",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "20921ce2-1155-4b6e-9ee9-8cb7f27b669c",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "ef3f817495364861f18943e15edcdb70ccc548095238e2fbbc6335bcbc7a87c5"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\solar_canopy\\tripo-out\\solar-canopy-20921ce2\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 11000,
+      "surface": false,
+      "height_m": 5.0,
+      "align": true
+    },
+    "ribbon_low": {
+      "kind": "ribbon_habitat",
+      "floors": 3,
+      "label": "Rubans bas",
+      "reference": {
+        "variant_of": "ribbon_apartments-clean.png",
+        "sha256": "e600f19a6ff4dc02e309e3d2bd7a362c284400710a3022cf036f30bd1fa5e6dc",
+        "prompt": "Create a new variant of this collective housing building in exactly the same architectural language: continuous white ribbon balconies wrapping every floor, teal undersides, warm timber fins and soffits, solar roof panels, full-height glazing with furnished, lit interiors visible. Same rendering style and a similar three-quarter camera. The new building: a low three-storey building about 28 metres long with a planted roof terrace. No people, plants, trees, cars or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\ribbon_low-clean.png",
+          "image_sha256": "3d0618d93c9047d8948df6ebd5c28176071d60a1b6700ff132594ab1d59a0d78",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "b851725d-ded8-402f-a39b-8bc45112de31",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "1344ff71bf8ce22bc3958d5dfb321e8980c9c252b0e9f3ab6d01482b0c29c3f5"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\ribbon_low\\tripo-out\\ribbon-low-b851725d\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 11.4,
+      "entry": {
+        "x": 0.0,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "viaduct_ring": {
+      "kind": "viaduct_ring",
+      "floors": 1,
+      "label": "Anneau porteur",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Viaduc à anneaux porteurs-2.png",
+        "sha256": "c5e282c0e17f931e6ff02f8d9b1b3fc656ed4f18138b84b885d682506b84220b",
+        "panel": [
+          0,
+          68,
+          23.5,
+          97.5
+        ],
+        "crop_sha256": "5f13165ceab88e4f035dc54b30dec413fdd94f5ce3b81960006a6eef6d09578e"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\viaduct_ring-clean.png",
+          "image_sha256": "5a8d301313c9bef0e02cfb8a70083d7bffc3e6fd68dbc79c98499c08924c9791",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "17262b18-67e1-44e4-a729-d589caf576d9",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "9d5957e96001bbf29d8dcb30ae7e14dc88332f60bc32b0a30d55f2759a625a06"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\viaduct_ring\\tripo-out\\viaduct-ring-17262b18\\model.glb"
+      },
+      "yaw_degrees": 0.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 27.0
+    },
+    "service_cabinet": {
+      "kind": "cabinet",
+      "floors": 1,
+      "label": "Armoire de service",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Hangar spatial à coque asymétrique-8.png",
+        "sha256": "330c15aadd65cecb3144a356c159ed0dda407ca09a9bbaf3ef92fb375cfe39e1",
+        "panel": [
+          81,
+          69,
+          100,
+          94
+        ],
+        "crop_sha256": "c2065f283ea7b0d4f1f0b5a86f92cb3c8ea91579f81a345883b68773546d56ef"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\service_cabinet-clean.png",
+          "image_sha256": "b9b6edca4fbbeb4ae2eee7a00d16094d01aca35d87cdc6799d0496cbac83beca",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "4daa4364-6368-462a-9723-ab6b70feb9ec",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "36e533da80110799a3c6e38426a8f9e1ff39d6b3c2f6a396c1bb7c577ad2b63c"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\service_cabinet\\tripo-out\\service-cabinet-4daa4364\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 11000,
+      "surface": false,
+      "height_m": 2.1,
+      "align": true
+    },
+    "planted_bench": {
+      "kind": "bench",
+      "floors": 1,
+      "label": "Banc planté",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Rue solarpunk et mobilier sculpté-3.png",
+        "sha256": "c190102777e0e267ad96f5addbfa5b993a972b341e5d2fb187973cdefa51541e",
+        "panel": [
+          0,
+          69,
+          27,
+          95
+        ],
+        "crop_sha256": "ef6c763613893679b13fe1df7597fc7fd1a5b23f35f8cf33c1e315f77877002e"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\planted_bench-clean.png",
+          "image_sha256": "2b0a209135bdfd249444724553ae8a80e93f581eaffe96c39cbaa2dfc5737091",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "02ebad6a-b92a-45aa-a15f-c5a477009f15",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "65cd1ab16ed2996de5e76ca85a4853cd075ab7b611e3db554fc12c1e386b9aac"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\planted_bench\\tripo-out\\planted-bench-02ebad6a\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 11000,
+      "surface": false,
+      "height_m": 1.3,
+      "align": true
+    },
+    "community_market": {
+      "kind": "market",
+      "floors": 1,
+      "label": "Marché couvert",
+      "reference": {
+        "variant_of": "civic_petals-clean.png",
+        "sha256": "1e44f8936d48806ada5f36c89ccb7108e2dea561c819e510e3fa176546810218",
+        "prompt": "Create a new variant in exactly the same architectural language as this image: a covered community market of about 28 by 22 metres: one wide, low shell canopy on sculpted columns over rows of timber market stalls, open on its long sides, with a solar roof. Same rendering style, materials, colours and a similar three-quarter camera, with furnished, lit interiors visible behind the glass where there is glazing. No people, plants, trees, vehicles or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\community_market-clean.png",
+          "image_sha256": "2fb0bc9e9c55b67f20167a4abfb22761a6a8c2cb0d6acbc5add0c9ce93971e58",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "1766a543-125f-4fb0-9121-fb33fa715e76",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "34f142d0e53189f6ec6ce7aa7c852da16befe4c73b13ff9fe8d8886b4ea4504d"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\community_market\\tripo-out\\community-market-1766a543\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 7.5,
+      "entry": {
+        "x": 0.0,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "ribbon_twin_loft": {
+      "kind": "ribbon_habitat",
+      "floors": 6,
+      "label": "Ailes jumelles",
+      "reference": {
+        "variant_of": "ribbon_apartments-clean.png",
+        "sha256": "e600f19a6ff4dc02e309e3d2bd7a362c284400710a3022cf036f30bd1fa5e6dc",
+        "prompt": "Create a new variant of this collective housing building in exactly the same architectural language: continuous white ribbon balconies wrapping every floor, teal undersides, warm timber fins and soffits, solar roof panels, full-height glazing with furnished, lit interiors visible. Same rendering style and a similar three-quarter camera. The new building: twin six-storey wings about 33 metres wide overall, linked by glazed bridges at every second floor. No people, plants, trees, cars or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\ribbon_twin_loft-clean.png",
+          "image_sha256": "8aabf6ef28bd4f8ea6a36d50f3667e3f55fc69b1ea671619ba758b829231e6af",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "973fa516-1065-4fd7-8613-e5088c41a7fd",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "729416e97c6e86e082eae1081819d31821ec35284f525286677679957dbe873d"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\ribbon_twin_loft\\tripo-out\\ribbon-twin-loft-973fa516\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 19.6,
+      "entry": {
+        "x": 4,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "canopy_guideway": {
+      "kind": "guideway",
+      "floors": 1,
+      "label": "Segment de poutre-guide",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Viaduc à anneaux porteurs-2.png",
+        "sha256": "c5e282c0e17f931e6ff02f8d9b1b3fc656ed4f18138b84b885d682506b84220b",
+        "panel": [
+          79,
+          0,
+          100,
+          34
+        ],
+        "crop_sha256": "279e171bd2e91d1ad1e0f7d3ddf5710c2f5d149ef4d7bc74fb66ae258a641db9"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\canopy_guideway-clean.png",
+          "image_sha256": "1b0862142aded33820bda1e9bf64058f0bf31d6ed302d3df6ee00af2d0a1607a",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "33377691-1220-4baa-a36c-624de3b2478a",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "19aeee2173acb5abece6519643f79927398f4c4c33d699799720ea55b764c617"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\canopy_guideway\\tripo-out\\canopy-guideway-33377691\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "length_m": 13.5,
+      "anchor": "centre"
+    },
+    "petal_lamp": {
+      "kind": "lamp",
+      "floors": 1,
+      "label": "Lampadaire",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Rue solarpunk et mobilier sculpté-3.png",
+        "sha256": "c190102777e0e267ad96f5addbfa5b993a972b341e5d2fb187973cdefa51541e",
+        "panel": [
+          27,
+          67,
+          40.5,
+          95
+        ],
+        "crop_sha256": "e0638bb94e52224a0f5803d491bddb6ebe9db679e4380391e8bc75a3cfd50f57"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\petal_lamp-clean.png",
+          "image_sha256": "d387282069470f6dfe313e919d5a337f92762541647414482a8dea5173d1a653",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "f1861bcf-15ee-4621-90ff-d03aecd53072",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "3291db3aced2e280d8233915e67c87e37871fd74455f7c756a8a64ad235f703a"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\petal_lamp\\tripo-out\\petal-lamp-f1861bcf\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 11000,
+      "surface": false,
+      "height_m": 4.2,
+      "align": true
+    },
+    "ribbon_helix": {
+      "kind": "ribbon_habitat",
+      "floors": 9,
+      "label": "Tour en hélice",
+      "reference": {
+        "variant_of": "ribbon_apartments-clean.png",
+        "sha256": "e600f19a6ff4dc02e309e3d2bd7a362c284400710a3022cf036f30bd1fa5e6dc",
+        "prompt": "Create a new variant of this collective housing building in exactly the same architectural language: continuous white ribbon balconies wrapping every floor, teal undersides, warm timber fins and soffits, solar roof panels, full-height glazing with furnished, lit interiors visible. Same rendering style and a similar three-quarter camera. The new building: a nine-storey helix tower whose ribbon balconies spiral around a round core, about 27 metres wide. No people, plants, trees, cars or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\ribbon_helix-clean.png",
+          "image_sha256": "4cdd120fda22ca17b41fb635bfb65b3a12ad94847993d26aaf1c6ed6b81da2af",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "c7984e97-f8fd-4285-adfe-d622c16c9cb5",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "e8279b20f9df2b6f635ccec917b89d7c296daebd74a2cfac4ce922c76dcdb624"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\ribbon_helix\\tripo-out\\ribbon-helix-c7984e97\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 27.2,
+      "entry": {
+        "x": 0.0,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "drinking_fountain": {
+      "kind": "fountain",
+      "floors": 1,
+      "label": "Borne d'eau potable",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Rue solarpunk et mobilier sculpté-3.png",
+        "sha256": "c190102777e0e267ad96f5addbfa5b993a972b341e5d2fb187973cdefa51541e",
+        "panel": [
+          41,
+          69,
+          53,
+          94.5
+        ],
+        "crop_sha256": "8e085df9b6145b0d5993171834bcb631a3d35be29a316d8049f25695dadce903"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\drinking_fountain-clean.png",
+          "image_sha256": "94842b341e7bae887603119dabafb3b3b18b639e35def30051e3c4a44d008021",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "83b7dcec-420d-4efd-990b-50df54741f8d",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "e9f0f93c2857b279d4e143076946579757a311a9ae608139248b6f5534354a09"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\drinking_fountain\\tripo-out\\drinking-fountain-83b7dcec\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 11000,
+      "surface": false,
+      "height_m": 1.5,
+      "align": true
+    },
+    "rain_garden": {
+      "kind": "planter",
+      "floors": 1,
+      "label": "Bordure de jardin pluvial",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Rue solarpunk et mobilier sculpté-3.png",
+        "sha256": "c190102777e0e267ad96f5addbfa5b993a972b341e5d2fb187973cdefa51541e",
+        "panel": [
+          53.5,
+          69,
+          79.5,
+          94.5
+        ],
+        "crop_sha256": "2c28e517a836fa1d2184796212c8c32af14fb8af99876e8e4c739ed003eb97f4"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\rain_garden-clean.png",
+          "image_sha256": "4409d7a95a2235f2a07912abb0c4f7edf8543540ba63a09b1a6034eabf05d812",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "7e4ea99b-f3ea-4132-8a5a-bdd04310cc2c",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "f5986c194ed1fe472ab6d713300fcc7b5ed8d88b20739d870c156f582fca4c47"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\rain_garden\\tripo-out\\rain-garden-7e4ea99b\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 11000,
+      "surface": false,
+      "height_m": 0.9,
+      "align": true
+    },
+    "shell_courtyard": {
+      "kind": "courtyard_habitat",
+      "floors": 2,
+      "label": "Maison à patio",
+      "reference": {
+        "variant_of": "shell_crescent-clean.png",
+        "sha256": "26b09863596857015a357302abe93b176029f2f473510547b27349ed68760183",
+        "prompt": "Create a new variant in exactly the same architectural language as this image: a two-storey courtyard house of about 22 by 20 metres: white organic shells with teal undersides, solar roof petals and timber cladding arranged around a central courtyard, with a wide glazed entrance. Same rendering style, materials, colours and a similar three-quarter camera, with furnished, lit interiors visible behind the glass where there is glazing. No people, plants, trees, vehicles or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\shell_courtyard-clean.png",
+          "image_sha256": "8ca3f73e62b090e07b282eb5628865edd84aee409cb6d762cce7c9610ba437fa",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "67c7de6c-afe5-4d86-aa8e-dd56cfebbbcc",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "274f94190aa1054fcdf088b1d34ff2eb8d451948b38c281c010efa20e5f864d7"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\shell_courtyard\\tripo-out\\shell-courtyard-67c7de6c\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 7.8,
+      "entry": {
+        "x": 0.0,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "water_tower": {
+      "kind": "water_tower",
+      "floors": 1,
+      "label": "Réservoir d'eau",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/Champs solarpunk et infrastructures en boucle-6.png",
+        "sha256": "2102e85d6bd2bd7df63188afc30b72c95ebf841cabb56740f8fd0814cee60a47",
+        "panel": [
+          77,
+          3,
+          99.5,
+          39
+        ],
+        "crop_sha256": "2cd369374cda62632144a6c0bbf24bd12b73b152dd3065f64f9a529cc5a79908"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\water_tower-clean.png",
+          "image_sha256": "4a4a015c0555c2b43c8d1a7fcd149e8da5e6263120df87be72b12f2cdd3909bd",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "a3a51242-e6a0-4645-8713-d77a43e7dfd2",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "fa8a049b653038ce491f8a4432023ccc7902a811193a97ba7f7873ab5e52e841"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\water_tower\\tripo-out\\water-tower-a3a51242\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 15.0
+    },
+    "planted_bench_wild": {
+      "kind": "bench",
+      "floors": 1,
+      "label": "Banc planté sauvage",
+      "reference": {
+        "variant_of": "planted_bench-clean.png",
+        "sha256": "2b0a209135bdfd249444724553ae8a80e93f581eaffe96c39cbaa2dfc5737091",
+        "prompt": "Create a new variant in exactly the same architectural language as this image: the same planted bench with a wilder, more naturalistic planting of grasses and wild flowers, and a slightly longer seat. Same rendering style, materials, colours and a similar three-quarter camera, with furnished, lit interiors visible behind the glass where there is glazing. No people, plants, trees, vehicles or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\planted_bench_wild-clean.png",
+          "image_sha256": "a48252ebcc9969f0498bb0d98932edadef8ca66eaab35d052cceee6cf347a33d",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "22b15a80-bc7b-4c20-9982-5ab92e69abfc",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "e5bf10bee8a268ccb7eab0f963108a7fa59a4be6d1575ad6457735d815de92a0"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\planted_bench_wild\\tripo-out\\planted-bench-wild-22b15a80\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 11000,
+      "surface": false,
+      "height_m": 1.3,
+      "align": true
+    },
+    "rain_garden_long": {
+      "kind": "planter",
+      "floors": 1,
+      "label": "Longue bordure de jardin pluvial",
+      "reference": {
+        "variant_of": "rain_garden-clean.png",
+        "sha256": "4409d7a95a2235f2a07912abb0c4f7edf8543540ba63a09b1a6034eabf05d812",
+        "prompt": "Create a new variant in exactly the same architectural language as this image: a longer, straighter version of this rain garden border, about 8 metres long, with the same white curved kerb, lighting line and neat, compact planting. Same rendering style, materials, colours and a similar three-quarter camera, with furnished, lit interiors visible behind the glass where there is glazing. No people, plants, trees, vehicles or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\rain_garden_long-clean.png",
+          "image_sha256": "5f691ae068e8055a3043f5d1df6c115035ce7a2d425be2348f795b94401a953f",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "f75788e2-860d-4a56-a627-1cea35261104",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "906c609a9d493f2f0b3a5cb2c3e4b94739bc9d052e789ce089f8089ca031523b"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\rain_garden_long\\tripo-out\\rain-garden-long-f75788e2\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 11000,
+      "surface": false,
+      "height_m": 0.9,
+      "align": true
+    },
+    "growing_bed": {
+      "kind": "growing_bed",
+      "floors": 1,
+      "label": "Banc de culture",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/06 — Serre à enveloppes imbriquées-5.png",
+        "sha256": "b29fb4f668d85748c187cd14cd3449f180e829c65ef5d7934ed493ec2646e6a7",
+        "panel": [
+          51.5,
+          64,
+          77.5,
+          93
+        ],
+        "crop_sha256": "7d40132ec122837c4bdc8b2e9f40d14d128dcb16ba5d39e10a91fa02a29522eb"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\growing_bed-clean.png",
+          "image_sha256": "d735c6dd23d24af10e945832fde92957a82d7c8c56cf2e0144db9d2908d72367",
+          "intent": "board panel cleaned: same design and camera; people, plants and props removed; plain background"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "6488c889-341d-4070-a247-677f4c7aea9c",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "1d08fc2b5a8cdc539a4a1985531782ec708d860ed33f457bc4d3f5296ac7ce77"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\growing_bed\\tripo-out\\growing-bed-6488c889\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 11000,
+      "surface": false,
+      "height_m": 1.9,
+      "align": true
+    },
+    "ribbon_cascade": {
+      "kind": "ribbon_habitat",
+      "floors": 6,
+      "label": "Rubans en cascade",
+      "reference": {
+        "variant_of": "ribbon_apartments-clean.png",
+        "sha256": "e600f19a6ff4dc02e309e3d2bd7a362c284400710a3022cf036f30bd1fa5e6dc",
+        "prompt": "Create a new variant of this collective housing building in exactly the same architectural language: continuous white ribbon balconies wrapping every floor, teal undersides, warm timber fins and soffits, solar roof panels, full-height glazing with furnished, lit interiors visible. Same rendering style and a similar three-quarter camera. The new building: a terraced cascade of six storeys stepping down on one side like garden terraces, about 37 metres wide. No people, plants, trees, cars or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\ribbon_cascade-clean.png",
+          "image_sha256": "9f28d7db8f05e52f0689668601d69fc11639669286db7216e2456e7fd73ae5b4",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "f7daa955-2d01-4b61-b171-8851b5f40632",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "97c7ff058eedc18863c6064c519ef75bb187e722d4f4f9e493f047c6c64dd175"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\ribbon_cascade\\tripo-out\\ribbon-cascade-f7daa955\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 20.9,
+      "entry": {
+        "x": 0.0,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "ribbon_lantern": {
+      "kind": "ribbon_habitat",
+      "floors": 8,
+      "label": "Tour lanterne",
+      "reference": {
+        "variant_of": "ribbon_apartments-clean.png",
+        "sha256": "e600f19a6ff4dc02e309e3d2bd7a362c284400710a3022cf036f30bd1fa5e6dc",
+        "prompt": "Create a new variant of this collective housing building in exactly the same architectural language: continuous white ribbon balconies wrapping every floor, teal undersides, warm timber fins and soffits, solar roof panels, full-height glazing with furnished, lit interiors visible. Same rendering style and a similar three-quarter camera. The new building: a slender eight-storey lantern tower on a narrow footprint of about 22 metres, crowned by a glowing glazed top floor. No people, plants, trees, cars or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\ribbon_lantern-clean.png",
+          "image_sha256": "b72855d0791a5ee12c50e375460b785bccacbe4020a1fbf41bd9f71c1b757580",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "05831fe4-3dd5-48d0-8db4-7178ae6455f2",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "ecd981ddeeae36cecdfa79066a7d6ae2efed4feabb7cd3d7dd86e9b7b17ff3cf"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\ribbon_lantern\\tripo-out\\ribbon-lantern-05831fe4\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 25.1,
+      "entry": {
+        "x": 0.0,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "wayfinding_leaf": {
+      "kind": "wayfinding",
+      "floors": 1,
+      "label": "Totem d’orientation",
+      "reference": {
+        "variant_of": "petal_lamp-clean.png",
+        "sha256": "d387282069470f6dfe313e919d5a337f92762541647414482a8dea5173d1a653",
+        "prompt": "Create a new variant in exactly the same architectural language as this image: a wayfinding totem in the same design as this street lamp: a slender curved leaf-shaped white post about 2.4 metres tall with a teal inner face and a small illuminated map panel, with a lighting line. Same rendering style, materials, colours and a similar three-quarter camera, with furnished, lit interiors visible behind the glass where there is glazing. No people, plants, trees, vehicles or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\wayfinding_leaf-clean.png",
+          "image_sha256": "5c21cdce17d9c4c121ead9e5c28b872d8ea61b39dde46c816739b6797418e4ec",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "9a06e6de-6577-43c1-9938-2619e5a618e8",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "10258c4fb88949cf767734b12c1fb90b555f2cd038650b68adba6a226b0c65ac"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\wayfinding_leaf\\tripo-out\\wayfinding-leaf-9a06e6de\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 11000,
+      "surface": false,
+      "height_m": 2.4,
+      "align": true
+    },
+    "ribbon_compact": {
+      "kind": "ribbon_habitat",
+      "floors": 6,
+      "label": "Rubans compacts",
+      "reference": {
+        "variant_of": "ribbon_apartments-clean.png",
+        "sha256": "e600f19a6ff4dc02e309e3d2bd7a362c284400710a3022cf036f30bd1fa5e6dc",
+        "prompt": "Create a new variant of this collective housing building in exactly the same architectural language: continuous white ribbon balconies wrapping every floor, teal undersides, warm timber fins and soffits, solar roof panels, full-height glazing with furnished, lit interiors visible. Same rendering style and a similar three-quarter camera. The new building: a compact six-storey block of about 23 by 20 metres, its ribbons wrapping all four sides. No people, plants, trees, cars or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\ribbon_compact-clean.png",
+          "image_sha256": "f3ed5410c755de2d11ec8e720d78db2cc62d4644f729bbb1b86332a0f9c2d9fd",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "850ed4c6-83a2-4760-89ea-49158911d147",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "de8a4dc6dfc2297b8204e2191b4e0c220741c5c0485de6817090b808de086734"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\ribbon_compact\\tripo-out\\ribbon-compact-850ed4c6\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 17.8,
+      "entry": {
+        "x": 0.0,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "ribbon_fan": {
+      "kind": "ribbon_habitat",
+      "floors": 6,
+      "label": "Rubans en éventail",
+      "reference": {
+        "variant_of": "ribbon_apartments-clean.png",
+        "sha256": "e600f19a6ff4dc02e309e3d2bd7a362c284400710a3022cf036f30bd1fa5e6dc",
+        "prompt": "Create a new variant of this collective housing building in exactly the same architectural language: continuous white ribbon balconies wrapping every floor, teal undersides, warm timber fins and soffits, solar roof panels, full-height glazing with furnished, lit interiors visible. Same rendering style and a similar three-quarter camera. The new building: a fan-shaped plan whose six floors open like a fan towards the front, about 40 metres wide. No people, plants, trees, cars or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\ribbon_fan-clean.png",
+          "image_sha256": "34894ef64421388c4d9c217e5002e91f78695f144cc141f82e42f8c25baffb7c",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "d0d0053f-e1d4-4fc7-b8b9-abb9be721f48",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "ed4119845ee9ac1610f3c610278f357e18f68a11d7e8bc693dc6ad068ed0bf25"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\ribbon_fan\\tripo-out\\ribbon-fan-d0d0053f\\model.glb"
+      },
+      "yaw_degrees": -90.0,
+      "triangles": 56000,
+      "surface": false,
+      "height_m": 20.9,
+      "entry": {
+        "x": 2,
+        "z_floor": 0.1,
+        "width": 2.0,
+        "height": 2.4,
+        "open": true
+      }
+    },
+    "civil_shuttle": {
+      "kind": "shuttle",
+      "floors": 1,
+      "label": "Navette civile",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/03 — Aéroport spatial solarpunk-7.png",
+        "sha256": "300ad19f72a9709a7d845dc2e001daf9129f85aa4b23da3fc4c263e8bd412cc4",
+        "panel": [
+          73,
+          42,
+          100,
+          61
+        ],
+        "crop_sha256": "48c9951e1dddee66d19650f2dee641cdaf45429a4631ef1a61083cbabfdb4534"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\civil_shuttle-clean.png",
+          "image_sha256": "73606f3e2899bb4378e6397416621152d8401b44639de0ade6655e486222c41a",
+          "intent": "board panel cleaned: same design and camera; label, text and background removed"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "c247631f-7299-4094-97cd-6916771d2277",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "05420f5d42ae9e9d390f90f0692e99285e5db88606a385ca43f7f609bdb06596"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\civil_shuttle\\tripo-out\\civil-shuttle-c247631f\\model.glb"
+      },
+      "yaw_degrees": 0.0,
+      "triangles": 56000,
+      "surface": false,
+      "length_m": 16.0,
+      "align": true
+    },
+    "runway_beacon": {
+      "kind": "beacon",
+      "floors": 1,
+      "label": "Balise de piste",
+      "reference": {
+        "path": "C:/Users/etien/Downloads/03 — Aéroport spatial solarpunk-7.png",
+        "sha256": "300ad19f72a9709a7d845dc2e001daf9129f85aa4b23da3fc4c263e8bd412cc4",
+        "panel": [
+          84.5,
+          66.5,
+          100,
+          95
+        ],
+        "crop_sha256": "46a61fa19f95f6577b42860c9090bcdf2a0411f8df2c75408ea8acc99c95ba96"
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\runway_beacon-clean.png",
+          "image_sha256": "fcde1cc5ff4fa4ae748cf893589d6d79d782320b3598f35f4adfa26a7a379671",
+          "intent": "board panel cleaned: same design and camera; label, text and background removed"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "d8c5f643-6ea6-4a2b-8def-6368f3d75d3d",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "90a13989e0b05bd6d1e9d3883bfc3b2abcab13ce25556052949849d2a8af3653"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\runway_beacon\\tripo-out\\runway-beacon-d8c5f643\\model.glb"
+      },
+      "yaw_degrees": 0.0,
+      "triangles": 11000,
+      "surface": false,
+      "height_m": 3.0,
+      "align": true
+    },
+    "landing_pad": {
+      "kind": "landing_pad",
+      "floors": 1,
+      "label": "Aire d'atterrissage",
+      "reference": {
+        "variant_of": "space_terminal-clean.png",
+        "sha256": "2458f8b5de399b83027ab2478510fd61395d2d81c981d66e63ae7626e91ee6cf",
+        "prompt": "Create a new object in exactly the same design language as this terminal: a circular landing pad for vertical take-off shuttles, about 30 metres across: a paved disk with a raised white sculpted rim, teal inlays, a ring of warm lights, painted landing markings and two short flights of steps."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\landing_pad-clean.png",
+          "image_sha256": "c542824a13f9aa56e8d5e9327e7aa38c2410128590b62522c80fb144e16c451e",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "52c17a6e-3a92-4ea8-bf53-a11c98c6f6c1",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "f03bf24eda3f547479f48a83f12c4fbd108eff907788d13d739da475c51e7eae"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\landing_pad\\tripo-out\\landing-pad-52c17a6e\\model.glb"
+      },
+      "yaw_degrees": 0.0,
+      "triangles": 24000,
+      "surface": false,
+      "length_m": 30.0,
+      "align": true
+    },
+    "cable_cabin": {
+      "kind": "cable_cabin",
+      "floors": 1,
+      "label": "Cabine de téléphérique",
+      "reference": {
+        "variant_of": "panoramic_train-clean.png",
+        "sha256": "1a6b0723aec60d3f6102d28c2b9d09dd2ec35464af2897ac5471ac4c1b6f0cdd",
+        "prompt": "Create a new vehicle in exactly the same design language as this suspended cabin: a cable car gondola for eight passengers, about 3.5 metres long, with large curved glazing and a furnished, lit interior, a white and teal shell with a warm lighting line, hanging from a sculpted grip arm with its cable clamp on top."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\cable_cabin-clean.png",
+          "image_sha256": "4382ed6ce8b813b5d2f6e951add5eeb8743d37225ea8be6be687d640723e66ac",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "f206316a-61d2-4627-84b0-9e80fa15cfd7",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "80e717a1924d98b635ebd23ca6df859054753add6769dbaa249c6ba7650adc1b"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\cable_cabin\\tripo-out\\cable-cabin-f206316a\\model.glb"
+      },
+      "yaw_degrees": 0.0,
+      "triangles": 11000,
+      "surface": false,
+      "length_m": 3.6,
+      "align": true
+    },
+    "cable_pylon": {
+      "kind": "cable_pylon",
+      "floors": 1,
+      "label": "Pylône de téléphérique",
+      "reference": {
+        "variant_of": "viaduct_ring-clean.png",
+        "sha256": "5a8d301313c9bef0e02cfb8a70083d7bffc3e6fd68dbc79c98499c08924c9791",
+        "prompt": "Create a new structure in exactly the same design language as this ring: a slender sculpted cable car pylon about 30 metres tall, white with teal undersides and a warm lighting line, on a stone footing, carrying at its top a crossarm with two sheave assemblies for two parallel cables, and a service ladder."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\cable_pylon-clean.png",
+          "image_sha256": "7c85b76ca02749a76452423ba0b38c12801eca4a7834277bc44b36e0e9f0bbfc",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "1bffcc28-8c07-44e9-a9b0-1db9a73172a0",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "fbb751495a5bcaef5ee56ec874aaf1ac9a641591949d4dfe887ff7d67ef1fc44"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\cable_pylon\\tripo-out\\cable-pylon-1bffcc28\\model.glb"
+      },
+      "yaw_degrees": 0.0,
+      "triangles": 24000,
+      "surface": false,
+      "height_m": 24.0,
+      "align": true
+    },
+    "cable_station": {
+      "kind": "cable_station",
+      "floors": 1,
+      "label": "Gare de téléphérique",
+      "reference": {
+        "variant_of": "garden_station-clean.png",
+        "sha256": "2356a6633e5bd308663a0619926511b2e22e383732c4053d2faa011589f8ca3d",
+        "prompt": "Create a new building in exactly the same architectural language as this station: a cable car station of about 22 by 16 metres: a curved white shell canopy with a solar roof over the large horizontal bullwheel, a boarding platform with a glazed waiting room, furnished and lit, and the cable opening on one side."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\cable_station-clean.png",
+          "image_sha256": "e4f54ed911738a37d686f7682b5df16ccbc27b6257c2f6362f0a846ceeaaa6fc",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "862420d4-e254-4866-a0a9-e5185e528fd7",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "191fd0af800b9e46724ab65ab7b9bcddd7eabc2f7126664ede4fc4f93790f0e7"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\cable_station\\tripo-out\\cable-station-862420d4\\model.glb"
+      },
+      "yaw_degrees": 0.0,
+      "triangles": 56000,
+      "surface": false,
+      "length_m": 22.0,
+      "align": true
+    },
+    "bike_shelter": {
+      "kind": "shelter",
+      "floors": 1,
+      "label": "Abri à vélos végétalisé",
+      "reference": {
+        "variant_of": "solar_canopy-clean.png",
+        "sha256": "377cb9f753c974078b0f25aaf096caa495e028443b527d699d64a0447ce76e49",
+        "prompt": "Create a new object in exactly the same design language as this canopy: a covered bicycle shelter about 7 metres long, a curved white shell roof planted with grasses and set with solar cells, sculpted teal supports, timber slats along the back, and a row of sculpted bicycle stands with four bicycles parked. Same rendering style, materials and colours, three-quarter view from slightly above. No people or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\bike_shelter-clean.png",
+          "image_sha256": "8ee9b307485e3516412b2dbd7fb9f040f27dcc681953be9fe0ddcbcd7345ae83",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "d91bf374-588b-4fa9-8451-05e945b16ab8",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "6a17540f152ced588bf1ffc5adfd30f1e2ea8893d192ace496a07255955b59ac"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\bike_shelter\\tripo-out\\bike-shelter-d91bf374\\model.glb"
+      },
+      "yaw_degrees": 0.0,
+      "triangles": 24000,
+      "surface": false,
+      "length_m": 7.0,
+      "align": true
+    },
+    "kiosk": {
+      "kind": "kiosk",
+      "floors": 1,
+      "label": "Kiosque",
+      "reference": {
+        "variant_of": "community_market-clean.png",
+        "sha256": "2fb0bc9e9c55b67f20167a4abfb22761a6a8c2cb0d6acbc5add0c9ce93971e58",
+        "prompt": "Create a new object in exactly the same design language as this market: a small kiosk about 4 by 3 metres, a sculpted white shell roof crowned with solar cells, a glazed counter with a warm lit interior and shelves, timber cladding, a fold-out awning and two high stools. Same rendering style, materials and colours, three-quarter view from slightly above. No people or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\kiosk-clean.png",
+          "image_sha256": "f1cce45561064a94b351ab44dc399754493471cb0daa1f198f4121f4226a705b",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "b0931c73-d880-41b7-acc0-781ed9da9d9b",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "3112757affef5e71a6b987cc69470fac221b43f87f423c44721c96c9d02e6ae5"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\kiosk\\tripo-out\\kiosk-b0931c73\\model.glb"
+      },
+      "yaw_degrees": 0.0,
+      "triangles": 24000,
+      "surface": false,
+      "length_m": 4.8,
+      "align": true
+    },
+    "pergola": {
+      "kind": "pergola",
+      "floors": 1,
+      "label": "Pergola végétalisée",
+      "reference": {
+        "variant_of": "planted_bench-clean.png",
+        "sha256": "2b0a209135bdfd249444724553ae8a80e93f581eaffe96c39cbaa2dfc5737091",
+        "prompt": "Create a new object in exactly the same design language as this bench: a shaded pergola about 6 by 3 metres, sculpted white arches with teal undersides carrying a timber lattice covered with climbing plants and flowers, and a long curved planted bench beneath it. Same rendering style, materials and colours, three-quarter view from slightly above. No people or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\pergola-clean.png",
+          "image_sha256": "a133c5fb302dd9a1a359e77f4a04573718fcd682818f2f815b8fa4b6ec2c20a0",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "5dfd733d-f08c-4e2b-8864-588578940c8e",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "d3d6e7fe5a98617ba05c7a7bc5de328a25050aace1d0690941b5b8a3e617b4e2"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\pergola\\tripo-out\\pergola-5dfd733d\\model.glb"
+      },
+      "yaw_degrees": 0.0,
+      "triangles": 24000,
+      "surface": false,
+      "length_m": 7.2,
+      "align": true
+    },
+    "sorting_station": {
+      "kind": "sorting",
+      "floors": 1,
+      "label": "Station de tri et compost",
+      "reference": {
+        "variant_of": "service_cabinet-clean.png",
+        "sha256": "b9b6edca4fbbeb4ae2eee7a00d16094d01aca35d87cdc6799d0496cbac83beca",
+        "prompt": "Create a new object in exactly the same design language as this cabinet: a waste sorting and compost station about 3 metres long, four sculpted white bins with coloured lids and teal inlays under a small planted roof, and a timber-slatted composter at one end. Same rendering style, materials and colours, three-quarter view from slightly above. No people or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\sorting_station-clean.png",
+          "image_sha256": "8c69b1c1a308280b9503dc9097a05a123e1ff2ce06cbb05ed0bb114bb223797c",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "e9aa0057-9f66-4ba9-a855-12e8452db035",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "b3d8e9bc7aa57f6a26254dbad7e994b391fdd195a2020b914778098d0a81ba67"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\sorting_station\\tripo-out\\sorting-station-e9aa0057\\model.glb"
+      },
+      "yaw_degrees": 0.0,
+      "triangles": 11000,
+      "surface": false,
+      "length_m": 3.2,
+      "align": true
+    },
+    "play_sculpture": {
+      "kind": "play",
+      "floors": 1,
+      "label": "Sculpture de jeux",
+      "reference": {
+        "variant_of": "petal_lamp-clean.png",
+        "sha256": "d387282069470f6dfe313e919d5a337f92762541647414482a8dea5173d1a653",
+        "prompt": "Create a new object in exactly the same design language as this lamp: a children's play sculpture about 6 metres across, a sculpted white climbing shell with teal and warm wood inlays, a slide, a rope net and a small lookout, standing on a soft green play surface. Same rendering style, materials and colours, three-quarter view from slightly above. No people or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\play_sculpture-clean.png",
+          "image_sha256": "802810e126bf9798d57063cf21f1479bb3bc274cb1e622adde1800ecd944f030",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "f6635213-75d6-46bc-9fb7-73e5d42232d8",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "1bd66ee5ef8ce3e033906c0496fa35b8087d152971caf7737815a4579e2eae84"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\play_sculpture\\tripo-out\\play-sculpture-f6635213\\model.glb"
+      },
+      "yaw_degrees": 0.0,
+      "triangles": 24000,
+      "surface": false,
+      "length_m": 6.5,
+      "align": true
+    },
+    "insect_hotel": {
+      "kind": "insect_hotel",
+      "floors": 1,
+      "label": "Hôtel à insectes et nichoirs",
+      "reference": {
+        "variant_of": "rain_garden-clean.png",
+        "sha256": "4409d7a95a2235f2a07912abb0c4f7edf8543540ba63a09b1a6034eabf05d812",
+        "prompt": "Create a new object in exactly the same design language as this planter: an insect hotel and bird house tower about 2.5 metres tall, a sculpted white frame with teal accents holding stacked timber, bamboo and clay compartments, nesting boxes and a small planted roof. Same rendering style, materials and colours, three-quarter view from slightly above. No people or text. Show it whole and isolated on a plain light grey background with a margin around it, standing on flat light grey ground. Landscape format, at the highest resolution you can produce."
+      },
+      "draft": {
+        "service": "Tripo",
+        "input": {
+          "edit": "ChatGPT, user account",
+          "image": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\inputs\\insect_hotel-clean.png",
+          "image_sha256": "7fa5558e1a98b15f1693955f318c15ac8d278ce16c711cb30eba5f7d69c19c96",
+          "intent": "new variant in the family language, drawn by ChatGPT from the reference image"
+        },
+        "generation": {
+          "model": "v3.1-20260211",
+          "task_id": "8b235ba0-143e-498b-820b-5af45b8f7469",
+          "geometry_quality": "detailed",
+          "enable_image_autofix": true,
+          "model_sha256": "26144b245cbec8c499681b1941a1295535dbf9cd08ea451a4e8ddfb0cf7f8f1a"
+        },
+        "source_mesh": "draft, reduced by generated_source.py",
+        "model_path": "E:\\ExoluneAssets\\city-tripo-2026-11-11\\drafts\\insect_hotel\\tripo-out\\insect-hotel-8b235ba0\\model.glb"
+      },
+      "yaw_degrees": 0.0,
+      "triangles": 11000,
+      "surface": false,
+      "height_m": 2.6,
+      "align": true
+    }
+  }
+}

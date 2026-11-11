@@ -1,0 +1,14 @@
+# Hill city: the city on a river valley slope, terraces, stilts, entrance stairs and stepped paths.
+# Launch with -Ville E:/ExoluneAssets/city-tripo-2026-11-11/delivery-02-collines/bank. F1-F3 city-wide, F4-F7 foundations, F8-F9 path steps, F10-F11 river and plaza.
+# The river surface is stated, not rendered: the engine does not export rivers to the city yet.
+Ville depuis la rivière | 420.451 -10.9909333271 63.6840250000 3.485 180.000 | -5.995425 33.684025
+Ville, flanc est | 416.169 -10.9940774728 63.6879600592 3.307 -100.685 | -5.995425 33.684025
+Ville d'en haut | 528.160 -10.9991980047 63.6834759124 16.352 6.009 | -5.995425 33.684025
+Collectif sur pilotis | 365.709 -10.9939133558 63.6824835976 -32.802 175.367 | -5.995425 33.684025
+Maison sur pilotis | 343.066 -10.9926591154 63.6810172429 -25.645 178.234 | -5.995425 33.684025
+Maison sur terrasse | 350.142 -10.9932130139 63.6859567650 -17.988 143.143 | -5.995425 33.684025
+Escalier d'entrée | 358.421 -10.9935554969 63.6821428257 -2.293 68.320 | -5.995425 33.684025
+Chemin en marches, montée | 428.931 -10.9989041730 63.6840449532 -9.576 -151.951 | -5.995425 33.684025
+Chemin en marches, descente | 433.625 -10.9990560498 63.6839625178 11.671 28.049 | -5.995425 33.684025
+Berge, premiers bâtiments | 327.377 -10.9923997979 63.6843024703 -21.633 -165.802 | -5.995425 33.684025
+Place en pente | 382.054 -10.9946267363 63.6825456438 -4.589 -135.830 | -5.995425 33.684025

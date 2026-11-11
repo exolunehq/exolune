@@ -64,7 +64,8 @@ inline Span Clip(Vec begin,Vec end,double bodyRadius) {
 }
 
 struct Probe {
-    // The layout is exactly the FlightGround constant buffer: five double4s, then two float4s.
+    // The layout begins the FlightGround constant buffer: five double4s, then two float4s; the city's earthworks follow
+    // (D3DApp::CityGradeConstants, written after it by QueueFlightContact).
     double up[4]={},across[4]={},along[4]={},grid[4]={},shape[4]={};
     float movement[4]={};
     uint32_t count[4]={};

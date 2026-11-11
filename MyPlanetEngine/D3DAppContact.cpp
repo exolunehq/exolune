@@ -2,6 +2,7 @@
 #include "D3DApp.h"
 #include "GpuHelpers.h"
 #include <algorithm>
+#include <cstddef>
 #include <cstring>
 
 namespace {
@@ -28,7 +29,9 @@ void D3DApp::InitializeFlightContact() {
     desc.CS=CD3DX12_SHADER_BYTECODE(shader.Get());
     Check(md3dDevice->CreateComputePipelineState(&desc,IID_PPV_ARGS(&mFlightContactPSO)),"Flight contact PSO failed.");
     for (unsigned i=0;i<2;++i) {
-        mFlightPoints[i]=CreateBuffer(md3dDevice.Get(),256,D3D12_HEAP_TYPE_UPLOAD,D3D12_RESOURCE_STATE_GENERIC_READ);
+        // The probe, then the city's earthworks: the contact meets the graded ground the terrain draws.
+        mFlightPoints[i]=CreateBuffer(md3dDevice.Get(),(sizeof(FlightContact::Probe)+sizeof(CityGradeConstants)+255)&~size_t(255),
+                                      D3D12_HEAP_TYPE_UPLOAD,D3D12_RESOURCE_STATE_GENERIC_READ);
         mFlightContacts[i]=CreateBuffer(md3dDevice.Get(),ContactBytes,D3D12_HEAP_TYPE_DEFAULT,D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
         mFlightReadback[i]=CreateBuffer(md3dDevice.Get(),ContactBytes,D3D12_HEAP_TYPE_READBACK,D3D12_RESOURCE_STATE_COPY_DEST);
     }
@@ -88,7 +91,10 @@ void D3DApp::QueueFlightContact() {
     for (unsigned i=0;i<2;++i) if (mFlightActive[i]) {
         void* upload=nullptr; CD3DX12_RANGE noRead(0,0);
         Check(mFlightPoints[i]->Map(0,&noRead,&upload),"Flight contact points map failed.");
-        std::memcpy(upload,&mFlightProbes[i],sizeof(mFlightProbes[i])); mFlightPoints[i]->Unmap(0,nullptr);
+        std::memcpy(upload,&mFlightProbes[i],sizeof(mFlightProbes[i]));
+        std::memcpy(static_cast<char*>(upload)+sizeof(mFlightProbes[i]),&mCityGrade,
+                    mCityGrade.north.w>0.5f?sizeof(mCityGrade):offsetof(CityGradeConstants,pads));
+        mFlightPoints[i]->Unmap(0,nullptr);
         mCommandList->SetComputeRootConstantBufferView(0,mFlightPoints[i]->GetGPUVirtualAddress());
         mCommandList->SetComputeRootUnorderedAccessView(1,mFlightContacts[i]->GetGPUVirtualAddress());
         mCommandList->Dispatch(mFlightProbes[i].Groups(),1,1);

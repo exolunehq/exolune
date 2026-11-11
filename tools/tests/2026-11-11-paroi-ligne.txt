@@ -1,0 +1,16 @@
+# Houses on the cliff's face along a stair path, small earthworks, the guideway towards other cities with a station and a cable car for the farms, anchored furniture.
+# Launch with -Ville G:/ExoluneAssets/city-tripo-2026-11-11/delivery-08/bank. F1-F5 cliff, F6-F8 farms, F9-F11 guideway beyond the city, F12 furniture on a court, the palette's last buttons a bench and the whole city.
+Paroi habitée | 572.628 -10.9908315986 63.6756780228 3.814 0.000 | -5.996997 33.681051
+Maison à flanc de falaise | 549.528 -10.9882473641 63.6758186558 -8.211 -40.608 | -5.996997 33.681051
+Escalier en lacets | 551.520 -10.9879883150 63.6758095832 -15.031 31.114 | -5.996997 33.681051
+Pylône sur la paroi | 488.167 -10.9886601973 63.6769387316 -29.599 -32.005 | -5.996997 33.681051
+Téléphérique de la falaise | 333.862 -10.9913374651 63.6769787091 -32.083 -4.970 | -5.996997 33.681051
+Gare des exploitations | 461.478 -11.0055937439 63.6688579998 2.466 64.732 | -5.996997 33.681051
+Téléphérique vers la ferme | 572.030 -11.0078095237 63.6713390228 19.820 -26.942 | -5.996997 33.681051
+Champs de la ferme | 559.698 -11.0071300772 63.6719084461 -0.201 -140.194 | -5.996997 33.681051
+Ligne vers l'ouest | 474.879 -11.0048621652 63.6708224813 3.960 -111.095 | -5.996997 33.681051
+Viaduc dans le canyon | 474.879 -11.0154042734 63.6505946027 3.960 -117.568 | -5.996997 33.681051
+Ligne vers le sud | 474.879 -11.0085656517 63.6914656178 4.289 -176.901 | -5.996997 33.681051
+Mobilier sur la place | 454.310 -11.0005750653 63.6873170701 2.921 -120.069 | -5.996997 33.681051
+Banc au bord du chemin | 490.639 -11.0059183066 63.6854568188 12.735 -53.130 | -5.996997 33.681051
+Ville entière | 846.703 -10.9907085472 63.6892870763 14.107 -131.009 | -5.996997 33.681051

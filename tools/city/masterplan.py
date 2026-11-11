@@ -19,7 +19,60 @@ def rail_heading(x):
     return math.atan2(32/155*math.cos(x/155),1)
 
 
-def proposal(seed=11072026,pattern='braid'):
+def braid_along(spine,extent,seed,fits=None,region=None):
+    """The braid laid along a mobility spine that follows the site (a contour on a hill site): inhabited crowns
+    on both sides of it, denser where both sides fill in its middle third; garden rows beyond; fields, workshops
+    and the spaceport at the edges; protected habitat fingers across it. Stations at a sixth, a half and five
+    sixths of its length. Every centre keeps inside the site; `fits(x, y, radius, role)`, when given, keeps a
+    district off ground the terrain would refuse, so the edge districts move to their next free place."""
+    from shapely.geometry import LineString,Point
+    rng=random.Random(seed);line=LineString(spine);length=line.length;half=extent/2;districts=[]
+    x0,y0,x1,y1=region or (-half,-half,half,half)  # the box the city keeps to inside a wider export
+    def frame(s):
+        a=line.interpolate(max(0,s-2));b=line.interpolate(min(length,s+2));p=line.interpolate(s)
+        d=np.array([b.x-a.x,b.y-a.y]);d/=max(np.linalg.norm(d),1e-9);return np.array([p.x,p.y]),np.array([-d[1],d[0]])
+    def add(s,offset,role,density,radius,label,overlap=1.0):
+        """A district at arc length s, `offset` metres across the spine; False outside the site or on another.
+        Crowns may overlap a quarter of their reach: the densest fabric runs on along the spine."""
+        p,n=frame(s);x,y=p+n*offset+np.array([rng.uniform(-12,12),rng.uniform(-12,12)])
+        if not (x0+radius+10<=x<=x1-radius-10 and y0+radius+10<=y<=y1-radius-10) or (fits and not fits(x,y,radius,role)):return False
+        if any(math.dist((x,y),d['centre'])<(d['radius']+radius)*overlap+20*(overlap==1) for d in districts):return False
+        districts.append({'centre':[round(float(x),3),round(float(y),3)],'role':role,'density':density,'radius':radius,
+                          'label':label,'seed':rng.randrange(1,1000000)})
+        return True
+    stations=[[float(v) for v in frame(length*f)[0]] for f in (1/6,1/2,5/6)]
+    # Fields, workshops and the spaceport first, at the edges, wherever the site has room for them.
+    for f,role,radius,label in [(.12,'food',61,'Cultures partagées'),(.5,'food',66,'Serres et eau'),(.88,'food',61,'Vergers'),
+                                (.3,'civic',61,'Savoirs et ateliers'),(.7,'civic',61,'Halles'),(.95,'arrival',66,'Accueil aérien')]:
+        density=.22 if role=='food' else .7 if role=='civic' else .35
+        offsets=(-600,600,-480,480,-360,360) if role=='food' else (600,-600,480,-480,360,-360)
+        # Along the spine as well as across it: the first free place near its intended one.
+        next((True for df in (0,-.08,.08,-.16,.16,-.24,.24) for offset in offsets
+              if 0<f+df<1 and add(length*(f+df),offset,role,density,radius,label)),False)
+    count=max(4,round(length/120))
+    for k in range(count):
+        s=length*(k+.5)/count;middle=abs(s/length-.5)<1/6
+        if min(math.dist(frame(s)[0],q) for q in stations)<70:continue
+        for side in ([-1,1] if middle else [1 if k%2 else -1]):
+            add(s,side*rng.uniform(95,115),'core' if abs(s/length-.5)<.3 else 'mixed',1 if middle else .75,
+                85 if middle else 72,f'Canopée {len(districts)+1}',overlap=.75)
+    for row,offset in enumerate([-275,275,-430,430]):
+        for k in range(max(3,round(length/200))):
+            add(length*(k+.5+.5*(row%2))/max(3,round(length/200)),offset,'garden',.42,64,f'Jardin {len(districts)+1}')
+    corridors=[]
+    for f in (1/3,2/3):
+        p,n=frame(length*f);t=np.array([n[1],-n[0]])
+        corridors.append([[float(v) for v in p+n*u+t*23*math.sin(u/115+.8)] for u in np.linspace(-extent,extent,121)
+                          if x0<=(p+n*u)[0]<=x1 and y0<=(p+n*u)[1]<=y1])
+    return {'schema':2,'pattern':'braid_along','seed':seed,'extent_m':extent,'districts':districts,'stations':stations,
+            'rail':[[float(x),float(y)] for x,y in spine],'habitat_corridors':corridors,'corridor_half_width_m':12,
+            'rules':['Shared inhabited groups, no private plots','Density through stacked floors and wing variants, densest mid-spine',
+                     'Permeable pedestrian connections; elevated shared transport on a level spine','Protected habitat fingers; no continuous ground road'],
+            'stage':'planning proposal; exact footprints require terrain and access validation'}
+
+
+def proposal(seed=11072026,pattern='braid',extent=1024,spine=None,fits=None,region=None):
+    if spine is not None:return braid_along(spine,extent,seed,fits,region)
     rng=random.Random(seed);districts=[]
     def add(x,y,role,density,radius,label):
         districts.append({'centre':[round(x,3),round(y,3)],'role':role,'density':density,

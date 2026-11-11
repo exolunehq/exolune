@@ -49,12 +49,15 @@ void City::Initialize(ID3D12Device* device,ID3D12GraphicsCommandList* cmd,ID3D12
     for(UINT i:indices)if(i>=nv)throw std::runtime_error("Invalid city index.");
     Reader scene(folder+L"\\scene.bin");scene.magic("CITYSCN1");
     const UINT sceneVersion=scene.read<UINT>();
-    if(sceneVersion<1||sceneVersion>3||scene.read<UINT>()!=worldSeed)throw std::runtime_error("City scene does not match the planet seed.");
+    if(sceneVersion<1||sceneVersion>4||scene.read<UINT>()!=worldSeed)throw std::runtime_error("City scene does not match the planet seed.");
     mLatitude=scene.read<double>();mLongitude=scene.read<double>();
     if(!std::isfinite(mLatitude)||!std::isfinite(mLongitude)||std::abs(mLatitude)>89.9||std::abs(mLongitude)>180)throw std::runtime_error("Invalid city anchor.");
     const UINT np=scene.read<UINT>(),rv=scene.read<UINT>(),ri=scene.read<UINT>();
-    if(np>4096||rv>2000000||ri>6000000||ri%3)throw std::runtime_error("City scene capacity exceeded.");
+    if(np>8192||rv>2000000||ri>6000000||ri%3)throw std::runtime_error("City scene capacity exceeded.");
     mLandGrid=scene.read<XMFLOAT4>();
+    // Version 4: posts, beams, rails and walls follow the walkable triangles.
+    mWalkIndices=sceneVersion>=4?scene.read<UINT>():ri;
+    if(mWalkIndices>ri||mWalkIndices%3)throw std::runtime_error("City walkable range invalid.");
     if(sceneVersion>=3)scene.bytes(mLandBits.data(),sizeof(mLandBits));
     else {
         std::array<UINT,512> oldBits;scene.bytes(oldBits.data(),sizeof(oldBits));
@@ -68,7 +71,7 @@ void City::Initialize(ID3D12Device* device,ID3D12GraphicsCommandList* cmd,ID3D12
         p.instance.detail={scene.read<float>(),1,0,0};
         if(p.model>=count)throw std::runtime_error("City placement model invalid.");
         const auto& q=p.instance.originYaw;
-        if(!std::isfinite(q.x+q.y+q.z+q.w+p.instance.detail.x)||std::abs(q.x)>2000||std::abs(q.y)>2000)
+        if(!std::isfinite(q.x+q.y+q.z+q.w+p.instance.detail.x)||std::abs(q.x)>12000||std::abs(q.y)>12000)
             throw std::runtime_error("City placement invalid.");
         mPlacements.push_back(p);
     }
@@ -96,9 +99,47 @@ void City::Initialize(ID3D12Device* device,ID3D12GraphicsCommandList* cmd,ID3D12
             mPlacements.push_back({UINT(mModels.size()),{{cx,cy,0,0},{1,1,0,0}}});mModels.push_back(road);
         }
     }
-    mBoundsLo={mLandGrid.x,mLandGrid.y,0};mBoundsHi={mLandGrid.x+MaskSide*mLandGrid.z,mLandGrid.y+MaskSide*mLandGrid.z,20};
+    // The vertical extent follows the placements: a hill city stands hundreds of metres above sea level.
+    // Earthworks (grading.bin): pads graded into the relief, with a 32 x 32 cell index. CITYPAD2 gives each pad its yaw
+    // and its own bank slope; CITYPAD1 (cos, sin, one slope for all) is converted on load.
+    mPads.clear();mGradeIndex.clear();mGradeCells.fill(0);
+    if(GetFileAttributesW((folder+L"\\grading.bin").c_str())!=INVALID_FILE_ATTRIBUTES){
+        Reader grade(folder+L"\\grading.bin");char magic[8];grade.bytes(magic,8);
+        const bool perPad=!memcmp(magic,"CITYPAD2",8);
+        if(!perPad&&memcmp(magic,"CITYPAD1",8))throw std::runtime_error("Unsupported city earthworks format.");
+        const UINT pads=grade.read<UINT>(),entries=grade.read<UINT>();
+        mGradeGrid.w=grade.read<float>();mKnee=grade.read<float>();mRound=grade.read<float>();
+        mGradeGrid.x=grade.read<float>();mGradeGrid.y=grade.read<float>();mGradeGrid.z=grade.read<float>();
+        if(pads>900||entries>6144||!(mGradeGrid.w>0)||!(mKnee>=0)||!(mRound>=0)||!(mGradeGrid.z>0))throw std::runtime_error("City earthworks invalid.");
+        mPads.resize(size_t(pads)*2);grade.bytes(mPads.data(),size_t(pads)*32);
+        if(!perPad)for(size_t k=0;k<mPads.size();k+=2){auto& a=mPads[k];a.z=atan2f(a.w,a.z);a.w=mGradeGrid.w;}
+        grade.bytes(mGradeCells.data(),sizeof(UINT)*1024);
+        mGradeIndex.resize(entries+(entries&1));grade.bytes(mGradeIndex.data(),mGradeIndex.size()*2);grade.end();
+        for(UINT cell:mGradeCells)if((cell&0xffff)+(cell>>16)>entries)throw std::runtime_error("City earthwork index invalid.");
+        for(UINT i=0;i<entries;++i)if(mGradeIndex[i]>=pads)throw std::runtime_error("City earthwork pad invalid.");
+        for(const auto& v:mPads)if(!std::isfinite(v.x+v.y+v.z+v.w))throw std::runtime_error("Nonfinite city earthwork.");
+        for(size_t k=0;k<mPads.size();k+=2)if(!(mPads[k].w>0))throw std::runtime_error("City earthwork slope invalid.");
+    }
+    // The guideway's corridor beyond the land grid: up to 192 segments, in boxes of 8.
+    mCorridorInfo={};mCorridorBoxes.clear();mCorridor.clear();
+    if(GetFileAttributesW((folder+L"\\corridor.bin").c_str())!=INVALID_FILE_ATTRIBUTES){
+        Reader corridor(folder+L"\\corridor.bin");corridor.magic("CITYCOR1");
+        const UINT segments=corridor.read<UINT>();const float half=corridor.read<float>();
+        if(segments>192||!(half>0&&half<200))throw std::runtime_error("City corridor invalid.");
+        mCorridor.resize(segments);corridor.bytes(mCorridor.data(),segments*sizeof(XMFLOAT4));corridor.end();
+        for(UINT b=0;b*8<segments;++b){XMFLOAT4 box={1e9f,1e9f,-1e9f,-1e9f};
+            for(UINT k=b*8;k<std::min(b*8+8,segments);++k){const auto& s=mCorridor[k];
+                if(!std::isfinite(s.x+s.y+s.z+s.w))throw std::runtime_error("Nonfinite city corridor.");
+                box.x=std::min({box.x,s.x,s.z});box.y=std::min({box.y,s.y,s.w});box.z=std::max({box.z,s.x,s.z});box.w=std::max({box.w,s.y,s.w});}
+            mCorridorBoxes.push_back({box.x-half,box.y-half,box.z+half,box.w+half});}
+        mCorridorInfo={float(segments),half,float(mCorridorBoxes.size()),0};
+    }
+    mBoundsLo={mLandGrid.x,mLandGrid.y,1e9f};mBoundsHi={mLandGrid.x+MaskSide*mLandGrid.z,mLandGrid.y+MaskSide*mLandGrid.z,-1e9f};
     for(const auto& p:mPlacements){if(Ground(mModels[p.model].name))continue;const auto& m=mModels[p.model];
         mBoundsLo.z=std::min(mBoundsLo.z,p.instance.originYaw.z+m.lo.z);mBoundsHi.z=std::max(mBoundsHi.z,p.instance.originYaw.z+m.hi.z);}
+    if(mBoundsLo.z>mBoundsHi.z){mBoundsLo.z=0;mBoundsHi.z=20;}
+    mByModel.assign(mModels.size(),{});
+    for(UINT i=0;i<mPlacements.size();++i)mByModel[mPlacements[i].model].push_back(i);
     mCapacity=UINT(mPlacements.size())*3+1;mBatches.reserve(mModels.size()*7);
     auto upload=[&](const void* data,size_t bytes,D3D12_RESOURCE_STATES state){
         auto buffer=CreateBuffer(device,bytes,D3D12_HEAP_TYPE_DEFAULT,D3D12_RESOURCE_STATE_COPY_DEST);
@@ -142,7 +183,7 @@ void City::Initialize(ID3D12Device* device,ID3D12GraphicsCommandList* cmd,ID3D12
                 throw std::runtime_error("City texture budget or format invalid.");
             size_t bytes=0;for(UINT mip=0;mip<mips;++mip)bytes+=size_t(std::max(size>>mip,1u))*std::max(size>>mip,1u)*4*layers;
             pixels.resize(bytes);texture.bytes(pixels.data(),bytes);texture.end();
-            for(UINT i=0;i<materials;++i)if(materialData[i*3+2].x<0||materialData[i*3+2].x>=layers)throw std::runtime_error("City texture layer invalid.");
+            for(UINT i=0;i<materials;++i)if(materialData[i*3+2].w>-.5f&&(materialData[i*3+2].x<0||materialData[i*3+2].x>=layers))throw std::runtime_error("City texture layer invalid.");
         }
         auto desc=CD3DX12_RESOURCE_DESC::Tex2D(channel==0?DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:DXGI_FORMAT_R8G8B8A8_UNORM,size,size,UINT16(layers),UINT16(mips));
         Check(device->CreateCommittedResource(&gpu,D3D12_HEAP_FLAG_NONE,&desc,D3D12_RESOURCE_STATE_COPY_DEST,nullptr,IID_PPV_ARGS(&mTextures[channel])),"City material texture failed.");
@@ -156,7 +197,38 @@ void City::Initialize(ID3D12Device* device,ID3D12GraphicsCommandList* cmd,ID3D12
         image.Shader4ComponentMapping=D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;image.Texture2DArray.MipLevels=mips;image.Texture2DArray.ArraySize=layers;
         device->CreateShaderResourceView(mTextures[channel].Get(),&image,handle);
     }
-    CD3DX12_DESCRIPTOR_RANGE luts(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,3,1),planet(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,29),shadow(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,33),images(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,3,34);
+    // Displayed draft atlases, block compressed: BC1 sRGB colour, BC5 normal, BC1 metal-roughness.
+    // A bank without them binds one white or flat block.
+    const bool atlased=GetFileAttributesW((folder+L"\\atlas0.bin").c_str())!=INVALID_FILE_ATTRIBUTES;
+    for(UINT channel=0;channel<3;++channel){
+        const DXGI_FORMAT format=channel==0?DXGI_FORMAT_BC1_UNORM_SRGB:channel==1?DXGI_FORMAT_BC5_UNORM:DXGI_FORMAT_BC1_UNORM;
+        const UINT block=channel==1?16:8;
+        UINT size=4,layers=1,mips=1;std::vector<unsigned char> data(block,0);
+        if(channel==1){data={255,255,0,0,0,0,0,0,255,255,0,0,0,0,0,0};data[0]=data[1]=128;data[8]=data[9]=128;}
+        else{data={255,255,255,255,0,0,0,0};}
+        if(atlased){
+            Reader atlas(folder+L"\\atlas"+std::to_wstring(channel)+L".bin");atlas.magic("CITYATL1");
+            size=atlas.read<UINT>();layers=atlas.read<UINT>();mips=atlas.read<UINT>();
+            if(atlas.read<UINT>()!=channel||size<4||size>4096||(size&(size-1))||!layers||layers>128||mips!=UINT(log2(size))+1)
+                throw std::runtime_error("City atlas budget or format invalid.");
+            size_t bytes=0;for(UINT mip=0;mip<mips;++mip){const size_t n=std::max((size>>mip)+3,4u)/4;bytes+=n*n*block*layers;}
+            data.resize(bytes);atlas.bytes(data.data(),bytes);atlas.end();
+        }
+        if(channel==0)for(UINT i=0;i<materials;++i)if(materialData[i*3+2].w<-.5f&&(materialData[i*3+2].x<0||materialData[i*3+2].x>=layers))throw std::runtime_error("City atlas layer invalid.");
+        auto desc=CD3DX12_RESOURCE_DESC::Tex2D(format,size,size,UINT16(layers),UINT16(mips));
+        Check(device->CreateCommittedResource(&gpu,D3D12_HEAP_FLAG_NONE,&desc,D3D12_RESOURCE_STATE_COPY_DEST,nullptr,IID_PPV_ARGS(&mAtlases[channel])),"City atlas texture failed.");
+        auto stage=CreateBuffer(device,GetRequiredIntermediateSize(mAtlases[channel].Get(),0,layers*mips),D3D12_HEAP_TYPE_UPLOAD,D3D12_RESOURCE_STATE_GENERIC_READ);
+        std::vector<D3D12_SUBRESOURCE_DATA> subs;size_t offset=0;
+        for(UINT layer=0;layer<layers;++layer)for(UINT mip=0;mip<mips;++mip){
+            const size_t n=std::max((size>>mip)+3,4u)/4;subs.push_back({data.data()+offset,LONG_PTR(n*block),LONG_PTR(n*n*block)});offset+=n*n*block;}
+        UpdateSubresources(cmd,mAtlases[channel].Get(),stage.Get(),0,0,UINT(subs.size()),subs.data());mUploads.push_back(stage);mBytes+=data.size();
+        auto barrier=CD3DX12_RESOURCE_BARRIER::Transition(mAtlases[channel].Get(),D3D12_RESOURCE_STATE_COPY_DEST,D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);cmd->ResourceBarrier(1,&barrier);
+        auto handle=cpu;handle.ptr+=SIZE_T(4+channel)*stride;
+        D3D12_SHADER_RESOURCE_VIEW_DESC image={};image.Format=format;image.ViewDimension=D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+        image.Shader4ComponentMapping=D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;image.Texture2DArray.MipLevels=mips;image.Texture2DArray.ArraySize=layers;
+        device->CreateShaderResourceView(mAtlases[channel].Get(),&image,handle);
+    }
+    CD3DX12_DESCRIPTOR_RANGE luts(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,3,1),planet(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,29),shadow(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,33),images(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,6,34);
     CD3DX12_ROOT_PARAMETER params[9];params[0].InitAsConstantBufferView(0);params[1].InitAsConstantBufferView(2);
     params[2].InitAsShaderResourceView(30);params[3].InitAsShaderResourceView(31);params[4].InitAsShaderResourceView(32);
     params[5].InitAsDescriptorTable(1,&luts);params[6].InitAsDescriptorTable(1,&planet);params[7].InitAsDescriptorTable(1,&shadow);
@@ -176,9 +248,9 @@ void City::Initialize(ID3D12Device* device,ID3D12GraphicsCommandList* cmd,ID3D12
     pso.VS=CD3DX12_SHADER_BYTECODE(sv.Get());pso.PS={};pso.NumRenderTargets=0;pso.RTVFormats[0]=pso.RTVFormats[1]=DXGI_FORMAT_UNKNOWN;
     pso.DepthStencilState.DepthFunc=D3D12_COMPARISON_FUNC_LESS;pso.RasterizerState.DepthBias=100;pso.RasterizerState.SlopeScaledDepthBias=1.5f;
     Check(device->CreateGraphicsPipelineState(&pso,IID_PPV_ARGS(&mShadowPso)),"City shadow PSO failed.");
-    // Bounded 4 m bins index the exact cooked street triangles for walking.
+    // Bounded 4 m bins index the exact cooked walkable triangles: paths, plazas, decks and steps.
     mRoadCells.resize(MaskSide*MaskSide);
-    for(UINT t=0;t<mRoadIndices.size();t+=3){
+    for(UINT t=0;t<mWalkIndices;t+=3){
         float lx=1e9f,ly=1e9f,hx=-1e9f,hy=-1e9f;
         for(UINT k=0;k<3;++k){const auto& v=mRoadVertices[mRoadIndices[t+k]];lx=std::min(lx,v.p[0]);ly=std::min(ly,v.p[1]);hx=std::max(hx,v.p[0]);hy=std::max(hy,v.p[1]);}
         for(int y=std::max(0,int(floor((ly-mLandGrid.y)/mLandGrid.z)));y<=std::min(int(MaskSide)-1,int(floor((hy-mLandGrid.y)/mLandGrid.z)));++y)
@@ -190,8 +262,11 @@ void City::Initialize(ID3D12Device* device,ID3D12GraphicsCommandList* cmd,ID3D12
 void City::Update(FXMMATRIX model,FXMMATRIX viewProj,const XMFLOAT3& camera,const XMFLOAT3& sun,UINT screenHeight){
     if(!mReady)return;
     XMStoreFloat4x4(&mFrame->model,XMMatrixTranspose(model));mFrame->sun={sun.x,sun.y,sun.z,0};mFrame->camera={camera.x,camera.y,camera.z,0};
+    // Centre the light volume on the viewer, clamped to the city: on a slope a fixed
+    // mid-height centre would slide the shadowed area away along the sun's azimuth.
     const float sx=std::min(std::max(camera.x,mBoundsLo.x),mBoundsHi.x),sy=std::min(std::max(camera.y,mBoundsLo.y),mBoundsHi.y);
-    XMVECTOR centre=XMVectorSet(sx,sy,(mBoundsLo.z+mBoundsHi.z)*.5f,1),s=XMLoadFloat3(&sun);
+    const float sz=std::min(std::max(camera.z,mBoundsLo.z),mBoundsHi.z);
+    XMVECTOR centre=XMVectorSet(sx,sy,sz,1),s=XMLoadFloat3(&sun);
     XMVECTOR up=fabs(sun.z)<.95f?XMVectorSet(0,0,1,0):XMVectorSet(0,1,0,0);
     XMMATRIX shadowMatrix=XMMatrixLookToLH(centre+s*900,-s,up)*XMMatrixOrthographicLH(760,760,.1f,1800);
     XMFLOAT4X4 stable;XMStoreFloat4x4(&stable,shadowMatrix);
@@ -205,7 +280,7 @@ void City::Update(FXMMATRIX model,FXMMATRIX viewProj,const XMFLOAT3& camera,cons
     UINT at=0;
     for(UINT i=0;i<mModels.size();++i){const auto& m=mModels[i];if(Ground(m.name))continue;
         Batch batch={i,UINT(std::min<size_t>(2,m.levels.size()-1)),at,0};
-        for(const auto& p:mPlacements){if(p.model!=i)continue;const auto& q=p.instance.originYaw;
+        for(UINT index:mByModel[i]){const auto& p=mPlacements[index];const auto& q=p.instance.originYaw;
             const float extent=Size(m.lo,m.hi);if(std::hypot(q.x-sx,q.y-sy)>550+extent*.5f)continue;
             if(extent<5&&std::hypot(q.x-camera.x,q.y-camera.y)>230)continue;
             mInstanceData[at++]=p.instance;++batch.count;}
@@ -216,7 +291,8 @@ void City::Update(FXMMATRIX model,FXMMATRIX viewProj,const XMFLOAT3& camera,cons
     for(UINT modelIndex=0;modelIndex<mModels.size();++modelIndex){const auto& m=mModels[modelIndex];
         const float extent=Size(m.lo,m.hi),radius=.5f*sqrtf(powf(m.hi.x-m.lo.x,2)+powf(m.hi.y-m.lo.y,2)+powf(m.hi.z-m.lo.z,2));
         for(UINT level=0;level<m.levels.size();++level){Batch batch={modelIndex,level,at,0};
-            for(const auto& p:mPlacements){if(p.model!=modelIndex)continue;const auto& q=p.instance.originYaw;
+            for(UINT index:mByModel[modelIndex]){const auto& p=mPlacements[index];auto q=p.instance.originYaw;
+                q.z-=(q.x*q.x+q.y*q.y)/(2*PlanetRadiusM); // instances stand on the planet (City.hlsli CityBend)
                 const float distance=std::max(1.0f,sqrtf(powf(q.x-camera.x,2)+powf(q.y-camera.y,2)+powf(q.z+(m.hi.z+m.lo.z)*.5f-camera.z,2))-radius*.3f);
                 XMFLOAT4 clip;XMStoreFloat4(&clip,XMVector4Transform(XMVectorSet(q.x,q.y,q.z+(m.hi.z+m.lo.z)*.5f,1),cityClip));
                 if(clip.w+radius<=0||std::abs(clip.x)>clip.w+radius*2||std::abs(clip.y)>clip.w+radius*2)continue;
@@ -268,6 +344,27 @@ void City::Draw(ID3D12GraphicsCommandList* cmd,D3D12_GPU_VIRTUAL_ADDRESS frame,D
     for(const auto& b:mBatches){const auto& l=mModels[b.model].levels[b.level];
         cmd->SetGraphicsRootShaderResourceView(3,mInstances->GetGPUVirtualAddress()+UINT64(b.first)*sizeof(Instance));
         cmd->DrawIndexedInstanced(l.count,b.count,l.first,0,0);}
+}
+
+// The earthworks on a natural height, as CityGrade.hlsli computes them on the GPU.
+double City::Grade(double x,double y,double h) const {
+    if(mPads.empty())return h;
+    const int ix=int(floor((x-mGradeGrid.x)/mGradeGrid.z)),iy=int(floor((y-mGradeGrid.y)/mGradeGrid.z));
+    if(ix<0||iy<0||ix>=32||iy>=32)return h;
+    const UINT packed=mGradeCells[iy*32+ix],first=packed&0xffff,count=packed>>16;
+    for(UINT k=0;k<count;++k){
+        const auto& a=mPads[size_t(mGradeIndex[first+k])*2];const auto& b=mPads[size_t(mGradeIndex[first+k])*2+1];
+        const double c=cos(double(a.z)),s=sin(double(a.z));
+        const double qx=(x-a.x)*c+(y-a.y)*s,qy=-(x-a.x)*s+(y-a.y)*c;
+        const double ex=fabs(qx)-b.x+b.z,ey=fabs(qy)-b.y+b.z;
+        const double dist=std::hypot(std::max(ex,0.0),std::max(ey,0.0))+std::min(std::max(ex,ey),0.0)-b.z;
+        const double out=std::max(dist,0.0),limit=a.w*(out<mRound?out*out/(2*mRound):out-.5*mRound),w=std::min(double(mKnee),limit),v=h-b.w,sign=v<0?-1:1,m=fabs(v);
+        double clamped=m;
+        if(m>=limit+w)clamped=limit;
+        else if(m>limit-w){const double t=m-(limit-w);clamped=(limit-w)+t-t*t/(4*std::max(w,1e-6));}
+        h=b.w+sign*clamped;
+    }
+    return h;
 }
 
 bool City::Surface(double x,double y,double current,double& height) const {

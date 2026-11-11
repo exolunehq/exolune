@@ -1,3 +1,5 @@
+// The erosion and planet-map passes read the natural relief, never the city earthworks.
+#define CITY_NATURAL_RELIEF
 // The erosion's level 0 input (Erosion.h), once at startup: the form before erosion at the centre of every cell of the
 // tectonic map's cube (m), its octaves filtered to two cells, as the planet map's (PlanetMap.hlsl).
 #include "Relief.hlsli"

@@ -1,0 +1,15 @@
+# The 3 km hill city: dwellings at the foot and on the top of the cliff with their cable car, farms in the meadow, six new pieces of furniture, the metro's corridor cleared of trees.
+# Launch with -Ville E:/ExoluneAssets/city-tripo-2026-11-11/delivery-07/bank. F1-F5 cliff, F6-F7 farms, F8-F11 furniture, F12 metro corridor, the palette's last button the whole city.
+Falaise depuis la vallée | 518.604 -10.9955147344 63.6781683263 6.167 -11.174 | -5.996997 33.681051
+Tours au pied de la falaise | 336.949 -10.9918764658 63.6769787017 -5.556 -16.699 | -5.996997 33.681051
+Téléphérique de la falaise | 333.784 -10.9912476334 63.6771159786 -26.103 -7.651 | -5.996997 33.681051
+Maisons au sommet | 631.219 -10.9849143587 63.6760179411 5.909 111.801 | -5.996997 33.681051
+Vue depuis le sommet | 611.554 -10.9858576205 63.6767042534 19.063 180.000 | -5.996997 33.681051
+Exploitations agricoles | 590.262 -11.0070402571 63.6723660341 13.542 -129.289 | -5.996997 33.681051
+Champs dans la prairie | 543.465 -11.0074893669 63.6705356775 -10.186 127.569 | -5.996997 33.681051
+Kiosque | 481.593 -11.0047005603 63.6867900303 3.604 159.939 | -5.996997 33.681051
+Pergola | 482.779 -11.0052396793 63.6867596844 3.623 -5.382 | -5.996997 33.681051
+Jeux d'enfants | 435.987 -11.0046311116 63.6923824806 11.753 -1.480 | -5.996997 33.681051
+Abri à vélos | 491.724 -11.0056097703 63.6855354185 8.405 178.538 | -5.996997 33.681051
+Couloir du métro, sans arbres | 452.386 -11.0002037530 63.6891641252 -2.536 -73.112 | -5.996997 33.681051
+Ville entière | 846.703 -10.9907085472 63.6892870763 14.107 -131.009 | -5.996997 33.681051
