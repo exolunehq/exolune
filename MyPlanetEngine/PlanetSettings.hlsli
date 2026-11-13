@@ -599,6 +599,9 @@ static const float3 FOAM_ALBEDO           = float3(0.196, 0.22, 0.22);
 // 2018). The camera systems measured by McCann and Rizzi give 1.4 to 11, a young eye 10, which the viewer's own eye
 // already adds to what the screen shows. 0 switches the glare off.
 static const float  GLARE_STRAYLIGHT       = 0.3;
+// The light that a straylight s spreads over one octave of angle, from theta to 2 theta: 2 pi ln 2 (pi / 180)^2 s.
+static const float  GLARE_OCTAVE           = 2.0 * 3.14159265 * 0.69314718 * (3.14159265 / 180.0) * (3.14159265 / 180.0)
+                                             * GLARE_STRAYLIGHT;
 
 // ---------------------------------------------------------------------------------------------
 // Tones: from the scene's light to the screen (ToneMap.hlsl, docs/recherche-tons-exposition.md).
@@ -614,5 +617,30 @@ static const float  EXPOSURE_COMPENSATION_ORBIT = 0.0;
 // the grey card. 1 adds none. 1.5 puts 1.23 through the grey card: the contrast an image needs on a screen in a dim
 // room, 1.2 to 1.25 (Hunt; ITU-R BT.2100), under ACES 1's 1.55.
 static const float  FILM_CONTRAST          = 1.5;
+// The eye's local adaptation (Adaptation.h, AdaptSeed.hlsl, ToneMap.hlsl; docs/recherche-tons-exposition.md), around the
+// global exposure, region by region of the image, in stops from the grey card. Within the knees nothing moves: daylight
+// images keep their calibration. A region darker than LOCAL_SHADOW_KNEE stops under it rises there, keeping
+// LOCAL_SHADOW_SLOPE of its further depth, by at most LOCAL_SHADOW_RANGE stops: the moons' light under a daylight
+// exposure rises, a moonless night stays black. A region brighter than LOCAL_HIGHLIGHT_KNEE falls back there, by at most
+// LOCAL_HIGHLIGHT_RANGE: a moon's disc keeps its markings for a dark-adapted eye.
+static const float  LOCAL_SHADOW_KNEE      = 4.5;
+static const float  LOCAL_SHADOW_SLOPE     = 0.04;
+static const float  LOCAL_SHADOW_RANGE     = 15.0;
+static const float  LOCAL_HIGHLIGHT_KNEE   = 4.5;
+static const float  LOCAL_HIGHLIGHT_RANGE  = 10.0;
+// The region: this level of the pyramid, from a quarter of the screen's resolution, 32 pixels at 1080p; its texels count
+// for a pixel as their light is close to its own, within LOCAL_ADAPTATION_SIGMA stops.
+static const float  LOCAL_ADAPTATION_LEVEL = 3.0;
+static const float  LOCAL_ADAPTATION_SIGMA = 2.5;
+// The share of the Sun's glare the eye adapts to: near the Sun, the night side stays darker, the more backlit, the darker.
+// 1 is the eye's; this much keeps a moonlit night side 14 degrees from the Sun readable.
+static const float  LOCAL_ADAPTATION_GLARE = 3e-5;
+// Dark-adapted, the eye sees with its rods: colours fade towards a cool grey (the Purkinje shift), as films grade their
+// nights. The share of that shift once fully adapted, from deep twilight to moonlight, and its tint; 0 keeps the colours.
+static const float  NIGHT_TINT_SHARE       = 0.55;
+static const float3 NIGHT_TINT             = float3(0.78, 0.95, 1.35);
+// The share of the moons' light that reaches Exolune's air, ground, sea and clouds; their discs keep their own flux.
+// Three moons, the nearest at 42 000 km, gave nights of 2 to 8 terrestrial full moons: a display choice, 1 is physical.
+static const float  MOONLIGHT_SCALE        = 0.25;
 
 #endif

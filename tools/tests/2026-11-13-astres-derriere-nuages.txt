@@ -1,0 +1,9 @@
+# Moons and Sun behind clouds, 2026-11-13: a thick cloud hides the disc, a thin one veils it, a clear gap shows it with
+# its halo. Looking straight up from 1 500 m, weather clock from 0; Space runs the weather, clouds then cross the disc.
+Moon behind thick overcast: hidden, no circle | 1500 -1.2 160.6 -90 0 | 20 -20
+Moon behind thick overcast, second place: hidden | 1500 -4.0 160.6 -90 0 | 20 -20
+Moon at the overcast's edge: veiled, cut by the cloud | 1500 -1.2 159.0 -90 0 | 20 -20
+Moon in a clear gap: full disc and halo | 1500 -1.2 158.6 -90 0 | 20 -20
+Sun behind overcast: no white dot | 1500 -2 -15 -90 0 | 1 -20
+Sun behind thick cloud: hidden | 1500 -2 -21 -90 0 | 1 -20
+Sun in clear sky: disc and halo | 1500 -2 -24 -90 0 | 1 -20

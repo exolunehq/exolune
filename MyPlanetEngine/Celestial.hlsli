@@ -19,6 +19,14 @@ float CelestialNoise(float3 p) {
     return lerp(lerp(lerp(v[0],v[1],u.x),lerp(v[2],v[3],u.x),u.y),
         lerp(lerp(v[4],v[5],u.x),lerp(v[6],v[7],u.x),u.y),u.z);
 }
+// The light moon i casts on Exolune: its illuminance on the ground below the camera, at MOONLIGHT_SCALE; a camera beside
+// the moon receives far more.
+float3 Moonlight(uint i) { return MOONLIGHT_SCALE*celestialSurface[i].rgb*celestialFlux[i].w; }
+// The direction from a point, relative to Exolune's centre (face-local, km), to moon i: where the moon stands over that
+// point, not where a distant camera sees it.
+float3 MoonDirectionFrom(uint i,float3 at) {
+    return normalize(celestialPosition[i].xyz+camVertical.xyz*(PLANET_RADIUS_KM+camVertical.w)-at);
+}
 float3 CelestialWorld(float3 local) { return local.x*faceX.xyz+local.y*faceY.xyz+local.z*faceZ.xyz; }
 float3 CelestialLocal(float3 world) { return float3(dot(world,faceX.xyz),dot(world,faceY.xyz),dot(world,faceZ.xyz)); }
 // The same diffuse phase law serves resolved surfaces and the incident exposure meter.

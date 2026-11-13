@@ -1,0 +1,14 @@
+# Moonlight and backlight review, 2026-11-13: the moons light Exolune from where they stand over it, not from the camera;
+# moonlit clouds lit on top and shaded on their sides; the night side darker the nearer the Sun is to the limb, never black
+# under the moons. Altitudes in metres above sea level; weather clock from 0.
+Beside the third moon, Sun 14° off the limb: moonlit night side, not floodlit | 34322000 -1.1558 159.6031 90 0 | 24.172 -20.397
+Sun 3° off the limb from 10 500 km: darker, never black | 10500000 -1.1558 159.6031 90 0 | 26.359 -20.397
+Backlit Exolune from the second moon: not floodlit | 100000000 -5.53 139.48 90 0 | 10 -5
+High orbit, Sun just off the limb: darkest, still moonlit | 19810521.3 -20.915709 157.285984 82.53 -126.67 | 10 -5
+Moonlit clouds from 2 000 km: lit tops, shaded sides | 2000000 -11 132 90 0 | 10 -5
+Moonlit clouds towards the horizon | 400000 -11 132 70 90 | 10 -5
+Ground under the second moon: shaded clouds overhead | 600 -5 140 -20 90 | 10 -40
+Sunlit low orbit over the night side: dark but readable | 400000 0 100 65 270 | 0 0
+Just after sunrise: night side still visible, stars stay | 1000000 0 119 31 270 | 0 0
+Terminator from orbit: twilight clouds unchanged | 1000000 0 112 32 270 | 0 0
+Half-lit Exolune from 37 000 km: night dimmer than day, no dark band | 37035155 9.321128 77.432049 84.93 -107.60 | 10 -5

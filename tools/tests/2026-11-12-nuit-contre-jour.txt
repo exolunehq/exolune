@@ -1,0 +1,14 @@
+# Night and backlight review, 2026-11-12: cinematic night hemisphere, stars beside the Sun, moonlit clouds, dimmer moons.
+# Altitudes in metres above sea level; weather clock from 0, so the moons stand where a fresh game puts them.
+Sunlit low orbit over the night side: dark but readable | 400000 0 100 65 270 | 0 0
+Same orbit in the planet's shadow: no jump in the night side | 400000 0 120 65 270 | 0 0
+Just before sunrise at the limb | 1000000 0 121.5 31 270 | 0 0
+Just after sunrise: night side still visible, stars stay | 1000000 0 119 31 270 | 0 0
+Backlit Exolune from the second moon | 100000000 -5.53 139.48 90 0 | 10 -5
+High orbit, Sun just off the limb | 19810521.3 -20.915709 157.285984 82.53 -126.67 | 10 -5
+Moonlit clouds from 2 000 km: shaded tops, no bright rims | 2000000 -11 132 90 0 | 10 -5
+Moonlit clouds towards the horizon | 400000 -11 132 70 90 | 10 -5
+Ground under the second moon: darker, cooler night | 600 -5 140 -20 90 | 10 -40
+Night coast: clouds and horizon | 300 -20.47 -75.45 -12 90 | 10 155
+Sun above the atmosphere: stars around the disc | 300000 10 -5 -90 0 | 10 -5
+Terminator from orbit: day beyond the night side | 1000000 0 112 32 270 | 0 0

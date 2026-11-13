@@ -17,6 +17,7 @@
 #include "City.h"
 #include "Audio.h"
 #include "Glare.h"
+#include "Adaptation.h"
 #include "Settings.h"
 #include "Tectonics.h"
 #include "CineVideo.h"
@@ -291,7 +292,7 @@ protected:
     void PlaceCamera(double latitude, double longitude, double pitchDown, double heading, double altitude);
     float mDiagnosticView = 0.0f; // MYPLANETENGINE_VIEW: a material's weight or a field, unlit and without smoothing
     ComPtr<ID3D12RootSignature> mResolveRootSignature;
-    ComPtr<ID3D12PipelineState> mToneMapPSO;
+    ComPtr<ID3D12PipelineState> mToneMapPSO, mAdaptSeedPSO;
     XMMATRIX mPrevViewProj = XMMatrixIdentity();
     Vec3d mPrevCamPos = {}, mPrevFaceX = {}, mPrevFaceY = {}, mPrevFaceZ = {};
     // The terrain's inputs, the frame constants its compute passes read (docs/optimisation.md, round 4): the mesh's,
@@ -312,6 +313,7 @@ protected:
     bool mTerrainPairs = false; // the terrain's buffers come from the lattice in pairs of floats (round 8)
 
     Glare mGlare; // the lens's glare over the composite image, with MYPLANETENGINE_GLARE
+    Adaptation mAdaptation; // the eye's local adaptation, a pyramid of the image's light read by the tone map
 
     // Close-up materials, generated once at startup (docs/spec-textures-generees.md): two texture arrays,
     // colour and cavity, then slope and height, one slice per material, with their mips. Must match

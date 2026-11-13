@@ -1,6 +1,60 @@
 # Search: exhibition and the tone curve
 
-Status: implemented, updated 2026-11-07. Code: `SceneExposure.hlsli` and `ToneMap.hlsl`, settings in `PlanetSettings.hlsli`. Flight review: `tools/tests/2026-11-07-exposition-sans-lissage.txt`. Sources at the end of the file.
+Status: implemented, updated 2026-11-13. Code: `SceneExposure.hlsli`, `ToneMap.hlsl`, `Adaptation.h` and `AdaptSeed.hlsl`, settings in `PlanetSettings.hlsli`. Flight reviews: `tools/tests/2026-11-07-exposition-sans-lissage.txt`, `tools/tests/2026-11-13-lunes-contre-jour.txt`. Sources at the end of the file.
+
+## 0. One local adaptation, 2026-11-13
+
+**Conclusion: the light and the global meter held; the display had stacked three local-adaptation rules that ignored each other.** One generic local adaptation, as games use, replaced them.
+
+**Kept: grounded and continuous.**
+- The physical light: Sun, sky, and the moons' light on Exolune (`Moonlight`), with one artistic knob, `MOONLIGHT_SCALE`.
+- The clouds lit by the key moon as by the Sun.
+- One global exposure: the incident meter, independent of the frame, with its night key and altitude compensation.
+- The photoreceptor curve, the energy-conserving glare, and star visibility without the glare.
+
+**Replaced: special cases with thresholds** (`log/recherche-tons-exposition-historique.md`).
+- The bright-disc cap at exposure 8, for resolved bodies.
+- The night-hemisphere lift: an altitude ramp from 20 to 80 km, a terminator ramp, lift only, Exolune only.
+- The backlight rule: the Sun's angle from the limb, cut when the limb hides the Sun.
+- **Their failure:** each rule knew one case.
+  - At 37 000 km over a half-lit Exolune, the full lift showed the night side as bright as the day side.
+  - A dark band remained where the terminator ramp kept the observer's exposure.
+  - Crossing a ramp or a cut changed the image abruptly.
+
+**The state of the art: one global exposure, plus one local tone mapping.**
+- **Unreal Engine 5, Local Exposure:** splits the frame's luminance into a base layer and a detail layer, then scales the base layer's contrast, with separate settings for shadows and highlights. A bilateral grid keeps the edges.
+- **Wronski 2022, exposure fusion:** blends three synthetic exposures through a Laplacian pyramid at quarter resolution, with guided upsampling, in under 1 ms. He calls it "the missing piece" of games with a physical sky and Sun.
+- **Chapman 2017:** takes the local exposure from a coarse mip of the luminance. The simplest method, but it leaves blocky halos at strong edges.
+- **God of War** (Wronski 2016): takes the local adaptation from the lighting without albedo, blurred bilaterally.
+- **Kopf et al. 2007, joint bilateral upsampling:** a coarse solution upsampled under a full-resolution guide; edges stay sharp.
+- **The global exposure itself:** Unreal and Unity meter the frame's histogram and adapt over time. Ghost of Tsushima meters the illuminance, as we do.
+
+**How it works** (`Adaptation.h`, `AdaptSeed.hlsl`, `ToneMap.hlsl`; settings `LOCAL_*` in `PlanetSettings.hlsli`).
+- **The regions:** each pixel's light, in stops from the grey card under the global meter, averaged at a quarter of the resolution, then down a pyramid.
+  - Surfaces count whole; the sky only where it is bright, never the black of space.
+  - The Sun counts as six stops over the grey card, no more.
+  - The eye adapts to what it sees, the Sun's veil with it: `LOCAL_ADAPTATION_GLARE` of the glare is added to what the regions read.
+- **The pixel's region:** the 4 x 4 texels of level 3 around it, weighted by a cubic B-spline and by how close their light is to the pixel's own, within `LOCAL_ADAPTATION_SIGMA` = 2.5 stops.
+  - Across the terminator or a crescent's edge, a pixel keeps to its own side: no halo, no band.
+  - A thin bright line, a crescent, keeps its own light.
+- **One curve on the region's light:**
+  - within `LOCAL_SHADOW_KNEE` and `LOCAL_HIGHLIGHT_KNEE`, 4.5 stops either side, nothing moves, so daylight images keep their calibration;
+  - a darker region rises to the knee, keeping `LOCAL_SHADOW_SLOPE` = 0.04 of its further depth, by at most `LOCAL_SHADOW_RANGE` = 15 stops;
+  - a brighter one falls back to the knee, by at most `LOCAL_HIGHLIGHT_RANGE` = 10 stops.
+- **The pixel moves with its region:** details keep their contrast.
+- **What follows from the one rule:**
+  - the moonlit night side seen from a sunlit orbit rises; a moonless one stays black;
+  - next to the day side it stays darker, continuously;
+  - near the Sun, its veil holds the region: the more backlit, the darker;
+  - a moon's disc for a dark-adapted eye falls back.
+- **Turning the camera** moves a region's adaptation only as its own content moves: no global pumping.
+- **Cost:** one quarter-resolution pass, five small levels, 16 texels per pixel in the tone map.
+
+**Results,** fifteen night views, five day views and eleven test views, in sRGB p90 (`G:/ExoluneAssets/film-lune-ville-2026-11-12/lumiere`, `local5`):
+- film 25's night side 95 on 2026-11-12, 12 now; film 33's 8, 12 now; both moonlit, never black, darker towards the Sun;
+- the backlit film views 14 to 15; moonlit clouds from orbit unchanged, 37;
+- a half-lit Exolune from 37 000 km: day, twilight, then a dark night side, without a band;
+- daylight views unchanged to the pixel, except the dark sky over the horizon at 80 km: 21 to 27.
 
 ## 1. Conclusion
 
@@ -36,7 +90,13 @@ Status: implemented, updated 2026-11-07. Code: `SceneExposure.hlsli` and `ToneMa
 
 **Since 2026-11-03, the incident meter also reads shelter under forest crowns** (`spec-rendu-vegetation.md`). The existing habitat probe supplies canopy cover and height. A bounded response of at most two stops follows its porous sun/sky transport, fades above the canopy and remains neutral at night. It converges in 0.35 s without reading the frame. Open-ground and orbital calibration remain unchanged; this camera response does not replace radiance transport or alter the linear temporal history.
 
-**Since 2026-11-07, night has a metered response** (`spec-ciel-celeste.md`). The key decreases towards 0.03/0.69 in darkness. Stellar points and diffuse galactic light use a separate bounded eye response. Resolved bright bodies cap local exposure at 8. These display responses do not modify physical surface illumination. The previous sunset clamp is archived in `log/recherche-tons-exposition-historique.md`.
+**Since 2026-11-07, night has a metered response** (`spec-ciel-celeste.md`). The key decreases towards 0.03/0.69 in darkness. Stellar points and diffuse galactic light use a separate bounded eye response. Resolved bright bodies, once capped at exposure 8, fall under the local adaptation of section 0. These display responses do not modify physical surface illumination. The previous sunset clamp is archived in `log/recherche-tons-exposition-historique.md`.
+
+**Cinematic night, 2026-11-12** (`spec-ciel-celeste.md`)
+- The user found a sunlit orbit's black night side, stars vanishing with the Sun in view, and bright moonlit nights unattractive; physics may yield to a prettier image.
+- **The night side's visibility:** the local adaptation of section 0, since 2026-11-13; the rules of 2026-11-12 are archived in `log/recherche-tons-exposition-historique.md`.
+- **Rod vision:** dark-adapted pixels fade towards a cool grey, up to 0.55 under moonlight.
+- **Glare:** added by the tone map at the observer's exposure, after stellar visibility.
 
 **Direct response restored, 2026-11-07**
 - Apply the incident meter directly to tone mapping and cockpit dimming.
@@ -220,6 +280,13 @@ Status: implemented, updated 2026-11-07. Code: `SceneExposure.hlsli` and `ToneMa
 - Google, Physically Based Rendering in Filament, the physical camera and the measurements of sun and sky.
 - ISO 12232:2019, sensitivity of digital cameras, SOS and saturation; ISO 2720, calibration of exposure meters, K and C.
 - Epic Games, "Auto Exposure in Unreal Engine", documentation.
+- Epic Games, "Using the Lumen Exposure Manager", Unreal Editor for Fortnite documentation: Local Exposure, base and detail layers.
+- Wronski B., "Exposure Fusion – local tonemapping for real-time rendering", 2022, bartwronski.com.
+- Wronski B., "Localized tonemapping – is global exposure and global tonemapping operator enough for video games?", 2016, bartwronski.com.
+- Chapman J., "Dynamic Local Exposure", 2017, john-chapman.github.io.
+- Mertens T., Kautz J., Van Reeth F., « Exposure Fusion », Pacific Graphics 2007.
+- Kopf J., Cohen M. F., Lischinski D., Uyttendaele M., « Joint Bilateral Upsampling », SIGGRAPH 2007.
+- Unity, HDRP "Exposure" override, documentation: histogram percentiles, adaptation speeds.
 - Patry J., « Real-Time Samurai Cinema: Lighting, Atmosphere, and Tonemapping in Ghost of Tsushima », SIGGRAPH 2021, Advances in Real-Time Rendering.
 - Naka K. I., Rushton W. A. H., « S-potentials from colour units in the retina of fish », J. Physiol. 185, 1966.
 - Reinhard E., Devlin K., « Dynamic Range Reduction Inspired by Photoreceptor Physiology », IEEE TVCG 11(1), 2005.

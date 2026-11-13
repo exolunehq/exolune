@@ -52,11 +52,12 @@
 - Solar-system travel produces negligible galactic parallax; nearby bodies provide the visible depth cues.
 
 **Atmosphere and night**
-- Both cloud paths export their actual final RGB transmission.
+- Both cloud paths export their actual final RGB transmission, without the march's 0.3 % remainder: a thick cloud hides the Sun and the moons, a thin one veils them (`spec-nuages.md`, 2026-11-13).
 - Stars and galaxies use it, including coloured extinction near the horizon.
-- Point visibility uses the background luminance and the Schaefer rod/cone threshold.
+- Point visibility uses the sky's luminance, without the lens glare, and the Schaefer rod/cone threshold: the Sun or a moon in view no longer erases the stars (2026-11-12).
 - Diffuse galactic contrast decreases continuously as the sky brightens.
-- Moonlight enters the common sky irradiance and atmospheric scattering.
+- Moonlight enters the common sky irradiance and atmospheric scattering, at `MOONLIGHT_SCALE` = 0.25 of the moons' flux: three close moons made nights of 2 to 8 terrestrial full moons. Their discs keep their flux; 1 is physical.
+- The moons light Exolune with their illuminance on the ground below the camera (`celestialFlux.w`, `Moonlight`), from where they stand over each point (`MoonDirectionFrom`). At the camera, a camera beside a moon floodlit the whole night side: 700 times at 1 333 km from the third moon (2026-11-13).
 - Water reflects each moon through the same facet distribution and Fresnel law as the Sun.
 - Ambient natural night illumination is 2e-8 scene units, about 0.8 millilux.
 - A finite 86--98 km airglow layer uses analytic step coverage.
@@ -66,15 +67,22 @@
 - Above the air, its direct beam follows the observer altitude and apparent planetary horizon; a ground sunset does not imply orbital shadow.
 - Scene and cockpit use the incident meter directly; the global temporal filter was reverted after flight review (`recherche-tons-exposition.md`).
 - Stellar/diffuse-source response is bounded between 650,000 and 2,000,000; it extends the display range without raising planet exposure.
-- Resolved bright bodies use local adaptation capped at exposure 8, preserving visible lunar markings.
-- These are perceptual display choices, not increased physical illumination or an astrophotography mode.
-- Energy-conserving optical glare is enabled by default at straylight 0.3; stars use the veiled background for visibility (`recherche-halo.md`).
+- **One local adaptation** around the global meter, region by region of the image (`Adaptation.h`, `recherche-tons-exposition.md`, 2026-11-13). It replaces the bright-disc cap at exposure 8, the night-hemisphere lift and the backlight rule.
+  - A moonlit night side seen from a sunlit orbit rises; a moonless one stays black.
+  - Next to the day side it stays darker, without a band at the terminator.
+  - The Sun's glare holds the adaptation near it: the more backlit, the darker.
+  - A moon's disc keeps its markings for a dark-adapted eye.
+  - Daylight images are unchanged.
+- The distant Exolune proxy lights its night side with the natural night sky and the moons' beams at `MOONLIGHT_SCALE`, like the near ground; its former fixed ambient was ten times brighter than the moons.
+- Rod vision: dark-adapted pixels fade towards a cool grey, up to `NIGHT_TINT_SHARE` = 0.55 from deep twilight (exposure 2^6) to moonlight (2^14); resolved discs, stars and glare keep their colours.
+- These are perceptual and cinematic display choices, not increased physical illumination or an astrophotography mode.
+- Energy-conserving optical glare is enabled by default at straylight 0.3; the tone map adds it at the observer's exposure, after stellar visibility (`recherche-halo.md`).
 - Fixed sub-code-value dither prevents contour bands in the dark gradients.
 - Cockpit screens, instruments, HUD and cabin fixtures dim with the shared incident meter; exterior beacons retain their flux.
 
 **Current limits**
-- Moon illumination in material shaders is a hemispherical contribution, without terrain/cloud-cast lunar shadows or solar-eclipse lighting on Exolune.
-- Lunar scattering uses the camera's body directions over the short atmospheric path.
+- Moon illumination in material shaders is a hemispherical contribution, without terrain/cloud-cast lunar shadows or solar-eclipse lighting on Exolune; only the clouds shade themselves, under the brightest moon (`spec-nuages.md`).
+- Moonlight on Exolune takes each moon's flux at the ground below the camera: over a whole night hemisphere seen from orbit, the third moon's varies by about 40 %.
 - The main terrain solar light remains the existing parallel source at the configured solar direction.
 - No orbital interactions, tides, stellar proper motion or complete astronomical catalogue.
 - The galaxy density and stellar colours are procedural approximations.
@@ -85,6 +93,8 @@
 - Flight: `tools/tests/2026-11-07-ciel.txt`, F1--F12 and the windowed Tests palette.
 - Launch: `powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours tools\tests\2026-11-07-ciel.txt -Resolution fenetre -Position '12000 -8 145 -60 90'`.
 - Native checks cover day, both twilight stages, moonless/moonlit night, both cloud paths, cockpit instruments, orbital occultation, lunar surfaces and the finite Sun.
+- Night and backlight review: `tools/tests/2026-11-12-nuit-contre-jour.txt`; sunlit orbit over the night side, sunrise at the limb, moonlit clouds, Sun and moons in view with stars.
+- Moonlight and backlight review: `tools/tests/2026-11-13-lunes-contre-jour.txt`; beside the third moon, the Sun 14° and 3° off the limb, moonlit clouds shaded.
 - Orbital exposure regression: `tools/tests/2026-11-07-exposition-orbite.txt`, including both user-reported views and actual planetary eclipse.
 - Direct-response review: `tools/tests/2026-11-07-exposition-sans-lissage.txt`; F1/F2 cross the reported sunrise in both directions.
 - Model checks: `tools/tests/check_celestial.ps1`.

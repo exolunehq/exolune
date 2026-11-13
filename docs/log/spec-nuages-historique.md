@@ -139,3 +139,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/nuages-planete.ps1
 **What remains:** the cumulus relief close-up is softer than before the experiment; ratio of 10e and 90e percentiles of luminance, side and back, 0,68 and 0,77 against 0,46 and 0,67. Their multiple source takes an average incidence, 0,5 for a cumulus, and not that of each face. experiment: local bearing, by the density gradient smoothed at the diffusion scale, smooth at this scale.
 
 **Cost:** +0,1 to +0,5 ms, the column of each segment.
+
+## The night's key light, first trial, 2026-11-13
+
+**Discarded the same day** for the chord now in `../spec-nuages.md`, toward and away from the key moon.
+
+- **The trial** turned only the six samples toward the light to the moon and kept the three behind the point away from the set sun.
+- **Both halves then looked upwards:** a top's chord held no cloud, F fell to zero and moonlit clouds turned black from orbit; at 2 000 km, p90 37 fell to 6 in sRGB.

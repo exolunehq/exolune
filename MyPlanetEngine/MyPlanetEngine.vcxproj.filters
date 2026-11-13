@@ -42,6 +42,9 @@
     <ClCompile Include="D3DAppTests.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
+    <ClCompile Include="Adaptation.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
     <ClCompile Include="Glare.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
@@ -67,6 +70,9 @@
     </ClInclude>
     <ClInclude Include="Climate.h">
       <Filter>Fichiers sources</Filter>
+    </ClInclude>
+    <ClInclude Include="Adaptation.h">
+      <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="Glare.h">
       <Filter>Fichiers d%27en-tête</Filter>
@@ -114,6 +120,7 @@
     <FxCompile Include="TuftPixel.hlsl" />
     <FxCompile Include="Fullscreen.hlsl" />
     <FxCompile Include="ToneMap.hlsl" />
+    <FxCompile Include="AdaptSeed.hlsl" />
     <FxCompile Include="GlareDown.hlsl" />
     <FxCompile Include="GlareUp.hlsl" />
     <FxCompile Include="AtmospherePass.hlsl" />

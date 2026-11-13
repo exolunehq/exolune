@@ -2,6 +2,35 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-13 · The moons light Exolune from where they stand; moonlit clouds; one local adaptation**
+
+- **Why.** Reviewing the 2026-11-12 night, the user found film 25 and film 33 still too bright: the more backlit, the darker, never black under the moons. Film 25's camera flew 1 333 km from the third moon, whose flux at the camera lit the whole night side 700 times too much. Then, in flight, a half-lit Exolune showed its night side as bright as the day, with a dark band: the user asked for one simple, coherent system instead of stacked rules.
+- **Moonlight.** Exolune's air, ground, sea, clouds and distant proxy take each moon's illuminance on the ground below the camera (`celestialFlux.w`, `Moonlight`), from where the moon stands over each point (`MoonDirectionFrom`). The moons' discs and points keep the flux at the camera.
+- **Clouds.** The brightest moon over the camera is the night clouds' key light: their chord, toward it and away from it, turns from the Sun to it as the Sun goes from 3.4° to 8° below each point's horizon, while that moon is up. Single and multiple scattering as for the Sun; its beam leaves the sky's term. Same sample count at night.
+- **Discs behind clouds.** In flight, the moons showed as sharp bright circles through any cloud; the Sun too, as a white dot under overcast. The cloud march stops once 0.3 % passes, and that remainder let through discs ten to a hundred thousand times brighter than the cloud. It is now taken off what lies behind (`CloudBeyond`): under overcast the disc's peak falls from 252 to the cloud's 18 to 31 in sRGB, the Sun's from 253 to 139 to 218; clear-sky discs, night and day views unchanged. Flight review: `tools/tests/2026-11-13-astres-derriere-nuages.txt`.
+- **One local adaptation** (`Adaptation.h`, `AdaptSeed.hlsl`, `LOCAL_*`; `recherche-tons-exposition.md`, section 0) replaces the night-hemisphere lift, the backlight rule and the bright-disc cap, archived in `log/recherche-tons-exposition-historique.md`.
+  - Each region of the image, read with a joint bilateral upsampling, rises or falls towards 4.5 stops of the grey card; within them nothing moves.
+  - A small share of the Sun's glare enters what it reads: near the Sun, the night side stays darker.
+- **Result.** Fifteen night views, five day views and eleven test views, in sRGB p90:
+  - film 25's night side 95 to 12 and film 33's 8 to 12: moonlit, never black, darker towards the Sun;
+  - a half-lit Exolune from 37 000 km: day, twilight, then a dark night side, without a band;
+  - moonlit clouds as on 2026-11-12 from orbit (37); daylight views unchanged, except the dark sky over the horizon at 80 km (21 to 27).
+  - Flight review: `tools/tests/2026-11-13-lunes-contre-jour.txt`.
+- **Go back.** `LOCAL_SHADOW_RANGE = 0` and `LOCAL_HIGHLIGHT_RANGE = 0` switch the local adaptation off; the rules it replaced are in the history; the cloud key light needs this entry's `Clouds.hlsli`; the flux at the camera, `celestialFlux.w` read as `celestialFlux.rgb`.
+- **Milestone.** `jalon/nuit-lunes-main-2026-11-13`: moonlight on Exolune, moonlit clouds and the local adaptation merged into `main`.
+
+**2026-11-12 · A cinematic night: backlit night side, stars beside the Sun, moonlit clouds, dimmer moons**
+
+- **Why.** On the moon-to-city film the user found the night side black as soon as the observer is sunlit, the stars and the galaxy erased by the Sun or a moon in view, bright rims round the moonlit clouds and nights far too bright; prettier may beat physical.
+- **Glare.** Computed from the composite as before, added by the tone map at the observer's exposure: stellar visibility reads the sky without the veil.
+- **Night hemisphere.** Above the air, the night side keeps 0.85 of its own ground meter, in stops (`NIGHT_LOCAL_ADAPTATION`); night proper only, ramped in from the terminator to the sun 8.6° down. At an orbital sunrise it dims by 15 % of the gap instead of all of it.
+- **Moons.** Their light on Exolune's air, ground, sea and clouds is 0.25 of their flux (`MOONLIGHT_SCALE`); the discs keep theirs. The distant proxy's night side takes the same moonlight instead of a fixed ambient ten times brighter.
+- **Rod vision.** Dark-adapted pixels fade towards a cool grey, up to 0.55 under moonlight (`NIGHT_TINT_SHARE`, `NIGHT_TINT`).
+- **Clouds at night.** The sky's multiple scattering falls off along the chord away from the set sun, upwards, and builds up six times slower (`CLOUD_NIGHT_THICKNESS`): no more dark tops inside bright rims.
+- **Result.** Fifteen night and backlight views and five day views, before and after: day views unchanged; night side readable from a sunlit orbit and from a moon; stars kept beside the Sun; moonlit clouds grey and soft. Flight review: `tools/tests/2026-11-12-nuit-contre-jour.txt`.
+- **Go back.** `NIGHT_LOCAL_ADAPTATION = 0`, `MOONLIGHT_SCALE = 1`, `NIGHT_TINT_SHARE = 0`; the glare's veil in stellar visibility needs the former apply pass of `Glare.cpp`, before this entry.
+- **Milestone.** `jalon/nuit-lunes-main-2026-11-13`, with the next stage: this stage was never committed alone.
+
 **2026-11-11 · Houses on the cliff's face, local earthworks, the guideway towards other cities, anchored furniture**
 
 - **Why.** The user rejects the large earthworks cut into the cliff and asks for houses on the face itself, higher up; for the guideway to reach the farms and go on far beyond the city on both sides; and points at furniture floating slightly above the ground.
