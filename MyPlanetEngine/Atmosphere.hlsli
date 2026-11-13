@@ -149,20 +149,36 @@ void TransmittanceFromUv(float2 uv, out float h, out float mu)
     mu = d == 0.0 ? 1.0 : clamp((H * H - rho * rho - d * d) / (2.0 * r * d), -1.0, 1.0);
 }
 
+// Above the air: the visible part of the solar disc, its upper crescent included once the centre ray is hidden, each of
+// eight strips through the air its rays cross from where they enter the outer sphere; rays missing it cross vacuum.
+// The table's top row is not the light at any distance.
+float3 SunDiscAboveAir(float h, float muS, float ground)
+{
+    const float radius = BOTTOM + h, elevation = asin(clamp(muS, -1.0, 1.0)), dip = acos(saturate(BOTTOM / radius));
+    if (elevation - SUN_ANGULAR_RADIUS >= -acos(saturate(TOP / radius))) return 1.0;
+    if (elevation + SUN_ANGULAR_RADIUS <= -dip) return 0.0;
+    const float lower = max(-1.0, (-dip - elevation) / SUN_ANGULAR_RADIUS);
+    const float visible = (acos(lower) - lower * sqrt(saturate(1.0 - lower * lower))) / PI;
+    float3 transmitted = 0.0; float weights = 0.0;
+    [loop] for (uint i = 0; i < 8; ++i)
+    {
+        const float y = lerp(lower, 1.0, (float(i) + 0.5) / 8.0), weight = sqrt(saturate(1.0 - y * y));
+        const float c = sin(elevation + y * SUN_ANGULAR_RADIUS), impact = radius * sqrt(saturate(1.0 - c * c));
+        float3 ray = 1.0;
+        if (c < 0.0 && impact < TOP)
+            ray = transmittanceLut.SampleLevel(linearClamp, float3(TransmittanceUv(ATMOSPHERE_HEIGHT_KM,
+                -sqrt(saturate(1.0 - impact * impact / (TOP * TOP)))), GroundCoordinate(ground)), 0.0).rgb;
+        transmitted += weight * ray; weights += weight;
+    }
+    return visible * transmitted / max(weights, 1e-12);
+}
+
 // Sunlight reaching altitude h when the sun is at cosine muS, the haze on `ground` (km): the table, times the sun's
-// visible part above the horizon (it sets over the width of its disc).
+// visible part above the horizon (it sets over the width of its disc). Above the air, the exposure meter's own disc
+// (SunDiscAboveAir): a lit hull and the meter agree to the frame, by a moon or through an orbital sunset.
 float3 SunTransmittance(float h, float muS, float ground)
 {
-    // Above the air, sunlight crosses it only if its ray enters it: the table from where the ray enters, else the whole
-    // sun (a ship by a moon). The table's top row is not the light at any distance.
-    if (h > ATMOSPHERE_HEIGHT_KM)
-    {
-        const float r = BOTTOM + h, enter = (1.0 - muS * muS) * r * r / (TOP * TOP); // squared sine at the top
-        if (muS >= 0.0 || enter >= 1.0)
-            return smoothstep(-SUN_ANGULAR_RADIUS, SUN_ANGULAR_RADIUS, muS - HorizonCosine(h));
-        h = ATMOSPHERE_HEIGHT_KM;
-        muS = -sqrt(1.0 - enter);
-    }
+    if (h > ATMOSPHERE_HEIGHT_KM) return SunDiscAboveAir(h, muS, ground);
     const float3 t = transmittanceLut.SampleLevel(linearClamp, float3(TransmittanceUv(h, muS), GroundCoordinate(ground)), 0.0).rgb;
     return t * smoothstep(-SUN_ANGULAR_RADIUS, SUN_ANGULAR_RADIUS, muS - HorizonCosine(h));
 }

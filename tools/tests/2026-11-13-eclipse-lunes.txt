@@ -1,0 +1,9 @@
+# Eclipse and moon relief, 2026-11-13. F1-F2: the Sun 1 deg off Exolune's limb, seen from orbit; fly forward (Z) and it
+# sets behind the limb without a white frame, the hull dimming with its crescent. F3-F4: moon 1's take-off site under a
+# low Sun; fly and look around: crater rims and shadows hold still. F5: moon 2's fly-by side. F6: Exolune control.
+Sunset seen from 16 000 km: no white frame | 16000000 -27.5596 175 72.4 -180 | 10 -5
+Sunset seen from 6 000 km: no white frame | 6000000 -42.0154 175 58.0 -180 | 10 -5
+Moon 1, take-off site at 800 m, low Sun: shadows hold still | 800 66.6103 -132.3138 20 -107.6 lune1 | 8.5 137.5
+Moon 1, take-off site at 3 m: ground and rims steady | 3 66.6103 -132.3138 5 -107.6 lune1 | 8.5 137.5
+Moon 2 at 800 km, half-lit: the terminator's craters | 800000 29.2775 -126.4329 45 -101.5 lune2 | 8.5 137.5
+Exolune control, the dawn range at 45 km: unchanged | 45000 -50.55 68.55 10 0 | 8.5 137.5

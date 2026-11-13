@@ -2,6 +2,28 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-13 · Exolune hides the Sun at every level of detail; the moons' relief keeps two cells**
+
+- **Why.** In the moon film, two frames blew out white as the Sun set behind Exolune seen from 16 000 km. Over moon 1, crater shadows crawled with the camera.
+- **The white frames.**
+  - At that height the terrain mesh stops 60° from the nadir, short of the limb. Between the two, only the proxy draws the planet, cross-faded at 0.69: 31 % of the Sun showed through it.
+  - The meter already read night, so the Sun's glare times the night exposure filled the frame.
+- **Rules.**
+  - Exolune's sea-level sphere occults the finite bodies in the image as in the meter (`CelestialDiscs`, `CelestialBodies.hlsl`).
+  - Above the air, every lit surface takes the meter's solar disc (`SunDiscAboveAir`, `Atmosphere.hlsli`): its visible part, in eight strips through the air its rays cross. It replaces the centre-ray guard of the entry below.
+  - Moon craters follow the two-cell rule. A rim or apron narrower than two cells widens to two, and its height drops by the same factor. Fracture and rubble octaves fade from 4 footprints to 2 (`AirlessField.hlsli`).
+  - A moon's face is sized from the ground at its own scale, not the exact ground under the camera (`D3DApp.cpp`). Before, every bump rescaled every vertex.
+- **Result.**
+  - The occultation shows no white frame, and the hull dims with the visible crescent.
+  - The atlas field moves to version 3 (`CelestialManifest.h`). The three moon atlases are re-cooked (`tools/prepare_airless.ps1`).
+  - Flight review: `tools/tests/2026-11-13-eclipse-lunes.txt`.
+- **Go back.**
+  - The occultation in `CelestialDiscs`.
+  - `SunDiscAboveAir` and its call in `SunTransmittance`.
+  - The `cell` argument of `AirlessImpact` and the fades in `AirlessField.hlsli`.
+  - `meshGround` in `D3DApp.cpp`.
+  - Field version 2, with the previous atlases.
+
 **2026-11-13 · Sunlight above the air, on every lit surface**
 
 - **Why.** Scouting a film over moon 1, the fighter turned dark red while the moon around it stayed grey. `SunTransmittance` read the atmosphere table's top row with the Sun's angle seen from 280 000 km: a Sun 21° from Exolune looked set behind its limb.

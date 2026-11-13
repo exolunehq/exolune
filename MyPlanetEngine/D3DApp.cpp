@@ -2197,7 +2197,11 @@ void D3DApp::Draw() {
 
         // The face: centred on the nadir, half-width proportional to the height above the ground. It slides
         // continuously with the camera: this is what refines the mesh progressively, without any step.
-        mMeshHalfWidth = std::min(mFaceFactor * clearance, extent);
+        // On a moon, that ground is read at the face's own scale: finer relief rescaled every vertex each frame
+        // (docs/log/spec-stabilite.md, cause 2). Contact, speed and the title keep the exact ground.
+        const double meshGround = airless ? mMoonSurface.Height(Airless::Vec{ bodyCamera.x, bodyCamera.y, bodyCamera.z },
+            std::max(.25, mFaceFactor * clearance)) : mGroundHeight;
+        mMeshHalfWidth = std::min(mFaceFactor * std::max(camAltitude - meshGround, .01), extent);
         mMeshRingCount = std::min(MaxRings, (UINT)std::ceil(std::log(extent / mMeshHalfWidth) / std::log(RingGrowth)));
 
         // Face frame: z is the nadir, x is anchored on the north so the face does not twist with the heading.

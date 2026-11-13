@@ -28,20 +28,23 @@ float AirlessNoise(double3 p,uint seed) {
         n+=AirlessRandom(AirlessCellHash(ix+x,iy+y,iz+z,seed))*(x?u:1-u)*(y?v:1-v)*(z?w:1-w);
     return n;
 }
-float AirlessImpact(float u,float r,float age,float fracture) {
+// cell: the sampling footprint over the radius. A profile narrower than two cells widens to two and its height drops by
+// the same factor: the relief keeps its mean and a sliding grid samples it alike from frame to frame (docs/principes.md).
+float AirlessImpact(float u,float r,float age,float fracture,float cell) {
     if(u>=1.65f)return 0;
     const float complex=AirlessSmooth((r-2000.0f)/16000.0f);
     const float depth=.25f*r/(1+sqrt(r/2500.0f))*(2-complex)*(1-.65f*age);
     // Large impacts have broad floors and steep walls; old impacts have filled floors and worn rims.
     const float shaped=u*(1+(.06f+.16f*complex)*fracture),floorRadius=.05f+.54f*complex;
     const float wall=AirlessSmooth((shaped-floorRadius)/(1-floorRadius));
-    const float rim=(shaped-1)/(.045f+.16f*age),apron=(shaped-1.12f)/.33f;
+    const float rimWidth=.045f+.16f*age,rimWide=max(rimWidth,2*cell),apronWide=max(.33f,2*cell);
+    const float rim=(shaped-1)/rimWide,apron=(shaped-1.12f)/apronWide;
     const float rimHeight=.035f*r/(1+sqrt(r/80000.0f));
     const float rugged=.20f*depth*fracture*wall*(1-wall)*4;
     const float peak=.65f*depth*complex*(1-.7f*age);
     const float summit=max(0.0f,1-shaped/(.26f+.10f*fracture));
-    return (-depth*(1-wall)+rimHeight*(1-.75f*age)*exp(-rim*rim)
-        +.18f*rimHeight*exp(-apron*apron)+rugged
+    return (-depth*(1-wall)+rimHeight*(1-.75f*age)*(rimWidth/rimWide)*exp(-rim*rim)
+        +.18f*rimHeight*(.33f/apronWide)*exp(-apron*apron)+rugged
         +peak*summit*summit)*(1-AirlessSmooth((u-1.4f)/.25f));
 }
 struct AirlessGround {float height,albedo;};
@@ -65,9 +68,11 @@ AirlessGround AirlessCraters(double3 p,float bodyRadius,float scale,float footpr
         const double3 delta=p-centre;
         const float distance2=float(AirlessDot(delta,delta));
         if(distance2>=radius*radius*1.65f*1.65f)continue;
-        const float fracture=2*AirlessNoise(delta*double(3.0f/radius),seed+a)-1;
+        // Its lattice, radius/3, is whole from 4 footprints and gone at 2, as every octave (Noise.hlsli, RlWeight).
+        const float crack=AirlessSmooth(radius/(6*max(footprint,.01f))-1);
+        const float fracture=crack>0?crack*(2*AirlessNoise(delta*double(3.0f/radius),seed+a)-1):0.0f;
         const float age=AirlessRandom(AirlessHash(d)),u=sqrt(distance2)/radius;
-        const float impact=filter*AirlessImpact(u,radius,age,fracture);
+        const float impact=filter*AirlessImpact(u,radius,age,fracture,max(footprint,.01f)/radius);
         // Overlapping impacts cut a common floor instead of adding an unbounded number of deep bowls.
         excavation=min(excavation,impact);deposit=max(deposit,impact);
         // Excavated bright material and old, flooded impact floors belong to the same impact as its relief.
@@ -92,7 +97,7 @@ AirlessGround AirlessSample(double3 direction,float radius,uint seed,float footp
         const AirlessGround impact=AirlessCraters(p,radius,scale,footprint,seed+53*i);
         h+=impact.height;albedo+=impact.albedo;
         const float rubble=AirlessNoise(p*double(3.0f/scale),seed+101+i)-.5f;
-        const float fade=AirlessSmooth(scale/(4*max(footprint,.01f))-1);
+        const float fade=AirlessSmooth(scale/(6*max(footprint,.01f))-1); // lattice scale/3: whole from 4 footprints, gone at 2
         h+=min(1000.0f,.018f*scale)*rubble*fade;
     }
     AirlessGround result;result.height=h;result.albedo=min(max(albedo,.055f),.24f);return result;
