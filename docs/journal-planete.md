@@ -23,6 +23,7 @@ History of field adjustments: what changed, why, what it cost or brought, and ho
   - The `cell` argument of `AirlessImpact` and the fades in `AirlessField.hlsli`.
   - `meshGround` in `D3DApp.cpp`.
   - Field version 2, with the previous atlases.
+- **Milestone.** `jalon/soleil-lunes-main-2026-11-13`: the Sun hidden by Exolune, sunlight above the air and the moons' two-cell relief merged into `main`, with the entry below.
 
 **2026-11-13 · Sunlight above the air, on every lit surface**
 
