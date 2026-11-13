@@ -38,6 +38,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Depth remains ordered across astronomical distances; terrain clipping limits must not remove celestial sources.
 - Point sources preserve integrated flux across pixel footprints and remain outside terrain temporal history.
 - Air, clouds and solid bodies attenuate or occult celestial light through the actual rendering paths.
+- Exolune's sea-level sphere occults finite bodies in the image as in the exposure meter, whatever level of detail draws the planet; the relief's depth only adds to it.
 - Optical glare redistributes the received HDR light before point-source visibility; its veiling luminance affects stellar contrast.
 - Derive point visibility from background luminance; do not switch all stars by time of day or camera altitude.
 - Build galactic emission and dust in a common spatial frame; do not invent observable parallax at astronomical distances.

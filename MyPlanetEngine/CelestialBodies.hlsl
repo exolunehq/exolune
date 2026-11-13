@@ -16,9 +16,15 @@ float3 CelestialDiscs(float3 view,float pixelAngle,out float coverage,out float 
         const float3 miss=c-view*along; // stable even for very small angular radii
         const float impact=length(miss), width=max(distance*pixelAngle,1e-6);
         float cover=saturate((radius-impact)/width+.5)*BodyResolved(i,pixelAngle);
-        if(cover<=0.0) continue;
         const float depth=along-sqrt(max(0.0,radius*radius-impact*impact));
-        if(depth>=nearest) continue;
+        // Exolune's sea-level sphere hides what lies beyond it, whatever level of detail draws the planet, as in the
+        // meter (SunDiscAboveAir): past the mesh's 60 degrees, the proxy's cross-fade let a setting Sun through.
+        // Antialiased on the height of the ray's closest point over the sea; the relief's depth adds the rest.
+        const float lowest=-(PLANET_RADIUS_KM+camVertical.w)*dot(camVertical.xyz,view); // to the ray's closest point
+        if(camVertical.w>0.0 && lowest>0.0 && depth>lowest)
+            cover*=saturate((camVertical.w*(2.0*PLANET_RADIUS_KM+camVertical.w)-lowest*lowest)
+                /(2.0*PLANET_RADIUS_KM*lowest*pixelAngle)+.5);
+        if(cover<=0.0 || depth>=nearest) continue;
         nearest=depth; coverage=cover; bodyDepth=depth;
         if(i==6) {
             const float mu=sqrt(saturate(1.0-impact*impact/(radius*radius)));

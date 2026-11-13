@@ -1,11 +1,11 @@
 ﻿{
     "sources":  [
                     {
-                        "sha256":  "AE805BFEB75745E97CC3AA45D39A89501DFF0222D46EC3C4BA865E76F4417623",
+                        "sha256":  "A5933A766301BDC1CF65188408373183269B98DE282835DC5E9B059417CC3A2E",
                         "path":  "MyPlanetEngine\\CelestialManifest.h"
                     },
                     {
-                        "sha256":  "CCF6DE64FAB138ABF019FD9EF246DC3854A04FF6B1E03F0D616325F18DFFA866",
+                        "sha256":  "3C48EF248757288456BD60F030FAC09348433F29C55ED7DD4E7DC29D71D5C2E9",
                         "path":  "MyPlanetEngine\\AirlessField.hlsli"
                     },
                     {
@@ -13,23 +13,23 @@
                         "path":  "MyPlanetEngine\\AirlessTerrain.cpp"
                     },
                     {
-                        "sha256":  "D2EE509DC71612CF703781CF45121535497ED13DBE2092F692935FAAAF3F3D0D",
+                        "sha256":  "50D74DC508BB6BDA52AF0AD57403D99FFE0EBB19D4197CD94A6BF48EAD3E1868",
                         "path":  "tools\\prepare_airless.cpp"
                     }
                 ],
     "atlases":  [
                     {
-                        "sha256":  "8433AB8CBF0F41D550C25196EE5ED3D6803B8BAC41095C572BC644B7B9E3D29D",
+                        "sha256":  "E605D50CB136036F47F0F0F27CBA20C014C52602F3BBE2FF715632DB4C25E300",
                         "file":  "airless-2.rgba8mips",
                         "bytes":  11184844
                     },
                     {
-                        "sha256":  "C4C08FFDA5801F580E57455FF878CF727C674E21155515E083A463A6F6C0D1FF",
+                        "sha256":  "67C7C693CCB08888CCD6568480F840CB5F02F0FE1FFA3F6F2EF6057FF6417EB3",
                         "file":  "airless-3.rgba8mips",
                         "bytes":  11184844
                     },
                     {
-                        "sha256":  "1A4ED91C1087DFE1F3FA2A8581181D5383EF68C3442768D97AA7A2D074A46678",
+                        "sha256":  "B1D927C75FC59AEE6E971C70F06FF2222699D96A91255A397508CE330EEEDF9B",
                         "file":  "airless.rgba8mips",
                         "bytes":  11184844
                     }

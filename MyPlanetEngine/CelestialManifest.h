@@ -28,6 +28,6 @@ struct AirlessAtlasHeader {
 static_assert(sizeof(AirlessAtlasHeader)==32,"Stable cooked atlas header.");
 constexpr unsigned AirlessAtlasBytes=11184812;
 inline constexpr AirlessAtlasHeader AtlasHeader(const AirlessManifest& body) {
-    return {0x534c5241,1,2,body.seed,body.radius,2048,1024};
+    return {0x534c5241,1,3,body.seed,body.radius,2048,1024};
 }
 }

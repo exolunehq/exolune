@@ -4,36 +4,6 @@
 #include "Atmosphere.hlsli"
 #include "CanopyLighting.hlsli"
 #include "ObserverExposure.hlsli"
-// The transmittance LUT only describes points inside the atmosphere. From space, first intersect its outer sphere;
-// rays missing that sphere have no air to cross. The ground horizon is the one seen at the observer's real altitude.
-float3 ObserverSunTransmittance(float height,float cosine) {
-    if(height<=ATMOSPHERE_HEIGHT_KM) return SunTransmittance(height,cosine,0.0);
-    const float radius=BOTTOM+height;
-    const float elevation=asin(clamp(cosine,-1.0,1.0));
-    const float horizonDip=acos(saturate(BOTTOM/radius));
-    if(elevation-SUN_ANGULAR_RADIUS>=-acos(saturate(TOP/radius))) return 1.0;
-    if(elevation+SUN_ANGULAR_RADIUS<=-horizonDip) return 0.0;
-    // Integrate the visible solar disc, not just its centre: the upper crescent still lights the observer when the
-    // central ray already hits the planet or dense air. Analytic coverage keeps arbitrarily thin crescents represented.
-    const float lower=max(-1.0,(-horizonDip-elevation)/SUN_ANGULAR_RADIUS);
-    const float visible=(acos(lower)-lower*sqrt(saturate(1.0-lower*lower)))/PI;
-    float3 transmitted=0.0; float weights=0.0;
-    [unroll] for(uint i=0;i<8;++i) {
-        const float y=lerp(lower,1.0,(float(i)+.5)/8.0);
-        const float weight=sqrt(saturate(1.0-y*y));
-        const float sampleCosine=sin(elevation+y*SUN_ANGULAR_RADIUS);
-        const float impact=radius*sqrt(saturate(1.0-sampleCosine*sampleCosine));
-        float3 ray=1.0;
-        if(sampleCosine<0.0 && impact<TOP) {
-            const float entryCosine=-sqrt(saturate(1.0-impact*impact/(TOP*TOP)));
-            ray=transmittanceLut.SampleLevel(linearClamp,
-                float3(TransmittanceUv(ATMOSPHERE_HEIGHT_KM,entryCosine),GroundCoordinate(0.0)),0.0).rgb;
-        }
-        transmitted+=weight*ray; weights+=weight;
-    }
-    return visible*transmitted/max(weights,1e-12);
-}
-
 // An incident meter, independent of the frame. The ground reference remains below the air; as that air falls below
 // the observer, the direct beam is metered at the observer instead. Ground sunset must not trigger night exposure
 // while an orbital observer remains in sunlight. Diffuse night light and the perceptual darkness key remain shared.
@@ -43,7 +13,8 @@ float Exposure()
     // camVertical.w: the camera's altitude above the sea, km (D3DApp::Draw).
     const float height=max(camVertical.w,0.0);
     const float airBelow = 1.0 - exp(-height / RAYLEIGH_SCALE_HEIGHT);
-    float3 sunMeter=SUN_ILLUMINANCE*lerp(SunTransmittance(0.0,muS,0.0),ObserverSunTransmittance(height,muS),airBelow);
+    // Above the air, the visible solar disc through the air its rays cross (SunDiscAboveAir), as on every lit surface.
+    float3 sunMeter=SUN_ILLUMINANCE*lerp(SunTransmittance(0.0,muS,0.0),SunTransmittance(height,muS,0.0),airBelow);
     float3 skyMeter=SkyIrradiance(0.0,muS,0.0);
     if(erosionMode.w!=0u) {
         const uint body=erosionMode.w-1;

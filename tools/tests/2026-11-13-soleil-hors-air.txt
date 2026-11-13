@@ -1,0 +1,7 @@
+# Sunlight above the air, 2026-11-13: above 100 km the Sun's ray reads the atmosphere table only where it enters the air;
+# a ray that misses it lights the hull whole. Before, the hull turned red wherever the Sun stood within 80° of Exolune's
+# direction, by a moon or in high orbit. Altitudes in metres above sea level; weather clock from 0.
+High orbit, Sun 2° off Exolune's limb: hull lit white, not red | 19810521.3 -10 159 90 0 | 10 -5
+High orbit, Sun 34° from Exolune: hull lit white | 19810521.3 -10 140 90 0 | 10 -5
+Low orbit, day side: hull unchanged | 400000 0 0 65 270 | 10 -5
+In the air, 10 km, low Sun: hull unchanged | 10000 0 92 0 90 | 10 -5

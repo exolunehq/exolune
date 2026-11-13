@@ -63,7 +63,8 @@ Status: implemented, updated 2026-11-13. Code: `SceneExposure.hlsli`, `ToneMap.h
 **Exposure measures the light that falls, not the light in the image.**
 - The ground reference reads the solar beam and diffuse sky; as the air falls below the observer, direct sunlight is metered at the observer instead.
 - The transition uses the existing air fraction `1 - exp(-h / 8 km)`.
-- Above the atmosphere, solar rays first intersect its outer sphere before using the transmittance table; rays missing it cross vacuum.
+- Above the atmosphere, solar rays first intersect its outer sphere before using the transmittance table; rays missing it cross vacuum. Every sunlit surface takes the meter's own disc (`SunDiscAboveAir`, 2026-11-13).
+- The image hides the Sun where the meter does: Exolune's sea-level sphere occults finite bodies at every level of detail (`CelestialDiscs`, 2026-11-13).
 - The apparent planetary horizon follows the observer altitude; ground sunset must not trigger orbital night exposure.
 - Near an orbital eclipse, eight strips average the visible solar disc through the air; analytic disc coverage retains a thin crescent after the centre ray is hidden.
 - A gray card facing the sun shows its reflectance, regardless of its height. In low sunlight, the illuminated faces keep their clarity; the flat ground and shadow darken, as in a photo exposed for its high lights.
