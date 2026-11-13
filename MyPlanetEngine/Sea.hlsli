@@ -156,7 +156,7 @@ WaterReflection ReflectOnWater(float3 up, float3 normal, float3 view, float3 sun
     [unroll] for(uint moon=0;moon<3;++moon) {
         const float3 source=normalize(celestialPosition[moon].xyz);
         const float mu=dot(up,source);
-        r.radiance+=celestialFlux[moon].rgb*SunTransmittance(height,mu)
+        r.radiance+=Moonlight(moon)*SunTransmittance(height,mu)
             *WaterSourceGlint(up,normal,view,source,along,lost,whole);
     }
     return r;

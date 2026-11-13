@@ -6,8 +6,8 @@ SamplerState lunarSampler:register(s0);
 #include "DistantPlanet.hlsli"
 cbuffer SelectedBody:register(b4) { uint selectedBody; uint proxyShell; };
 // Radiance of the nearest resolved sphere, with antialiased coverage. No camera-facing cards.
-float3 CelestialDiscs(float3 view,float pixelAngle,out float coverage,out float adaptation,out float bodyDepth) {
-    bodyDepth=0.0; float nearest=1e30; float3 radiance=0.0; coverage=0.0; adaptation=0.0;
+float3 CelestialDiscs(float3 view,float pixelAngle,out float coverage,out float bodyDepth) {
+    bodyDepth=0.0; float nearest=1e30; float3 radiance=0.0; coverage=0.0;
     [loop] for(uint i=selectedBody;i<selectedBody+1;++i) {
         const float3 c=celestialPosition[i].xyz;
         const float distance=length(c), radius=celestialPosition[i].w;
@@ -23,7 +23,6 @@ float3 CelestialDiscs(float3 view,float pixelAngle,out float coverage,out float 
         if(i==6) {
             const float mu=sqrt(saturate(1.0-impact*impact/(radius*radius)));
             radiance=celestialFlux[i].rgb/(CELESTIAL_PI*pow(radius/distance,2.0))*(.4+.6*mu)/.8;
-            adaptation=0.0;
         } else {
             const float3 n=normalize(view*depth-c);
             const float3 nw=CelestialWorld(n);
@@ -51,7 +50,6 @@ float3 CelestialDiscs(float3 view,float pixelAngle,out float coverage,out float 
             const float earthshine=PlanetShine(planetCentre-c,n);
             const float3 reflectance=celestialSurface[i].rgb*(i<3?.16/.145:1.0);
             radiance=reflectance*max(surfacePattern,.1)*(celestialLight[i].w*incidence+earthshine);
-            adaptation=cover;
         }
     }
     return radiance*coverage;
@@ -83,18 +81,25 @@ BodyOutput PSMain(float4 position:SV_POSITION) {
         distance=along-sqrt(max(0,surfaceRadius*surfaceRadius-impact*impact));
         normal=normalize(view*distance-centre);
         const float daylight=saturate(dot(normal,lightDir.xyz));
-        const float3 radiance=albedo*(daylight+.00002);
+        // The night side under the same light as the near ground: the natural night sky and the moons' beams
+        // (Moonlight), instead of a fixed ambient ten times brighter than the moons that the night's local adaptation
+        // then showed as a bright brown ball (docs/spec-ciel-celeste.md).
+        float night=NIGHT_IRRADIANCE;
+        [unroll] for(uint moon=0;moon<3;++moon)
+            night+=dot(Moonlight(moon),CELESTIAL_LUMA)
+                *saturate(dot(normal,MoonDirectionFrom(moon,normal*PLANET_RADIUS_KM)));
+        const float3 radiance=albedo*(daylight+night/CELESTIAL_PI);
         const float drawDistance=proxyShell>0?coverageDistance:distance;
         const float4 projected=mul(float4(view*drawDistance*1000,1),viewProj);
-        BodyOutput o;o.scene=float4(radiance,distance);o.solar=float4(0,0,0,-1);o.depth=projected.z/projected.w;return o;
+        BodyOutput o;o.scene=float4(radiance,distance);o.solar=0;o.depth=projected.z/projected.w;return o;
     }
-    float coverage,adaptation,distance;
-    const float3 light=CelestialDiscs(view,taa.w,coverage,adaptation,distance);
+    float coverage,distance;
+    const float3 light=CelestialDiscs(view,taa.w,coverage,distance);
     clip(coverage-.01);
     const float4 projected=mul(float4(view*distance*1000.0,1.0),viewProj);
     BodyOutput o;
     o.scene=float4(light,distance);
-    o.solar=float4(0,0,0,-adaptation);
+    o.solar=0;
     o.depth=projected.z/projected.w;
     return o;
 }

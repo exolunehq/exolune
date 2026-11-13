@@ -1,5 +1,18 @@
 # Exposure history
 
+**2026-11-12 and 2026-11-13: three local-adaptation rules — replaced by one local adaptation**
+- **The bright-disc cap:** resolved bodies wrote a flag (`sunPart.a`, then `skyTransport.a`); the tone map capped their exposure at 8.
+- **The night-hemisphere lift** (`NightHemisphereExposure`): above the air, each pixel of Exolune's night side took `NIGHT_LOCAL_ADAPTATION` of its own ground meter, in stops (`GroundExposure`).
+  - Ramps: the camera's altitude from 20 to 80 km; the Sun from the terminator to 8.6° down; lift only.
+  - 0.85 on 2026-11-12; 1 on 2026-11-13, once the moons' light was taken on Exolune.
+- **The backlight rule:** the share fell to `NIGHT_BACKLIGHT_SHARE` = 0.82 with the Sun on the limb, whole again 16° away (`NIGHT_BACKLIGHT_ANGLE`), cut once the limb hid the Sun.
+- **Rejected in flight, 2026-11-13:** at 37 000 km over a half-lit Exolune, the night side looked as bright as the day side, with a dark band at the terminator; ramps and cuts changed the image abruptly. The user asked for one simple, coherent system.
+- **The prototypes of its replacement,** on the night views of `G:/ExoluneAssets/film-lune-ville-2026-11-12/lumiere` (sRGB p90 of the night side):
+  - a blurred region, no edge awareness: thin crescents and limbs burnt white (p99 85 to 217); a 12.5-stop range left film 25 at 10;
+  - a pixel never lifted more than 1.5 stops beyond its own light, larger regions: the crescents held, but a large dark disc rose more than a small one, film 33 over film 25, and a blurred region darkens the night next to the day;
+  - the joint bilateral region: no halo, no band; with 1.5e-5 of the glare, the backlight barely showed;
+  - 6e-5 of the glare: the night darkened towards the Sun, but film 25 fell to 8; 3e-5 kept.
+
 **2026-11-07 asymmetric temporal exposure experiment — rejected**
 - At the reported 1,815 km sunrise, a small displacement uncovered the solar crescent and rapidly darkened the planet on screen.
 - The experiment followed `log2(exposure)` with one GPU state, shared by tone mapping and cockpit dimming at `t58`.

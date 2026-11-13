@@ -181,21 +181,32 @@ float3 MultiScattering(float h, float muS)
     return MultiScattering(h, muS, 0.0);
 }
 
-float3 SkyIrradiance(float h, float muS, float ground)
+// The sky's light on a horizontal ground whose vertical is `vertical`, at altitude h; the moons' as Moonlight gives it.
+float3 SkyIrradianceAt(float h, float muS, float ground, float3 vertical)
 {
     float3 sky=skyIrradianceLut.SampleLevel(linearClamp, float3(AltitudeSunUv(h, muS, SKY_IRRADIANCE_MAX_HEIGHT, SKY_IRRADIANCE_SIZE),
                                                             GroundCoordinate(ground)), 0.0).rgb;
 #ifndef ATMOSPHERE_TABLE
     sky+=NIGHT_IRRADIANCE;
     [unroll] for(uint i=0;i<3;++i) {
-        const float mu=dot(normalize(celestialPosition[i].xyz),camVertical.xyz);
+        const float mu=dot(MoonDirectionFrom(i,vertical*(PLANET_RADIUS_KM+h)),vertical);
         const float3 beam=SunTransmittance(h,mu,ground);
         const float3 scattered=skyIrradianceLut.SampleLevel(linearClamp,
             float3(AltitudeSunUv(h,mu,SKY_IRRADIANCE_MAX_HEIGHT,SKY_IRRADIANCE_SIZE),GroundCoordinate(ground)),0).rgb/PI;
-        sky+=celestialFlux[i].rgb*(beam*saturate(mu)+scattered);
+        sky+=Moonlight(i)*(beam*saturate(mu)+scattered);
     }
 #endif
     return sky;
+}
+
+// Under the camera: the moons' elevations are those of the camera's vertical.
+float3 SkyIrradiance(float h, float muS, float ground)
+{
+#ifndef ATMOSPHERE_TABLE
+    return SkyIrradianceAt(h, muS, ground, camVertical.xyz);
+#else
+    return SkyIrradianceAt(h, muS, ground, float3(0.0, 1.0, 0.0));
+#endif
 }
 
 float3 SkyIrradiance(float h, float muS)
@@ -323,9 +334,9 @@ float3 IntegrateScattering(float h0, float mu, float muS0, float nu, float maxDi
             const float3 view=normalize(shadow.direction);
             const float3 up=normalize(shadow.origin+view*t);
             [unroll] for(uint moon=0;moon<3;++moon) {
-                const float3 dir=normalize(celestialPosition[moon].xyz);
+                const float3 dir=MoonDirectionFrom(moon,shadow.origin+view*t);
                 const float moonMu=dot(up,dir), moonNu=dot(view,dir);
-                source+=celestialFlux[moon].rgb*SunTransmittance(h,moonMu,groundM)
+                source+=Moonlight(moon)*SunTransmittance(h,moonMu,groundM)
                     *(m.rayleigh*RayleighPhase(moonNu)+m.mie*MiePhase(moonNu));
             }
         }

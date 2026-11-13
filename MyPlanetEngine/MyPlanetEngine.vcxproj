@@ -90,6 +90,7 @@
     <ClCompile Include="D3DAppWalk.cpp" />
     <ClCompile Include="D3DAppCity.cpp" />
     <ClCompile Include="D3DAppTests.cpp" />
+    <ClCompile Include="Adaptation.cpp" />
     <ClCompile Include="Glare.cpp" />
     <ClCompile Include="Scans.cpp" />
     <ClCompile Include="Settings.cpp" />
@@ -142,6 +143,7 @@
     <ClInclude Include="D3DApp.h" />
     <ClInclude Include="FlightFrame.h" />
     <ClInclude Include="GpuHelpers.h" />
+    <ClInclude Include="Adaptation.h" />
     <ClInclude Include="Glare.h" />
     <ClInclude Include="Scans.h" />
     <ClInclude Include="CineVideo.h" />
@@ -720,6 +722,12 @@
       <ShaderType>Pixel</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>PSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
       <AdditionalInputs>Celestial.hlsli;Planet.hlsli;PlanetSettings.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="AdaptSeed.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
     </FxCompile>
     <FxCompile Include="GlareDown.hlsl">
       <ShaderType>Pixel</ShaderType>

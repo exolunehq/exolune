@@ -50,7 +50,10 @@ namespace
                              ContactHdrUav = ContactSrv + 2, ContactSunUav = ContactSrv + 3,
                              SkyTransportSrv = ContactSrv + 4, CelestialSrv = SkyTransportSrv + 1,
                              AirlessMaterialSrv = CelestialSrv + 1,
-                             CitySrv = AirlessMaterialSrv + Celestial::AirlessAtlasSlots, DescriptorCount = CitySrv + City::DescriptorCount };
+                             CitySrv = AirlessMaterialSrv + Celestial::AirlessAtlasSlots,
+                             GlareSrv = CitySrv + City::DescriptorCount, // the summed glare, then an empty view without it
+                             AdaptationSrv = GlareSrv + 2, // the local adaptation's pyramid (Adaptation.h)
+                             DescriptorCount = AdaptationSrv + 1 };
     // Render target views: the back buffers, then the HDR image, the composite image, the two histories and the terrain's
     // sunlit part, for the clouds' shade.
     // Then the cloud temporal pass's fresh light and data, its two histories, light, data and offset each, and the light
@@ -891,15 +894,18 @@ bool D3DApp::InitDirect3D() {
     // tables (the exposure's daylight).
     CD3DX12_DESCRIPTOR_RANGE compositeRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0), historyRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4),
         glassRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5);
-    CD3DX12_DESCRIPTOR_RANGE celestialRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 6);
-    CD3DX12_ROOT_PARAMETER resolveParams[6];
+    CD3DX12_DESCRIPTOR_RANGE celestialRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 6), glareRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8),
+        adaptationRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9);
+    CD3DX12_ROOT_PARAMETER resolveParams[8];
     resolveParams[0].InitAsConstantBufferView(0);
     resolveParams[1].InitAsDescriptorTable(1, &compositeRange, D3D12_SHADER_VISIBILITY_PIXEL);
     resolveParams[2].InitAsDescriptorTable(1, &historyRange, D3D12_SHADER_VISIBILITY_PIXEL);
     resolveParams[3].InitAsDescriptorTable(1, &lutRange, D3D12_SHADER_VISIBILITY_PIXEL);
     resolveParams[4].InitAsDescriptorTable(1, &glassRange, D3D12_SHADER_VISIBILITY_PIXEL); // the ship's glass (Ship.h)
     resolveParams[5].InitAsDescriptorTable(1, &celestialRange, D3D12_SHADER_VISIBILITY_PIXEL);
-    mResolveRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(6, resolveParams, 1, &linearClamp));
+    resolveParams[6].InitAsDescriptorTable(1, &glareRange, D3D12_SHADER_VISIBILITY_PIXEL); // the summed glare (Glare.h)
+    resolveParams[7].InitAsDescriptorTable(1, &adaptationRange, D3D12_SHADER_VISIBILITY_PIXEL); // local adaptation
+    mResolveRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(8, resolveParams, 1, &linearClamp));
     CD3DX12_DESCRIPTOR_RANGE skyTransportRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
     CD3DX12_DESCRIPTOR_RANGE lunarRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,8);
     CD3DX12_DESCRIPTOR_RANGE distantPlanetRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,29),distantClimateRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,20);
@@ -1066,6 +1072,16 @@ bool D3DApp::InitDirect3D() {
     postDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
     postDesc.RTVFormats[1] = HdrFormat;
     Check(md3dDevice->CreateGraphicsPipelineState(&postDesc, IID_PPV_ARGS(&mToneMapPSO)), "Tone map PSO creation failed.");
+    {   // The local adaptation's first level: the tone map's bindings, one target at a quarter of its resolution.
+        const auto seed = LoadShader(L"AdaptSeed.cso");
+        auto seedDesc = postDesc;
+        seedDesc.PS = CD3DX12_SHADER_BYTECODE(seed.Get());
+        seedDesc.NumRenderTargets = 1;
+        seedDesc.RTVFormats[0] = Adaptation::Format;
+        seedDesc.RTVFormats[1] = DXGI_FORMAT_UNKNOWN;
+        Check(md3dDevice->CreateGraphicsPipelineState(&seedDesc, IID_PPV_ARGS(&mAdaptSeedPSO)),
+            "Adaptation seed PSO creation failed.");
+    }
     {
         const auto galaxy = LoadShader(L"CelestialSky.cso"), starsVS = LoadShader(L"Stars.cso"), starsPS = LoadShader(L"StarsPixel.cso");
         const auto bodies=LoadShader(L"CelestialBodies.cso");
@@ -1100,6 +1116,20 @@ bool D3DApp::InitDirect3D() {
         Check(md3dDevice->CreateGraphicsPipelineState(&postDesc, IID_PPV_ARGS(&mStarsPSO)), "Stellar pipeline creation failed.");
     }
     if (mSettings.glare) mGlare.Initialize(md3dDevice.Get(), mClientWidth, mClientHeight, HdrFormat, mComposite.Get());
+    {   // The tone map's t8: the summed glare, or a null view that reads zero when no glare was drawn this frame.
+        const UINT srvStep = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        const CD3DX12_CPU_DESCRIPTOR_HANDLE first(mSrvHeap->GetCPUDescriptorHandleForHeapStart(), GlareSrv, srvStep);
+        D3D12_SHADER_RESOURCE_VIEW_DESC none = {};
+        none.Format = HdrFormat;
+        none.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        none.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        none.Texture2D.MipLevels = 1;
+        md3dDevice->CreateShaderResourceView(nullptr, &none, CD3DX12_CPU_DESCRIPTOR_HANDLE(first, 1, srvStep));
+        if (mSettings.glare) mGlare.CreateSummedSrv(md3dDevice.Get(), first);
+        else md3dDevice->CreateShaderResourceView(nullptr, &none, first);
+        mAdaptation.Initialize(md3dDevice.Get(), mClientWidth, mClientHeight);
+        mAdaptation.CreateSrv(md3dDevice.Get(), CD3DX12_CPU_DESCRIPTOR_HANDLE(first, AdaptationSrv - GlareSrv, srvStep));
+    }
 
     D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc = {};
     computeDesc.pRootSignature = mComputeRootSignature.Get();
@@ -2335,7 +2365,11 @@ void D3DApp::Draw() {
             XMStoreFloat4(&mConstants->celestialLight[i],toLocal({body.toSun.x,body.toSun.y,body.toSun.z}));
             mConstants->celestialLight[i].w=float(body.sunlight);
             const auto flux=Celestial::Illuminance(body,camera);
-            mConstants->celestialFlux[i]={float(flux.x),float(flux.y),float(flux.z),0.0f};
+            // w: the body's illuminance on Exolune's ground below the camera, per unit albedo. The moons light Exolune
+            // from there; at the camera, one flying beside a moon lit the whole night side seven hundredfold.
+            const auto ground=Celestial::Illuminance(body,Celestial::Unit(camera)*Celestial::PlanetRadius);
+            mConstants->celestialFlux[i]={float(flux.x),float(flux.y),float(flux.z),
+                float(ground.y/std::max(body.albedo.y,1e-9))};
         }
     }
     mConstants->taa = { TemporalAA() && mHistoryValid ? 0.1f : 1.0f, mDiagnosticView,
@@ -3046,8 +3080,9 @@ void D3DApp::Draw() {
         mCommandList->DrawInstanced(3, 1, 0, 0);
     }
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 19);
-    if (mSettings.glare && mDiagnosticView == 0.0f)
-        mGlare.Draw(mCommandList.Get(), compositeRtv, mSrvHeap.Get()); // physical optics, before stellar visibility
+    // Physical optics, read from the composite and added by the tone map: stellar visibility reads the sky without it.
+    const bool glareDrawn = mSettings.glare && mDiagnosticView == 0.0f;
+    if (glareDrawn) mGlare.Draw(mCommandList.Get(), mSrvHeap.Get());
 
     // 4. Temporal smoothing and tone map: the composite and the previous result, to the screen and to the
     // other history image.
@@ -3091,6 +3126,22 @@ void D3DApp::Draw() {
         mShip.DrawGlass(mCommandList.Get(), shipTables, dsvHandle);
     }
     mShip.OverlayToRead(mCommandList.Get());
+    {   // The local adaptation: its first level with the tone map's bindings, then its pyramid (Adaptation.h).
+        const D3D12_CPU_DESCRIPTOR_HANDLE seedRtv = mAdaptation.SeedTarget();
+        const CD3DX12_VIEWPORT seedViewport(0.0f, 0.0f, float(mAdaptation.SeedWidth()), float(mAdaptation.SeedHeight()));
+        const CD3DX12_RECT seedScissor(0, 0, LONG(mAdaptation.SeedWidth()), LONG(mAdaptation.SeedHeight()));
+        mCommandList->RSSetViewports(1, &seedViewport);
+        mCommandList->RSSetScissorRects(1, &seedScissor);
+        mCommandList->OMSetRenderTargets(1, &seedRtv, FALSE, nullptr);
+        mCommandList->SetGraphicsRootSignature(mResolveRootSignature.Get());
+        mCommandList->SetPipelineState(mAdaptSeedPSO.Get());
+        mCommandList->SetGraphicsRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
+        mCommandList->SetGraphicsRootDescriptorTable(1, GpuDescriptor(CompositeSrv));
+        mCommandList->SetGraphicsRootDescriptorTable(3, GpuDescriptor(LutSrv));
+        mCommandList->SetGraphicsRootDescriptorTable(6, GpuDescriptor(glareDrawn ? GlareSrv : GlareSrv + 1));
+        mCommandList->DrawInstanced(3, 1, 0, 0);
+        mAdaptation.Downsample(mCommandList.Get(), mSrvHeap.Get());
+    }
     const D3D12_CPU_DESCRIPTOR_HANDLE resolveRtvs[2] = {
         CD3DX12_CPU_DESCRIPTOR_HANDLE(mRtvHeap->GetCPUDescriptorHandleForHeapStart(), mFrameIndex, mRtvDescriptorSize),
         CD3DX12_CPU_DESCRIPTOR_HANDLE(mRtvHeap->GetCPUDescriptorHandleForHeapStart(), HistoryRtv + next, mRtvDescriptorSize) };
@@ -3103,7 +3154,11 @@ void D3DApp::Draw() {
     mCommandList->SetGraphicsRootDescriptorTable(3, GpuDescriptor(LutSrv));
     mCommandList->SetGraphicsRootDescriptorTable(4, mShip.OverlaySrv());
     mCommandList->SetGraphicsRootDescriptorTable(5, GpuDescriptor(SkyTransportSrv));
+    mCommandList->SetGraphicsRootDescriptorTable(6, GpuDescriptor(glareDrawn ? GlareSrv : GlareSrv + 1));
+    mCommandList->SetGraphicsRootDescriptorTable(7, GpuDescriptor(AdaptationSrv));
     mCommandList->DrawInstanced(3, 1, 0, 0);
+    if (glareDrawn) mGlare.Release(mCommandList.Get());
+    mAdaptation.Release(mCommandList.Get());
     mShip.OverlayToTarget(mCommandList.Get());
     CD3DX12_RESOURCE_BARRIER afterResolve[] = {
         CD3DX12_RESOURCE_BARRIER::Transition(mSkyTransport.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET),

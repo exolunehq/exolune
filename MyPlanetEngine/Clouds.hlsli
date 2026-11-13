@@ -58,6 +58,8 @@ static const float CLOUD_CIRRUS_DENSITY_SCALE = 0.018;
 static const float CLOUD_MULTI_WEIGHT = 3.40;
 static const float CLOUD_MULTI_SUN_FALLOFF = 0.040;
 static const float CLOUD_MULTI_THICKNESS = 0.061;
+// At night, the build-up of the sky's light: a sixth of the sun's, so thin and thick tops differ under the moons.
+static const float CLOUD_NIGHT_THICKNESS = 0.010;
 // Diffuse light lost through a finite cloud's sides, fitted to Monte Carlo spheres
 // (tools/calage_orbite.py relief); zero leakage in a plane slab.
 static const float CLOUD_MULTI_LEAK = 0.20;
@@ -67,6 +69,8 @@ static const uint CLOUD_BACK_SAMPLES = 3u;
 // The cover from which an interval of the chord counts whole: a calibrated setting, judged on the views of
 // 2026-11-02 (docs/spec-rendu-orbite.md); below it, the interval counts by its share.
 static const float CLOUD_CHORD_COVER = 0.02;
+// The march stops once this little of the light behind passes: the cloud's own light is then complete.
+static const float CLOUD_OPAQUE = 0.003;
 static const double CLOUD_ANCHOR_KM = 32.0l;
 static const float CLOUD_SHAPE_TEXELS_PER_KM = 4.0;
 static const float CLOUD_CIRRUS_SHAPE_TEXELS_PER_KM = 16.0;
@@ -629,12 +633,67 @@ uint CloudLayerSegments(double3 originQKm, double3 viewQ,
     return count;
 }
 
+// The night's key light, set for each pixel by CloudTracePixel: the brightest moon over the camera, its direction in the
+// weather's frame, its light on Exolune and its elevation at the camera's vertical. Without it, CloudMarch keeps the sun.
+static float3 gCloudMoonQ = float3(0.0, 1.0, 0.0);
+static float3 gCloudMoonLight = 0.0;
+static float gCloudMoonMuCamera = 0.0;
+
+// One interval of a light's chord from a lit point (CloudMarch). x: its optical depth, by the view's column share;
+// y: the cloud it holds where it exists, its density in the cloud: averaged with the clear sky of a coarse interval, a
+// cumulus would turn grey; below 2 % covered, by its share: the density in the cloud does not vanish with its cover, and
+// its 1e-4 floor drew a plane at a fixed height. z: the light crossing a partly covered interval leaks out of its sides:
+// the interval's own covered part f, not its share of the view's column, a pixel's quantity whose isosurfaces drew bright
+// veins; only the scales the interval resolves, the finer ones are the view's own fringes.
+float3 CloudChordStep(float3 pointOffsetKm, CloudContext context, float3 direction, float distanceKm, float stepKm,
+                      float verticalRate, float detailLod, float macroLod, float columnFraction, float4 weather)
+{
+    const float3 offsetKm = pointOffsetKm + direction * (distanceKm + 0.5 * stepKm);
+    const float lodAltitudeKm = CloudAltitude(offsetKm, context);
+    const float shapeTexelsPerKm = lodAltitudeKm >= CLOUD_CIRRUS_BOTTOM_KM
+        ? CLOUD_CIRRUS_SHAPE_TEXELS_PER_KM
+        : CLOUD_SHAPE_TEXELS_PER_KM;
+    const float stepShapeLod = clamp(log2(max(stepKm * shapeTexelsPerKm, 1.0)), 0.0, 7.0);
+    const float stepDetailLod = max(detailLod, clamp(log2(max(stepKm * CLOUD_DETAIL_TEXELS_PER_KM, 1.0)), 0.0, 5.0));
+    float altitudeKm;
+    bool cirrus;
+    const CloudDensitySample sample = CloudDensity(offsetKm, context, stepDetailLod, max(macroLod, stepShapeLod), true,
+        weather, altitudeKm, cirrus, verticalRate * stepKm);
+    return float3(saturate(sample.fraction / max(columnFraction, 1.0e-4)) * sample.density * stepKm,
+        saturate(sample.fraction / CLOUD_CHORD_COVER) * sample.density * stepKm,
+        saturate(1.0 + stepShapeLod - macroLod) * (1.0 - sample.fraction) * sample.fraction * sample.density * stepKm);
+}
+
+// A light's chord through a lit point: six doubling intervals toward it, taken at their middle, 7.875 km, the whole low
+// layer; then CLOUD_BACK_SAMPLES of them away from it from 500 m, the rest of the cloud's chord along it. x: the optical
+// depth toward the light; y: the cloud the whole chord holds; z: the side leak toward it; w: the optical depth away from
+// it. Unrolled: the samples are independent, their fetches overlap.
+float4 CloudChord(float3 pointOffsetKm, CloudContext context, float3 direction, float verticalRate, float detailLod,
+                  float macroLod, float columnFraction, float4 weather)
+{
+    float4 chord = 0.0;
+    float distanceKm = 0.0;
+    [unroll]
+    for (uint s = 0u; s < 6u + CLOUD_BACK_SAMPLES; ++s)
+    {
+        const bool back = s >= 6u;
+        if (s == 6u)
+            distanceKm = 0.0;
+        const float stepKm = 0.125 * (float)(1u << (back ? s - 4u : s));
+        const float3 interval = CloudChordStep(pointOffsetKm, context, back ? -direction : direction, distanceKm, stepKm,
+            verticalRate, detailLod, macroLod, columnFraction, weather);
+        chord += back ? float4(0.0, interval.y, 0.0, interval.x) : float4(interval.x, interval.y, interval.z, 0.0);
+        distanceKm += stepKm;
+    }
+    return chord;
+}
+
 void CloudMarch(double3 originQKm, double3 viewQ, double3 sunQ,
                 float2 size, double beginKm, double endKm,
                 inout float3 cloudLight, inout float3 transmission,
                 inout float weightedDepth, inout float depthWeightSum, inout float weightedDepthSq)
 {
-    if (endKm <= beginKm || all(transmission < 0.003))
+    if (endKm <= beginKm || all(transmission < CLOUD_OPAQUE))
         return;
 
     const double3 entryQKm = originQKm + viewQ * beginKm;
@@ -659,7 +718,7 @@ void CloudMarch(double3 originQKm, double3 viewQ, double3 sunQ,
     // The exact shell interval is consumed; there is no fixed iteration cap that lengthens the step.
     [loop]
     while (traveledKm < segmentKm
-        && any(transmission * segmentT * (1.0 - columnFraction * (1.0 - columnT)) >= 0.003))
+        && any(transmission * segmentT * (1.0 - columnFraction * (1.0 - columnT)) >= CLOUD_OPAQUE))
     {
         const float centerDistanceKm = begin + traveledKm;
         const float footprintKm = max(centerDistanceKm * pixelAngle, nearStepKm);
@@ -731,57 +790,44 @@ void CloudMarch(double3 originQKm, double3 viewQ, double3 sunQ,
             [branch]
             if (needsLight)
             {
-                float sunDepth = 0.0, chordDepth = 0.0, sunLeak = 0.0;
-                float sunDistanceKm = 0.0;
-                // Six doubling intervals, taken at their middle: 7.875 km toward the sun, the whole low layer; then
-                // CLOUD_BACK_SAMPLES of them away from it from 500 m, the rest of the cloud's chord along the sun.
-                // Unrolled: the samples are independent, their fetches overlap.
-                [unroll]
-                for (uint s = 0u; s < 6u + CLOUD_BACK_SAMPLES; ++s)
-                {
-                    const bool back = s >= 6u;
-                    if (s == 6u)
-                        sunDistanceKm = 0.0;
-                    const float sunStepKm = 0.125 * (float)(1u << (back ? s - 4u : s));
-                    const float3 sunPointOffsetKm = pointOffsetKm
-                        + (back ? -context.sunQ : context.sunQ) * (sunDistanceKm + 0.5 * sunStepKm);
-                    const float sunLodAltitudeKm = CloudAltitude(sunPointOffsetKm, context);
-                    const float sunShapeTexelsPerKm = sunLodAltitudeKm >= CLOUD_CIRRUS_BOTTOM_KM
-                        ? CLOUD_CIRRUS_SHAPE_TEXELS_PER_KM
-                        : CLOUD_SHAPE_TEXELS_PER_KM;
-                    const float stepShapeLod = clamp(log2(max(sunStepKm * sunShapeTexelsPerKm, 1.0)), 0.0, 7.0);
-                    const float sunShapeLod = max(macroLod, stepShapeLod);
-                    const float sunDetailLod = max(detailLod, clamp(log2(max(sunStepKm
-                        * CLOUD_DETAIL_TEXELS_PER_KM, 1.0)), 0.0, 5.0));
-                    float sunAltitudeKm;
-                    bool sunCirrus;
-                    const CloudDensitySample sunSample = CloudDensity(sunPointOffsetKm, context,
-                        sunDetailLod, sunShapeLod, true, weather, sunAltitudeKm, sunCirrus, abs(muSun) * sunStepKm);
-                    const float sunShare = saturate(sunSample.fraction / max(columnFraction, 1.0e-4));
-                    const float depth = sunShare * sunSample.density * sunStepKm;
-                    sunDepth += back ? 0.0 : depth;
-                    // The chord holds the cloud where it exists, its density in the cloud: averaged with the clear sky
-                    // of a coarse interval, a cumulus would turn grey. Below 2 % covered, by its share: the density
-                    // in the cloud does not vanish with its cover, and its 1e-4 floor drew a plane at a fixed height.
-                    chordDepth += saturate(sunSample.fraction / CLOUD_CHORD_COVER) * sunSample.density * sunStepKm;
-                    // The sun's light crossing a partly covered interval leaks out of its sides: the interval's own
-                    // covered part f, not its share of the view's column, a pixel's quantity whose isosurfaces drew
-                    // bright veins. Only the scales the interval resolves; the finer ones are the view's own fringes.
-                    sunLeak += back ? 0.0 : saturate(1.0 + stepShapeLod - macroLod)
-                        * (1.0 - sunSample.fraction) * sunSample.fraction * sunSample.density * sunStepKm;
-                    sunDistanceKm += sunStepKm;
-                }
+                // The night's key light: no cloud sees the sun once it is 3.4 degrees below the point's horizon; from
+                // there to 8 degrees, the chord turns to the brightest moon (CloudTracePixel), if that moon is up.
+                const float muMoon = dot(up, gCloudMoonQ);
+                const float moonWeight = any(gCloudMoonLight > 0.0)
+                    ? (1.0 - smoothstep(-0.14, -0.06, muSun)) * smoothstep(-0.1, 0.05, muMoon) : 0.0;
+                // The sun's chord; the moon's alone once no cloud sees the sun; both in the narrow band between.
+                const bool moonOnly = moonWeight >= 1.0;
+                const float4 sunChord = CloudChord(pointOffsetKm, context, moonOnly ? gCloudMoonQ : context.sunQ,
+                    abs(moonOnly ? muMoon : muSun), detailLod, macroLod, columnFraction, weather);
+                float4 moonChord = sunChord;
+                [branch]
+                if (moonWeight > 0.0 && !moonOnly)
+                    moonChord = CloudChord(pointOffsetKm, context, gCloudMoonQ, abs(muMoon), detailLod, macroLod,
+                        columnFraction, weather);
+                const float sunDepth = sunChord.x, sunLeak = sunChord.z;
+                const float moonDepth = moonChord.x, moonLeak = moonChord.z;
 
                 const float3 directTransmittance = exp(-sunDepth * 80.0);
                 const float3 sunRadiance = SUN_ILLUMINANCE * SunTransmittance(altitudeKm, muSun);
-                const float3 skyIrradiance = SkyIrradiance(altitudeKm, muSun); // the sky's irradiance, scaled by the sun already
+                // The moon's beam leaves the sky's light as it becomes the key light: SkyIrradiance holds it at the
+                // camera's vertical (Atmosphere.hlsli).
+                float3 moonRadiance = 0.0, moonBeam = 0.0;
+                [branch]
+                if (moonWeight > 0.0)
+                {
+                    moonRadiance = moonWeight * gCloudMoonLight * SunTransmittance(altitudeKm, muMoon);
+                    moonBeam = moonWeight * gCloudMoonLight * SunTransmittance(altitudeKm, gCloudMoonMuCamera)
+                        * saturate(gCloudMoonMuCamera);
+                }
+                const float3 skyIrradiance = max(SkyIrradiance(altitudeKm, muSun) - moonBeam, 0.0);
                 const float3 ambientRadiance = 0.18 * SUN_ILLUMINANCE * MultiScattering(altitudeKm, muSun)
                     + 0.04 * skyIrradiance;
                 // Water-droplet anisotropy (Bohren and Huffman).
                 const float phase = CloudHenyeyGreenstein(dot(context.viewQ, context.sunQ), 0.85);
+                const float moonPhase = CloudHenyeyGreenstein(dot(context.viewQ, gCloudMoonQ), 0.85);
                 const float3 scatteringPerKm = extinctionPerKm;
                 const float3 oneOrderSource = scatteringPerKm * (sunRadiance * directTransmittance * phase
-                    + ambientRadiance / (4.0 * PI));
+                    + moonRadiance * exp(-moonDepth * 80.0) * moonPhase + ambientRadiance / (4.0 * PI));
                 const float3 oneOrderIntegral = oneOrderSource * (1.0 - attenuation)
                     / max(extinctionPerKm, 1.0e-5);
 
@@ -789,10 +835,26 @@ void CloudMarch(double3 originQKm, double3 viewQ, double3 sunQ,
                 // holds, both sides, builds it up (F); the light falls toward the sun as a slab's diffuse transmission
                 // and leaks out of a finite cloud's sides. Neither the pixel's seen point nor its column enters the
                 // build-up or the leak: they drew their isosurfaces as rims and veins.
-                const float buildUp = 1.0 - exp(-CLOUD_MULTI_THICKNESS * 80.0 * chordDepth);
-                const float3 multiSource = scatteringPerKm * (sunRadiance * mu + skyIrradiance) * CLOUD_MULTI_WEIGHT
-                    * buildUp * exp(-CLOUD_MULTI_LEAK * 80.0 * sunLeak)
-                    / ((1.0 + CLOUD_MULTI_SUN_FALLOFF * sunDepth * 80.0) * 4.0 * PI);
+                const float buildUp = 1.0 - exp(-CLOUD_MULTI_THICKNESS * 80.0 * sunChord.y);
+                const float sunShape = buildUp * exp(-CLOUD_MULTI_LEAK * 80.0 * sunLeak)
+                    / (1.0 + CLOUD_MULTI_SUN_FALLOFF * sunDepth * 80.0);
+                // The key moon lights the cloud as the sun does, along its own chord.
+                const float moonBuildUp = 1.0 - exp(-CLOUD_MULTI_THICKNESS * 80.0 * moonChord.y);
+                const float moonShape = moonBuildUp * exp(-CLOUD_MULTI_LEAK * 80.0 * moonLeak)
+                    / (1.0 + CLOUD_MULTI_SUN_FALLOFF * moonDepth * 80.0);
+                const float moonMu = cirrus ? max(muMoon, 0.05) : max(max(muMoon, 0.5 * saturate(weather.g)), 0.05);
+                // Once the sun has set, the sky's light (the other moons, the airglow) comes from above: its falloff
+                // follows the chord upwards, away from the set sun or toward the key moon, not the chord down towards
+                // the set sun, which darkened thick tops inside bright rims.
+                // Moonlit tops brighten with the cloud's thickness, as its albedo does: a softer build-up than the
+                // sun's, which saturates on any cumulus and left them flat white.
+                const float nightChord = lerp(sunChord.y, moonChord.y, moonWeight);
+                const float skywardDepth = lerp(sunChord.w, moonDepth, moonWeight);
+                const float nightShape = (1.0 - exp(-CLOUD_NIGHT_THICKNESS * 80.0 * nightChord))
+                    / (1.0 + 2.0 * CLOUD_MULTI_SUN_FALLOFF * skywardDepth * 80.0);
+                const float skyShape = lerp(sunShape, nightShape, 1.0 - smoothstep(-0.12, 0.02, muSun));
+                const float3 multiSource = scatteringPerKm * (sunRadiance * mu * sunShape + skyIrradiance * skyShape
+                    + moonRadiance * moonMu * moonShape) * CLOUD_MULTI_WEIGHT / (4.0 * PI);
                 const float3 multiIntegral = multiSource * (1.0 - attenuation)
                     / max(extinctionPerKm, 1.0e-5);
 
@@ -1093,6 +1155,22 @@ CloudPixel CloudTracePixel(float4 scene, float2 pixel, float2 size, bool withClo
     const double3 sunQ = CloudNormalizeDP(CloudWeatherBackDP(sunWorld, windSinCos));
     const double sceneDepthKm = scene.a > 0.0 ? (double)scene.a : 0.0l;
     const bool cloudsOn = cloudCameraKm.w > 0.5l && withClouds;
+    // The night's key light (CloudMarch): the brightest moon over the camera, seen from Exolune.
+    float brightest = 0.0;
+    [unroll]
+    for (uint moon = 0u; moon < 3u; ++moon)
+    {
+        const float3 direction = MoonDirectionFrom(moon, camVertical.xyz * PLANET_RADIUS_KM);
+        const float muCamera = dot(direction, camVertical.xyz);
+        const float weight = dot(Moonlight(moon), CELESTIAL_LUMA) * saturate(muCamera + 0.2);
+        if (weight > brightest)
+        {
+            brightest = weight;
+            gCloudMoonLight = Moonlight(moon);
+            gCloudMoonMuCamera = muCamera;
+            gCloudMoonQ = (float3)CloudNormalizeDP(CloudWeatherBackDP((double3)CelestialWorld(direction), windSinCos));
+        }
+    }
 
     CloudTraceResult resolvedTrace = (CloudTraceResult)0;
     resolvedTrace.transmission = 1.0;
@@ -1120,6 +1198,14 @@ CloudPixel CloudTracePixel(float4 scene, float2 pixel, float2 size, bool withClo
         }
     }
     return result;
+}
+
+// What the clouds let through to what lies behind them. The march stops once CLOUD_OPAQUE passes; behind an opaque
+// cloud that remainder would still show the Sun or a moon's disc, ten to a hundred thousand times brighter than the
+// cloud, as a sharp circle. Taken off, continuously: a thin cloud still shows the disc, a thick one hides it.
+float3 CloudBeyond(float3 transmission)
+{
+    return saturate((transmission - CLOUD_OPAQUE) / (1.0 - CLOUD_OPAQUE));
 }
 
 // The atmosphere over the scene with the clouds at their distance, at the pixel's centre.
@@ -1179,7 +1265,7 @@ float4 CloudComposite(float4 scene, float2 pixel, float2 size, CloudPixel clouds
             light += CloudAirPiece(view, viewFace, sun, 0.0, stepBeginKm, k, airTransmission, hitsGround);
         light += CloudAirPiece(view, viewFace, sun, stepBeginKm, cloudKm, 1u, airTransmission, hitsGround);
         light += airTransmission * clouds.cloudLight;
-        airTransmission *= clouds.transmission;
+        airTransmission *= CloudBeyond(clouds.transmission);
         light += CloudAirPiece(view, viewFace, sun, cloudKm, stepEndKm, 1u, airTransmission, hitsGround);
         if (k + 1u < steps)
             light += CloudAirPiece(view, viewFace, sun, stepEndKm, endKm, steps - k - 1u, airTransmission, hitsGround);
@@ -1187,13 +1273,12 @@ float4 CloudComposite(float4 scene, float2 pixel, float2 size, CloudPixel clouds
     else
     {
         light += airTransmission * clouds.cloudLight;
-        airTransmission *= clouds.transmission;
+        airTransmission *= CloudBeyond(clouds.transmission);
         light += CloudAirPiece(view, viewFace, sun, 0.0, endKm, steps, airTransmission, hitsGround);
     }
-    if (scene.a > 0.0) {
+    if (scene.a > 0.0)
         light += airTransmission * surfaceSceneRgb;
-        skyTransport.a=-min(sunPart.Load(int3(pixel,0)).a,0.0)*dot(airTransmission,1.0/3.0);
-    } else if (!seesGround)
+    else if (!seesGround)
         skyTransport=float4(airTransmission,0.0);
     return float4(light, scene.a);
 }

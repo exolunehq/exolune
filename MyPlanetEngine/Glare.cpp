@@ -8,6 +8,7 @@ using Microsoft::WRL::ComPtr;
 void Glare::Initialize(ID3D12Device* device, UINT width, UINT height, DXGI_FORMAT format, ID3D12Resource* composite) {
     mWidth = width;
     mHeight = height;
+    mFormat = format;
     mComposite = composite;
     mLevels = 0;
     for (UINT side = std::min(width, height); side > 1; side /= 2) ++mLevels;
@@ -70,14 +71,25 @@ void Glare::Initialize(ID3D12Device* device, UINT width, UINT height, DXGI_FORMA
     blend.BlendEnable = TRUE;
     blend.SrcBlend = blend.DestBlend = blend.SrcBlendAlpha = blend.DestBlendAlpha = D3D12_BLEND_ONE; // added to the level
     Check(device->CreateGraphicsPipelineState(&pso, IID_PPV_ARGS(&mUpPSO)), "Glare PSO creation failed.");
-    blend.DestBlend = D3D12_BLEND_INV_SRC_ALPHA; // over the composite image, which keeps 1 - alpha of its light
-    blend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_RED | D3D12_COLOR_WRITE_ENABLE_GREEN | D3D12_COLOR_WRITE_ENABLE_BLUE;
-    Check(device->CreateGraphicsPipelineState(&pso, IID_PPV_ARGS(&mApplyPSO)), "Glare PSO creation failed.");
 }
 
-// Down the levels, up again, then over the composite image. The composite's alpha, the terrain's distance, is kept for
-// the reprojection.
-void Glare::Draw(ID3D12GraphicsCommandList* list, D3D12_CPU_DESCRIPTOR_HANDLE compositeRtv, ID3D12DescriptorHeap* heap) {
+void Glare::CreateSummedSrv(ID3D12Device* device, D3D12_CPU_DESCRIPTOR_HANDLE destination) const {
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
+    srv.Format = mFormat;
+    srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srv.Texture2D.MipLevels = 1;
+    device->CreateShaderResourceView(mGlare.Get(), &srv, destination);
+}
+
+void Glare::Release(ID3D12GraphicsCommandList* list) {
+    const auto b = CD3DX12_RESOURCE_BARRIER::Transition(mGlare.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+        D3D12_RESOURCE_STATE_RENDER_TARGET);
+    list->ResourceBarrier(1, &b);
+}
+
+// Down the levels, then up again; the composite image is only read.
+void Glare::Draw(ID3D12GraphicsCommandList* list, ID3D12DescriptorHeap* heap) {
     auto pass = [&](ID3D12PipelineState* pso, D3D12_CPU_DESCRIPTOR_HANDLE target, UINT width, UINT height, UINT source,
                     float apply) {
         const float constants[3] = { 1.0f / width, 1.0f / height, apply };
@@ -116,8 +128,10 @@ void Glare::Draw(ID3D12GraphicsCommandList* list, D3D12_CPU_DESCRIPTOR_HANDLE co
         barrier(mGlare.Get(), rt, read, i);
     }
     barrier(mComposite.Get(), read, rt, all);
-    pass(mApplyPSO.Get(), compositeRtv, mWidth, mHeight, 0, 1.0f);
-    barrier(mGlare.Get(), read, rt, all);
+    const CD3DX12_VIEWPORT viewport(0.0f, 0.0f, float(mWidth), float(mHeight)); // the full image again for what follows
+    const CD3DX12_RECT scissor(0, 0, LONG(mWidth), LONG(mHeight));
+    list->RSSetViewports(1, &viewport);
+    list->RSSetScissorRects(1, &scissor);
     ID3D12DescriptorHeap* mainHeap[] = { heap };
     list->SetDescriptorHeaps(1, mainHeap);
 }
