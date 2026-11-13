@@ -153,6 +153,16 @@ void TransmittanceFromUv(float2 uv, out float h, out float mu)
 // visible part above the horizon (it sets over the width of its disc).
 float3 SunTransmittance(float h, float muS, float ground)
 {
+    // Above the air, sunlight crosses it only if its ray enters it: the table from where the ray enters, else the whole
+    // sun (a ship by a moon). The table's top row is not the light at any distance.
+    if (h > ATMOSPHERE_HEIGHT_KM)
+    {
+        const float r = BOTTOM + h, enter = (1.0 - muS * muS) * r * r / (TOP * TOP); // squared sine at the top
+        if (muS >= 0.0 || enter >= 1.0)
+            return smoothstep(-SUN_ANGULAR_RADIUS, SUN_ANGULAR_RADIUS, muS - HorizonCosine(h));
+        h = ATMOSPHERE_HEIGHT_KM;
+        muS = -sqrt(1.0 - enter);
+    }
     const float3 t = transmittanceLut.SampleLevel(linearClamp, float3(TransmittanceUv(h, muS), GroundCoordinate(ground)), 0.0).rgb;
     return t * smoothstep(-SUN_ANGULAR_RADIUS, SUN_ANGULAR_RADIUS, muS - HorizonCosine(h));
 }

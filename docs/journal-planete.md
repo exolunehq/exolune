@@ -2,6 +2,13 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-13 · Sunlight above the air, on every lit surface**
+
+- **Why.** Scouting a film over moon 1, the fighter turned dark red while the moon around it stayed grey. `SunTransmittance` read the atmosphere table's top row with the Sun's angle seen from 280 000 km: a Sun 21° from Exolune looked set behind its limb.
+- **Rule.** Above the air, the ray towards the Sun first meets the atmosphere's outer sphere: the table from where it enters, else the whole Sun. The exposure meter already did so (`ObserverSunTransmittance`); inside the air, 100 km and below, nothing changes.
+- **Result.** The hull by moon 1, in sRGB: 67, 14, 2 before, 90, 80, 75 after. Flight review: `tools/tests/2026-11-13-soleil-hors-air.txt`.
+- **Go back.** The guard at the top of `SunTransmittance` (`Atmosphere.hlsli`).
+
 **2026-11-13 · The moons light Exolune from where they stand; moonlit clouds; one local adaptation**
 
 - **Why.** Reviewing the 2026-11-12 night, the user found film 25 and film 33 still too bright: the more backlit, the darker, never black under the moons. Film 25's camera flew 1 333 km from the third moon, whose flux at the camera lit the whole night side 700 times too much. Then, in flight, a half-lit Exolune showed its night side as bright as the day, with a dark band: the user asked for one simple, coherent system instead of stacked rules.
