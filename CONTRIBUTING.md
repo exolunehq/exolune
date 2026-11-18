@@ -8,4 +8,4 @@ Thanks for wanting to help build Exolune.
 
 **Licence:** Exolune is source available under the PolyForm Shield License 1.0.0; see [`LICENSE.md`](LICENSE.md).
 
-**Contributor licence agreement:** before your first pull request is merged, you will be asked to sign the project's contributor licence agreement, once, from the pull request itself.
+**Contributor licence agreement.** Before your first pull request is merged, you will be asked to accept the [Exolune Contributor Licence Agreement](CLA.md) once in the pull request.
