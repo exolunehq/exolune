@@ -2,6 +2,77 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-19 · Fast Atlantic flight at 12 km**
+
+- Eco uses the filtered erosion scale to extend low-cloud steps. The extension ramps in from 500 m to 2.5 km. It is bounded by 500 m of ray travel and 72 m of altitude change.
+- Eco can skip up to 4 km outside the cirrus envelope. The bound uses the profile's wave slopes, ray curvature and a 2 m rounding margin.
+- Above the low layer, Eco shares identical tile and quad rays when translation projects to more than three pixels at the low layer's bottom. Each sampling order revisits all 16 tile pixels. The tile traces the surface shadow and the cloud march evaluates all nine lighting intervals.
+- Both Release builds ran at 1920 × 1080 on the RTX 4070 Ti, with 40 warm-up and 120 measured frames per view. The earlier Atlantic run repeated at 20.64 FPS. Disabling clouds for diagnosis reached 87.67 FPS on that build.
+
+| Witness | Before FPS | After FPS | Before cadence p95 | After cadence p95 |
+|---|---:|---:|---:|---:|
+| Atlantic, 12 km fast | 20.65 | 37.70 | 50.90 ms | 28.55 ms |
+| Atlantic, 12 km slow | 26.72 | 38.23 | 40.05 ms | 28.08 ms |
+| Atlantic, 12 km fixed | 47.63 | 59.94 | 21.83 ms | 17.54 ms |
+| Continent, 12 km fast | 21.07 | 41.22 | 50.58 ms | 25.32 ms |
+| Tropics, 12 km fast | 32.14 | 57.47 | 33.40 ms | 18.72 ms |
+| Antimeridian, 12 km fast | 22.65 | 43.07 | 46.69 ms | 24.31 ms |
+| Polar, 12 km fast | 41.12 | 60.75 | 28.82 ms | 18.60 ms |
+| Continent, 8 km slow | 42.72 | 47.11 | 24.48 ms | 22.09 ms |
+
+- The flight measurements compare builds of the camera branch. The integration build uses the lunar cloud lighting from public main.
+- The Atlantic cloud trace falls from 35.24 to 13.18 ms. Cloud and air time falls from 37.92 to 16.02 ms. Every measured frame on that trajectory presents within 29 ms. The 60 FPS budget remains 16.67 ms.
+- The 300 km control averages 69.08 FPS against 69.86 previously. Its cloud trace falls from 4.27 to 3.99 ms.
+- In 24 consecutive Atlantic frames, the mean maximum-channel difference stays below 0.076 levels. At most 55 of 2,073,600 pixels in one frame differ by more than eight levels. Among the 21 matched benchmark captures, the largest mean difference is 0.304 levels at 40 km.
+- The numerical bound check covered 185,796 extended low-cloud steps and 39,693 cirrus skips. The maximum altitude change was under 72 m. The sampled cirrus skips stayed outside the envelope.
+- The 30-site terrain benchmark yields 3,687 byte-identical crops, 56 identical paired p95 values and a lower 800 m mutation p95. Both builds exceed the historical limit on the same 19 of 55 comparable values. The survey has no 3 km rock crop.
+- `tools/tests/2026-11-19-atlantique.txt` starts the flight review on the Atlantic. The local tag `piste/vol-rapide-atlantique-2026-11-19-base` identifies the tracked ancestor. The exact executables, shader hashes and captures are recorded under `x64/cloud-atlantic/`.
+- **Milestone.** `jalon/optimisation-nuages-2026-11-19` marks the cloud optimization on public `main`.
+
+**2026-11-19 · Cloud-layer crossings near 12 km**
+
+- View and shadow marches use the same certified empty weather rectangles. The weather texture uses one mip and its alpha channel carries the clearances for both layers.
+- Eco cirrus selects its integration step from the filtered fibres and vertical profile. The nine lighting samples and the optical limit continue to apply.
+- The before build is the preceding above-cloud pass. Both builds use the same 1080p trajectories, view order and 120 measured frames per view on the RTX 4070 Ti.
+- On the continental route in fast flight, the cloud and air pass falls from 45.26 to 35.31 ms. Its final capture differs by at most one channel level out of 255.
+
+| 12 km witness | FPS before | FPS after | Cadence p95 before | Cadence p95 after |
+|---|---:|---:|---:|---:|
+| Continent, fast | 17.4 | 21.2 | 60.75 ms | 50.66 ms |
+| Continent, slow | 29.7 | 36.8 | 35.18 ms | 28.92 ms |
+| Continent, fixed | 36.3 | 42.8 | 28.71 ms | 24.91 ms |
+| Atlantic, fast | 15.1 | 20.9 | 70.80 ms | 49.66 ms |
+| Tropics, fast | 20.8 | 32.5 | 51.66 ms | 33.04 ms |
+| Antimeridian, fast | 16.4 | 22.9 | 64.03 ms | 46.32 ms |
+| Polar, fast | 32.4 | 41.9 | 33.47 ms | 28.39 ms |
+
+- All 28 matched captures have a mean maximum-channel difference below 0.011 levels. Thirteen pixels exceed eight levels in the most affected capture, the 40 km fast-flight control. The weather R, G and B bytes match exactly. Both packed clearances match an independent check at all 524,288 cells. Sampled rays verify the filter support of 88,337 rejected intervals.
+- Four moving orbital controls from 160 to 10,000 km also improve cadence. Their largest mean image difference is 0.033 levels at 440 km. Nineteen pixels there exceed eight levels.
+- An independent check of 124,496 extended cirrus steps reaches at most 0.49924 texel of fibre motion and 47.952 m of altitude change.
+- The 30-site ground benchmark produces 3,687 byte-identical crops. Of 57 paired p95 values, 56 match exactly and the 800 m mutation p95 is lower by 5 × 10⁻⁹. The same 19 of 55 comparable values exceed the historical reference limit. The historical rock group at 3 km has no crop in this survey.
+- `tools/tests/2026-11-19-cirrus.txt` opens the flight review at 12 km. The local `piste/passage-cirrus-2026-11-19-base` tag marks the tracked ancestor. The measured build paths and hashes are recorded in `x64/cloud-12km/`.
+
+**2026-11-19 · Cloud flight above the layers**
+
+- Eco enables the 2 × 2 refresh pass above 14 km in fast weather-relative translation. The motion threshold is three projected pixels at the nearest point of the temporal shell. A surface that clips the cloud ray requires complete compatible support.
+- View and shadow marches bound the cirrus profile to 10–12 km. The bound includes 50 m beyond each extreme of the wavy profile.
+- On the continental route at 16 km, the old build runs at 9.7 FPS with clouds and 76.2 FPS with clouds off. Clouds and air cost 90.27 ms of GPU time per frame before the pass and 35.87 ms after it.
+- Both builds use the same 1080p flight paths, weather, sun and 120 sampled frames per view on an RTX 4070 Ti. The 60 FPS budget is 16.67 ms. The final capture at each fixed or slow-flight view differs by at most one level per channel. In fast flight between 16 and 80 km, at most 0.055% of pixels differ by more than eight levels. The distant-globe control reaches 0.135%.
+
+| Fast flight | FPS before | FPS after | Cadence p95 before | Cadence p95 after |
+|---|---:|---:|---:|---:|
+| 12 km, cirrus | 16.4 | 17.5 | 65.92 ms | 60.44 ms |
+| 16 km, continent | 9.7 | 21.0 | 106.17 ms | 49.92 ms |
+| 24 km, continent | 11.7 | 24.3 | 89.09 ms | 43.14 ms |
+| 40 km, continent | 14.5 | 28.6 | 71.90 ms | 36.39 ms |
+| 40 km, ocean | 21.5 | 32.8 | 52.14 ms | 33.84 ms |
+| 40 km, polar | 42.4 | 70.8 | 24.94 ms | 14.91 ms |
+| 80 km, continent | 21.0 | 38.1 | 50.39 ms | 27.93 ms |
+| 300 km, orbit | 41.1 | 69.6 | 25.39 ms | 15.51 ms |
+
+- The ground material benchmark completed 30 paired sites at 1280 × 720 with clouds disabled. All 3,687 crops are byte-identical and all 57 paired p95 values match exactly. Both builds exceed the historical limit on the same 19 of 55 comparable metrics. The historical rock group at 3 km has no crop in this survey.
+- `tools/tests/2026-11-19.txt` provides the flight review. The local `piste/nuages-altitude-2026-11-19-base` tag anchors the measured baseline at `06c04fc`. Captures and per-frame traces are in `x64/cloud-perf/`.
+
 **2026-11-13 · Exolune hides the Sun at every level of detail; the moons' relief keeps two cells**
 
 - **Why.** In the moon film, two frames blew out white as the Sun set behind Exolune seen from 16 000 km. Over moon 1, crater shadows crawled with the camera.

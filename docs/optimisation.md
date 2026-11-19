@@ -21,6 +21,37 @@
 - **The actual cadence** (round 5): after the passes of the GPU, the image of the CPU, in ms. `cpu_prep` the preparation, `cpu_liste` the recording, `cpu_present` the submission and the presentation, `cpu_attente` the waiting of the GPU; `cadence` the time from one presentation to the next, what the eye receives; `gpu_inactif` the GPU unoccupied between two images, by its timestamps. The `réel` column of the table is the frame rate in fps; `fps` remains the time GPU.
 - **Motion benchmark:** `--motion "<cap °> <latitude °> <météo s>"`, per frame. The camera joins each view at capture by turning and flying north; the weather runs to its time. Compared to a benchmark stationary, it shows what a time pass loses in movement.
 
+## Above-cloud flight
+
+`tools/banc_orbite.py --suite cloud-flight` covers 14 views from the ground to the globe. It stores frame times, captures, build hashes and settings. Use the same view order on both builds to match the temporal sampling phase.
+
+```powershell
+python tools/banc_orbite.py --exe x64/Release/MyPlanetEngine.exe --out x64/cloud-flight --suite cloud-flight --warmup 40 --samples 120 --motion '0.22 0.002 0.016666667 1 0 0.04'
+```
+
+Run the same motion with `--no-clouds` to isolate cloud cost. Omit `--motion` for the fixed-camera control. The [November 19 journal entry](journal-planete.md) records real cadence and its p95. The [cloud specification](spec-nuages.md#the-passes) describes the fast-flight quad scheduler.
+
+## Cloud-layer crossings
+
+Run the same 1080p setup with each of the ordered groups below. The first brackets `layer12` with the nearby and ground controls. The second includes grazing rays through occupied cirrus, a longitude wrap and a polar witness.
+
+```text
+--views layer12,layer08,above16,above40,ocean40,ground
+--views layer10,layer14,atlantic12,tropical12,seam12,polar12
+```
+
+The slow-flight motion is `0.04 0.00002 0.016666667 1 0 0.001`. Compare the actual cadence and cadence p95. Compare the 1080p captures per channel and inspect native-scale details around the cirrus silhouettes. The [weather clearance contract](spec-nuages.md#the-model) describes the spherical rejection test.
+
+## Fast flight over the Atlantic
+
+```powershell
+python tools/banc_orbite.py --exe x64/Release/MyPlanetEngine.exe --out x64/atlantic-review --views atlantic12,tropical12,seam12,polar12,layer12,layer10,layer14,layer08,above40,orbit300,ground --warmup 40 --samples 120 --motion '0.22 0.002 0.016666667 1 0 0.04'
+```
+
+- **Timing.** Run the identical ordered group on both builds. Repeat the Atlantic control on the earlier build in the same session.
+- **Quality.** Compare the final rendered frames and a consecutive sequence at 1080p. Check cloud edges, horizon and fine texture at native scale.
+- **Flight review.** `tools/tests/2026-11-19-atlantique.txt` starts on the Atlantic and includes crossings through the cloud layers and other 12 km witnesses.
+
 ## The reference
 
 **RTX 4070 Ti, commit `242d0f7`, ms GPU per frame.** The CPU waits for the GPU at each frame: the time GPU makes the cadence.

@@ -756,14 +756,15 @@ bool D3DApp::InitDirect3D() {
     createCloudVolume(mCloudShape, 128u, 8u, CloudSrv);
     createCloudVolume(mCloudDetail, 32u, 6u, CloudSrv + 1);
     createCloudVolume(mCloudProfiles, 64u, 7u, CloudSrv + 2);
-    const auto weatherDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, 1024u, 512u, 1u, 11u);
+    const auto weatherDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM,
+        Climate::WeatherWidth, Climate::WeatherHeight, 1u, Climate::WeatherMips);
     Check(md3dDevice->CreateCommittedResource(&hdrHeapProps, D3D12_HEAP_FLAG_NONE, &weatherDesc,
         D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&mCloudWeather)), "Cloud weather map creation failed.");
     D3D12_SHADER_RESOURCE_VIEW_DESC weatherSrv = {};
     weatherSrv.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     weatherSrv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     weatherSrv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    weatherSrv.Texture2D.MipLevels = 11;
+    weatherSrv.Texture2D.MipLevels = Climate::WeatherMips;
     md3dDevice->CreateShaderResourceView(mCloudWeather.Get(), &weatherSrv, cpuDescriptor(CloudSrv + 3));
 
     // Depth buffer, reversed Z: 1 at the near plane, 0 at the far plane, cleared to 0.
@@ -2420,8 +2421,9 @@ void D3DApp::Draw() {
                 rows[i][0] = (float)row.x; rows[i][1] = (float)row.y; rows[i][2] = (float)row.z;
                 rows[i][3] = (float)Dot(mCloudPrevAxes[i], offset);
             }
+            return offset;
         };
-        writeRows(mCloudConstants->prevQ, mCloudPrevWind);
+        const Vec3d weatherOffsetKm = writeRows(mCloudConstants->prevQ, mCloudPrevWind);
         writeRows(mCloudConstants->prevGround, windAngle);
         // The history holds while the view continues: no teleport, the same trace, the sun within a degree.
         const bool enabled = mCloudsOn;
@@ -2439,7 +2441,26 @@ void D3DApp::Draw() {
         mCloudConstants->temporal[0] = (float)tileX;
         mCloudConstants->temporal[1] = (float)tileY;
         mCloudConstants->temporal[2] = valid ? 1.0f : 0.0f;
-        mCloudConstants->temporal[3] = 0.0f; // reserved
+        // Keep the near-cloud quad pass. Above it, launch quads when motion in the weather frame could move
+        // the nearest part of the shell by several pixels. The shader checks the actual history per ray.
+        mCloudConstants->temporal[3] = 0.0f;
+        if (enabled && valid) {
+            const double altitudeKm = mConstants->camVertical.w;
+            const double nearestCloudKm = std::max(altitudeKm - 13.0, 1.0); // conservative temporal shell
+            const double threePixels = 6.0 * mCloudConstants->upTan[3] / mClientHeight;
+            const double motionThresholdKm = threePixels * nearestCloudKm;
+            const double motionKmSquared = Dot(weatherOffsetKm, weatherOffsetKm);
+            if (altitudeKm <= 14.0) {
+                mCloudConstants->temporal[3] = 1.0f;
+            } else if (!mCloudsReference && motionKmSquared > motionThresholdKm * motionThresholdKm) {
+                mCloudConstants->temporal[3] = 2.0f;
+            }
+            // Sharing pays when the quad pass is busy. Test the motion at the bottom of the low layer,
+            // so nearby cirrus alone do not force sparsely traced quads to run the tile rays.
+            const double sharedRayThresholdKm = threePixels * (altitudeKm - 2.0);
+            mCloudConstants->wind[3] = !mCloudsReference && altitudeKm > 8.0
+                && motionKmSquared > sharedRayThresholdKm * sharedRayThresholdKm ? 1.0 : 0.0;
+        }
         ++mCloudFrame;
         mCloudPrevCam = cam;
         for (int i = 0; i < 3; ++i) mCloudPrevAxes[i] = axes[i];
@@ -3024,23 +3045,12 @@ void D3DApp::Draw() {
     mCommandList->SetGraphicsRootDescriptorTable(5, GpuDescriptor(CloudSrv));
     mCommandList->SetGraphicsRootDescriptorTable(6, GpuDescriptor(PlanetMapSrv));
     if (cloudTemporal) {
-        // The clouds over time (CloudsTemporal.hlsli): one pixel per 4x4 tile traced into the fresh images, one per
-        // 2x2 quad where the history has drifted, then the full-resolution resolve, into the composite and the other history.
+        // Trace the drifted 2x2 quads first so the 4x4 tiles can share their rays in fast flight.
         const UINT read = mCloudHistoryIndex, write = 1 - read;
         auto rtv = [&](UINT i) { return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRtvHeap->GetCPUDescriptorHandleForHeapStart(), i, mRtvDescriptorSize); };
         mCommandList->SetGraphicsRootDescriptorTable(7, GpuDescriptor(CloudTemporalSrv + 7 * read));
-        const D3D12_CPU_DESCRIPTOR_HANDLE freshRtvs[2] = { rtv(CloudFreshRtv), rtv(CloudFreshRtv + 1) };
-        mCommandList->OMSetRenderTargets(2, freshRtvs, FALSE, nullptr);
-        const UINT tileWidth = (mClientWidth + CloudTileX - 1) / CloudTileX, tileHeight = (mClientHeight + CloudTileY - 1) / CloudTileY;
-        const CD3DX12_VIEWPORT tileViewport(0.0f, 0.0f, float(tileWidth), float(tileHeight));
-        const CD3DX12_RECT tileScissor(0, 0, LONG(tileWidth), LONG(tileHeight));
-        mCommandList->RSSetViewports(1, &tileViewport);
-        mCommandList->RSSetScissorRects(1, &tileScissor);
-        mCommandList->SetPipelineState(mCloudTracePSO.Get());
-        mCommandList->DrawInstanced(3, 1, 0, 0);
-        // The drifted pixels, one per 2x2 quad below 14 km (CloudTemporalHalfOn);
-        // above, the resolve does not read them.
-        if (mConstants->camVertical.w <= 14.0f) {
+        // One fresh ray per 2x2 quad whose history has drifted (CloudTemporalHalfOn).
+        if (mCloudConstants->temporal[3] > 0.0f) {
             const D3D12_CPU_DESCRIPTOR_HANDLE halfRtvs[2] = { rtv(CloudHalfRtv), rtv(CloudHalfRtv + 1) };
             mCommandList->OMSetRenderTargets(2, halfRtvs, FALSE, nullptr);
             const UINT halfWidth = (mClientWidth + 1) / 2, halfHeight = (mClientHeight + 1) / 2;
@@ -3051,14 +3061,28 @@ void D3DApp::Draw() {
             mCommandList->SetPipelineState(mCloudHalfPSO.Get());
             mCommandList->DrawInstanced(3, 1, 0, 0);
         }
+        CD3DX12_RESOURCE_BARRIER halfToRead[2];
+        for (UINT i = 0; i < 2; ++i)
+            halfToRead[i] = CD3DX12_RESOURCE_BARRIER::Transition(mCloudFresh[2 + i].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+                D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        mCommandList->ResourceBarrier(2, halfToRead);
+        const D3D12_CPU_DESCRIPTOR_HANDLE freshRtvs[2] = { rtv(CloudFreshRtv), rtv(CloudFreshRtv + 1) };
+        mCommandList->OMSetRenderTargets(2, freshRtvs, FALSE, nullptr);
+        const UINT tileWidth = (mClientWidth + CloudTileX - 1) / CloudTileX, tileHeight = (mClientHeight + CloudTileY - 1) / CloudTileY;
+        const CD3DX12_VIEWPORT tileViewport(0.0f, 0.0f, float(tileWidth), float(tileHeight));
+        const CD3DX12_RECT tileScissor(0, 0, LONG(tileWidth), LONG(tileHeight));
+        mCommandList->RSSetViewports(1, &tileViewport);
+        mCommandList->RSSetScissorRects(1, &tileScissor);
+        mCommandList->SetPipelineState(mCloudTracePSO.Get());
+        mCommandList->DrawInstanced(3, 1, 0, 0);
         mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 20);
         mCommandList->RSSetViewports(1, &viewport);
         mCommandList->RSSetScissorRects(1, &scissor);
-        CD3DX12_RESOURCE_BARRIER freshToRead[4];
-        for (UINT i = 0; i < 4; ++i)
+        CD3DX12_RESOURCE_BARRIER freshToRead[2];
+        for (UINT i = 0; i < 2; ++i)
             freshToRead[i] = CD3DX12_RESOURCE_BARRIER::Transition(mCloudFresh[i].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
                 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        mCommandList->ResourceBarrier(4, freshToRead);
+        mCommandList->ResourceBarrier(2, freshToRead);
         const D3D12_CPU_DESCRIPTOR_HANDLE resolveTargets[5] = { compositeRtv, rtv(CloudHistoryRtv + 3 * write),
             rtv(CloudHistoryRtv + 3 * write + 1), rtv(CloudHistoryRtv + 3 * write + 2), skyTransportRtv };
         mCommandList->OMSetRenderTargets(5, resolveTargets, FALSE, nullptr);

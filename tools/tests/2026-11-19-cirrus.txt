@@ -1,0 +1,13 @@
+# Compare fast level flight, grazing views and descent through the cirrus layer.
+12 km - Cumulus continentaux | 12100.4 38.14450 103.53520 25 90 | 38.1445 128.5352
+10 km - Dans la couche haute | 10100.0 38.14450 103.53520 25 90 | 38.1445 128.5352
+14 km - Au-dessus de la couche haute | 14100.0 38.14450 103.53520 25 90 | 38.1445 128.5352
+12 km - Cirrus de l'Atlantique | 12641.0 50.44922 -59.23828 18 105 | 40 -30
+12 km - Cirrus tropicaux | 12000.0 2.28516 -74.70703 14 90 | 15 -50
+12 km - Passage de l'antiméridien | 12000.0 47.28516 179.95000 20 90 | 30 -150
+12 km - Près du pôle Nord | 13037.1 85.20000 167.00000 18 -40 | 65 145
+8 km - Vol dans les couches | 8100.1 38.14450 103.53520 35 90 | 38.1445 128.5352
+16 km - Continent | 16100.4 38.14450 103.53520 25 90 | 38.1445 128.5352
+40 km - Continent | 40101.5 38.14450 103.53520 25 90 | 38.1445 128.5352
+40 km - Au-dessus de l'océan | 40368.7 -41.66020 87.71480 20 0 | -41.6602 112.7148
+150 m - Nuages depuis le sol | 420.2 -41.00000 88.50000 -12 60 | -41.66 112.71

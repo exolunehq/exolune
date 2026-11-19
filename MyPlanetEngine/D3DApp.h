@@ -175,7 +175,7 @@ protected:
         double forward[4];
         double rightTan[4];  // w: the tangent of the half field of view
         double upTan[4];
-        double wind[4];      // xy: the wind's angle, sine and cosine; z: 1 for the reference quality (key C)
+        double wind[4];      // xy: wind sine/cosine; z: reference quality (C); w: share fresh tile rays with quads
         double sun[4];
         // The cloud temporal pass (CloudsTemporal.hlsli): to the previous camera, then this frame's tile pixel.
         float prevQ[3][4];

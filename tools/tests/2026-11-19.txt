@@ -1,0 +1,13 @@
+# Fast level flight, then turn and stop. Compare the cloud edges and the cadence.
+40 km - Cumulus continentaux | 40101.5 38.14450 103.53520 25 90 | 38.1445 128.5352
+16 km - Au-dessus de la couche | 16100.4 38.14450 103.53520 25 90 | 38.1445 128.5352
+24 km - Cumulus du continent | 24100.9 38.14450 103.53520 25 90 | 38.1445 128.5352
+80 km - Horizon continental | 80105.0 38.14450 103.53520 25 90 | 38.1445 128.5352
+40 km - Nuages au-dessus de l'océan | 40368.7 -41.66020 87.71480 20 0 | -41.6602 112.7148
+40 km - Couche polaire | 40000 76.00000 38.84770 15 0 | 70 63.8477
+40 km - Lumière rasante sur l'océan | 40368.7 -41.66020 87.71480 20 0 | -41.6602 -26.2852
+160 km - Horizon polaire | 160000 76.00000 38.84770 20 0 | 70 63.8477
+300 km - Nuages vus d'orbite | 300360.4 -41.66020 87.71480 80 0 | -41.6602 112.7148
+12 km - Passage au-dessus des cirrus | 12100.4 38.14450 103.53520 25 90 | 38.1445 128.5352
+8 km - Vol dans les couches | 8100.1 38.14450 103.53520 35 90 | 38.1445 128.5352
+440 km - Bord de la planète | 440272.3 30.00000 103.53520 25 0 | 38.1445 128.5352

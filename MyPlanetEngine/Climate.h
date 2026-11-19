@@ -50,9 +50,10 @@ namespace Climate
 
     // The clouds' weather map (Clouds.hlsli, t27; docs/spec-nuages.md), from the climate and the large forms: the ITCZ's
     // convection, the subtropical highs' clear skies, the stratocumulus off the cold coasts, the storm tracks' cyclones,
-    // the windward slopes' banks. RGBA8, latitude and longitude, row 0 north, x fastest, mip after mip down to 1 x 1: R the
-    // low clouds' coverage, G their family, 0 a sheet to 1 a cumulus, B the cirrus; from mip 2, R and B the maxima.
-    const uint32_t WeatherWidth = 1024, WeatherHeight = 512, WeatherMips = 11;
+    // the windward slopes' banks. RGBA8, latitude and longitude, row 0 north, x fastest. R is the
+    // low clouds' coverage, G their family, 0 a sheet to 1 a cumulus, B the cirrus. Mip-0 A packs the low and cirrus
+    // empty radii in texels, low nibble first.
+    const uint32_t WeatherWidth = 1024, WeatherHeight = 512, WeatherMips = 1;
     // cyclones, if given, receives each cyclone's latitude and longitude (degrees), scale (km) and stage, 0 a wave to 1 occluded.
     std::vector<uint8_t> Weather(const Map& climate, const Tectonics::Map& tectonics, uint32_t seed, double radiusKm,
                                  std::vector<float>* cyclones = nullptr);

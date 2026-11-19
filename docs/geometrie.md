@@ -2,6 +2,10 @@
 
 Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it.
 
+**Cloud weather bounds, 2026-11-19.** A culling bound for volumetric integration. A spherical weather rectangle can exclude a whole view or shadow segment using the filter support described in `spec-nuages.md`.
+
+**Cirrus traversal, 2026-11-19.** View and shadow integration use a 10–12 km shell derived from the world-space profile and its numerical margin. The profile defines the visible shape, as described in `spec-nuages.md`.
+
 **City earthworks, 2026-11-11:** a local replacement of the relief under a loaded city bank, not a planet-wide field. Level pads under buildings, plazas, field terraces and transport footings; banks of 1:2 on gentle ground and twice the ground's slope on steeper ground, up to 2:1, so they meet it within 24 m; entering over 2 m and rounded over 1.5 m of height; the natural relief untouched beyond. The materials classify a bank at 40 % of its slope: it keeps the ground it was cut from. The terrain mesh, pixels, screen relief, vegetation, horizons, walking and flight contact share the graded ground; erosion, the planet map and the city probe keep the natural relief. This replaces, inside the city's land grid, the 2026-11-07 rule that the planner never flattens; `spec-ville-procedurale.md#earthworks`.
 
 **City/main integration, 2026-11-09:** manufactured overlays and body-scoped contact only. Retain the current terrestrial erosion and lunar physical fields. Export city support after erosion initialization; keep terrestrial occupation, walking surfaces and moss out of airless body contact. An older placement bank retains its original terrain hash; merging code does not recook its geometry.

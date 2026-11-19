@@ -8,6 +8,12 @@
 
 **Cloud continuity review:** `tools/tests/2026-11-08-transition-nuages.txt` holds geography and sunlight fixed from 40,000 km to 500 km. The distant terrain blend must preserve the same cloud layers.
 
+For the **above-cloud flight review**, run `tools/lance.ps1 -Parcours tools/tests/2026-11-19.txt -DepartTest 1 -Camera altitude-fixe`. Use F1–F4 for the continental altitude sweep and F5–F12 for ocean, polar, orbital and layer checks. Compare cloud detail and cadence during straight flight, turning and stopping.
+
+For the **cirrus passage review**, use `tools/tests/2026-11-19-cirrus.txt` with `-DepartTest 1 -Camera altitude-fixe`. F1 starts at 12 km over the continent. F2 and F3 bracket the layer. F4–F7 cover the Atlantic, tropics, antimeridian and polar region.
+
+For the **fast Atlantic flight review**, use `tools/tests/2026-11-19-atlantique.txt` with `-DepartTest 1 -Camera altitude-fixe`. F1 starts over the Atlantic. F2–F5 cover the other 12 km views. F6–F8 cross the layers.
+
 **Combined handoff:** `tools/tests/2026-11-08-lunes-et-nuages.txt`, with `-Camera libre -DepartTest 1 -Resolution fenetre`; F1–F6 visit the three moons and F7–F12 cross the cloud transition.
 
 **Direct exposure review:** `tools/tests/2026-11-07-exposition-sans-lissage.txt`. F1 returns just before the reported orbital sunrise; F2 reveals the Sun. The remaining views cover orbit, atmospheric day/night and a lunar approach. The temporal filter was reverted; the previous orbital luminosity corrections remain active.

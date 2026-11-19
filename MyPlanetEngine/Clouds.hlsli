@@ -20,19 +20,19 @@ cbuffer CloudFrame : register(b1)
     double4 cloudForward;
     double4 cloudRightTan;
     double4 cloudUpTan;
-    double4 cloudWind;     // xy: the wind's angle, sine and cosine; z: 1 for the reference quality (key C)
+    double4 cloudWind;     // xy: wind sine/cosine; z: reference quality (C); w: share fresh tile rays with quads
     double4 cloudSun;
     // The cloud temporal pass (CloudsTemporal.hlsli): the previous camera's right, up and forward rows, w its
     // offset, applied to a current camera-relative offset (km); for a point carried by the weather, then fixed to the ground.
     float4 cloudPrevQ[3];
     float4 cloudPrevGround[3];
-    float4 cloudTemporal; // xy: the pixel traced in each 4x4 tile this frame; z: 1 when the history is valid; w: reserved
+    float4 cloudTemporal; // xy: fresh 4x4 pixel; z: valid history; w: quad tracing off (0), near (1) or fast (2)
 };
 
 Texture3D<float4> cloudShape : register(t24);    // R: low shape; G: cirrus fibres; B: twice the shape's subtexel sigma, computed at upload
 Texture3D<float4> cloudDetail : register(t25);   // R: erosion; B: twice its subtexel sigma, computed at upload
 Texture3D<float4> cloudProfiles : register(t26); // the vertical profiles, by kind and height
-Texture2D<float4> cloudWeather : register(t27);  // the planet's weather: R coverage, G kind, B cirrus
+Texture2D<float4> cloudWeather : register(t27);  // R coverage, G kind, B cirrus, mip-0 A packed empty radii
 SamplerState cloudWeatherSampler : register(s3);
 
 // The clouds' diagnostic views (MYPLANETENGINE_VIEW, D3DApp): their opacity, drawn by CloudComposite in both passes; the
@@ -50,6 +50,21 @@ static const float CLOUD_LOW_BOTTOM_KM = 2.0;
 static const float CLOUD_LOW_TOP_KM = 8.0;
 static const float CLOUD_CIRRUS_BOTTOM_KM = 9.0;
 static const float CLOUD_CIRRUS_TOP_KM = 13.0;
+static const float CLOUD_CIRRUS_CENTER_KM = 11.0;
+static const float2 CLOUD_CIRRUS_CENTER_WAVES_KM = float2(0.25, 0.10);
+static const float2 CLOUD_CIRRUS_HALF_THICKNESS_KM = float2(0.475, 0.125);
+static const float2 CLOUD_CIRRUS_CENTER_WAVE_EAST = float2(0.055, 0.025);
+static const float2 CLOUD_CIRRUS_CENTER_WAVE_NORTH = float2(0.08, -0.06);
+static const float2 CLOUD_CIRRUS_THICKNESS_WAVE = float2(0.06, -0.075);
+static const float2 CLOUD_CIRRUS_ENVELOPE_SLOPE = float2(
+    dot(CLOUD_CIRRUS_CENTER_WAVES_KM, abs(CLOUD_CIRRUS_CENTER_WAVE_EAST)),
+    dot(CLOUD_CIRRUS_CENTER_WAVES_KM, abs(CLOUD_CIRRUS_CENTER_WAVE_NORTH)))
+    + CLOUD_CIRRUS_HALF_THICKNESS_KM.y * abs(CLOUD_CIRRUS_THICKNESS_WAVE);
+// Bound the wavy profile for view and shadow marches, with 50 m for floating-point reconstruction.
+static const float CLOUD_CIRRUS_TRACE_EXTENT_KM = 0.05 + CLOUD_CIRRUS_CENTER_WAVES_KM.x
+    + CLOUD_CIRRUS_CENTER_WAVES_KM.y + CLOUD_CIRRUS_HALF_THICKNESS_KM.x + CLOUD_CIRRUS_HALF_THICKNESS_KM.y;
+static const float CLOUD_CIRRUS_TRACE_BOTTOM_KM = CLOUD_CIRRUS_CENTER_KM - CLOUD_CIRRUS_TRACE_EXTENT_KM;
+static const float CLOUD_CIRRUS_TRACE_TOP_KM = CLOUD_CIRRUS_CENTER_KM + CLOUD_CIRRUS_TRACE_EXTENT_KM;
 static const float CLOUD_CIRRUS_DENSITY_SCALE = 0.018;
 // Multiple scattering and whole-cloud reflectance, fitted to Monte Carlo slabs by tools/calage_orbite.py nuages.
 // The source falls as a slab's diffuse transmission toward the sun, 1 / (1 + b tau_s) (two-stream): steep near a lit face,
@@ -225,11 +240,46 @@ float CloudRemap(float value, float oldMin, float oldMax, float newMin, float ne
 
 
 
-float2 CloudWeatherUv(float3 pointOffsetKm, CloudContext context)
+float2 CloudWeatherUv(float3 up)
 {
-    const float3 up = normalize(context.upAnchor + pointOffsetKm / context.radiusAnchorKm);
     return float2(atan2(up.z, up.x) * (1.0 / (2.0 * PI)) + 0.5,
                   acos(clamp(up.y, -1.0, 1.0)) * (1.0 / PI));
+}
+
+float2 CloudWeatherUv(float3 pointOffsetKm, CloudContext context)
+{
+    return CloudWeatherUv(normalize(context.upAnchor + pointOffsetKm / context.radiusAnchorKm));
+}
+
+// Radius 1 covers the owning cell. Inset the certified rectangle by a quarter texel for UV reconstruction.
+float CloudEmptyWeatherBoundaryKm(float2 uv, bool cirrus, float longitudeRadiusKm, float radiusKm)
+{
+    const float2 texel = float2(frac(uv.x), saturate(uv.y)) * CLOUD_WEATHER_SIZE;
+    const int2 cell = min(int2(texel), int2(CLOUD_WEATHER_SIZE) - 1);
+    const uint packed = (uint)round(255.0 * cloudWeather.Load(int3(cell, 0)).a);
+    const uint emptyRadius = cirrus ? packed >> 4u : packed & 15u;
+    const float2 within = texel - float2(cell);
+    const float2 edgeTexels = min(within, 1.0 - within) + (float)emptyRadius - 1.25;
+    // Distance to a meridian's plane or a parallel's cone is reach times sin(delta).
+    // The largest delta is below 0.1 rad, so 0.99 * delta is a lower bound for the sine.
+    const float2 edgeKm = 0.99 * edgeTexels * float2(longitudeRadiusKm * (2.0 * PI), radiusKm * PI)
+        / CLOUD_WEATHER_SIZE;
+    return min(edgeKm.x, edgeKm.y);
+}
+
+// Reject a whole shell segment when its enclosing ball cannot leave a certified empty weather rectangle.
+bool CloudEmptySegment(double3 entryQKm, double3 directionQ, double lengthKm)
+{
+    const double halfKm = 0.5l * lengthKm;
+    const float3 middleQKm = (float3)(entryQKm + directionQ * halfKm);
+    const float longitudeRadiusKm = length(middleQKm.xz);
+    const float paddedHalfKm = (float)halfKm + 0.05;
+    if (longitudeRadiusKm <= paddedHalfKm)
+        return false;
+    const float radiusKm = length(middleQKm);
+    const bool cirrus = radiusKm > (float)CLOUD_PLANET_RADIUS_KM + CLOUD_CIRRUS_BOTTOM_KM;
+    const float2 uv = CloudWeatherUv(middleQKm / radiusKm);
+    return CloudEmptyWeatherBoundaryKm(uv, cirrus, longitudeRadiusKm, radiusKm) > paddedHalfKm;
 }
 
 float4 CloudSampleWeather(float3 pointOffsetKm, CloudContext context)
@@ -257,52 +307,14 @@ float4 CloudSampleWeather(float3 pointOffsetKm, CloudContext context)
     return saturate(lerp(lerp(s00, s10, g1.x), lerp(s01, s11, g1.x), g1.y));
 }
 
-float CloudEmptyWeatherDistance(float2 uv, bool cirrus)
+float CloudEmptyWeatherDistance(float3 pointOffsetKm, CloudContext context, bool cirrus)
 {
-    const float2 mapUv = float2(frac(uv.x), saturate(uv.y));
-    // Keep the B-spline's support, two texels of mip 0, inside the max-presence cell.
-    // U wraps at the seam and V clamps at the poles.
-    const float2 filterMarginUv = 2.0 / CLOUD_WEATHER_SIZE;
-
-    [unroll]
-    for (int mip = 7; mip >= 3; --mip)
-    {
-        const int width = (int)(1024u >> (uint)mip);
-        const int height = (int)(512u >> (uint)mip);
-        int2 cell = int2(floor(mapUv * float2((float)width, (float)height)));
-        cell = clamp(cell, int2(0, 0), int2(width - 1, height - 1));
-        const float2 inverseSize = 1.0 / float2((float)width, (float)height);
-        const float2 safeLower = (float2)cell * inverseSize + filterMarginUv;
-        const float2 safeUpper = (float2)(cell + 1) * inverseSize - filterMarginUv;
-        if (any(mapUv <= safeLower) || any(mapUv >= safeUpper))
-            continue;
-
-        const float4 cellWeather = cloudWeather.Load(int3(cell, mip));
-        const float cellCoverage = cirrus ? cellWeather.b : cellWeather.r;
-        // Empty for the density itself: no cirrus, low coverage at most 0.03 (CloudLowDensity).
-        if (cellCoverage > (cirrus ? 0.0 : 0.03))
-            continue;
-
-        // Cell edges are radial longitude planes and latitude cones. These
-        // distances use the minimum planetary radius, so a ray cannot leave
-        // the empty spherical cell before the returned step.
-        const float latitude = (0.5 - mapUv.y) * PI;
-        const float longitudeScaleKm = (float)CLOUD_PLANET_RADIUS_KM
-            * max(cos(latitude), 0.0);
-        const float westDistanceKm = longitudeScaleKm
-            * abs(sin(2.0 * PI * (mapUv.x - safeLower.x)));
-        const float eastDistanceKm = longitudeScaleKm
-            * abs(sin(2.0 * PI * (safeUpper.x - mapUv.x)));
-        const float northDistanceKm = (float)CLOUD_PLANET_RADIUS_KM
-            * abs(sin(PI * (mapUv.y - safeLower.y)));
-        const float southDistanceKm = (float)CLOUD_PLANET_RADIUS_KM
-            * abs(sin(PI * (safeUpper.y - mapUv.y)));
-        const float boundaryDistanceKm = min(min(westDistanceKm, eastDistanceKm),
-            min(northDistanceKm, southDistanceKm));
-        return min(50.0, 0.8 * boundaryDistanceKm);
-    }
-
-    return 0.0;
+    const float longitudeRadiusKm = length(context.upAnchor.xz * context.radiusAnchorKm + pointOffsetKm.xz);
+    if (longitudeRadiusKm <= 0.05)
+        return 0.0;
+    const float2 uv = CloudWeatherUv(pointOffsetKm, context);
+    const float boundaryKm = CloudEmptyWeatherBoundaryKm(uv, cirrus, longitudeRadiusKm, (float)CLOUD_PLANET_RADIUS_KM);
+    return clamp(0.8 * boundaryKm - 0.05, 0.0, 50.0);
 }
 
 struct CloudDensitySample
@@ -450,20 +462,24 @@ CloudDensitySample CloudLowDensity(float3 pointOffsetKm, CloudContext context,
 }
 
 // localKm: the point in the cirrus' east and north frame.
-float CloudCirrusHeightEnvelope(float2 localKm, float altitudeKm)
+float CloudCirrusHeightEnvelope(float2 localKm, float altitudeKm, out float clearanceKm)
 {
-    const float centerKm = 11.0
-        + 0.25 * sin(0.055 * localKm.x + 0.08 * localKm.y)
-        + 0.10 * sin(0.025 * localKm.x - 0.06 * localKm.y + 1.1);
-    const float halfThicknessKm = 0.475
-        + 0.125 * sin(0.06 * localKm.x - 0.075 * localKm.y + 0.7);
-    const float normalizedHeight = abs(altitudeKm - centerKm) / halfThicknessKm;
+    const float2 phase = CLOUD_CIRRUS_CENTER_WAVE_EAST * localKm.x + CLOUD_CIRRUS_CENTER_WAVE_NORTH * localKm.y;
+    const float centerKm = CLOUD_CIRRUS_CENTER_KM
+        + CLOUD_CIRRUS_CENTER_WAVES_KM.x * sin(phase.x)
+        + CLOUD_CIRRUS_CENTER_WAVES_KM.y * sin(phase.y + 1.1);
+    const float halfThicknessKm = CLOUD_CIRRUS_HALF_THICKNESS_KM.x
+        + CLOUD_CIRRUS_HALF_THICKNESS_KM.y * sin(dot(CLOUD_CIRRUS_THICKNESS_WAVE, localKm) + 0.7);
+    const float distanceKm = abs(altitudeKm - centerKm);
+    clearanceKm = distanceKm - halfThicknessKm;
+    const float normalizedHeight = distanceKm / halfThicknessKm;
     return 1.0 - smoothstep(0.15, 1.0, normalizedHeight);
 }
 
 float CloudCirrusDensity(float3 pointOffsetKm, CloudContext context,
-                         float macroLod, float altitudeKm, float4 weather)
+                         float macroLod, float altitudeKm, float4 weather, out float clearanceKm)
 {
+    clearanceKm = 0.0;
     if (altitudeKm <= CLOUD_CIRRUS_BOTTOM_KM
         || altitudeKm >= CLOUD_CIRRUS_TOP_KM)
         return 0.0;
@@ -474,7 +490,9 @@ float CloudCirrusDensity(float3 pointOffsetKm, CloudContext context,
     const float2 localKm = context.cirrusFrameKmBase + float2(
         dot((float3)CLOUD_CIRRUS_EAST_Q, pointOffsetKm),
         dot((float3)CLOUD_CIRRUS_NORTH_Q, pointOffsetKm));
-    const float heightEnvelope = CloudCirrusHeightEnvelope(localKm, altitudeKm);
+    const float heightEnvelope = CloudCirrusHeightEnvelope(localKm, altitudeKm, clearanceKm);
+    if (heightEnvelope <= 0.0)
+        return 0.0;
     const float northShearKm = 0.35 * sin(6.28318530718 * (localKm.x / 19.0 + altitudeKm / 8.0))
         + 0.15 * sin(6.28318530718 * (localKm.x / 37.0 - localKm.y / 32.0
             + altitudeKm / 10.0 + 0.17));
@@ -497,7 +515,8 @@ CloudDensitySample CloudDensity(float3 pointOffsetKm, CloudContext context,
     {
         CloudDensitySample result;
         result.fraction = 1.0; // thin cirrus retain their mean density
-        result.density = CloudCirrusDensity(pointOffsetKm, context, macroLod, altitudeKm, weather);
+        float unused;
+        result.density = CloudCirrusDensity(pointOffsetKm, context, macroLod, altitudeKm, weather, unused);
         return result;
     }
     return CloudLowDensity(pointOffsetKm, context, detailLod, macroLod, inCloud, weather, altitudeKm, profileSpanKm);
@@ -505,8 +524,9 @@ CloudDensitySample CloudDensity(float3 pointOffsetKm, CloudContext context,
 
 CloudDensitySample CloudDensity(float3 pointOffsetKm, CloudContext context,
                    float detailLod, float macroLod, bool inCloud,
-                   out float altitudeKm, out float4 weather, out bool cirrus)
+                   out float altitudeKm, out float4 weather, out bool cirrus, out float clearanceKm)
 {
+    clearanceKm = 0.0;
     altitudeKm = CloudAltitude(pointOffsetKm, context);
     cirrus = altitudeKm > CLOUD_CIRRUS_BOTTOM_KM
         && altitudeKm < CLOUD_CIRRUS_TOP_KM;
@@ -516,7 +536,7 @@ CloudDensitySample CloudDensity(float3 pointOffsetKm, CloudContext context,
         weather = CloudSampleWeather(pointOffsetKm, context);
         CloudDensitySample result;
         result.fraction = 1.0; // thin cirrus retain their mean density
-        result.density = CloudCirrusDensity(pointOffsetKm, context, macroLod, altitudeKm, weather);
+        result.density = CloudCirrusDensity(pointOffsetKm, context, macroLod, altitudeKm, weather, clearanceKm);
         return result;
     }
     return CloudLowDensity(pointOffsetKm, context, detailLod, macroLod, inCloud, altitudeKm, weather);
@@ -527,8 +547,9 @@ float CloudMeanDensity(float3 pointOffsetKm, CloudContext context,
                        float detailLod, float macroLod, bool inCloud,
                        out float altitudeKm, out float4 weather, out bool cirrus)
 {
+    float unused;
     const CloudDensitySample sample = CloudDensity(pointOffsetKm, context, detailLod, macroLod,
-        inCloud, altitudeKm, weather, cirrus);
+        inCloud, altitudeKm, weather, cirrus, unused);
     return sample.fraction * sample.density;
 }
 
@@ -697,6 +718,8 @@ void CloudMarch(double3 originQKm, double3 viewQ, double3 sunQ,
         return;
 
     const double3 entryQKm = originQKm + viewQ * beginKm;
+    if (CloudEmptySegment(entryQKm, viewQ, endKm - beginKm))
+        return;
     const CloudContext context = CloudPrepareContext(entryQKm, viewQ, sunQ);
     const float segmentKm = (float)(endKm - beginKm);
     const float begin = (float)beginKm;
@@ -704,6 +727,12 @@ void CloudMarch(double3 originQKm, double3 viewQ, double3 sunQ,
     const float nearStepKm = referenceQuality ? 0.024 : 0.048;
     const float farStepKm = referenceQuality ? 0.16 : 0.24;
     const float pixelAngle = 2.0 * (float)cloudUpTan.w / max(size.y, 1.0);
+    const bool filterCirrusStep = !referenceQuality
+        && CloudAltitude(context.entryOffsetKm, context) > CLOUD_CIRRUS_BOTTOM_KM;
+    const float eastRate = abs(dot(context.viewQ, (float3)CLOUD_CIRRUS_EAST_Q));
+    const float northRate = abs(dot(context.viewQ, (float3)CLOUD_CIRRUS_NORTH_Q));
+    const float3 absView = abs(context.viewQ);
+    const float detailTexelRate = CLOUD_DETAIL_TEXELS_PER_KM * max(absView.x, max(absView.y, absView.z));
     float traveledKm = 0.0;
     float opticalStepKm = 1.0e9;
     bool retryingStep = false;
@@ -738,21 +767,61 @@ void CloudMarch(double3 originQKm, double3 viewQ, double3 sunQ,
             columnT = 1.0;
             columnLight = 0.0;
         }
-        const float stepKm = min(min(min(max(0.5 * footprintKm, nearStepKm), farStepKm / max(verticalRate, 0.02)),
+        float footprintStepKm = max(0.5 * footprintKm, nearStepKm);
+        const float detailLod = clamp(log2(max(CLOUD_BAND_LIMIT * footprintKm * CLOUD_DETAIL_TEXELS_PER_KM, 1.0)), 0.0, 5.0);
+        if (filterCirrusStep)
+        {
+            // Bound the two shear waves in CloudCirrusDensity and the altitude change across a 240 m step.
+            const float verticalBound = verticalRate + 0.001;
+            const float northBound = 1.03 * northRate + 0.142 * eastRate + 0.370 * verticalBound;
+            // The texture spans 64, 16 and 8 km on its three axes. Resolve the finer of the two blended mips.
+            const float texelRate = max(max(2.0 * eastRate, 8.0 * northBound), 16.0 * verticalBound);
+            const float mip = clamp(log2(CLOUD_BAND_LIMIT * footprintKm * CLOUD_CIRRUS_SHAPE_TEXELS_PER_KM), 0.0, 7.0);
+            const float halfTexel = 0.5 * exp2(floor(mip));
+            // Preserve vertical profile resolution as well as the filtered fibres.
+            const float cirrusStepKm = min(min(halfTexel / texelRate, farStepKm), nearStepKm / verticalBound);
+            footprintStepKm = max(footprintStepKm, cirrusStepKm);
+        }
+        else if (!referenceQuality)
+        {
+            // Use half the scale of the sampled erosion LOD along the fastest texture axis.
+            const float filteredStepKm = 0.5 * exp2(detailLod) / detailTexelRate;
+            const float profileStepKm = 0.072 / max(verticalRate + 0.001, 0.02);
+            const float extendedStepKm = min(min(filteredStepKm, 0.50), profileStepKm);
+            // Keep the fine step close up, then extend it through the same ray's distant volume.
+            const float extension = saturate((centerDistanceKm - 0.50) * 0.50);
+            footprintStepKm += extension * max(extendedStepKm - footprintStepKm, 0.0);
+        }
+        const float stepKm = min(min(min(footprintStepKm, farStepKm / max(verticalRate, 0.02)),
             segmentKm - traveledKm), opticalStepKm);
         const float sampleDistanceKm = traveledKm + 0.5 * stepKm;
         const float3 pointOffsetKm = context.entryOffsetKm + context.viewQ * sampleDistanceKm;
         float altitudeKm;
         float4 weather;
         bool cirrus;
-        const float detailLod = clamp(log2(max(CLOUD_BAND_LIMIT * footprintKm * CLOUD_DETAIL_TEXELS_PER_KM, 1.0)), 0.0, 5.0);
         const float lodAltitudeKm = CloudAltitude(pointOffsetKm, context);
         const float shapeTexelsPerKm = lodAltitudeKm >= CLOUD_CIRRUS_BOTTOM_KM
             ? CLOUD_CIRRUS_SHAPE_TEXELS_PER_KM
             : CLOUD_SHAPE_TEXELS_PER_KM;
         const float macroLod = clamp(log2(max(CLOUD_BAND_LIMIT * footprintKm * shapeTexelsPerKm, 1.0)), 0.0, 7.0);
+        float clearanceKm;
         const CloudDensitySample sample = CloudDensity(pointOffsetKm, context, detailLod,
-            macroLod, inCloud, altitudeKm, weather, cirrus);
+            macroLod, inCloud, altitudeKm, weather, cirrus, clearanceKm);
+        if (filterCirrusStep && clearanceKm > 0.002 && stepKm < 4.0)
+        {
+            // Bound change in the support gap by the slope of the height envelope and the radial rate.
+            // Over less than 6 km from the start, curvature adds less than 0.001 to the radial rate.
+            const float gapRate = verticalRate + 0.001 + dot(CLOUD_CIRRUS_ENVELOPE_SLOPE, float2(eastRate, northRate));
+            const float skipKm = min(min((clearanceKm - 0.002) / gapRate, 4.0), segmentKm - sampleDistanceKm);
+            if (skipKm > stepKm)
+            {
+                opticalStepKm = 1.0e9;
+                retryingStep = false;
+                inCloud = false;
+                traveledKm = sampleDistanceKm + skipKm;
+                continue;
+            }
+        }
         const bool columnWidened = sample.fraction > columnFraction + 0.02;
         const float nextFraction = columnWidened ? sample.fraction : columnFraction;
         const float density = nextFraction > 0.0
@@ -874,8 +943,7 @@ void CloudMarch(double3 originQKm, double3 viewQ, double3 sunQ,
             && altitudeKm < (float)CLOUD_SHELL_TOP_KM
             && weatherCoverage <= emptyCoverageThreshold)
         {
-            const float2 weatherUv = CloudWeatherUv(pointOffsetKm, context);
-            const float emptyDistanceKm = CloudEmptyWeatherDistance(weatherUv, cirrus);
+            const float emptyDistanceKm = CloudEmptyWeatherDistance(pointOffsetKm, context, cirrus);
             if (emptyDistanceKm > stepKm)
             {
                 const float skipKm = min(emptyDistanceKm, segmentKm - sampleDistanceKm);
@@ -951,7 +1019,7 @@ CloudTraceResult CloudTraceRay(double3 originQKm, double3 viewQ, double3 sunQ,
 
         CloudSegment cirrusFirst, cirrusSecond;
         const uint cirrusCount = CloudLayerSegments(originQKm, viewQ,
-            CLOUD_CIRRUS_BOTTOM_KM, CLOUD_CIRRUS_TOP_KM,
+            CLOUD_CIRRUS_TRACE_BOTTOM_KM, CLOUD_CIRRUS_TRACE_TOP_KM,
             localHit, localNear, localFar, rayEnd, cirrusFirst, cirrusSecond);
         if (cirrusCount > 0u)
         {
@@ -1016,6 +1084,8 @@ float CloudShadowSegment(double3 receiverQKm, double3 sunQ,
         return 1.0;
 
     const double3 entryQKm = receiverQKm + sunQ * beginKm;
+    if (CloudEmptySegment(entryQKm, sunQ, endKm - beginKm))
+        return 1.0;
     const CloudContext context = CloudPrepareContext(entryQKm, sunQ, sunQ);
     const float segmentKm = (float)(endKm - beginKm);
     const float stepKm = max(CLOUD_SHADOW_MIN_STEP_KM,
@@ -1055,8 +1125,7 @@ float CloudShadowSegment(double3 receiverQKm, double3 sunQ,
             const float emptyThreshold = cirrus ? 0.0 : 0.03;
             if (coverage <= emptyThreshold)
             {
-                const float2 weatherUv = CloudWeatherUv(pointOffsetKm, context);
-                const float emptyDistanceKm = CloudEmptyWeatherDistance(weatherUv, cirrus);
+                const float emptyDistanceKm = CloudEmptyWeatherDistance(pointOffsetKm, context, cirrus);
                 if (emptyDistanceKm > step)
                 {
                     traveledKm = sampleDistanceKm
@@ -1095,7 +1164,7 @@ float CloudTraceShadow(double3 receiverQKm, double3 sunQ)
 
     CloudSegment cirrusFirst, cirrusSecond;
     const uint cirrusCount = CloudLayerSegments(receiverQKm, sunQ,
-        CLOUD_CIRRUS_BOTTOM_KM, CLOUD_CIRRUS_TOP_KM,
+        CLOUD_CIRRUS_TRACE_BOTTOM_KM, CLOUD_CIRRUS_TRACE_TOP_KM,
         localHit, localNear, localFar, 1.0e300l, cirrusFirst, cirrusSecond);
     if (cirrusCount > 0u)
     {

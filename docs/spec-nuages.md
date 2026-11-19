@@ -11,16 +11,20 @@
 
 ## The model
 
-**Two layers, in a shell of 2 to 13 km altitude.**
+**Two layers inside a conservative temporal shell of 2 to 13 km altitude.**
 - **Low clouds,** from 2 to 8 km: cumulus and sheets.
-- **The cirrus,** from 9 to 13 km: an envelope of 0,35 to 0,6 km of half thickness, centered towards 11 km and wavy.
+- **Cirrus density** follows a wavy profile around 11 km. The centre varies by up to 350 m and the half thickness by 350 to 600 m.
+- **Cirrus rays and shadows** march within 10 to 12 km. The profile has support from 10.05 to 11.95 km, with 50 m of margin at each end for floating-point reconstruction. The light quadrature evaluates its own density samples.
 - **The radius of the planet:** 6 378 km.
 
 **The weather map covers the entire sphere,** in 1 024 × 512; U the longitude, V the latitude, north at the top. It is calculated at startup on climate (next section).
 - **R:** the portion of the sky covered by low clouds, up to 0,28; above, their thickness, up to 0,9; below 0,03, no clouds.
 - **G:** their family, 0 the table, 1 the cumulus; between the two, the thick clouds of the fronts.
 - **B:** cirrus, 0,286 at most: anvils, jet currents, shields of hot fronts.
-- **It is read at the mip 0,** about 39 km at the equator, in cubic B-spline: the part covered the sheet of a steep function, and the bilinear interpolation drew squares from 80 to 160 km. It carries its shapes up to 80 km. Its mips 2 and more keep the maximum of R and B, to prove the vacuum; its margin covers the two texels of the filter.
+- **A at mip 0** packs the low and cirrus clearances in two nibbles. Each value is the capped distance to occupied weather texels on the wrapped grid, minus two texels for the cubic filter. Low clouds treat R through 7/255 as empty. Cirrus require zero B.
+- **R, G and B** are read with a cubic B-spline at about 39 km per texel at the equator. The weather texture has one level.
+
+**Whole-segment rejection** uses the mip-0 clearance before preparing a view or shadow march. Longitude wraps and latitude clamps. Radius one covers the owning cell. The shader measures the distance from the segment midpoint to the rectangle's meridian planes and latitude cones. It insets the rectangle by a quarter texel and adds 50 m to the segment's enclosing ball for numerical reconstruction. A certified empty segment contributes zero light and unit transmission.
 
 ## The weather map, drawn from the climate
 
@@ -120,7 +124,10 @@
 **The march:**
 - **The segments** of each layer are sorted along the radius, stopped at the ground and the ground of the planet.
 - **Pitch:** half of the pixel footprint, 48 m at least, 240 m of height at most.
-- **The void jumps:** in an empty map cell at mips 3 to 7, up to 80 % of the distance to its spherical edges, 50 km at most.
+- **Empty weather jumps** use the same mip-0 rectangle as whole-segment rejection. The advance is capped at 50 km and at 80% of the spherical boundary distance minus the 50 m margin.
+- **Eco low clouds** ramp in the view-step extension between 500 m and 2.5 km from the camera. The extension follows half the filtered erosion LOD's scale along the fastest texture axis. It advances up to 500 m along the ray and 72 m in altitude.
+- **Eco cirrus** can extend the view step to half a texel along the fastest texture axis at the finer of the two sampled mips. The bound includes the shear of the fibres. The extension also caps the step at 240 m along the ray and 48 m in altitude. The optical step limit still applies.
+- **Eco cirrus profile jumps** skip up to 4 km where the distance outside the envelope exceeds the largest change possible in that interval. Use the envelope's wave slopes and the ray's radial rate with curvature and rounding margins.
 - **An illuminated step does not exceed an optical thickness of 1** as long as the column is transparent; opaque, it takes the geometric step.
 - **The walk stops** when the pixel transmission drops below 0,003.
 - **Quality Reference,** key C: not 24 m, 160 m of altitude by step.
@@ -138,10 +145,10 @@
 **A full screen pass follows the scene,** in the composite image (`D3DApp::Draw`, step 3). It reads the image HDR, its distance in alpha, and the solar share.
 
 **The default time pass** (`CloudsTemporal.hlsli`; `optimisation.md`, rounds 1, 7 and 8):
-- **The trace, `PSCloudTrace`:** one pixel per tile 4 × 4 and per frame, in Bayer order; each pixel has its trace in 16 frames. It writes light, transmittance, distance, sound standard deviation, shadow and distant weight.
-- **The half-track, `PSCloudTraceHalf`,** under 14 km altitude only: one pixel per square 2 × 2, where the history of one pixel of the square has slipped.
-- **The resolution, `PSCloudResolve`,** at full resolution. It takes the fresh trace; failing, the reprojected history, the clouds in the reference frame of the weather, their shadow on the ground; failing, the squares of the half-trace; failing, it draws the pixel. She composes the air and writes the following history.
-- **A pixel traces** beyond 1 pixel drift, 1° rotation of view direction per frame, or 20 % distance change.
+- **`PSCloudTraceHalf`** traces one fresh ray per 2 × 2 quad where the history has drifted. The near path runs up to 14 km when history is valid. Above 14 km, Eco enables it when weather-relative translation at the temporal shell's nearest distance exceeds three centre-view pixels.
+- **`PSCloudTrace`** supplies one fresh pixel per 4 × 4 tile each frame, with its surface shadow. In Eco above the low layer, sharing starts when weather-relative translation at the low layer's bottom exceeds three centre-view pixels. The tile and quad offsets then select the same ray so the tile can copy its light, transmittance, depth and spread. The tile still visits every pixel over 16 frames.
+- **`PSCloudResolve`** uses each pixel's fresh trace or reprojected history when available. A drifted pixel can use compatible fresh quads. Above 14 km, a ray clipped by a surface requires the complete compatible interpolation footprint. A pixel without suitable data traces its own ray. The resolve composes the air and stores the next history at full resolution.
+- **History is rejected** beyond 1 pixel drift, 1° rotation of view direction per frame, or about 20% change in distance.
 - **Two rays share their clouds when their surfaces cut none of them:** the history and the fills compare the ray ends as the clouds see them, 0 like the sky where the ray has left the low layer through its bottom before the surface (`CloudTemporalCloudEnd`). Compared as surfaces, toward the horizon where the sea's distance changes by 4 % a row, they refused their neighbours above and below: in a fast flight, a line fixed on the screen across the clouds (2026-11-02).
 - **The history starts again** at a jump of the camera, the change of quality, the lighting of clouds, and when the sun turns more than 1°.
 
@@ -157,16 +164,16 @@
 
 ## The b1, `CloudFrame`
 
-**304 bytes, identical in C++ (`D3DApp.h`) and in HLSL (`Clouds.hlsli`),** held together by a `static_assert`. `D3DApp::Update` fills it.
+**304 bytes, identical in C++ (`D3DApp.h`) and HLSL (`Clouds.hlsli`).** `D3DApp::Draw` fills it before submitting the cloud passes.
 
 | Champ | Contents |
 |---|---|
 |  `cloudCameraKm`  | the camera in the planet reference frame, km, double; w: 1 with clouds, key N |
 |  `cloudForward`, `cloudRightTan`, `cloudUpTan`  | the axes of view, including the rolling of the ship; w: the tangents of the field |
-|  `cloudWind`  | xy: sinus and cosinus of the wind angle; z: 1 in quality Reference |
+|  `cloudWind`  | xy: wind sine and cosine, z: Reference quality, w: share fresh rays with quads |
 |  `cloudSun`  | the direction of the sun |
 |  `cloudPrevQ[3]`, `cloudPrevGround[3]`  | the previous camera, for reprojection, in the reference frame of the weather then the ground |
-|  `cloudTemporal`  | xy: the pixel plotted from the tile; z: 1 if history is true; w: reserved |
+|  `cloudTemporal`  | xy: Bayer phase for the fresh tile and quad offsets, z: valid history, w: quad trace mode (0 off, 1 near, 2 fast) |
 
 ## Resources
 
@@ -177,7 +184,7 @@
 | t24 | shape and fibers, `shape128` ; B: the standard deviation of the shape under the texel, calculated at loading | RGBA8, 128³, 8 mips |
 | t25 | erosion, `detail32` B = its standard deviation below the texel, calculated at loading | RGBA8, 32³, 6 mips |
 | t26 | profiles, `weather64`  | RGBA8, 64³, 7 mips; mip 0's slice z, the mean over z texels of height |
-| t27 | weather map, calculated at startup (`Climate::Weather`) | RGBA8, 1 024 × 512, 11 mips |
+| t27 | weather map, calculated at startup (`Climate::Weather`) | RGBA8, 1 024 × 512, one level |
 | s2, s3 | the noise functions, in repetition; the map | Linear |
 | t44, t45 | fresh tiles, a texel by 4 × 4 | RGBA16F ; RGBA32F |
 | t46 to t48 | read history: light, data, standard deviation and drift | RGBA16F; RGBA32F; RG16F, full screen |
@@ -263,10 +270,7 @@
 - **A line at the horizon behind the clouds, in a fast flight:** corrected on 2026-11-02, the clouds' end (above, the passes). Measured against the single pass, flying fast toward a cumulus wall at 3,7 km: the row step at the horizon 0,54 → 0,08 in sRGB levels.
 - **Trails approaching a cumulus:** near the ground, moving towards a cumulus then retreating, checkered trails 4 × 4 around its silhouette, for a few images. Suppose cause: the edge moves forward in the sky without measurable drift; the history is kept while the fresh trace contradicts it.
 
-**The cost:**
-- **Since 2026-11-02, the light per point and the temporal pass tested on the clouds,** against `bfa6113`, 1920 × 1080, clouds and air: still, 2,0 → 2,1 ms from orbit, 4,3 → 5,0 at 40 km, 9,8 → 11,0 at 8 km, 4,9 → 5,3 at 3,7 km, 7,8 → 8,2 at 2 km; in a fast flight, 22 → 25 to 28 ms at 40 km, 27 → 32 at 8 km, 14,8 → 17 at 3,7 km, 17,9 → 20,2 at 2 km. Accepted by the user to be resumed in an optimization phase: no optimization was removed, the cost is the three samples per lit step and the pixels traced again rather than wrongly filled (`spec-rendu-orbite.md`).
-- **Beyond ×5 in orbit,** the pass costs the single pass, 10 to 38 ms: each cloud is seen at an angle that rotates too fast.
-- **Above the sea,** the racing rays walk the low layer without proving anything of emptiness: 4,6 ms to round 1.
+**Fast above-cloud flight** remains limited by marching and lighting. A pixel that exhausts its history and compatible neighbours pays for an individual ray trace. See the [Atlantic benchmark procedure](optimisation.md#fast-flight-over-the-atlantic) and [planet journal](journal-planete.md).
 
 **Limitations of the model:**
 - **The map** has a texel of about 39 km at the equator: no finer regional variation.

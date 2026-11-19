@@ -5,6 +5,30 @@
 - **Code and launchers of then:** tag `piste/nuages-planete-spike` (`5b53b81`) for spike; `jalon/26-nuages-main` for integration; `jalon/29-avant-ouverture` for last state before storage.
 - **Removed the 2026-10-30,** commit `3663177`: the launcher `tools/nuages-planete.ps1` and its variants, the generator `tools/gen_frostbite_planet_assets.py`, the folders `assets/frostbite-*`, the frozen witness. The shader of the game was called `CloudFrostbiteOrbit.hlsli`, its time pass `CloudFrostbiteTemporal.hlsli`.
 
+## Above-cloud flight experiments on 2026-11-19
+
+- The original quad pass ran only below 14 km, a threshold inherited from the former distant quadrature. Faster translation above it triggered per-pixel retracing when history drifted. Cirrus view and shadow traversal covered the entire 9–13 km classification interval.
+- The November 2 revision measured clouds and air against `bfa6113` at 1080p. Fixed views in orbit, at 40 km, 8 km, 3.7 km and 2 km ranged from 2.0 → 2.1, 4.3 → 5.0, 9.8 → 11.0, 4.9 → 5.3 and 7.8 → 8.2 ms respectively. Fast flight at the four atmospheric heights measured 22 → 25–28, 27 → 32, 14.8 → 17 and 17.9 → 20.2 ms.
+- The former orbit path could approach the single-pass cost of 10–38 ms above ×5 speed. The October 28 bench measured 4.6 ms for grazing sea rays.
+- Serializing the lighting loop slightly increased the cost at 40 km. A per-sample cirrus support check and a shared exponential for the Gaussian moments yielded no material improvement.
+- Requiring all quads to contribute on every ray sent scattered pixels back to full tracing and consumed most of the gain. The final requirement applies to rays ending at a clipping surface.
+- Disabling ground cloud shadows showed little timing impact on the 12–40 km witnesses. Omitting the sun and chord samples saved about 10–15 ms in the quad build and substantially changed the cloud light. The final pass keeps the lighting integrator.
+
+## Layer passage experiments on 2026-11-19
+
+- The previous empty-weather search walked mips 7 through 3 and required the cubic support to stay inside one cell. These mips took maxima from an averaged first mip. Mip-0 clearances now cover adjacent cells and encode the actual source support.
+- On the continental 12 km route, omitting the high layer for diagnosis removed 10.49 ms of cloud and air time. Omitting the low layer removed 27.94 ms and visibly removed cumulus. The isolated results informed the work and remain diagnostic captures.
+- An entire-segment check with the old per-step jump ran at 20.09 FPS at 12 km, with pixel-identical captures across the 12 moving witnesses. The directional cirrus step also reduced the cost of actual cirrus on the Atlantic, tropical and antimeridian routes.
+- Fetching the low profile before the shape and erosion raised the 12 km cloud and air cost by about 2 ms. A mixed-precision reciprocal and square-root probe produced a timing difference below the repeat variation.
+- Before tuning low-cloud integration, the 1080p continental route cost 35.31 ms for clouds and air at 12 km, 29.88 ms at 16 km and 22.65 ms at 40 km.
+
+## Fast Atlantic flight experiments on 2026-11-19
+
+- Removing low-cloud view segments for diagnosis left 10.11 ms of cloud trace on the Atlantic. Removing cirrus left 27.48 ms. Removing point-light samples left 19.49 ms and changed the lighting. These probes preserve only part of the scene.
+- Sharing the Gaussian CDF and PDF exponential and rejecting unneeded clipped moments produced no material gain. Interpolating weather along short spans was slower. Caching nearby point-light values gave a smaller gain than improving view steps.
+- Extending only to half a texel at the finer blended mip produced about 28–29 FPS on the two Atlantic test repeats. Following the continuous erosion LOD let the step grow through mip transitions.
+- The first sharing gate used the nearest cloud shell. At 8 km in slow flight, the extra tile rays occupied sparse groups in the quad pass. The cloud trace rose from 6.79 to 12.34 ms. The sharing gate now tests motion projected to the bottom of the low layer.
+
 ## The light and the far pixel, up to the 2026-10-31
 
 **Replaced the 2026-10-31 by the experiment `piste/orbite-rendu`** (`../spec-rendu-orbite.md`): from orbit, they gave gray and translucent clouds, and a sandy grain.

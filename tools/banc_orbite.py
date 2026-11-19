@@ -1,7 +1,7 @@
 """Native hidden orbit comparison, stationary or moving, one engine at a time.
 
 python tools/banc_orbite.py --exe <exe> --out <new-directory>
-    --motion "0.08 0.003 0.016666667 1 0 0" [--erosion-mode 0|1|2]
+    --motion "0.08 0.003 0.016666667 1 0 0" [--erosion-mode 0|1|2] [--suite cloud-flight]
 
 GPU percentiles use native timestamps, not averages of FPS. Cadence includes CPU
 and presentation overhead. The optional erosion mode is a diagnostic comparison,
@@ -29,6 +29,31 @@ VIEWS = {
     'globe10000': (10000000, -0.5, -18.225, 90, 0, 10, -5),
     'far40000': (40000000, 25, 60, 90, 0, 20, 120),
 }
+# Height above ground (m), latitude, longitude, pitch down, heading, sun latitude and longitude.
+CLOUD_FLIGHT_VIEWS = {
+    'above40': (40000, 38.1445, 103.5352, 25, 90, 38.1445, 128.5352),
+    'above16': (16000, 38.1445, 103.5352, 25, 90, 38.1445, 128.5352),
+    'above24': (24000, 38.1445, 103.5352, 25, 90, 38.1445, 128.5352),
+    'above80': (80000, 38.1445, 103.5352, 25, 90, 38.1445, 128.5352),
+    'ocean40': (40000, -41.6602, 87.7148, 20, 0, -41.6602, 112.7148),
+    'polar40': (40000, 76.0, 38.8477, 15, 0, 70.0, 63.8477),
+    'ocean_twilight': (40000, -41.6602, 87.7148, 20, 0, -41.6602, -26.2852),
+    'polar160': (160000, 76.0, 38.8477, 20, 0, 70.0, 63.8477),
+    'orbit300': (300000, -41.6602, 87.7148, 80, 0, -41.6602, 112.7148),
+    'limb440': (440000, 30.0, 103.5352, 25, 0, 38.1445, 128.5352),
+    'layer08': (8000, 38.1445, 103.5352, 35, 90, 38.1445, 128.5352),
+    'layer12': (12000, 38.1445, 103.5352, 25, 90, 38.1445, 128.5352),
+    'ground': (150, -41.0, 88.5, -12, 60, -41.66, 112.71),
+    'globe10000': VIEWS['globe10000'],
+}
+CIRRUS_VIEWS = {
+    'layer10': (10000, 38.1445, 103.5352, 25, 90, 38.1445, 128.5352),
+    'layer14': (14000, 38.1445, 103.5352, 25, 90, 38.1445, 128.5352),
+    'atlantic12': (12000, 50.44922, -59.23828, 18, 105, 40, -30),
+    'tropical12': (12000, 2.28516, -74.70703, 14, 90, 15, -50),
+    'seam12': (12000, 47.28516, 179.95, 20, 90, 30, -150),
+    'polar12': (12000, 85.2, 167, 18, -40, 65, 145),
+}
 
 
 def run(a):
@@ -37,7 +62,8 @@ def run(a):
         raise RuntimeError('Another engine is already running; do not share the GPU.')
     out = Path(a.out).resolve()
     out.mkdir(parents=True, exist_ok=False)
-    selected = {name: VIEWS[name] for name in a.views.split(',')}
+    available = {**VIEWS, **CLOUD_FLIGHT_VIEWS, **CIRRUS_VIEWS}
+    selected = {name: available[name] for name in a.views.split(',')}
     jobs = out / 'jobs.txt'
     jobs.write_text(''.join(f"{out / (name + '.bmp')} rendu {h} {lat} {lon} {pitch} {heading} 2 0 {slat} {slon}\n"
                            for name, (h, lat, lon, pitch, heading, slat, slon) in selected.items()))
@@ -110,11 +136,15 @@ if __name__ == '__main__':
     p.add_argument('--exe', required=True)
     p.add_argument('--out', required=True)
     p.add_argument('--res', default='1920 1080')
-    p.add_argument('--views', default=','.join(VIEWS))
+    p.add_argument('--suite', choices=('orbit', 'cloud-flight'), default='orbit')
+    p.add_argument('--views', help='Comma-separated view names. Overrides the suite.')
     p.add_argument('--motion', default='')
     p.add_argument('--warmup', type=int, default=30)
     p.add_argument('--samples', type=int, default=180)
     p.add_argument('--no-clouds', action='store_true')
     p.add_argument('--erosion-mode', type=int, choices=(0, 1, 2))
     p.add_argument('--scans', default=str(ROOT.parent / 'scans'))
-    run(p.parse_args())
+    args = p.parse_args()
+    if args.views is None:
+        args.views = ','.join(CLOUD_FLIGHT_VIEWS if args.suite == 'cloud-flight' else VIEWS)
+    run(args)

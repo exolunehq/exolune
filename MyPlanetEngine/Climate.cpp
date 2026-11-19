@@ -606,6 +606,40 @@ namespace Climate
     {
         float Smooth(float e0, float e1, float x) { const float t = Sat((x - e0) / (e1 - e0)); return t * t * (3.0f - 2.0f * t); }
 
+        // Distance to the nearest occupied mip-0 texel in the 8-connected weather grid.
+        // The two-texel inset accounts for every possible cubic B-spline tap within a texel's cell.
+        std::vector<uint8_t> CloudEmptyRadii(const std::vector<uint8_t>& weather, uint32_t channel, uint8_t emptyThrough)
+        {
+            constexpr int width = WeatherWidth, height = WeatherHeight;
+            constexpr uint8_t filterRadius = 2, maxDistance = 15 + filterRadius;
+            std::vector<uint8_t> distance(width * height, maxDistance);
+            std::vector<uint32_t> frontier;
+            frontier.reserve(distance.size());
+            for (uint32_t cell = 0; cell < distance.size(); ++cell) {
+                if (weather[size_t(cell) * 4 + channel] > emptyThrough) {
+                    distance[cell] = 0;
+                    frontier.push_back(cell);
+                }
+            }
+            for (size_t head = 0; head < frontier.size(); ++head) {
+                const uint32_t cell = frontier[head];
+                const uint8_t next = uint8_t(distance[cell] + 1);
+                if (next >= maxDistance) break;
+                const int x = int(cell % width), y = int(cell / width);
+                for (int row = std::max(y - 1, 0); row <= std::min(y + 1, height - 1); ++row) {
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        const uint32_t neighbour = row * width + (x + dx + width) % width;
+                        if (distance[neighbour] <= next) continue;
+                        distance[neighbour] = next;
+                        frontier.push_back(neighbour);
+                    }
+                }
+            }
+            for (uint8_t& radius : distance)
+                radius = uint8_t(std::max(int(radius) - filterRadius, 0));
+            return distance;
+        }
+
         // Gradient noise of 3D lattice points: one of the 12 directions to a cube's edges at each node, quintic weights.
         float Gradient3(float x, float y, float z, uint32_t seed)
         {
@@ -1269,31 +1303,14 @@ namespace Climate
             out[0] = uint8_t(std::nearbyint(control * 255.0f));
             out[1] = control > 0.0f ? uint8_t(std::nearbyint(Sat(all.family) * 255.0f)) : 0;
             out[2] = uint8_t(std::nearbyint(std::min(cirrusField[t], 73.0f / 255.0f) * 255.0f));
-            out[3] = 0;
         });
 
-        // The mips: 2 x 2 means; from mip 2, R and B the maxima, so that a cell's emptiness is proven (Clouds.hlsli).
-        std::vector<uint8_t> all(base);
-        size_t from = 0;
-        for (uint32_t level = 1, pw = w, ph = h; level < WeatherMips; ++level) {
-            const uint32_t nw = std::max(pw / 2, 1u), nh = std::max(ph / 2, 1u), fx = pw > 1 ? 2 : 1, fy = ph > 1 ? 2 : 1;
-            const size_t to = all.size();
-            all.resize(to + size_t(nw) * nh * 4);
-            for (uint32_t j = 0; j < nh; ++j)
-                for (uint32_t i = 0; i < nw; ++i)
-                    for (int c = 0; c < 4; ++c) {
-                        float sum = 0.0f;
-                        uint8_t most = 0;
-                        for (uint32_t b = 0; b < fy; ++b)
-                            for (uint32_t a = 0; a < fx; ++a) {
-                                const uint8_t value = all[from + (size_t(j * fy + b) * pw + i * fx + a) * 4 + c];
-                                sum += value, most = std::max(most, value);
-                            }
-                        all[to + (size_t(j) * nw + i) * 4 + c] = level >= 2 && (c == 0 || c == 2) ? most
-                                                                : uint8_t(std::nearbyint(sum / float(fx * fy)));
-                    }
-            from = to, pw = nw, ph = nh;
-        }
-        return all;
+        // R <= 7/255 is below the low-cloud cutoff of 0.03. Cirrus require zero B.
+        const auto lowEmpty = CloudEmptyRadii(base, 0, 7);
+        const auto cirrusEmpty = CloudEmptyRadii(base, 2, 0);
+        for (uint32_t t = 0; t < texels; ++t)
+            base[size_t(t) * 4 + 3] = uint8_t(lowEmpty[t] | (cirrusEmpty[t] << 4));
+
+        return base;
     }
 }

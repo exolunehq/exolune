@@ -1,8 +1,8 @@
 // The clouds traced over time (docs/optimisation.md, round 1). Each frame traces one pixel per 4x4 tile into the fresh
 // images; the full-resolution resolve takes that pixel's fresh value, reprojects the others' from the history, anchored
 // in the weather for the clouds and on the ground for their shadow, and composites the air at full resolution. Where the
-// history is missing or has drifted, the resolve traces the pixel itself, as the single pass would; drifted below 14 km,
-// as in a fast flight near the clouds, it rebuilds it from one pixel traced per 2x2 quad (round 7).
+// history has drifted, the near-cloud and fast flight paths can rebuild it from one fresh pixel per 2x2 quad.
+// A pixel without usable history or reconstruction gets its own ray.
 #ifndef CLOUDS_TEMPORAL_HLSLI
 #define CLOUDS_TEMPORAL_HLSLI
 
@@ -12,7 +12,7 @@ Texture2D<float4> cloudHistory0 : register(t46); // light and transmittance per 
 Texture2D<float4> cloudHistory1 : register(t47); // distance, ray end, shadow T (-1: none), clouds' end
 Texture2D<float2> cloudHistory2 : register(t48); // the distance's spread (km), the drift (pixels)
 // The pixels whose history has drifted, traced one per 2x2 quad (PSCloudTraceHalf): light and transmittance; distance,
-// spread, the clouds' end, w = -1 where the quad's pixel kept its history, 0 where traced.
+// spread, the clouds' end, w = 0 for drifted quads usable by half fill, -1 otherwise.
 Texture2D<float4> cloudHalf0 : register(t49);
 Texture2D<float4> cloudHalf1 : register(t50);
 
@@ -28,7 +28,6 @@ static const float CLOUD_TEMPORAL_TURN = 0.0175;
 // The change of the distance a cloud is seen from, since its trace, that its history tolerates (log, 20 %): diving toward
 // it, its footprint shrinks while nothing slides on the screen, and its history was taken from farther away.
 static const float CLOUD_TEMPORAL_ZOOM = 0.18;
-static const float CLOUD_TEMPORAL_HALF_MAX_ALTITUDE_KM = 14.0;
 
 // Two ray ends see the same surface, or both the sky (0).
 bool CloudTemporalSameEnd(float a, float b, float tolerance)
@@ -374,17 +373,22 @@ bool CloudTemporalLookup(int2 pixel, float3 view, float rayEnd, float entryKm, f
     return seen && driftPx <= CLOUD_TEMPORAL_DRIFT_PX && turn <= CLOUD_TEMPORAL_TURN;
 }
 
-// The drifted pixels, one per 2x2 quad below 14 km: retain the altitude gate of round 7.
-// Above it, retrace the pixel itself instead of interpolating the quads.
 bool CloudTemporalHalfOn()
 {
-    return camVertical.w <= CLOUD_TEMPORAL_HALF_MAX_ALTITUDE_KM;
+    return cloudTemporal.w > 0.0;
 }
 
-// This frame's pixel of each 2x2 quad: the 4x4 tile's pixel, halved, visits the four in turn.
+// The high bits of the Bayer phase visit the four quad offsets in turn.
 int2 CloudTemporalHalfPixel()
 {
     return int2(cloudTemporal.xy) >> 1;
+}
+
+int2 CloudTemporalFreshPixel()
+{
+    const int2 phase = int2(cloudTemporal.xy);
+    // Put the tile's ray on the quad lattice while preserving its 16-frame coverage.
+    return cloudWind.w > 0.5l ? ((phase & 1) << 1) | (phase >> 1) : phase;
 }
 
 // One pixel per 2x2 quad, traced where the history of one of the quad's pixels has drifted or turned, as in a fast
@@ -394,7 +398,7 @@ float4 PSCloudTraceHalf(float4 position : SV_POSITION, out float4 data : SV_TARG
     float2 size;
     hdr.GetDimensions(size.x, size.y);
     const int2 quad = int2(position.xy) * 2, pixel = quad + CloudTemporalHalfPixel();
-    data = float4(0.0, 0.0, -1.0, -1.0); // w < 0: not traced
+    data = float4(0.0, 0.0, -1.0, -1.0);
     if (any(pixel >= int2(size)) || cloudTemporal.z < 0.5 || cloudCameraKm.w < 0.5l || !CloudTemporalHalfOn())
         return float4(0.0, 0.0, 0.0, 1.0);
     bool drifted = false;
@@ -417,19 +421,19 @@ float4 PSCloudTraceHalf(float4 position : SV_POSITION, out float4 data : SV_TARG
         }
     }
     [branch]
-    if (!drifted)
+    if (!drifted && !(cloudWind.w > 0.5l && all(pixel % CLOUD_TEMPORAL_TILE == CloudTemporalFreshPixel())))
         return float4(0.0, 0.0, 0.0, 1.0);
     const float4 scene = hdr.Load(int3(pixel, 0));
     const CloudPixel clouds = CloudTracePixel(float4(scene.rgb, abs(scene.a)), float2(pixel) + 0.5, size,
         true, false, false);
     data = float4(clouds.depthKm, clouds.depthSpreadKm,
-        CloudTemporalCloudEnd(CloudViewFloat(float2(pixel) + 0.5, size), abs(scene.a)), 0.0); // z: the clouds' end
+        CloudTemporalCloudEnd(CloudViewFloat(float2(pixel) + 0.5, size), abs(scene.a)), drifted ? 0.0 : -1.0);
     return float4(clouds.cloudLight, dot(clouds.transmission, 1.0 / 3.0));
 }
 
 // A drifted pixel's clouds from this frame's traced quads around it that see the same surface: bilinear among them,
 // exact at the quad's own pixel. False when none does.
-bool CloudTemporalHalfFill(int2 pixel, float rayEnd, float2 size, out float4 light, out float depthKm,
+bool CloudTemporalHalfFill(int2 pixel, float cloudEnd, float2 size, out float4 light, out float depthKm,
                            out float spreadKm)
 {
     const int2 grid = (int2(size) + 1) / 2, offset = CloudTemporalHalfPixel();
@@ -445,7 +449,7 @@ bool CloudTemporalHalfFill(int2 pixel, float rayEnd, float2 size, out float4 lig
     {
         const int2 t = CloudTemporalTap(base, k, grid);
         const float4 tapData = cloudHalf1.Load(int3(t, 0));
-        const float w = tapData.w >= 0.0 && CloudTemporalSameEnd(rayEnd, tapData.z, 0.05) ? bilinear[k] : 0.0;
+        const float w = tapData.w >= 0.0 && CloudTemporalSameEnd(cloudEnd, tapData.z, 0.05) ? bilinear[k] : 0.0;
         light += w * cloudHalf0.Load(int3(t, 0));
         weightSum += w;
         const float wd = tapData.x > 0.0 ? w : 0.0;
@@ -453,7 +457,9 @@ bool CloudTemporalHalfFill(int2 pixel, float rayEnd, float2 size, out float4 lig
         spreadKm += wd * tapData.y;
         depthWeight += wd;
     }
-    if (weightSum < 1.0e-3)
+    // A surface that clips the cloud ray needs the whole footprint in fast flight. When the ray traverses the
+    // volume freely, renormalize over the available neighbours that traverse it too.
+    if (weightSum < (cloudTemporal.w > 1.5 && cloudEnd > 0.0 ? 0.999 : 1.0e-3))
         return false;
     light /= weightSum;
     depthKm = depthWeight > 0.0 ? depthKm / depthWeight : 0.0;
@@ -465,17 +471,27 @@ float4 PSCloudTrace(float4 position : SV_POSITION, out float4 data : SV_TARGET1)
 {
     float2 size;
     hdr.GetDimensions(size.x, size.y);
-    const int2 pixel = int2(position.xy) * CLOUD_TEMPORAL_TILE + int2(cloudTemporal.xy);
+    const int2 pixel = int2(position.xy) * CLOUD_TEMPORAL_TILE + CloudTemporalFreshPixel();
     data = float4(0.0, 0.0, -1.0, 0.0);
     if (any(pixel >= int2(size)))
         return float4(0.0, 0.0, 0.0, 1.0);
     const float4 scene = hdr.Load(int3(pixel, 0));
     const float4 cloudScene = float4(scene.rgb, abs(scene.a));
+    const bool shareRay = cloudWind.w > 0.5l;
     const CloudPixel clouds = CloudTracePixel(cloudScene, float2(pixel) + 0.5, size,
-        true, true, false);
+        !shareRay, true, false);
     const float3 sunRGB = sunPart.Load(int3(pixel, 0)).rgb;
     const bool lit = cloudScene.a > 0.0 && max(sunRGB.r, max(sunRGB.g, sunRGB.b)) > 1.0e-6;
-    data = float4(clouds.depthKm, clouds.depthSpreadKm, lit ? clouds.surfaceShadowT : -1.0,
+    const float shadow = lit ? clouds.surfaceShadowT : -1.0;
+    [branch]
+    if (shareRay)
+    {
+        const int2 quad = pixel / 2;
+        const float4 halfData = cloudHalf1.Load(int3(quad, 0));
+        data = float4(halfData.xy, shadow, halfData.z);
+        return cloudHalf0.Load(int3(quad, 0));
+    }
+    data = float4(clouds.depthKm, clouds.depthSpreadKm, shadow,
         CloudTemporalCloudEnd(CloudViewFloat(float2(pixel) + 0.5, size), cloudScene.a));
     return float4(clouds.cloudLight, dot(clouds.transmission, 1.0 / 3.0));
 }
@@ -497,7 +513,7 @@ CloudResolveOutput PSCloudResolve(float4 position : SV_POSITION)
     const float rayEnd = cloudScene.a;
     float2 size;
     hdr.GetDimensions(size.x, size.y);
-    const int2 offset = int2(cloudTemporal.xy);
+    const int2 offset = CloudTemporalFreshPixel();
     const bool historyValid = cloudTemporal.z > 0.5;
 
     float4 light = float4(0.0, 0.0, 0.0, 1.0);
@@ -548,7 +564,7 @@ CloudResolveOutput PSCloudResolve(float4 position : SV_POSITION)
             // texels nearby. Traced here, alone in its wave, a few dozen such pixels a frame held the whole pass, up to
             // 3 ms in a fast flight (round 8). A gap of sky the history does not see either stays clear for this frame,
             // then the quads retrace it; a surface is traced, its clouds in front differ from its neighbours'.
-            else if (fillClouds && CloudTemporalHalfOn() && CloudTemporalInside(prevPixel, size))
+            else if (fillClouds && cloudTemporal.w == 1.0 && CloudTemporalInside(prevPixel, size))
             {
                 // (Nested: HLSL's && evaluates both sides.)
                 if (CloudTemporalHistoryFill(prevPixel, cloudEnd, size, light, depthKm, spreadKm))
@@ -563,7 +579,7 @@ CloudResolveOutput PSCloudResolve(float4 position : SV_POSITION)
             }
             else if (historyValid && !fillClouds && CloudTemporalHalfOn())
             {
-                // Drifted or turned, under the gate: from this frame's quads traced for it. Rebuilt, a stand-in as
+                // Drifted or turned: from this frame's quads traced for it. Rebuilt, a stand-in as
                 // the fill; the quad's own pixel is exact. (Nested: HLSL's && evaluates both sides.)
                 if (CloudTemporalHalfFill(pixel, cloudEnd, size, light, depthKm, spreadKm))
                 {
