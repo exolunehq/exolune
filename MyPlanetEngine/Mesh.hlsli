@@ -3,6 +3,46 @@
 #ifndef MESH_HLSLI
 #define MESH_HLSLI
 
+float2 MeshOffset() { return float2(faceX.w, faceY.w); }
+
+float SquareRadius(float2 xy) { return max(abs(xy.x), abs(xy.y)); }
+
+// Translate the face as a block. Along each side of the rings the taper is
+// affine, so triangle interpolation remains in the same chart. The horizon
+// envelope has zero offset and the last ring still encloses it if it overshoots.
+float2 MeshPlanePoint(float2 chart)
+{
+    const float taper = 1.0 - max(0.0, SquareRadius(chart) - faceParams.x) * faceZ.w;
+    return chart + taper * MeshOffset();
+}
+
+float2 MeshChartPoint(float2 plane)
+{
+    const float2 offset = MeshOffset();
+    const float2 fromFace = plane - offset;
+    if (SquareRadius(fromFace) <= faceParams.x || all(offset == 0.0)) return fromFace;
+    const float2 shear = offset * faceZ.w;
+    const float2 fromOrigin = fromFace - shear * faceParams.x;
+    const float2 side = abs(fromOrigin) / (1.0 - sign(fromOrigin) * shear);
+    const float radius = max(side.x, side.y);
+    return fromFace + shear * (radius - faceParams.x);
+}
+
+// The same samples cover a margin beyond the face so the fine reconstruction
+// can cross the mesh chart boundary without changing its sample count.
+float FineGridHalfWidth() { return 1.16 * faceParams.x; }
+float FineGridCell() { return 2.0 * FineGridHalfWidth() / (faceParams.w * ringParams.w); }
+float2 FineGridIndex(float2 local)
+{
+    return (0.5 + local / (2.0 * FineGridHalfWidth())) * (faceParams.w * ringParams.w);
+}
+float FineGridShare(float2 local)
+{
+    // Separable fades keep the gradient continuous as a hillside crosses a corner.
+    const float2 share = 1.0 - smoothstep(0.92, 1.14, abs(local) / faceParams.x);
+    return share.x * share.y;
+}
+
 // Point number b of the border of the square [-1, 1]^2 cut in n cells per side, going round:
 // bottom, right, top, left.
 float2 BorderPoint(uint b, uint n)
@@ -38,12 +78,12 @@ uint RingVertex(uint ring, uint b, uint n)
     return ring == 0 ? FaceBorderVertex(b, n) : (n + 1) * (n + 1) + (ring - 1) * 4 * n + b;
 }
 
-// The four vertices around the face-plane point xy (m) and its bilinear weights between them, on the face or on the
-// rings' chart (TerrainCompute.hlsl): x, y along the row; z, w the next row. False beyond the outermost ring.
-bool MeshCell(float2 xy, out uint4 ids, out float2 t)
+// The four vertices around the chart point and its bilinear weights between them: x, y along the row; z, w the
+// next row. False beyond the outermost ring.
+bool MeshChartCell(float2 xy, out uint4 ids, out float2 t)
 {
     const uint n = (uint)faceParams.w;
-    const float halfWidth = faceParams.x, s = max(abs(xy.x), abs(xy.y));
+    const float halfWidth = faceParams.x, s = SquareRadius(xy);
     ids = 0;
     t = 0.0;
     if (s <= halfWidth)
@@ -67,6 +107,11 @@ bool MeshCell(float2 xy, out uint4 ids, out float2 t)
     t = float2(b - k, ring - r);
     ids = uint4(RingVertex(r, k, n), RingVertex(r, k + 1, n), RingVertex(r + 1, k, n), RingVertex(r + 1, k + 1, n));
     return true;
+}
+
+bool MeshCell(float2 xy, out uint4 ids, out float2 t)
+{
+    return MeshChartCell(MeshChartPoint(xy), ids, t);
 }
 
 float Bilinear(float4 v, float2 t)

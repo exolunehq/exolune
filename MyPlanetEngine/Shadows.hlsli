@@ -13,15 +13,15 @@
 #define SHADOW_MESH StructuredBuffer<FaceVertex>
 #endif
 
-// The mesh's height at the face-plane point xy (m, the sea's surface at 0), bilinear between the four vertices around
-// it (MeshCell). False beyond the outermost ring. A culled vertex counts as the sea: its terrain was not needed
+// The mesh's height at the chart point xy, bilinear between the four vertices around it (MeshChartCell).
+// False beyond the outermost ring. A culled vertex counts as the sea: its terrain was not needed
 // (Terrain.hlsli, MaybeVisible).
 bool MeshHeight(SHADOW_MESH verts, float2 xy, out float height)
 {
     uint4 ids;
     float2 t;
     height = 0.0;
-    if (!MeshCell(xy, ids, t))
+    if (!MeshChartCell(xy, ids, t))
         return false;
     height = Bilinear(max(float4(verts[ids.x].elevation, verts[ids.y].elevation, verts[ids.z].elevation, verts[ids.w].elevation), TERRAIN_MIN_HEIGHT), t);
     return true;
@@ -50,13 +50,14 @@ float SunHorizon(SHADOW_MESH verts, float2 xy, float3 p, float3 up, float h, out
     if (dot(way, way) < 1e-12 * R * R)
         return asin(horizon); // the sun straight up
     way = normalize(way);
-    float u = 2.0 * max(faceParams.x, max(abs(xy.x), abs(xy.y))) / n; // the mesh's cell at p
+    float u = 2.0 * max(faceParams.x, SquareRadius(MeshChartPoint(xy))) / n;
     [loop]
     for (uint k = 0; k < 1024; ++k)
     {
         const float2 at = xy + u * way;
+        const float2 chart = MeshChartPoint(at);
         float e;
-        if (!MeshHeight(verts, at, e))
+        if (!MeshHeight(verts, chart, e))
             break;
         float3 d;
         float r2, L;
@@ -67,7 +68,7 @@ float SunHorizon(SHADOW_MESH verts, float2 xy, float3 p, float3 up, float h, out
         rise = max(rise, dot(q, across));
         if (dot(top, up) * rsqrt(dot(top, top)) < max(horizon, lowerLimb) && dot(top, across) < rise)
             break;
-        u += max(2.0 * max(faceParams.x, max(abs(at.x), abs(at.y))) / n, HORIZON_STEP * u);
+        u += max(2.0 * max(faceParams.x, SquareRadius(chart)) / n, HORIZON_STEP * u);
     }
     shadow = h + rise / max(1.0 - sinSun * sinSun, 1e-6);
     return asin(horizon);

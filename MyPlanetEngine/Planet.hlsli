@@ -6,9 +6,9 @@
 cbuffer Frame : register(b0)
 {
     float4x4 viewProj;   // face-local frame, camera at the origin
-    float4   faceX;      // face-local axes, in planet coordinates
-    float4   faceY;
-    float4   faceZ;      // nadir direction: planet centre -> camera
+    float4   faceX;      // xyz: face-local axis in planet coordinates; w: mesh offset in x (m)
+    float4   faceY;      // w: mesh offset in y (m)
+    float4   faceZ;      // xyz: nadir axis; w: inverse span of the shifted rings (1/m)
     float4   faceParams; // x: face half-width (m), y: planet radius (m), z: camera height above the face's tangent point (m), w: cells per face side n
     float4   lightDir;   // xyz: sun direction, face-local; w: shading, 0 smooth, 1 faceted (key R), 2 wireframe
     double4  nadir;      // xyz: nadir direction in double precision, for the noise
@@ -17,7 +17,7 @@ cbuffer Frame : register(b0)
     float4   camRight;   // camera axes, face-local; camRight.w and camUp.w: tangents of the half fields of view
     float4   camUp;
     float4   camForward;
-    float4   camPlane;   // xy: camera position on the face plane (m), 0 unless the mesh is frozen (key G); z: 1 when the
+    float4   camPlane;   // xy: camera projected on the face axes (m); z: 1 when the
                          // mesh is the previous frame's, its computed vertices kept (TerrainCompute.hlsl)
     float4   detailOrigin; // xyz: camera minus the detail anchor, planet frame (m); w: anchor unit (m)
     int4     detailAnchor; // xyz: the detail anchor, the multiple of the anchor unit closest to the camera

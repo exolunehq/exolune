@@ -1,9 +1,9 @@
 # Specification: the rendering from far, from 5 km to orbit
 
-Status: validated on 2026-10-21. Facts: step 1, step 2 on the face, downward mutation, universal limit rule. milestone `jalon/13-coherence-distance`, the 2026-10-22.
+Status: the distance rules were validated in October 2026. The November view-directed window is in flight review.
 
 **In short, what keeps the planet consistent from orbit to ground:**
-- **the fine grid:** the real relief under the grid cell, in normal and altitude;
+- **the fine grid:** height and normals evaluated inside and beyond the edge of the sliding face;
 - **a relief that keeps its average height,** at any distance;
 - **the universal rule:** each boundary between materials shows its average on the pixel;
 - **the descent benchmark and diagnostic views,** to measure it.
@@ -83,29 +83,27 @@ You have to fill the gap between the pixel and the grid cell. Two very different
 - **Snow and rock stripes from 450 m to 1,3 km:** the tile of 64 m bears ±1 m of relief; the mixture by the height intercalated snow and rock benchmark by benchmark, thinner than the pixel. This blending now fades for pixels from 25 cm to 2 m.
 - **The two patches of the relief pass of materials,** removed the 2026-10-30: `log/spec-rendu-lointain-historique.md`.
 
-## The 2 step in B: the fine grid
+## View-directed sliding terrain
 
-Status: chosen the 2026-10-21; first version made, the face only.
+- Intersect four rays from the centre and lower part of the view with the body-local support sphere. The lower bias fades toward a vertical view. Project the hits into the nadir plane and taper each contribution over about two degrees inside the limb.
+- A continuous bound uses the face cell width and the available ring span. It keeps the very close ground within the detailed face and limits radial ring shear to one quarter of the nominal spacing.
+- The face translates as a block. Ring centres taper to the old horizon envelope through an invertible affine map on each side. The mesh, sunlight march and object footing share the map and the same vertex allocation.
+- A dedicated terrain sample at the camera nadir supplies ground height and the ocean's local bed on Exolune. On a moon, the focus uses the surface filtered at the mesh's own scale.
 
-- **A grid 4 times thinner than the face of the mesh,** 768 × 768 grid cells, recalculated at each frame by complexplanet, filtered to its own grid cell as the mesh is to its own.
+## The fine grid
+
+- **768 × 768 grid cells** cover 1.16 face half-widths. Each grid samples the same relief filtered at its own cell size.
 - **Two pass calculation:** the heights of the fine grid, then its normals.
 - **Its culling margin, since 2026-11-07:** 6 fine cells, what a visible pixel's B-spline and normals read, 3 cells, and as many again. It was the mesh's 6 cells, which also cover the shadows' vertices. Images identical; 97 km's fine grid 0.28 ms faster.
-- **The pixel reconstructs the fine height with a positive 4 by 4 cubic B-spline and derives its normal from that surface,** instead of independently interpolating linear heights and normals. It fades on the last eight face cells; see `spec-normales-spline.md` for the 2026-11-01 correction and its limits.
+- **The pixel reconstructs the fine height with a positive 4 × 4 cubic B-spline** and derives its normal from the same surface. Height, normals and water fade from 0.92 to 1.14 face half-widths along each axis. The product keeps the blend smooth at the corners. The contour pass reads the same fine-grid supports. See `spec-normales-spline.md`.
 - **The grain of the lighting and the dispersion of slopes** are adjusted on the grid cell fine: the invented grain starts only below it.
 - **Up to 160 m from the ground for material decisions:** active from grid cells face of 3,4 m, `FineMinCell`, fully to 6,8 m, or 320 m high. Lower, the mesh carries the thinnest octave of the relief, 13,5 m, on its 4 grid cells. It stopped first at 20 m from grid cell, towards 1 km: see the correction of the 2026-10-24 below.
 - **Up to 1 km for light:** it illuminates the ground only from grid cells of 20 m, `FINE_LIGHT_MIN_CELL` front. Lower, normal spline and grain, more stable, and textures fill the grid cells.
-- **The face alone, first:** orbit, it covers the essential of the view. Rings will follow if the measure justifies it.
 - **Out of field points** are not calculated, as for the mesh.
 
 **The known risk:** the experiment `piste/relief-par-pixel`, abandoned, evaluated the relief at each pixel. Its cost, 8 to 33 ms, is not that of B. But its visual defect also applies to B: from afar, ridges without volume, since the normal alone does not make geometry.
 
 **Measurement:** the orbit benchmark before and after; the cost of calculation at 1, 5, 56 and 300 km; a descent, for the mutation.
-
-### Results of the first version
-
-- **From orbit, the relief reads:** at 300 km, the snowy massif shows its ridges and valleys instead of a white spot; at 5 km, the desert is clearer.
-- **Cost of calculation:** 0,2 → 1,8 ms to 56 km, 0,1 → 0,7 ms to 300 km. At 5 km, it remains in the noise measurement.
-- **Remains to be done:** the rings, which keep the relief of the mesh alone; the downward measurement, for the mutation.
 
 ## Corrections made on the way, continue
 

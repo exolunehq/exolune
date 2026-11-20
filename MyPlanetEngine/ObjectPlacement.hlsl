@@ -75,7 +75,7 @@ float3 FaceLocal(float3 v)
 // The mesh's cell at the face-plane point xy (m): the face's, or the ring's there, as wide as it is deep.
 float MeshCell(float2 xy)
 {
-    return 2.0 * max(max(abs(xy.x), abs(xy.y)), faceParams.x) / faceParams.w;
+    return 2.0 * max(SquareRadius(MeshChartPoint(xy)), faceParams.x) / faceParams.w;
 }
 
 // The elevation the mesh draws at the face-plane point xy: the triangle over it, as the index buffer splits the cells
@@ -86,8 +86,9 @@ bool MeshElevationAt(float2 xy, out float elevation, out float horizon, out floa
     waterLevel = 0.0;
     horizon = 0.0;
     normal = float3(0.0, 0.0, 1.0);
+    xy = MeshChartPoint(xy);
     const uint n = (uint)faceParams.w;
-    const float halfWidth = faceParams.x, side = max(abs(xy.x), abs(xy.y));
+    const float halfWidth = faceParams.x, side = SquareRadius(xy);
     uint3 ids;
     float3 bary;
     if (side <= halfWidth)

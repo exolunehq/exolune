@@ -1,0 +1,14 @@
+# View-directed terrain and the fine-grid transition. The film positions are review witnesses.
+# Use the detached camera and try level flight and a slow pan across the same ridges.
+Surface Echo 2m10: ridge beyond the clouds | 15294.97 -7.548764 123.528769 9.56 48.80 | -10 168
+Surface Echo 2m16: snow before the overflight | 12110.51 -7.286024 123.820903 8.57 49.72 | -10 168
+Surface Echo 2m23: oblique ridge and exposed slopes | 10044.00 -7.006134 124.124215 8.72 56.22 | -10 168
+Another range: level view toward ridges | 8100 -25.566 -26.916 3 0 | -10 -68
+Dry rain shadow: bare rock and steppe | 3900 -11.825 110.867 5 114 | -5 100
+Windward forest: slopes and canopy | 4900 -12.375 112.125 8 294 | -5 145
+Surface Echo 3m29: rocky valley | 4821.44 -8.133483 126.159302 9.15 125.67 | -10 168
+Surface Echo 4m18: estuary and shallows | 454.69 -9.037548 127.431245 12.86 130 | -10 168
+Forest approach: turn past the horizon | 160 -11.039991 49.783625 4 40 | -10 60
+Forest on foot: turn from ground to hills | 80 -11.039991 49.783625 0 40 marche | -10 60
+Orbit: keep the oblique limb covered | 1350000 -7.138614 122.604860 50 32.74 | -10 168
+Moon 1: oblique crater and distant rim | 16000 20 15 10 -102 lune1 | -25 55

@@ -19,22 +19,30 @@ void CSMain(uint3 groupId : SV_GroupID, uint threadInGroup : SV_GroupIndex)
     LoadGradients(threadInGroup, 64); // before any return: every thread must reach the barrier
     const uint n = (uint)faceParams.w;
     const uint faceVertexCount = (n + 1) * (n + 1);
+    const uint ringCount = (uint)ringParams.x, vertexCount = faceVertexCount + ringCount * 4u * n;
     // By 8 x 8 tiles (D3DApp::Draw): the face's grid by squares, its rings by 8 vertices along 8 of them. A wave's
     // vertices are then neighbours on both axes and list their rivers' nodes together (Erosion.hlsli).
     uint id;
     const uint across = (n + 8u) / 8u, faceTiles = across * across, group = groupId.x;
-    if (group < faceTiles)
+    const uint alongTiles = n / 2u;
+    const bool probe = group == faceTiles + ((ringCount + 7u) / 8u) * alongTiles;
+    if (probe)
+    {
+        if (threadInGroup != 0) return;
+        id = vertexCount;
+    }
+    else if (group < faceTiles)
     {
         const uint2 ij = uint2(group % across, group / across) * 8u + uint2(threadInGroup % 8u, threadInGroup / 8u);
         id = any(ij > n) ? 0xffffffffu : ij.y * (n + 1) + ij.x;
     }
     else
     {
-        const uint g = group - faceTiles, alongTiles = n / 2u; // 4 n vertices a ring, by 8
+        const uint g = group - faceTiles;
         const uint ring = (g / alongTiles) * 8u + threadInGroup / 8u, along = (g % alongTiles) * 8u + threadInGroup % 8u;
-        id = ring >= (uint)ringParams.x ? 0xffffffffu : faceVertexCount + ring * 4u * n + along;
+        id = ring >= ringCount ? 0xffffffffu : faceVertexCount + ring * 4u * n + along;
     }
-    if (id >= faceVertexCount + (uint)ringParams.x * 4 * n) return;
+    if (!probe && id >= vertexCount) return;
 
     const float halfWidth = faceParams.x;
     const float R = faceParams.y;
@@ -43,7 +51,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint threadInGroup : SV_GroupIndex)
     // Position on the face plane, and the mesh cell size there.
     float2 xy;
     float cellSize;
-    if (id < faceVertexCount)
+    if (probe || id < faceVertexCount)
     {
         xy = (float2(id % (n + 1), id / (n + 1)) / n * 2.0 - 1.0) * halfWidth;
         cellSize = 2.0 * halfWidth / n;
@@ -55,6 +63,7 @@ void CSMain(uint3 groupId : SV_GroupID, uint threadInGroup : SV_GroupIndex)
         xy = BorderPoint((id - faceVertexCount) % (4 * n), n) * ringHalfWidth;
         cellSize = 2.0 * ringHalfWidth / n;
     }
+    xy = probe ? camPlane.xy * (R / (R + camAltitude)) : MeshPlanePoint(xy);
 
     // Normalised onto the sphere.
     float3 d;
@@ -62,12 +71,12 @@ void CSMain(uint3 groupId : SV_GroupID, uint threadInGroup : SV_GroupIndex)
     PlanePoint(xy, R, d, r2, L);
 
     // Culling: a vertex that cannot be on screen gets no terrain, and a NaN position so that the
-    // rasteriser drops its triangles. The vertex under the camera is always computed: it gives the
-    // ground height. The margin also keeps the neighbours that visible vertices take their normal from, and
+    // rasteriser drops its triangles. The dedicated nadir sample always gives the ground height.
+    // The margin also keeps the neighbours that visible vertices take their normal from, and
     // those of the spline normals (docs/spec-normales-spline.md). So are the vertices whose
     // shadow can fall on screen (docs/recherche-ombres-relief.md).
-    const uint nadirVertex = (n / 2) * (n + 1) + n / 2;
-    if (id != nadirVertex
+    const uint centreVertex = (n / 2) * (n + 1) + n / 2;
+    if (!probe && id != centreVertex
         && !MaybeVisible(RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MIN_HEIGHT),
                          RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MAX_HEIGHT), ShadowSweep(d), 6.0 * cellSize + waveAxisX.w * (1.0-smoothstep(32.0,64.0,cellSize))))
     {
@@ -77,9 +86,8 @@ void CSMain(uint3 groupId : SV_GroupID, uint threadInGroup : SV_GroupIndex)
         return;
     }
 #ifdef LATTICE_PAIRS
-    // The vertex under the camera, whose ground places it, is left without terrain to the exact shader, dispatched next
-    // with the mesh kept (D3DApp::Draw).
-    if (id == nadirVertex)
+    // These two samples are left to the exact shader dispatched next (D3DApp::Draw).
+    if (probe || id == centreVertex)
     {
         FaceVertex none = (FaceVertex)0;
         none.pos = asfloat(0x7fc00000u).xxx;

@@ -65,8 +65,8 @@ PSInput VSMain(uint id : SV_VertexID)
         unit = -unit;
 
     // Both fixed baselines use the vertex's coordinates on the face plane.
-    const float2 xy = id < faceCount ? (float2(id % (n + 1), id / (n + 1)) / n * 2.0 - 1.0) * faceParams.x
-                    : BorderPoint((id - faceCount) % (4 * n), n) * faceParams.x * pow(ringParams.y, (float)((id - faceCount) / (4 * n) + 1));
+    const float2 xy = MeshPlanePoint(id < faceCount ? (float2(id % (n + 1), id / (n + 1)) / n * 2.0 - 1.0) * faceParams.x
+                    : BorderPoint((id - faceCount) % (4 * n), n) * faceParams.x * pow(ringParams.y, (float)((id - faceCount) / (4 * n) + 1)));
 
     // The materials' normal (docs/principes.md, the decisions see the relief's forms at any height): across
     // DECISION_BASELINE either way where the cells are finer, read on the mesh's surface; the vertices' own elsewhere.

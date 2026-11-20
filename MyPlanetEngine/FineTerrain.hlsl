@@ -1,10 +1,11 @@
 // The fine grid (docs/spec-rendu-lointain.md, step 2): the face of the mesh cut ringParams.w times finer,
 // recomputed every frame like the mesh, for the pixels' normals only. It carries the true relief finer than
-// the mesh's cells, so that nothing mutates as the mesh refines on the way down. No rings, no geometry.
+// the mesh's cells, including an overlap onto the first rings for reconstruction.
 #define EROSION_WAVE_LIST // neighbouring samples list their rivers' nodes together (Erosion.hlsli)
 #include "Planet.hlsli"
 #include "SurfaceStack.hlsli"
 #include "Terrain.hlsli"
+#include "Mesh.hlsli"
 
 RWStructuredBuffer<FineSample> outFine : register(u0); // position/elevation and the same evaluation's inland water
 
@@ -46,9 +47,9 @@ void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupI
     const uint id = threadId.y * (n + 1) + threadId.x;
     if (threadId.x > n || threadId.y > n)
         return;
-    const float halfWidth = faceParams.x, R = faceParams.y, camAltitude = faceParams.z;
-    const float2 xy = (float2(id % (n + 1), id / (n + 1)) / n * 2.0 - 1.0) * halfWidth;
-    const float cellSize = 2.0 * halfWidth / n;
+    const float R = faceParams.y, camAltitude = faceParams.z;
+    const float2 xy = (float2(threadId.xy) / n * 2.0 - 1.0) * FineGridHalfWidth() + MeshOffset();
+    const float cellSize = FineGridCell();
 
     float3 d;
     float r2, L;

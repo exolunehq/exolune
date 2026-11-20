@@ -2,6 +2,13 @@
 
 Status: validated the 2026-10-23; steps 1 and 2 done, step 3 in progress. Replaces the method of view-by-view corrections. Recalls the plans of `spec-photos-par-echelle.md` and `spec-parois-minerales.md`.
 
+**Aerial bands, 2026-11-20**
+
+- Oblique views can stretch a pixel footprint to hundreds of metres. Existing snow grains, tree crowns and mineral textures then approach their filtered means.
+- Evaluate the same body-fixed value and gradient at five wavelengths from 128 to 2,048 m. The strength rises from 4 to 32 m of projected pixel footprint. `OctaveFade` filters each band. Footprints outside 4 to 1,024 m skip evaluation.
+- Use the terrain's existing cover weights. Snow has restrained cool variation. Exposed rock and scree carry stronger slopes. Sand carries warmer variation. Canopy colour uses stand-scale contrast over the existing crown and cover model.
+- Use aerial photographs of Denali for snowfield continuity and exposed ribs, Mount St. Helens for vegetation beside exposed rock, and Death Valley for rock and dust contrast. [Alasdair Turner, Denali aerial photographs](https://alasdairturner.com/blog/2016/3/27/oyg9psfvwvuyj6yuyoe36ey8fqlml4), [USGS aerial photograph of Mount St. Helens](https://www.usgs.gov/media/images/aerial-photo-mount-st-helens-june-2024), [USGS Ubehebe Craters](https://www.usgs.gov/media/images/ubehebe-craters-death-valley-california).
+
 ## The finding
 
 **Stagnating:** each correction adjusts the reported view, and the next mountain shows the same family of defects. Recent cases:

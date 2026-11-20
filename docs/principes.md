@@ -509,6 +509,8 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - **The calculations remain accurate in simple precision:** no subtraction of almost equal terms; a series where it is needed.
 - **Only one double-precision read per vertex:** here, doubles run 64 times slower than floats. A neighboring position is taken relative to the point in floats: the difference of two neighboring floats is exact (Sterbenz), minus the point's remainder, read once in doubles. Valleys were reading it at every link (`spec-erosion.md`).
 - **The mesh and the screen relief slide continuously with the camera, never by step on the grid of the planet:** each frame refines them exactly at the view. Placed by step, or with samples kept on the planet for reuse, their refinement would be seen, especially in fast movement. A calculation gain is not purchased in this way (`optimisation.md`, round 4; `spec-rendu-lointain.md`).
+- Place the detailed terrain window from the visible surface and the actual view. Preserve underfoot support, a dedicated ground sample and the outer horizon envelope within a bounded grid (`spec-rendu-lointain.md`).
+- Blend reconstructed height, slope and water across shared support on the tangent plane. Use continuous weights across the face and its first rings (`spec-normales-spline.md`).
 - **Each footprint refines by its own rung, chosen at every frame:** a sample computes what its scale resolves, not the whole model. A rung equals the mean of the finer one on what it shows, so that a change of rung moves nothing; its cost per pixel stays bounded. The water contour: the grid carries the valley, the pixel the channel alone (`spec-eaux-interieures.md`); wide footprints read the rivers' map (`spec-erosion.md`).
 
 **No uniform stroke structure** (`spec-roche-organique.md`).
@@ -519,6 +521,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - **A material is a stack of strips, from millimeter to kilometer, without holes:** a declared data, verified by a validator.
 - **Every pixel of the floor belongs to a material that has its pile:** the rest of the floors including, the bare floor, which had no and went unnoticed of benchmarks.
 - **Every strip is erased by the same rule,** according to its wavelength and pixel size, regardless of its source: noise, tile or photo.
+- Anchor aerial colour and slope bands on the body. Apply the existing material and canopy shares to their contrast and roughness (`spec-texturage-universel.md`).
 - **The bands extend the slope of the photo:** above its tile, each octave carries the slope by octave of the photo, the one that the distant rule already counts (`STONE_SLOPE_SIGMA`). Lower, they leave each wall in carpet equal to his photo.
 - **A photo keeps the orientation of its shooting:** a wall photo goes on the slopes of more than 45°, a photo taken from above on the softest ones. The limit follows the universal rule and the noise limits, like that of the rock. A material that has only one photo keeps it everywhere.
 - **A correction is accepted by the quality benchmark,** on randomly drawn locations, not on the only reported view.

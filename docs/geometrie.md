@@ -2,6 +2,8 @@
 
 Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it.
 
+**View-directed sliding terrain, 2026-11-20.** Reallocation and filtering of the shared relief. The face translates toward visible terrain on the nadir plane. The ring translation decreases toward the horizon envelope. The fine reconstruction overlaps the first rings with the same grid size. Contact and sea state read a separate nadir sample. The intermediate material bands supply colour and shading normals. See `spec-rendu-lointain.md` and `spec-texturage-universel.md`.
+
 **Cloud weather bounds, 2026-11-19.** A culling bound for volumetric integration. A spherical weather rectangle can exclude a whole view or shadow segment using the filter support described in `spec-nuages.md`.
 
 **Cirrus traversal, 2026-11-19.** View and shadow integration use a 10–12 km shell derived from the world-space profile and its numerical margin. The profile defines the visible shape, as described in `spec-nuages.md`.

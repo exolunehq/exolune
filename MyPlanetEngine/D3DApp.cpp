@@ -10,6 +10,7 @@
 #include "PlanetMap.h"
 #include "Scans.h"
 #include "Tectonics.h"
+#include "TerrainFocus.h"
 #include "Climate.h"
 #include "Erosion.h"
 #include <windowsx.h>
@@ -1250,7 +1251,7 @@ bool D3DApp::InitDirect3D() {
         D3D12_RESOURCE_STATE_GENERIC_READ);
     Check(mShipCloudConstantBuffer->Map(0, &noRead, reinterpret_cast<void**>(&mShipCloudConstants)), "Ship weather constants map failed.");
 
-    mFaceVertexBuffer = CreateBuffer(md3dDevice.Get(), sizeof(FaceVertex) * MaxVertexCount, D3D12_HEAP_TYPE_DEFAULT,
+    mFaceVertexBuffer = CreateBuffer(md3dDevice.Get(), sizeof(FaceVertex) * (MaxVertexCount + 1), D3D12_HEAP_TYPE_DEFAULT,
         D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     mReadbackBuffer = CreateBuffer(md3dDevice.Get(), sizeof(FaceVertex), D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
     mFinePositions = CreateBuffer(md3dDevice.Get(), FineSampleBytes * FineVertexCount, D3D12_HEAP_TYPE_DEFAULT,
@@ -2163,9 +2164,8 @@ void D3DApp::Draw() {
     const bool shipDrawn = mView != View::Free && mView != View::Bare && mShip.Ready()
         && (mView != View::Walk || Length(mShipPos-mCamPos)<250.0);
 
-    // The mesh reaches the horizon, plus the highest mountains that can rise above it, capped at what
-    // one face plane can cover. The face is centred on the nadir, its half-width proportional to the
-    // height above the ground; the rings fill the rest.
+    // The mesh reaches the horizon plus the highest mountains that can rise above it.
+    // The face can lead the camera on the tangent plane. The outer envelope still surrounds the nadir.
     const bool airless=NearMoon(mCamPos);
     const Vec3d bodyCamera=mCamPos-(airless?mMoonCentre:Vec3d{});
     const double bodyRadius=airless?mMoonSurface.radius:PlanetRadius;
@@ -2196,14 +2196,23 @@ void D3DApp::Draw() {
         const double mountains = std::acos(bodyRadius / (bodyRadius + heightEnvelope));
         const double extent = bodyRadius * std::tan(std::min(horizon + mountains, kMaxCoverage));
 
-        // The face: centred on the nadir, half-width proportional to the height above the ground. It slides
-        // continuously with the camera: this is what refines the mesh progressively, without any step.
-        // On a moon, that ground is read at the face's own scale: finer relief rescaled every vertex each frame
-        // (docs/log/spec-stabilite.md, cause 2). Contact, speed and the title keep the exact ground.
+        // On a moon the mesh follows ground filtered at the face's own scale. Finer relief would rescale
+        // every vertex each frame (docs/log/spec-stabilite.md, cause 2).
         const double meshGround = airless ? mMoonSurface.Height(Airless::Vec{ bodyCamera.x, bodyCamera.y, bodyCamera.z },
             std::max(.25, mFaceFactor * clearance)) : mGroundHeight;
         mMeshHalfWidth = std::min(mFaceFactor * std::max(camAltitude - meshGround, .01), extent);
         mMeshRingCount = std::min(MaxRings, (UINT)std::ceil(std::log(extent / mMeshHalfWidth) / std::log(RingGrowth)));
+        mMeshOuterSpan = extent - mMeshHalfWidth;
+        const double cell = 2.0 * mMeshHalfWidth / FaceCells;
+        const double lead = cell / (cell + 8.0 * FineMinCell);
+        // As cells get finer, keep more of the foreground in the face. Bound radial ring shear to a quarter.
+        const double nearLimit = mMeshHalfWidth * (0.55 + 3.45 * lead * lead);
+        const double ringLimit = 0.25 * mMeshOuterSpan;
+        const double limit = nearLimit * ringLimit / std::hypot(nearLimit, ringLimit);
+        mMeshOffset = surfaceDetailed && !trembleTest
+            ? TerrainFocus::Offset(bodyCamera, mCamForward, mCamUp, std::tan(mCineFov * XM_PI / 360.0),
+                                   double(mClientWidth) / mClientHeight, bodyRadius, meshGround, limit)
+            : Vec3d{};
 
         // Face frame: z is the nadir, x is anchored on the north so the face does not twist with the heading.
         mMeshZ = meshUp;
@@ -2480,9 +2489,10 @@ void D3DApp::Draw() {
     mPrevShipPos = mShipPos;
     mPrevShipForward = mShipForward;
     mPrevShipUp = mShipUp;
-    mConstants->faceX = { (float)faceX.x, (float)faceX.y, (float)faceX.z, 0.0f };
-    mConstants->faceY = { (float)faceY.x, (float)faceY.y, (float)faceY.z, 0.0f };
-    mConstants->faceZ = { (float)faceZ.x, (float)faceZ.y, (float)faceZ.z, 0.0f };
+    mConstants->faceX = { (float)faceX.x, (float)faceX.y, (float)faceX.z, (float)Dot(mMeshOffset, faceX) };
+    mConstants->faceY = { (float)faceY.x, (float)faceY.y, (float)faceY.z, (float)Dot(mMeshOffset, faceY) };
+    mConstants->faceZ = { (float)faceZ.x, (float)faceZ.y, (float)faceZ.z,
+                          mMeshOuterSpan > 0.0 ? (float)(1.0 / mMeshOuterSpan) : 0.0f };
     mConstants->faceParams = { (float)halfWidth, (float)bodyRadius, (float)camHeight, (float)FaceCells };
     const double faceCell = 2.0 * halfWidth / FaceCells, fineRise = std::min(std::max(faceCell / FineMinCell - 1.0, 0.0), 1.0);
     const float fineWeight = surfaceDetailed?(float)(fineRise * fineRise * (3.0 - 2.0 * fineRise)):0.0f;
@@ -2521,8 +2531,8 @@ void D3DApp::Draw() {
     bool sameTerrain = sameMesh && std::memcmp(&terrainInputs, &mTerrainInputs, sizeof(TerrainInputs)) == 0;
     mTerrainInputs = terrainInputs;
     mTerrainKept = true;
-    // In a flight, the mesh slid this frame and the previous one: the lattice split in pairs of floats, the vertex under
-    // the camera aside (round 8), where some vertices split it in doubles, cells under EXACT_LATTICE_MAX_CELL, 4 m
+    // In a flight, the mesh slid this frame and the previous one: the lattice split in pairs of floats, the exact
+    // samples aside (round 8), where cells are under EXACT_LATTICE_MAX_CELL, 4 m
     // (PlanetSettings.hlsli). Not after a jump: a still view is the exact one from its first frame. Stopped after a
     // flight, the mesh is computed again in doubles, all of it: what is kept is always exact.
     const bool latticePairs = !airless && !sameMesh && mTerrainSlid && faceCell < 4.0;
@@ -2564,17 +2574,16 @@ void D3DApp::Draw() {
     // By 8 x 8 tiles of vertices (TerrainCompute.hlsl): the face's grid, then its rings by 8; 4 n vertices a ring.
     static_assert(FaceCells % 2 == 0, "the rings' tiles take 8 of their 4 n vertices");
     const UINT meshGroups = ((FaceCells + 8) / 8) * ((FaceCells + 8) / 8) + ((ringCount + 7) / 8) * (FaceCells / 2);
-    if (!sameTerrain) mCommandList->Dispatch(meshGroups, 1, 1);
+    if (!sameTerrain) mCommandList->Dispatch(meshGroups + 1, 1, 1);
     if (latticePairs) {
-        // The vertex under the camera, left by the pairs, from the exact shader as it is: the mesh kept (camPlane.z), it
-        // computes only the vertices without terrain. The camera stands on the same ground as on the exact mesh.
+        // The exact shader fills the centre and nadir samples left by the pairs.
         std::memcpy(mNadirConstants, mConstants, sizeof(FrameConstants));
         mNadirConstants->camPlane.z = 1.0f;
         auto pairsWritten = CD3DX12_RESOURCE_BARRIER::UAV(mFaceVertexBuffer.Get());
         mCommandList->ResourceBarrier(1, &pairsWritten);
         mCommandList->SetPipelineState(mComputePSO.Get());
         mCommandList->SetComputeRootConstantBufferView(0, mNadirConstantBuffer->GetGPUVirtualAddress());
-        mCommandList->Dispatch(meshGroups, 1, 1);
+        mCommandList->Dispatch(meshGroups + 1, 1, 1);
         mCommandList->SetComputeRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
     }
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 35);
@@ -2744,9 +2753,9 @@ void D3DApp::Draw() {
         mCommandList->ResourceBarrier(1, &toRead);
     }
     mCommandList->EndQuery(mTimestampHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 1);
-    const UINT nadirIndex = (FaceCells / 2) * (FaceCells + 1) + FaceCells / 2;
-    mCommandList->CopyBufferRegion(mReadbackBuffer.Get(), 0, mFaceVertexBuffer.Get(), nadirIndex * sizeof(FaceVertex),
-        sizeof(FaceVertex));
+    if (surfaceDetailed)
+        mCommandList->CopyBufferRegion(mReadbackBuffer.Get(), 0, mFaceVertexBuffer.Get(), vertexCount * sizeof(FaceVertex),
+            sizeof(FaceVertex));
 
     // Objects near the camera (docs/spec-objets-proximite.md): placed afresh every frame on the planet's lattice, in the
     // windows of cells around the camera, on the planes of the planet axes that can be the vertical's largest there.

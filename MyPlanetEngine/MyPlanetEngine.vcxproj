@@ -142,6 +142,7 @@
     <ClInclude Include="FlightContact.h" />
     <ClInclude Include="D3DApp.h" />
     <ClInclude Include="FlightFrame.h" />
+    <ClInclude Include="TerrainFocus.h" />
     <ClInclude Include="GpuHelpers.h" />
     <ClInclude Include="Adaptation.h" />
     <ClInclude Include="Glare.h" />

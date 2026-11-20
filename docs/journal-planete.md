@@ -2,6 +2,13 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-20 · Terrain detail in oblique flight**
+
+- The face samples four points across the view and leads the observer toward their projected surface hits. Lead decreases as the cells get finer. The layout limits radial ring shear to 25% and uses the existing ring count.
+- The fine grid covers 116% of the face half-width. Blend its reconstruction from 92% to 114% of the face half-width along each axis.
+- Aerial colour and slope use five filtered bands from 128 to 2,048 m. Snow, exposed mineral ground, dry cover and vegetation use distinct strengths.
+- Flight review uses `tools/tests/2026-11-20.txt`. The reference view comes from *Surface Echo* at 2:16, followed by independent terrain, coast, walking and orbit views.
+
 **2026-11-19 · Fast Atlantic flight at 12 km**
 
 - Eco uses the filtered erosion scale to extend low-cloud steps. The extension ramps in from 500 m to 2.5 km. It is bounded by 500 m of ray travel and 72 m of altitude change.
