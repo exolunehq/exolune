@@ -13,7 +13,7 @@ float4 PSMain(PSInput input,out float4 solar:SV_TARGET1):SV_TARGET0 {
     float3 splinePosition;float splineHeight,splineWeight;
     const float3 spline=SplineNormal(input.chart,input.corner,up,splinePosition,splineHeight,splineWeight);
     float fineWeight,fineHeight,uncertainty;float4 inland;float3 flow;uint4 near;
-    const float3 fine=FineNormal(input.chart,fineWeight,fineHeight,inland,flow,uncertainty,near);
+    const float3 fine=FineNormal(up,fineWeight,fineHeight,inland,flow,uncertainty,near);
     const float lightWeight=fineWeight*smoothstep(FINE_LIGHT_MIN_CELL,2*FINE_LIGHT_MIN_CELL,2*faceParams.x/faceParams.w);
     float screenWeight,screenHeight;float4 screenInland,screenGround;float3 screenPosition,screenFlow;
     const float3 screen=ScreenNormal(input.position.xy,up,screenWeight,screenHeight,screenInland,screenPosition,screenGround,screenFlow);
@@ -28,7 +28,7 @@ float4 PSMain(PSInput input,out float4 solar:SV_TARGET1):SV_TARGET0 {
     const float3 q=detailOrigin.xyz+CelestialWorld(surface);
     float albedo=lerp(lerp(input.geology.x,inland.w,lightWeight),screenGround.y,screenWeight);
     const float3 qx=ddx(q),qy=ddy(q);
-    const float resolved=lerp(lerp(input.cellSize,2*faceParams.x/(faceParams.w*ringParams.w),lightWeight),
+    const float resolved=lerp(lerp(input.cellSize,FineGridCell(),lightWeight),
         max(length(qx),length(qy))*screenRelief.w,screenWeight);
     const float atlasCell=faceParams.y*CELESTIAL_PI/1024;
     [branch] if(resolved>atlasCell) {

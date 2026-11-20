@@ -1,5 +1,6 @@
 #ifndef TERRAIN_NORMALS_HLSLI
 #define TERRAIN_NORMALS_HLSLI
+#include "Mesh.hlsli"
 StructuredBuffer<FaceVertex> splineVertices : register(t4); // the mesh's vertices, the vertex shader's
 
 // Weights of the four coefficients at offsets -1 to 2 from a cell's first vertex, at the fraction t of the
@@ -76,10 +77,11 @@ StructuredBuffer<FineSample> fineNormals : register(t7); // the fine grid's norm
 // Linear heights and independently interpolated normals exposed the sliding grid in distant mountains: the
 // height's slope jumped at every cell border. Positive B-spline weights keep the source height range. Water
 // uses the same positive spline for its moments, followed by the physical contour query below.
-// Weight fades over the face's last eight cells; no fine grid on rings or culled samples.
+// The fine window crosses the face edge. A smooth weight on the common plane
+// gradually hands elevation, normals and water back to the coarse samples.
 // uncertainty (m): how far the bilinear and the B-spline reconstructions of the same samples disagree, what the grid
 // cannot tell of the height between its samples.
-float3 FineNormal(float3 chart, out float weight, out float elevation, out float4 inland, out float3 flow, out float uncertainty,
+float3 FineNormal(float3 direction, out float weight, out float elevation, out float4 inland, out float3 flow, out float uncertainty,
                   out uint4 near)
 {
     near = (uint4)0xffffffffu; // the wet nodes its four samples around the pixel know (Erosion.hlsli, ErosionRiversNear)
@@ -88,13 +90,15 @@ float3 FineNormal(float3 chart, out float weight, out float elevation, out float
     uncertainty = 0.0;
     inland = 0.0;
     flow = 0.0;
-    if (ringParams.z <= 0.0 || chart.z > 0.5)
+    if (ringParams.z <= 0.0 || direction.z <= 0.0)
         return 0.0;
-    const float n = faceParams.w;
-    const int fineCells = (int)(n * ringParams.w);
-    const float2 f = chart.xy * ringParams.w;
-    // Clamped both ways: at the face's border the interpolated chart dips a hair below 0, and a root
-    // descriptor has no bounds check, so a read out of the buffer would bring the GPU down.
+    const float2 xy = direction.xy * (faceParams.y / direction.z);
+    const float2 local = xy - MeshOffset();
+    const float share = FineGridShare(local);
+    if (share <= 0.0) return 0.0;
+    const int fineCells = (int)(faceParams.w * ringParams.w);
+    const float2 f = FineGridIndex(local);
+    // The support ends inside the 4 x 4 window. Root descriptors still need bounded indices.
     const int2 c = clamp((int2)floor(f), 0, fineCells - 1);
     const float2 t = saturate(f - c);
     const uint i = c.y * (fineCells + 1) + c.x;
@@ -136,13 +140,11 @@ float3 FineNormal(float3 chart, out float weight, out float elevation, out float
     const float4 mixed = lerp(lerp(a, b, t.x), lerp(d, e, t.x), t.y);
     elevation = valid ? a.w + height : mixed.w;
     uncertainty = abs(elevation - mixed.w);
-    weight = ringParams.z * saturate(min(min(chart.x, n - chart.x), min(chart.y, n - chart.y)) / 8.0);
+    weight = ringParams.z * share;
     if (!valid) return normalize(mixed.xyz);
     inland = water;
     flow = velocity;
-    const float fineCell = 2.0 * faceParams.x / fineCells;
-    slope /= fineCell;
-    const float2 xy = (f / fineCells * 2.0 - 1.0) * faceParams.x;
+    slope /= FineGridCell();
     const float3 radial = float3(xy, faceParams.y);
     const float radius = length(radial);
     const float3 up = radial / radius;

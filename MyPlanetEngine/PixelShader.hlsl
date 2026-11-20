@@ -147,11 +147,28 @@ Ground GroundAt(float3 q, float elevation, float3 up, float3 normal, float3 shor
                          (1.0-max(m.snow,max(m.beach,m.rock)))*saturate(dot(up,normal))*v.able;
     const MossMaterial moss=GroundMoss(q,pixel,mossSite);
     color=lerp(color,moss.albedo,moss.weight);
-    g.albedo = saturate(color);
     g.detailScale = lerp(lerp(1.0, 2.0, m.rock), 0.5, max(m.snow, m.beach));
     const float3 soilSlope=lerp(m.textureSlope*(1.0-m.snow)+m.snow*m.snowSlope,
                                 TangentSlope(moss.slope,normal),moss.weight);
     g.slope = lerp(soilSlope, TangentSlope(crowns.slope, normal), canopySeen);
+    const float aerial = TEXTURE_DETAIL * smoothstep(2.0, 5.0, pixel);
+    [branch] if (aerial > 0.0 && pixel < 10.0)
+    {
+        // One world-fixed coating field for the aerial wavelengths. Sampling at the radial foot
+        // keeps its colour and slope attached while the triangles and their interpolated heights slide.
+        const float3 foot = faceParams.y * PlanetDirection(up) - (float3)detailAnchor.xyz * detailOrigin.w;
+        const Texture bands = DetailBands(foot, pixel, 7.0, 11.0, 1.0, 0.36, 0x5719u);
+        const float variation = aerial * (bands.color.x - 1.0);
+        const float bareRock = lerp(m.rock, 1.0, 0.45 * m.screeWeight) * (1.0 - m.beach);
+        const float3 groundTint = lerp(float3(0.57, 0.84, 0.66), float3(0.88, 0.75, 0.57), max(m.sandAmount, m.beach));
+        const float3 mineralTint = lerp(groundTint, float3(1.0, 0.90, 0.82), bareRock);
+        const float3 tint = lerp(mineralTint, float3(0.34, 0.44, 0.58), m.snow);
+        const float roughness = lerp(lerp(0.085, 0.18, bareRock), 0.07, m.snow);
+        color *= 1.0 + tint * variation;
+        g.canopyAlbedo = saturate(g.canopyAlbedo * (1.0 + float3(1.13, 1.24, 0.95) * variation));
+        g.slope += TangentSlope(bands.slope * (aerial * lerp(roughness, 0.14, canopySeen)), normal);
+    }
+    g.albedo = saturate(color);
     const float cavity = lerp(lerp(lerp(1.0, m.sand.cavity, m.sandAmount) * lerp(1.0, m.soil.cavity, m.soilAmount), lerp(1.0, m.scree.cavity, TEXTURE_DETAIL), m.screeWeight),
                               lerp(1.0, m.stone.cavity, TEXTURE_DETAIL), m.rock);
     g.cavity = lerp(1.0, cavity, 1.0 - m.snow);
@@ -223,7 +240,8 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     float4 fineInland;
     float3 fineFlow;
     uint4 fineNear;
-    const float3 fineNormal = FineNormal(input.chart, fineWeight, fineElevation, fineInland, fineFlow, fineUncertainty, fineNear);
+    const float3 fineNormal = FineNormal(up, fineWeight, fineElevation, fineInland, fineFlow, fineUncertainty, fineNear);
+    const float fineCell = FineGridCell();
     // The fine grid lights the ground from face cells of FINE_LIGHT_MIN_CELL; the materials are decided on it further down.
     const float lightWeight = fineWeight * smoothstep(FINE_LIGHT_MIN_CELL, 2.0 * FINE_LIGHT_MIN_CELL, 2.0 * faceParams.x / faceParams.w);
     // The screen relief, where on, takes over from both: the true relief down to its texels, whatever the grid's cells.
@@ -237,7 +255,7 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     const float3 vertexNormal = normalize(lerp(normalize(lerp(normalize(lerp(normalize(input.normal), splineNormal, splineWeight)),
                                                               fineNormal, lightWeight)), screenNormal, screenWeight));
     // The grain starts below the lighting's cells, and fewer slopes hide within them.
-    const float cellSize = lerp(input.cellSize / lerp(1.0, ringParams.w, lightWeight), max(footprint * screenRelief.w, CREASE_MIN_CELL),
+    const float cellSize = lerp(rcp(lerp(rcp(input.cellSize), rcp(fineCell), lightWeight)), max(footprint * screenRelief.w, CREASE_MIN_CELL),
                                 screenWeight);
     // On the screen relief, the slopes below its texels from its own roughness: the vertices', interpolated on triangles
     // sliding under the view, made the snow's and the rock's limits tremble with them.
@@ -274,7 +292,7 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     // Grid wetness is a candidate, never the final contour. In particular a narrow river can pass between every
     // dry sample. Refine its conservative distance band with the SAME terrain rule at pixel scale. This also
     // prevents a moving grid's linear height approximation from drawing polygonal coastlines in orbit.
-    const float sampleCell = input.cellSize / lerp(1.0, ringParams.w, fineWeight);
+    const float sampleCell = rcp(lerp(rcp(input.cellSize), rcp(fineCell), fineWeight));
     const float pixelCell = max(0.5 * footprint, CREASE_MIN_CELL);
     const float unresolved = smoothstep(1.0, 2.0, sampleCell / pixelCell);
     // What the grid cannot place of the heights: where the fine grid carries them, its B-spline against its bilinear
@@ -472,7 +490,6 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
         // The beach's normal, across SHORE_BASELINE (VertexShader.hlsl), the fine grid's far away once its cells span the
         // baseline: the face's cells there no longer resolve a cordon's sides, and the vertices' normal on its crest stood
         // level; finer, the grid would bring back the bumps the baseline leaves out.
-        const float fineCell = 2.0 * faceParams.x / (faceParams.w * ringParams.w);
         const float3 shoreNormal = normalize(lerp(normalize(lerp(normalize(input.shore), fineNormal,
                                                                  fineWeight * smoothstep(0.5 * SHORE_BASELINE, SHORE_BASELINE, fineCell))),
                                                   screenNormal, screenWeight));

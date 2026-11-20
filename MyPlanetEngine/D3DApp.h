@@ -128,9 +128,9 @@ protected:
     struct FrameConstants
     {
         XMFLOAT4X4 viewProj;
-        XMFLOAT4 faceX;
+        XMFLOAT4 faceX; // axes in xyz, mesh offset components in x.w and y.w
         XMFLOAT4 faceY;
-        XMFLOAT4 faceZ;
+        XMFLOAT4 faceZ; // w: inverse distance from face edge to the unshifted outer envelope
         XMFLOAT4 faceParams; // half-width, planet radius, camera altitude, cells per face side
         XMFLOAT4 lightDir;
         double nadir[4];     // nadir direction in double precision, for the noise
@@ -200,11 +200,11 @@ protected:
 
     static constexpr double PlanetRadius = 6378000.0;
     // The mesh: a face of FaceCells x FaceCells cells, then up to MaxRings square rings of 4 x FaceCells
-    // vertices each. FaceCells is even, so that one vertex sits exactly on the nadir.
+    // vertices each. A separate sample tracks the terrain under the camera.
     static const UINT FaceCells = 192;
     static const UINT MaxRings = 2048; // enough for 256 cells per side down to the ground
     // Each ring is wider than the previous by this factor, so that cells stay square: a cell spans about
-    // 2 / FaceCells of its distance to the nadir, whatever the face size.
+    // 2 / FaceCells of its logical distance to the face centre, whatever the face size.
     static constexpr double RingGrowth = 1.0 + 2.0 / FaceCells;
     static const UINT FaceVertexCount = (FaceCells + 1) * (FaceCells + 1);
     static const UINT RingVertexCount = 4 * FaceCells;
@@ -357,7 +357,7 @@ protected:
 
     ComPtr<ID3D12Resource> mConstantBuffer;
     FrameConstants* mConstants = nullptr;
-    ComPtr<ID3D12Resource> mNadirConstantBuffer; // the frame's constants, the mesh kept: the exact vertex under the camera
+    ComPtr<ID3D12Resource> mNadirConstantBuffer; // the frame's constants, the mesh kept for the exact samples
     FrameConstants* mNadirConstants = nullptr;   // in a flight (round 8)
     ComPtr<ID3D12Resource> mFaceVertexBuffer; // written by the compute shader, then its horizon and shadow height
     ComPtr<ID3D12PipelineState> mHorizonPSO; // the march toward the sun: horizon and shadow height (Horizon.hlsl)
@@ -396,7 +396,7 @@ protected:
     static constexpr double ScreenReliefLow = 150e3, ScreenReliefHigh = 200e3; // its weight's rise, camera altitude (m)
     ComPtr<ID3D12Resource> mIndexBuffer;
     D3D12_INDEX_BUFFER_VIEW mIndexBufferView = {};
-    ComPtr<ID3D12Resource> mReadbackBuffer;   // the nadir vertex, to know the ground height
+    ComPtr<ID3D12Resource> mReadbackBuffer;   // the dedicated nadir sample, to know the ground height
     // The planet map (PlanetMap.h): the relief on a cube fixed on the planet, drained, once at startup.
     ComPtr<ID3D12Resource> mPlanetMap;
     void CreatePlanetMap();
@@ -595,6 +595,8 @@ protected:
     bool mMeshFrozen = false;
     bool mFaceted = false;      // key R: faceted shading, from the triangles, to compare
     Vec3d mMeshX = {}, mMeshY = {}, mMeshZ = {};
+    Vec3d mMeshOffset = {};
+    double mMeshOuterSpan = 0.0;
     double mMeshHalfWidth = 0.0;
     UINT mMeshRingCount = 0;
     bool mLooking = false;

@@ -62,6 +62,9 @@
     <ClInclude Include="FlightFrame.h">
       <Filter>Fichiers sources</Filter>
     </ClInclude>
+    <ClInclude Include="TerrainFocus.h">
+      <Filter>Fichiers sources</Filter>
+    </ClInclude>
     <ClInclude Include="PlanetMap.h">
       <Filter>Fichiers sources</Filter>
     </ClInclude>

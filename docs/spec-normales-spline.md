@@ -7,7 +7,7 @@ Status: experiment 1 of `log/pistes-glissement.md`, measured at benchmark the 20
 - Its normal differentiates that height surface, including the spherical chart's Jacobian; height and slope share one reconstruction.
 - The 4 by 4 support rounds sampling-scale height transitions without overshooting the contributing heights; constant and affine height fields retain their values.
 - This replaces bilinear heights and independently interpolated centred-difference normals; the former slope jumped at fine-cell boundaries.
-- The existing fade over eight face cells is retained; missing outer samples fall back to the valid central four samples. All buffer addresses are clamped.
+- The fine-grid window extends across the first rings. It fades independently along each plane axis from 0.92 to 1.14 face half-widths. Missing outer samples fall back to the valid central four. All buffer addresses are clamped.
 - The gap between the bilinear and the B-spline heights widens the height limits drawn on the grid (`spec-rendu-lointain.md`, the screen relief).
 - The change adds height-buffer reads and arithmetic, with no extra terrain evaluation, buffer, compute pass, mesh change or generation setting.
 - Validated in flight by the user on the erosion branch; ported to `main` on 2026-11-02, flight route `tools/tests/2026-11-02-rendu-lointain.txt`.
@@ -50,7 +50,7 @@ Status: experiment 1 of `log/pistes-glissement.md`, measured at benchmark the 20
 
 - **The edge of the face:** the two cards do not extend each other. Normal current up to 3 grid cells of the edge, full spline from 5 grid cells, on both sides.
 - **The corners of the rings:** the grid turns a quarter of a turn. Even faded, from 3 to 5 grid cells from the corner.
-- **The triangles between the face and the first ring,** which mix the two cards: normal current.
+- **The triangles between the face and the first ring** use the interpolated mesh normal as the coarse fallback. The fine grid crosses both charts in common plane coordinates.
 - **Vertices offset out of field:** the margin of offset changes from 3 to 6 grid cells, so that the spline never touches the screen. If one of them is affected anyway, normal current.
 
 ## What changes in the code

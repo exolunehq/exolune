@@ -8,6 +8,7 @@
 // image the same.
 #include "Planet.hlsli"
 #include "PlanetSettings.hlsli"
+#include "Mesh.hlsli"
 
 StructuredBuffer<FaceVertex> verts : register(t0);  // the mesh as drawn
 StructuredBuffer<FineSample> fine : register(t1);   // the fine grid as the pixels read it (FineNormals.hlsl)
@@ -21,22 +22,27 @@ static const float SPREAD_SLOPE = 0.37 * 0.16;
 bool MayRefine(uint i, uint j, uint n)
 {
     const uint sub = (uint)ringParams.w, cells = n * sub;
-    const float faceCell = 2.0 * faceParams.x / n, fineCell = faceCell / sub;
+    const float faceCell = 2.0 * faceParams.x / n, fineCell = FineGridCell();
+    const float2 lo = (float2(i, j) / n * 2.0 - 1.0) * faceParams.x;
+    const float2 hi = lo + faceCell;
     float wLo = 1e30, wHi = -1e30, xLo = 1e30, xHi = -1e30, eLo = 1e30, eHi = -1e30, rough = 0.0, step = 0.0, bend = 0.0;
-    // The fine grid's samples under the pixels' B-splines (PixelShader.hlsl, FineNormal): 4 n - 1 to 4 n + 6 each way.
+    // Project both corners into the fine grid, whose cells extend past the face.
+    // At most eight taps per axis, including the B-splines' support.
     bool complete = ringParams.z > 0.0;
     [branch] if (ringParams.z > 0.0)
     {
-        const int x0 = (int)(sub * i) - 1, y0 = (int)(sub * j) - 1;
+        const int2 start = (int2)floor(FineGridIndex(lo)) - 1;
+        const int2 count = (int2)floor(FineGridIndex(hi)) + 3 - start;
         float above[8], above2[8];
         [unroll] for (int k = 0; k < 8; ++k)
             above[k] = above2[k] = asfloat(0x7fc00000u);
-        [loop] for (int y = 0; y < 8; ++y)
+        [loop] for (int y = 0; y < count.y; ++y)
         {
             float left = asfloat(0x7fc00000u), left2 = asfloat(0x7fc00000u);
             [unroll] for (int x = 0; x < 8; ++x)
             {
-                const uint2 at = (uint2)clamp(int2(x0 + x, y0 + y), 0, (int)cells);
+                if (x >= count.x) continue;
+                const uint2 at = (uint2)clamp(start + int2(x, y), 0, (int)cells);
                 const uint id = at.y * (cells + 1) + at.x;
                 const float4 terrain = fine[id].terrain;
                 float e = asfloat(0x7fc00000u);
@@ -59,12 +65,12 @@ bool MayRefine(uint i, uint j, uint n)
             }
         }
     }
-    // The samples' size (PixelShader.hlsl, sampleCell): the fine grid's at its full weight, past the face's 8 cells of
-    // fading and with every sample there; the mesh's otherwise, the wider, and so the wider band.
-    const bool inner = i >= 8u && j >= 8u && i + 9u <= n && j + 9u <= n;
+    // A lower bound on the fine weight across the whole cell. The convex projection of its
+    // triangles lies between lo and hi, and the share decreases with distance from the face centre.
+    const float weight = complete ? ringParams.z * FineGridShare(max(abs(lo), abs(hi))) : 0.0;
     // There, at a full weight, the pixels' water and heights are the fine grid's alone (fineWeight 1): the mesh's,
     // interpolated over cells 4 times wider, do not reach them. Its roughness still spreads the heights.
-    const bool fineOnly = complete && inner && ringParams.z >= 1.0;
+    const bool fineOnly = weight >= 1.0;
     // The triangles' interpolants: the corners' water.
     [unroll] for (uint c = 0; c < 4; ++c)
     {
@@ -77,7 +83,7 @@ bool MayRefine(uint i, uint j, uint n)
             xLo = min(xLo, x), xHi = max(xHi, x);
         }
     }
-    const float sampleCell = faceCell / lerp(1.0, (float)sub, complete && inner ? ringParams.z : 0.0);
+    const float sampleCell = rcp(lerp(rcp(faceCell), rcp(fineCell), weight));
     // A river's band: its edge's candidate distance within three band scales of a sample.
     const bool rivers = EROSION_RAVINES && EROSION_RIVERS && erosionMode.x >= 2u;
     // Wider samples, a narrower band in samples (CONTOUR_CHANNEL_BAND), but a wider band in metres: the widest sample bounds it.
@@ -93,7 +99,7 @@ bool MayRefine(uint i, uint j, uint n)
                 const float ex = verts[at.y * (n + 1) + min(at.x + 1, n)].elevation;
                 const float ey = verts[min(at.y + 1, n) * (n + 1) + at.x].elevation;
                 eLo = min(eLo, e), eHi = max(eHi, e);
-                step = max(step, max(abs(ex - e), abs(ey - e)) / sub);
+                step = max(step, max(abs(ex - e), abs(ey - e)) * (fineCell / faceCell));
             }
     if (!(wLo >= band) && !(wHi <= -band))
         return true;
@@ -106,7 +112,7 @@ bool MayRefine(uint i, uint j, uint n)
     // differences (taken whole); plus 2 % of a sample and 2 m.
     const float spread = SPREAD_SLOPE * rough * faceCell;
     const float slopeBand = 2.0 * step * sampleCell / fineCell, placed = 2.0 * bend;
-    const float band2 = complete && inner ? lerp(slopeBand, placed, ringParams.z) : max(slopeBand, placed);
+    const float band2 = fineOnly ? placed : max(slopeBand, placed);
     const float heightBand = max(spread, band2) + 0.02 * sampleCell + 2.0;
     return eLo < 3.0 * heightBand && eHi > -3.0 * heightBand;
 }
