@@ -81,6 +81,21 @@ void PlanetPlantPlacement::Run(ID3D12GraphicsCommandList* list,ID3D12RootSignatu
         list->SetComputeRootUnorderedAccessView(16,mGround->GetGPUVirtualAddress()+groundTable*(mGroundParity^1u));
         list->SetComputeRootUnorderedAccessView(17,mGroundClaims->GetGPUVirtualAddress());
     };
+    { // Invalidate habitat and ground together before the first reader after a reset.
+        const UINT barriers=mGroundReset ? 3u : 2u;
+        const D3D12_RESOURCE_BARRIER toCopy[3]={
+            CD3DX12_RESOURCE_BARRIER::Transition(mGroundClaims.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_STATE_COPY_DEST),
+            CD3DX12_RESOURCE_BARRIER::Transition(mGroundZero.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_STATE_COPY_SOURCE),
+            CD3DX12_RESOURCE_BARRIER::Transition(mGround.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_STATE_COPY_DEST) };
+        list->ResourceBarrier(barriers,toCopy); list->CopyBufferRegion(mGroundClaims.Get(),0,mGroundZero.Get(),0,UINT64(GroundSlots)*4);
+        if (mGroundReset) for (UINT64 half=0;half<2;++half) list->CopyBufferRegion(mGround.Get(),half*groundTable,mGroundZero.Get(),0,groundTable);
+        const D3D12_RESOURCE_BARRIER toWrite[3]={
+            CD3DX12_RESOURCE_BARRIER::Transition(mGroundClaims.Get(),D3D12_RESOURCE_STATE_COPY_DEST,D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
+            CD3DX12_RESOURCE_BARRIER::Transition(mGroundZero.Get(),D3D12_RESOURCE_STATE_COPY_SOURCE,D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
+            CD3DX12_RESOURCE_BARRIER::Transition(mGround.Get(),D3D12_RESOURCE_STATE_COPY_DEST,D3D12_RESOURCE_STATE_UNORDERED_ACCESS) };
+        list->ResourceBarrier(barriers,toWrite);
+        mGroundReset=false;
+    }
     {
         auto toCopy=CD3DX12_RESOURCE_BARRIER::Transition(mMissArgs.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_STATE_COPY_DEST);
         list->ResourceBarrier(1,&toCopy); list->CopyBufferRegion(mMissArgs.Get(),0,mMissArgsReset.Get(),0,16);
@@ -102,22 +117,6 @@ void PlanetPlantPlacement::Run(ID3D12GraphicsCommandList* list,ID3D12RootSignatu
     const D3D12_RESOURCE_BARRIER beforeHeavy[2]={
         CD3DX12_RESOURCE_BARRIER::Transition(mTiles.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
         CD3DX12_RESOURCE_BARRIER::Transition(mTileDispatch.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT) };
-    { // this frame's claims cleared; after a jump, the tables too
-        const UINT64 table=UINT64(GroundSlots)*32;
-        const UINT barriers=mGroundReset ? 3u : 2u;
-        const D3D12_RESOURCE_BARRIER toCopy[3]={
-            CD3DX12_RESOURCE_BARRIER::Transition(mGroundClaims.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_STATE_COPY_DEST),
-            CD3DX12_RESOURCE_BARRIER::Transition(mGroundZero.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_STATE_COPY_SOURCE),
-            CD3DX12_RESOURCE_BARRIER::Transition(mGround.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_STATE_COPY_DEST) };
-        list->ResourceBarrier(barriers,toCopy); list->CopyBufferRegion(mGroundClaims.Get(),0,mGroundZero.Get(),0,UINT64(GroundSlots)*4);
-        if (mGroundReset) for (UINT64 half=0;half<2;++half) list->CopyBufferRegion(mGround.Get(),half*table,mGroundZero.Get(),0,table);
-        const D3D12_RESOURCE_BARRIER toWrite[3]={
-            CD3DX12_RESOURCE_BARRIER::Transition(mGroundClaims.Get(),D3D12_RESOURCE_STATE_COPY_DEST,D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
-            CD3DX12_RESOURCE_BARRIER::Transition(mGroundZero.Get(),D3D12_RESOURCE_STATE_COPY_SOURCE,D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
-            CD3DX12_RESOURCE_BARRIER::Transition(mGround.Get(),D3D12_RESOURCE_STATE_COPY_DEST,D3D12_RESOURCE_STATE_UNORDERED_ACCESS) };
-        list->ResourceBarrier(barriers,toWrite);
-        mGroundReset=false;
-    }
     // The listed tiles' exact ground, by full waves, kept in this frame's table for the heavy pass.
     const D3D12_RESOURCE_BARRIER missesToRead[2]={
         CD3DX12_RESOURCE_BARRIER::Transition(mMisses.Get(),D3D12_RESOURCE_STATE_UNORDERED_ACCESS,D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),

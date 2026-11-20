@@ -46,6 +46,13 @@
 - The relay strip can copy a plant in both representations; it cannot saturate a downstream queue alone.
 - Overruns of tiles and plant lists remain marked.
 - Saturation can further reduce the geometric cover expected by the canopy; the choice remains stable, and the limit remains visible.
+
+**Placement stability, 2026-11-20**
+
+- Decide plant admission with the exact terrain and the fixed habitat fields. Use the drawn surface for support and visibility after that decision.
+- Remember tiles with no eligible candidates in the existing exact-ground cache. Test every in-domain candidate against its exact acceptance probability and allow a 0.002 margin for sampling roundoff.
+- Read both cache tables before the placement pass writes its table. Clear both before the first lookup after a terrain reset. A cache miss runs exact placement in the current frame.
+- Review a stationary pan, an approach and independent biomes in flight. [Flight review](../tools/tests/2026-11-20-arbres-stables.txt)
 - Temporary storage of tiles and instances increases memory; this prototype prioritizes stability over compactness.
 
 **The impostors optimized:**
