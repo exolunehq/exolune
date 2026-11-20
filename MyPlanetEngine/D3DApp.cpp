@@ -3366,11 +3366,11 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
     } else if (mView != View::Free) {
         wchar_t lever[64] = L"neutre";
         if (mThrottle >= FlightDynamics::FirstBurnNotch)
-            wcscpy_s(lever, L"poussée continue");
+            wcscpy_s(lever, L"pouss\u00e9e continue");
         else if (mThrottle > 0.0)
-            swprintf_s(lever, L"croisière %.0f m/s", FlightDynamics::CruiseSpeed(mThrottle));
+            swprintf_s(lever, L"croisi\u00e8re %.0f m/s", FlightDynamics::CruiseSpeed(mThrottle));
         wchar_t ship[256];
-        swprintf_s(ship, L" | %s : %s, %.0f m/s, verticale %+.1f m/s, chauffe %.0f %% (Tab) | molette %g (%s), Haut : pleine poussée, Maj : boost, X : frein",
+        swprintf_s(ship, L" | %s : %s, %.0f m/s, verticale %+.1f m/s, chauffe %.0f %% (Tab) | molette %g (%s), Haut : pleine pouss\u00e9e, Maj : boost, X : frein",
             mShip.Profile().name, mView == View::Cockpit ? L"cockpit" : mView == View::Chase ? L"poursuite" : L"sans vaisseau",
             Length(mShipVelocity), Dot(mShipVelocity, SurfaceUp(mShipPos)), 100.0 * mFlightCues.heat,
             mThrottle, lever);
