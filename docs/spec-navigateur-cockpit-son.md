@@ -9,7 +9,7 @@
 - [10:30](https://www.youtube.com/watch?v=qB12mrdYPkc&t=630s) shows the closed rear wall and its circular fitting.
 - The images support a view-dependent panoramic field; they do not establish an ordinary glazed canopy or its optical construction.
 - The game treats it as a clear forward field in cockpit view, with an opaque chrome exterior in external views.
-- No glass pane, glass distortion or canopy rain simulation is attached to this field.
+- From the pilot seat, the field displays the shared rain, fine wear and atmospheric entry effects. The outer hull supplies the optical surface behind its cabin opening. [Flight, canopy and suit](spec-vol-immersion.md)
 - Interior proportions are reconstructed from film views, without authenticated production dimensions.
 
 **Geometry**
@@ -72,11 +72,11 @@
 
 - `navigateur` starts in cockpit view; Tab cycles cockpit, chase and bare view.
 - The fighter remains the executable's default model.
-- `ShipProfiles.h` supplies both pilot eye offsets and separates cabin availability from canopy weather.
+- `ShipProfiles.h` supplies the pilot eye, the panoramic water mapping and the exterior reflection selection.
 - VSX material role 10 identifies the reflective exterior; role 11 identifies cabin materials; role 12 identifies live instrument faces.
 - Draw the cabin in the ordinary opaque pass in cockpit views, with the world's depth, atmosphere and temporal smoothing.
 - Omit hidden cabin geometry from the exterior reflection source to prevent false interior hits.
-- Draw the exterior through the existing reflection pass in exterior views; omit it for the cockpit's virtual field.
+- Draw reflected chrome in exterior views. In the cockpit, shade the panoramic field through the common glass pass.
 - Exterior shadows retain the complete closed hull in both views.
 - Cabin lights use visible fixture positions and convert authored candela to the engine's normalized solar units.
 - Exterior reflection behavior and off-screen limits remain in `spec-reflets-vaisseau.md`.
@@ -84,16 +84,16 @@
 **Original sound design**
 
 - The film extracts remain listening references; their music and dialogue are not runtime material.
-- `NavigatorSound.h` generates every sample from oscillators, filtered noise and short damped delays.
+- `NavigatorSound.h` generates the Navigator's propulsion resonance from oscillators, filtered noise and short damped delays.
 - Quiet noise-excited bands at 164.9, 437.7 and 1031.3 Hz carry the field; slow drift stays below 0.5%.
 - A faint 38.17/53.83 Hz sub layer and damped stereo delays add body.
 - Power and maneuver demand mainly change level and brightness, without a throttle-linked pitch sweep, combustion pulse or nozzle layer.
 - The broad wash is deliberately faint following the user's rejection of the previous motor and jet impressions.
 - Power changes glide continuously, without restarting a recorded loop.
 - Interior filtering retains body vibration; exterior transport fades with air density.
-- Environmental wind remains in world audio and is not duplicated in the ship voice.
+- Environmental wind follows the habitat. Air loading on the hull follows flight telemetry.
 - XAudio2 uses the existing master and ship mix controls.
-- The other ship profiles retain their existing synthesized engine voices.
+- Shared cabin, hull and radio layers are described in the [flight and suit specification](spec-vol-immersion.md).
 - The callback allocates no memory and opens no media files.
 
 **Validation and review**

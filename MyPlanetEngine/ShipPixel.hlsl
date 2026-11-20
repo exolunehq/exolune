@@ -7,6 +7,7 @@
 #include "Atmosphere.hlsli"
 #include "SceneExposure.hlsli"
 #include "Ship.hlsli"
+#include "ShipEntry.hlsli"
 #include "ShipScreens.hlsli"
 #include "ShipNavigator.hlsli"
 #ifdef SHIP_SCENE_REFLECTIONS
@@ -110,6 +111,14 @@ Output PSMain(ShipPixel input)
     const float panelGain=dimmable?NightInstrumentGain():1.0;
     o.radiance = float4(sunLit + skyLit + panelGain*(instrumentEmission + glow * m.emission * (screen ? image : ShipImage(m.image[4], m.uv[4], input.uv, 1.0).rgb)),
                         length(input.pos) / 1000.0);
+    const float heat = EntryIntensity();
+    if (heat > 0.002 && !screen && !navigatorDial && m.role != SHIP_ROLE_HOT) {
+        const bool innerField = ShipNavigator() && m.role == 11;
+        const float3 localN = float3(dot(n, shipModel[0].xyz), dot(n, shipModel[1].xyz), dot(n, shipModel[2].xyz));
+        const float3 localV = float3(dot(v, shipModel[0].xyz), dot(v, shipModel[1].xyz), dot(v, shipModel[2].xyz));
+        const float3 heatLight = EntryRetainerLight(input.local, localN, localV, albedo, roughness, innerField, heat);
+        o.radiance.rgb += heatLight * min(1.0, 1.3 / max(Exposure(), 1.0));
+    }
     if (ShipNavigator() && (m.role == 11 || navigatorDial))
     {
         const float3 localN = float3(dot(n, shipModel[0].xyz), dot(n, shipModel[1].xyz), dot(n, shipModel[2].xyz));

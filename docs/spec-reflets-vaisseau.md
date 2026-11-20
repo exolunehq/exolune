@@ -9,7 +9,7 @@
 - Existing GGX sunlight and Fresnel use the actual smooth mesh normals.
 - Solar attenuation includes the hull's shadow maps, terrain horizon and cloud shadow at the ship.
 - Selection retains the fighter as the executable's default.
-- The Navigator starts in its modelled cockpit; its virtual viewing field uses no canopy water simulation.
+- The Navigator starts in its modelled cockpit. Its panoramic field carries the shared canopy weather. [Flight, canopy and suit](spec-vol-immersion.md)
 - The profile supplies no exhaust jets or animation pivots.
 
 **Scene transport**
@@ -37,7 +37,7 @@
 **Composition and history**
 
 - Draw the reflective skin after the world's atmosphere into the ship overlay, depth-tested and depth-writing.
-- Omit that outer skin in cockpit view; the modelled cabin bounds its clear forward field.
+- In cockpit view the glass pass uses the skin behind the modelled cabin opening.
 - The world composite is read-only during this pass; there is no feedback from the current hull.
 - Apply the short camera-to-hull atmospheric path and local cloud extinction.
 - The 32-bit float overlay stores opaque hull distance as negative alpha.

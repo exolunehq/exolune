@@ -1,10 +1,12 @@
 // Focused behavioural checks. No renderer, GPU, audio device, or performance/quality benchmark.
 #include "../../MyPlanetEngine/WalkController.h"
 #include "../../MyPlanetEngine/WorldAudio.h"
+#include "../../MyPlanetEngine/Audio.h"
 #include "../../MyPlanetEngine/CelestialManifest.h"
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
+#include <memory>
 #include <limits>
 
 static void Require(bool ok,const char* message) { if (!ok) { std::fprintf(stderr,"FAIL: %s\n",message); std::exit(1); } }
@@ -42,6 +44,63 @@ static void WriteAudition(const std::wstring& path,const std::vector<float>& pcm
     for(float sample:pcm) { const int16_t value=int16_t(std::lround(std::min(std::max(sample,-1.0f),1.0f)*32767)); fwrite(&value,2,1,file); }
     fclose(file);
 }
+static void ImmersionChecks(const std::wstring& directory,const wchar_t* output) {
+    WorldAudio baseline, repeated;
+    baseline.Initialize(directory); repeated.Initialize(directory);
+    WorldSound s;
+    s.listener=SoundListener::Helmet;
+    float a[960]={},b[960]={};
+    double energy=0;
+    for(unsigned block=0;block<290;++block) {
+        baseline.Update(s,.01f); repeated.Update(s,.01f);
+        if(block==10) { baseline.RequestRadio(); repeated.RequestRadio(); }
+        if(block==35 || block==80) repeated.RequestRadio();
+        std::fill(std::begin(a),std::end(a),0.0f); std::fill(std::begin(b),std::end(b),0.0f);
+        baseline.Render(a,480); repeated.Render(b,480);
+        Require(std::equal(std::begin(a),std::end(a),std::begin(b)),"a repeated radio command cannot restart or overlap speech");
+        for(float v:a) energy+=v*v;
+    }
+    Require(std::sqrt(energy/(290*960))>.025,"a lunar headset plays the recorded breath and radio");
+    auto engine=std::make_unique<Audio>(); // the XAudio2 output ring also exists when rendering offline
+    Require(engine->Initialize(false),"production audio bank opens in the device-free mixer");
+    std::vector<float> preview;
+    float peak=0; double quiet=0,entry=0,forest=0;
+    for(int block=0;block<2100;++block) {
+        const float t=block*.01f;
+        WorldSound scene;
+        if(t<8) {
+            scene.listener=SoundListener::Cockpit;
+            scene.engine=.08f+.76f*std::min(t/4,1.0f);
+            scene.flightDensity=std::min(1.0f,std::max(0.0f,(t-2)*.24f));
+            scene.equivalentAirspeed=std::max(0.0f,(t-2)*66);
+            scene.heat=std::min(1.0f,std::max(0.0f,(t-4)*.45f));
+        } else if(t<11) {
+            scene.listener=SoundListener::Chase;
+            scene.engine=.85f; // no airborne transport outside the hull in vacuum
+        } else {
+            scene.listener=SoundListener::Helmet; scene.presence=1; scene.wind=.30f; scene.leaves=.74f;
+            scene.exertion=t<16?.8f:.22f;
+            if(block>=1120 && block<1600 && block%64==0) engine->Footstep(FootSurface::Grass);
+            if(block==1550) engine->RequestRadio();
+        }
+        engine->SetMix(std::min(std::max(21-t,0.0f),1.0f),1,1,1);
+        engine->Update(scene,.01f);
+        engine->Render(a,480);
+        for(float v:a) {
+            Require(std::isfinite(v) && std::abs(v)<=1,"production immersion mix stays finite and bounded");
+            peak=std::max(peak,std::abs(v));
+            if(block>=660 && block<760) entry+=v*v;
+            if(block>=1070 && block<1100) quiet+=v*v;
+            if(block>=1400 && block<1500) forest+=v*v;
+        }
+        if(output) preview.insert(preview.end(),std::begin(a),std::end(a));
+    }
+    Require(std::sqrt(quiet/(30*960))<.0008,"chase vacuum silences a working reactor and entry air");
+    Require(std::sqrt(entry/(100*960))>.025 && std::sqrt(forest/(100*960))>.004,"entry and a walking helmet yield audible mixes");
+    if(output) WriteAudition(std::wstring(output)+L"\\immersion-vol-casque.wav",preview);
+    std::printf("Immersion: radio retrigger, airless chase, cockpit entry, helmet foliage and complete mixer pass (peak %.3f).\n",peak);
+}
+
 struct Trial {
     Walker walker; double x=0,y=0,apex=0; unsigned steps=0; bool fell=false;
     std::function<double(double,double)> ground=[](double,double){return 10.0;};
@@ -68,6 +127,8 @@ int wmain(int argc,wchar_t** argv) {
     Require(walk.steps>=3&&walk.steps<=4,"footsteps follow distance");
     walk.Run(1,60,{}); const double rest=walk.x; walk.Run(1,60,{}); Require(walk.x-rest<0.001,"release brakes to rest");
     Trial run,crouch; run.Run(1,60,{1,0,true}); crouch.Run(1,60,{1,0,false,true});
+    Require(idle.walker.exertion==0 && run.walker.exertion>3*crouch.walker.exertion,
+        "helmet effort follows actual running and crouching speed");
     Require(std::abs(run.walker.vx-3.6)<0.001,"running reaches 3.6 m/s");
     Require(std::abs(crouch.walker.eye-1.05)<0.001&&crouch.walker.vx<0.751,"crouching lowers the eye and pace");
     Trial jump; jump.Frame(1.0/60,{0,0,false,false,true}); jump.Run(2,60,{});
@@ -88,7 +149,9 @@ int wmain(int argc,wchar_t** argv) {
     for(int hz:{30,60,240}) {
         Trial wall; wall.ground=[](double x,double){return 10+3*std::max(x-0.5,0.0);};
         wall.Run(2,hz,{1,0}); Require(wall.x<0.55&&wall.walker.elevation<10.06,"steep ascent blocks at every frame rate");
-        const unsigned contacts=wall.steps; wall.Run(1,hz,{1,0}); Require(wall.steps==contacts,"pushing a wall emits no footsteps");
+        const unsigned contacts=wall.steps; const float effort=wall.walker.exertion;
+        wall.Run(1,hz,{1,0}); Require(wall.steps==contacts,"pushing a wall emits no footsteps");
+        Require(wall.walker.exertion<effort,"effort recovers while held controls are blocked by terrain");
     }
     Trial slope; slope.ground=[](double x,double){return 10+0.5*x;}; slope.Run(1,60,{1,0});
     Require(slope.x>1.2&&std::abs(slope.walker.elevation-slope.ground(slope.x,slope.y))<0.001,"walkable slope remains grounded");
@@ -146,6 +209,7 @@ int wmain(int argc,wchar_t** argv) {
         for(int i=0;i<50;++i) { std::fill(std::begin(pcm),std::end(pcm),0.0f); audio.Update(sound,0.02f); audio.Render(pcm,960); }
         for(float f:pcm) Require(std::abs(f)<1e-6,"independent category gains mute the mix");
         std::printf("Audio: six distinct banks, wet/dry contacts, mixed coatings, habitat, teleport reset and independent gains pass.\n");
+        ImmersionChecks(argv[1],argc>2?argv[2]:nullptr);
     }
     std::printf("Walking: idle, pace, diagonals, frame rates, steps, crouch, gravity, slopes, wall and water checks pass.\n");
 }

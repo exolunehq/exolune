@@ -53,7 +53,11 @@ void D3DApp::PrepareFlightContact(const FlightPose& before) {
         if (into<0) {
             const Vec3d correction=mFlightSlideNormal*(-into);
             mFlightAfter.camera=mFlightAfter.camera+correction;
-            if (ship) mFlightAfter.ship=mFlightAfter.ship+correction;
+            if (ship) {
+                mFlightAfter.ship=mFlightAfter.ship+correction;
+                const double inward = Dot(mShipVelocity,mFlightSlideNormal);
+                if (inward < 0) mShipVelocity=mShipVelocity-mFlightSlideNormal*inward;
+            }
         }
     } else mFlightSlideNormal={};
     if (mFlightRecovery) mFlightAfter=before; // initialize the current location before accepting its first movement
@@ -150,7 +154,10 @@ void D3DApp::ReadFlightContact() {
         accepted.camera=mFlightBefore.camera+(mFlightAfter.camera-mFlightBefore.camera)*fraction;
         accepted.ship=mFlightBefore.ship+(mFlightAfter.ship-mFlightBefore.ship)*fraction;
         const double into=Dot(mShipVelocity,normal);
-        if (into<0) mShipVelocity=mShipVelocity-normal*into;
+        if (into<0 && mView!=View::Free) {
+            mShipVelocity=mShipVelocity-normal*into;
+            if (body==1) mShipContactImpulse=mShipContactImpulse-normal*into;
+        }
         mFlightSlideNormal=normal; mFlightSlideOrigin=body==1?accepted.ship:accepted.camera; mFlightSlideBody=body;
     } else mGroundHeight=std::max(cameraGround,0.0);
     // Keep the eye attached to the cockpit when translation stops; the fixed hull envelope already bounds its arc.

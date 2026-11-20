@@ -39,6 +39,18 @@
     <ClCompile Include="D3DAppShip.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
+    <ClCompile Include="ShipShockHull.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <FxCompile Include="ShipEntryVolumeVertex.hlsl">
+      <Filter>Fichiers sources</Filter>
+    </FxCompile>
+    <FxCompile Include="ShipEntryVolumePixel.hlsl">
+      <Filter>Fichiers sources</Filter>
+    </FxCompile>
+    <None Include="ShipEntryVolume.hlsli">
+      <Filter>Fichiers sources</Filter>
+    </None>
     <ClCompile Include="D3DAppTests.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
@@ -60,6 +72,9 @@
       <Filter>Fichiers sources</Filter>
     </ClInclude>
     <ClInclude Include="FlightFrame.h">
+      <Filter>Fichiers sources</Filter>
+    </ClInclude>
+    <ClInclude Include="FlightDynamics.h">
       <Filter>Fichiers sources</Filter>
     </ClInclude>
     <ClInclude Include="TerrainFocus.h">

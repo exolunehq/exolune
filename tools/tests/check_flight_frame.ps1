@@ -14,7 +14,9 @@ try {
     $env:LIB="$vc\lib\x64;$lib\ucrt\x64;$lib\um\x64"
     Push-Location $out
     try {
-        & $compiler /nologo /std:c++14 /EHsc /O2 /W4 /Fe:flight_frame_checks.exe (Join-Path $PSScriptRoot 'flight_frame_checks.cpp')
+        $sources = 'flight_frame_checks.cpp', 'flight_dynamics_checks.cpp', 'entry_heat_checks.cpp', 'canopy_water_checks.cpp' |
+            ForEach-Object { Join-Path $PSScriptRoot $_ }
+        & $compiler /nologo /std:c++14 /EHsc /O2 /W4 /Fe:flight_frame_checks.exe $sources
         if($LASTEXITCODE -ne 0){throw 'Flight frame checks did not compile.'}
         & (Join-Path $out 'flight_frame_checks.exe')
         if($LASTEXITCODE -ne 0){throw 'Flight frame checks failed.'}

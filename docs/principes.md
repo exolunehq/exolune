@@ -24,6 +24,15 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 
 ## The established rules
 
+**Flight effects read the forces acting on the ship.** [Flight, canopy and suit](spec-vol-immersion.md)
+
+- Integrate velocity in world coordinates. Weight acts towards the attracting body. Lift and drag depend on the flow relative to the hull.
+- Give the pilot responsive cruise control and unrestricted full thrust at every altitude. Spaceflight assist follows the pilot’s heading. Atmospheric turns use the ship’s bank, lift and velocity through the air.
+- Drive entry light and entry sound from one short inward passage through the upper atmosphere. Fast flight within the atmosphere, orbital flight and ascent keep their ordinary airflow and engine cues.
+- Attach cockpit weather to the exposed pane and helmet optics to the wearer. Use the existing body, weather and habitat fields for outside effects.
+- Place luminous entry gas in the exterior flow around the manufactured hull. The glass and its seals receive light from nearby gas. Check depth, occlusion and particle motion from the moving cockpit and from outside.
+- Preserve the distinction between structure-borne cockpit sound, suit sound and transport through the surrounding atmosphere.
+
 **The observer chooses the flight reference frame** (`spec-vaisseau.md`).
 - Free flight and spacecraft retain their world-space attitude through translation and terrain handovers.
 - Horizon and Fixed altitude use the body with the nearest surface on entry and keep that reference when switching between them.

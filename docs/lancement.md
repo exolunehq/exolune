@@ -2,6 +2,28 @@
 
 **The executable alone runs the game:** `x64\Release\MyPlanetEngine.exe`, without any environment variables. For an in-flight review, `tools/lance.ps1` builds it if needed, then opens it with the “Tests” palette.
 
+**Assisted flight review** uses the [ten-stop pilot route](../tools/tests/2026-11-20-vol-assiste.txt). F1 and F2 start at 180 m/s in air and vacuum. F3 starts at rest above the sea for the wheel. F4 permits a high-speed reversal. F5 starts outside the atmosphere and crosses it. F6 begins in fast level flight. F8 tests the moon and F9 climbs out.
+
+~~~powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours tools\tests\2026-11-20-vol-assiste.txt -DepartTest 1 -Resolution fenetre
+~~~
+
+**Thrust and windscreen review** uses the [eleven-stop cockpit route](../tools/tests/2026-11-20-propulsion-verriere.txt). F1 and F2 compare a hot entry and a cold approach. At F3 or F4, hold Up for full thrust and add Shift for boost. Release Up to return to the wheel setting. At F5 and F6, hold the right mouse button to inspect the same dry pane with the sun on opposite sides. R recentres the pilot's head.
+
+~~~powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours tools\tests\2026-11-20-propulsion-verriere.txt -DepartTest 1 -Resolution fenetre
+~~~
+
+**Flight and immersion review** uses `tools/tests/2026-11-20-vol-immersion.txt`. Start at F1 for an unpowered orbit. F2 and F3 share an entry attitude at two different speeds. F4 starts above the sea. F8 and F11 visit the suit on land and on an airless moon. Select the same row to restart.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours tools\tests\2026-11-20-vol-immersion.txt -DepartTest 1
+```
+
+- The launcher accepts `-ModeleVaisseau classique`, `chasseur` or `navigateur` for the same route.
+- In a route's pose field, optional `v=<m/s>` after the heading sets the initial forward speed in ship view. Ordinary rows start from rest.
+- Cut the throttle to coast. Hold X for powered braking and station keeping. Release X to feel gravity again. Enter calls the radio in the cockpit or suit.
+
 **Camera review** uses `tools/tests/2026-11-10.txt` with `-Camera orbite -DepartTest 1`. At F1, hold forward to descend towards the coast in Horizon. Press Home, select F1 again and repeat in Fixed altitude. F5 points straight down at Moon 2.
 
 **Three-moon review:** `tools/tests/2026-11-08-trois-lunes.txt`. Launch with `-DepartTest 1 -Resolution fenetre -Camera libre` to begin at moon 2. F1–F8 cover orbit, approach, contact and walking on the new surfaces; F9–F12 cover moon 1, distant moon 2, Exolune and polar terrain. `J` disembarks. `lune` / `lune1`, `lune2` and `lune3` select a body; lunar altitude means clearance above its own terrain. `marche` explicitly selects walking for a route row. Cook all atlases with `tools/prepare_airless.ps1` in a fresh worktree. See `spec-lune-terrain.md` for limits.
@@ -115,13 +137,13 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 **Route file: UTF-8, whitespace separators, decimal point.** Comments start with `#`, the first meaningful line is `fps 60`, followed by exactly:
 
 ```text
-index vue navLat navLon navAlt navCap navTangage navRoulis camLat camLon camAlt camCap camTangage camRoulis fov meteo
+index vue navLat navLon navAlt navCap navTangage navRoulis camLat camLon camAlt camCap camTangage camRoulis fov meteo [coast]
 ```
 
 - **Contiguous indices, starting at 0;** `vue` is `exterieur`, `cockpit`, `pleine` (the ship hidden, using `cam*`) or `cabine` (explicit `cam*` inspection pose with cockpit surface behavior). Ordinary `cockpit` uses the selected profile's pilot eye.
 - **Angles in degrees:** north latitude positive, east longitude positive, heading from north toward east, pitch positive upward, roll positive rightward.
 - **Altitudes in meters above sea level 0;** vertical `fov`, between 5 and 150°; `meteo` in seconds, nonnegative.
-- **In exterior mode,** each pose is independent; hull, shadows and plume follow the ship; throttle is inferred from movement.
+- **In exterior mode**, the hull, shadows and plume follow the ship. Append `coast` to a pose to stop the drive during a glide or entry. Earlier routes retain their moving-ship plume.
 - **In cockpit mode,** all six `cam*` values remain required, but the eye is derived from `nav*`; interior, rain and frost use the game's rendering.
 
 **Generate from the root:** Python 3 and NumPy, without SciPy; `cp.py` reads `x64/Release/tectonique-0.bin`, produced by running the engine, or `EXOLUNE_TECTONIQUE` (`spec-relief-tectonique.md`).

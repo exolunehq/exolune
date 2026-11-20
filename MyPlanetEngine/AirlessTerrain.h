@@ -42,7 +42,7 @@ inline Surface MoonSurface(unsigned index) {
 }
 // Metres in a shared inertial frame. Only one body owns the detailed terrain buffers.
 inline int NearbyMoon(const std::array<Vec,Celestial::Moons.size()>& centres,Vec position) {
-    int selected=-1;double closest=64;
+    int selected=-1;double closest=Celestial::MoonFrameOuterRadii*Celestial::MoonFrameOuterRadii;
     for(unsigned i=0;i<centres.size();++i) {
         const Vec d=position-centres[i];const double r=Celestial::Moons[i].radius;
         const double distance=Dot(d,d)/(r*r);

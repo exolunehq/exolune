@@ -25,12 +25,14 @@ struct WalkTerrain {
 
 struct Walker {
     static constexpr double Eye = 1.68, CrouchEye = 1.05, Radius = 0.25, MaxSlope = 1.0;
+    static constexpr double RunSpeed = 3.6;
     struct Input { double x = 0, y = 0; bool sprint = false, crouch = false, jump = false; };
     double x = 0, y = 0, elevation = 0, vx = 0, vy = 0, vertical = 0, eye = Eye;
     double stride = 0, distance = 0;
     bool grounded = true;
     unsigned steps = 0;
     float landing = 0;
+    float exertion = 0; // shared by the helmet glass and the regulator sound
     double gravity=9.81,waterFloor=.15;
 
     // The caller rebases x/y and vx/vy into each new patch before advancing. No motion beyond sampled ground.
@@ -39,7 +41,8 @@ struct Walker {
         dt = std::min(std::max(dt, 0.0), 0.1);
         const double magnitude = std::hypot(in.x, in.y);
         if (magnitude > 1.0) { in.x /= magnitude; in.y /= magnitude; }
-        const double speed = in.crouch ? 0.75 : in.sprint ? 3.6 : 1.5;
+        const double speed = in.crouch ? 0.75 : in.sprint ? RunSpeed : 1.5;
+        const double previousDistance = distance;
         const double strideLength = in.crouch ? 0.6 : in.sprint ? 1.1 : 0.78;
         if (in.jump && grounded && !in.crouch) { vertical = 4.0; grounded = false; }
         for (double remaining = dt; remaining > 1e-8;) {
@@ -87,6 +90,10 @@ struct Walker {
                 distance += length; stride += length;
                 if (stride >= strideLength) { stride = std::fmod(stride, strideLength); ++steps; }
             }
+        }
+        if (dt > 0) {
+            const double demand = std::min((distance - previousDistance) / (dt * RunSpeed), 1.0);
+            exertion += float((demand - exertion) * (1.0 - std::exp(-dt / (demand > exertion ? 1.8 : 4.0))));
         }
     }
 };

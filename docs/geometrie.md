@@ -2,6 +2,10 @@
 
 Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it.
 
+**Cockpit and suit optics, 2026-11-20.** Manufactured-surface shading and observer optics. The Navigator's existing outer skin supplies the panoramic optical surface inside the cabin opening. The walking visor is a camera-space optical treatment. Proposed hull motion reaches the established planetary contact field. [Flight, canopy and suit](spec-vol-immersion.md)
+
+**Entry gas and sparks, 2026-11-20.** Transient optical volume and particles around each manufactured spacecraft. The volume follows the physical size of the bow and flanks. Opaque structures occlude the gas and sparks according to their depth. Planetary relief and collision use the shared terrain field. [Entry optics](spec-vol-immersion.md#assets-and-ownership)
+
 **Stable plant admission, 2026-11-20.** Placement correction for terrain-seated vegetation overlays. Decide habitat on the fixed relief and seat each retained plant on its existing support surface. [Placement stability](vegetation-planetaire.md#placement-stability-2026-11-20)
 
 **Flank scoria cones, 2026-11-20.** Replacement of a local profile inside the existing volcanic terrain layer before erosion. Vents cluster along fissures. Asymmetric aprons, craters and breaches shape the same deposit sampled by the mesh and terrain queries. [Volcanism](spec-volcanisme.md#flank-scoria-cones-2026-11-20)

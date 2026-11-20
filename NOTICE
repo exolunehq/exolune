@@ -111,3 +111,8 @@ Additional CC0 1.0 recordings: Fantozzi (rock and sand), SilentStrikeZ
 (grass), florianreichelt (snow), and isaiah658 (birds).
 Source links, original notices, conversion changes and SHA-256 hashes:
 assets/audio/README.md, assets/audio/licenses/ and assets/audio/sources.json.
+
+Optional flight and suit production audio was generated with ElevenLabs.
+Its provenance and integration terms are in assets/audio/README.md and
+assets/audio/immersion/bank.ini. The public source includes original
+procedural sounds for the same mixer roles.

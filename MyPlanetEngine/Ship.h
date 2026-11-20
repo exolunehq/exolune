@@ -20,8 +20,8 @@ public:
     static constexpr UINT MaxImages = 12;                    // Ship.hlsli: shipImages[12]
     // The images, the two shadow maps, the overlay, then the water's: its drops, map, film and merges as UAVs, its map and
     // film as SRVs; then the climate map (Climate.hlsli), its view made by D3DApp.
-    static constexpr UINT DescriptorCount = MaxImages + 10;
-    // The canopy's water (ShipWater.hlsli): profile-specific maps at 1.2 mm, shared simulated drop capacity.
+    static constexpr UINT DescriptorCount = MaxImages + 12; // climate, then the shock hull cube and the actual scene depth
+    // The canopy's water (ShipWater.hlsli): profile-specific chart and pitch, shared simulated drop capacity.
     static constexpr UINT DropCount = 8192;
     static constexpr UINT ShadowSize = 2048;
     // Negative alpha stores an opaque reflective surface's distance before temporal smoothing.
@@ -33,7 +33,9 @@ public:
         DirectX::XMFLOAT4X4 model;     // ship frame -> face-local, camera-relative, transposed for HLSL
         DirectX::XMFLOAT4X4 shadow[2]; // ship frame -> the sun's and the overhead map's clip space, transposed
         DirectX::XMFLOAT4 sun, up, air, velocity;
-        DirectX::XMFLOAT4 options; // x: HUD; y: cockpit; z: ShipModel (Ship.hlsli)
+        DirectX::XMFLOAT4 options; // HUD, cockpit, ShipModel, local air density relative to sea level
+        DirectX::XMFLOAT4 airflow; // direction of the air over the hull in ship space; w: thermal load
+        DirectX::XMFLOAT4 waterLayout; // atlas dimensions in texels, chart origin y (m), texel (m)
         DirectX::XMFLOAT4 thrust;  // x: the main engines, 0 to 1; y: roll right, z: lift, w: slide right, -1 to 1 (ShipPlume)
         DirectX::XMFLOAT4 turn;    // x: pitch up, y: yaw right, -1 to 1; z: clock (s), wraps at 3600
         DirectX::XMFLOAT4 course;  // the dashboard (ShipScreens.hlsli): heading, latitude, longitude (deg); w: the ground (km)
@@ -41,6 +43,7 @@ public:
         // ship frame -> ship frame (Ship.hlsli's ShipPose), transposed: the stick, the throttle, then the elevons, inner left,
         // inner right, outer left, outer right
         DirectX::XMFLOAT4X4 pose[6];
+        DirectX::XMFLOAT4 shockBounds; // local half-extents of the gas proxy (m), support-plane offset used by its cube (m)
     };
     // The moving parts' pivots, ship frame, from the pack (pieces_mobiles.py, design_chasseur.py): the stick's twist axis,
     // the throttle's, the elevons' hinges, running outwards.
@@ -51,7 +54,7 @@ public:
     bool Load(const std::wstring& path);
     // Creates the GPU side; the overlay always exists, so that the tone map can read it without a ship.
     void Initialize(ID3D12Device*, ID3D12GraphicsCommandList*, ID3D12DescriptorHeap* srvHeap, UINT descriptorBase,
-                    UINT width, UINT height, DXGI_FORMAT hdrFormat, DXGI_FORMAT sunFormat);
+                    UINT width, UINT height, DXGI_FORMAT hdrFormat, DXGI_FORMAT sunFormat, ID3D12Resource* sceneDepth);
     // Where D3DApp puts the climate map's view, for the canopy's temperature (ShipWeather.hlsl).
     D3D12_CPU_DESCRIPTOR_HANDLE ClimateDescriptor() const { return Cpu(MaxImages + 9); }
     void ReleaseUploads() { mUploads.clear(); }
@@ -67,7 +70,8 @@ public:
     };
     void DrawShadows(ID3D12GraphicsCommandList*, const Tables&);
     void DrawOpaque(ID3D12GraphicsCommandList*, const Tables&);     // into the bound scene targets, depth tested
-    void UpdateWeather(ID3D12GraphicsCommandList*, const Tables&);  // after the clouds; the water's passes with it
+    void ResetSurfaceWeather() { mResetSurfaceWeather = true; }
+    void UpdateWeather(ID3D12GraphicsCommandList*, const Tables&, ID3D12CommandSignature* dispatch);
     void ClearOverlay(ID3D12GraphicsCommandList*);
     void DrawGlass(ID3D12GraphicsCommandList*, const Tables&, D3D12_CPU_DESCRIPTOR_HANDLE dsv); // into the overlay
     void OverlayToRead(ID3D12GraphicsCommandList*);
@@ -95,14 +99,18 @@ private:
     D3D12_CPU_DESCRIPTOR_HANDLE Cpu(UINT i) const;
     D3D12_GPU_DESCRIPTOR_HANDLE Gpu(UINT i) const;
     void Bind(ID3D12GraphicsCommandList*, const Tables&, bool compute) const;
+    using FieldRadii = float[SHIP_FIELD_COLUMNS][SHIP_FIELD_ROWS];
+    void FitFieldToHull(FieldRadii& radii) const;
+    DirectX::XMFLOAT4 CreateShockHull(ID3D12Device*, ID3D12GraphicsCommandList*);
 
     Resource mVertices, mIndexBuffer, mMaterials, mTextures[MaxImages], mShadowMaps[2], mOverlay, mWeather, mConstantsBuffer;
     Resource mDrops, mWaterMap, mWaterFilm, mGathered;
+    Resource mFieldRadii, mShockHull, mSceneDepth;
     std::vector<Resource> mUploads;
     D3D12_INDEX_BUFFER_VIEW mIndexView = {};
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDsvHeap, mRtvHeap;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> mRoot;
-    Microsoft::WRL::ComPtr<ID3D12PipelineState> mOpaquePSO, mReflectionPSO, mShadowPSO, mGlassPSO, mPlumePSO, mWeatherPSO, mWaterPSO[3];
+    Microsoft::WRL::ComPtr<ID3D12PipelineState> mOpaquePSO, mReflectionPSO, mShadowPSO, mGlassPSO, mEntryParticlesPSO, mEntryVolumePSO, mPlumePSO, mWeatherPSO, mWaterPSO[3];
     Constants* mConstants = nullptr;
-    bool mShadowsReadable = false, mWeatherReadable = false, mWaterReadable = false;
+    bool mShadowsReadable = false, mWaterReadable = false, mResetSurfaceWeather = true;
 };

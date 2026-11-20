@@ -12,6 +12,7 @@
 - Milestone: `jalon/2026-11-02-marche-ambiances`; vegetation authoring continues separately.
 
 **Controls**
+- Enter calls the radio through the suit. Breathing follows exertion. [Helmet, cockpit and audio](spec-vol-immersion.md)
 - J, or the upper-left Marcher/Vaisseau button, toggles walking and the saved flight view.
 - Hold Alt or toggle M to release the cursor and click a button.
 - WASD/ZQSD follows physical key positions; arrow keys also work.
@@ -78,8 +79,8 @@
 
 **Runtime**
 - Keep XAudio2; add no middleware or runtime decoder.
-- Load 42 shipped mono PCM16 recordings once, at 48 kHz: 36 foot contacts and six bird calls.
-- Recording bank: 2,283,646 bytes on disk, approximately 4.6 MB decoded.
+- The original contact and bird bank holds 42 mono PCM16 recordings at 48 kHz, totalling 2,283,646 bytes on disk.
+- The immersion bank supplies cabin, suit and atmospheric layers alongside those recordings. [Bank and provenance](../assets/audio/README.md)
 - Precompute wetland and thunder samples at startup.
 - Bound transient playback to 12 voices and a 32-slot single-producer queue.
 - The callback performs no file access, dynamic allocation or locking.

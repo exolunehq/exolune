@@ -1,5 +1,12 @@
 # Ship and camera history
 
+**2026-11-20 · Velocity assist and the original field**
+
+- The old keyboard flight interpolated directly to a clearance-scaled velocity. Cutting the throttle brought the ship to rest in mid-air.
+- The original systems display estimated temperature from equivalent airspeed and throttle. The main plume followed wheel notches.
+- The original Navigator cockpit showed a clear field with its exterior chrome hidden. Its profile allocated a 1 × 1 water map and skipped droplet simulation.
+- The common flight and optical model supersedes these behaviours. [Current specification](../spec-vol-immersion.md)
+
 **2026-11-10 · First orbit control trial**
 
 - Forward input originally followed the surface at every pitch in the horizon-aligned camera.

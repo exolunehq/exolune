@@ -119,6 +119,11 @@ void D3DApp::ToggleWalking() {
     }
     mWalkReturnView=mView; mWalkReturnPos=mCamPos; mWalkReturnForward=mCamForward; mWalkReturnUp=mCamUp;
     mShipVelocity=mShipRate={}; mThrottle=mPlume=0; for (double& jet:mJets) jet=0;
+    mShipContactImpulse = {};
+    mHeadSway = mHeadSwayRate = mEyeSpin = {};
+    mHeadTilt = mHeadTiltRate = 0;
+    mFlightCues = {};
+    MeasureShipAir(mShipPos, {}, Length(mShipPos) - PlanetRadius, 0); // the parked hull still meets the wind at its own position
     mWalker={}; mWalker.elevation=h; mWalkVelocity={};
     if(moon){mWalker.gravity=Celestial::Moons[MoonAt(mCamPos)].gravity;mWalker.waterFloor=-1e10;}
     mWalkFoot=centre+Normalize(mWalkFoot-centre)*(radius+h);
@@ -222,11 +227,26 @@ void D3DApp::ToggleAudio() {
     mAudio.SetMix(mAudioMuted?0:mSettings.audioMaster,mSettings.audioFootsteps,mSettings.audioAmbience,mSettings.audioShip);
 }
 
+SoundListener D3DApp::AudioListener() const {
+    switch(mView) {
+    case View::Walk: return SoundListener::Helmet;
+    case View::Cockpit: case View::Bare: return SoundListener::Cockpit;
+    case View::Chase: return SoundListener::Chase;
+    default: return SoundListener::Observer;
+    }
+}
+bool D3DApp::RadioAvailable() const {
+    return mAudioReady && !mAudioMuted && HasRadio(AudioListener());
+}
+void D3DApp::RequestRadio() {
+    if(RadioAvailable()) mAudio.RequestRadio();
+}
+
 void D3DApp::UpdateWorldSound(float dt) {
-    if(NearMoon(mCamPos)){mWorldValid=mWorldPending=false;mAudio.ResetWorld();return;}
     if (mSettings.Automated()) return;
+    if(NearMoon(mCamPos)) mWorldValid=mWorldPending=false;
     const bool focused=GetForegroundWindow()==mhMainWnd;
-    const Vec3d up=Normalize(mCamPos);
+    const Vec3d up=SurfaceUp(mCamPos);
     Vec3d horizontal=mCamForward-up*Dot(mCamForward,up);
     if (Length(horizontal)<1e-6) horizontal=Cross(up,Vec3d{0,0,1});
     if (Length(horizontal)<1e-6) horizontal=Cross(up,Vec3d{1,0,0});
@@ -235,11 +255,18 @@ void D3DApp::UpdateWorldSound(float dt) {
     sound.position[0]=mCamPos.x; sound.position[1]=mCamPos.y; sound.position[2]=mCamPos.z;
     sound.right[0]=float(right.x); sound.right[1]=float(right.y); sound.right[2]=float(right.z);
     sound.forward[0]=float(ahead.x); sound.forward[1]=float(ahead.y); sound.forward[2]=float(ahead.z);
-    sound.cockpit=mView==View::Cockpit||mView==View::Bare?1.0f:0.0f;
+    sound.listener=focused?AudioListener():SoundListener::Observer;
+    sound.engine=float(mFlightCues.engine);
+    sound.flightDensity=float(mFlightCues.density);
+    sound.equivalentAirspeed=float(mFlightCues.equivalentAirspeed);
+    sound.heat=float(mFlightCues.heat);
+    sound.rollJet=float(mJets[2]); sound.sideJet=float(mJets[0]); sound.liftJet=float(mJets[1]);
+    sound.navigator=mShip.Profile().model==ShipModel::Navigateur;
+    sound.exertion=mWalker.exertion;
     if (mWorldValid && focused) {
         const float altitude=float(std::max(Length(mCamPos)-PlanetRadius,0.0)), ground=mHabitat[1].w;
         const float clearance=std::max(altitude-std::max(ground,0.0f),0.0f), nearGround=std::exp(-clearance/120.0f);
-        const float air=std::exp(-altitude/8000.0f), cover=mHabitat[1].x, temperature=mHabitat[1].z;
+        const float air=float(FlightDynamics::DensityAtAltitude(altitude)), cover=mHabitat[1].x, temperature=mHabitat[1].z;
         const float day=Smooth(-0.08f,0.18f,float(Dot(up,mSunDir)));
         const double direction[]={up.x,up.y,up.z}; float climate[Climate::Channels]={}; Climate::At(mClimateCpu,direction,climate);
         const float wind=std::hypot(climate[Climate::WindEast],climate[Climate::WindNorth]);
@@ -255,5 +282,5 @@ void D3DApp::UpdateWorldSound(float dt) {
         sound.insects=(1-day)*life*Smooth(8,22,temperature)*mHabitat[1].y*std::max(cover,mHabitat[0].x);
         sound.frogs=(1-day)*life*Smooth(0.65f,0.95f,mHabitat[1].y)*cover;
     }
-    mAudio.UpdateWorld(sound,dt);
+    mAudio.Update(sound,dt);
 }

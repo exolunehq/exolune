@@ -10,6 +10,12 @@
 
 ## What it contains
 
+- [Flight and immersion history](spec-vol-immersion-historique.md) records the earlier drive responses, long-lived entry heat and cockpit rendering trials reviewed by the pilot.
+
+- [Ship sound history](recherche-son-historique.md) preserves the first procedural engine, throttle mapping, wind experiments and middleware comparison.
+
+- [Canopy water history](recherche-eau-verriere-historique.md) preserves the original triangular glass experiment and its first wetting and drying settings.
+
 - [Volcanism history](spec-volcanisme-historique.md) preserves the former round scoria cones and their distant cover mask.
 
 - **`spec-rendu-orbite-historique.md`:** removed signed-depth blend and expanded proxy occluder that clipped clouds during approach.

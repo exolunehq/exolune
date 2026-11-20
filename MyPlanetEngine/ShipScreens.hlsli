@@ -196,28 +196,28 @@ float3 NavScreen(float2 p, float3 c)
     return c;
 }
 
-// SHIP / SYSTEMS: the bars follow the gas, the speed and the clock; the core's output and the hull's temperature, the
-// standard air's warmed by the speed.
+// SHIP / SYSTEMS: propulsion reads the drive and the thermal channel reads stored entry heat.
 float3 SystemsScreen(float2 p, float3 c)
 {
-    const float clock = shipAir.z, gas = shipGauges.x, air = shipAir.x;
+    const float clock = shipAir.z, power = shipGauges.w, heat = shipAirflow.w;
     const int row = clamp((int)floor((p.y - 70.0) / 62.0), 0, 4);
     const float y = 76.0 + row * 62.0;
-    const float values[5] = { 0.3 + 0.6 * gas + 0.015 * sin(clock * 1.7), gas, 0.9 + 0.03 * sin(clock * 0.53),
-                              0.76 + 0.02 * sin(clock * 0.21), 0.25 + 0.35 * gas + air / 3000.0 };
+    const float values[5] = { 0.3 + 0.6 * power + 0.015 * sin(clock * 1.7), power, 0.9 + 0.03 * sin(clock * 0.53),
+                              0.76 + 0.02 * sin(clock * 0.21), heat };
     const float value = saturate(values[row]);
     if (In(p, float4(182.5, y + 4.5, 459.5, y + 13.5)))
     {
         c = ScreenBack(p);
         const float2 centre = float2(184.0 + 135.0 * value, y + 9.0), half = float2(135.0 * value, 3.0);
         const float2 e = abs(p - centre) - half;
-        Paint(c, value > 0.55 ? SCREEN_CYAN : SCREEN_AMBER, Fill(max(e.x, e.y)) * step(0.004, value));
+        const bool caution = row == 4 ? heat > 0.65 : value <= 0.55;
+        Paint(c, caution ? SCREEN_AMBER : SCREEN_CYAN, Fill(max(e.x, e.y)) * step(0.004, value));
     }
     Readout(c, p, float4(393, y + 21, 416, y + 35), float2(395, y + 24), 9.0, value * 100.0, 3, 0, false, SCREEN_TEXT);
-    const float altitude = shipGauges.z>0?shipGauges.y:shipUp.w;
-    Readout(c, p, float4(93, 404, 130, 426), float2(95, 409), 12.0, 97.6 + 1.5 * gas + 0.3 * sin(clock * 0.9), 3, 1, false, SCREEN_CYAN);
+    Readout(c, p, float4(93, 404, 130, 426), float2(95, 409), 12.0, 97.6 + 1.5 * power + 0.3 * sin(clock * 0.9), 3, 1, false, SCREEN_CYAN);
+    // The asset's TEMP scale is printed in kelvins. Its calibrated display endpoints are artistic.
     Readout(c, p, float4(243, 404, 282, 426), float2(253 - 7.44, 409), 12.0,
-            288.15 - 6.5 * min(altitude, 11.0) + air * air / 2010.0 + 30.0 * gas, 4, 0, false, SCREEN_CYAN);
+            lerp(290.0, 1550.0, heat), 4, 0, false, SCREEN_CYAN);
     return c;
 }
 

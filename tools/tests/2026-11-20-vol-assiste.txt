@@ -1,0 +1,12 @@
+# Ship controls. The wheel selects cruise, Up commands full thrust, Shift boosts and X brakes.
+# Select the same stop to restart both motion and entry history.
+Vol côtier : incliner le vaisseau à 180 m/s et suivre le virage | 320 -23.191912 157.871651 0 -16 v=180 | -20 150
+Espace : pivoter à 180 m/s et reprendre le cap | 250000 38.1445 103.5352 0 90 v=180 | 22 135
+Décollage en mer : essayer un puis trois crans de molette | 190 -20.47 -75.45 -3 160 | -50.47 -75.45
+Orbite : virage rapide puis demi-tour à 7 700 m/s | 250000 38.1445 103.5352 0 90 v=7700 | 22 135
+Rentrée depuis l'espace : observer le gaz autour du nez, Tab pour changer de vue | 102000 30.68685 120.10788 45 76 v=8500 | 12 -161
+Vol rapide en palier : même verrière à 7 750 m/s | 62000 30.68685 120.10788 0 76 v=7750 | 12 -161
+Survol supersonique en air dense : reprendre les gaz | 2300 -20.47 -75.45 0 160 v=1600 | -50.47 -75.45
+Lune : pousser, tourner puis freiner à basse altitude | 800 20 15 -4 -102 lune v=90 | -25 55
+Remontée vers l'espace : pleine poussée sans plasma | 65000 30.68685 120.10788 -30 76 v=6500 | 12 -161
+Vol lent au-dessus de la mer : couper les gaz puis reprendre | 700 -20.47 -75.45 0 160 v=30 | -50.47 -75.45

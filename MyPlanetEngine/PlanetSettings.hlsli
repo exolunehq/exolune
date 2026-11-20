@@ -545,9 +545,8 @@ static const float2 PLANT_LOD_PIXELS = float2(64.0, 48.0);
 // ---------------------------------------------------------------------------------------------
 
 static const float  PLANET_RADIUS_KM       = 6378.0; // must match D3DApp::PlanetRadius
-static const float  ATMOSPHERE_HEIGHT_KM   = 100.0;
+#include "AtmosphereProfile.hlsli"
 static const float3 RAYLEIGH_SCATTERING    = float3(5.802e-3, 13.558e-3, 33.1e-3);
-static const float  RAYLEIGH_SCALE_HEIGHT  = 8.0;
 // The aerosols (docs/recherche-profondeur-atmospherique.md): one setting, the meteorological visibility at sea level
 // (km), the distance at which a black object keeps 2 % of its contrast against the horizon (Koschmieder: 3.912 over the
 // extinction at 550 nm). Bruneton's demo air, which Hillaire and Unreal keep, gave 217 km: the air of a very clear

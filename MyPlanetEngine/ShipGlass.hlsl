@@ -9,25 +9,16 @@
 #include "Atmosphere.hlsli"
 #include "SceneExposure.hlsli"
 #include "Ship.hlsli"
+#include "OpticalSurface.hlsli"
+#include "ShipEntry.hlsli"
+#include "CanopyWaterActivity.hlsli"
 
 Texture2D<float4> sceneComposite : register(t47); // the world under its atmosphere, before the smoothing
 
-float Hash(float2 p)
-{
-    p = frac(p * float2(123.34, 456.21));
-    p += dot(p, p + 45.32);
-    return frac(p.x * p.y);
-}
-float2 Hash2(float2 p) { const float n = Hash(p); return float2(n, Hash(p + n + 17.17)); }
-float Noise(float2 p)
-{
-    const float2 i = floor(p), f = frac(p), u = f * f * (3.0 - 2.0 * f);
-    return lerp(lerp(Hash(i), Hash(i + float2(1, 0)), u.x), lerp(Hash(i + float2(0, 1)), Hash(i + 1.0), u.x), u.y);
-}
 float Fbm(float2 p)
 {
     float sum = 0.0, weight = 0.5;
-    [unroll] for (int k = 0; k < 4; ++k) { sum += weight * Noise(p); p = p * 2.03 + 11.7; weight *= 0.5; }
+    [unroll] for (int k = 0; k < 4; ++k) { sum += weight * GlassNoise(p); p = p * 2.03 + 11.7; weight *= 0.5; }
     return sum / 0.9375;
 }
 
@@ -41,6 +32,31 @@ float WaterHeight(float2 p)
     const float h01 = shipWaterMap.Load(int3(clamp(i + int2(0, 1), 0, top), 0)) >> 16;
     const float h11 = shipWaterMap.Load(int3(clamp(i + 1, 0, top), 0)) >> 16;
     return lerp(lerp(h00, h10, t.x), lerp(h01, h11, t.x), t.y) * 1e-6;
+}
+
+float3 WaterLens(float2 q)
+{
+    const float e = WATER_TEXEL;
+    const float height = WaterHeight(q);
+    float3 drop = 0.0;
+    if (height > 0.0) {
+        drop.xy = clamp(-float2(WaterHeight(q + float2(e, 0)) - WaterHeight(q - float2(e, 0)),
+                                WaterHeight(q + float2(0, e)) - WaterHeight(q - float2(0, e))) / (2.0 * e), -1.0, 1.0);
+        drop.z = saturate(height / 40.e-6);
+    }
+    const float2 uv = (q - WATER_ORIGIN) / (e * float2(WATER_SIZE)), pixel = 1.0 / float2(WATER_SIZE);
+    const float film = shipWaterFilm.SampleLevel(linearClamp, uv, 0.0);
+    if (film > CANOPY_VISIBLE_FILM_UM) {
+        const float wetness = smoothstep(4.0, 22.0, film + (Fbm(q * 220.0) - 0.5) * 30.0);
+        if (wetness > drop.z) {
+            const float2 gradient = float2(shipWaterFilm.SampleLevel(linearClamp, uv + float2(pixel.x, 0), 0).r
+                                            - shipWaterFilm.SampleLevel(linearClamp, uv - float2(pixel.x, 0), 0).r,
+                                            shipWaterFilm.SampleLevel(linearClamp, uv + float2(0, pixel.y), 0).r
+                                            - shipWaterFilm.SampleLevel(linearClamp, uv - float2(0, pixel.y), 0).r);
+            drop = float3(clamp(-0.004 * gradient + (float2(Fbm(q * 600.0), Fbm(q * 600.0 + 3.7)) - 0.5) * 0.2, -0.5, 0.5), 0.45 * wetness);
+        }
+    }
+    return drop;
 }
 
 // The head-up display's symbols, at infinity: the horizon, a pitch ladder every 10 degrees, the flight path marker.
@@ -66,7 +82,10 @@ float HudSymbols(float3 d, float pixel)
 float4 PSMain(ShipPixel input) : SV_Target
 {
     const ShipMaterial m = shipMaterials[shipMaterial];
-    const float3 v = normalize(-input.pos), sun = lightDir.xyz, up = camVertical.xyz;
+    const float3 v = normalize(-input.pos), up = mul(float4(shipUp.xyz, 0.0), shipModel).xyz;
+    const bool lunar = shipGauges.z > 0.5 && erosionMode.w != 0u;
+    const uint body = max(erosionMode.w, 1u) - 1;
+    const float3 sun = lunar ? celestialLight[body].xyz : lightDir.xyz;
     const float3 centre = mul(float4(SHIP_CENTRE, 1.0), shipModel).xyz;
     float3 outward = normalize(input.normal);
     if (dot(outward, input.pos - centre) < 0.0)
@@ -77,10 +96,14 @@ float4 PSMain(ShipPixel input) : SV_Target
         outward = normalize(outward - side * dot(outward, side) * (1.0 - smoothstep(0.0, 0.35, abs(input.local.x))));
     }
     const bool inside = dot(v, outward) < 0.0;
+    if (ShipNavigator() && !inside) discard;
     const float3 n = inside ? -outward : outward; // towards the eye
-    const float nv = saturate(dot(n, v)), fresnel = 0.04 + 0.96 * pow(1.0 - nv, 5.0);
+    const float nv = saturate(dot(n, v)), fresnel = GlassFresnel(nv);
     const float h = max(shipUp.w, 0.0), muS = dot(up, sun), haze = RegionalGround(PlanetDirection(up));
-    const float3 beam = SUN_ILLUMINANCE * SunTransmittance(h, muS, haze) * shipWeather[2].y, sky = SkyIrradiance(h, muS, haze);
+    const float3 beam = SUN_ILLUMINANCE * shipWeather[2].y * shipWeather[2].z
+                      * (lunar ? celestialLight[body].w.xxx : SunTransmittance(h, muS, haze));
+    const float3 sky = lunar ? SUN_ILLUMINANCE * PlanetShine(-camVertical.xyz * (PLANET_RADIUS_KM + camVertical.w), up)
+                             : SkyIrradiance(h, muS, haze);
 
     // What the glass mirrors: from inside, the dim cockpit; from outside, the sky, brighter towards the horizon, and the
     // ground below it; and the sun's glint, when it shines on this side of the pane.
@@ -97,6 +120,7 @@ float4 PSMain(ShipPixel input) : SV_Target
     const float3 reflectance = inside || m.mode != 2 ? fresnel.xxx : coat + (1.0 - coat) * pow(1.0 - nv, 5.0);
     float3 rgb = reflectance * (mirrored + glint * beam);
     float alpha = inside || m.mode != 2 ? 0.92 * (1.0 - fresnel) : 0.08 * (1.0 - reflectance.g);
+    if (ShipNavigator()) { rgb *= 0.35; alpha = 1.0 - 0.35 * fresnel; }
 
     float2 size;
     sceneComposite.GetDimensions(size.x, size.y);
@@ -108,47 +132,54 @@ float4 PSMain(ShipPixel input) : SV_Target
         return float4(rgb, alpha * 0.96);
     }
 
-    // The water on the canopy (ShipWater.hlsli): the drops, and the trails they leave, which dry. Each is a lens: xy
-    // its surface's slope, outwards from the drop's middle (1 at a cap's rim); z its cover.
-    const float4 w = shipWeather[0];
-    const float2 q = input.local.xy;
-    const float e = WATER_TEXEL;
-    const float height = WaterHeight(q);
-    float3 drop = float3(-float2(WaterHeight(q + float2(e, 0.0)) - WaterHeight(q - float2(e, 0.0)),
-                                 WaterHeight(q + float2(0.0, e)) - WaterHeight(q - float2(0.0, e))) / (2.0 * e),
-                         saturate(height / 40e-6));
-    drop.xy = clamp(drop.xy, -1.0, 1.0);
-    // A trail: a thin smear with soft, wavering edges, a little wavy on top; as it dries it thins and breaks into
-    // patches, then is gone.
-    const float2 mapUv = (q - WATER_ORIGIN) / (WATER_TEXEL * float2(WATER_SIZE)), texel = 1.0 / float2(WATER_SIZE);
-    const float film = shipWaterFilm.SampleLevel(linearClamp, mapUv, 0.0);
-    const float patchy = Fbm(q * 220.0);
-    const float wetness = smoothstep(4.0, 22.0, film + (patchy - 0.5) * 30.0);
-    if (wetness > drop.z)
-    {
-        const float2 slope = float2(shipWaterFilm.SampleLevel(linearClamp, mapUv + float2(texel.x, 0.0), 0.0)
-                                        - shipWaterFilm.SampleLevel(linearClamp, mapUv - float2(texel.x, 0.0), 0.0),
-                                    shipWaterFilm.SampleLevel(linearClamp, mapUv + float2(0.0, texel.y), 0.0)
-                                        - shipWaterFilm.SampleLevel(linearClamp, mapUv - float2(0.0, texel.y), 0.0));
-        drop = float3(clamp(-slope * 0.004 + (float2(Fbm(q * 600.0), Fbm(q * 600.0 + 3.7)) - 0.5) * 0.2, -0.5, 0.5),
-                      0.45 * wetness);
-    }
-    // A drop is a wide-angle lens: the world through it, turned over and drawn in from well around it. Its steep edge
-    // turns the light away, a dark ring; where its surface faces the sky, it mirrors it, a bright spot, softened by a
-    // cloud's light, which comes from everywhere.
-    const float3 through = sceneComposite.SampleLevel(linearClamp, uv - drop.xy * 0.25, 0.0).rgb;
-    const float edge = saturate(dot(drop.xy, drop.xy)), rim = 1.0 - 0.75 * smoothstep(0.2, 1.0, edge);
-    const float spot = pow(saturate(1.0 - length(drop.xy - float2(0.12, 0.42)) / 0.4), 2.0);
-    // Frost grows from the sills inwards, its crystals in fronds.
-    const float fronds = Fbm(q * 90.0) * 0.6 + Fbm(q * 400.0) * 0.4;
-    const float frost = saturate((0.32 * w.z - SillDistance(input.local)) * 18.0 + (fronds - 0.5) * 3.0) * step(0.01, w.z);
+    const float2 q = CanopyChart(input.local), dx = ddx(q), dy = ddy(q);
+    const float footprint = max(length(dx), length(dy));
+    const float3 nose = -shipModel[1].xyz;
+    const float peripheral = inside ? 1.0 - smoothstep(cos(radians(46.0)), cos(radians(13.0)), dot(-v, nose)) : 1.0;
     const float3 scatter = (sky + beam * saturate(dot(outward, sun))) / PI;
-    rgb += drop.z * (through * rim * alpha + scatter * 0.6 * spot * (1.0 - 0.5 * saturate(shipWeather[1].x * 4.0))) + frost * scatter * 0.55;
+    const float aim = inside ? smoothstep(cos(radians(28.0)), cos(radians(7.0)), dot(-v, nose)) : 0.0;
+    const float2 wear = CanopyAbrasion(q, dx, dy, ddx(input.pos), ddy(input.pos), sun + v)
+                      * (1.0 - 0.94 * aim);
+    const float rimLight = 1.0 - abs(dot(outward, sun));
+    // A groove redirects the transmitted scene. It can read silver against a
+    // dark sea and darker against bright sky. Only aligned tangents catch the sun.
+    alpha *= 1.0 - wear.x * (0.54 + 0.20 * (1.0 - nv));
+    rgb += (wear.x * (0.12 + 0.18 * (1.0 - nv)) * sky
+         + wear.y * (0.18 + 0.60 * rimLight) * beam) / PI;
+    float3 drop = 0.0;
+    if (shipWeather[3].w > 0.5) drop = WaterLens(q);
+    drop.z *= (1.0 - ShipVacuum()) * saturate(2.5 * WATER_TEXEL / max(footprint, 1.e-6)) * lerp(0.70, 1.0, peripheral);
+    if (drop.z > 0.0) {
+        // Rotate the optical slope with the pane and the pilot's head. A sampled opaque
+        // instrument in front of the pane cannot be refracted through its wet outer face.
+        const float2 slope = float2(dot(drop.xy, dx) / max(length(dx), 1.e-6), dot(drop.xy, dy) / max(length(dy), 1.e-6));
+        const float4 through = sceneComposite.SampleLevel(linearClamp, uv - 0.12 * slope * float2(size.y / size.x, 1.0), 0.0);
+        const float rim = 1.0 - 0.60 * smoothstep(0.2, 1.0, dot(drop.xy, drop.xy));
+        const float2 skyDir = float2(dot(up, camRight.xyz), -dot(up, camUp.xyz));
+        const float spot = pow(saturate(1.0 - length(slope - 0.42 * skyDir) / 0.4), 2.0);
+        const float paneKm = length(input.pos) * 0.001;
+        if (through.a == 0.0 || abs(through.a) >= paneKm * 0.996) {
+            rgb += drop.z * through.rgb * rim * alpha;
+            alpha *= 1.0 - drop.z;
+        }
+        rgb += drop.z * scatter * 0.48 * spot * (1.0 - 0.5 * saturate(shipWeather[1].x * 4.0));
+    }
+    float frost = 0.0;
+    if (shipWeather[0].z > 0.01) {
+        const float fronds = Fbm(q * 90.0) * 0.6 + Fbm(q * 400.0) * 0.4;
+        frost = saturate((0.32 * shipWeather[0].z - SillDistance(input.local, q)) * 18.0 + (fronds - 0.5) * 3.0)
+              * lerp(0.18, 0.82, peripheral);
+        rgb += frost * scatter * 0.55;
+        alpha *= 1.0 - 0.85 * frost;
+    }
+    const float heat = EntryIntensity();
+    if (heat > 0.002) {
+        const EntrySection section = EntryAt(input.local);
+        rgb += EntrySealReflection(section, heat) * min(1.0, 1.3 / max(Exposure(), 1.0));
+    }
     // The canopy is the head-up display's combiner too: its symbols in a cone around the nose, at infinity. The pane's
     // own combiner sits below the eye, there is no room under the roof.
-    const float3 nose = mul(float4(0.0, -1.0, 0.0, 0.0), shipModel).xyz;
-    if (inside && dot(-v, nose) > cos(radians(24.0)))
+    if (!ShipNavigator() && inside && dot(-v, nose) > cos(radians(24.0)))
         rgb += float3(0.25, 1.0, 0.45) * 1.2 * HudSymbols(-v, taa.w) * shipOptions.x * NightInstrumentGain() * (1.0 - frost);
-    alpha *= (1.0 - drop.z) * (1.0 - 0.85 * frost);
     return float4(rgb, alpha);
 }

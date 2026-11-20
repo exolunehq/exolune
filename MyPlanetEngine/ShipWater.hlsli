@@ -3,6 +3,7 @@
 // WATER_PASS 0 moves the drops, 1 clears the map and dries the film, 2 draws the drops into the map.
 #include "Planet.hlsli"
 #include "Ship.hlsli"
+#include "CanopyWaterActivity.hlsli"
 
 // A drop: where (the ship's plan, m), how fast (m/s), its radius (m), whether it lives, its seed, and its heading: the
 // angle (rad) it runs off the force that drives it, since it last met a flaw in the glass.
@@ -16,13 +17,10 @@ struct Drop
     float heading;
 };
 
-RWStructuredBuffer<float4> weatherState : register(u0); // ShipWeather.hlsl's, written before
 RWStructuredBuffer<Drop> drops : register(u1);
 RWTexture2D<uint> waterMap : register(u2);
 RWTexture2D<float> waterFilm : register(u3);
-RWStructuredBuffer<uint> gathered : register(u4); // volume merged into each drop this frame (mm3 / 1000)
-
-static const uint DROP_COUNT = 8192;
+RWStructuredBuffer<uint> gathered : register(u4); // merged volume per drop, then the live-particle flag
 
 uint WaterHash(uint x)
 {
@@ -42,10 +40,15 @@ float DropVolume(float r) { return 0.785 * r * r * r; }
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
     const uint i = id.x;
+    if (shipWeather[2].w > 0.5) {
+        drops[i] = (Drop)0;
+        gathered[i] = 0;
+        return;
+    }
     Drop d = drops[i];
     const float dt = shipAir.y, air = shipAir.x;
-    const float4 w = weatherState[0];
-    const float catching = weatherState[2].x;
+    const float4 w = shipWeather[0];
+    const float catching = shipWeather[2].x;
     uint state = WaterHash(i * 9781u + asuint(shipAir.z) * 6271u);
 
     if (d.alive == 0)
@@ -54,13 +57,14 @@ void CSMain(uint3 id : SV_DispatchThreadID)
         // glass into drops of 1 to 2.4 mm, which then grow as more is caught. Each free slot is taken with the share of
         // the rate it stands for.
         const float rain = w.y * 250.0 * (1.0 + air / 30.0), cloud = catching * 3000.0;
-        const float chance = (rain + cloud) * dt / DROP_COUNT;
+        const float chance = (rain + cloud) * dt / float(shipDropGroups * 64u);
         if (WaterRandom(state) >= chance)
             return;
         float2 p;
         [loop] for (int k = 0; k < 4; ++k) // a point of the teardrop's rectangle, kept when on the bubble
         {
-            p = float2(lerp(-CANOPY_W, CANOPY_W, WaterRandom(state)), lerp(CANOPY_Y0, CANOPY_Y1, WaterRandom(state)));
+            const float x = WaterRandom(state), y = WaterRandom(state);
+            p = WATER_ORIGIN + float2(x, y) * float2(WATER_SIZE) * WATER_TEXEL;
             if (OnCanopy(p, 0.004)) break;
         }
         if (!OnCanopy(p, 0.004))
@@ -104,11 +108,13 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     // drop's section over its mass (1/r). Against them, the contact line holds the drop until they pass a threshold that
     // grows as it shrinks (r^-2): on glass, a 2.6 mm drop just starts to slide down a 35 degree slope. A wet track holds
     // less.
-    const float3 n = CanopyNormal(d.p);
-    const float3 g = -shipUp.xyz * 9.81, alongAir = normalize(float3(0.0, 1.0, 0.0) - n * n.y);
+    float3 n, chartX, chartY;
+    CanopyFrame(d.p, n, chartX, chartY);
+    const float3 g = -shipUp.xyz * 9.81;
+    const float3 alongAir = shipAirflow.xyz - n * dot(shipAirflow.xyz, n);
     const float flow = saturate(air / 27.8);
     const float3 a3 = g - n * dot(g, n) + alongAir * (0.08 * flow / d.r);
-    float2 a = a3.xy;
+    float2 a = float2(dot(a3, chartX), dot(a3, chartY));
     const float film = InMap(here) ? waterFilm[here] : 0.0;
     const float hold = 5.7 * pow(2.6e-3 / d.r, 2.0) * lerp(1.0, 0.5, saturate(film / 60.0));
     const float speed = length(d.v), push = length(a);
@@ -139,7 +145,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     const float travel = length(step);
     const uint steps = min(uint(ceil(travel / WATER_TEXEL)), 64u);
     const int half = int(ceil(0.95 * d.r / WATER_TEXEL));
-    const float laid = 40.0 + 60.0 * saturate(d.r / 3e-3);
+    const float laid = lerp(40.0, CANOPY_MAX_TRACK_UM, saturate(d.r / 3e-3));
     for (uint k = 0; k < steps; ++k)
     {
         const float2 at = d.p + step * (k + 0.5) / steps;
@@ -172,7 +178,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     const float left = DropVolume(d.r) - d.r * 0.3e-6 * travel; // a 1 mm drop runs some 2.6 m, bigger ones across
     // Drying, none in the rain or a cloud: the drops the air cannot move (under 0.5 mm) go in a minute or so in still air,
     // in some seven seconds in fast air; in the thin air of space they boil off in two or three.
-    const float dry = (5e-6 + 55e-6 * saturate(air / 100.0)) * (1.0 - saturate(max(w.y, weatherState[1].x) * 3.0))
+    const float dry = (5e-6 + 55e-6 * saturate(air / 100.0)) * (1.0 - saturate(max(w.y, shipWeather[1].x) * 3.0))
                     + 1e-3 * ShipVacuum();
     d.r = pow(max(left, 0.0) / 0.785, 1.0 / 3.0) - dry * dt;
     if (d.r < 0.15e-3 || !OnCanopy(d.p, 0.0))
@@ -186,17 +192,24 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     if (any(id.xy >= WATER_SIZE))
         return;
     waterMap[id.xy] = 0;
+    if (shipWeather[2].w > 0.5) { waterFilm[id.xy] = 0.0; return; }
     // The trails dry in some five seconds, faster in fast air, slower in rain or a cloud, at once in space: thinning, they
     // break up (ShipGlass.hlsl).
-    const float air = shipAir.x, wet = saturate(max(weatherState[0].y, weatherState[1].x) * 3.0);
-    waterFilm[id.xy] *= exp(-shipAir.y / lerp(5.0, 12.0, wet) * (1.0 + air / 100.0 + 20.0 * ShipVacuum()));
+    waterFilm[id.xy] *= shipWeather[4].w;
 }
 #else
+groupshared uint groupHasDrops;
 [numthreads(64, 1, 1)]
-void CSMain(uint3 id : SV_DispatchThreadID)
+void CSMain(uint3 id : SV_DispatchThreadID, uint lane : SV_GroupIndex)
 {
     const uint i = id.x;
     const Drop d = drops[i];
+    // At most one global atomic per occupied group. The weather pass consumes it on the next frame.
+    if (lane == 0) groupHasDrops = 0u;
+    GroupMemoryBarrierWithGroupSync();
+    if (d.alive != 0) InterlockedOr(groupHasDrops, 1u);
+    GroupMemoryBarrierWithGroupSync();
+    if (lane == 0 && groupHasDrops != 0u) InterlockedOr(gathered[shipDropGroups * 64u], 1u);
     if (d.alive == 0)
         return;
     // A drop sits on glass with steep sides, rounded, its outline never quite a circle; running, a tear, its head round

@@ -898,7 +898,7 @@ bool D3DApp::InitDirect3D() {
         glassRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5);
     CD3DX12_DESCRIPTOR_RANGE celestialRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 6), glareRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8),
         adaptationRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9);
-    CD3DX12_ROOT_PARAMETER resolveParams[8];
+    CD3DX12_ROOT_PARAMETER resolveParams[9];
     resolveParams[0].InitAsConstantBufferView(0);
     resolveParams[1].InitAsDescriptorTable(1, &compositeRange, D3D12_SHADER_VISIBILITY_PIXEL);
     resolveParams[2].InitAsDescriptorTable(1, &historyRange, D3D12_SHADER_VISIBILITY_PIXEL);
@@ -907,7 +907,8 @@ bool D3DApp::InitDirect3D() {
     resolveParams[5].InitAsDescriptorTable(1, &celestialRange, D3D12_SHADER_VISIBILITY_PIXEL);
     resolveParams[6].InitAsDescriptorTable(1, &glareRange, D3D12_SHADER_VISIBILITY_PIXEL); // the summed glare (Glare.h)
     resolveParams[7].InitAsDescriptorTable(1, &adaptationRange, D3D12_SHADER_VISIBILITY_PIXEL); // local adaptation
-    mResolveRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(8, resolveParams, 1, &linearClamp));
+    resolveParams[8].InitAsConstants(4, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL); // visor, after the scene history
+    mResolveRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(9, resolveParams, 1, &linearClamp));
     CD3DX12_DESCRIPTOR_RANGE skyTransportRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
     CD3DX12_DESCRIPTOR_RANGE lunarRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,8);
     CD3DX12_DESCRIPTOR_RANGE distantPlanetRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,29),distantClimateRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,20);
@@ -1389,7 +1390,7 @@ bool D3DApp::InitDirect3D() {
     // The selected ship's cooked package, found above the executable (ShipProfiles.h).
     const std::wstring shipPack = FindAbove(mShip.Profile().packPath);
     if (!shipPack.empty()) mShip.Load(shipPack);
-    mShip.Initialize(md3dDevice.Get(), mCommandList.Get(), mSrvHeap.Get(), ShipSrv, mClientWidth, mClientHeight, HdrFormat, SunFormat);
+    mShip.Initialize(md3dDevice.Get(), mCommandList.Get(), mSrvHeap.Get(), ShipSrv, mClientWidth, mClientHeight, HdrFormat, SunFormat, mDepthStencilBuffer.Get());
     mCity.Initialize(md3dDevice.Get(),mCommandList.Get(),mSrvHeap.Get(),CitySrv,mSettings.cityAssets,mSettings.seed,HdrFormat,SunFormat);
     if (!mShip.Ready()) mView = View::Free;
     // The plants' catalogue (docs/arbustes-climatiques.md): MYPLANETENGINE_FOLIAGE_ASSETS; else the first built one above
@@ -2038,6 +2039,18 @@ void D3DApp::CreateClimateMap(const Tectonics::Map& tectonics, uint32_t seed, co
     md3dDevice->CreateShaderResourceView(mClimateMap.Get(), &srv, mShip.ClimateDescriptor());
 }
 
+Vec3d D3DApp::ClimateWindAt(Vec3d position) const {
+    const Vec3d up = Normalize(position);
+    Vec3d east = Cross(up, kNorth);
+    if (Length(east) < 1e-6) east = Cross(up, {1,0,0});
+    east = Normalize(east);
+    const Vec3d north = Cross(east, up);
+    const double direction[] = {up.x, up.y, up.z};
+    float climate[Climate::Channels] = {};
+    Climate::At(mClimateCpu, direction, climate);
+    return east * climate[Climate::WindEast] + north * climate[Climate::WindNorth];
+}
+
 void D3DApp::UpdateCamera(float dt) {
     // Keys only count when the window has the focus; the ground clamp below always applies.
     const bool focused = GetForegroundWindow() == mhMainWnd;
@@ -2254,7 +2267,7 @@ void D3DApp::Draw() {
     mConstants->coordinateInfo = {};
     mConstants->coordinateInfo.z = mSettings.Automated() ? 0u : 1u | (mView==View::Walk ? 2u : 0u)
         | (mAudioMuted || !mAudioReady ? 4u : 0u) | (mClock<mWalkNoticeUntil ? 8u : 0u)
-        | (mView == View::Free ? unsigned(mCameraMode) << 4 : 0u);
+        | (mView == View::Free ? unsigned(mCameraMode) << 4 : 0u) | (RadioAvailable()?64u:0u);
     if (mView==View::Walk) {
         const unsigned surface=CurrentFootContact().Primary();
         mConstants->coordinateInfo.w=surface<FootContact::Count?surface+1:0;
@@ -2357,15 +2370,7 @@ void D3DApp::Draw() {
     UpdateCityFrame(faceX,faceY,faceZ,view*proj);
     const double windAngle = std::fmod(mWeatherTime * kWeatherWindSpeed / PlanetRadius, 2.0 * XM_PI);
     {
-        const Vec3d localUp=Normalize(mCamPos);
-        Vec3d east=Cross(localUp,kNorth);
-        if (Length(east)<1e-6) east=Cross(localUp,{1.0,0.0,0.0});
-        east=Normalize(east);
-        const Vec3d north=Cross(east,localUp);
-        const double direction[]={localUp.x,localUp.y,localUp.z};
-        float climate[Climate::Channels]={}; Climate::At(mClimateCpu,direction,climate);
-        const Vec3d wind=east*climate[Climate::WindEast]+north*climate[Climate::WindNorth];
-        XMStoreFloat4(&mConstants->foliageWind,toLocal(wind));
+        XMStoreFloat4(&mConstants->foliageWind,toLocal(ClimateWindAt(mCamPos)));
         mConstants->foliageWind.w=float(std::fmod(mWeatherTime,4096.0));
     }
     {
@@ -3157,7 +3162,7 @@ void D3DApp::Draw() {
         mShipCloudConstants->cameraKm[2] = mShipPos.z * 0.001;
         Ship::Tables weatherTables = shipTables;
         weatherTables.cloudFrame = mShipCloudConstantBuffer->GetGPUVirtualAddress();
-        mShip.UpdateWeather(mCommandList.Get(), weatherTables);
+        mShip.UpdateWeather(mCommandList.Get(), weatherTables, mObjectDispatchSignature.Get());
         mCommandList->RSSetViewports(1, &viewport);
         mCommandList->RSSetScissorRects(1, &scissor);
         mShip.DrawGlass(mCommandList.Get(), shipTables, dsvHandle);
@@ -3193,6 +3198,10 @@ void D3DApp::Draw() {
     mCommandList->SetGraphicsRootDescriptorTable(5, GpuDescriptor(SkyTransportSrv));
     mCommandList->SetGraphicsRootDescriptorTable(6, GpuDescriptor(glareDrawn ? GlareSrv : GlareSrv + 1));
     mCommandList->SetGraphicsRootDescriptorTable(7, GpuDescriptor(AdaptationSrv));
+    const bool visorWeather = mView == View::Walk && !airless && mWorldValid && Length(mCamPos - mWorldProbePos) < 250.0;
+    const XMFLOAT4 visor = { mView == View::Walk ? 1.0f : 0.0f, mWalker.exertion,
+        visorWeather ? std::max(mHabitat[2].x, mHabitat[2].y) : 0.0f, visorWeather ? mHabitat[1].y : 0.0f };
+    mCommandList->SetGraphicsRoot32BitConstants(8, 4, &visor, 0);
     mCommandList->DrawInstanced(3, 1, 0, 0);
     if (glareDrawn) mGlare.Release(mCommandList.Get());
     mAdaptation.Release(mCommandList.Get());
@@ -3333,7 +3342,9 @@ void D3DApp::ReadGpuTimes() {
 void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ringCount) {
     mTitleTimer += dt;
     ++mTitleFrames;
-    if (mTitleTimer < 0.25f) return;
+    // A fast lunar capture can finish before the first interactive title update.
+    const bool captureFrame = !mSettings.capturePath.empty() && mFrameNumber == mSettings.captureFrame;
+    if (mTitleTimer < 0.25f && !captureFrame) return;
 
     wchar_t title[2048];
     swprintf_s(title, L"MyPlanetEngine | hauteur %s | sol %s | face \u00B1%s (k=%g) | %u anneaux | vitesse x%.2f"
@@ -3341,7 +3352,7 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
         FormatDistance(clearance).c_str(), FormatDistance(mGroundHeight).c_str(), FormatDistance(halfWidth).c_str(),
         mFaceFactor, ringCount, mSpeedFactor, mComputeMs / mTitleFrames, mOceanMs / mTitleFrames, mScreenReliefMs / mTitleFrames, mDrawMs / mTitleFrames, mDrawMinMs, mObjectMs / mTitleFrames,
         mObjectDrawMs / mTitleFrames,
-        mTitleFrames / mTitleTimer, mWireframe ? L" | fil de fer" : L"");
+        mTitleTimer > 0.0f ? mTitleFrames / mTitleTimer : 0.0f, mWireframe ? L" | fil de fer" : L"");
     wchar_t cloudTimes[64];
     swprintf_s(cloudTimes, L" | nuages+air %.2f ms", mCloudPassMs / mTitleFrames);
     wcscat_s(title, cloudTimes);
@@ -3353,8 +3364,16 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
         swprintf_s(walk,L" | marche %.2f m/s | J : vaisseau | Maj : courir | Ctrl : accroupir | H : balancement",Length(mWalkVelocity));
         wcscat_s(title,walk);
     } else if (mView != View::Free) {
-        wchar_t ship[80];
-        swprintf_s(ship, L" | %s : %s, %.0f m/s (Tab)", mShip.Profile().name, mView == View::Cockpit ? L"cockpit" : mView == View::Chase ? L"poursuite" : L"sans vaisseau", Length(mShipVelocity));
+        wchar_t lever[64] = L"neutre";
+        if (mThrottle >= FlightDynamics::FirstBurnNotch)
+            wcscpy_s(lever, L"poussée continue");
+        else if (mThrottle > 0.0)
+            swprintf_s(lever, L"croisière %.0f m/s", FlightDynamics::CruiseSpeed(mThrottle));
+        wchar_t ship[256];
+        swprintf_s(ship, L" | %s : %s, %.0f m/s, verticale %+.1f m/s, chauffe %.0f %% (Tab) | molette %g (%s), Haut : pleine poussée, Maj : boost, X : frein",
+            mShip.Profile().name, mView == View::Cockpit ? L"cockpit" : mView == View::Chase ? L"poursuite" : L"sans vaisseau",
+            Length(mShipVelocity), Dot(mShipVelocity, SurfaceUp(mShipPos)), 100.0 * mFlightCues.heat,
+            mThrottle, lever);
         wcscat_s(title, ship);
     } else if (!mSettings.Automated()) {
         const wchar_t* camera = mCameraMode == CameraMode::Horizon ? L" | Cam\u00e9ra horizon (D\u00e9but)"
@@ -3486,6 +3505,7 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             if (y>=12*s && y<33*s) {
                 if (x>=12*s && x<114*s) { ToggleWalking(); return 0; }
                 if (x>=118*s && x<220*s) { ToggleAudio(); return 0; }
+                if (x>=224*s && x<326*s && RadioAvailable()) { RequestRadio(); return 0; }
             }
         }
         break;
@@ -3540,7 +3560,7 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     case WM_MOUSEWHEEL:
         if (mView == View::Walk) return 0;
         if (mView != View::Free) { // the ship's gas, notch by notch; it stays where it is left
-            mThrottle = std::min(std::max(mThrottle + GET_WHEEL_DELTA_WPARAM(wParam) / double(WHEEL_DELTA), 0.0), 30.0);
+            mThrottle = FlightDynamics::MoveThrottle(mThrottle, GET_WHEEL_DELTA_WPARAM(wParam) / double(WHEEL_DELTA));
             return 0;
         }
         mSpeedFactor *= std::pow(1.5, GET_WHEEL_DELTA_WPARAM(wParam) / double(WHEEL_DELTA)); // smooth wheels send small deltas
@@ -3557,6 +3577,7 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         }
         if (wParam == 'J') ToggleWalking();
         if (wParam == 'Y') ToggleAudio();
+        if (wParam == VK_RETURN) RequestRadio();
         if (wParam == VK_SPACE && mView == View::Walk) mWalkJump = true;
         if (wParam == 'H' && mView == View::Walk) mWalkBob = !mWalkBob;
         if (wParam == 'F') mWireframe = !mWireframe;

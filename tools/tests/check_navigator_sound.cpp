@@ -18,7 +18,7 @@ static void Wav(const char* path, const std::vector<float>& x) {
 int main(int argc, char** argv) {
     assert(argc==2);
     NavigatorSound whole, chunked;
-    NavigatorSound::Controls c; c.power=.6f; c.wind=100;
+    NavigatorSound::Controls c; c.power=.6f;
     std::vector<float> a(48000*2), b(a.size());
     whole.Render(a.data(),48000,c);
     for (unsigned at=0; at<48000;) { unsigned n=std::min(127u,48000-at); chunked.Render(b.data()+2*at,n,c); at+=n; }
@@ -29,11 +29,11 @@ int main(int argc, char** argv) {
     for (unsigned block=0; block<36*100; ++block) {
         const float t=block*.01f;
         c={}; c.power=.025f;
-        if(t>=5 && t<10) { c.power=.025f+.975f*(t-5)/5; c.wind=150*(t-5)/5; }
-        if(t>=10 && t<20) { c.power=.95f; c.wind=150; }
+        if(t>=5 && t<10) c.power=.025f+.975f*(t-5)/5;
+        if(t>=10 && t<20) c.power=.95f;
         if(t>=15 && t<20) { c.roll=std::sin((t-15)*2); c.lift=.7f; }
-        if(t>=20 && t<24) { c.power=0; c.wind=150*(24-t)/4; }
-        if(t>=28 && t<32) { c.inside=false; c.power=.6f; c.wind=140; }
+        if(t>=20 && t<24) c.power=0;
+        if(t>=28 && t<32) { c.inside=false; c.power=.6f; }
         if(t>=32) c.active=false;
         sound.Render(preview.data()+block*480*2,480,c);
     }

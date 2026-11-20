@@ -2,6 +2,29 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-20 · Assisted turns, atmospheric lift and a short entry**
+
+- The pilot reported excessive slip in space, little response from the wheel and entry heat during fast atmospheric cruise.
+- Wheel notches 1–24 select cruise speed. The higher notches sustain acceleration. Spaceflight assist carries speed through a turn. In air, wind-relative lift and bank determine the turn and lift falls away as the craft slows. [Handling](spec-vol-immersion.md#flight-model-and-tuning)
+- Crossing into the atmosphere from space arms a short-lived entry sound and glow. Levelling, ascent, exit from the band or the twelve-second limit extinguish it. [Ten-stop flight review](../tools/tests/2026-11-20-vol-assiste.txt)
+- A detached shock layer follows the bow and sweeps around the flanks. Sparse incandescent grains travel with the exterior flow. The same luminous passage is visible from inside and around the ship.
+- The local milestone tag is `jalon/vol-assiste-2026-11-20`. [Pilot feedback and earlier settings](log/spec-vol-immersion-historique.md)
+
+**2026-11-20 · Pilot-controlled thrust and windscreen entry**
+
+- The pilot found the earlier drive restrictive near the surface. The wheel now sets thrust. Up commands full power and Shift multiplies it by five. A full-power two-second departure reaches 4,845 m/s over the sea and 6,183 m/s in vacuum. [Handling and checks](spec-vol-immersion.md#flight-model-and-tuning)
+- The plasma source follows the actual glass seal on all three craft. Instanced particles leave the same source, and curved abrasion on the pane responds to grazing light. [Optical surfaces](spec-vol-immersion.md#assets-and-ownership)
+- Seven six-second native films cover all three heated cockpits, dry glass under grazing sunlight and a cool approach. The 32-degree glance and 9 cm head shift expose the hot junction and resolve separate sparks against the sky. [Motion review](spec-vol-immersion.md#functional-evidence)
+- The local tag `piste/propulsion-verriere-2026-11-20-base` identifies the public source base. The local executable and shaders from the first pilot review are in `x64/VolImmersionRetourAvant/`. [Previous treatment](log/spec-vol-immersion-historique.md) [Flight route](../tools/tests/2026-11-20-propulsion-verriere.txt)
+
+**2026-11-20 · Flight dynamics, canopy weather and suit audio**
+
+- The three ships now coast at zero throttle. Gravitational acceleration, lift, drag and finite thruster authority produce the proposed motion. Holding X brakes and supports the ship. The existing terrain sweep resolves contact.
+- The 8 km atmosphere scale and 100 km ceiling are shared with the sky. Flight supplies equivalent airspeed, dynamic pressure, engine effort and stored heat. Heating and cooling use 0.75 s and 4 s time constants. [Flight model and tuning](spec-vol-immersion.md)
+- All three cockpits carry rain and surface wear. The Navigator uses a 2560 × 1536 chart on its panoramic field. Films of water, peripheral entry emission and the thermal instrument respond to the same flight. The visor keeps its strongest response near the chin and outer rim.
+- Six generated loops and one French radio reply extend the 48 kHz mixer. The cooker records the source and cooked hashes. Walking effort drives breath and the visor. Local vegetation and wind drive rustle. [Audio bank](../assets/audio/README.md)
+- The CPU orbital, entry, support and braking checks pass. Eleven native captures cover glass, entry and the suit. The audio checks exercise the production bank and a source-only installation. The local tag `piste/vol-immersion-2026-11-20-base` marks the public source base. [Twelve-stop flight review](../tools/tests/2026-11-20-vol-immersion.txt)
+
 **2026-11-20 · Stable trees during camera motion**
 
 - The sliding terrain changed the light pass's habitat estimate during a stationary pan. That estimate could discard entire tiles or suppress plants the exact habitat admitted.

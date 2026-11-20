@@ -96,29 +96,32 @@ float3 ActionOverlay(float3 color, int2 pixel, int2 size)
     const int2 p = pixel / scale;
     const bool button0 = p.x >= 12 && p.x < 114 && p.y >= 12 && p.y < 33;
     const bool button1 = p.x >= 118 && p.x < 220 && p.y >= 12 && p.y < 33;
+    const bool button2 = (flags & 64u) && p.x >= 224 && p.x < 326 && p.y >= 12 && p.y < 33;
     const bool hint = p.x >= 12 && p.x < 220 && p.y >= 35 && p.y < 47;
-    if (!button0 && !button1 && !hint) return color;
-    const int2 origin = button0 ? int2(18,19) : button1 ? int2(124,19) : int2(16,38);
+    if (!button0 && !button1 && !button2 && !hint) return color;
+    const int left = button0 ? 12 : button1 ? 118 : 224;
+    const int2 origin = hint ? int2(16,38) : int2(left+6,19);
     const int2 q = p-origin;
     const float3 background = color*0.15 + float3(0.015,0.02,0.025);
-    if ((button0 || button1) && (p.y==12 || p.y==32 || p.x==(button0?12:118) || p.x==(button0?113:219)))
+    if (!hint && (p.y==12 || p.y==32 || p.x==left || p.x==left+101))
         return float3(0.3,0.42,0.45);
     if (any(q<0) || q.y>=7) return background;
     const uint walk[12] = {74,32,32,77,65,82,67,72,69,82,32,32};
     const uint ship[12] = {74,32,32,86,65,73,83,83,69,65,85,32};
     const uint sound[12] = {89,32,32,83,79,78,32,65,67,84,73,70};
     const uint mute[12] = {89,32,32,83,79,78,32,67,79,85,80,69};
+    const uint radio[12] = {69,78,84,82,69,69,32,82,65,68,73,79};
     const uint cursor[18] = {65,76,84,32,67,85,82,83,69,85,82,32,32,32,32,32,32,32};
     const uint blocked[18] = {83,79,76,32,73,77,80,82,65,84,73,67,65,66,76,69,32,32};
     const uint freeCam[18] = {67,65,77,32,76,73,66,82,69,32,45,32,68,69,66,85,84,32}; // CAM LIBRE - DEBUT
     const uint horizonCam[18] = {72,79,82,73,90,79,78,32,45,32,68,69,66,85,84,32,32,32}; // HORIZON - DEBUT
     const uint fixedCam[18] = {65,76,84,32,70,73,88,69,32,45,32,68,69,66,85,84,32,32}; // ALT FIXE - DEBUT
-    const uint cameraMode = flags >> 4;
+    const uint cameraMode = (flags >> 4) & 3u;
     const uint c = q.x/6;
     if (c >= (hint?18u:12u) || q.x%6>=5) return background;
     const uint ch = hint ? ((flags&8u)!=0u?blocked[c]:(flags&2u)!=0u?ContactCharacter(coordinateInfo.w,c):
                             cameraMode==3u?fixedCam[c]:cameraMode==2u?horizonCam[c]:cameraMode==1u?freeCam[c]:cursor[c])
-        : button0 ? ((flags&2u)!=0u?ship[c]:walk[c]) : ((flags&4u)!=0u?mute[c]:sound[c]);
+        : button0 ? ((flags&2u)!=0u?ship[c]:walk[c]) : button2 ? radio[c] : ((flags&4u)!=0u?mute[c]:sound[c]);
     const uint glyph = ch>=65u && ch<=90u ? ch-65u+10u : ch==45u ? 37u : 38u;
     const uint bit = uint(q.y*5+q.x%6);
     return ((COORDINATE_GLYPHS[glyph][bit/32u]>>(bit%32u))&1u)!=0u ? float3(0.9,0.95,1.0) : background;

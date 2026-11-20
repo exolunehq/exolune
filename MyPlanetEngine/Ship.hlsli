@@ -2,6 +2,7 @@
 // shadow maps and the glass's weather. Ship frame: Blender's, in metres, nose towards -y, up +z, the pilot's left +x.
 #ifndef SHIP_HLSLI
 #define SHIP_HLSLI
+#include "ShipProfiles.h"
 
 cbuffer ShipFrame : register(b3) // b1: the clouds' frame (Clouds.hlsli)
 {
@@ -12,19 +13,23 @@ cbuffer ShipFrame : register(b3) // b1: the clouds' frame (Clouds.hlsli)
     float4   shipAir;       // x: airspeed as at sea level, the speed scaled by the air's thinning (m/s); y: frame time (s);
                             // z: clock (s), wraps at 3600; w: forced glass state, 0 off
     float4   shipVelocity;  // xyz: direction of flight, face-local; w: speed (m/s)
-    float4   shipOptions;   // x: 1 with the head-up display (U); y: 1 in the cockpit; z: ShipModel, 0 classic / 1 fighter
+    float4   shipOptions;   // HUD, cockpit, ShipModel, local air density relative to sea level
+    float4   shipAirflow;   // xyz: relative airflow direction in ship axes; w: thermal load from flight dynamics
+    float4   shipWaterLayout; // width, height (texels), chart origin y (m), pitch (m)
     float4   shipThrust;    // x: the main engines, 0 to 1; y: roll right, z: lift, w: slide right, -1 to 1 (ShipPlume.hlsli)
     float4   shipTurn;      // x: pitch up, y: yaw right, -1 to 1; z: clock (s), wraps at 3600
     float4   shipCourse;    // the dashboard (ShipScreens.hlsli): heading, latitude, longitude (deg); w: the ground's height (km)
-    float4   shipGauges;    // x: the gas, 0 to 1
+    float4   shipGauges;    // throttle command, surface altitude (km), lunar flag, total engine demand
     float4x4 shipPose[6];   // ship frame -> ship frame: the stick, the throttle, the four volets (ShipPose)
+    float4   shipShockBounds; // half-extents of the external gas proxy, metric support-plane offset in w
 };
 
 cbuffer ShipDraw : register(b2)
 {
     uint shipMaterial;  // the draw's material
     uint shipShadowMap; // the shadow pass's map
-    uint2 shipDrawPad;
+    uint shipResetWater; // compute only, first water frame
+    uint shipDropGroups; // compute only, 64 particle slots per group
 };
 
 struct ShipVertex
@@ -61,8 +66,10 @@ StructuredBuffer<ShipVertex> shipVertices : register(t30);
 StructuredBuffer<ShipMaterial> shipMaterials : register(t31);
 Texture2D<float4> shipImages[12] : register(t32);
 Texture2D<float> shipShadowMaps[2] : register(t44);
-StructuredBuffer<float4> shipWeather : register(t46); // [0]: wet, rain, frost; [1]: in cloud, temperature (C), cloud
-                                                      // extinction (1/km), clock (s); [2]: x the cloud's water caught
+// [0] wet, rain, frost, max film (um). [1] cloud, temperature (C), extinction (1/km), clock.
+// [2] collected water, relief sun, cloud sun, reset. [3,4] Dispatch XYZ as uint bits,
+// then a float in w: water optics active, film retention per frame respectively.
+StructuredBuffer<float4> shipWeather : register(t46);
 // The water on the canopy (ShipWater.hlsli): its map over both panes, each texel the highest drop there, its height (um)
 // in the high 16 bits and its number in the low ones; and the film the drops leave behind (um).
 Texture2D<uint> shipWaterMap : register(t48);
@@ -77,25 +84,48 @@ bool ShipNavigator() { return shipOptions.z > 1.5; }
 #include "ShipChasseur.hlsli"
 #define SHIP_CENTRE (ShipNavigator() ? float3(0, 0, 0) : ShipClassic() ? CLASSIC_CENTRE : FIGHTER_SHIP_CENTRE)
 static const float SHIP_RADIUS = 6.7;
-#define WATER_ORIGIN (ShipClassic() ? CLASSIC_WATER_ORIGIN : FIGHTER_WATER_ORIGIN)
-#define WATER_SIZE (ShipClassic() ? CLASSIC_WATER_SIZE : FIGHTER_WATER_SIZE)
-static const float WATER_TEXEL = 0.0012;
-#define CANOPY_W (ShipClassic() ? 0.94 : FIGHTER_CANOPY_W)
-#define CANOPY_Y0 (ShipClassic() ? -4.0 : FIGHTER_CANOPY_Y0)
-#define CANOPY_Y1 (ShipClassic() ? 0.3 : FIGHTER_CANOPY_Y1)
+#define WATER_TEXEL (shipWaterLayout.w)
+#define WATER_ORIGIN (float2(-0.5 * shipWaterLayout.x * WATER_TEXEL, shipWaterLayout.z))
+#define WATER_SIZE (uint2(shipWaterLayout.xy))
+
+// The Navigator's virtual field follows the actual hull behind the cabin opening.
+// Its optical chart is a 1.5 m radius spherical projection. The aperture angles
+// follow assets/vaisseau/navigateur/cabine_maillage.py (13 of 28 sectors, above -0.2 rad).
+static const float FIELD_RADIUS = 1.5, FIELD_HALF_ANGLE = SHIP_FIELD_HALF_ANGLE;
+float2 CanopyChart(float3 local)
+{
+    if (!ShipNavigator()) return local.xy;
+    return FIELD_RADIUS * float2(atan2(local.x, -local.y), atan2(local.z, length(local.xy)));
+}
+float FieldSillDistance(float2 q)
+{
+    return min(FIELD_RADIUS * FIELD_HALF_ANGLE - abs(q.x), q.y - SHIP_FIELD_FLOOR * FIELD_RADIUS);
+}
 bool OnCanopy(float2 p, float margin)
 {
-    if (ShipNavigator()) return false;
+    if (ShipNavigator()) return FieldSillDistance(p) > margin && p.y < FIELD_RADIUS * 1.57079633;
     if (ShipClassic()) return ClassicOnCanopy(p, margin);
     return FighterOnCanopy(p, margin);
 }
-float3 CanopyNormal(float2 p)
+void CanopyFrame(float2 p, out float3 normal, out float3 chartX, out float3 chartY)
 {
-    if (ShipClassic()) return ClassicCanopyNormal(p);
-    return FighterCanopyNormal(p);
+    if (ShipNavigator()) {
+        float sa, ca, se, ce;
+        sincos(p.x / FIELD_RADIUS, sa, ca);
+        sincos(p.y / FIELD_RADIUS, se, ce);
+        normal = float3(sa * ce, -ca * ce, se);
+        // Convert a tangent displacement back to the azimuth/elevation chart.
+        chartX = float3(ca, sa, 0.0) / max(ce, 0.2);
+        chartY = float3(-sa * se, ca * se, ce);
+    } else {
+        normal = ShipClassic() ? ClassicCanopyNormal(p) : FighterCanopyNormal(p);
+        chartX = float3(1.0, 0.0, 0.0);
+        chartY = float3(0.0, 1.0, 0.0);
+    }
 }
-float SillDistance(float3 local)
+float SillDistance(float3 local, float2 q)
 {
+    if (ShipNavigator()) return max(FieldSillDistance(q), 0.0);
     if (ShipClassic()) return ClassicSillDistance(local);
     return max(FighterCanopyInside(local.xy), 0.0);
 }
@@ -111,7 +141,7 @@ struct ShipPixel
 };
 
 // The air too thin to hold water on the glass: from 20 to 35 km up it boils off, as on Earth above the Armstrong limit.
-float ShipVacuum() { return smoothstep(20.0, 35.0, shipUp.w); }
+float ShipVacuum() { return 1.0 - smoothstep(0.0126, 0.0821, shipOptions.w); }
 
 // A vertex's moving part (assets/vaisseau/pieces_mobiles.py, design_chasseur.py): its pose is 0 when fixed, in (0, 1] on
 // the stick, (1, 2] on the throttle, 3 to 6 on the elevons, its weight the fraction past the integer: the stick's boot bends

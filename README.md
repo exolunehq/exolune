@@ -106,10 +106,12 @@ The game starts in the cockpit. Key positions are physical: on AZERTY, W A S D a
 |---|---|
 | Mouse | Pitch and yaw |
 | Q / E | Roll |
-| Mouse wheel | Throttle; it holds where you leave it |
+| Mouse wheel | Set cruise speed on notches 1–24 or continuous thrust on notches 25–30. |
+| Up arrow | Hold for immediate full thrust in the cockpit. Release to return to the wheel setting. |
 | A / D | Slide left / right |
 | W / S, Space / Ctrl | Slide up / down |
 | Shift, X | Boost, brake |
+| Enter | Call the radio from the cockpit or the suit |
 | Right mouse button held | Free look |
 | Tab | Cockpit, chase view, ship hidden |
 | Backspace | Detach the camera or return to the cockpit |

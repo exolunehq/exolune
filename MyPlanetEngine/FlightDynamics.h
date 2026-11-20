@@ -1,0 +1,326 @@
+// Point-mass ship dynamics in world axes. Distances are metres and time is seconds.
+#pragma once
+#include "FlightFrame.h"
+#include "CelestialManifest.h"
+#include "AtmosphereProfile.hlsli"
+
+namespace FlightDynamics {
+constexpr double SeaLevelDensity = 1.225; // kg/m^3
+constexpr double EntrySpace = 1000.0 * ATMOSPHERE_HEIGHT_KM;
+constexpr double EntryInterface = EntrySpace - 1000.0 * RAYLEIGH_SCALE_HEIGHT;
+constexpr double EntryIgnition = .78 * EntrySpace, EntryFloor = .40 * EntrySpace;
+constexpr double EntryDuration = 12.0, EntryFade = 3.0;
+constexpr double EntryMinimumDescent = 100.0, EntryExitFade = .85;
+constexpr double FirstBurnNotch = 25, ThrottleNotches = 30, LaunchAcceleration = 1800, BoostFactor = 5;
+
+inline double Clamp(double x, double lo, double hi) { return std::max(lo, std::min(x, hi)); }
+inline double Smooth(double lo, double hi, double x) {
+    const double t = Clamp((x - lo) / (hi - lo), 0, 1);
+    return t * t * (3 - 2 * t);
+}
+inline double DensityAtAltitude(double metres) {
+    const double height = std::max(0.0, metres) * .001;
+    if (height >= ATMOSPHERE_HEIGHT_KM) return 0;
+    // Close the rendering atmosphere continuously over its last scale height.
+    return std::exp(-height / RAYLEIGH_SCALE_HEIGHT) *
+        (1 - Smooth(ATMOSPHERE_HEIGHT_KM - RAYLEIGH_SCALE_HEIGHT, ATMOSPHERE_HEIGHT_KM, height));
+}
+inline Vec3d Gravity(Vec3d offset, double distance, double radius, double gm) {
+    const double r = std::max(distance, radius);
+    return offset * (-gm / (r * r * r));
+}
+
+struct Environment {
+    Vec3d gravity;
+    double density, altitude;
+};
+struct Field {
+    double planetRadius;
+    Vec3d wind = {};
+    std::array<Vec3d, Celestial::Moons.size()> moons = {};
+    bool moonsPlaced = false;
+    // A confirmed hull tangent is valid very locally. The existing sweep still tests the complete displacement.
+    Vec3d supportNormal = {}, supportOrigin = {};
+
+    Environment At(Vec3d position) const {
+        const double radius = Length(position), height = radius - planetRadius;
+        Environment env = {Gravity(position, radius, planetRadius, Celestial::ExoluneGM * 1e9), DensityAtAltitude(height), height};
+        if (moonsPlaced) for (size_t i = 0; i < moons.size(); ++i) {
+            const auto& moon = Celestial::Moons[i];
+            const Vec3d offset = position - moons[i];
+            const double distance = Length(offset);
+            if (distance >= Celestial::MoonFrameOuterRadii * moon.radius) continue;
+            // The local frame already follows the moon's orbit. Use its own gravity near its surface.
+            const double local = Celestial::MoonFrameWeight(distance, moon.radius);
+            const Vec3d gravity = Gravity(offset, distance, moon.radius, moon.gravity * moon.radius * moon.radius);
+            env.gravity = env.gravity + (gravity - env.gravity) * local;
+        }
+        return env;
+    }
+};
+
+struct Cues {
+    enum class Passage { Inside, Outside, Descending, Luminous };
+    Vec3d airVelocity = {}; // ship velocity relative to air, in world axes
+    double density = 0, equivalentAirspeed = 0, dynamicPressurePa = 0, heat = 0, engine = 0;
+    Passage passage = Passage::Inside; // ordinary spawns below the atmosphere have no incoming trajectory
+    double entrySeconds = 0;
+
+    void Measure(double densityRatio, Vec3d velocity, Vec3d wind) {
+        density = densityRatio;
+        airVelocity = density > 0 ? velocity - wind : Vec3d{};
+        const double equivalentSquared = density * Dot(airVelocity, airVelocity);
+        dynamicPressurePa = .5 * SeaLevelDensity * equivalentSquared;
+        equivalentAirspeed = std::sqrt(equivalentSquared);
+    }
+    void AdvanceHeat(double altitude, double verticalSpeed, double dt) {
+        if (altitude >= EntrySpace || altitude <= EntryFloor) {
+            passage = altitude >= EntrySpace ? Passage::Outside : Passage::Inside;
+            entrySeconds = heat = 0;
+            return;
+        }
+        if (dt <= 0) return;
+        const double airspeed = Length(airVelocity);
+        // Consume the inbound crossing once. The lower retention thresholds let a shallow
+        // approach vary in slope, while levelling or applying power later inside cannot relight it.
+        if (verticalSpeed >= -25.0 || airspeed < 1400.0)
+            passage = Passage::Inside;
+        else if (passage == Passage::Outside && altitude <= EntryInterface)
+            passage = verticalSpeed <= -EntryMinimumDescent && airspeed >= 1800.0 ? Passage::Descending : Passage::Inside;
+        // Sutton-Graves scaling at fixed nose radius gives the relative brightness within a passage.
+        const double speedRatio = std::min(airspeed / 2500, 32.0);
+        const double flux = std::sqrt(density) * speedRatio * speedRatio * speedRatio;
+        if (passage == Passage::Descending && altitude <= EntryIgnition && flux >= .22) {
+            passage = Passage::Luminous;
+            entrySeconds = 0;
+        }
+        if (passage != Passage::Luminous) {
+            heat = std::max(0.0, heat - dt / EntryExitFade);
+            return;
+        }
+        entrySeconds += dt;
+        const double target = Smooth(.055, .52, flux);
+        heat += (target - heat) * (-std::expm1(-dt / .70));
+        const double end = 1 - Smooth(EntryDuration - EntryFade, EntryDuration, entrySeconds);
+        heat = std::min(heat, end * Smooth(EntryFloor, EntryFloor + 6000, altitude));
+        if (entrySeconds >= EntryDuration) {
+            passage = Passage::Inside;
+            heat = 0;
+        }
+    }
+
+    // An explicitly labelled review pose supplies the preceding steady descent.
+    // Its declared radial speed and air flux must pass all the live crossing gates.
+    void ReplayIncoming(double altitude, double verticalSpeed, Vec3d velocity, Vec3d wind) {
+        *this = {};
+        if (altitude > EntryFloor && altitude < EntrySpace && verticalSpeed <= -EntryMinimumDescent) {
+            const double duration = (EntrySpace - altitude) / -verticalSpeed;
+            const int steps = std::max(1, int(std::ceil(duration * 30)));
+            const double dt = duration / steps;
+            AdvanceHeat(EntrySpace, verticalSpeed, 0);
+            for (int i = 1; i <= steps; ++i) {
+                const double height = EntrySpace + verticalSpeed * (i * dt);
+                Measure(DensityAtAltitude(height), velocity, wind);
+                AdvanceHeat(height, verticalSpeed, dt);
+            }
+        }
+        Measure(DensityAtAltitude(altitude), velocity, wind);
+    }
+};
+
+struct Controls {
+    Vec3d forward, right, up;
+    double throttle, strafe, lift; // throttle 0..30, manoeuvring controls -1..1
+    bool boost, brake, fullThrust = false;
+};
+inline double MoveThrottle(double notch, double detents) {
+    return Clamp(notch + detents, 0, ThrottleNotches);
+}
+struct Pilot {
+    Vec3d previousNose = {};
+    double steeringTime = 0; // finish a commanded turn after the stick recentres
+};
+struct Loads {
+    double mainJet = 0, sideJet = 0, liftJet = 0;
+    Vec3d seatAcceleration = {}; // specific acceleration, including surface support and excluding free fall
+};
+
+// Rotate a unit course on the sphere. A half turn follows the pilot's right side when both arcs are equal.
+inline Vec3d TurnCourse(Vec3d course, Vec3d target, Vec3d right, double fraction, double maxAngle) {
+    const double cosine = Clamp(Dot(course, target), -1, 1);
+    if (cosine > 1 - 1e-13 || fraction <= 0) return course;
+    Vec3d tangent = target - course * cosine;
+    const double sine = Length(tangent);
+    if (sine < 1e-8) tangent = right - course * Dot(right, course);
+    const double angle = std::min(maxAngle, fraction * std::atan2(sine, cosine));
+    return course * std::cos(angle) + Normalize(tangent) * std::sin(angle);
+}
+
+inline double WingLift(const Cues& air, const Controls& c, Vec3d flow, Vec3d gravity) {
+    const double weight = Length(gravity);
+    const double bankCos = weight > 1e-8 ? std::abs(Dot(c.up, gravity)) / weight : 1;
+    const double trim = weight * Smooth(22, 80, air.equivalentAirspeed) / std::max(.60, bankCos);
+    const double incidence = -Dot(flow, c.up);
+    const double forwards = std::max(0.0, Dot(flow, c.forward));
+    return Clamp((trim + .011 * air.dynamicPressurePa * incidence) * forwards * forwards, -40, 40);
+}
+
+inline void BankTurn(Controls& c, Vec3d flow, double airspeed, double wingLift, Vec3d gravity, double dt) {
+    const double weight = Length(gravity);
+    if (weight < 1e-8 || airspeed < 1 || wingLift == 0) return;
+    const Vec3d vertical = gravity * (-1 / weight);
+    const Vec3d right = Cross(vertical, c.forward);
+    const double horizontal = Length(right);
+    if (horizontal < .1) return;
+    const Vec3d liftAxis = c.up - flow * Dot(c.up, flow);
+    const double rate = wingLift * Dot(liftAxis, right) / (airspeed * horizontal * horizontal);
+    if (std::abs(rate) < 1e-9) return;
+    const double angle = Clamp(rate, -1.2, 1.2) * dt;
+    c.forward = Rotate(c.forward, vertical, angle);
+    c.up = Rotate(c.up, vertical, angle);
+    c.right = Cross(c.up, c.forward);
+}
+
+inline Vec3d AerodynamicDelta(const Cues& air, const Controls& c, Vec3d flow, double speed,
+                              double wingLift, double dt) {
+    if (speed < 1e-7) return {};
+    const double axial = Dot(flow, c.forward), upFlow = Dot(flow, c.up);
+    // A broadside hull presents four times its axial drag area. The exact quadratic decay cannot reverse the flow.
+    const double inverseBallistic = (1 + 3 * (1 - axial * axial)) / 2400.0; // m^2/kg
+    const double dragRate = .5 * SeaLevelDensity * air.density * speed * inverseBallistic;
+    // Blend into finite fractional deceleration at arcade transfer speeds. Cutting power still leaves a coast.
+    const double effectiveRate = dragRate / (1 + dragRate / 1.2);
+    const double afterDrag = speed / (1 + effectiveRate * dt);
+    // The fin removes sideslip sooner than the wings remove angle of attack. Jets can deliberately slide the hull.
+    const double grip = Smooth(18, 75, air.equivalentAirspeed) *
+                        (1 - std::max(std::abs(c.strafe), std::abs(c.lift)));
+    const Vec3d straight = Normalize(c.forward * std::max(.1, axial) + c.up * (.70 * upFlow));
+    const Vec3d tracking = TurnCourse(flow, straight, c.right, -std::expm1(-3.4 * grip * dt), 2.4 * dt);
+    const Vec3d liftAxis = c.up - tracking * Dot(tracking, c.up);
+    const Vec3d turned = tracking + liftAxis * (wingLift * dt / speed);
+    return Normalize(turned) * afterDrag - air.airVelocity;
+}
+
+inline Vec3d Limited(Vec3d v, double limit) {
+    const double magnitude = Length(v);
+    return magnitude > limit ? v * (limit / magnitude) : v;
+}
+inline Vec3d SurfaceVelocity(Vec3d velocity, Vec3d normal) {
+    const double into = Dot(velocity, normal);
+    if (into >= 0) return velocity;
+    const Vec3d tangent = velocity - normal * into;
+    // Coulomb friction uses the support impulse. Gentle slopes and a light crosswind allow a landed hull to rest.
+    return tangent - Limited(tangent, -.55 * into);
+}
+
+inline double ThrottlePower(double notch) {
+    // Retain the old 35% spacing and make both ends exact, including fractional wheel detents.
+    static const double range = std::expm1(std::log(1.35) * ThrottleNotches);
+    return std::expm1(std::log(1.35) * Clamp(notch, 0, ThrottleNotches)) / range;
+}
+inline double CruiseSpeed(double notch) {
+    // Low detents start at walking speed, reach 100 m/s at 15, then increase by 35% per notch.
+    const double n = Clamp(notch, 0, ThrottleNotches);
+    if (n < 15) return 5 * n + 25 * std::expm1(std::log(1.35) * n) / std::expm1(std::log(1.35) * 15);
+    return 100 * std::pow(1.35, n - 15);
+}
+inline double TransferAcceleration(double speed) {
+    // A high-power burn gains authority as it picks up speed. Only the extra acceleration approaches an asymptote.
+    return .5 * speed / (1 + speed / 5e6);
+}
+inline double ThrustAgainstAir(double demand, double airAcceleration) {
+    if (demand == 0) return 0;
+    const double opposition = -std::copysign(1.0, demand) * airAcceleration;
+    // Allow air to consume up to one fifth of a commanded thrust. Uncommanded axes keep their full aerodynamic force.
+    return demand + std::copysign(std::max(0.0, opposition - .2 * std::abs(demand)), demand);
+}
+
+inline Loads Advance(double seconds, Vec3d& position, Vec3d& velocity, Cues& cues,
+                     Controls& c, Pilot& pilot, const Field& field) {
+    Loads loads;
+    const double duration = Clamp(seconds, 0, .1);
+    const int steps = std::max(1, int(std::ceil(60 * duration - 1e-6)));
+    const double dt = duration / steps;
+    const double notch = c.fullThrust ? ThrottleNotches : c.throttle;
+    const double target = CruiseSpeed(notch);
+    const bool translating = c.strafe != 0 || c.lift != 0;
+    const bool burn = notch >= FirstBurnNotch || (c.boost && (notch > 0 || !translating));
+    const double power = std::max(ThrottlePower(notch), burn && c.boost ? .65 : 0.0);
+    const double boost = c.boost ? BoostFactor : 1;
+    const double jetAxes = std::max(1.0, std::hypot(c.strafe, c.lift));
+    const Vec3d turn = c.forward - pilot.previousNose;
+    const bool firstPose = Dot(pilot.previousNose, pilot.previousNose) < .5;
+    const bool turned = firstPose ? Dot(velocity, c.forward) < .999 * Length(velocity) : Dot(turn, turn) > 1e-12;
+    if (turned || translating) pilot.steeringTime = 1.8;
+    for (int i = 0; i < steps && dt > 0; ++i) {
+        const Environment env = field.At(position);
+        cues.Measure(env.density, velocity, field.wind);
+        cues.AdvanceHeat(env.altitude, Dot(position, velocity) / std::max(1.0, field.planetRadius + env.altitude), dt);
+        const double airspeed = Length(cues.airVelocity);
+        const Vec3d flow = airspeed > 1e-7 ? cues.airVelocity * (1 / airspeed) : Vec3d{};
+        const double liftForce = WingLift(cues, c, flow, env.gravity);
+        if (!c.brake) BankTurn(c, flow, airspeed, liftForce, env.gravity, dt);
+        const Vec3d airDelta = AerodynamicDelta(cues, c, flow, airspeed, liftForce, dt);
+        const Vec3d air = airDelta * (1 / dt), passive = env.gravity + air;
+        const double speed = Length(velocity);
+        const double atmosphere = std::max(Smooth(.0001, .02, env.density), Smooth(60, 1800, cues.dynamicPressurePa));
+        // A stick or throttle command steers through an arc. Once it settles, an unpowered ship can orbit freely.
+        const double guide = (!c.brake && !translating && (notch > 0 || burn || pilot.steeringTime > 0)) ?
+                             (1 - atmosphere) * Smooth(.02, .5, speed) : 0;
+        Vec3d steering = {}, engineAxis = c.forward;
+        if (guide > 0) {
+            const Vec3d course = velocity * (1 / speed);
+            if (Dot(course, c.forward) < .9999985) {
+                const Vec3d guided = TurnCourse(course, c.forward, c.right, -std::expm1(-7 * guide * dt), 5.6 * dt);
+                steering = (guided - course) * (speed / dt);
+                engineAxis = TurnCourse(c.forward, guided, c.right, guide, 3.141592653589793);
+            }
+        }
+        pilot.steeringTime = std::max(0.0, pilot.steeringTime - dt);
+        // Midpoint power sampling keeps sustained burns consistent at different frame rates.
+        const double initialDrive = LaunchAcceleration * power + TransferAcceleration(speed) * power * power;
+        const double transfer = TransferAcceleration(speed + .5 * dt * initialDrive * boost);
+        const double drive = LaunchAcceleration * power + transfer * power * power;
+        const double jets = 24 + .4 * drive;
+        double mainReference = burn ? LaunchAcceleration + transfer : std::max(24.0, target / .35);
+        double jetReference = jets;
+        Vec3d thrust;
+        if (c.brake) {
+            // Powered braking helps the current aerodynamic slowdown. At rest it cancels gravity and crosswind.
+            const Vec3d stopped = Limited(velocity + airDelta, speed) * std::exp(-1.6 * dt);
+            thrust = (stopped - velocity) * (1 / dt) - passive;
+            mainReference = jetReference = std::max(36.0, 1.6 * speed);
+        } else {
+            const double forwardSpeed = Dot(velocity + steering * dt - field.wind * atmosphere, engineAxis);
+            const double response = forwardSpeed > target ? .65 : .35;
+            const double cruise = (target - forwardSpeed) * (-std::expm1(-dt / response) / dt);
+            double ahead = 0;
+            if (burn)
+                ahead = ThrustAgainstAir(std::max(drive * boost, cruise), Dot(air, engineAxis));
+            else if (notch > 0)
+                ahead = cruise - Dot(passive, engineAxis);
+            const double side = ThrustAgainstAir(c.strafe / jetAxes * jets * boost, Dot(air, c.right));
+            const double lift = ThrustAgainstAir(c.lift / jetAxes * jets * boost, Dot(air, c.up));
+            thrust = engineAxis * ahead + c.right * side + c.up * lift + steering;
+        }
+        const double axialJet = Clamp(Dot(thrust, c.forward) / mainReference, -1, 1);
+        loads.mainJet = std::max(0.0, axialJet);
+        loads.sideJet = Clamp(Dot(thrust, c.right) / jetReference, -1, 1);
+        loads.liftJet = Clamp(Dot(thrust, c.up) / jetReference, -1, 1);
+        cues.engine = c.brake ? Clamp(Length(thrust) / mainReference, 0, 1) :
+            Clamp(std::hypot(axialJet, std::hypot(loads.sideJet, loads.liftJet)), 0, 1);
+
+        Vec3d next = velocity + (passive + thrust) * dt;
+        const Vec3d fromSupport = position - field.supportOrigin;
+        if (Dot(field.supportNormal, field.supportNormal) > .5 && Dot(fromSupport, fromSupport) < 1 &&
+            Dot(fromSupport, field.supportNormal) < .02)
+            next = SurfaceVelocity(next, field.supportNormal);
+        loads.seatAcceleration = loads.seatAcceleration + (next - velocity - env.gravity * dt) * (1 / duration);
+        position = position + (velocity + next) * (.5 * dt);
+        velocity = next;
+    }
+    pilot.previousNose = c.forward;
+    cues.Measure(DensityAtAltitude(Length(position) - field.planetRadius), velocity, field.wind);
+    return loads;
+}
+}

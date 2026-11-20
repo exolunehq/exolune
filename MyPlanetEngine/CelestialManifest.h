@@ -1,8 +1,16 @@
 // Compact body descriptions. All three moons select the same airless stack and renderer.
 #pragma once
+#include <algorithm>
 #include <array>
 #include <cstdint>
 namespace Celestial {
+constexpr double ExoluneGM = 398600.4418; // km^3/s^2, shared by spacecraft and lunar ephemerides
+constexpr double MoonFrameInnerRadii = 4, MoonFrameOuterRadii = 8;
+inline double MoonFrameWeight(double distance, double radius) {
+    const double t = std::max(0.0, std::min(1.0, (MoonFrameOuterRadii - distance / radius) /
+                                               (MoonFrameOuterRadii - MoonFrameInnerRadii)));
+    return t * t * (3 - 2 * t);
+}
 struct AirlessManifest {
     const char* id;
     unsigned version;

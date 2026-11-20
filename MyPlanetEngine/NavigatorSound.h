@@ -9,16 +9,16 @@ class NavigatorSound {
 public:
     static constexpr unsigned Rate = 48000;
     struct Controls {
-        float power = 0, roll = 0, strafe = 0, lift = 0, wind = 0, air = 1;
+        float power = 0, roll = 0, strafe = 0, lift = 0, air = 1;
         bool inside = true, active = true;
     };
+    bool Audible() const { return mOn>1e-5f; }
     void Render(float* stereo, unsigned frames, const Controls& c) {
         const float target = Clamp(c.power), motion = Clamp((std::abs(c.roll) + std::abs(c.strafe) + std::abs(c.lift)) * 0.5f);
         for (unsigned i = 0; i < frames; ++i) {
             Smooth(mOn, c.active ? 1.0f : 0.0f, 0.18f);
             Smooth(mPower, target, target > mPower ? 0.65f : 0.32f);
             Smooth(mMotion, motion, 0.11f);
-            Smooth(mWind, std::min(std::max(c.wind, 0.0f) / 220.0f, 1.2f), 0.4f);
             Smooth(mAir, Clamp(c.air), 0.4f);
             Smooth(mInside, c.inside ? 1.0f : 0.0f, 0.12f);
             const float drift = float(Osc(6, 0.071)), breathe = float(Osc(7, 0.123));
@@ -86,8 +86,8 @@ private:
     }
     uint32_t mSeed = 0x7248ab15u;
     std::array<double, 8> mPhase = {};
-    Filter mWash[2], mWindFilter[2], mBody[2], mResonance[2][3];
+    Filter mWash[2], mBody[2], mResonance[2][3];
     std::array<float, Delay> mDelay[2] = {};
     unsigned mDelayAt = 0;
-    float mOn = 0, mPower = 0, mMotion = 0, mWind = 0, mAir = 1, mInside = 1, mLow[2] = {};
+    float mOn = 0, mPower = 0, mMotion = 0, mAir = 1, mInside = 1, mLow[2] = {};
 };

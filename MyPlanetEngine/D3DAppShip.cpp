@@ -10,12 +10,29 @@ namespace
     const double kHeadRest = -0.08;
 }
 
-// The ship's flight, the standard of keyboard and mouse space games (Star Citizen, Everspace): the mouse pitches and yaws
-// through a virtual stick that recentres when it rests, Q and E roll, W and S thrust forward and back, A and D slide
-// sideways, Space and Ctrl up and down, Shift boosts five times, X brakes. A flight assist holds the velocity the keys ask
-// for, as the free camera's speed: proportional to the height above the ground, at least 60 m/s, the wheel scaling it.
-// The right button held turns the head (the cockpit) or the camera around the ship (the chase view); let go, it comes
-// back. Flight attitude is independent of the nearby body's vertical, including during a body-frame handover.
+FlightDynamics::Field D3DApp::ShipField() const {
+    FlightDynamics::Field field = {};
+    field.planetRadius = PlanetRadius;
+    if (Length(mShipPos) - PlanetRadius < ATMOSPHERE_HEIGHT_KM * 1000)
+        field.wind = ClimateWindAt(mShipPos);
+    field.moonsPlaced = mMoonFrameValid;
+    for (size_t i = 0; i < field.moons.size(); ++i)
+        field.moons[i] = {mMoonCentres[i].x, mMoonCentres[i].y, mMoonCentres[i].z};
+    if (mFlightSlideBody == 1) {
+        field.supportNormal = mFlightSlideNormal;
+        field.supportOrigin = mFlightSlideOrigin;
+    }
+    return field;
+}
+
+void D3DApp::MeasureShipAir(Vec3d position, Vec3d velocity, double altitude, double dt) {
+    const double density = FlightDynamics::DensityAtAltitude(altitude);
+    mFlightCues.Measure(density, velocity, density > 0 ? ClimateWindAt(position) : Vec3d{});
+    mFlightCues.AdvanceHeat(altitude, Dot(position, velocity) / std::max(1.0, PlanetRadius + altitude), dt);
+}
+
+// The wheel selects cruise speed, then sustained thrust. Up burns at full power, Shift boosts and X brakes.
+// In vacuum a stick turn carries the inertial course. Atmospheric lift curves a banked ship's heading.
 void D3DApp::UpdateShip(float dt) {
     const double eyeAhead = mShip.Profile().eyeAhead;
     const bool focused = GetForegroundWindow() == mhMainWnd;
@@ -49,50 +66,39 @@ void D3DApp::UpdateShip(float dt) {
     mShipRate =mShipRate + (wantedRate - mShipRate) * (1.0 - std::exp(-dt / 0.1));
     FlightFrame::Turn(mShipForward,mShipUp,mShipRate.y*dt,-mShipRate.x*dt,mShipRate.z*dt);
 
-    // The gas (the wheel) sets the speed ahead and holds it: from a crawl, 35 % more a notch, in proportion to the height
-    // as the free camera's speed; taking it off brakes. The keys slide the ship along its own axes: Q and D (A and D)
-    // sideways, Z and S (W and S) or Space and Ctrl up and down, at least at the speed of the middle notch.
-    const double strafe = held(mMoveKeys[3]) - held(mMoveKeys[2]), boost = held(VK_SHIFT) ? 5.0 : 1.0;
+    const double strafe = held(mMoveKeys[3]) - held(mMoveKeys[2]);
     const double lift = std::min(std::max(held(mMoveKeys[0]) + held(VK_SPACE) - held(mMoveKeys[1]) - held(VK_CONTROL), -1.0), 1.0);
-    const double clearance = std::max(SurfaceAltitude(mShipPos) - mGroundHeight, 1.0);
-    const double gas = 0.1 * std::pow(1.35, mThrottle - 15.0) * std::min(mThrottle, 1.0);
-    const double top = std::max(clearance, 60.0) * boost;
-    const Vec3d right = Normalize(Cross(mShipUp, mShipForward));
-    const Vec3d wanted = mShipForward * (gas * top) + (right * strafe + mShipUp * lift) * (0.5 * std::max(gas, 0.1) * top);
-    const double response = held('X') ? 0.15 : 0.5;
-    const Vec3d before = mShipVelocity;
-    mShipVelocity = mShipVelocity + (wanted - mShipVelocity) * (1.0 - std::exp(-dt / response));
-    // The engines' plume follows the gas, notch by notch, as the speed follows it: the speed itself also grows with the
-    // height, and up high a single notch is already fast.
-    mPlume += (mThrottle / 30.0 - mPlume) * (1.0 - std::exp(-dt / response));
-    Vec3d newPos = mShipPos + mShipVelocity * dt;
+    FlightDynamics::Controls controls = {mShipForward, Normalize(Cross(mShipUp, mShipForward)), mShipUp,
+                                         mThrottle, strafe, lift, held(VK_SHIFT) > 0, held('X') > 0, held(VK_UP) > 0};
+    Vec3d newPos = mShipPos;
+    const auto loads = FlightDynamics::Advance(mSettings.Automated() ? 0 : dt, newPos, mShipVelocity,
+                                                mFlightCues, controls, mFlightPilot, ShipField());
+    mShipForward = controls.forward;
+    mShipUp = controls.up;
+    const Vec3d right = controls.right;
+    mPlume += (loads.mainJet - mPlume) * (1.0 - std::exp(-dt / .18));
     // The flight corridor sweeps the hull before this candidate pose is accepted. Keep only the sea floor here.
     double minRadius = PlanetRadius + (mFlightContactPSO ? 0.0 : mGroundHeight) + 2.5;
     if (mOcean && !mWaveReset && mGroundHeight <= 0.0)
         minRadius = std::max(minRadius, PlanetRadius + double(mOcean->SurfaceHeight()) + 2.5);
-    if (Length(newPos) < minRadius) {
-        newPos = Normalize(newPos) * minRadius;
-        const Vec3d n = Normalize(newPos);
+    const double newRadius = Length(newPos);
+    if (newRadius < minRadius) {
+        const Vec3d n = newRadius > 0 ? newPos * (1 / newRadius) : Normalize(mShipPos);
+        newPos = n * minRadius;
         const double into = Dot(mShipVelocity, n);
-        if (into < 0.0) mShipVelocity = mShipVelocity - n * into;
+        if (into < 0.0) {
+            mShipContactImpulse = mShipContactImpulse - n * into;
+            mShipVelocity = mShipVelocity - n * into;
+        }
     }
-    // Position changes do not rotate attitude or bend velocity into a planetary orbit.
     mShipPos = newPos;
-    // The sound (Audio.h): the gas, rising slowly with the notches (at the 20th, 100 km/h near the ground, a third of the
-    // power); the airspeed brought to sea level and the air's density, 8 km of scale height.
-    const double altitude = std::max(Length(mShipPos) - PlanetRadius, 0.0);
-    if (focused) mAudio.Update({ (float)std::pow(mThrottle / 30.0, 2.5), (float)roll, (float)strafe, (float)lift,
-        (float)(Length(mShipVelocity) * std::exp(-altitude / 16000.0)), (float)std::exp(-altitude / 8000.0), mView != View::Chase,
-        mShip.Profile().model == ShipModel::Navigateur });
 
-    // The head swayed by the accelerations, a spring-mass-damper as in the flight sims: it lags behind a push and comes
-    // back with a slight overshoot. The ship goes from walking pace to light speed, so the push is compressed by its
-    // logarithm: still felt at 0.2 g, bounded at a few centimetres at a million g. The push is the eye's own, 1 m above
-    // the roll axis: a roll throws it sideways. The head also lags behind a roll, by 3 degrees at most, without turning
-    // the gaze.
+    // The head spring feels the seat load and the displaced eye's rotation. Free fall carries the pilot with the ship.
+    // Logarithmic compression keeps near-ground acceleration visible and bounds the response to a fast transfer.
     if (dt > 0.0f) {
         const Vec3d spin = (mShipForward * eyeAhead + mShipUp * mShip.Profile().eyeUp - eyeBefore) * (1.0 / dt);
-        const Vec3d a = (mShipVelocity - before + spin - mEyeSpin) * (1.0 / dt);
+        const Vec3d a = loads.seatAcceleration + (spin - mEyeSpin + mShipContactImpulse) * (1.0 / dt);
+        mShipContactImpulse = {};
         mEyeSpin = spin;
         const Vec3d local = { Dot(a, right), Dot(a, mShipUp), Dot(a, mShipForward) };
         const double felt = Length(local);
@@ -106,8 +112,8 @@ void D3DApp::UpdateShip(float dt) {
         mHeadTiltRate += ((tilt - mHeadTilt) * (w * w) - mHeadTiltRate * (2.0 * zeta * w)) * dt;
         mHeadTilt += mHeadTiltRate * dt;
 
-        // The attitude jets (ShipPlume.hlsli) puff while a slide is held, and as a turn starts and stops.
-        const double jets[5] = { strafe, lift, turning.z / 6.0, turning.x / 6.0, turning.y / 6.0 };
+        // Translational jets follow manoeuvring and station keeping. Rotational jets follow angular acceleration.
+        const double jets[5] = { loads.sideJet, loads.liftJet, turning.z / 6.0, turning.x / 6.0, turning.y / 6.0 };
         for (int k = 0; k < 5; ++k) mJets[k] = std::min(std::max(jets[k], -1.0), 1.0);
     }
 
@@ -134,10 +140,14 @@ void D3DApp::UpdateShip(float dt) {
 
 // The ship takes the camera's position and attitude, including roll.
 void D3DApp::PlaceShipAtCamera() {
+    mShip.ResetSurfaceWeather();
     mShipForward=mCamForward;mShipUp=mCamUp;
     FlightFrame::Orthonormalize(mShipForward,mShipUp);
     mShipPos = mCamPos - mShipForward * mShip.Profile().eyeAhead - mShipUp * mShip.Profile().eyeUp;
     mShipVelocity = mShipRate = mHeadSway = mHeadSwayRate = mEyeSpin = {};
+    mShipContactImpulse = {};
+    mFlightCues = {};
+    mFlightPilot = {};
     mHeadTilt = mHeadTiltRate = mPlume = 0.0;
     for (double& jet : mJets) jet = 0.0;
     mStickX = mStickY = mHeadYaw = mThrottle = 0.0;
@@ -171,7 +181,10 @@ void D3DApp::SetView(View view) {
     ResetFlightContact();
     mCameraBody = -1;
     if (view == View::Cockpit && !mShip.Profile().cockpit) view = View::Chase;
-    if (mView == View::Walk) { mWalkProbePending=mWalkPatchValid=false; mWalkJump=false; }
+    if (mView == View::Walk) {
+        mWalkProbePending=mWalkPatchValid=false; mWalkJump=false;
+        mFlightPilot = {};
+    }
     if (view != View::Free && view != View::Walk && mView == View::Free) PlaceShipAtCamera(); // the ship comes to the free camera
     mView = view;
     mHeadYaw = 0.0;
@@ -203,11 +216,11 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
     ship.sun = { sunInShip.x, sunInShip.y, sunInShip.z, 0.0f };
     ship.up = { upInShip.x, upInShip.y, upInShip.z, (float)((Length(mShipPos) - PlanetRadius) / 1000.0) };
     const double speed = Length(mShipVelocity);
-    // The air's push on the glass goes as density times speed squared: the speed it would take at sea level, the
-    // density thinning by 8 km (RAYLEIGH_SCALE_HEIGHT). In space the glass feels no wind.
-    const double airspeed = speed * std::exp(-std::max(Length(mShipPos) - PlanetRadius, 0.0) / 16000.0);
-    ship.air = { (float)airspeed, dt, (float)std::fmod(mClock, 3600.0), mSettings.glassTest };
-    ship.options = { mHud ? 1.0f : 0.0f, mView == View::Cockpit ? 1.0f : 0.0f, float(mShip.Profile().model), 0.0f };
+    ship.air = { float(mFlightCues.equivalentAirspeed), dt, (float)std::fmod(mClock, 3600.0), mSettings.glassTest };
+    ship.options = { mHud ? 1.0f : 0.0f, mView == View::Cockpit ? 1.0f : 0.0f, float(mShip.Profile().model), float(mFlightCues.density) };
+    const double airspeed = Length(mFlightCues.airVelocity);
+    const XMFLOAT3 flow = inShip(airspeed > 0.01 ? mFlightCues.airVelocity * (-1.0 / airspeed) : Vec3d{});
+    ship.airflow = { flow.x, flow.y, flow.z, float(mFlightCues.heat) };
     ship.thrust = { (float)mPlume,(float)mJets[2], (float)mJets[1], (float)mJets[0] };
     ship.turn = { (float)mJets[3], (float)mJets[4], (float)std::fmod(mClock, 3600.0), 0.0f };
     // The dashboard's screens: the heading from the north, the place, the ground under the ship, the gas.
@@ -216,7 +229,8 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
     const double deg = 180.0 / XM_PI;
     ship.course = { (float)(std::atan2(Dot(mShipForward, east), Dot(mShipForward, north)) * deg),
                     (float)(std::asin(vertical.y) * deg), (float)(std::atan2(vertical.z, vertical.x) * deg), (float)((mCine.empty() ? mGroundHeight : mCineShipGround) / 1000.0) };
-    ship.gauges = { (float)(mThrottle / 30.0), float(SurfaceAltitude(mShipPos)*.001), NearMoon(mShipPos)?1.0f:0.0f, 0.0f };
+    const float lever = float(mThrottle / FlightDynamics::ThrottleNotches);
+    ship.gauges = { lever, float(SurfaceAltitude(mShipPos)*.001), NearMoon(mShipPos)?1.0f:0.0f, float(mFlightCues.engine) };
     // The stick and the throttle (ShipPose): the stick leans back 12 degrees as the nose pitches up, aside with the roll,
     // and twists 15 degrees with the yaw; the throttle swings 40 degrees over its notches, forwards with the gas.
     auto pivoted = [](const Ship::Pivot& p, const XMMATRIX& r) {
@@ -228,7 +242,7 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
     if (mShip.Profile().pivotCount >= 2) {
         XMStoreFloat4x4(&ship.pose[0], pivoted(pivots[0], XMMatrixRotationAxis(XMLoadFloat3(&pivots[0].axis), -0.26f * (float)mStickX)
             * XMMatrixRotationX(0.21f * (float)mStickY) * XMMatrixRotationY(-0.21f * (float)(mShipRate.z / 1.8))));
-        XMStoreFloat4x4(&ship.pose[1], pivoted(pivots[1], XMMatrixRotationAxis(XMLoadFloat3(&pivots[1].axis), 0.7f * (float)(mThrottle / 30.0 - 0.5))));
+        XMStoreFloat4x4(&ship.pose[1], pivoted(pivots[1], XMMatrixRotationAxis(XMLoadFloat3(&pivots[1].axis), 0.7f * (lever - 0.5f))));
     }
     // The elevons (design_chasseur.py), inner and outer on each wing: the pitch and the roll mixed, as the ship turns,
     // both ways, 20 degrees at most. Trailing edge up for the nose up, and on the side the ship rolls towards. Their

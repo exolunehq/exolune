@@ -1,0 +1,30 @@
+{
+  "reactor.wav": {
+    "frames": 334464,
+    "sha256": "08e8a659ebcc4d9ba6f2ba6f61f601fbd0f922eee8242531f622d6d5c22ffbe7"
+  },
+  "cabin.wav": {
+    "frames": 334464,
+    "sha256": "d9f3b8759c871ff7c65a8e75346ba403dbd89fd0e7ef7713dc2414da87c106cb"
+  },
+  "airflow.wav": {
+    "frames": 382464,
+    "sha256": "320c16167f8711a536920e5eef3fc716fe4c2fc1a0f448c88707ef9ee62d0c46"
+  },
+  "entry.wav": {
+    "frames": 334464,
+    "sha256": "c5cc3bbd23ff603dfe14a59426f6c533b49ddb04d2d9f3bfe55a2a88a1e646b6"
+  },
+  "foliage.wav": {
+    "frames": 430464,
+    "sha256": "524da6469ffe89cd10a6ff12736c640683dd06178b8d58ed27eab0ec2840705f"
+  },
+  "breath.wav": {
+    "frames": 430464,
+    "sha256": "861b698217a84e64ba3b60c7da142dfc3336d3d2840844905d5b7c6291fe198f"
+  },
+  "radio.wav": {
+    "frames": 151955,
+    "sha256": "7cb2fe37d2d4754a8ff554be226b6f450b3bfdbe105e61bf8f160c5b71b38a89"
+  }
+}

@@ -75,7 +75,7 @@ inline std::array<Body,BodyCount> System(double seconds, Vector sunDirection) {
     const Vector albedo[6]={{.145,.1392,.13195},{.24,.255,.27},{.15,.115,.085},
         {.62,.57,.45},{.24,.105,.057},{.48,.39,.27}};
     for(unsigned i=0;i<6;++i) {
-        const double gm=i<MoonCount?398600.4418:1.32712440018e11;
+        const double gm=i<MoonCount?ExoluneGM:1.32712440018e11;
         const double omega=std::sqrt(gm/(distance[i]*distance[i]*distance[i]));
         const double a=phase[i]+std::remainder(seconds*omega,2*Pi);
         const double node=i<MoonCount?-0.4:0.0;

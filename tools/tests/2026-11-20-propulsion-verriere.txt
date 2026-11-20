@@ -1,0 +1,13 @@
+# Select the same row to restart. Every row begins at zero wheel power.
+# Up holds full thrust, Shift multiplies thrust, X brakes. Hold the right mouse button to look around, R recentres.
+Rentrée au crépuscule : gaz et étincelles autour de la coque | 56000 30.68685 120.10788 20 76 v=7750 depuis-espace | 12 -161
+Même verrière : approche froide à 250 m/s | 56000 30.68685 120.10788 20 76 v=250 | 12 -161
+Ras de mer : flèche haut, puis relâcher et freiner | 190 -20.47 -75.45 -3 160 | -50.47 -75.45
+Plaine : pleine poussée puis Maj | 1800 -11.825 110.867 -4 114 | -5 100
+Rayures : soleil rasant à gauche, tourner la tête | 1300 -20.47 -75.45 1 160 v=72 | -55.73345 21.52587
+Rayures : soleil rasant à droite, même verre | 1300 -20.47 -75.45 1 160 v=72 | -70.18759 153.83096
+Orbite : poussée libre, dérive, freinage | 250000 38.1445 103.5352 0 90 v=7750 | 22 135
+Lune : accélérer près du sol dans le vide | 600 20 15 -4 -102 lune | -25 55
+Rentrée de jour : vue de poursuite avec Tab | 68500 -20.47 -75.45 8 160 v=8500 depuis-espace | -50.47 -75.45
+Rentrée nocturne : lire les instruments pendant la chauffe | 67500 -20.47 -75.45 8 160 v=8000 depuis-espace | 20.47 104.55
+Pluie basse : gouttes et rayures sur la même vitre | 1500 38.1445 103.5352 -5 90 v=95 | 38.1445 128.5352

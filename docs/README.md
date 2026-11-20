@@ -58,13 +58,14 @@
 - **`optimisation-vegetation.md`:** vegetation culling and GPU timings, preserving appearance, density and distance; memory optimization remains.
 
 **Ship and execution**
+- [Flight, canopy and suit](spec-vol-immersion.md) covers assisted spaceflight, banked atmospheric flight, the exterior shock layer, cockpit glass and suit audio.
 - **`spec-ville-procedurale.md`:** generated architecture, neutral house/public-building series and native integration, generated first-draft buildings whose atlas is read as material classes, shared junctions and bounded variants, braided-archipelago masterplan, shared paths, suspended transport, five LODs and native validation.
 - **`recherche-generation-architecture.md`:** tested local methods, rejected house reconstructions, original-reference master and exploratory series, hosted first-draft decision and house pilot, separate technical/artistic promotion gates.
 - **`spec-marche-ambiances.md`:** instant disembarkation, FPS walking, contextual foot contacts, environmental audio and shared keyboard/button controls.
 - **`spec-vaisseau.md`:** default fighter, model selection, cockpit, independent flight/free-camera controls and canopy weather; history in `log/spec-vaisseau-historique.md`.
 - **`recherche-vaisseau-navigateur.md`:** Trimaxion references, smooth editable v2 exterior and provenance of the selectable runtime derivative.
 - **`recherche-eau-verriere.md`:** water on the canopy glass, drops, rivulets and film in flight; state of the art; simulated drops and trails implemented, awaiting in-flight review.
-- **`recherche-son.md`:** ship sound, engine, stabilizers and wind; state of the art, procedural synthesis on XAudio2 selected and implemented, awaiting in-flight review.
+- [Ship and environmental audio](recherche-son.md) describes the XAudio2 voices and the generated flight and suit recordings.
 - **`execution-optimisee.md`:** Release executable with a local profile, borderless full screen, startup resolution and optional unrestricted presentation.
 
 ## Plans

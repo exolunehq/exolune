@@ -4,6 +4,7 @@
 #include "Atmosphere.hlsli" // the atmosphere tables, t1 to t3, and the sampler
 #include "Coordinates.hlsli"
 #include "SceneExposure.hlsli"
+#include "OpticalSurface.hlsli"
 
 Texture2D<float4> composite : register(t0); // the scene under its atmosphere; alpha: distance (km), 0 for the sky,
                                             // negative on the waves the sea shows, which move by themselves
@@ -12,8 +13,40 @@ Texture2D<float4> glass : register(t5);     // glass: screen = smoothed * alpha 
 Texture2D<float4> celestial : register(t7); // physical stellar and galactic radiance, without temporal history
 Texture2D<float4> glareLight : register(t8); // the lens's glare summed over its levels (Glare.h); alpha: their count
 Texture2D<float4> adaptation : register(t9); // the image's light by region (Adaptation.h): weighted stops, weight
+cbuffer VisorFrame : register(b1) { float4 visor; } // walking, exertion, rain/cloud water, ambient humidity
 
 static const float3 LUMINANCE = float3(0.2126, 0.7152, 0.0722); // Rec. 709
+
+float3 HelmetOptics(float3 exposed, float2 uv)
+{
+    const float2 p = 2.0 * uv - 1.0;
+    const float edge = smoothstep(0.55, 1.16, length(p * float2(0.90, 1.0)));
+    const float2 tangent = p * float2(camRight.w, camUp.w);
+    // The visor is head-fixed. Its metric chart follows the view angle, including FOV changes.
+    const float2 q = 0.18 * tangent * rsqrt(1.0 + dot(tangent, tangent));
+    const float hairline = GlassHairline(q + float2(0.019, 0.042), max(length(ddx(q)), length(ddy(q))));
+    const float grazing = GlassFresnel(rsqrt(1.0 + 1.9 * dot(tangent, tangent)));
+    const float veil = smoothstep(0.36, 0.97, p.y) * (0.65 + 0.35 * GlassNoise(q * 57.0));
+    // Condensation grows from the chin rim with the walker's actual effort.
+    const float mist = veil * (0.012 + 0.041 * visor.y + 0.018 * visor.z + 0.009 * visor.w);
+    const float optical = edge * (0.015 + 0.3 * (grazing - 0.04) + mist + 0.18 * hairline);
+    const bool lunar = erosionMode.w != 0u;
+    const float3 up = lunar ? -normalize(celestialPosition[max(erosionMode.w, 1u) - 1u].xyz) : camVertical.xyz;
+    const float3 view = normalize(camForward.xyz + tangent.x * camRight.xyz - tangent.y * camUp.xyz);
+    const float sun = smoothstep(-0.01, 0.09, dot(up, lightDir.xyz)) * (1.0 - 0.75 * visor.z)
+                    * (0.18 + 0.82 * pow(saturate(dot(view, lightDir.xyz)), 4.0));
+    const float incident = min(dot(exposed, LUMINANCE), 1.5) * 0.66 + 0.22 * sun;
+    float3 through = lerp(exposed, incident * float3(0.88, 0.95, 1.0), optical);
+    // The lower seal rolls away from the cheek. Its polished inner lip catches light on the sunward side.
+    const float radius = length(float2(0.91 * p.x, 0.90 * (p.y + 0.045)));
+    const float aa = max(fwidth(radius), 0.001);
+    const float cheek = smoothstep(0.30, 0.76, p.y);
+    const float seal = cheek * smoothstep(1.102 - aa, 1.137 + aa, radius);
+    const float lip = cheek * (1.0 - smoothstep(0.001, 0.004 + aa, abs(radius - 1.106)));
+    const float facing = saturate(0.52 + 0.48 * p.x * dot(camRight.xyz, lightDir.xyz));
+    through *= 1.0 - 0.125 * seal;
+    return through + float3(0.82, 0.92, 1.0) * lip * facing * (0.12 * incident + 0.055 * sun);
+}
 
 // The film curve: the photoreceptors' response, x^a / (x^a + k^a) (Naka-Rushton; Lottes 2016 and ACES 2 build on it),
 // through the grey card, 0.18 to 0.18. Its toe deepens the shadows, its shoulder rolls the highlights off towards white.
@@ -156,8 +189,9 @@ Output PSMain(float4 position : SV_POSITION)
         1e-12));
     const float sceneExposure=opaqueOverlay?exposure:exposure*exp2(LocalAdaptation(position.xy/size,pixelStops));
     const float3 starlight=opaqueOverlay?0.0:celestial.Load(int3(pixel,0)).rgb*clamp(exposure,SKY_EYE_EXPOSURE,2000000.0);
-    const float3 shown=opaqueOverlay?color*exposure
+    float3 shown=opaqueOverlay?color*exposure
         :(RodVision(color*(1.0-glare.a),sceneExposure)*sceneExposure+glare.rgb*exposure+starlight)*g.a+g.rgb*exposure;
+    if (visor.x > 0.5 && taa.y < 0.5) shown = HelmetOptics(shown, position.xy / size);
     output.screen = float4(taa.y > 0.5 ? (opaqueOverlay?color:color*g.a+g.rgb) : FilmCurve(shown), 1.0);
     // Sub-code-value, fixed screen dither, in display space: dark sky gradients must not form contour bands.
     if(taa.y<.5) {

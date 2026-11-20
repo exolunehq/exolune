@@ -26,6 +26,7 @@
 #include "FlightContact.h"
 #include "AirlessTerrain.h"
 #include "FlightFrame.h"
+#include "FlightDynamics.h"
 class Ocean;
 namespace Tectonics { struct Map; }
 
@@ -71,7 +72,7 @@ protected:
     // starts a comment; view is a diagnostic name or "marche" for grounded walking), a "Tests" palette beside the render
     // window has a button for each, and F1 to F12 do the same: the camera goes there, in the test's view or the game's,
     // the temporal smoothing starts afresh, the test's label shows in the title, and the focus comes back to fly.
-    struct TestView { std::wstring label; double altitude, latitude, longitude, pitchDown, heading, sunLatitude, sunLongitude; bool sun; float windSpeed,windDirection,swellHeight;bool wind; float view; bool walk; int moon=-1; };
+    struct TestView { std::wstring label; double altitude, latitude, longitude, pitchDown, heading, sunLatitude, sunLongitude; bool sun; float windSpeed,windDirection,swellHeight;bool wind; float view; bool walk; int moon=-1; double initialSpeed=0; bool incoming=false; };
     std::vector<TestView> mTests;
     HWND mTestsWnd = nullptr;
     std::wstring mTestLabel;
@@ -554,7 +555,7 @@ protected:
     void SaveCapture(bool batchCapture, UINT trembleIndex);
 
     // Offline film: independent ship and camera poses, fixed clock, global frame numbers.
-    struct CineFrame { bool cockpit, bare, cabin; double nav[6], cam[6], fov, weather; }; // cabin: explicit interior inspection camera
+    struct CineFrame { bool cockpit, bare, cabin, coast; double nav[6], cam[6], fov, weather; }; // cabin: explicit interior inspection camera
     std::vector<CineFrame> mCine;
     double mCineFps = 60.0, mCineFov = 60.0, mCineShipGround = 0.0;
     UINT mCineIndex = 0, mCineEnd = 0, mCineLead = 0;
@@ -567,6 +568,7 @@ protected:
     void ReadCine();
     void InitCine(D3D12_GPU_DESCRIPTOR_HANDLE tectonics);
     bool BeginCineFrame();
+    void SampleCineMotion(UINT index);
     void ClampCine();
     void EndCineFrame();
     void LogCine(const char* message) const;
@@ -613,11 +615,14 @@ protected:
     void UpdateCityFrame(const Vec3d&,const Vec3d&,const Vec3d&,DirectX::FXMMATRIX);
     void ApplyCityWalking();
     void ConstrainCityWalking(Vec3d& next);
-    Audio mAudio; // the ship's engine, thrusters and wind, set in UpdateShip
+    Audio mAudio; // ship, habitat and headset share one listener
     Vec3d mShipPos = {}, mShipForward = {}, mShipUp = {}, mShipVelocity = {}; // planet frame; velocity in m/s
+    FlightDynamics::Cues mFlightCues;
+    FlightDynamics::Pilot mFlightPilot;
+    Vec3d mShipContactImpulse = {}; // accepted change in velocity for the pilot's head at impact
     Vec3d mShipRate = {};          // pitch up, yaw right, roll right (rad/s)
     double mStickX = 0.0, mStickY = 0.0; // the mouse's virtual stick, -1 to 1, recentring
-    double mThrottle = 0.0;        // the gas, the wheel's notches in the ship's views: 0 stopped to 30 (UpdateShip)
+    double mThrottle = 0.0;        // wheel notches from coasting to continuous full thrust
     double mHeadYaw = 0.0, mHeadPitch = 0.0; // free look with the right button (rad): the pilot's head, the chase's orbit
     bool mHud = false;      // U: the head-up display on the canopy, off at start
     bool mCoordinates = true; // I: camera coordinates in the final image, independent of the cockpit HUD
@@ -626,7 +631,7 @@ protected:
     Vec3d mHeadSway = {}, mHeadSwayRate = {}; // the eye pushed by the accelerations, ship axes (right, up, forward), m
     Vec3d mEyeSpin = {};                      // the eye's velocity from the ship's turns, last frame (m/s)
     double mHeadTilt = 0.0, mHeadTiltRate = 0.0; // the head's roll behind the ship's, towards the left (rad)
-    double mPlume = 0.0;    // the engines' plume, 0 to 1: the gas, following it as the speed does (ShipPlume.hlsli)
+    double mPlume = 0.0;    // smoothed positive axial thrust at the rear nozzles, 0 to 1
     double mJets[5] = {};   // the attitude jets' commands, -1 to 1: slide right, lift, roll right, pitch up, yaw right
     Vec3d mCamUp = {};             // screen up supplied by the current controller
     Vec3d mChaseOffset = {};       // the chase camera from the ship, lagging behind its turns
@@ -663,6 +668,9 @@ protected:
     void ReadWorldSound();
     void UpdateWorldSound(float dt);
     void ToggleAudio();
+    SoundListener AudioListener() const;
+    bool RadioAvailable() const;
+    void RequestRadio();
     void EmitFootstep(float strength);
     // Flight movement is accepted only after its terrain corridor has passed through the normal frame fence.
     struct FlightPose { Vec3d camera,forward,up,ship,shipForward,shipUp; };
@@ -684,6 +692,9 @@ protected:
     Vec3d mFlightSlideNormal={},mFlightSlideOrigin={};
     unsigned mFlightSlideBody=0;
     void UpdateShip(float dt);
+    FlightDynamics::Field ShipField() const;
+    Vec3d ClimateWindAt(Vec3d position) const;
+    void MeasureShipAir(Vec3d position, Vec3d velocity, double altitude, double dt);
     void UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, const Vec3d& faceZ);
     void PlaceShipAtCamera();
     void HoldMouse(bool hold);

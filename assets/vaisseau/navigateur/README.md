@@ -34,7 +34,7 @@
 - A broad forward viewing field opens the interior view while external views retain the opaque chrome shell.
 - The cabin has a fitted floor and panelled walls, bucket seat, lateral consoles, rear fitting and suspended sensor.
 - Eye position: `(0, -0.65, 0.70)` m; fixtures use matching normalized scene lighting.
-- The field has no glazing or canopy weather surface.
+- Inside the cockpit, the existing outer skin carries rain, fine wear and atmospheric entry light behind the cabin opening. [Optical surface and flight state](../../../docs/spec-vol-immersion.md)
 - The left blue dial shows heading; the right amber dial shows commanded propulsion, both from actual flight data.
 - `ShipNavigator.hlsli` shades the live faces using centres and radii generated from the console patches in `ShipNavigatorFixtures.hlsli`.
 - Entry, stairs, moving rotary controls and sensor animation remain outside this prototype.

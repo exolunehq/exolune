@@ -9,10 +9,6 @@ static const float FIGHTER_CANOPY_NOSE = 5.32, FIGHTER_CANOPY_D0 = 2.58, FIGHTER
 static const float FIGHTER_CANOPY_Y0 = FIGHTER_CANOPY_D0 - FIGHTER_CANOPY_NOSE, FIGHTER_CANOPY_Y1 = FIGHTER_CANOPY_D1 - FIGHTER_CANOPY_NOSE, FIGHTER_CANOPY_W = 1.0;
 static const float FIGHTER_CANOPY_DECK[33] = { 0.7484, 0.7511, 0.7533, 0.7554, 0.7580, 0.7616, 0.7662, 0.7717, 0.7777, 0.7837, 0.7895, 0.7950, 0.8003, 0.8055, 0.8106, 0.8159, 0.8212, 0.8268, 0.8326, 0.8388, 0.8454, 0.8526, 0.8605, 0.8689, 0.8776, 0.8865, 0.8954, 0.9046, 0.9159, 0.9279, 0.9389, 0.9469, 0.9500 };
 static const float FIGHTER_CANOPY_CROWN[33] = { 0.8100, 0.8562, 0.9025, 0.9478, 0.9914, 1.0336, 1.0705, 1.1036, 1.1342, 1.1624, 1.1880, 1.2115, 1.2334, 1.2539, 1.2730, 1.2907, 1.3072, 1.3236, 1.3394, 1.3538, 1.3658, 1.3747, 1.3811, 1.3867, 1.3914, 1.3953, 1.3986, 1.4012, 1.4033, 1.4051, 1.4067, 1.4083, 1.4100 };
-// The water map's rectangle in the ship's plan (m), around the bubble, and its size (texels, 1.2 mm). Must match
-// FighterShip.waterWidth, waterHeight.
-static const float2 FIGHTER_WATER_ORIGIN = float2(-1.01, FIGHTER_CANOPY_Y0 - 0.01);
-static const uint2 FIGHTER_WATER_SIZE = uint2(1684, 2450);
 
 float FighterCanopyDeck(float d)
 {

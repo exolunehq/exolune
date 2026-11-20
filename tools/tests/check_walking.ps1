@@ -15,11 +15,11 @@ New-Item -ItemType Directory -Path $out -Force | Out-Null
 $oldInclude = $env:INCLUDE
 $oldLib = $env:LIB
 try {
-    $env:INCLUDE = "$vc\include;$sdkInclude\ucrt;$sdkInclude\shared;$sdkInclude\um"
+    $env:INCLUDE = "$vc\include;$sdkInclude\ucrt;$sdkInclude\shared;$sdkInclude\um;$sdkInclude\winrt"
     $env:LIB = "$vc\lib\x64;$sdkLib\ucrt\x64;$sdkLib\um\x64"
     Push-Location $out
     try {
-        & $compiler /nologo /std:c++17 /EHsc /O2 /W3 /Fe:walking_checks.exe (Join-Path $PSScriptRoot 'walking_checks.cpp') (Join-Path $repo 'MyPlanetEngine\WorldAudio.cpp') /link kernel32.lib
+        & $compiler /nologo /std:c++17 /EHsc /O2 /W3 /Fe:walking_checks.exe (Join-Path $PSScriptRoot 'walking_checks.cpp') (Join-Path $repo 'MyPlanetEngine\WorldAudio.cpp') (Join-Path $repo 'MyPlanetEngine\Audio.cpp') /link kernel32.lib
         if ($LASTEXITCODE -ne 0) { throw 'Walking checks did not compile.' }
         & (Join-Path $out 'walking_checks.exe') (Join-Path $repo 'assets\audio') $out
         if ($LASTEXITCODE -ne 0) { throw 'Walking checks failed.' }

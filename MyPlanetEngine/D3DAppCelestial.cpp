@@ -27,8 +27,7 @@ Vec3d D3DApp::SurfaceUp(Vec3d position) const {
     const int moon=MoonAt(position);if(moon<0)return earth;
     const Vec3d relative=position-WorldVec(mMoonCentres[moon]);
     const double radius=Celestial::Moons[moon].radius;
-    double blend=std::min(std::max((8*radius-Length(relative))/(4*radius),0.0),1.0);
-    blend=blend*blend*(3-2*blend);
+    const double blend=Celestial::MoonFrameWeight(Length(relative),radius);
     const Vec3d lunar=Normalize(relative);
     const double cosine=std::min(std::max(Dot(earth,lunar),-1.0),1.0);
     Vec3d axis=Cross(earth,lunar);
@@ -70,14 +69,18 @@ void D3DApp::UpdateCelestialFrame() {
     // Each observer follows its own nearby body; a free camera cannot tow a ship on another moon.
     // Distant spacecraft keep their inertial position. Cine supplies an explicit pose each frame.
     if(mMoonFrameValid && mCine.empty()) {
-        auto transport=[&](Vec3d& position,Vec3d* previous=nullptr) {
+        auto transport=[&](Vec3d& position,Vec3d* previous=nullptr,bool shipFrame=false) {
             const int moon=MoonAt(position);if(moon<0)return;
             const auto& p=bodies[moon].position;
-            const Vec3d motion=Vec3d{p.x*1000,p.y*1000,p.z*1000}-WorldVec(mMoonCentres[moon]);
+            const Vec3d centre=WorldVec(mMoonCentres[moon]);
+            const double carried=shipFrame?Celestial::MoonFrameWeight(Length(position-centre),Celestial::Moons[moon].radius):1;
+            const Vec3d motion=(Vec3d{p.x*1000,p.y*1000,p.z*1000}-centre)*carried;
             position=position+motion;if(previous)*previous=*previous+motion;
         };
-        if (!orbitLocked) transport(mCamPos,&mPrevCamPos);
-        transport(mShipPos,&mPrevShipPos);
+        if (!orbitLocked) transport(mCamPos,&mPrevCamPos,mView!=View::Free && mView!=View::Walk);
+        transport(mShipPos,&mPrevShipPos,true);
+        if (mFlightSlideBody==1 && Dot(mFlightSlideNormal,mFlightSlideNormal)>.5)
+            transport(mFlightSlideOrigin,nullptr,true);
         transport(mWalkFoot);transport(mWalkReturnPos);transport(mWalkPatchCentre);
     }
     if (mView == View::Free) {
@@ -134,7 +137,11 @@ void D3DApp::MoonFlightContact(const FlightPose& before) {
         if(Length(correction)>.001 && ship) {
             const Vec3d normal=WorldVec(surface.Normal(MoonVec(accepted-centre)));
             const double into=Dot(mShipVelocity,normal);
-            if(into<0)mShipVelocity=mShipVelocity-normal*into;
+            if(into<0) {
+                mShipVelocity=mShipVelocity-normal*into;
+                mShipContactImpulse=mShipContactImpulse-normal*into;
+                mFlightSlideNormal=normal;mFlightSlideOrigin=accepted;mFlightSlideBody=1;
+            }
         }
         if(mView==View::Chase) mCamPos=centre+WorldVec(surface.Sweep(MoonVec(before.camera-centre),MoonVec(mCamPos-centre),.25,&samples));
     }

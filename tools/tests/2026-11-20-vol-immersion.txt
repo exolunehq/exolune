@@ -1,0 +1,15 @@
+# Each flight pose starts at zero throttle. v= supplies forward speed in m/s. Select the same row to restart.
+# Wheel sets forward drive, Space lifts, Ctrl pushes down, X is the powered brake/hold. Tab cycles views.
+# J boards or disembarks, Shift runs on foot, Enter calls the radio, Y mutes. Use the same route with each ship profile.
+Orbite : couper, tourner, freiner avec X | 250000 38.1445 103.5352 0 90 v=7750 | 22 135
+Rentrée : regarder les bords et écouter | 62000 30.68685 120.10788 12 76 v=7100 depuis-espace | 12 -161
+Haute atmosphère : comparer à faible vitesse | 62000 30.68685 120.10788 12 76 v=250 | 12 -161
+Mer : lâcher, freiner, remonter | 140 -20.47 -75.45 0 160 | -50.47 -75.45
+Traversée nuageuse : suivre l'eau sur le verre | 2700 38.1445 103.5352 2 90 v=150 | 38.1445 128.5352
+Froid polaire : tester le givre sur verre humide | 3850 82.793 38.8477 1 90 v=100 | 82.793 63.8477
+Nuit : instruments lisibles et radio cabine | 2500 -20.47 -75.45 0 80 v=160 | 20.47 104.55
+Forêt : marcher, courir, écouter puis appeler | 60 -7.75 -37.25 20 0 marche | -5 -20
+Désert : comparer le vent et la respiration | 1735 -11.825 110.867 20 114 marche | -5 100
+Lune : vitesse sans vent ni chauffe | 5000 20 15 0 -102 lune v=1600 | -25 55
+Lune à pied : visière, respiration et radio | 25 20 15 -8 -102 lune marche | -25 55
+Sous les cumulus : suivre les gouttes de l'averse | 1500 38.1445 103.5352 -5 90 v=95 | 38.1445 128.5352

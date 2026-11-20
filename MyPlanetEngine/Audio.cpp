@@ -11,7 +11,6 @@ namespace {
     constexpr float RumbleGain = 0.22f, HumGain = 0.07f, RoarGain = 0.2f, WhineGain = 0.01f;
     constexpr float JetGain = 0.35f, JetHold = 0.28f;          // the puff's peak is about 1, held it drops to JetHold
     constexpr float JetCutoff[3] = { 3200.0f, 2600.0f, 1800.0f }; // roll, strafe, lift: the lift's jets are the biggest
-    constexpr float WindGain = 0.25f, WindFull = 150.0f;        // m/s at sea level for the full wind; heard from 30 km/h
     constexpr float HullEngine = 650.0f, HullOther = 1400.0f;   // the cockpit's low-pass, Hz
     constexpr float Silence = 250.0f;                           // ms without Update before the ship falls silent
 
@@ -40,10 +39,11 @@ float Audio::Noise() {
     return float(int32_t(mSeed)) * (1.0f / 2147483648.0f);
 }
 
-bool Audio::Initialize() {
+bool Audio::Initialize(bool startDevice) {
     const std::wstring sample = FindAbove(L"assets\\audio\\step-soil-0.wav");
     if (sample.empty()) throw std::runtime_error("Audio bank missing: assets/audio/*.wav must be above the executable.");
     mWorld.Initialize(sample.substr(0, sample.find_last_of(L"\\/")));
+    if(!startDevice) return true;
     if (FAILED(XAudio2Create(&mXAudio, 0, XAUDIO2_DEFAULT_PROCESSOR))) return false;
     WAVEFORMATEX format = {};
     format.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
@@ -69,14 +69,18 @@ void Audio::Shutdown() {
     mXAudio = nullptr;
 }
 
-void Audio::Update(const ShipSound& s) {
-    mThrust = std::min(std::max(s.thrust, 0.0f), 1.0f);
-    mRoll = s.roll;
-    mStrafe = s.strafe;
-    mLift = s.lift;
-    mWind = std::max(s.wind, 0.0f);
-    mDensity = std::min(std::max(s.air, 0.0f), 1.0f);
-    mCockpit = s.cockpit ? 1.0f : 0.0f;
+void Audio::Update(const WorldSound& s,float dt) {
+    mWorld.Update(s,dt);
+    if(s.listener!=SoundListener::Cockpit && s.listener!=SoundListener::Chase) {
+        mLastUpdate=0;
+        return;
+    }
+    mThrust = std::min(std::max(s.engine, 0.0f), 1.0f);
+    mRoll = s.rollJet;
+    mStrafe = s.sideJet;
+    mLift = s.liftJet;
+    mDensity = std::min(std::max(s.flightDensity, 0.0f), 1.0f);
+    mCockpit = s.listener==SoundListener::Cockpit ? 1.0f : 0.0f;
     mNavigator = s.navigator;
     mLastUpdate = GetTickCount64();
 }
@@ -84,7 +88,7 @@ void Audio::Update(const ShipSound& s) {
 void Audio::SetMix(float master, float footsteps, float ambience, float ship) {
     mMasterGain = std::min(std::max(master, 0.0f), 1.0f);
     mShipGain = std::min(std::max(ship, 0.0f), 1.0f);
-    mWorld.SetMix(footsteps, ambience);
+    mWorld.SetMix(footsteps, ambience, ship);
 }
 
 // XAudio2 asks for what keeps the voice from starving: computed now, in the next blocks of the ring.
@@ -104,27 +108,28 @@ void Audio::OnVoiceProcessingPassStart(UINT32 bytesRequired) {
 
 void Audio::Render(float* out, UINT frames) {
     const bool alive = float(GetTickCount64() - mLastUpdate.load()) < Silence;
-    const float on = alive ? 1.0f : 0.0f, thrust = alive ? mThrust.load() : 0.0f, wind = alive ? mWind.load() : 0.0f,
+    const float on = alive ? 1.0f : 0.0f, thrust = alive ? mThrust.load() : 0.0f,
         density = alive ? mDensity.load() : 0.0f;
     const float cockpit = mCockpit.load(), keys[3] = { alive ? mRoll.load() : 0.0f, alive ? mStrafe.load() : 0.0f,
                                                        alive ? mLift.load() : 0.0f };
     static const float kOn = Smoothing(0.3f), kRise = Smoothing(0.25f), kFall = Smoothing(0.12f), kAir = Smoothing(0.5f),
-        kInside = Smoothing(0.08f), kGust = Smoothing(0.6f), kAttack = Smoothing(0.003f), kRelease = Smoothing(0.045f),
+        kInside = Smoothing(0.08f), kAttack = Smoothing(0.003f), kRelease = Smoothing(0.045f),
         kBurst = std::exp(-1.0f / (0.07f * 48000.0f)), kHold = Smoothing(0.04f);
     constexpr double Tau = 6.283185307179586, Dt = 1.0 / 48000.0;
     float low, band, high;
     const bool navigator = mNavigator.load();
+    const float shipGain = MasterGain * mShipGain.load(std::memory_order_relaxed);
     if (navigator) {
-        mNavigatorSound.Render(out, frames, { thrust, keys[0], keys[1], keys[2], wind, density, cockpit > 0.5f, alive });
-        const float gain = MasterGain * mShipGain.load(std::memory_order_relaxed);
-        for (UINT i = 0; i < frames * 2; ++i) out[i] *= gain;
+        if (alive || mNavigatorSound.Audible()) {
+            mNavigatorSound.Render(out, frames, { thrust, keys[0], keys[1], keys[2], density, cockpit > 0.5f, alive });
+            for (UINT i = 0; i < frames * 2; ++i) out[i] *= shipGain;
+        } else std::fill(out,out+2*frames,0.0f);
     }
     const bool dormant = !alive && mOn < 1e-5f;
     if (!navigator && dormant) std::fill(out,out+2*frames,0.0f);
     for (UINT i = 0; !navigator && !dormant && i < frames; ++i) {
         mOn += (on - mOn) * kOn;
         mPower += (thrust - mPower) * (thrust > mPower ? kRise : kFall);
-        mAir += (wind - mAir) * kAir;
         mThin += (density - mThin) * kAir;
         mInside += (cockpit - mInside) * kInside;
         const float p = mPower;
@@ -177,28 +182,10 @@ void Audio::Render(float* out, UINT frames) {
             other[1] += s * std::sqrt(0.5f * (1.0f + pan));
         }
 
-        // The wind: a band of noise rising with the airspeed, swayed by slow gusts, and a buffeting at high speed; as
-        // loud as the air is dense, so it fades out above some 30 km whatever the speed.
-        if (++mGustCount >= 4800) {
-            mGustCount = 0;
-            mGustTarget = Noise();
-        }
-        mGust += (mGustTarget - mGust) * kGust;
-        const float w = std::min(mAir / WindFull, 1.2f);
-        if (w * mThin > 1e-3f) {
-            const float windFc = (250.0f + 1600.0f * w) * (1.0f + 0.25f * mGust), q = 1.0f + 0.6f * mGust;
-            const float level = WindGain * w * (1.0f + 0.35f * mGust) * mThin / BandRms(windFc, q);
-            mWindLow.Run(Noise(), 60.0f, 0.7f, low, band, high);
-            const float buffet = low / LowRms(60.0f) * 0.15f * w * w * mThin;
-            for (int c = 0; c < 2; ++c) {
-                mWindBand[c].Run(Noise(), windFc, q, low, band, high);
-                other[c] += band / q * level + buffet;
-            }
-        }
-
+        const float coupling=mInside+(1-mInside)*mThin;
         for (int c = 0; c < 2; ++c) {
             mHull[c].Run(other[c], HullOther + (16000.0f - HullOther) * (1.0f - mInside), 0.7f, low, band, high);
-            out[2 * i + c] = MasterGain * mOn * mShipGain.load(std::memory_order_relaxed) * (engine[c] + low * (1.0f - 0.2f * mInside));
+            out[2 * i + c] = shipGain * mOn * coupling * (engine[c] + low * (1.0f - 0.2f * mInside));
         }
     }
     mWorld.Render(out, frames);

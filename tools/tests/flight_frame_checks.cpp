@@ -87,6 +87,9 @@ void checkOrbit() {
     }
 }
 }
+void CheckFlightDynamics();
+void CheckEntryHeat();
+void CheckCanopyWater();
 int main() {
     using FlightFrame::CameraMode;
     CameraMode mode = CameraMode::Free;
@@ -130,5 +133,8 @@ int main() {
         }
     f={0,1,0};u=f;FlightFrame::Orthonormalize(f,u);validFrame(f,u);
     checkOrbit();
+    CheckFlightDynamics();
+    CheckEntryHeat();
+    CheckCanopyWater();
     std::puts("PASS: three camera modes, free roll, horizon-aligned dives and climbs, fixed altitude, poles and contact.");
 }

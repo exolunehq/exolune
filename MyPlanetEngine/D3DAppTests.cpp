@@ -6,7 +6,8 @@
 #include <sstream>
 
 // The test views' file, MYPLANETENGINE_TESTS: one per line, UTF-8, "label | altitude latitude longitude pitchDown heading
-// [view] [| sunLatitude sunLongitude [| windSpeed windDirection swellHeight]]"; # starts a comment.
+// [view] [v=initialShipSpeedMps] [depuis-espace] [| sunLatitude sunLongitude [| windSpeed windDirection swellHeight]]".
+// depuis-espace supplies the preceding steady atmospheric approach for this review pose.
 void D3DApp::ReadTests() {
     if (mSettings.tests.empty()) return;
     std::ifstream file(mSettings.tests.c_str(), std::ios::binary);
@@ -27,9 +28,17 @@ void D3DApp::ReadTests() {
         std::wstring view;
         while (place >> view) {
             if(view==L"marche")t.walk=true;
+            else if(view==L"depuis-espace")t.incoming=true;
             else if(view==L"lune" || view==L"lune1")t.moon=0;
             else if(view==L"lune2")t.moon=1;
             else if(view==L"lune3")t.moon=2;
+            else if(view.compare(0,2,L"v=")==0) {
+                std::wistringstream value(view.substr(2));
+                double speed;
+                // Test inputs must fit the native squared-speed telemetry sent to the renderer.
+                if (value >> speed && value.eof() && std::isfinite(float(speed * speed)))
+                    t.initialSpeed=speed;
+            }
             else t.view=DiagnosticView(view.c_str());
         }
         if (sunBar != std::wstring::npos) {
@@ -91,7 +100,17 @@ void D3DApp::GoToTest(size_t index) {
     mSunDir = t.sun ? LatLonToDir(t.sunLatitude, t.sunLongitude) : mStartSunDir;
     if(t.moon>=0)PlaceMoonCamera(t.latitude,t.longitude,t.pitchDown,t.heading,t.altitude,unsigned(t.moon));
     else PlaceCamera(t.latitude, t.longitude + windLongitude, t.pitchDown, t.heading, t.altitude);
-    if (mView != View::Free) PlaceShipAtCamera();
+    if (mView != View::Free) {
+        PlaceShipAtCamera();
+        if (!t.walk) {
+            mShipVelocity = mShipForward * t.initialSpeed;
+            if (t.incoming && t.moon < 0) {
+                const double radius = Length(mShipPos), altitude = radius - PlanetRadius;
+                const Vec3d wind = altitude < FlightDynamics::EntrySpace ? ClimateWindAt(mShipPos) : Vec3d{};
+                mFlightCues.ReplayIncoming(altitude, Dot(mShipVelocity, mShipPos) / std::max(radius, 1.0), mShipVelocity, wind);
+            }
+        }
+    }
     mStartWalking = t.walk; // each route row selects its own mode, including after an inter-body teleport
     mSunDir = t.sun ? LatLonToDir(t.sunLatitude, t.sunLongitude) : mStartSunDir;
     mDiagnosticView = t.view;

@@ -41,12 +41,12 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 |---|---|---|---|---|---|---|
 | `chasseur` (default) | `assets/vaisseau/chasseur/` | VSX3 | 1.03 m | 4 | 6 | 1684 × 2450 |
 | `classique` | `assets/vaisseau/` | VSX2 | 1.07 m | 3 | 2 | 1584 × 3660 |
-| `navigateur` (cabin prototype) | `assets/vaisseau/navigateur/` | VSX3 | 0.70 m | 0 | 0 | disabled |
+| `navigateur` (cabin prototype) | `assets/vaisseau/navigateur/` | VSX3 | 0.70 m | 0 | 0 | 2560 × 1536 |
 
 - The executable alone selects the approved fighter.
 - `tools/lance.ps1 -ModeleVaisseau classique` selects the original triangular ship.
 - Direct launches can use `MYPLANETENGINE_MODELE_VAISSEAU=classique`, `chasseur` or `navigateur`.
-- The Navigator starts in its cabin, with eye offsets 0.65 m ahead and 0.70 m up. Tab cycles cockpit/chase/bare. Its panoramic field has no canopy weather simulation; see `spec-navigateur-cockpit-son.md` and `spec-reflets-vaisseau.md`.
+- The Navigator starts in its cabin with eye offsets 0.65 m ahead and 0.70 m up. Tab cycles cockpit, chase and bare. Its panoramic surface carries the common cockpit effects. [Flight, canopy and suit](spec-vol-immersion.md)
 - `MYPLANETENGINE_VAISSEAU` still selects the camera view, independently of the model.
 - Each model retains its own source, Blender scene, GLB and cooked package.
 - `ShipProfiles.h` selects the package, pilot eye, shadow centre, water-map dimensions, jets and pivots.
@@ -108,7 +108,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - Reuse a validated stationary body's clearance; looking around only resamples an external eye if its position changes.
 - Near terrain, translation is accepted one frame later; free-camera look remains immediate.
 - An accepted stationary sphere requires no new probe; chase still checks its eye when it moves around a stationary hull.
-- The cockpit's display and speed reference still use the delayed nadir height; collision does not use it.
+- The cockpit's altitude display uses the delayed nadir height. Forward drive follows the pilot's thrust command.
 
 **Coverage and cost:**
 - Test the complete chord and its body radius against `PLANET_RADIUS + MAX_TERRAIN_HEIGHT`; clear endpoints alone do not prove the path clear.
@@ -133,6 +133,8 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - Crest shimmer is not isolated or claimed fixed by this contact work.
 
 ## The canopy glass and the time
+
+- Rain, wear and atmospheric entry share a surface treatment across the three pilotable cockpits. [Flight, canopy and suit](spec-vol-immersion.md)
 
 - **`ShipWeather.hlsl`, one wire per frame, keeps the glass state.** It reads the game clouds, the same at the same time, by `Clouds.hlsli` (`spec-nuages.md`). The temperature comes from the climate map (`Climate.hlsli`), at sea level minus 6,5 °C/km.
 - **Weather is read at the ship's position,** in its own constant cloud game; moving the outside camera away does not change rain, temperature, or frost.
@@ -171,7 +173,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
   - rose of the caps that turns under a fixed index, north in amber;
   - speed in km/h, altitude above sea level in km, heading, minutes and seconds of the clock.
 - **NAV / TERRAIN:** a map in level lines, heading up, 40 m by texel, which scrolls with the ship; actual latitude and longitude. The relief of the map is invented.
-- **SHIP / SYSTEMS:** bars follow throttle, speed and clock; hull temperature is that of standard air, heated by speed.
+- **SHIP / SYSTEMS** shows engine output and stored entry heat. The printed temperature scale maps the heat signal from 290 to 1,550 K for the instrument.
 - **The dials:** THRUST tracks the throttle, ATT the pitch (4 flat, ±90° at the stops), ALT the height above the ground in km.
 - **The data, at the end of `Ship::Constants`:** `course` (head, latitude, longitude, ground height) and `gauges` (gas), filled with `ship.air` in `D3DApp::UpdateShipFrame`.
 
@@ -180,18 +182,18 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - **The standard for keyboard and mouse space games,** Star Citizen and Everspace:
   - **Mouse:** pitch and lacing, by a virtual handle that refocuses at rest.
   - **Rolls:** Q and E, or A and E in AZERTY.
-  - **Throttle:** the throttle wheel. Upwards, the ship goes faster, and the speed holds without touching anything; downwards, it slows down until it stops. Thirty marks, of 35 % each.
+  - **Throttle** selects cruise speed on notches 1–24 and continuous thrust on notches 25–30. Hold Up for immediate full thrust at any altitude. Releasing Up restores the selected notch. Zero releases cruise. X brakes and then holds position.
   - **Sliding:** A and D (Q and D) on the side; W and S (Z and S), or Space and Ctrl, up and down, in the ship's axis.
-  - **Accelerate, brake:** Maj accelerates five times, X brakes.
+  - **Boost and brake** use Shift and X. Hold X to brake and then support the ship.
   - **Free head:** Right click held; on releasing, the view stays where it is and the mouse pilots again.
   - **Swing head:** H gives the mouse to the head; H returns it to the ship again, and the head stays where it is.
   - **R brings the head back to rest,** a little below the horizon, of 4,5°. In free camera, R keeps the shading faceted.
-- **A flight assistance keeps the speed of the throttle.** As for the free camera, it is proportional to the height above the ground, at least 60 m. The middle step is worth the default speed of the free camera. The slips go at least at this speed, even gas cut off.
+- The spaceflight assist turns the velocity vector towards the pilot's new heading. In air the ship banks into turns and responds to wind-relative lift and drag. Both use the same swept terrain contact. [Flight model and controls](spec-vol-immersion.md)
 - **The handle follows the commands:**
   - it retracts by 12° when the nose rises, leans by 12° on the side of the roll, and turns by 15° with the lacing, like a twist handle;
   - the pitch and the lacing come from the virtual mouse handle, the rolling of the keys, softened in a tenth of a second;
   - **the throttle handle** swings 40° on its thirty steps, forward with the throttle.
-- **Flight keeps its own attitude:** translation and body-frame changes do not rotate the ship or curve its velocity around a planet.
+- The ship retains its inertial attitude across terrain handovers. Gravity bends its trajectory.
 - **The head follows the acceleration,** as in flight simulators: a dampened spring, according to [MSFS Physics Camera](https://flightsim.to/addon/114953/msfs-physics-camera).
   - **The sense:** the eye retreats when accelerating, moves forward when braking, leans at the opposite corners. The parallax with the cockpit gives the depth.
   - **The measure:** the acceleration is compressed by its logarithm, because the ship is going at the speed of light. About 1,5 cm to 0,2 g, 4 cm to 2 g, at most 6 cm forward and 3 cm side.
@@ -222,7 +224,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - **The plumes of the selected model’s nozzles** (`ShipPlume.hlsli`, `ShipPlumeVertex.hlsl`, `ShipPlumePixel.hlsl`):
   - a flame of light at the exit of each nozzle, of a blue-white heart to the purple, with weak shock diamonds;
   - **it ends in pointe:** it widens a little at the exit of the nozzle, then becomes thinner and extinguishes up to its tip;
-  - **it follows the throttle, step by step,** from nothing throttle cut off until full at the thirtieth step, with the same response time as speed. Linked to speed, it was full from the first step in altitude, where speed follows height;
+  - the drive supplies the main plume intensity independently of the ship's speed;
   - **its length:** from 1,7 m at the first intersection to 8 m.
 - **Attitude jets:** ten small water vapor jets, at both ends of the stern and nose, up, down and side.
   - **Each pulls when its push serves the command:** the slip, or the torque of the roll, the pitch and the lacing around the center of the ship.

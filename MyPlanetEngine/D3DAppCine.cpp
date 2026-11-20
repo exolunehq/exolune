@@ -39,6 +39,7 @@ void D3DApp::ReadCine() {
                 && f.fov >= 5 && f.fov <= 150 && f.weather >= 0;
             for (const double* p : { f.nav, f.cam })
                 valid = valid && std::abs(p[0]) <= 90 && std::abs(p[1]) <= 180 && p[2] > -PlanetRadius;
+            if (valid && (in >> token)) { f.coast = token == "coast"; valid = f.coast; }
             if (valid) mCine.push_back(f);
         }
         if (!valid || (in >> extra)) throw std::runtime_error("Invalid CINE line " + std::to_string(lineNumber));
@@ -66,6 +67,22 @@ void D3DApp::LogCine(const char* message) const {
 void D3DApp::InitCine(D3D12_GPU_DESCRIPTOR_HANDLE tectonics) {
     if (mCine.empty()) return;
     if (!mShip.Ready()) throw std::runtime_error("CINE requires the ship package.");
+    // An exterior or lower-atmosphere ship pose determines the passage state exactly.
+    // Resuming a long orbit usually examines just its preceding pose. Inside the
+    // entry band, replay the actual approach, including its descent rate and elapsed time.
+    mFlightCues = {};
+    UINT first = mCineIndex, nonDescending = 0;
+    const UINT coolFrames = UINT(std::ceil(FlightDynamics::EntryExitFade * mCineFps)) + 1;
+    while (first > 0) {
+        const double altitude = mCine[--first].nav[2];
+        if (altitude >= FlightDynamics::EntrySpace || altitude <= FlightDynamics::EntryFloor) break;
+        // A long level orbit within the upper atmosphere also loses any pending
+        // approach and residual glow. Constant radius gives a nonnegative radial
+        // component to the sampled chord velocity at its arriving endpoint.
+        nonDescending = first > 0 && altitude >= mCine[first - 1].nav[2] ? nonDescending + 1 : 0;
+        if (nonDescending >= coolFrames) break;
+    }
+    for (UINT i = first; i < mCineIndex; ++i) SampleCineMotion(i);
     mCineTectonics = tectonics;
     const auto cs = LoadShader(L"CineGround.cso");
     D3D12_COMPUTE_PIPELINE_STATE_DESC desc = {};
@@ -78,6 +95,16 @@ void D3DApp::InitCine(D3D12_GPU_DESCRIPTOR_HANDLE tectonics) {
         mCineVideo = std::make_unique<CineVideo>(mSettings.cineVideo, mClientWidth, mClientHeight, mCineFps);
 }
 
+void D3DApp::SampleCineMotion(UINT index) {
+    auto centre = [&](UINT i) {
+        const double* p = mCine[i].nav;
+        return LatLonToDir(p[0], p[1]) * (PlanetRadius + p[2]);
+    };
+    const Vec3d current = centre(index);
+    mShipVelocity = index == 0 ? Vec3d{} : (current - centre(index - 1)) * mCineFps;
+    MeasureShipAir(current, mShipVelocity, mCine[index].nav[2], 1.0 / mCineFps);
+}
+
 bool D3DApp::BeginCineFrame() {
     if (mCine.empty()) return true;
     if (mCineIndex >= mCineEnd) { DestroyWindow(mhMainWnd); return false; }
@@ -87,7 +114,6 @@ bool D3DApp::BeginCineFrame() {
     const View view = f.cockpit || f.cabin ? View::Cockpit : f.bare ? View::Bare : View::Chase;
     if (view != mView) { mHistoryValid = mCloudHistoryValid = false; }
     mView = view;
-    const Vec3d previous = mShipPos;
     // Positive pitch lifts the nose; positive roll banks right. No PlaceCamera here: it resets the waves.
     auto pose = [](const double* p, Vec3d& pos, Vec3d& forward, Vec3d& up) {
         const double rad = XM_PI / 180.0, lat = p[0] * rad, lon = p[1] * rad;
@@ -100,10 +126,6 @@ bool D3DApp::BeginCineFrame() {
         pos = vertical * (PlanetRadius + p[2]);
     };
     pose(f.nav, mShipPos, mShipForward, mShipUp);
-    mShipVelocity = (mShipPos - previous) * mCineFps;
-    if (!mHistoryValid && mFrameNumber == 1) mShipVelocity = {};
-    mThrottle = Length(mShipVelocity) > 0.1 ? 18.0 : 0.0;
-    mPlume = mThrottle / 30.0;
     if (f.cockpit) {
         // Same eye and resting head as UpdateShip, without interactive head inertia.
         mCamPos = mShipPos + mShipForward * mShip.Profile().eyeAhead + mShipUp * mShip.Profile().eyeUp;
@@ -124,6 +146,12 @@ bool D3DApp::BeginCineFrame() {
     mCloudFrame = static_cast<UINT>((phase % 576 + 576) % 576); // 16 pixels x 36 samples
     mFoliageFadeFrame = mCloudFrame; // same global 64-frame dither at a chunk boundary
     ClampCine();
+    // Cuts change the camera. Only consecutive authored ship poses establish speed, including at a chunk boundary.
+    // A safety clamp corrects placement and must not appear as a velocity impulse or a flash of heat.
+    SampleCineMotion(mCineIndex);
+    mThrottle = !f.coast && Length(mShipVelocity) > 0.1 ? 18.0 : 0.0;
+    mPlume = mThrottle / FlightDynamics::ThrottleNotches;
+    mFlightCues.engine = mPlume;
     return true;
 }
 

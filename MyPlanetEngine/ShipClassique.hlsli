@@ -2,8 +2,6 @@
 #ifndef SHIP_CLASSIQUE_HLSLI
 #define SHIP_CLASSIQUE_HLSLI
 static const float3 CLASSIC_CENTRE = float3(0.0, -2.15, 0.05);
-static const float2 CLASSIC_WATER_ORIGIN = float2(-0.95, -4.05);
-static const uint2 CLASSIC_WATER_SIZE = uint2(1584, 3660);
 static const float3 CLASSIC_PANE_F = float3(0.0, -4.02, 0.697),
                     CLASSIC_PANE_S = float3(0.937, -0.516, 0.83),
                     CLASSIC_PANE_A = float3(0.0, 0.32, 1.655);
