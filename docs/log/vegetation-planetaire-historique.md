@@ -1,5 +1,10 @@
 # History of planetary vegetation tests
 
+**2026-11-20 · Sliding terrain and the placement prefilter**
+
+- The former light pass estimated a tile's habitat from the drawn terrain. It dropped tiles and capped individual plant admission with that estimate. Turning in place changed the estimate and made otherwise visible trees disappear.
+- Removing the estimated cap recovered the tracked trees in the tropical and steep forests. Replacing only the terrain estimate with exact ground still left the loose bound expensive on steep ground. The current placement caches only confirmed empty tiles. [Placement stability](../vegetation-planetaire.md#placement-stability-2026-11-20)
+
 **2026-11-03 · Superseded impostor-light investigation**
 
 **The lighting of the impostors (2026-10-29):**

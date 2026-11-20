@@ -262,7 +262,7 @@ python tools/banc_orbite.py --exe x64/Release/MyPlanetEngine.exe --out x64/atlan
 - **Immobile:** heavy pass 6,2 → 1,9 ms in forest, 7,6 → 1,7 in mountain.
 - **In motion,** head 0,5° and 4 % of height per frame, then 2° and 20 %: placement 6,2 to 7,3 ms without table, 2,5 to 3,8 with; overflow 4,6 → 3,2.
 - **What changes in motion:** a saved value comes from a previous camera. `MakeCandidate` positions the cell from the foot of the camera, in float: the point moves less than a millimeter from one camera to another, its exact ground of the last bit. Against the calculation of each frame, at the same movement: average deviation of 0,000 to 0,006 level, at most 0,006 % of pixels beyond 8, no plate. A plant at the exact threshold of its decision is born an image sooner or later; without the table, it flashed at the will of these rounded.
-- **Nothing to invalidate:** the relief does not change in flight, and the key names the cell.
+- **Cache lifetime.** The key names the cell for the current terrain. Clear both tables before the next lookup when the terrain resets. The light pass can read confirmed empty tiles from either table before the placement pass writes.
 
 **The impostors in conservative depth** (`PlanetFoliageDepth.hlsli`, `PlanetFoliageProxyVertex.hlsl`, `PlanetFoliageImpostorPixel.hlsl`):
 - **The pixel of a impostor reconstructs its depth** (`SV_Depth`): the test waited for the end of the shader, four views read and illuminated, even for a hidden pixel.

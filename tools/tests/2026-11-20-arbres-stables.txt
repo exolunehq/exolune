@@ -1,0 +1,14 @@
+# Seed 0. Heights are above sea level. F1 to F3 turn in place on the steep forest.
+# F4 to F6 repeat the pan and fly closer in the tropical forest. F7 to F12 vary the biome and scale.
+Steep forest at heading 163 | 1003.1 -8.44835 118.48865 37 163 | -20 130
+Steep forest looking left | 1003.1 -8.44835 118.48865 37 160 | -20 130
+Steep forest looking right | 1003.1 -8.44835 118.48865 37 166 | -20 130
+Tropical forest at heading 12 | 145.1 -7.751 -37.2503 19 12 | -5 -20
+Tropical forest looking right | 145.1 -7.751 -37.2503 19 18 | -5 -20
+Tropical forest close pass | 84 -7.7499 -37.2499 17 14 | -5 -20
+Temperate forest on approach | 645.6 34.7475 50.7488 22 22 | 30 70
+Temperate forest close pass | 570 34.75 50.75 22 24 | 30 70
+Temperate forest on foot | 525 34.75 50.75 10 80 marche | 30 70
+Boreal conifers | 1140 42.002542495 65.003025314 10 41.4837 | 35 80
+Sparse scrub near the desert | 1735 -11.825 110.867 20 114 | -5 100
+Tropical canopy in side light | 167.9 -7.75 -37.25 20 0 | -35 45

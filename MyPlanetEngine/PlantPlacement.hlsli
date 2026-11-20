@@ -28,20 +28,7 @@ float3 PlantFootprints(Vegetation v, int k)
     return float3(trees * v.conifer, trees * (1.0 - v.conifer), shrubs+HerbFootprint(v,k));
 }
 
-// The vegetation's climate at a tile before its materials, on the mesh's ground and slope, with its cell's noise and the
-// climate map, as GroundMaterials takes them: q from the anchor, the normal and poleward direction in the same frame,
-// planetUp the vertical in the planet's.
-Vegetation PlantClimate(float3 q, float elevation, float3 normal, float3 poleward, float pixel, float3 planetUp)
-{
-    const float4 climate = ClimateAt(materialSampler, planetUp, exp2(pixel));
-    const float detail = Fbm3(q, log2(2000.0), 0.0, pixel, 0.62, 31u).x;
-    const float lost = 0.146 * sqrt(FbmLostShare(log2(2000.0), 0.0, pixel, 0.62));
-    const float t = Temperature(climate.y, elevation, dot(normal, poleward), detail);
-    return VegetationAt(t, ClimateHumidity(climate.x, LocalRain(q, pixel).x), 4.0 * lost, climate.z, Exposure(planetUp, elevation));
-}
-
-// The species the candidate draws among the footprints, and its probability to be kept: the light pass and the heavy one
-// draw alike.
+// The species the candidate draws among the footprints, and its probability to be kept.
 float PlantChance(Candidate k, float3 footprints, float spread, out uint species)
 {
     const float total = footprints.x + footprints.y + footprints.z;
@@ -50,15 +37,12 @@ float PlantChance(Candidate k, float3 footprints, float spread, out uint species
     return total * 1.47 * k.chance / CrownArea(species, spread);
 }
 
-// The most a tile's candidates can be kept with: every state and kind present wherever it may be (or everywhere), the
-// narrowest crown.
-float PlantBound(Candidate k, Vegetation v, bool everywhere)
+// The placement bound with every habitat present on the exact tile and the narrowest crown.
+float PlantBound(Candidate k, Vegetation v)
 {
-    v.wood = v.wood > 0.0 || everywhere ? 1.0 : 0.0;
-    v.stand = v.stand > 0.0 || everywhere ? 1.0 : 0.0;
-    v.shrub = v.shrub > 0.0 || everywhere ? 1.0 : 0.0;
+    v.wood = v.stand = v.shrub = 1.0;
     float3 f = PlantFootprints(v, k.octave);
-    if (everywhere && DiverseVegetation()) {
+    if (DiverseVegetation()) {
         // Maximum woody cover and maximum meadow cover occur in different parts of a tile.
         f.z=-log(1.0-ShrubsHere(v))*OctaveShare(k.octave,SHRUB_HEIGHT)
             -log(max(1.0-HerbCeiling()*v.herbs*v.able,1e-4))*OctaveShare(k.octave,0.65);
@@ -73,8 +57,9 @@ int2 TileCell(int2 tile, uint i)
     return tile * 4 + int2(i % 4, i / 4);
 }
 
-// The light pass for the plants: every tile of every slice's window. A tile may be seen if one of its plants may be, by
-// the reach of the octave's tallest and the tile's size, and the vegetation on the mesh's ground there bounds them all.
+// The light pass uses drawn terrain for the view bounds and fixed terrain for habitat.
+uint3 TileGroundKey(uint slice, uint plane, int2 tile, uint first);
+bool KnownEmptyPlantTile(uint3 key);
 void ListGroundMiss(uint4 record);
 void CullPlantTile(uint3 id, uint slice, uint plane)
 {
@@ -114,6 +99,8 @@ void CullPlantTile(uint3 id, uint slice, uint plane)
             }
     if (inside == 0)
         return;
+    if (KnownEmptyPlantTile(TileGroundKey(slice, plane, tile, first)))
+        return;
     MakeCandidate(slice, plane, TileCell(tile, first), k);
     const float R = faceParams.y;
     const float3 sea = FaceLocal((float3)(k.p - Double3(camX, camY, camZ))), upFace = FaceLocal(k.up);
@@ -131,27 +118,8 @@ void CullPlantTile(uint3 id, uint slice, uint plane)
     const float along = clamp(-dot(sea, upFace), low, high);
     if (length(sea + along * upFace) > reach || !MaybeVisible(sea + low * upFace, sea + (high + 2.0 * d) * upFace, 0.0, 3.5 * d))
         return;
-    // The vegetation on the mesh's ground, seen at the tile: its plants bounded.
-    const double3 footPoint = k.p + (double3)(k.up * meshElevation);
-    const float3 q = (float3)(footPoint - (double3)detailAnchor.xyz * (double)detailOrigin.w);
-    const float sinLat = k.up.y; // the planet's north is its y axis
-    const float3 poleward = (sinLat < 0.0 ? -1.0 : 1.0) * normalize(float3(0.0, 1.0, 0.0) - sinLat * k.up + 1e-6);
-    const float3 normal = meshNormal.x * faceX.xyz + meshNormal.y * faceY.xyz + meshNormal.z * faceZ.xyz;
-    Vegetation v = PlantClimate(q, meshElevation, normal, poleward, log2(d), k.up);
-    WoodsAt(q, log2(d), v);
-    const float bound = 1.15 * PlantBound(k, v, false) + 0.01;
-    bool any = false;
-    for (uint j = 0; j < 16; ++j)
-        if (inside & (1u << j))
-        {
-            Candidate c;
-            MakeCandidate(slice, plane, TileCell(tile, j), c);
-            any = any || c.accept < bound;
-        }
-    if (!any)
-        return;
     const uint tileIndex = (((6u - id.z / planeCount) * planeCount + plane) * 512u + id.y) * 512u + id.x;
-    const uint4 record = uint4(slice * 4 + plane | first << 8 | f32tof16(horizon) << 16, (uint)tile.x, (uint)tile.y, asuint(bound));
+    const uint4 record = uint4(slice * 4 + plane | first << 8 | f32tof16(horizon) << 16, (uint)tile.x, (uint)tile.y, 0u);
     stableTileRecords[tileIndex] = record;
     stableValues[tileIndex] = uint2(1, 0);
     ListGroundMiss(record);
@@ -163,6 +131,25 @@ void CullPlantTile(uint3 id, uint slice, uint plane)
 // frame's table, written to this frame's, each slot claimed by one writer: no thread reads a record another is
 // writing. Four slots per bucket; a key without a slot is computed again.
 static const uint GROUND_BUCKETS = 1u << 18;
+static const uint NO_GROUND_SLOT = 0xffffffffu;
+static const float PLANT_ACCEPTANCE_MARGIN = 0.002;
+
+// Both tables are read-only during the light pass. An empty result depends on the fixed tile.
+// Keeping it in either table avoids reevaluating a tile every other frame after it is culled.
+bool KnownEmptyPlantTile(uint3 key)
+{
+    const uint bucket = Hash(key).x & (GROUND_BUCKETS - 1u);
+    [unroll] for (uint s = 0; s < 4; ++s)
+    {
+        const uint base = 2u * (4u * bucket + s);
+        if (all(groundRead[base].xyz == key) && groundRead[base + 1u].z != 0u)
+            return true;
+        if (all(groundWrite[base].xyz == key) && groundWrite[base + 1u].z != 0u)
+            return true;
+    }
+    return false;
+}
+
 bool GroundCached(uint3 key, out float3 e)
 {
     e = 0.0;
@@ -179,7 +166,7 @@ bool GroundCached(uint3 key, out float3 e)
     }
     return false;
 }
-void KeepGround(uint3 key, float3 e)
+uint KeepGround(uint3 key, float3 e)
 {
     const uint bucket = Hash(key).x & (GROUND_BUCKETS - 1u);
     [loop] for (uint s = 0; s < 4; ++s)
@@ -191,9 +178,16 @@ void KeepGround(uint3 key, float3 e)
         {
             groundWrite[2u * slot] = uint4(key, asuint(e.x));
             groundWrite[2u * slot + 1u] = uint4(asuint(e.yz), 0u, 0u);
-            return;
+            return slot;
         }
     }
+    return NO_GROUND_SLOT;
+}
+
+void MarkEmptyPlantTile(uint slot)
+{
+    if (slot != NO_GROUND_SLOT)
+        groundWrite[2u * slot + 1u].z = 1u;
 }
 // This frame's, kept by PlanetPlantGround before the heavy pass: no thread of the heavy pass writes its key.
 bool GroundKept(uint3 key, out float3 e)
@@ -275,16 +269,20 @@ void PlacePlantTile(uint4 record, uint tileIndex)
     // (GroundKept); else here, past its list's capacity.
     const uint3 groundKey = TileGroundKey(slice, plane, tile, first);
     float3 e;
+    uint ownedSlot = NO_GROUND_SLOT;
     if (GroundCached(groundKey, e))
-        KeepGround(groundKey, e);
+        ownedSlot = KeepGround(groundKey, e);
     else if (!GroundKept(groundKey, e))
     {
         e = TileGround(k);
-        KeepGround(groundKey, e);
+        ownedSlot = KeepGround(groundKey, e);
     }
     const float e0 = e.x, e1 = e.y, e2 = e.z;
     if (max(e0, max(e1, e2)) <= 0.0)
+    {
+        MarkEmptyPlantTile(ownedSlot);
         return;
+    }
     const float2 slope = float2(e1 - e0, e2 - e0) / half;
     const float3 normal = normalize(cross(t1 * (1.0 + e1 / R) + up * slope.x, t2 * (1.0 + e2 / R) + up * slope.y));
     const float3 upLocal = FaceLocal(up), normalLocal = FaceLocal(normal);
@@ -306,14 +304,14 @@ void PlacePlantTile(uint4 record, uint tileIndex)
     const float2 community=DiverseVegetation() ? Fbm3(q0,log2(2048.0),log2(512.0),log2(k.d),0.6,83u).xy : 0.0;
     const float flowerPatches=DiverseVegetation() && k.d<4.0 && tileV.herbs*tileV.able>0.0
         ? Fbm3(q0,4.0,2.0,log2(k.d),0.53,619u).x : 0.0;
-    // The quick refusal: every state present on the exact ground, and the light pass's bound, where they are on the mesh's.
-    const float bound = min(PlantBound(k, tileV, true) * 1.0001, asfloat(record.w));
+    const float bound = PlantBound(k, tileV) * 1.0001;
     const float sunShare = SunAboveHorizon(dot(upLocal, lightDir.xyz), horizon, 0.0);
 
     const double3 p0 = k.p;
+    bool mayGrow = false;
     for (uint i = 0; i < 16; ++i)
     {
-        if (!MakeCandidate(slice, plane, TileCell(tile, i), k) || k.accept >= bound)
+        if (!MakeCandidate(slice, plane, TileCell(tile, i), k) || k.accept >= bound + PLANT_ACCEPTANCE_MARGIN)
             continue;
         // Where the woods and the shrubs are at its place, on the tile's plane: their fields' finest octave, 8 m, moves by
         // a hundredth of their deviation for the metres the plane strays. Its species, kept or not, before its exact ground.
@@ -322,7 +320,10 @@ void PlacePlantTile(uint4 record, uint tileIndex)
         const double3 planeFoot = k.p + (double3)(k.up * (e0 + slope.x * dot(along, t1) + slope.y * dot(along, t2)));
         WoodsAt((float3)(planeFoot - (double3)detailAnchor.xyz * (double)detailOrigin.w), log2(k.cell), v);
         uint species;
-        if (k.accept >= PlantChance(k, PlantFootprints(v, k.octave), v.spread, species))
+        const float chance = min(bound, PlantChance(k, PlantFootprints(v, k.octave), v.spread, species));
+        // Record habitat before waterline, distance, mesh support and visibility can affect the draw.
+        mayGrow = mayGrow || k.accept < chance + PLANT_ACCEPTANCE_MARGIN;
+        if (k.accept >= chance)
             continue;
         const uint plantSeed=(k.looks.z & 0xFFFFFFE0u) | species << 3 | (k.looks.z >> 29);
         const bool rooted=GameVegetation() && species<SHRUB;
@@ -428,6 +429,8 @@ void PlacePlantTile(uint4 record, uint tileIndex)
         stablePlantScratch[tileIndex * 16u + i] = o;
         if (coarse) coarseMask |= 1u << i; else fineMask |= 1u << i;
     }
+    if (!mayGrow)
+        MarkEmptyPlantTile(ownedSlot);
     stableMasks[tileIndex] = uint2(fineMask, coarseMask);
     stableValues[tileIndex] = uint2(countbits(fineMask), countbits(coarseMask));
 }

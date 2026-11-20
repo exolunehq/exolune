@@ -2,6 +2,13 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-20 · Stable trees during camera motion**
+
+- The sliding terrain changed the light pass's habitat estimate during a stationary pan. That estimate could discard entire tiles or suppress plants the exact habitat admitted.
+- Cache empty tiles only after exact placement has tested their candidates. Reserve a 0.002 margin on the acceptance probability. Cache misses still use the existing GPU passes in the current frame. [Placement stability](vegetation-planetaire.md#placement-stability-2026-11-20)
+- Release x64 built successfully. In 51 native views across three forests, all 11 intermittently missing tree instances remained present during the repeated pans. No view exceeded the tile or plant queue limits. Two filmed descents cover tropical and temperate canopy.
+- The local tag `piste/arbres-stables-2026-11-20-base` identifies the public source base. The earlier renderer is in `x64/ArbresAvant/`. [Flight review](../tools/tests/2026-11-20-arbres-stables.txt)
+
 **2026-11-20 · Terrain detail in oblique flight**
 
 - The face samples four points across the view and leads the observer toward their projected surface hits. Lead decreases as the cells get finer. The layout limits radial ring shear to 25% and uses the existing ring count.
