@@ -56,10 +56,13 @@ void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupI
     PlanePoint(xy, R, d, r2, L);
     FineSample missing = (FineSample)0;
     missing.terrain = asfloat(0x7fc00000u).xxxx; // NaN: off screen
-    // Its margin: the samples a visible pixel reads, its B-spline's 4 x 4 and FineNormals' differences, 3 cells, and as many
-    // again; the mesh's 6 cells cover its shadows' vertices too (TerrainCompute.hlsl), none of which read this grid.
+    // Retain the spline stencils and the wide material probes used by FineCoverNormal.
+    float margin = 6.0 * cellSize;
+#ifndef AIRLESS_SURFACE
+    margin = max(margin, SHORE_BASELINE + 3.0 * cellSize);
+#endif
     if (!MaybeVisible(RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MIN_HEIGHT),
-                      RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MAX_HEIGHT), 0.0, 6.0 * cellSize))
+                      RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MAX_HEIGHT), 0.0, margin))
     {
         outFine[id] = missing;
         return;

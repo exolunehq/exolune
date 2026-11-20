@@ -1,0 +1,13 @@
+# Seed 0. Sea-level camera altitudes. Compare the ripple transition under two suns and several viewing angles.
+Reported calm lake and horizon | 434.9 -23.705823 171.160098 16.81 44.43 | -20 150
+Calm lake under a second sun | 434.9 -23.705823 171.160098 16.81 44.43 | -10 168
+Low pass over the lake | 416.75 -23.705823 171.160098 12 44.43 | -20 150
+Higher approach | 461.75 -23.705823 171.160098 16.81 44.43 | -20 150
+Grazing view over the lake | 434.9 -23.705823 171.160098 5 44.43 | -20 150
+Steep view of the foreground ripples | 434.9 -23.705823 171.160098 44 44.43 | -20 150
+Further along the flight line | 428.25 -23.705299 171.160653 16.81 44.43 | -20 150
+Independent warm lake | 180.25 21.630481486 44.362270223 30 -49.95 | 20 45
+Independent cool lake | 583.6 42.513100842 -24.531474493 18 -42.49 | 45 -20
+Flight over a flowing river | 54 7.966101460 -84.510714540 28 -168.31 | 10 -85
+Open sea and coastal foam | 18.2 -23.189057 157.862012 3.19 -77.63 | -20 150
+Water coverage on the reported lake | 434.9 -23.705823 171.160098 16.81 44.43 sea | -20 150

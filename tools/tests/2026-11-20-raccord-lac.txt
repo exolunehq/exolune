@@ -1,0 +1,14 @@
+# Seed 0. Sea-level camera altitudes. F1 to F5 follow the reported lake from several positions.
+# F6 to F9 cover independent lakes, a river mouth and the previously corrected sea cliff.
+Reported lake and sliding-grid join | 731.3 -23.722668 171.117296 20.84 88.72 | -20 150
+First advance along the lake | 731.3 -23.722628 171.119096 20.84 88.72 | -20 150
+Further advance over the lake | 731.3 -23.722507 171.124496 20.84 88.72 | -20 150
+Low pass over the reported lake | 595 -23.722668 171.117296 20.84 88.72 | -20 150
+Reported lake from a steeper angle | 731.3 -23.722668 171.117296 32 88.72 | -20 150
+Independent cool lake shore | 963.25 42.513100842 -24.531474493 20 -42.49 | 45 -20
+Independent warm lake shore | 560.25 21.630481486 44.362270223 50 -49.95 | 20 45
+River mouth at the sea | 3226 -9.027692 127.426786 70.69 -165.64 | 20 120
+Coastal cliff and foam | 118.0 -23.190040 157.868862 8.08 -100.48 | -20 150
+Water coverage on the reported lake | 731.3 -23.722668 171.117296 20.84 88.72 sea | -20 150
+High angle over the reported basin | 2450 -23.727668 171.141296 68 88.72 | -20 150
+Orbital lake district | 1762085.3 -25.046981 162.732238 67.31 81.69 | -20 150

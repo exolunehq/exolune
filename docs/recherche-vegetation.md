@@ -333,8 +333,7 @@ Search for 2026-10-25, primary sources except mentioned.
 - **The tree comes out only there:** the heavy pass decides each plant at its foot, the canopy on the ground at every pixel, the same function.
 
 **Shrubs:**
-- **A field of spots to them,** 1 km to 8 m, on 60 % of land (`SHRUB_LAND`): shrubs and expanses without a shrub.
-- **More:** 40 % of soil in wet clearings instead of 30, 30 % in undergrowth instead of 15. Estimates, to be checked on photos.
+- **Scrub density,** a graded range on its 1,024 to 8 m patch field. The full-density cover follows the climate and tree cover. [Current density rule](vegetation-planetaire.md)
 - **The mantle of the edges:** where the stands, seen at 32 m, are neither inside nor outside, the field of shrubs is raised by two gaps (`FOREST_EDGE`).
 - **The krummholz:** their cold limit 1,5 °C of season below that of trees, or 300 m higher.
 - **From afar, a bush is smooth:** the relief of the crowns of the canopy on the ground is that of the trees alone, weighted by their share of the canopy. The clearings full of bushes read like forest.

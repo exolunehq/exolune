@@ -96,13 +96,11 @@ Each family has its 64 m tile, generated at startup like the others. Between two
 
 **The benchmark:** `tools/banc_roche.py`, the view of the observation and three mountain sites at 100 m, 500 m and 2 km. Canyon at 11° S, 50° E; dry mountains at 20° S, 125° E; snow-covered peaks at 15° S, 120° E.
 
-### Step 1: the floor on the replants
+### Soil and scree on rock ledges
 
-- **The decision:** the rock yields where its own surface, mesh plus texture, is flat. scree between 0,72 and 0,82 of cosinus, ground between 0,84 and 0,92.
-- **Replats:** the rounded cornices of the 64 m tile never flattened on a wall. The top of each benchmark now leans backwards, as much as it rises, on 40 % of benchmark and at most 2,5 m. A step at the foot of the next benchmark takes the height, without step.
-- **Effect:** strips of grass or sand on each benchmark, snow also settles there. No more effects beyond 500 m, where the filtered tile loses its replacing.
-- **Cost:** zero. **Peaks:** no peaks.
-- **Rest:** the bands are as regular as the benchmarks, hence the steps 2 and 3.
+- Use `RockShares` to evaluate joint rock, scree and soil fractions on the terrain slope distribution. Scree starts between slope cosines 0.72 and 0.82, soil between 0.84 and 0.92.
+- Use the averaged rock texture roughness at every footprint. The texture's individual grooves contribute to lighting.
+- The [earlier ledge treatment](log/spec-roche-organique-historique.md) used the individual texture slopes to place soil.
 
 ### Step 2: hanging and folds
 

@@ -12,6 +12,9 @@
 - **Composed water:** river depth remains bounded by the blended compact cut. Physical bank incision is now clipped before filtering; wet fraction and mean depth travel separately through mesh, fine and screen samples. An unresolved river no longer lowers its whole footprint to its stage. Terminal lakes retain their stage.
 - **Current review:** `tools/tests/2026-11-04-embouchures.txt`, covering orbit-to-ground continuity, confluences, banks and first-water contacts; prior upstream morphology is retained.
 - **Approach reconstruction:** water coverage, stage/depth moments and premultiplied flow now use the same positive B-spline as terrain. Resolution changes and pixel contour refinement mix those moments before reconstructing conditional water values.
+- **Orbital lake visibility:** use the existing continuous terminal stage and a finer evaluation of the same substrate when the screen texel filters out lake depressions. Use the larger of 65% of the screen relief cell and half the drainage atlas cell as the finer support. Only use this query at valid terminal stages and where its support is smaller than the screen relief cell.
+- Clip the existing lake stage against the finer bed before mixing water coverage and depth. Apply a 0.001-times-cell positive shore ramp. Ease in the finer wet moments over a relative cell reduction of 0 to 25%. The screen spline filters those moments with the existing flow.
+- Orbital lake and mountain review at five distances, with an independent terminal lake and river. [Flight review](../tools/tests/2026-11-20-eaux-orbite.txt)
 - **Physical refinement:** tributaries open locally at their junction; low-coast marine courses split into three procedural distributaries sharing the parent discharge. Bank-height octaves and bank proximity use the same terrain queries as contact and grounded objects (`spec-erosion.md`). Detailed coastal connectivity and sediment evolution remain unresolved.
 - **First-water termination:** cached shoreline contacts stop the visible reach and its downstream discharge contribution. Independent local sources survive. Resolved water shading reads the actual stage/bed gap; a tributary no longer contributes a pale closing bank inside the receiving course. The additional cache occupies 24 MiB; no performance benchmark was requested.
 
@@ -41,10 +44,11 @@
 | Closed outlets and deltas | A descending wet route reaches the detailed sea/lake; branches conserve discharge | Connectivity revision open |
 | Repeated mountain scratches and summit cuts | Relief-dependent incision preserves different histories and material responses | Incision/routing revision open |
 | Crater cuts and rivers leading nowhere | Closed basins retain water or have a resolved spillway; construction history is respected | Volcanic integration open |
-| Coastal sawteeth, crest flicker and disappearing cliffs | Stable visible surface through approach and across steep slopes | Earlier projection/coastal metric corrections are limited; rendering investigation open |
+| Sawteeth where the sea meets a cliff | Keep seawater and foam inside the rasterized shoreline support | The raster height cap removes the high foam teeth on the reported wall across three mesh sizes. Crest continuity and disappearing cliffs remain part of flight review |
 | Camera crossing a cliff | Swept contact protects camera and hull along the movement, with no ground teleport | Swept contact integrated; CPU fixtures, Release x64 and interactive startup pass; the user found the two cliff-contact views of `2026-11-02-vallees-orbite.txt` okay, 2026-11-02 |
 | Lake shores and stage connections | Level basin interiors, coherent shorelines and explicit outlet transitions | Initial lake implementation; connection refinement open |
-| Lake level fixed per erosion cell; lake district fragmenting on approach | A continuous lake level first; then a statistical wet coverage keeps the district whole at every distance | Open; a statistical coverage on the per-cell level made square blocks and was rejected (`log/spec-rendu-lointain-historique.md`) |
+| Lake surface cut at the sliding-grid edge | Standing water remains continuous through the fine-grid and ring transition | Validate the fine-grid stencil before using its lake-free certificate. [Flight review](../tools/tests/2026-11-20-raccord-lac.txt) |
+| Lake district emerging on approach | Preserve resolved depressions as the footprint shrinks | The finer screen coverage keeps the principal lakes visible in the 2,850 to 1,762 km witness. Separate basin-stage connections remain open |
 | Rivers perched on a mound | The channel follows the lowest route of the composed terrain; network and relief agree where the river is drawn | Open; part of the network placement revision |
 | Valleys appearing suddenly from orbit, 1,400 to 1,800 km | Valleys fade in continuously with distance, their mean kept, like any other relief | Corrected and validated in flight, 2026-11-02: each section clipped by the ground before averaging (`spec-erosion.md`); `tools/tests/2026-11-02-vallees-orbite.txt` |
 | Cost of the transition zone near 300 km | The pixel water contour query fits the frame budget where the screen relief fades in | Open; 16 ms at 250 km after the channel rung, 2026-11-06 |
@@ -110,8 +114,11 @@
 - Basin interiors stay level; the connecting bands are approximations, not resolved lake spillways.
 - The terrain mesh carries both raw ground and the visible water surface.
 - Lakes follow a sphere at constant sea-level altitude; they do not receive ocean FFT displacement.
+- A valid fine stencil can certify that all its samples are outside terminal lake support. When the stencil is absent, read the existing drainage stage where it can change contour refinement or river halo removal.
 - Rivers share the atmosphere reflection and depth attenuation used by the sea.
-- Small planet-anchored ripples move downstream and fade below the pixel footprint.
+- Planet-anchored ripple slopes span 1 to 32 m. The 1 to 4 m bands carry most of the slope variance. The 8 to 32 m bands supply a quieter distant texture.
+- Each band's resolved amplitude fades between eight and two pixels across its wavelength. Add the unresolved slope variance to the reflection. Mark moving water from the resolved ripple power.
+- Review the transition in low flight, at a grazing angle and on independent lakes and a flowing river. [Flight review](../tools/tests/2026-11-20-eau-calme.txt)
 - Two 64-second advection phases blend continuously; this is surface animation, not fluid transport.
 - Dry floodplains at the drainage stage stay dry.
 - The mesh and fine grid carry wet presence, premultiplied stage and premultiplied depth from the same terrain evaluation.
@@ -122,6 +129,7 @@
 - The two existing fine buffers use a 32-byte sample: terrain/normal, premultiplied inland water and a contour-candidate distance.
 - The mesh carries the same candidate distance; neither a coarse nor a fine dry sample excludes a river passing between samples.
 - Near unresolved coast, channel or mixed lake boundaries, the pixel shader refines the water at half the pixel footprint, with the existing 2 m physical floor.
+- At mesh-led coasts, cap the resulting ocean weight with the raster surface's signed height around the sea-level sphere, minus the interpolated wave displacement. Fade over half to one pixel of local height variation with a 0.10 m derivative floor. The cap fades with the screen-relief handoff. [Coastal flight review](../tools/tests/2026-11-20-falaises.txt)
 - **Candidate bands, since 2026-11-07:** a channel's band where the grid's edge distance is within 0.6 to 0.9 samples, formerly 2 to 3 (2026-11-06). Partly wet samples are candidates at a lake's shore only: along a river they spread its filtered wetness over the band already kept. Images within 8/255 of the 0.4 bands; at 0.2, spots of 24/255 in a meander's bend.
 - **Narrower for wide samples, since 2026-11-08** (`CONTOUR_CHANNEL_BAND`): 0.3 to 0.45 samples from samples of 200 m, as before under 100 m. There the grid's distance is the samples' own and the channels far narrower. At 97 km, about 1,000 pixels over 2/255 along the channels, at most 12/255; unchanged at 2,200 m and 250 km. 97 km 0.2 ms faster than at 0.6 to 0.9.
 - **The coast's band, since 2026-11-08:** where the fine grid carries the heights, twice its uncertainty, its B-spline against its bilinear (`FineNormal`); a sample's step elsewhere. A sample's step on every slope made a valley's steep flanks coast candidates kilometres above the sea.

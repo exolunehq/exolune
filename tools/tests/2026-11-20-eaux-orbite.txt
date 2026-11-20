@@ -1,0 +1,14 @@
+# Seed 0. F1 to F6 follow the reported orbital approach and lake district.
+# F7 and F8 show water coverage. F9 to F12 check a terminal lake, a river and another massif.
+Reported lake district at 2,850 km | 2850341.5 -25.445950 159.430987 67.31 83.10 | -20 150
+Same approach at 2,500 km | 2499600 -25.318 160.493 67.31 82.65 | -20 150
+Same approach at 2,200 km | 2199686.2 -25.208 161.403 67.31 82.26 | -20 150
+Same approach at 2,000 km | 2001169.2 -25.135 162.010 67.31 82.00 | -20 150
+Reported lake district at 1,762 km | 1762085.3 -25.046981 162.732238 67.31 81.69 | -20 150
+Lower pass over the lake district | 650582.4 -24.500 169.150 73 81 | -20 150
+Water coverage at 2,850 km | 2850341.5 -25.445950 159.430987 67.31 83.10 sea | -20 150
+Water coverage at 1,762 km | 1762085.3 -25.046981 162.732238 67.31 81.69 sea | -20 150
+Terminal lake and inlet | 3530.75 33.024598821 54.893928890 90 0 | 30 50
+Near riverbanks | 654.5 -12.406891 52.928246 35 -118.93 | -10 50
+Independent massif at 2,400 km | 2398099.2 -7.138614 122.604860 84.18 32.74 | -26.95 106.61
+Independent massif at 1,400 km | 1398107.0 -7.138614 122.604860 84.18 32.74 | -26.95 106.61

@@ -1,0 +1,14 @@
+# F1 to F5 follow the reported scrub through the approach to its drawn plants.
+# F10 to F12 show canopy cover, bare albedo and canopy light at F1.
+Dry scrub at the reported altitude | 21722.3 -23.441876 173.722742 59.92 8.66 | -10 168
+Same scrub from a second sun direction | 21722.3 -23.441876 173.722742 59.92 8.66 | -30 150
+Scrub during approach at 6.2 km | 6426.5 -23.355 173.738 59.92 8.66 | -10 168
+Scrub canopy at 500 m | 682.7 -23.327 173.743 32 8.66 | -10 168
+Scrub impostors at 150 m | 332.7 -23.325 173.745 22 8.66 | -10 168
+Ground view among shrubs | 200.7 -23.325 173.745 22 8.66 | -10 168
+Dry hills at a second site | 15247 -11.825 110.867 40 114 | -5 100
+Humid forest from 10 km | 10047.2 -7.75 -37.25 55 0 | -5 -20
+Humid forest geometry and canopy | 167.9 -7.75 -37.25 20 0 | -5 -20
+Canopy cover of the reported scrub | 21722.3 -23.441876 173.722742 59.92 8.66 forest | -10 168
+Soil albedo beneath the reported scrub | 21722.3 -23.441876 173.722742 59.92 8.66 groundalbedo | -10 168
+Canopy light at the reported altitude | 21722.3 -23.441876 173.722742 59.92 8.66 forestlight | -10 168

@@ -1,5 +1,26 @@
 # Erosion spec history
 
+**2026-11-20 · Cliff footprint trial**
+
+- A coastal slice tested projecting the cell footprint through the full pre-cut gradient in steep terrain. The 6, 12 and 20 m samples moved farther from the one-metre reference than with the current coastal gradient. The wider footprint was discarded.
+
+**2026-11-20 · Inland ripple cutoff**
+
+- The former 1 to 4 m bands had all faded out by a 2 m projected footprint. The reported 28.15 m clearance showed a sharp strip between textured water and the smooth reflection.
+- The reflection used fixed unresolved variance. The moving-water marker used a separate footprint fade. The overlapping bands and resolved variance now drive both.
+
+## **2026-11-20 Lake coverage at the fine-grid edge**
+
+- The old lake-free check treated the all-ones missing-stencil word as four valid certificates. The river halo rule removed the lake's broad interior outside the fine grid.
+- The reported 731.3 m pose intersects a basin with a 406.75 m stage. Separate native water masks isolated the loss to inland coverage. Sending all cells through the full contour shader reproduced the same cut.
+- The earlier consolidation of three stage reads into one saved 0.1 ms at the 97 km and 2,200 m checks. The captures checked then were bit-identical. The grid-edge witness exposed the missed fallback.
+
+**2026-11-20 · Coastal wall projection and detail**
+
+- The former abrasion applied the entire steep response to fine substrate relief. The supported talus fixed the downslope secondary cut while leaving that amplification possible.
+- The reported view showed high foam teeth in the water mask with mesh factors 1, 2 and 4. The isolated raster height cap removed them across those views. At factor 2, mean contrast at the strongest original edges fell from 23.05 to 10.03 display levels.
+- A rejected geometry trial bounded fine relief around the cut on the existing 200 m substrate. Dry/wet transitions in a 3 m CPU terrain crop fell from 314 to 272. Native views showed a continuous, overly regular ledge at the foot of the wall.
+
 **2026-11-05: superseded queue checkpoints.**
 - ERI3 bounds with a fixed 1,024-node limit: 35.2 / 50.7 / 29.6 FPS at 1,231 / 3,000 / 10,000 km. Forty expensive limb queries exceeded that limit despite spare scratch capacity.
 - A layout-derived integer-overflow bound gives 35.1 / 50.4 / 39.1 FPS. Packing the fallback queries gives 36.7 / 53.7 / 40.6 FPS, but the additional 40,000 km witness remains at 11.8 FPS.

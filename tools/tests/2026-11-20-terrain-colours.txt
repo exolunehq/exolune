@@ -1,0 +1,11 @@
+# Common land colour composition under different light, cover and viewing footprints.
+Surface Echo 3m29: rocky valley in sunlight | 4821.44 -8.133483 126.159302 9.15 125.67 | -10 168
+Same valley with the sun to the west | 4821.44 -8.133483 126.159302 9.15 125.67 | -10 85
+Dry rain shadow: bare stone and muted steppe | 3900 -11.825 110.867 5 114 | -5 100
+Windward forest: canopy and exposed soil | 4900 -12.375 112.125 8 294 | -5 145
+Another range: weathering on steep hillsides | 8100 -25.566 -26.916 3 0 | -10 -68
+Surface Echo 2m16: snow and weathered rock | 12110.51 -7.286024 123.820903 8.57 49.72 | -10 168
+Surface Echo 4m18: sand and forest at the coast | 454.69 -9.037548 127.431245 12.86 130 | -10 168
+Lower woodland: terrain at a finer footprint | 160 -11.039991 49.783625 4 40 | -10 60
+Soil and vegetation seen on foot | 80 -11.039991 49.783625 0 40 marche | -10 60
+Valley albedo diagnostic | 4821.44 -8.133483 126.159302 9.15 125.67 groundalbedo | -10 168

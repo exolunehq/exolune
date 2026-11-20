@@ -1,5 +1,16 @@
 # History of distant rendering
 
+**Fine-grid culling before the cover margin, 2026-11-07 to 2026-11-20**
+
+- A six-cell margin kept the spline and normal taps. The orbital review measured an improvement of 0.28 ms at 97 km with identical images.
+- At low altitudes the six-cell margin could drop taps of the separate 60 m cover stencil. The low coastal views showed polygons of sand and soil as retained taps changed with view and sunlight.
+
+**Orbital lake coverage trials, 2026-11-20**
+
+- A statistical spread about the filtered height gave excessive coverage even with the continuous terminal stage. The aligned lake district read 16.1% wet at 2,850 km and 13.2% at 1,762 km. The darkening followed the catchment instead of the individual depressions.
+- With the finer substrate query, wet coverage in that district progresses from 5.12% to 5.80%, 6.31%, 6.59% and 6.64% over the five poses. The original was 0.21%, 1.90%, 3.95%, 5.00% and 5.78%.
+- The aligned mountain crop gained narrower grooves through the five poses. Both endpoints use the existing screen relief with the same four-texel terrain bandwidth.
+
 **Face-only reconstruction, superseded on 2026-11-20**
 
 - The initial 768 × 768 fine grid stopped at the face. It faded inside the last eight mesh cells. Ring triangles used the coarser surface alone.

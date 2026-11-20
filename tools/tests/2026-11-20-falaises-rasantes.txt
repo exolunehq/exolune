@@ -1,0 +1,14 @@
+# Seed 0. Sea-level camera altitudes. F1 to F6 review the reported wall in low flight.
+# F7 to F9 check other cliff views. F10 to F12 show the material masks and the lake control.
+Reported wall at sea level | 18.2 -23.189057 157.862012 3.19 -77.63 | -20 150
+Same wall under a second sun | 18.2 -23.189057 157.862012 3.19 -77.63 | -20 169
+Approach start along the wall | 18.2 -23.189108 157.862266 3.19 -77.63 | -20 150
+First advance along the wall | 18.2 -23.189001 157.861730 3.19 -77.63 | -20 150
+Closer pass by the wall | 18.2 -23.188906 157.861258 3.19 -77.63 | -20 150
+Higher pass above the wall | 45 -23.189057 157.862012 7 -77.63 | -20 150
+Previous cliff and foam view | 118.0 -23.190040 157.868862 8.08 -100.48 | -20 150
+Independent cold coastal cliff | 70.3 -46.984989 -32.983334 3.29 -149.4 | -40 -10
+Independent inland rock face | 4024.8 -8.150569 126.172951 20.81 -164.61 | -10 168
+Reported wall albedo | 18.2 -23.189057 157.862012 3.19 -77.63 groundalbedo | -20 150
+Reported wall rock coverage | 18.2 -23.189057 157.862012 3.19 -77.63 rockall | -20 150
+Lake coverage across the fine grid | 731.3 -23.722668 171.117296 20.84 88.72 | -20 150

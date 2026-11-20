@@ -1,6 +1,6 @@
 # Spec: volcanism
 
-Status: spec live, since the 2026-10-31. Make the 2026-10-31 on the branch `claude/volcanisme-7c3aea`, part of `bruit-propre`; experiment `piste/volcanisme`, to judge in flight: `tools/tests/2026-10-31-volcanisme.txt`. It is the 5 stage of `spec-relief-tectonique.md`, its abyssal hills excepted.
+Status: active. The tectonic volcanism layer dates to 2026-10-31. The current flank review uses [the 2026-11-20 flight route](../tools/tests/2026-11-20-volcans-flancs.txt). This layer implements stage 5 of `spec-relief-tectonique.md` apart from abyssal hills.
 
 ## The objective
 
@@ -67,7 +67,7 @@ Status: spec live, since the 2026-10-31. Make the 2026-10-31 on the branch `clau
 | Crater | the building drawn to a bottom, H profile (crater) − depth; a bowl, (1 − u²)² | — |
 | Caldeira | a flat bottom between steep walls, 1 − u⁸, beyond 0,8 to 2,5 km radius | Crater Lake |
 | Coulées | tongues of 1,5 km wide at half radius, twice as much on a shield, stretched along the slope; 40 m thick on a stratovolcano, 15 on a shield, young; they start from the third of the radius, cover half the flank, then some long reach the foot | — |
-| Cones | scories, a grid cell of 2,5 km, 0,25 to 0,75 km radius, quarter highs, a crater of 0,4 radius | Wood 1980 |
+| Scoria cones | Asymmetric vents concentrated along fissures, with rounded aprons and occasional breaches | [USGS Mauna Kea field survey, figure 23](https://pubs.usgs.gov/pp/1557/report.pdf) |
 | Guyot | the summit leveled at its level, flat under the sea, rounded above | — |
 | Reef, atoll | laid on the contour of the building, at the level of the old shore, plus spurs and bays of a few hundred meters; a plateau at −1,5 m, from 0,25 to 0,8 km, eroded, wider windward, east of the trade winds; motus separated at +3 m, from 150 to 500 m wide, a third of the plateau windward, an eighth leeward; passes of 8 m, especially leeward; a lagoon at −12 m, 30 % more or less deep by spots | Darwin 1842 |
 
@@ -76,15 +76,25 @@ Status: spec live, since the 2026-10-31. Make the 2026-10-31 on the branch `clau
 - **The calm detail on the young flanks:** up to 80 % of the relief left at noise, otherwise a cordillera wrinkles the cone.
 - **After the detail:** the arasement, the reef and the lagoon of the volcano that dominates the point.
 - **The reef follows the building it crowns:** the same outline, read at the level of the old shore; a barrier reef, an atoll and a guyot therefore never have another shape than their volcano. Before the 2026-10-31 in the evening, a circle noise apart and a plateau of constant width, at +0,5 m: the swell discovered it, a strip of beach continuous.
-- **Any profile on two grid cells at least:** the building, the crater and the cones wider and lower so, their volume kept; the flows and cones replaced by their average where the grid cell does not bear them.
+- **Filter each profile at its sampling scale.** Major buildings and craters widen and lower across two cells. Unresolved flows approach their average. Flank cones use the filter below.
 
 **Where is the call:** `ReliefElevation`, after the ribs and before the detail, then `VolcanoFinish` after the rib cords. The settings: `VOLCANO_*` in `PlanetSettings.hlsli`.
+
+## **Flank scoria cones, 2026-11-20**
+
+- Use the existing 2.5 km cell to propose a seeded vent. Evaluate density at the vent's fixed centre. Favour two fissure directions and keep a 32% background density beyond their corridors. Fade the field beyond 0.60 edifice radii. It ends at 1.15 radii. Wide summit calderas suppress the neighbouring vents.
+- Draw equivalent radii from 0.18 to 0.86 km with a bias towards smaller vents. Use 190 to 370 m of rise per kilometre of radius, scaled by the edifice's freshness. Orient the ellipse along an individual blend of rift and downhill directions. The elongation reaches 1.54 with constant footprint area.
+- Round the summit and grade the toe into the parent slope. Displace the crater off-centre and vary its radius from 16% to 38% of the cone radius. Lower a downhill angular sector on some larger openings. The opening widens into the apron and stays within the positive deposit.
+- Widen the narrow axis to two sampling cells as needed and reduce the rise by the area ratio. The crater and breach blend into the filtered flank as the rim becomes unresolved. The field blends to its expected elevation over the 417 to 833 m cell interval, using a 32.5 m km² mean cone volume before the freshness scale.
+- The footprint and its blend fit the existing nine-cell neighbourhood. The CPU terrain port uses the same rule. [Before-and-after flight route](../tools/tests/2026-11-20-volcans-flancs.txt)
+- Mauna Kea's photographed flank shows vents of different sizes along fissures. A LiDAR study of the Chaîne des Puys documents elongated and asymmetric outlines. [USGS aerial photograph and field survey](https://pubs.usgs.gov/pp/1557/report.pdf) · [Chaîne des Puys morphometry](https://www.mdpi.com/2072-4292/13/10/1983)
+- The [history](log/spec-volcanisme-historique.md) records the former round profile and material mask.
 
 ## The materials used
 
 **The fresh volcanic soil, `gVolcanic`, from 0 to 1:** the cone of ash and slag of a stratovolcano, the top of a shield, the flows, the cones; weighted by freshness, e^(−t/3) on a chain.
 - **The path:** it replaces the `relief` field unused from `FaceVertex`, which became `volcanic`, then `geology.w` up to the pixel.
-- **A cone's share keeps its area once widened,** its edge at least two cells wide (2026-11-02). Whole at the widened size, each cone of a field stood as a two-cell disc at any distance; from orbit, the discs came and went as the view moved (`spec-rendu-lointain.md`, the screen relief).
+- **Scoria cover follows the local deposit.** Use its normalized thickness, freshness and footprint area. Its contribution fades with the cone field towards orbit.
 - **The rock:** the basalt, the darkest of the palette (`RockColor`).
 - **Soil:** ash and slag, reflectance 0,07, on 85 % of soil; black beaches.
 
@@ -92,32 +102,9 @@ Status: spec live, since the 2026-10-31. Make the 2026-10-31 on the branch `clau
 
 **`tools/hydro/cp.py` reads `x64/Release/volcans-<graine>.bin`,** written by the engine on each startup, header `EXOVOLC1`; `EXOLUNE_VOLCANS` gives another path. `volcano_edifices` and `volcano_finish` follow the shader; `elevation(..., extra=True)` also gives `volcanoes` and `volcanic`.
 
-**The gap to the engine:**
-- **Against the map of the planet,** 200 texels on volcanoes, grid cells of 12 km: 0,4 cm in median, 6 cm at most.
-- **On the ground under the camera,** 33 points on volcanoes, grid cells fine: 7,9 cm in median, 0,9 m at most, since the correction of `bruit-propre` (`d304da0`) and cones in double precision. The gap follows the slope, the engine giving its position to the decimeter; before them, 11 cm, 6 on soft ground and 13 on the sides, against 4 and 43 cm for the relief only away from the volcanoes.
-- **The cones are placed in double precision:** at 120 km from the top of a shield, a float position advances by steps of 8 mm, and the side of a cone in stairs (`principes.md`, the precision of the scale where a quantity serves).
-
-## Measures
-
-**Seed 0:** 1 113 volcanoes, 15 hot spots; 697 stratovolcanoes, 352 shields, 163 calderas, 532 cone fields, 75 back arc fields; 26 atolls, 3 barrier reefs, 113 guyots. Seeds 1 and 2: 1 060 and 1 041 volcanoes, 10 hot spots.
-
-| Measure | With | Sans |  |
-|---|---|---|---|
-| Startup, volcanism | 60 to 77 ms | — | on 1,0 to 1,3 s of card, machine loaded by other sessions |
-| Memory GPU | +0,18 MB | 38 MB | the list and the index |
-| Calculation of moving terrain, volcanic sites | 0,20 to 0,65 ms | 0,19 to 0,54 ms | +0,02 to +0,12 ms; GPU shared, to noise near elsewhere |
-| Soils, seeds 0, 1, 2 | 32,8, 34,3, 30,7 % | 32,6 %; 34,0 and 30,5 % | port, 400 000 points, grid cells of 2 km |
-| Median land, seed 0 | 388 m | 380 m |  |
-| Modes, seed 0 | +375 m, −4 525 m | +375 m, −4 525 m | bimodal |
-| Median of oceans, seed 0 | −4 430 m | −4 450 m | the swell and the plateaus |
-| Above 3 km, seed 0 | 2,03 % | 1,99 % |  |
-| Under a building of more than 10 m | 0,5 to 0,6 % of area | — |  |
-
-- **The calculation without buildings:** `VolcanoEdifices` cut at its source, time and rest equal; the lands without volcanism, the map of `bruit-propre`.
-- **The seeds 1 and 2:** their maps calculated by `Tectonics.cpp` out of the engine, a small session program; the same file as the engine for the seed 0, bit close.
-- **The memory peak of the calculation** does not change: a few megabytes more.
-
-**The check set:** the compilation without error or warning new; `tools/tests/2026-10-31-volcanisme.txt`; the `volcanisme_planche.jpg` board in the session notes; the shaded relief of the port around an arc volcano, its flows and its cones.
+- **Precision.** Subtract the cone centre in doubles. At 120 km from a shield summit a float coordinate advances in 8 mm steps, which produced stairs on its local flank.
+- **Catalogue.** Seed 0 provides 1,113 volcanoes and 15 hotspots. Its 532 cone fields include 75 back-arc fields.
+- **Review.** The [flank route](../tools/tests/2026-11-20-volcans-flancs.txt) covers the appearance and the relief at multiple distances. The [broader volcanism route](../tools/tests/2026-10-31-volcanisme.txt) includes atolls, guyots and flood basalts. The [history](log/spec-volcanisme-historique.md) preserves the original measurements.
 
 ## Known defects
 

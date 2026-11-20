@@ -487,12 +487,11 @@ static const float2 TREE_COVER_MODES = float2(0.2, 0.8);
 // land that gives its mode, 80 %: at least a tenth of any forest is clearings.
 static const float2 PRESENCE_SCALES = float2(32768.0, 1024.0);
 static const float STAND_COVER = 0.9;
-// Shrubs (a patches' field of their own, the same rule): thickets on SHRUB_LAND of the land, the rest bare of them; where
-// they are, they cover SHRUB_COVER.x of the ground in deserts (Larrea, 14 % alone, 24 % with the others, Santa Rita), y in
-// dry lands' scrub (chaparral, 60 to 100 %), z in humid lands' clearings and woods; under a forest's canopy, w, the
-// understorey. From the hyper-arid's none (aridity SHRUB_ARIDITY.x to y), dry to humid from z to w. The land's share and
-// the humid lands' and the understorey's cover are estimates, to check on photos.
+// Shrubs have their own patch field. SHRUB_LAND sets the midpoint threshold. The density transition has an
+// intrinsic spread in units of the field's standard deviation. At full density, SHRUB_COVER.x is desert cover,
+// y dry scrub, z humid scrub and w forest understorey. The climate ramps run through SHRUB_ARIDITY.
 static const float  SHRUB_LAND = 0.5;
+static const float  SHRUB_DENSITY_SPREAD = 0.65;
 static const float4 SHRUB_COVER = float4(0.2, 0.6, 0.35, 0.25);
 static const float4 SHRUB_ARIDITY = float4(0.03, 0.12, 0.3, 1.0);
 // The forest's edge: its mantle of shrubs, where the stands, seen at FOREST_EDGE.x m, are neither in nor out: shrub belts

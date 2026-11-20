@@ -53,7 +53,7 @@
 The same build in the window before (`final3`): the same within 0.6 %, but 2,200 m at 15.1 %, its own cost 2.96 ms against 2.94. 2,200 m in the other windows of the morning: 13.9 % (`final2`), 14.5 % (`splits1`), 14.9 % (`facecut1`), 14.7 % (`ravband1`). The erosion's own cost there, 2.8 to 3.0 ms, is its whole share: `main` itself measures from 16.4 to 17.4 ms from one window to the next.
 
 **Kept:**
-- **The terminal lake's level read once per pixel** (`PixelShader.hlsl`), by the pixels a fine sample's certificate leaves unsure (`FineTerrain.hlsl`, `ErosionLakeFree`). Exact, images identical to the bit. 97 km and 2,200 m −0.1 ms: three reads in the code cost as much, though seldom run (the certificate alone gained nothing).
+- **The contour and river halo decisions share one terminal lake stage lookup** (`PixelShader.hlsl`). The lake-free certificate applies only to a valid fine-grid stencil (`FineTerrain.hlsl`, `ErosionLakeFree`). [Earlier measurement](log/spec-erosion-historique.md#2026-11-20-lake-coverage-at-the-fine-grid-edge)
 - **Inland water under 1/64 of the pixel is dry** (`INLAND_MIN_COVERAGE`, `journal-planete.md`): rivers filtered at wide footprints spread their wetness thin over whole valleys. 250 km and 1,231 km −0.15 ms; at most 6/255, along the valleys' floors; within 2/255 at 97 km and 2,200 m.
 
 **Where 2,200 m's erosion cost is** (`modes1`, ms over erosion off):

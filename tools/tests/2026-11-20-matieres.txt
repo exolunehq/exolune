@@ -1,0 +1,13 @@
+# Surface cover and diffuse grain during approach. The first three views follow the same hillside.
+Rocky hillside: reported sheen | 4542.7 -8.14166 126.16549 53.8 139.3 | -10 168
+Same hillside: farther on the approach | 5772.394 -8.13553048 126.16016410 53.8 139.3 | -10 168
+Same hillside: near the ground | 4050.822 -8.14411181 126.16762036 53.8 139.3 | -10 168
+Same hillside: sun to the west | 4542.7 -8.14166 126.16549 53.8 139.3 | -10 85
+Independent hillside: open ground and vegetation | 3608.6 -7.27879 114.07772 23.9 145.4 | -5 145
+Dry rain shadow: stone and steppe | 3900 -11.825 110.867 5 114 | -5 100
+Surface Echo 2m16: snow and exposed ridges | 12110.51 -7.286024 123.820903 8.57 49.72 | -10 168
+Estuary: water and wooded beach | 454.6876 -9.037547607 127.431245216 12.86 130.00 | -10 168
+Woodland on foot: grain and vegetation | 80 -11.039991 49.783625 0 40 marche | -10 60
+Hillside albedo | 4542.7 -8.14166 126.16549 53.8 139.3 groundalbedo | -10 168
+Hillside water coverage | 4542.7 -8.14166 126.16549 53.8 139.3 sea | -10 168
+River mouth: water coverage | 3226 -9.027692 127.426786 70.69 -165.64 sea | 20 120

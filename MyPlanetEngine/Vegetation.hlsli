@@ -204,16 +204,23 @@ void WoodsAt(float3 q, float pixel, inout Vegetation v)
     const float seen = woodSeen * Presence(patch, patchSigma.y, stands, drive);
     v.edge = 4.0 * seen * (1.0 - seen);
     const float shrubDrive = FOREST_EDGE.y * v.edge;
-    const bool hasShrubs=v.shrubs*v.shrubCold>0.0;
-    const float shrubField=hasShrubs?PresenceField(q,pixel,89u,PRESENCE_SCALES.y,PresenceThreshold(SHRUB_LAND,shrubDrive),PresenceReach(patchSigma.y)):0.0;
-    v.shrub=hasShrubs?Presence(shrubField,patchSigma.x,SHRUB_LAND,shrubDrive):0.0;
-    // Reuse the same fields and the existing edge-sized early-out bound.
-    // This affects illumination, never population, placement or visible canopy.
-    const float shadePixel=max(pixel,2.0);
+    const float shadePixel = max(pixel, 2.0);
+    const float shadePatchSigma = PresenceSigma(shadePixel, PRESENCE_SCALES.y);
+    // Scrub density grades into the clearing. Combine this intrinsic spread with unresolved field variance
+    // for both canopy coverage and light. The field's early-out must account for the wider transition.
+    const float shrubSpread = SHRUB_DENSITY_SPREAD * PRESENCE_SIGMA;
+    const float2 shrubLost = float2(patchSigma.x, shadePatchSigma);
+    const float2 shrubSigma = sqrt(shrubLost * shrubLost + shrubSpread * shrubSpread);
+    const bool hasShrubs = v.shrubs * v.shrubCold > 0.0;
+    const float shrubField = hasShrubs ? PresenceField(q, pixel, 89u, PRESENCE_SCALES.y,
+        PresenceThreshold(SHRUB_LAND, shrubDrive), PresenceReach(shrubSigma.y)) : 0.0;
+    v.shrub = hasShrubs ? Presence(shrubField, shrubSigma.x, SHRUB_LAND, shrubDrive) : 0.0;
+
+    // The light model shares the density field and filters over at least four metres.
     const float shadeWood=Presence(region,PresenceSigma(shadePixel,PRESENCE_SCALES.x),woods,drive);
-    const float shadeStand=shadeWood*Presence(patch,PresenceSigma(shadePixel,PRESENCE_SCALES.y),stands,drive);
+    const float shadeStand=shadeWood*Presence(patch,shadePatchSigma,stands,drive);
     v.lightTrees=v.cold*v.able*(STAND_COVER*shadeStand+v.open*(shadeWood-shadeStand));
-    const float shadeShrub=hasShrubs?Presence(shrubField,PresenceSigma(shadePixel,PRESENCE_SCALES.y),SHRUB_LAND,shrubDrive):0.0;
+    const float shadeShrub = hasShrubs ? Presence(shrubField, shrubSigma.y, SHRUB_LAND, shrubDrive) : 0.0;
     v.lightShrubs=v.shrubCold*v.able*shadeShrub*lerp(v.shrubs,min(v.shrubs,SHRUB_COVER.w),shadeStand*v.cold);
 }
 
