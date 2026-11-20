@@ -130,6 +130,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Joining channels share their deepest wet section; a tributary bank must not become a closing sill inside the receiving water.
 - A wet section always carries its water level. Distance to a junction alone cannot extinguish an inflow before another wet section covers it.
 - Resolved water shading reads the actual stage/bed gap. Wet pixel coverage must not trigger another excavation of the physical terrain.
+- Preserve the basin's depressions in orbital lake shading. Clip the stage against the shared terrain at a bounded finer footprint, then blend wet area and moments (`spec-eaux-interieures.md`).
 - A river ends at its first terrain-defined standing-water contact. Cache the contact and stop its downstream discharge, rather than hiding only the submerged pixels.
 - Re-accumulate from the original local runoff. Quantized cumulative discharges cannot recover that source reliably.
 - An interrupted edge keeps its incoming discharge until its first water contact. The receiving node's remaining local runoff cannot taper that upstream reach prematurely.
@@ -145,6 +146,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - A mouth connection, an estuary and a sediment delta have distinct extents. Calibrate channel width separately from bays and tidal flats; a larger terminal flare alone cannot reproduce all three.
 - Coastal branching divides the parent discharge. It requires distinct shared bed/water branches; a widened water mask alone is not a delta.
 - Water and terrain shading use the same reconstruction resolution. A coarse dry vertex cannot veto water resolved by the fine grid.
+- Accept a lake-free certificate only from a valid fine-grid stencil. Use the drainage stage when a water decision needs it and the stencil is absent (`spec-eaux-interieures.md`).
 - A dry grid sample is not proof that a channel is absent between samples; retain a physical candidate bound for contour refinement.
 - Every pixel in a derivative quad must evaluate the same field before its derivatives are used for coverage.
 - Exactly zero water depth remains dry; symmetric threshold smoothing must not turn a drainage-stage plane into reflective water.
@@ -154,6 +156,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Never apply one winning link's stage to another link's bed.
 - Terminal basins share a constant stored stage; reconstruct distinct stages continuously where coarse catchments meet.
 - Keep level basin interiors and document the connecting bands as an approximation until spillways are resolved.
+- Filter inland ripple slopes over overlapping projected footprints. Keep each band's unresolved variance in the reflection (`spec-eaux-interieures.md`).
 - Positive water depth controls rendering, vegetation and terrestrial habitat; a dry plane at its drainage stage is land.
 - Keep the pre-erosion form independent of visible water.
 
@@ -161,6 +164,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Depth damping cannot erase the wave energy that feeds breaking near shore.
 - Filter height moments with displacement; unresolved crests retain a breaking probability.
 - Condition the foam mean on water, excluding the dry part of a mixed coastal pixel.
+- Bound refined seawater and foam by the rasterized surface's height relative to the waves at mesh-led shores (`spec-eaux-interieures.md`).
 - Keep the same source in near and distant shading; pore detail may disappear, its mean coverage must remain.
 
 **Generated settlements follow shared life and existing land** (`spec-ville-procedurale.md`).
@@ -332,6 +336,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - **What is placed on a shape of the map is placed where the shader draws it:** its place read in the map, then brought back by the left reading of the map. Without this, the volcanoes of an arc fell down to 30 km from its ridge (`spec-volcanisme.md`, since the 2026-10-31).
 - **One shape placed on another follows the contour, and its width varies with what shapes it:** a reef, the leveled top of a guyot follow the contour of their volcano; the plateau widens windward, the passes open leeward. A separate circle, of constant width, made atolls in rings (`spec-volcanisme.md`).
 - **A pattern placed on a shape has a zero average:** it draws, it does not mount the shape. The flows of a volcano, laid on top of his building, drew a ring where they begin; their tongues are above him, the ground between them below (`spec-volcanisme.md`).
+- **Flank vents follow the edifice.** Evaluate seed and fissure density at fixed vent centres. Grade each deposit into its supporting slope. Use the same deposit for its scoria cover and keep its centre fixed through filtering (`spec-volcanisme.md`).
 - **Nothing finer than level 0 blocks any of its watercourses** (`spec-erosion.md`): detail fades on valley floors.
 
 **Water decides the shape of mountain ranges** (`spec-erosion.md`, since 2026-10-31).
@@ -424,7 +429,11 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - **A pixel shows the average of what it covers.** Any boundary between materials widens from what the pixel cannot show from its inputs: `SpreadStep`, `SlopeShares`, `RockShares`.
 - **A noise never fades depending on the pixel size.** It remains the same at all distances; only its invisible part expands the limits.
 - **The relief keeps its average height at any distance,** regardless of the octave filtering.
-- **Decisions see the relief forms at any height.** The fine grid carries their normal as long as the mesh does not carry the finest octave, 13,5 m, on its 4 grid cells. Extinct from grid cells of 20 m, it let the forms of 13,5 to 100 m of snow and rock come and go from 2 km to 160 m (`journal-planete.md`, 2026-10-24).
+- **Surface cover follows a physical sampling scale.** Use the wide normal on broad slopes. Blend towards the local material normal on resolved cliff faces. Take unresolved slopes from the same supports. Use the finer terrain for light and silhouette detail (`spec-texturage-universel.md`).
+- Blend the land-cover slope and its unresolved variance with the same weights through the fine-grid overlap. Read fine heights at the physical cover support when mesh filtering reaches that scale.
+- **Cover probes keep their full support past the view edge.** Include their interpolation stencil in culling independently of the shadow sweep. Use the raster face slope for a resolved wall when the centred samples straddle its edge and finer slope samples are unavailable.
+- **Soil and scree on rock follow the terrain's ledges.** Average the texture's slope distribution for cover and use its sampled slope for lighting (`spec-roche-organique.md`).
+- **Weathered transition material shares the local substrate.** Blend its diffuse luminance between the soil and parent rock. Let soil dilute loose fragments where it covers the bedrock. Texture varies the mixture's constituents at the resolved footprint (`spec-texturage-universel.md`).
 - **A width is decided on the slope taken at its own scale.** The range, a water level, is capped at 120 m once the slope is taken on 60 m, `SHORE_BASELINE`. On the normal of materials, taken at 1 m, the bumps of the relief left kilometers of coastal plain in sand. In the distance, the fine grid carries this slope as soon as its grid cells covers 60 m; thinner, they bring back the bumps (`recherche-cotes.md`).
 - **A noise color filters to pixel, never to grid cell.** A grid cell covers about 13 pixels: calculated by vertex, its octaves appear in sight when approaching, and what it draws slides (`spec-parois-minerales.md`).
 - **Every pattern is calculated on the planet grid, never relative to the anchor.** The anchor jumps by 64 m when the camera moves; a stretch or rotation taken from it re-cuts the pattern. The ravines of `WallRelief` were infringing it; it is removed the 2026-10-30.
@@ -522,6 +531,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - **Every pixel of the floor belongs to a material that has its pile:** the rest of the floors including, the bare floor, which had no and went unnoticed of benchmarks.
 - **Every strip is erased by the same rule,** according to its wavelength and pixel size, regardless of its source: noise, tile or photo.
 - Anchor aerial colour and slope bands on the body. Apply the existing material and canopy shares to their contrast and roughness (`spec-texturage-universel.md`).
+- Compose the diffuse land palette from local mineral and vegetation shares at every distance. Filter detail to the projected footprint. Keep the combined lighting perturbation tangent to the detailed terrain and bound its tilt (`spec-texturage-universel.md`).
 - **The bands extend the slope of the photo:** above its tile, each octave carries the slope by octave of the photo, the one that the distant rule already counts (`STONE_SLOPE_SIGMA`). Lower, they leave each wall in carpet equal to his photo.
 - **A photo keeps the orientation of its shooting:** a wall photo goes on the slopes of more than 45°, a photo taken from above on the softest ones. The limit follows the universal rule and the noise limits, like that of the rock. A material that has only one photo keeps it everywhere.
 - **A correction is accepted by the quality benchmark,** on randomly drawn locations, not on the only reported view.
@@ -594,6 +604,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - **A computation shift is validated by the GPU time, not by the number of instructions:** Work added to the vertex, transmitted data and commands can cancel pixel saving. Compare on the same poses, with the same population and without competing load (`optimisation-vegetation.md`).
 - **Each limit is a measured law:** the growing season for cold, aridity, the Sankaran ceiling and Hirota modes for water; its thresholds are widened by the universal rule.
 - **Where are the plants, a single rule with two scales, like the pebbles** (`Presence`): a field of noise above the threshold that leaves each state its share. The field of regions leaves entire regions without trees, whatever the soil; the field of spots opens clearings in any forest and arranges shrubs in thickets. Two independent fields: the product keeps the average.
+- **Shrub density grades from open ground into thickets.** Use the same body-fixed density field for placement, the distant canopy and its light. Combine the intrinsic spread with unresolved variance (`vegetation-planetaire.md`).
 - **The ridges lose their trees, the hollows keep them:** the height of the ground on the regional soil cools the season and lowers the fields of the woods. Never a rule specific to a mountain.
 - **Plant admission uses the fixed habitat.** Derive empty tiles from exact placement and retain uncertain candidates. Apply view culling and mesh support independently of habitat.
 - **A distant plant stands on the drawn ground, a near one on the exact ground:** in the distance, it follows the ground that we see; its foot slides towards the exact ground while its shape refines. Never a plant floating above the mesh.

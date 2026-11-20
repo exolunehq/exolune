@@ -1,0 +1,14 @@
+# F1 to F4 follow the reported slope at three heights and under a second sun.
+# F7 to F9 show the colour, scree and canopy of the F1 view.
+Rock and forest at the reported altitude | 10048.4 -8.030727 126.199164 24.96 -169.01 | -10 168
+Same foothills in western sunlight | 10048.4 -8.030727 126.199164 24.96 -169.01 | -10 85
+Approach at 3.8 km above ground | 5739.9 -8.111553 126.183799 20.85 -164.61 | -10 168
+Approach at 2.3 km above ground | 5047.0 -8.127304 126.179420 20.83 -164.61 | -10 168
+Independent mountain range | 8612.7 -25.566 -26.916 15 0 | -10 -68
+Close rock and scree | 4024.8 -8.150569 126.172951 20.81 -164.61 | -10 168
+Albedo at the reported altitude | 10048.4 -8.030727 126.199164 24.96 -169.01 groundalbedo | -10 168
+Scree at the reported altitude | 10048.4 -8.030727 126.199164 24.96 -169.01 scree | -10 168
+Canopy at the reported altitude | 10048.4 -8.030727 126.199164 24.96 -169.01 forest | -10 168
+Dry slope in the rain shadow | 4580.3 -11.825 110.867 18 114 | -5 100
+Coastal rock ledges | 84.9 -23.18981 157.86949 35 -131.078 | -20 150
+Snow and exposed ribs from Surface Echo | 12110.51 -7.286024 123.820903 8.57 49.72 | -10 168

@@ -111,47 +111,91 @@ float VolcanoFlows(float2 xy, float r, Volcano v, float radius, float cellKm, ou
     return v.fresh * lerp(VOLCANO_FLOWS.z, VOLCANO_FLOWS.w, v.shape) * envelope * (lobe - VolcanoOver(threshold + 0.5 * e));
 }
 
-// Its field of small cones, scoria cones (Wood 1980): a lattice of VOLCANO_CONES.x km in the volcano's plane, each cell
-// holding a cone at the field's share, densest within 0.6 radii and none past 1.2; each 0.25 to 0.75 km in radius, its
-// height a quarter of that, a crater of 0.4 radii, a third of its height deep. Where the mesh cannot carry them, their
-// mean. xy: the point in the volcano's plane (km), in doubles: up to 120 km from its summit, a float steps by 8 mm, each
-// cone's flank in stairs; each cone's own plane in floats. presence: where they stand.
-float VolcanoCones(double2 xy, float r, Volcano v, float radius, float cellKm, inout float presence)
+static const float CONE_MAX_RADIUS = 0.86;
+static const float CONE_MAX_STRETCH = 1.24;
+static const float CONE_FIELD_REACH = 1.15;
+
+float ConeDensity(float2 p, Volcano v, float2 rift)
 {
-    const float spacing = VOLCANO_CONES.x;
-    const float density = v.cones * (1.0 - smoothstep(0.6, 1.2, r / radius));
-    [branch] if (density <= 0.0)
+    const float r = length(p), x = r / v.radius;
+    const float2 across = float2(-rift.y, rift.x);
+    // The two fissure directions admit loose groups, with scattered vents between them.
+    const float distance = min(abs(dot(p, across)), 1.3 * abs(dot(p, 0.5 * across - 0.8660254 * rift)));
+    const float corridor = 1.0 - smoothstep(0.055, 0.23, distance / v.radius);
+    const float inner = v.crater + CONE_MAX_RADIUS * CONE_MAX_STRETCH;
+    const float summit = smoothstep(inner, inner + 0.14 * v.radius, r);
+    return v.cones * lerp(0.32, 1.0, corridor) * (1.0 - smoothstep(0.60, CONE_FIELD_REACH, x))
+         * lerp(1.0, summit, smoothstep(0.0, 1.0, v.crater));
+}
+
+float ConeFlank(float d)
+{
+    // Straight upper flanks ease into a talus apron. Round the point over the inner six percent of the radius.
+    const float round = max(0.06 - d, 0.0);
+    const float t = saturate(1.0 - d - round * round / 0.12);
+    return t * t * (2.0 - t);
+}
+
+// Scoria cones in the physical volcano plane (km). Keep double precision until subtracting each cone's centre.
+// The coarse mean takes over before a widened ellipse could reach outside the nine candidate cells.
+float VolcanoCones(double2 xy, Volcano v, float riftAngle, float cellKm, inout float presence)
+{
+    const float spacing = VOLCANO_CONES;
+    const float fieldScale = (2.0 / 3.0) * spacing;
+    const float support = CONE_MAX_STRETCH * max(CONE_MAX_RADIUS,
+                                               2.0 * min(cellKm, 0.5 * fieldScale) * CONE_MAX_STRETCH);
+    const float2 p = (float2)xy;
+    const float reach = CONE_FIELD_REACH * v.radius + support;
+    [branch] if (v.cones <= 0.0 || dot(p, p) >= reach * reach)
         return 0.0;
-    const float w = RlWeight(PLANET_RADIUS_KM / spacing);
+    const float w = RlWeight(PLANET_RADIUS_KM / fieldScale);
+    float2 rift;
+    sincos(riftAngle, rift.y, rift.x);
+    const float ageHeight = lerp(0.78, 1.0, v.fresh);
     float h = 0.0;
     [branch] if (w > 0.0)
     {
-        const float2 g = floor((float2)xy / spacing); // to a cell, the 3 x 3 around it hold the point's cones
+        const float2 g = floor(p / spacing); // to a cell, the 3 x 3 around it hold the point's cones
         [loop] for (int k = 0; k < 9; ++k)
         {
             const float2 cell = g + float2(k % 3 - 1, k / 3 - 1);
             const uint hash = RlRound1(RlRound1(v.seed ^ 0x165667B1u, asuint((int)cell.x)), asuint((int)cell.y));
             const float4 u = float4(RlMix1(hash) >> 8, RlMix1(hash + 1u) >> 8, RlMix1(hash + 2u) >> 8, RlMix1(hash + 3u) >> 8) / 16777216.0;
-            const float2 centre = (cell + 0.15 + 0.7 * u.yz) * spacing, local = (float2)(xy - (double2)centre);
-            [branch] if (u.x >= v.cones * (1.0 - smoothstep(0.6, 1.2, length(centre) / radius)))
+            const float2 centre = (cell + 0.15 + 0.7 * u.yz) * spacing;
+            const float2 local = (float2)(xy - (double2)centre);
+            const float distance2 = dot(local, local);
+            [branch] if (distance2 >= support * support || u.x >= ConeDensity(centre, v, rift))
                 continue;
-            const float size = 0.25 + 0.5 * u.w, wide = max(size, 2.0 * cellKm);
-            const float height = 250.0 * size * (size / wide) * (size / wide), d = length(local) / wide;
-            const float t = saturate((1.0 - d) / 0.6);
-            float cone = height * t * t * (3.0 - 2.0 * t);
-            const float rim = 0.4 * size, rimWide = max(rim, 2.0 * cellKm), u2 = length(local) / rimWide;
-            [branch] if (u2 < 1.0) // its crater, at least two cells wide, shallower when wider
-                cone -= 0.35 * height * (rim / rimWide) * (rim / rimWide) * (1.0 - u2 * u2) * (1.0 - u2 * u2);
-            h = max(h, cone);
-            // Its share as the relief's: its area kept once widened, its edge at least two cells wide. Whole at the widened
-            // size, each cone of a field stood as a disc of two cells at any distance, its edge sharper than the samples:
-            // seen from orbit, the field's discs came and went as the view moved.
-            const float edge = max(0.3 * wide, 2.0 * cellKm);
-            presence = max(presence, w * (size / wide) * (size / wide) * saturate((wide - length(local)) / edge));
+            const uint form = RlMix1(hash + 4u);
+            const float4 morph = (float4)(uint4(form, form >> 8, form >> 16, form >> 24) & 255u) / 255.0;
+            const float size = lerp(0.18, CONE_MAX_RADIUS, u.w * lerp(0.7, 1.0, u.w));
+            const float stretch = lerp(1.0, CONE_MAX_STRETCH, morph.x);
+            const float wide = max(size, 2.0 * cellKm * stretch);
+            [branch] if (distance2 >= wide * wide * stretch * stretch)
+                continue;
+            const float2 away = centre * rsqrt(max(dot(centre, centre), 1e-8));
+            const float2 along = normalize(lerp(dot(centre, rift) < 0.0 ? -rift : rift, away, 0.55));
+            const float2 axis = normalize(along + (1.3 * (morph.y - 0.5)) * float2(-along.y, along.x));
+            const float2 q = float2(dot(local, axis) / stretch, dot(local, float2(-axis.y, axis.x)) * stretch) / wide;
+            const float d = length(q), rim = lerp(0.16, 0.38, morph.w);
+            const float offset = rim * lerp(0.1, 0.34, morph.y);
+            const float2 vent = (q - float2(offset, 0.0)) / rim;
+            const float bowl = saturate(1.0 - dot(vent, vent));
+            const float clearRim = 1.0 - smoothstep(0.55, 1.15, 2.0 * cellKm * stretch / (rim * size));
+            const float floorHeight = ConeFlank(rim) - lerp(0.05, 0.31, morph.z) * ageHeight;
+            const float flank = lerp(ConeFlank(d), floorHeight, bowl * bowl * clearRim);
+            // A breach is an angular opening in the rim, widening down the cone into the apron.
+            const float opening = smoothstep(0.42, 0.92, q.x / max(d, 1e-4)) * smoothstep(0.08, 0.27, d);
+            const float breach = 0.76 * smoothstep(0.52, 0.94, morph.w) * opening * clearRim;
+            const float deposit = flank * (1.0 - breach);
+            const float area = (size / wide) * (size / wide);
+            h = max(h, deposit * ageHeight * lerp(190.0, 370.0, morph.z) * size * area);
+            presence = max(presence, w * v.fresh * area * 0.64 * smoothstep(0.06, 0.60, deposit));
         }
     }
-    // The mean: the share times a cone's mean volume, pi 0.3 E[250 s^3] km^2 m, over a cell.
-    return w * h + (1.0 - w) * density * 3.1415927 * 0.3 * 250.0 * 0.156 / (spacing * spacing);
+    // Expected cone volume (m km²), distributed over the cell with the same fissure density.
+    const float mean = ConeDensity(p, v, rift) * ageHeight * (32.5 / (spacing * spacing));
+    return lerp(mean, h, w);
 }
 
 // A noise on the circle around a volcano, in deviations: at the direction c, its features `km` apart along a circle of
@@ -257,7 +301,7 @@ float VolcanoEdifices(double3 position, float cellKm, out float quiet, out Volca
         }
         float flowing;
         e += VolcanoFlows(xy, r, v, radius, cellKm, flowing);
-        cones = max(cones, VolcanoCones(xyD, r, v, base, cellKm, presence)); // each cone whole: its field round
+        cones = max(cones, VolcanoCones(xyD, v, angle, cellKm, presence));
         rise += e > 0.0 ? e * e * e * e : 0.0;
         sink = min(sink, e);
         // The detail quieted on young flanks. Their ground fresh: a stratovolcano's cone of ash and scoria, a shield's

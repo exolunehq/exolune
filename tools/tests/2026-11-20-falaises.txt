@@ -1,0 +1,14 @@
+# Seed 0. F1 to F4 follow the reported coastline. F5 to F9 check other shores and inland walls.
+# F10 to F12 show the same coast's wet mask, raw albedo and foam.
+Reported coastal wall | 118.0 -23.190040 157.868862 8.08 -100.48 | -20 150
+Same wall under a second sun | 118.0 -23.190040 157.868862 8.08 -100.48 | -20 169
+Overview of the reported coast | 269.5 -23.18981 157.86949 36 -131.078 | -20 150
+Closer look at the reported shore | 84.9 -23.18981 157.86949 35 -131.078 | -20 150
+Independent cold coastal wall | 70.3 -46.984989 -32.983334 3.29 -149.4 | -40 -10
+Shallow coastal view | 75 -23.19512 157.85908 24 -5 | -20 150
+Inland cliff above the valley | 588.3 -10.9955147344 63.6781683263 6.167 -11.174 | -5.996997 33.681051
+Natural inland rock face | 4024.9 -8.150569 126.172951 20.81 -164.61 | -10 168
+Island ridge and rock wall | 4429.7 -26.501266 166.745418 12 -45 | -46.50 -158.25
+Ocean coverage on the reported wall | 118.0 -23.190040 157.868862 8.08 -100.48 sea | -20 150
+Ground albedo on the reported wall | 118.0 -23.190040 157.868862 8.08 -100.48 groundalbedo | -20 150
+Foam at the foot of the reported wall | 118.0 -23.190040 157.868862 8.08 -100.48 foam | -20 150

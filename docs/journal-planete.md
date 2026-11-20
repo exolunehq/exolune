@@ -9,6 +9,97 @@ History of field adjustments: what changed, why, what it cost or brought, and ho
 - Release x64 built successfully. In 51 native views across three forests, all 11 intermittently missing tree instances remained present during the repeated pans. No view exceeded the tile or plant queue limits. Two filmed descents cover tropical and temperate canopy.
 - The local tag `piste/arbres-stables-2026-11-20-base` identifies the public source base. The earlier renderer is in `x64/ArbresAvant/`. [Flight review](../tools/tests/2026-11-20-arbres-stables.txt)
 
+**2026-11-20 · Flank scoria cones**
+
+- The reported northern flank drew four similar round mounds with concentric bowls. The scoria mask and snow sharpened the repeated outlines.
+- Tilt density towards seeded fissures and taper it around wide summit calderas. Vary the 0.18–0.86 km bases and 16–38% crater ratios. Grade the deposits into the parent slope and open some vents downhill. [Geometry and filter](spec-volcanisme.md#flank-scoria-cones-2026-11-20)
+- CPU checks cover field support across 16 volcanoes and eight cell sizes. A 120-frame descent follows the retained cone. Native stills also cover a temperate fissure field, a tropical cone, a shield and the coastal control.
+- Release x64 builds with the matching terrain shaders.
+- The local tag `piste/cones-de-flanc-2026-11-20-base` marks the source base. The previous renderer is in `x64/VolcanismeAvant/`. [Flight review](../tools/tests/2026-11-20-volcans-flancs.txt)
+
+**2026-11-20 · Stable cliff and beach materials**
+
+- At low altitude, the wide cover slope lost offscreen samples. The loss followed the view and the shadow sweep, cutting polygons into the cliff foot, beach and coastal slope.
+- Preserve the 60 m probes with three extra cells for interpolation. Give a steep raster face weight only where the local normal smooths away its slope. [Current rules](spec-texturage-universel.md#continuous-cover-on-cliff-faces-2026-11-20)
+- Two 96-frame flights cover the descent and the beach pass. The stills include both suns, three mesh factors, a cold coastal cliff and a flat beach. Relief and water diagnostics match at the reported poses. Release x64 uses the seven reviewed shaders.
+- The local tag `piste/falaises-approche-2026-11-20-base` marks the source base. The previous renderer is in `x64/FalaisesApprocheAvant/`. [Flight review](../tools/tests/2026-11-20-falaises-approche.txt)
+
+**2026-11-20 · Gradual inland water texture**
+
+- At 434.9 m above sea level the reported lake showed a distinct contrast band where the small ripples faded together.
+- Use six ripple wavelengths from 1 to 32 m with overlapping fades from eight to two pixels. Weaken the longer ripples and transfer the unresolved slope variance to reflection roughness.
+- In the 720p witness, the rise from 15% to 75% of the peak row contrast spans 90 rows, compared with 26 before. A 72-frame descent, two other lakes and a flowing river confirm a softer transition. The witness coverage and coastal ocean control are pixel-identical.
+- Release x64 passes. The local tag `piste/eau-calme-2026-11-20-base` marks the source base. [Flight review](../tools/tests/2026-11-20-eau-calme.txt)
+
+**2026-11-20 · Continuous cliff cover during approach**
+
+- At 18.2 m the wide material normal lost offscreen samples and switched to the local normal along a sharp edge. Rock replaced soil over a large part of the same wall as the camera turned.
+- Blend to the resolved wall's local slope as its cosine drops from 0.72 to 0.57. The cover variance follows the same transition. The shader reuses the mesh and fine-grid normals.
+- On the tracked patch, rock coverage ran from 35% to 0% during the old turn. It stays at 100% across 64 frames with the revised cover. A 96-frame low approach, three mesh factors, two suns and independent coastal and inland walls complete the native review.
+- Release x64 passes. The witness water mask and depth are identical. The local tag `piste/falaises-rasantes-2026-11-20-base` marks the source base. [Flight review](../tools/tests/2026-11-20-falaises-rasantes.txt)
+
+**2026-11-20 · Lake coverage across the sliding grid**
+
+- The 731.3 m witness showed a dry polygon over a terminal lake at 406.75 m. Its edge followed the fine-grid footprint.
+- Validate the fine stencil before reading its lake-free bits. Share the existing stage lookup between the contour and river halo decisions that need it.
+- Release x64 and the functional contour checks pass. A 96-frame flyover and three mesh factors retain continuous coverage at the witness. Two other affected lakes recover their water. The coastal cliff, river mouth and orbital control pass.
+- The local tag `piste/raccord-lac-2026-11-20-base` marks the source base. The preceding renderer is retained in `x64/TerrainFalaisesProjection/`. [Flight review](../tools/tests/2026-11-20-raccord-lac.txt)
+
+**2026-11-20 · Coastal waterline on steep walls**
+
+- The finer ocean contour painted patches of white water up the reported wall. Its visible coverage now respects the raster height above the wave surface.
+- The raster cap fades across half to one pixel of height with a 0.10 m derivative floor.
+- The local tag `piste/falaises-rivage-2026-11-20-base` marks the source base. The preceding renderer is retained in `x64/TerrainFalaisesAvant/`. [Flight review](../tools/tests/2026-11-20-falaises.txt)
+
+**2026-11-20 · Terminal lakes in orbital approach**
+
+- At 2,850 km, the regular screen footprint erased shallow lake depressions before wet classification. The same lakes became visible by 1,762 km.
+- Only terminal lake shading refines the substrate. The finer cell keeps at least 65% of the regular cell and half a drainage atlas cell. The shore ramp spans 0.001 times the finer cell. The finer wet moments enter smoothly across the first 25% of relative cell reduction.
+- The local tag `piste/lacs-orbite-2026-11-20-base` marks the source base. The preceding renderer is retained in `x64/TerrainEauxOrbiteAvant/`. [Flight review](../tools/tests/2026-11-20-eaux-orbite.txt)
+
+**2026-11-20 · Graded scrub density**
+
+- The 21.4 km witness showed abrupt scrub patches in both sun directions. The shade followed the shrub patch field.
+- `SHRUB_DENSITY_SPREAD` adds 0.65 field deviations to the patch transition in quadrature. Placement, distant canopy and shade use this graded density.
+- The local tag `piste/densite-arbustes-2026-11-20-base` marks the source base. The preceding renderer is retained in `x64/TerrainClairieresAvant/`. [Flight review](../tools/tests/2026-11-20-clairieres.txt)
+
+**2026-11-20 · Diffuse scree at the rock and forest boundary**
+
+- The 7.2 km witness showed a pale edge in albedo and under both sun directions. Its position followed the scree mask.
+- The base fragment share rises from 28% to 58% over the first 25% of exposed rock cover. Scree texture luminance varies that share with gain 0.40. Fragments keep 75% of the parent rock's chroma and share its luminance.
+- Open dust depends on dryness and shelter. Albedo texture contrast on the shared parent rock rises through 2% to 14% total rock cover.
+- The local tag `piste/liseres-mineraux-2026-11-20-base` marks the public source base. The preceding renderer is retained in `x64/TerrainLiseresAvant/`. [Flight review](../tools/tests/2026-11-20-liseres.txt)
+
+**2026-11-20 · Stable rock and forest cover during approach**
+
+- The reported descent from 3.8 to 2.3 km reduced the central mesh cell from 80 to 48 m. The 23 to 14 m fine cells already supplied the lighting. Changing the face size at one pose reproduced changes in albedo, rock and canopy.
+- Measure the cover slope 60 m in each direction from existing fine heights when the mesh bandwidth reaches that support. Fade at the fine window and blend unresolved variance with the normal's weights.
+- In the reported crop, resizing from face factor 2 to 1 or 3.5 cuts mean albedo variation by 74% or 51%. The independent ridge's albedo variation falls 15%. Its rock diagnostic rises 19% from 2.41 to 2.86 levels. These comparisons use a 2.5-pixel blur to isolate patches across the stills.
+- Review the two reported views, another ridge, the close-rock control, and the raw albedo, rock and canopy masks. [Review route](../tools/tests/2026-11-20-approche-continue.txt)
+- The local tag `piste/continuite-couvert-2026-11-20-base` identifies the public source base. The preceding matte renderer is retained in `x64/TerrainContinuiteAvant/` for local comparisons.
+
+**2026-11-20 · Soil and scree on rocky slopes**
+
+- The close slope showed the stripes in albedo and exposed rock while the total rock mask stayed uniform.
+- Use the rock-bearing terrain slope and its variance for ledge cover. Average the texture's existing slope deviation of 0.60 at every footprint.
+- Angular symmetry reduces the filtered joint-cover evaluation from 48 to 30 samples. The five angles retain the weights of the original eight directions.
+- A paired 240-frame descent from 180 m to 19 m shows the broken soil ribbons and retained rock furrows. Independent views cover a tropical wall, coastal ledges and the snowy ridge from Surface Echo.
+- Review the close slope, an alternate sun and height, coastal rock and independent mountain terrain. [Review route](../tools/tests/2026-11-20-stries.txt)
+- The local tag `piste/replats-terrain-2026-11-20-base` identifies the public source base for this iteration.
+
+**2026-11-20 · Matte terrain and stable cover on approach**
+
+- Use the physical slope 60 m either way for terrain cover. Match its unresolved variance to the sampling support.
+- Use one diffuse palette at every footprint. Let the projected footprint filter the material textures and procedural detail.
+- Add terrain grain and texture slopes on the detailed terrain's tangent plane. Limit the combined tangent to 0.40 and give rock the same terrain grain gain as soil.
+- Review the same hillside up close and from farther away. Check the coast, the winter ridges and the view at eye level. [Review route](../tools/tests/2026-11-20-matieres.txt)
+
+**2026-11-20 · Aerial ground palette**
+
+- Weathered scree takes up to 50% chroma reduction. Bedrock takes 20 to 37% according to humidity. Canopy takes 10 to 32% according to dryness and mixed cover.
+- Open soil took up to 22% of the local debris tint. The [earlier mixed-cover tint](log/spec-texturage-universel-historique.md) was revised in the later edge review.
+- The added aerial normal slope is 0.125 to 0.16 on mineral cover and 0.10 to 0.13 on canopy. Review the change with `tools/tests/2026-11-20-terrain-colours.txt`.
+
 **2026-11-20 · Terrain detail in oblique flight**
 
 - The face samples four points across the view and leads the observer toward their projected surface hits. Lead decreases as the cells get finer. The layout limits radial ring shear to 25% and uses the existing ring count.

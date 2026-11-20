@@ -1,0 +1,13 @@
+# Close rocky terrain in the detached camera. Compare the first three views while moving and panning.
+# F7 to F10 show colour and material coverage at the F1 camera position.
+Close rocky hillside | 4024.8 -8.150569 126.172951 20.81 -164.61 | -10 168
+Same face in western sunlight | 4024.8 -8.150569 126.172951 20.81 -164.61 | -10 85
+Wider approach to the same face | 4186.5 -8.150569 126.172951 37 -164.61 | -10 168
+Coastal rock ledges | 84.9 -23.18981 157.86949 35 -131.078 | -20 150
+Dry ground in the rain shadow | 1822.9 -11.825 110.867 30 114 | -5 100
+Snow and exposed ribs from Surface Echo | 12110.51 -7.286024 123.820903 8.57 49.72 | -10 168
+Albedo on the close hillside | 4024.8 -8.150569 126.172951 20.81 -164.61 groundalbedo | -10 168
+Total rock on the close hillside | 4024.8 -8.150569 126.172951 20.81 -164.61 rockall | -10 168
+Exposed rock on the close hillside | 4024.8 -8.150569 126.172951 20.81 -164.61 rock | -10 168
+Scree on the close hillside | 4024.8 -8.150569 126.172951 20.81 -164.61 scree | -10 168
+Tropical rock wall | 4993.8 -7.3762949296 116.9875262922 12 -135.978 | -5 125

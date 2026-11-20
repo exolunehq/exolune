@@ -7,21 +7,6 @@
 
 #include "TerrainRay.hlsli"
 
-// The texel's sample from its finished ground, as ScreenFinishTexel writes it (ScreenReliefWork.hlsli).
-void ScreenWriteSample(uint id, float2 xy, float surface)
-{
-    float3 d;
-    float r2, L;
-    const float R = faceParams.y;
-    PlanePoint(xy, R, d, r2, L);
-    ScreenSample sample;
-    sample.terrain = float4(RelativePosition(d, r2, L, R, faceParams.z, max(surface, gWaterLevel)), surface);
-    sample.inland = float4(InlandSample(gWaterLevel, gWaterDepth, gWaterCoverage), gWaterDistance);
-    sample.flow = float4(sample.inland.x * gWaterFlow, 0.0);
-    sample.ground = float4(gRoughness, gVolcanic, 0.0, 0.0);
-    outScreen[id] = sample;
-}
-
 // Compact tiles keep neighbouring rays together through variable river-search loops, especially at the limb.
 [numthreads(8, 8, 1)]
 void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupIndex)
@@ -67,8 +52,9 @@ void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupI
             ScreenBandwidth(footprint);
             ground = ScreenWorldPoint(xy);
         }
-        surface = ReliefFinishGround(ground, ReliefSampleGround(ground, ErosionMode() > 0u, true, false), ErosionMode() > 0u, true);
-        ScreenWriteSample(id, xy, surface);
+        const ReliefGround sample = ReliefSampleGround(ground, ErosionMode() > 0u, true, false);
+        surface = ReliefFinishGround(ground, sample, ErosionMode() > 0u, true);
+        ScreenWriteSample(id, xy, footprint, surface, sample);
         return;
     }
     // screenPass bit 2, at full weight: the first ray queries no river (D3DApp::Draw). Its ground finished here, as
@@ -94,7 +80,7 @@ void CSMain(uint3 threadId : SV_DispatchThreadID, uint threadInGroup : SV_GroupI
             screenWork[id].active = 0u;
         else
             screenWork[id] = work;
-        ScreenWriteSample(id, xy, surface);
+        ScreenWriteSample(id, xy, footprint, surface, work.ground);
         return;
     }
     const float elevation = screenPass == 0u ? 0.0 : outScreen[id].terrain.w;

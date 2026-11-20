@@ -71,7 +71,7 @@
 
 - **`spec-relief-tectonique.md`:** the game's terrain since 2026-10-31: a tectonic map computed at startup, continents, plates and boundaries; large shapes as profiles, detail modulated by geology; CPU port using a cache; steps 1 to 3 done, awaiting in-flight review.
 - **`spec-climat.md`:** the game's climate since 2026-10-31: three-cell winds, vapor carried from the seas, windward rainfall and rain shadows, continentality and cold currents, computed at startup from the tectonic terrain; the map read by materials, plants, sea and ship, and by the erosion port; step 1 done, awaiting in-flight review.
-- **`spec-volcanisme.md`:** volcanoes derived from the tectonic map, listed at startup and evaluated point by point: arcs, hotspots and their chains, atolls and guyots, rifts, calderas, flows, cones and flood basalts; basalt and ash; experiment `piste/volcanisme`, awaiting in-flight review.
+- **`spec-volcanisme.md`** covers the tectonic volcano catalogue and its pointwise relief. It includes shield and arc vents, fissure-aligned scoria cones, flows, calderas, reefs and flood basalts.
 - **`spec-erosion.md`:** replacement of the frozen network-valley stage by ravines and river corridors; current flight route `2026-11-04-confluents.txt`. Earlier trough-stage observations are preserved in the erosion log.
 - **`recherche-relief.md`:** planetary terrain, tectonics, erosion, eroded noise and games; licenses; the four-layer architecture and plan behind the spec.
 - **`optimisation.md`:** at least 60 fps at 1080p, targeting 120, preserving perceived quality; performance benchmark, baseline and rounds.

@@ -9,6 +9,33 @@ Status: validated the 2026-10-23; steps 1 and 2 done, step 3 in progress. Replac
 - Use the terrain's existing cover weights. Snow has restrained cool variation. Exposed rock and scree carry stronger slopes. Sand carries warmer variation. Canopy colour uses stand-scale contrast over the existing crown and cover model.
 - Use aerial photographs of Denali for snowfield continuity and exposed ribs, Mount St. Helens for vegetation beside exposed rock, and Death Valley for rock and dust contrast. [Alasdair Turner, Denali aerial photographs](https://alasdairturner.com/blog/2016/3/27/oyg9psfvwvuyj6yuyoe36ey8fqlml4), [USGS aerial photograph of Mount St. Helens](https://www.usgs.gov/media/images/aerial-photo-mount-st-helens-june-2024), [USGS Ubehebe Craters](https://www.usgs.gov/media/images/ubehebe-craters-death-valley-california).
 
+**Terrain palette and matte shading, 2026-11-20**
+
+- Use one diffuse palette at every footprint. Preserve linear luminance when changing chroma. Keep more colour in fresh rock than in weathered fragments.
+- Mix the local mineral tint into open soil according to dryness and shelter. Use softer aerial normals on mixed mineral cover and dry canopy.
+- Form scree from the local soil and desaturated fragments of its parent rock. Reduce the fragment share where the bedrock is covered. The scree texture varies that share while keeping diffuse luminance between the soil and exposed rock at every footprint.
+- Ramp the albedo texture contrast on the parent rock as its total cover rises from 2% to 14%. Both exposed rock and scree read that albedo, so the texture handoff is continuous at sparse rock cover.
+- Choose land cover on broad slopes from a slope measured 60 m on either side of the point. Read this slope from fine heights when the mesh starts to filter that support. Fade across the fine window and switch to its direct reconstructed normal when the fine cells themselves reach the support size.
+- Blend unresolved cover variance with the same weights as the normal. The ground shader reads four bilinear height samples from the existing fine grid for the fixed support. The shore uses its own normal.
+- Within rock cover, use the same terrain slope distribution to assign scree and soil. Keep the measured rock texture slope deviation in the average at every footprint. The resolved grain contributes to diffuse lighting.
+- Combine material slopes and lighting grain on the detailed terrain's tangent plane. Smoothly limit the perturbation's tangent to 0.40. The terrain's larger slopes still set the light and cast shadows.
+- Use the exposed strata and muted scrub of Zion, the dust and olive foliage of Wyoming sagebrush, and the grouped vegetation of Mount St. Helens as visual references. [NPS view from Observation Point](https://www.nps.gov/media/photo/gallery-item.htm?gid=98B2CD6B-155D-451F-67A73851F18C9948&id=987C7708-155D-451F-67616DD70B76C99C), [USGS Wyoming sagebrush](https://www.usgs.gov/media/images/undisturbed-sagebrush-landscape-wyoming), [USGS Mount St. Helens](https://www.usgs.gov/media/images/aerial-photo-mount-st-helens-june-2024).
+- Review the same hillside during approach and under two sun directions. Check the albedo and water views, then independent slopes, snow, the coast and eye level. [Review route](../tools/tests/2026-11-20-matieres.txt)
+- The close hillside review compares albedo, total rock, exposed rock and scree. The photo references show weathered grooves with grouped vegetation on the neighboring slopes. [Kayenta Trail, NPS](https://www.nps.gov/zion/learn/nature/treesandshrubs.htm) · [Badlands Slopes, NPS](https://www.nps.gov/places/badlands-slopes.htm) · [Close flight review](../tools/tests/2026-11-20-stries.txt).
+- The intermediate approach review follows the reported flight line from 3.8 to 2.3 km above ground. Resize the face at a fixed pose to inspect the rock, albedo and canopy masks. [Intermediate flight review](../tools/tests/2026-11-20-approche-continue.txt).
+- The edge review compares the 7.2 km witness and its approach under two sun directions, with an independent ridge, dry ground, snow and coastal rock. [Slopes and scree review](../tools/tests/2026-11-20-liseres.txt).
+- Earlier palette and slope trials are recorded in the [rendering log](log/spec-texturage-universel-historique.md).
+
+## **Continuous cover on cliff faces, 2026-11-20**
+
+- The wide support can span a wall and its terraces. Give a resolved wall its local material slope from the existing metre-scale mesh normal and fine-grid reconstruction.
+- Ease the wall share as the cosine of the local slope drops from 0.72 to 0.57, about 44 to 55 degrees. Blend the unresolved slope variance with this same share.
+- Retain wide slope taps and their interpolation support beyond the view on both grids. The beach uses its own shore normal.
+- The centred normal can flatten a steep face against its terraces. Support the wall with the rendered triangle's slope as its cosine drops from 0.76 to 0.58. Fade in with cells of 2 to 6 m. Fade out as finer samples take over or the cell or pixel footprint approaches the wide support.
+- Raise the triangle's share as the cosine gap to the centred normal grows from 0.03 to 0.12. This limits streaks on hillside triangles whose slope agrees with the centred normal.
+- Use the resolved face for cover only. Lighting keeps its smooth reconstruction.
+- Review distant and low coastal approaches, steep inland slopes and beaches under different sun directions. [Flight review](../tools/tests/2026-11-20-falaises-approche.txt)
+
 ## The finding
 
 **Stagnating:** each correction adjusts the reported view, and the next mountain shows the same family of defects. Recent cases:

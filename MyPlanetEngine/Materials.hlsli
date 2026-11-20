@@ -161,7 +161,7 @@ float3 DetailSlope(float3 q, float cellSize, float footprint)
 struct Texture
 {
     float3 color;  // factor on the material's colour, mean 1
-    float3 slope;  // height gradient, planet frame, whole: the materials are decided on it
+    float3 slope;  // height gradient in the planet frame, used for lighting
     float  cavity; // factor on the sky's light, mean 1
     float  relief; // height above the texture's mean (m), for the borders between materials (HeightBlend)
 };
@@ -893,42 +893,31 @@ float SlopeOf(float flatness)
     return sqrt(1.0 - f * f) / f;
 }
 
-// The slope vector (tangent of the slope, along the steepest direction) of a surface of normal n under the vertical up.
-float3 SlopeVector(float3 n, float3 up)
+// Joint rock, scree-ledge and soil-ledge fractions on the terrain slope distribution.
+// Average the rock texture's roughness at the ledge scale.
+float3 RockShares(float slope, float sigma, float2 rockLimits, float2 ledgeLimits, float2 soilLimits)
 {
-    const float c = max(dot(n, up), 0.05);
-    return (n - c * up) / c;
-}
-
-// The ledges after the universal rule (docs/spec-rendu-lointain.md): over a pixel whose slope vector is m on
-// average, spreading by sigma along each axis, the share of rock (its slope past rockLimits) and, within it, the
-// shares flat enough for scree (under ledgeLimits) and soil (under soilLimits) once the rock texture's slope T is
-// added, with what the pixel cannot show of that texture's slope, sigmaTex. Returns (rock, ledge, soil ledge), the
-// last two shares of the whole pixel. Near the camera, sigma and sigmaTex vanish and this is the per-pixel test;
-// far away, where the textures' slopes are lost to the mips, it keeps the ledges' mean instead of losing them all.
-// The same polar quadrature as SlopeShares, over the whole circle, since T breaks the symmetry.
-float3 RockShares(float2 m, float2 T, float sigma, float sigmaTex, float2 rockLimits, float2 ledgeLimits, float2 soilLimits)
-{
-    float3 share = 0.0;
     [branch]
-    if (sigma < 0.02) // near the camera, the pixel hides no slope worth the quadrature: the point itself
+    if (sigma < 0.02)
     {
-        const float rock = smoothstep(rockLimits.x, rockLimits.y, length(m)), textured = length(m + T);
-        return rock * float3(1.0, 1.0 - SpreadStep(ledgeLimits.x, ledgeLimits.y, textured, sigmaTex),
-                             1.0 - SpreadStep(soilLimits.x, soilLimits.y, textured, sigmaTex));
+        const float rock = smoothstep(rockLimits.x, rockLimits.y, slope);
+        return rock * float3(1.0, 1.0 - SpreadStep(ledgeLimits.x, ledgeLimits.y, slope, STONE_SLOPE_SIGMA),
+                             1.0 - SpreadStep(soilLimits.x, soilLimits.y, slope, STONE_SLOPE_SIGMA));
     }
+    // Same polar quadrature as SlopeShares. Averaged texture roughness restores angular symmetry.
+    const float angles[5] = { 1.0, 0.70710678, 0.0, -0.70710678, -1.0 }, weights[5] = { 1.0, 2.0, 2.0, 2.0, 1.0 };
+    float3 share = 0.0;
     [unroll]
     for (int i = 0; i < 6; ++i)
     {
         const float r = sigma * sqrt(-2.0 * log(1.0 - (i + 0.5) / 6.0));
         [unroll]
-        for (int k = 0; k < 8; ++k)
+        for (int k = 0; k < 5; ++k)
         {
-            const float angle = 0.78539816 * k, ca = cos(angle), sa = sin(angle);
-            const float2 v = m + r * float2(ca, sa);
-            const float rock = smoothstep(rockLimits.x, rockLimits.y, length(v)), textured = length(v + T);
-            share += rock * float3(1.0, 1.0 - SpreadStep(ledgeLimits.x, ledgeLimits.y, textured, sigmaTex),
-                                   1.0 - SpreadStep(soilLimits.x, soilLimits.y, textured, sigmaTex));
+            const float c = angles[k], magnitude = length(float2(slope + r * c, r * sqrt(1.0 - c * c)));
+            const float rock = smoothstep(rockLimits.x, rockLimits.y, magnitude);
+            share += weights[k] * rock * float3(1.0, 1.0 - SpreadStep(ledgeLimits.x, ledgeLimits.y, magnitude, STONE_SLOPE_SIGMA),
+                                               1.0 - SpreadStep(soilLimits.x, soilLimits.y, magnitude, STONE_SLOPE_SIGMA));
         }
     }
     return share / 48.0;
@@ -1188,24 +1177,12 @@ Materials GroundMaterials(float3 q, float elevation, float3 up, float3 normal, f
     const float3 stoneSlope = TEXTURE_DETAIL * TangentSlope(stone.slope, normal);
     const float3 textureSlope = lerp(lerp(soilSlope, TEXTURE_DETAIL * TangentSlope(scree.slope, normal), screeWeight),
                                      stoneSlope, rock);
-    // Ledges (docs/spec-roche-organique.md, step 1): where the rock's own surface, its texture's slope on the
-    // mesh's, levels out, scree covers it, then soil; bare rock keeps to the steep. Only what is seen: the
-    // relief and the slope keep the rock's shape, which the cover lies on.
-    // Within the rock, the ledges' share after the universal rule (RockShares): from the mesh's slope, the slopes the
-    // pixel hides, and the rock texture's slope, explicit near the camera, its lost part (STONE_SLOPE_SIGMA, by the
-    // octaves under the pixel, about thirteen of them from 1 cm to 64 m) far away.
-    const float3 meshVector = SlopeVector(normal, up), textureVector = SlopeVector(normalize(normal - stoneSlope), up) - meshVector;
-    const float meshSlopeLength = length(meshVector);
-    const float3 e1 = meshSlopeLength > 1e-4 ? meshVector / meshSlopeLength
-                    : normalize(cross(up, abs(up.x) < 0.9 ? float3(1.0, 0.0, 0.0) : float3(0.0, 1.0, 0.0)));
-    const float3 e2 = cross(up, e1);
-    const float textureLost = saturate((pixel + 1.0 - log2(0.01)) / 13.0);
+    // Scree and soil settle where the rock-bearing terrain levels out, at the same support as rock cover.
     float3 shares = float3(1.0, 0.0, 0.0);
     [branch]
     if (rock > 0.001)
-        shares = RockShares(float2(meshSlopeLength, 0.0), float2(dot(textureVector, e1), dot(textureVector, e2)), slopeSigma,
-                                     STONE_SLOPE_SIGMA * sqrt(textureLost), float2(0.65, 1.0) * limitShift,
-                                     float2(SlopeOf(LEDGE_SCREE.y), SlopeOf(LEDGE_SCREE.x)), float2(SlopeOf(LEDGE_SOIL.y), SlopeOf(LEDGE_SOIL.x)));
+        shares = RockShares(groundSlope, slopeSigma, float2(0.65, 1.0) * limitShift,
+                           float2(SlopeOf(LEDGE_SCREE.y), SlopeOf(LEDGE_SCREE.x)), float2(SlopeOf(LEDGE_SOIL.y), SlopeOf(LEDGE_SOIL.x)));
     const float ledge = rock * shares.y / max(shares.x, 1e-4);
     const float ledgeSoil = rock * shares.z / max(shares.x, 1e-4);
 

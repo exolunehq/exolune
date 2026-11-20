@@ -175,9 +175,31 @@ SeaSurface InlandWaterAt(float3 pos, float3 q, float pixel, float3 up, float lev
     const float phase = frac(oceanTime.x / 64.0), other = frac(phase + 0.5);
     const float blend = 0.5 - 0.5 * cos(6.2831853 * phase);
     const float3 drift = flow + float3(0.17, 0.0, 0.11);
-    const float3 ripple = lerp(Fbm3(q - drift * (other * 64.0), 2.0, 0.0, pixel, 0.5, 731u),
-                               Fbm3(q - drift * (phase * 64.0), 2.0, 0.0, pixel, 0.5, 731u), blend);
-    float3 slope = 0.11 * float3(dot(ripple, faceX.xyz), dot(ripple, faceY.xyz), dot(ripple, faceZ.xyz));
+    const float3 phasePoint = q - drift * (phase * 64.0), otherPoint = q - drift * (other * 64.0);
+    // Keep most of the slope power in the 1 to 4 m ripples. Quieter 8 to 32 m bands carry it into the distance.
+    // The fades overlap between eight and two pixels, with the unresolved power passed to the reflection.
+    const float3 wideSlopes = float3(0.008, 0.016, 0.031), fineSlopes = float3(0.052, 0.030, 0.015);
+    const float wholePower = dot(wideSlopes, wideSlopes) + dot(fineSlopes, fineSlopes);
+    const int first = (int)round(log2(detailOrigin.w)) - 5;
+    float3 ripple = 0.0;
+    float resolvedPower = 0.0;
+    [loop] for (int band = 0; band < 6; ++band)
+    {
+        const float fade = smoothstep(1.0, 3.0, 5.0 - band - pixel);
+        if (fade <= 0.0) break;
+        const float3 slopes = band < 3 ? wideSlopes : fineSlopes;
+        const float amplitude = fade * slopes[band < 3 ? band : band - 3];
+        const int octave = first + band;
+        const uint seed = (uint)octave * 0x9E3779B9u + 731u;
+        uint3 cell;
+        float3 fraction;
+        LatticePoint(otherPoint, octave, cell, fraction);
+        const float3 a = Noise3(cell + seed, fraction);
+        LatticePoint(phasePoint, octave, cell, fraction);
+        ripple += amplitude * lerp(a, Noise3(cell + seed, fraction), blend);
+        resolvedPower += amplitude * amplitude;
+    }
+    float3 slope = float3(dot(ripple, faceX.xyz), dot(ripple, faceY.xyz), dot(ripple, faceZ.xyz));
     slope -= dot(slope, up) * up;
     const float3 normal = normalize(up - slope), sun = lightDir.xyz;
     const float3 axis = normalize(waveAxisX.xyz - dot(waveAxisX.xyz, up) * up);
@@ -185,15 +207,17 @@ SeaSurface InlandWaterAt(float3 pos, float3 q, float pixel, float3 up, float lev
     const float3 sunLight = SUN_ILLUMINANCE * SunTransmittance(height, muS, 0.0) * sunShare;
     const float3 direct = sunLight * max(muS, 0.0), sky = SkyIrradiance(height, muS, 0.0);
     const float2 roughness = float2(0.002, 0.003) + 0.0005 * min(length(flow), 4.0);
+    const float noiseVariance = 0.09; // Noise3 variance per component, from its approximately 0.30 deviation.
+    const float lostVariance = noiseVariance * max(wholePower - resolvedPower, 0.0);
     gReflectionSteps = 3u;
     const WaterReflection reflection = ReflectOnWater(up, normal, -normalize(pos), sun, axis,
-                                                      roughness, roughness + 0.001, height, sunLight);
+                                                      roughness + lostVariance, roughness + noiseVariance * wholePower, height, sunLight);
     gReflectionSteps = 6u;
     const float3 albedo = WaterAlbedo(-max(depth, 0.0), 0.01, 0.85);
     water.radiance = reflection.radiance + (1.0 - reflection.fresnel) * albedo / PI * (direct + sky);
     water.sunRadiance = reflection.sunRadiance + (1.0 - reflection.fresnel) * albedo / PI * direct;
     water.glint = reflection.glint;
-    water.moving = 1.0 - smoothstep(0.0, 2.0, pixel);
+    water.moving = sqrt(saturate(resolvedPower / wholePower));
     return water;
 }
 

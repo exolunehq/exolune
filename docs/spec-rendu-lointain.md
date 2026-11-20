@@ -89,15 +89,16 @@ You have to fill the gap between the pixel and the grid cell. Two very different
 - A continuous bound uses the face cell width and the available ring span. It keeps the very close ground within the detailed face and limits radial ring shear to one quarter of the nominal spacing.
 - The face translates as a block. Ring centres taper to the old horizon envelope through an invertible affine map on each side. The mesh, sunlight march and object footing share the map and the same vertex allocation.
 - A dedicated terrain sample at the camera nadir supplies ground height and the ocean's local bed on Exolune. On a moon, the focus uses the surface filtered at the mesh's own scale.
+- Keep the mesh's six-cell shadow margin and its wave allowance. On Exolune, also retain a view-only margin of 60 m plus three cells and the wave allowance when it extends farther. Cover samples remain available under every sun direction.
 
 ## The fine grid
 
 - **768 × 768 grid cells** cover 1.16 face half-widths. Each grid samples the same relief filtered at its own cell size.
 - **Two pass calculation:** the heights of the fine grid, then its normals.
-- **Its culling margin, since 2026-11-07:** 6 fine cells, what a visible pixel's B-spline and normals read, 3 cells, and as many again. It was the mesh's 6 cells, which also cover the shadows' vertices. Images identical; 97 km's fine grid 0.28 ms faster.
+- **View culling** keeps six fine cells for spline and normal sampling. On Exolune, use the larger of this margin and 60 m plus three fine cells for the wide cover probes.
 - **The pixel reconstructs the fine height with a positive 4 × 4 cubic B-spline** and derives its normal from the same surface. Height, normals and water fade from 0.92 to 1.14 face half-widths along each axis. The product keeps the blend smooth at the corners. The contour pass reads the same fine-grid supports. See `spec-normales-spline.md`.
-- **The grain of the lighting and the dispersion of slopes** are adjusted on the grid cell fine: the invented grain starts only below it.
-- **Up to 160 m from the ground for material decisions:** active from grid cells face of 3,4 m, `FineMinCell`, fully to 6,8 m, or 320 m high. Lower, the mesh carries the thinnest octave of the relief, 13,5 m, on its 4 grid cells. It stopped first at 20 m from grid cell, towards 1 km: see the correction of the 2026-10-24 below.
+- **Lighting grain** follows the cell size used for shading. Terrain cover uses the variation of the physical slope at its own sampling scale. See `spec-texturage-universel.md`.
+- **Fine-grid activation** rises from 3.4 m face cells (`FineMinCell`) to full weight at 6.8 m before the spatial fade. It supplies height and water detail. Its normal contributes to the land-cover and shore slope as its sample spacing approaches their fixed support.
 - **Up to 1 km for light:** it illuminates the ground only from grid cells of 20 m, `FINE_LIGHT_MIN_CELL` front. Lower, normal spline and grain, more stable, and textures fill the grid cells.
 - **Out of field points** are not calculated, as for the mesh.
 
@@ -324,7 +325,7 @@ Status: validated in flight by the user on the erosion branch, tag `piste/relief
 - Pixel contour refinement follows global screen activation, not this local stencil weight. A missing limb stencil cannot restart a full planetary river search per fragment; this caused the reproduced GPU timeout.
 
 **What the screen relief drives, where its weight is on:**
-- the lighting normal, the decision normal and the shore normal;
+- the lighting, land-cover and shore normals;
 - the elevation, the inland water and the 3D point where material noises are read;
 - the ocean's edge, its contour at the texels antialiased across the pixel;
 - the slopes hidden below the texel, from its own roughness (`SlopeSpread`), and the light the finer relief leaves (`FinerReliefLit`), about its own normal;

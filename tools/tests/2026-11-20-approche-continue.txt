@@ -1,0 +1,12 @@
+# Follow the heading from F1 toward F2. At a fixed pose, use K and L to compare the material shapes as the grid resizes.
+# F7 to F9 show albedo, total rock and the forest cover of F2.
+Distant witness on the approach | 5739.9 -8.111553 126.183799 20.85 -164.61 | -10 168
+Nearer witness on the approach | 5047.0 -8.127304 126.179420 20.83 -164.61 | -10 168
+Independent mountain ridge | 6603.1 -25.566 -26.916 15 0 | -10 -68
+Tropical rock wall | 4993.8 -7.3762949296 116.9875262922 12 -135.978 | -5 125
+Close rock and scree | 4024.8 -8.150569 126.172951 20.81 -164.61 | -10 168
+Snow and exposed ribs from Surface Echo | 12110.51 -7.286024 123.820903 8.57 49.72 | -10 168
+Albedo on the nearer witness | 5047.0 -8.127304 126.179420 20.83 -164.61 groundalbedo | -10 168
+Total rock on the nearer witness | 5047.0 -8.127304 126.179420 20.83 -164.61 rockall | -10 168
+Canopy on the nearer witness | 5047.0 -8.127304 126.179420 20.83 -164.61 forest | -10 168
+Coastal rock ledges | 84.9 -23.18981 157.86949 35 -131.078 | -20 150

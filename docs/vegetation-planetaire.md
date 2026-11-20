@@ -19,11 +19,18 @@
 - The existing placement keeps the planetary grid, seeds, species, climate and heights.
 - game models: coniferous and deciduous with branched branches and cut foliage.
 - The size of the model follows the height of each instance; its width follows the crown provided by the population.
-- Shrubs retain their instances, source sizes and rules of presence; the climate catalogue replaces the single shrub with twelve architectures.
-- The terrain and the presence rule do not change.
+- The climate catalogue supplies twelve shrub architectures.
 - The placement window counts 512 tiles per octave, against 184 for generated plants.
 - Plants come out at 5–8 pixels, against 14–21 for generated plants; the canopy uses the same drawing rule.
 - The canopy retains plants that are not drawn individually, up to orbit.
+
+**Scrub density**
+
+- Use the existing patch field from 1,024 to 8 m to grade local shrub density, using `SHRUB_LAND` as its midpoint threshold.
+- Add an intrinsic spread of 0.65 times the field's standard deviation in quadrature with the unresolved spread. Account for the wider support when culling field evaluation.
+- Share this density between individually placed shrubs and distant shrub cover. Ground light uses the same field with a minimum four-metre footprint.
+- Use the aerial woodland cover and open scrub in the field photographs as reference for variable density. [USGS San Carlos Apache woodland imagery](https://eros.usgs.gov/doi-remote-sensing-activities/2020/usgs/quantifying-change-woodland-canopy-cover) · [NPS Gila open woodland field guide](https://home.nps.gov/im/sodn/upload/OnePagers_GICLVM-4.pdf)
+- Review the reported scrub during descent and under two suns. Cross-check a second dry site and a humid forest. [Flight review](../tools/tests/2026-11-20-clairieres.txt)
 
 **Representations:**
 - impostors multiviews in the distance; mesh detailed close up.

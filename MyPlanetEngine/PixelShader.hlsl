@@ -28,6 +28,45 @@ float3 SrgbToLinear(float3 c)
 
 #include "TerrainNormals.hlsli"
 
+bool FineCoverHeight(float2 index, int cells, out float height)
+{
+    const int2 c = (int2)floor(index);
+    const float2 t = index - c;
+    const int row = cells + 1, at = c.y * row + c.x;
+    const float4 a = fineNormals[at].terrain, b = fineNormals[at + 1].terrain;
+    const float4 d = fineNormals[at + row].terrain, e = fineNormals[at + row + 1].terrain;
+    height = lerp(lerp(a.w, b.w, t.x), lerp(d.w, e.w, t.x), t.y);
+    return dot(a.xyz, a.xyz) > 0.0 && dot(b.xyz, b.xyz) > 0.0 && dot(d.xyz, d.xyz) > 0.0 && dot(e.xyz, e.xyz) > 0.0;
+}
+
+// Read the same physical slope support as the shore, from the existing fine heights.
+// Fade out before the support touches the fine window's edge.
+float FineCoverNormal(float3 up, float elevation, float cellSize, out float3 normal)
+{
+    normal = up;
+    const int cells = (int)(faceParams.w * ringParams.w);
+    const float2 xy = up.xy * (faceParams.y / up.z);
+    const float2 index = FineGridIndex(xy - MeshOffset());
+    const float span = SHORE_BASELINE / cellSize;
+    const float2 edge = min(index, cells - index);
+    const float weight = smoothstep(span + 1.0, span + 3.0, min(edge.x, edge.y));
+    if (weight <= 0.0)
+        return 0.0;
+    float px, mx, py, my;
+    const bool east = FineCoverHeight(index + float2(span, 0.0), cells, px);
+    const bool west = FineCoverHeight(index - float2(span, 0.0), cells, mx);
+    const bool north = FineCoverHeight(index + float2(0.0, span), cells, py);
+    const bool south = FineCoverHeight(index - float2(0.0, span), cells, my);
+    if (!(east && west && north && south))
+        return 0.0;
+    const float2 slope = float2(px - mx, py - my) / (2.0 * SHORE_BASELINE);
+    const float stretch = up.z * (1.0 + elevation / faceParams.y);
+    const float3 du = stretch * (float3(1.0, 0.0, 0.0) - up.x * up) + slope.x * up;
+    const float3 dv = stretch * (float3(0.0, 1.0, 0.0) - up.y * up) + slope.y * up;
+    normal = normalize(cross(du, dv));
+    return weight;
+}
+
 // ---------------------------------------------------------------------------------------------
 // Materials (docs/log/spec-rendu.md, step C): a simple climate picks the ground, noises break every border.
 // ---------------------------------------------------------------------------------------------
@@ -35,7 +74,7 @@ float3 SrgbToLinear(float3 c)
 struct Ground
 {
     float3 albedo;      // linear reflectance
-    float  detailScale; // fine detail of the normal: stronger on rock, softer on snow and sand
+    float  detailScale; // lighting grain softened by snow and sand
     float3 slope;       // the close-up textures' slope, face-local, in the plane of the surface
     float  cavity;      // factor on the sky's light
     float  diagnostic;  // the weight the diagnostic view shows (MYPLANETENGINE_VIEW), 0 to 1
@@ -49,6 +88,14 @@ struct Ground
 // cosine of its ray to the vertical. Set by PSMain.
 static float3 gPlantView = float3(0.0, 1.0, 1.0);
 static float3 gRay = float3(0.0, 0.0, -1.0); // the view ray, face-local
+
+static const float3 ALBEDO_LUMINANCE = float3(0.2126, 0.7152, 0.0722);
+
+float3 WithAlbedoChroma(float3 albedo, float chroma)
+{
+    const float luminance = dot(albedo, ALBEDO_LUMINANCE);
+    return lerp(luminance.xxx, albedo, chroma);
+}
 
 // q: planet point from the anchor; up, normal, shoreNormal: face-local; sinLat: sine of the latitude; poleward: the
 // tangent direction towards the nearer pole, face-local; pixel: log2 of the pixel size (m).
@@ -72,9 +119,27 @@ Ground GroundAt(float3 q, float elevation, float3 up, float3 normal, float3 shor
     const float3 ash = VOLCANIC_ASH * lerp(1.0, m.sand.color, m.sandAmount) * lerp(1.0, m.soil.color, m.soilAmount);
     color = lerp(color, ash, VOLCANIC_COVER * volcanic);
 
-    float3 rockColor = RockColor(geology, m.humidity) * (1.0 + 0.7 * m.local.z);
-    color = lerp(color, 1.15 * rockColor * lerp(1.0, m.scree.color, TEXTURE_DETAIL), m.screeWeight);
-    color = lerp(color, rockColor * lerp(1.0, m.stone.color, TEXTURE_DETAIL), m.rock);
+    // The diffuse colours belong to the cover. Pixel size filters their detail and coverage.
+    const float paletteWeight = TEXTURE_DETAIL;
+    const float3 rockColor = RockColor(geology, m.humidity) * (1.0 + 0.7 * m.local.z);
+    const float mineralCover = saturate(lerp(m.screeWeight, 1.0, m.rock));
+    const float mixedCover = 4.0 * mineralCover * (1.0 - mineralCover);
+    const float weathering = smoothstep(0.24, 0.70, m.humidity);
+    const float dryness = 1.0 - smoothstep(0.25, 1.1, v.aridity);
+    const float under = GroundLightCover(v);
+    const float3 bedrock = WithAlbedoChroma(rockColor, 1.0 - paletteWeight * lerp(0.20, 0.37, weathering));
+    const float3 dust = WithAlbedoChroma(rockColor, 1.0 - 0.50 * paletteWeight);
+    const float openDust = (0.08 + 0.14 * dryness) * (1.0 - under);
+    color = lerp(color, 0.58 * dust, paletteWeight * openDust);
+    const float rockTexture = paletteWeight * smoothstep(0.02, 0.14, m.rockAll);
+    const float3 rockAlbedo = bedrock * lerp(1.0, m.stone.color, rockTexture);
+    // Where soil blankets the bedrock, it also dilutes the loose fragments.
+    // The scree texture varies the mix within the luminance of its constituents.
+    const float3 fragments = WithAlbedoChroma(rockAlbedo, 1.0 - 0.25 * paletteWeight);
+    const float baseFragmentShare = lerp(0.28, 0.58, smoothstep(0.0, 0.25, m.rock));
+    const float fragmentShare = saturate(baseFragmentShare + 0.40 * paletteWeight * (dot(m.scree.color, ALBEDO_LUMINANCE) - 1.0));
+    const float3 screeAlbedo = lerp(color, fragments, fragmentShare);
+    color = lerp(lerp(color, screeAlbedo, m.screeWeight), rockAlbedo, m.rock);
 
     color = lerp(color, lerp(float3(0.50, 0.42, 0.30), VOLCANIC_ASH, volcanic) * lerp(1.0, m.sand.color, m.sandAmount), m.beach); // beach, black on lava
     color = lerp(color, float3(0.85, 0.86, 0.90) * m.snowColor, m.snow);
@@ -139,15 +204,16 @@ Ground GroundAt(float3 q, float elevation, float3 up, float3 normal, float3 shor
     const float3 species = float3(treesFar * v.conifer, treesFar * (1.0 - v.conifer), shrubsFar) / max(treesFar + shrubsFar, 1e-6);
 
     Ground g;
-    g.under = GroundLightCover(v);
+    g.under = under;
     g.canopy = canopySeen;
     g.nearer = hitHeight / rayAngle;
-    g.canopyAlbedo = saturate(CanopyColor(m, species, v.aridity) * crowns.color);
+    const float canopyChroma = 1.0 - paletteWeight * (0.10 + 0.10 * mixedCover + 0.12 * dryness);
+    g.canopyAlbedo = saturate(WithAlbedoChroma(CanopyColor(m, species, v.aridity) * crowns.color, canopyChroma));
     const float mossSite=MossClimate(v.aridity,v.season)*MossShelter(g.under)*
                          (1.0-max(m.snow,max(m.beach,m.rock)))*saturate(dot(up,normal))*v.able;
     const MossMaterial moss=GroundMoss(q,pixel,mossSite);
     color=lerp(color,moss.albedo,moss.weight);
-    g.detailScale = lerp(lerp(1.0, 2.0, m.rock), 0.5, max(m.snow, m.beach));
+    g.detailScale = lerp(1.0, 0.5, max(m.snow, m.beach));
     const float3 soilSlope=lerp(m.textureSlope*(1.0-m.snow)+m.snow*m.snowSlope,
                                 TangentSlope(moss.slope,normal),moss.weight);
     g.slope = lerp(soilSlope, TangentSlope(crowns.slope, normal), canopySeen);
@@ -163,10 +229,12 @@ Ground GroundAt(float3 q, float elevation, float3 up, float3 normal, float3 shor
         const float3 groundTint = lerp(float3(0.57, 0.84, 0.66), float3(0.88, 0.75, 0.57), max(m.sandAmount, m.beach));
         const float3 mineralTint = lerp(groundTint, float3(1.0, 0.90, 0.82), bareRock);
         const float3 tint = lerp(mineralTint, float3(0.34, 0.44, 0.58), m.snow);
-        const float roughness = lerp(lerp(0.085, 0.18, bareRock), 0.07, m.snow);
+        const float mineralSlope = lerp(0.16, 0.125, mixedCover);
+        const float roughness = lerp(lerp(0.085, mineralSlope, bareRock), 0.07, m.snow);
+        const float canopySlope = lerp(0.13, 0.10, dryness);
         color *= 1.0 + tint * variation;
         g.canopyAlbedo = saturate(g.canopyAlbedo * (1.0 + float3(1.13, 1.24, 0.95) * variation));
-        g.slope += TangentSlope(bands.slope * (aerial * lerp(roughness, 0.14, canopySeen)), normal);
+        g.slope += TangentSlope(bands.slope * (aerial * lerp(roughness, canopySlope, canopySeen)), normal);
     }
     g.albedo = saturate(color);
     const float cavity = lerp(lerp(lerp(1.0, m.sand.cavity, m.sandAmount) * lerp(1.0, m.soil.cavity, m.soilAmount), lerp(1.0, m.scree.cavity, TEXTURE_DETAIL), m.screeWeight),
@@ -213,10 +281,15 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     if (lightDir.w > 1.5) // wireframe: bright lines, unlit (screen-space derivatives mean nothing on lines)
         return float4(SrgbToLinear(input.elevation < 0.0 ? float3(0.3, 0.6, 1.0) : float3(0.6, 1.0, 0.5)), 1e-3);
 
-    // Smooth shading from the vertices' normals, plus the fine detail. The faceted normal, from the
-    // triangles, is kept to compare (key R): each triangle flickers as its vertices move.
+    // Smooth shading from the vertices' normals, plus the fine detail. The triangle normal also
+    // supplies the inclination of a resolved wall and the faceted comparison (key R).
     const float3 up = normalize(input.dir);
     const float3 dpdx = ddx(input.pos), dpdy = ddy(input.pos);
+    const float3 faceCross = cross(dpdy, dpdx);
+    const float faceArea2 = dot(faceCross, faceCross);
+    const float3 faceNormal = faceArea2 > 1e-20 ? faceCross * rsqrt(max(faceArea2, 1e-20)) : up;
+    const float faceUp = dot(faceNormal, up);
+    const float3 outwardFace = faceUp < 0.0 ? -faceNormal : faceNormal;
     const float2 seaDx=ddx(input.seaParam),seaDy=ddy(input.seaParam);
     const float footprint = sqrt(max(dot(dpdx, dpdx), dot(dpdy, dpdy))); // pixel size (m)
     // The relief's view (Tectonics.hlsli): the ground and the sea floor in hypsometric tints, lit by the sun over the relief
@@ -259,9 +332,10 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
                                 screenWeight);
     // On the screen relief, the slopes below its texels from its own roughness: the vertices', interpolated on triangles
     // sliding under the view, made the snow's and the rock's limits tremble with them.
-    const float slopeSpread = lerp(input.slopeSpread * sqrt(max(log2(cellSize / DETAIL_MIN_WAVELENGTH), 0.0)
-                                                            / max(log2(input.cellSize / DETAIL_MIN_WAVELENGTH), 1e-3)),
-                                   SlopeSpread(screenGround.x, cellSize), screenWeight);
+    const float slopePerOctave = input.slopeSpread * rsqrt(max(log2(input.cellSize / DETAIL_MIN_WAVELENGTH), 1e-3));
+    const float screenSpread = SlopeSpread(screenGround.x, cellSize);
+    const float slopeSpread = lerp(slopePerOctave * sqrt(max(log2(cellSize / DETAIL_MIN_WAVELENGTH), 0.0)),
+                                   screenSpread, screenWeight);
     // On the screen relief, what the relief finer than its texels leaves lit, about its own normal: the mesh's, its cells
     // sliding under the view, made the light tremble with them.
     const float sunShare = SunAboveHorizon(dot(up, lightDir.xyz), input.horizon, horizonSpread)
@@ -313,21 +387,23 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     // Keep the cancellation-free nadir offset used by TerrainAt; no planet-sized float position.
     const float3 offset = up.x * faceX.xyz + up.y * faceY.xyz - (dot(up.xy, up.xy) / max(1.0 + up.z, 1e-6)) * faceZ.xyz;
     const double3 at = nadir.xyz + (double3)offset;
-    // No terminal lake within reach of the pixel's four fine samples (FineTerrain.hlsl, bit 7 of their near words): its
-    // stage is zero, not read. Read once, for the three tests below, by any pixel that may take one: three reads in the
-    // code, though seldom run, cost 0.1 ms a frame at 2,200 m and 97 km (docs/diagnostic-orbite.md).
-    const bool lakeFree = all((fineNear & 0x80u) != 0u);
+    // Only valid fine samples can certify a dry lake stage. The missing-stencil word also has bit 7 set.
+    const bool lakeFree = fineWeight > 0.0 && all((fineNear & 0x80u) != 0u);
+    const bool refineInland = !lakeBands && unresolved > 0.0 && screenRelief.z < 1.0;
+    const bool riverHalo = inlandCoverage > 0.0 && inlandSample.w > 3.0 * bandScale * sampleCell;
+    bool needsLakeStage = riverHalo;
+#ifndef PIXEL_SCREEN_RELIEF
+    needsLakeStage = needsLakeStage || mixedShore > 0.0 || (riverSupport > 0.0 && coastSupport < 1.0);
+#endif
     float lakeHere = 0.0; // the terminal lake's stage
-    [branch] if (!lakeBands && !lakeFree && unresolved > 0.0 && screenRelief.z < 1.0)
+    [branch] if (refineInland && needsLakeStage && !lakeFree)
         lakeHere = ErosionLakeLevelAt((float3)at);
-    [branch] if (!lakeBands && mixedShore > 0.0 && unresolved > 0.0 && screenRelief.z < 1.0)
-        mixedShore *= lakeHere > 0.0 ? 1.0 : 0.0;
     // Past the band and any lake, the grid's water is a narrow channel's filtered wetness spread by the B-spline, a halo
     // the photographs show no trace of: none, where the pixel would refine a channel.
-    [branch] if (!lakeBands && inlandCoverage > 0.0 && inlandSample.w > 3.0 * bandScale * sampleCell
-                 && unresolved > 0.0 && screenRelief.z < 1.0)
+    [branch] if (refineInland && lakeHere <= 0.0)
     {
-        if (!(lakeHere > 0.0)) inlandCoverage *= 1.0 - unresolved * (1.0 - screenWeight);
+        mixedShore = 0.0;
+        if (riverHalo) inlandCoverage *= 1.0 - unresolved * (1.0 - screenWeight);
     }
     // The screen relief already holds the contour at its texels: no per-pixel query under it.
     // At the limb a screen stencil may miss the sphere. Its fallback is the filtered mesh/fine-grid water,
@@ -405,6 +481,13 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     const float preciseInland = ErosionRivers() ? max(preciseRiverCoverage, smoothstep(0.0, 0.5 * lakeAA, preciseLakeClearance))
                                               : smoothstep(0.0, 0.5 * liquidAA, preciseClearance);
     oceanCoverage = lerp(oceanCoverage, preciseOcean, refine);
+    // A refined shoreline cannot place water on the portion of a rasterized wall above the wave surface.
+    // Expand the sphere equation about its sea-level radius to keep metre-scale heights precise.
+    const float3 seaOffset = input.pos + float3(camPlane.xy, faceParams.z);
+    const float rasterHeight = seaOffset.z + 0.5 * dot(seaOffset, seaOffset) / faceParams.y - input.seaHeight;
+    const float rasterAA = max(abs(ddx(rasterHeight)) + abs(ddy(rasterHeight)), 0.10);
+    const float rasterWet = 1.0 - smoothstep(0.5 * rasterAA, rasterAA, rasterHeight);
+    oceanCoverage = min(oceanCoverage, lerp(rasterWet, 1.0, screenWeight));
     // Blend wet moments before decoding. Interpolating conditional depths/stages with dry values changed the water
     // colour and current as the fine grid, pixel contour and screen samples exchanged their weights on approach.
     const float3 waterMoments = lerp(float3(inlandCoverage, inlandCoverage * waterLevel, inlandCoverage * waterDepth),
@@ -433,11 +516,7 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     float3 normal = vertexNormal;
     float3 detail = 0.0; // the fine detail's slope along the surface, face-local
     if (lightDir.w > 0.5)
-    {
-        normal = normalize(cross(ddy(input.pos), ddx(input.pos)));
-        if (dot(normal, up) < 0.0)
-            normal = -normal;
-    }
+        normal = outwardFace;
     else if (DETAIL_SLOPE > 0.0 && sea < 1.0 && screenWeight < 1.0) // the dry fraction keeps terrain detail; water has its own ripples; the screen relief has its own
     {
         const float3 planetSlope = (1.0 - screenWeight) * DetailSlope(q, cellSize, footprint); // the screen relief's own
@@ -481,20 +560,38 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
         gStrataCell = footprint;
         gStrataRaise = elevation - input.elevation;
         gCellSize = input.cellSize;
-        // The materials are decided on the normal across DECISION_BASELINE (VertexShader.hlsl), the fine grid's far away, and
-        // the textures' whole slope.
-        float3 decisionNormal = normalize(lerp(normalize(lerp(normalize(input.decision), fineNormal, fineWeight)), screenNormal,
-                                               screenWeight));
-        if (lightDir.w < 0.5)
-            decisionNormal = normalize(decisionNormal - (detail - dot(detail, decisionNormal) * decisionNormal));
-        // The beach's normal, across SHORE_BASELINE (VertexShader.hlsl), the fine grid's far away once its cells span the
-        // baseline: the face's cells there no longer resolve a cordon's sides, and the vertices' normal on its crest stood
-        // level; finer, the grid would bring back the bumps the baseline leaves out.
-        const float3 shoreNormal = normalize(lerp(normalize(lerp(normalize(input.shore), fineNormal,
-                                                                 fineWeight * smoothstep(0.5 * SHORE_BASELINE, SHORE_BASELINE, fineCell))),
+        const float3 coarseCover = normalize(input.shore);
+        const float3 shoreNormal = normalize(lerp(normalize(lerp(coarseCover, fineNormal,
+                                                            fineWeight * smoothstep(0.5 * SHORE_BASELINE, SHORE_BASELINE, fineCell))),
                                                   screenNormal, screenWeight));
-        const Ground ground = GroundAt(q, elevation, up, decisionNormal, shoreNormal, sinLat, poleward, log2(footprint),
-                                       dqdx, dqdy, geology, lerp(input.geology.w, screenGround.y, screenWeight), slopeSpread,
+        // Prefer the fine height field when the mesh filters wavelengths admitted by the cover support.
+        const float fineCover = fineWeight * smoothstep(0.5 * SHORE_BASELINE, SHORE_BASELINE, MESH_BAND_LIMIT * input.cellSize);
+        float wideCover = fineCover * (1.0 - smoothstep(0.75 * SHORE_BASELINE, SHORE_BASELINE, fineCell));
+        const float coarseFineCover = fineCover - wideCover;
+        float3 wideNormal = up;
+        [branch] if (wideCover > 0.0 && screenWeight < 1.0)
+            wideCover *= FineCoverNormal(up, fineElevation, fineCell, wideNormal);
+        const float coverWeight = coarseFineCover + wideCover;
+        const float3 broadCover = normalize(coarseCover * (1.0 - coverWeight) + fineNormal * coarseFineCover + wideNormal * wideCover);
+        // The wide baseline spans cliffs and terraces. On a resolved wall, even the centred local normal
+        // can average over the cliff edge. Use the rendered slope where the fine field cannot resolve it.
+        const float3 localCover = normalize(lerp(input.decision, fineNormal, fineWeight));
+        const float localUp = dot(localCover, up), faceCosine = abs(faceUp);
+        const float faceSupport = smoothstep(2.0 * DECISION_BASELINE, 6.0 * DECISION_BASELINE, sampleCell)
+                                * (1.0 - smoothstep(0.5 * SHORE_BASELINE, SHORE_BASELINE, max(sampleCell, footprint)));
+        const float lostSlope = smoothstep(0.03, 0.12, localUp - faceCosine);
+        const float faceWeight = (1.0 - fineWeight) * faceSupport * lostSlope * (1.0 - smoothstep(0.58, 0.76, faceCosine));
+        const float wallWeight = max(1.0 - smoothstep(0.57, 0.72, localUp), faceWeight);
+        const float3 wallNormal = normalize(lerp(localCover, outwardFace, faceWeight));
+        const float3 meshCover = normalize(lerp(broadCover, wallNormal, wallWeight));
+        const float3 coverNormal = normalize(lerp(meshCover, screenNormal, screenWeight));
+        const float coarseOctaves = max(log2(input.cellSize / SHORE_BASELINE), 0.0);
+        const float fineOctaves = max(log2(fineCell / SHORE_BASELINE), 0.0);
+        const float wideOctaves = lerp(coarseOctaves, fineOctaves, coverWeight);
+        const float wallOctaves = max(log2(sampleCell / DETAIL_MIN_WAVELENGTH), 0.0);
+        const float decisionSpread = lerp(slopePerOctave * sqrt(lerp(wideOctaves, wallOctaves, wallWeight)), screenSpread, screenWeight);
+        const Ground ground = GroundAt(q, elevation, up, coverNormal, shoreNormal, sinLat, poleward, log2(footprint),
+                                       dqdx, dqdy, geology, lerp(input.geology.w, screenGround.y, screenWeight), decisionSpread,
                                        materialSpread, input.cellSize, footprint);
         albedo = ground.albedo;
         cavity = ground.cavity;
@@ -504,7 +601,14 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
         canopyAlbedo = ground.canopyAlbedo;
         diagnostic = ground.diagnostic * (1.0 - sea);
         if (lightDir.w < 0.5)
-            normal = normalize(vertexNormal - ground.detailScale * detail - ground.slope);
+        {
+            // Small-scale grain modulates diffuse light on the tangent plane.
+            // Combine it before rolloff so coincident peaks cannot turn a thin border into a bright facet.
+            float3 grain = ground.detailScale * detail + ground.slope;
+            grain -= dot(grain, vertexNormal) * vertexNormal;
+            const float matteSlope = 0.40;
+            normal = normalize(vertexNormal - grain * rsqrt(1.0 + dot(grain, grain) / (matteSlope * matteSlope)));
+        }
     }
 
     // The sea's surface (Sea.hlsli): the water's own normal, its waves on the vertical, never the coast's.

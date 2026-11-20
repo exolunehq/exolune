@@ -72,18 +72,27 @@ void CSMain(uint3 groupId : SV_GroupID, uint threadInGroup : SV_GroupIndex)
 
     // Culling: a vertex that cannot be on screen gets no terrain, and a NaN position so that the
     // rasteriser drops its triangles. The dedicated nadir sample always gives the ground height.
-    // The margin also keeps the neighbours that visible vertices take their normal from, and
-    // those of the spline normals (docs/spec-normales-spline.md). So are the vertices whose
-    // shadow can fall on screen (docs/recherche-ombres-relief.md).
+    // The margin keeps the normal and spline stencils and the vertices that cast shadows on screen.
     const uint centreVertex = (n / 2) * (n + 1) + n / 2;
-    if (!probe && id != centreVertex
-        && !MaybeVisible(RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MIN_HEIGHT),
-                         RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MAX_HEIGHT), ShadowSweep(d), 6.0 * cellSize + waveAxisX.w * (1.0-smoothstep(32.0,64.0,cellSize))))
+    if (!probe && id != centreVertex)
     {
-        FaceVertex hidden = (FaceVertex)0;
-        hidden.pos = asfloat(0x7fc00000u).xxx;
-        outVerts[id] = hidden;
-        return;
+        const float3 low = RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MIN_HEIGHT);
+        const float3 high = RelativePosition(d, r2, L, R, camAltitude, TERRAIN_MAX_HEIGHT);
+        const float waves = waveAxisX.w * (1.0 - smoothstep(32.0, 64.0, cellSize));
+        const float margin = 6.0 * cellSize + waves;
+        float coverMargin = margin;
+#ifndef AIRLESS_SURFACE
+        // Keep the 60 m material probes and their bilinear support around the view, independent of the sun.
+        coverMargin = SHORE_BASELINE + 3.0 * cellSize + waves;
+#endif
+        if (!MaybeVisible(low, high, ShadowSweep(d), margin)
+            && (coverMargin <= margin || !MaybeVisible(low, high, 0.0, coverMargin)))
+        {
+            FaceVertex hidden = (FaceVertex)0;
+            hidden.pos = asfloat(0x7fc00000u).xxx;
+            outVerts[id] = hidden;
+            return;
+        }
     }
 #ifdef LATTICE_PAIRS
     // These two samples are left to the exact shader dispatched next (D3DApp::Draw).

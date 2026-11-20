@@ -10,6 +10,8 @@
 
 ## What it contains
 
+- [Volcanism history](spec-volcanisme-historique.md) preserves the former round scoria cones and their distant cover mask.
+
 - **`spec-rendu-orbite-historique.md`:** removed signed-depth blend and expanded proxy occluder that clipped clouds during approach.
 
 - **`spec-lune-terrain-historique.md`:** superseded single landable moon, removed contact latch, rejected lunar quadtree and appearance iterations.
@@ -34,6 +36,7 @@
 - **Valley morphology, 2026-11-03:** the erosion log preserves the limited-height candidates, unchanged corridor outlines and displaced-bank confinement failure; current formulas and checks remain in `../spec-erosion.md`.
 - **Upstream slot canyons, 2026-11-03:** the same log records the width-only recovery failure, its preceding verification and the discarded height-dependent recovery interval.
 - **`spec-normales-spline-historique.md`:** retired cardinal prefilter and the replaced fine-grid height/normal interpolation; current reconstruction in `../spec-normales-spline.md`.
+- **`spec-roche-organique-historique.md`:** texture-driven soil and scree on ledges; current cover rule in `../spec-roche-organique.md`.
 - **`spec-marche-ambiances-historique.md`:** replaced prototype contact recordings and material selector; current rules in `../spec-marche-ambiances.md`.
 - **`spec-vaisseau-historique.md`:** removed contact look rollback, orbital steering and pitch clamp, replaced near plane and nadir-only contact; current controls and contact in `../spec-vaisseau.md`.
 - **`spec-erosion-historique.md`:** old coastal profiles, comparison of the 9 km filter and expected slope; superseded symmetric band and reach without a sea probe; singular crests, provisional climate, gullies without a slope reserve and their old measurements; C and D measurements before scale separation and spherical valley projection; removed duplicate coastal estimator from E; flattened glacial profiles and measurements from `14c99ec`; the rock-only slope budget, valley dilation, symmetric coastal talus and mesh-scale metric, signed-detail composition, rejected incision cap and archive-worktree closure, superseded on 2026-11-01; current rules in `../spec-erosion.md` and `../spec-eaux-interieures.md`.
@@ -67,6 +70,7 @@
 |  `spec-herbe.md`  | The grass strands in geometry, proposed the 2026-10-21, never made; the tufts of strands generated instead, among the nearby objects. |
 |  `spec-hybride-scans.md`  | Photo scans, tag `piste/essai-hybride-scans` ; its conclusions are integrated. |
 |  `spec-textures-generees-historique.md`  | The experiments drawn from the comparison and what they became; the towers of the rock generated and its structure of 64 m, removed the 2026-10-24. |
+|  `spec-texturage-universel-historique.md`  | Retired palette ramps and terrain-cover sampling trials. |
 |  `spec-relief-reel.md`  | The relief of materials carried by the mesh: disabled the 2026-10-23, removed from the code the 2026-10-30, tag `piste/parois-gradins` ; geometry track (`../geometrie.md`). |
 |  `spec-parois.md`  | The walls in grades: disabled the 2026-10-23, removed from the code the 2026-10-30, tag `piste/parois-gradins`. |
 |  `spec-normales-spline-historique.md`  | The cardinal spline prefilter and `SPLINE_SHARPENING`, removed the 2026-10-30, tag `jalon/09-normales-spline`; the fine-grid reconstruction's captures, 2026-11-01. |

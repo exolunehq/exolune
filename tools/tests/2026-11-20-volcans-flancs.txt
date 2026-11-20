@@ -1,0 +1,14 @@
+# Seed 0. Heights are above sea level. F1 to F5 inspect the reported volcano at several scales.
+# F6 to F12 visit separate volcanic fields, a shield, a caldera and the preceding coast control.
+Reported northern flank | 7314.8 -23.012681 158.314082 40.40 -156.72 | -20 150
+Northern flank under side light | 7314.8 -23.012681 158.314082 40.40 -156.72 | -16 -130
+Low approach to the northern cone | 4301.3 -23.027200 158.310100 33 -161 | -16 -130
+Northern crater from overhead | 4290 -23.043386 158.303900 85 20 | -16 -130
+Southern flank vent | 3706.8 -23.228335 158.258375 40 38.9 | -18 -130
+Temperate fissure field | 6373.1 42.089000 -2.526000 55 -40 | 17 -66
+Breached cone in the temperate field | 1844.3 42.120556 -2.537743 40 -42.6 | 49 19
+Tropical vent among forest | 1930.1 5.025692 -101.644534 40 64.7 | 9 -164
+Breached cone on a young shield | 3306.4 8.276313 -119.129559 40 131.9 | 22 -150
+Independent island-arc volcano | 3200 -20.380000 -143.681000 30 0 | -20 -75
+Main caldera wall | 3245.4 9.250000 -50.040000 25 0 | 9 -10
+Coastal cliff control | 82.4 -23.190545 157.865928 8.47 -75.44 | -20 150

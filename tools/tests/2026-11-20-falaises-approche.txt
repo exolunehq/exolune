@@ -1,0 +1,14 @@
+# Seed 0. Sea-level camera altitudes. F1 to F4 follow the approach and low pass.
+# F5 to F7 revisit the cuts. F8 to F12 check another sun, other terrain and the material mask.
+Distant cliff face | 172.5 -23.191912 157.871651 8.48 -75.44 | -20 150
+Cliff approach midpoint | 127.45 -23.1912285 157.8687895 8.475 -75.44 | -20 150
+Closer cliff face | 82.4 -23.190545 157.865928 8.47 -75.44 | -20 150
+Low coastal pass | 18.2 -23.189057 157.862012 3.19 -77.63 | -20 150
+Soil below the wall | 37.0 -23.190406 157.852268 3.36 -30.81 | -20 150
+Sand and grass below the wall | 59.1 -23.190745 157.851280 13.54 -44.91 | -20 150
+Coastal slope at the left edge | 25.4 -23.232198 157.861893 5.68 176.98 | -20 150
+Coastal slope under a second sun | 25.4 -23.232198 157.861893 5.68 176.98 | -20 169
+Independent cold coastal cliff | 70.3 -46.984989 -32.983334 3.29 -149.4 | -40 -10
+Independent flat beach | 170 16.71 -89.28 20 170 | 20 -85
+Independent steep inland rock | 4024.8 -8.150569 126.172951 20.81 -164.61 | -10 168
+Distant cliff rock coverage | 172.5 -23.191912 157.871651 8.48 -75.44 rockall | -20 150

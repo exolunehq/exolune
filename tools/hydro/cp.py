@@ -54,6 +54,7 @@ RELIEF_BADLANDS = (45.0, 0.6, 6.0)
 RELIEF_HIGHEST = (8000.0, 1000.0)
 VOLCANO_FLOWS = (1.5, 0.25, 40.0, 15.0)
 VOLCANO_CONES = 2.5
+CONE_MAX_RADIUS, CONE_MAX_STRETCH, CONE_FIELD_REACH = 0.86, 1.24, 1.15
 VOLCANO_REEF = (4.5, -12.0, 1.5)
 VOLCANO_LOBES = (0.12, 0.1, 0.35)
 EROSION_JITTER, EROSION_REACH = 0.3, 0.6
@@ -679,39 +680,88 @@ def _flows(ctx, xy, r, v, radius, cell_km):
     return thick * env * (lobe - _over(threshold + 0.5 * e)), share
 
 
-def _cones(ctx, xy, r, v, radius, cell_km):
+def _cone_density(xy, v, rift):
+    r = np.linalg.norm(xy, axis=1)
+    across = np.array([-rift[1], rift[0]])
+    distance = np.minimum(np.abs(xy @ across), 1.3 * np.abs(xy @ (0.5 * across - 0.8660254 * rift)))
+    corridor = 1.0 - _smooth(0.055, 0.23, distance / v["radius"])
+    inner = v["crater"] + CONE_MAX_RADIUS * CONE_MAX_STRETCH
+    summit = _smooth(inner, inner + 0.14 * v["radius"], r)
+    return (v["cones"] * (0.32 + 0.68 * corridor) * (1.0 - _smooth(0.60, CONE_FIELD_REACH, r / v["radius"]))
+            * (1.0 + (summit - 1.0) * _smooth(0.0, 1.0, v["crater"])))
+
+
+def _cone_flank(d):
+    rounding = np.maximum(0.06 - d, 0.0)
+    t = np.clip(1.0 - d - rounding**2 / 0.12, 0.0, 1.0)
+    return t**2 * (2.0 - t)
+
+
+def _cones(ctx, xy, v, angle, cell_km):
     """VolcanoCones: (height (n,), presence (n,))."""
-    n = len(r)
-    spacing = VOLCANO_CONES
-    density = v["cones"] * (1.0 - _smooth(0.6, 1.2, r / radius))
-    if not (density > 0.0).any():
-        return np.zeros(n), np.zeros(n)
-    w = min(max(2.0 - 2.0 * (R_KM / spacing) / ctx.maxf, 0.0), 1.0)
+    n = len(xy)
     h, presence = np.zeros(n), np.zeros(n)
+    if v["cones"] <= 0.0:
+        return h, presence
+    spacing = VOLCANO_CONES
+    field_scale = (2.0 / 3.0) * spacing
+    support = CONE_MAX_STRETCH * max(CONE_MAX_RADIUS, 2.0 * min(cell_km, 0.5 * field_scale) * CONE_MAX_STRETCH)
+    reach = CONE_FIELD_REACH * v["radius"] + support
+    active = np.flatnonzero(np.sum(xy**2, axis=1) < reach**2)
+    if not len(active):
+        return h, presence
+    p = xy[active]
+    w = float(np.clip(2.0 - 2.0 * (R_KM / field_scale) / ctx.maxf, 0.0, 1.0))
+    rift = np.array([math.cos(angle), math.sin(angle)])
+    age_height = 0.78 + 0.22 * v["fresh"]
+    mean = _cone_density(p, v, rift) * age_height * (32.5 / spacing**2)
     if w > 0.0:
-        g = np.floor(xy / spacing)
-        start = np.full(n, np.uint32(_vseed(v) ^ 0x165667B1), np.uint32)
+        g = np.floor(p / spacing)
+        start = np.full(len(p), np.uint32(_vseed(v) ^ 0x165667B1), np.uint32)
         for k in range(9):
             cell = g + [k % 3 - 1, k // 3 - 1]
             ci = cell.astype(np.int64)
             hsh = _round(_round(start, _u32(ci[:, 0])), _u32(ci[:, 1]))
             u = np.stack([(_mix(hsh + np.uint32(i)) >> np.uint32(8)).astype(np.float64) / 16777216.0 for i in range(4)], 1)
             centre = (cell + 0.15 + 0.7 * u[:, 1:3]) * spacing
-            keep = u[:, 0] < v["cones"] * (1.0 - _smooth(0.6, 1.2, np.linalg.norm(centre, axis=1) / radius))
-            size = 0.25 + 0.5 * u[:, 3]
-            wide = np.maximum(size, 2.0 * cell_km)
-            height = 250.0 * size * (size / wide) ** 2
-            dist = np.linalg.norm(xy - centre, axis=1)
-            t = np.clip((1.0 - dist / wide) / 0.6, 0.0, 1.0)
-            cone = height * t * t * (3.0 - 2.0 * t)
-            rim = 0.4 * size
-            rim_wide = np.maximum(rim, 2.0 * cell_km)
-            u2 = dist / rim_wide
-            cone = cone - np.where(u2 < 1.0, 0.35 * height * (rim / rim_wide) ** 2 * (1.0 - u2 * u2) ** 2, 0.0)
-            h = np.where(keep, np.maximum(h, cone), h)
-            presence = np.where(keep, np.maximum(presence, w * np.clip(2.0 * t, 0.0, 1.0)), presence)
-    mean = density * math.pi * 0.3 * 250.0 * 0.156 / (spacing * spacing)
-    return w * h + (1.0 - w) * mean, presence
+            local = p - centre
+            keep = np.flatnonzero((np.sum(local**2, axis=1) < support**2) & (u[:, 0] < _cone_density(centre, v, rift)))
+            if not len(keep):
+                continue
+            centre, local = centre[keep], local[keep]
+            form = _mix(hsh[keep] + np.uint32(4))
+            elongation, turn, height, vent_share = (
+                ((form >> shift) & 255).astype(np.float64) / 255.0 for shift in (0, 8, 16, 24)
+            )
+            size_draw = u[keep, 3]
+            size = 0.18 + (CONE_MAX_RADIUS - 0.18) * size_draw * (0.7 + 0.3 * size_draw)
+            stretch = 1.0 + (CONE_MAX_STRETCH - 1.0) * elongation
+            wide = np.maximum(size, 2.0 * cell_km * stretch)
+            away = centre / np.sqrt(np.maximum(np.sum(centre**2, axis=1), 1e-8))[:, None]
+            direction = np.where((centre @ rift < 0.0)[:, None], -rift, rift)
+            along = 0.45 * direction + 0.55 * away
+            along /= np.linalg.norm(along, axis=1)[:, None]
+            axis = along + (1.3 * (turn - 0.5))[:, None] * np.stack([-along[:, 1], along[:, 0]], 1)
+            axis /= np.linalg.norm(axis, axis=1)[:, None]
+            qx = np.sum(local * axis, axis=1) / (stretch * wide)
+            qy = (axis[:, 0] * local[:, 1] - axis[:, 1] * local[:, 0]) * stretch / wide
+            rim = 0.16 + 0.22 * vent_share
+            offset = rim * (0.1 + 0.24 * turn)
+            bowl = np.clip(1.0 - ((qx - offset)**2 + qy**2) / rim**2, 0.0, 1.0)
+            clear_rim = 1.0 - _smooth(0.55, 1.15, 2.0 * cell_km * stretch / (rim * size))
+            floor = _cone_flank(rim) - (0.05 + 0.26 * height) * age_height
+            d = np.hypot(qx, qy)
+            flank = _cone_flank(d)
+            flank += (floor - flank) * bowl**2 * clear_rim
+            opening = _smooth(0.42, 0.92, qx / np.maximum(d, 1e-4)) * _smooth(0.08, 0.27, d)
+            breach = 0.76 * _smooth(0.52, 0.94, vent_share) * opening * clear_rim
+            deposit = flank * (1.0 - breach)
+            area = (size / wide)**2
+            i = active[keep]
+            h[i] = np.maximum(h[i], deposit * age_height * (190.0 + 180.0 * height) * size * area)
+            presence[i] = np.maximum(presence[i], w * v["fresh"] * area * 0.64 * _smooth(0.06, 0.60, deposit))
+    h[active] = (1.0 - w) * mean + w * h[active]
+    return h, presence
 
 
 def _around(c, around, km, seed):
@@ -805,7 +855,7 @@ def volcano_edifices(ctx, p, seed=None):
             e = np.where(u < 1.0, e + (floor - e) * bowl, e)
         fl, flowing = _flows(ctx, xy, r, v, radius, cell_km)
         e = e + fl
-        cn, pr = _cones(ctx, xy, r, v, base, cell_km)
+        cn, pr = _cones(ctx, xy, v, angle, cell_km)
         cones[sel] = np.maximum(cones[sel], cn)
         presence[sel] = np.maximum(presence[sel], pr)
         rise[sel] += np.where(e > 0.0, e, 0.0) ** 4
