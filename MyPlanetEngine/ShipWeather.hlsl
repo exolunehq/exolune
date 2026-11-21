@@ -68,6 +68,16 @@ void CSMain()
     const float3 dir = normalize((float3)cloudCameraKm.xyz);
     const float temperature = shipClimate.SampleLevel(linearClamp, float4(dir, 0.0), 0.0).y - 6.5 * altitudeKm;
     const float vacuum = ShipVacuum();
+    const float cloudSun = cloudCameraKm.w > 0.5l && vacuum < 1.0
+        ? CloudTraceShadow(cloudCameraKm.xyz, (double3)PlanetDirection(lightDir.xyz)) : 1.0;
+    if (ShipShuttle() && !HasShuttlePane()) {
+        // The original film package carries no pane fit. Its glass still receives the common shadows.
+        weatherState[0] = 0.0;
+        weatherState[1] = float4(0.0, temperature, 0.0, shipAir.z);
+        weatherState[2] = float4(0.0, reliefSun, cloudSun, 0.0);
+        WaterDispatch(false, false, 0.0);
+        return;
+    }
     const float3 weather = vacuum < 1.0 ? WorldWeather(cloudCameraKm.xyz) * (1.0 - vacuum) : 0.0;
     const float rain=weather.x, inCloud=weather.y, extinction=weather.z;
     float4 s = shipResetWater != 0 ? 0.0 : weatherState[0]; // wet, rain, frost
@@ -96,8 +106,6 @@ void CSMain()
     s.w = work.filmUpper;
     weatherState[0] = s;
     weatherState[1] = float4(cloud, temperature, extinction, shipAir.z);
-    const float cloudSun = cloudCameraKm.w > 0.5l && vacuum < 1.0
-        ? CloudTraceShadow(cloudCameraKm.xyz, (double3)PlanetDirection(lightDir.xyz)) : 1.0;
     weatherState[2] = float4(catching, reliefSun, cloudSun, float(work.reset));
     WaterDispatch(work.active, work.reset, retention);
 }

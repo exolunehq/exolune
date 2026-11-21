@@ -42,6 +42,9 @@
     <ClCompile Include="ShipShockHull.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
+    <ClCompile Include="ShipFlightSurfaces.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
     <FxCompile Include="ShipEntryVolumeVertex.hlsl">
       <Filter>Fichiers sources</Filter>
     </FxCompile>

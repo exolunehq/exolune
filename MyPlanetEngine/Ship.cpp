@@ -75,8 +75,9 @@ Ship::Ship()
     if (size == 0) return; // The executable alone starts with the fighter.
     if (size < _countof(model) && _wcsicmp(model, L"classique") == 0) mProfile = ClassicShip;
     else if (size < _countof(model) && _wcsicmp(model, L"navigateur") == 0) mProfile = NavigatorShip;
+    else if (size < _countof(model) && _wcsicmp(model, L"navette") == 0) mProfile = ShuttleShip;
     else if (size >= _countof(model) || _wcsicmp(model, L"chasseur") != 0)
-        throw std::runtime_error("MYPLANETENGINE_MODELE_VAISSEAU must be chasseur, classique or navigateur.");
+        throw std::runtime_error("MYPLANETENGINE_MODELE_VAISSEAU must be chasseur, classique, navigateur or navette.");
 }
 
 bool Ship::Load(const std::wstring& path)
@@ -134,8 +135,128 @@ bool Ship::Load(const std::wstring& path)
     const uint32_t pivotCount = Read<uint32_t>(data, at);
     if (pivotCount != mProfile.pivotCount) throw std::runtime_error("Ship pack does not match the selected profile.");
     for (uint32_t i = 0; i < pivotCount; ++i) pivots[i] = Read<Pivot>(data, at);
+    if (mProfile.model == ShipModel::Navette) ReadShuttleControls(data, at);
     mLoaded = true;
     return true;
+}
+
+void Ship::ReadShuttleControls(const std::vector<uint8_t>& data, size_t& at)
+{
+    // LGR1 stores three legs and closed hull bounds. The flight pack keeps the gear in its closed pose.
+    if (Read<uint32_t>(data, at) != 0x3152474cU) throw std::runtime_error("Missing shuttle gear data.");
+    struct Gear { float legAngle, doorAngle; XMFLOAT3 sole; };
+    for (int i = 0; i < 3; ++i) {
+        const Gear leg = Read<Gear>(data, at);
+        if (!(leg.legAngle > 0 && leg.legAngle < XM_PI && leg.doorAngle > 0 && leg.doorAngle < XM_PI &&
+              XMVectorGetX(XMVector3Length(XMLoadFloat3(&leg.sole))) < Radius))
+            throw std::runtime_error("Invalid shuttle gear data.");
+    }
+    const XMFLOAT3 low = Read<XMFLOAT3>(data, at), high = Read<XMFLOAT3>(data, at);
+    if (!(low.x < 0 && low.y < 0 && low.z < 0 && high.x > 0 && high.y > 0 && high.z > 0 &&
+          std::max({-low.x, -low.y, -low.z, high.x, high.y, high.z}) <= Radius))
+        throw std::runtime_error("Invalid shuttle hull bounds.");
+
+    const uint32_t layout = Read<uint32_t>(data, at);
+    const bool fitted = layout == 0x3354454aU; // JET3 fits the emitting gaps and their different depths.
+    const bool tilted = fitted || layout == 0x3254454aU; // JET2 adds an authored width axis to JET1.
+    if ((!tilted && layout != 0x3154454aU) || Read<uint32_t>(data, at) != _countof(mNozzles))
+        throw std::runtime_error("Invalid shuttle exhaust data.");
+    for (Nozzle& nozzle : mNozzles) {
+        nozzle.mouthWidth = Read<XMFLOAT4>(data, at);
+        nozzle.axisHeight = Read<XMFLOAT4>(data, at);
+        const XMVECTOR axis = XMLoadFloat4(&nozzle.axisHeight);
+        if (!(XMVectorGetX(XMVector3Length(XMLoadFloat4(&nozzle.mouthWidth))) < Radius &&
+              std::abs(XMVectorGetX(XMVector3Length(axis)) - 1) < .0001f &&
+              nozzle.mouthWidth.w > 0 && nozzle.mouthWidth.w < Radius &&
+              nozzle.axisHeight.w > 0 && nozzle.axisHeight.w < Radius))
+            throw std::runtime_error("Invalid shuttle exhaust dimensions.");
+        if (tilted) {
+            nozzle.widthAxis = Read<XMFLOAT4>(data, at);
+            const XMVECTOR width = XMLoadFloat4(&nozzle.widthAxis);
+            if (!(std::abs(XMVectorGetX(XMVector3Length(width)) - 1) < .0001f &&
+                  std::abs(XMVectorGetX(XMVector3Dot(width, axis))) < .0001f))
+                throw std::runtime_error("Invalid shuttle exhaust width axis.");
+        } else {
+            const XMVECTOR pole = std::abs(nozzle.axisHeight.z) < .9f ? g_XMIdentityR2 : g_XMIdentityR0;
+            XMStoreFloat4(&nozzle.widthAxis, XMVector3Normalize(XMVector3Cross(axis, pole)));
+        }
+        nozzle.aperture = {};
+        if (fitted) {
+            nozzle.aperture = Read<XMFLOAT4>(data, at);
+            const float slot = nozzle.aperture.x;
+            if (!(slot >= 1 && slot <= float(mImages.size()) && slot == std::floor(slot) &&
+                  !mImages[size_t(slot) - 1].srgb && nozzle.aperture.y > 0 && nozzle.aperture.y < Radius))
+                throw std::runtime_error("Invalid turbine aperture chart.");
+        }
+    }
+    if (Read<uint32_t>(data, at) != 0x31524854U) throw std::runtime_error("Missing shuttle throttle data.");
+    throttleStops = Read<XMFLOAT2>(data, at);
+    if (!(throttleStops.x > -XM_PIDIV2 && throttleStops.x < 0 && throttleStops.y > 0 && throttleStops.y < XM_PIDIV2))
+        throw std::runtime_error("Invalid shuttle throttle data.");
+    if (at == data.size()) return; // The original film packet ends after THR1.
+
+    const uint32_t surfaces = Read<uint32_t>(data, at);
+    FlightFittings fit = {};
+    if (surfaces == 0x31574c46U) { // FLW1, rigid variable-sweep wings.
+        fit = Read<FlightFittings>(data, at);
+        if (!(fit.wingPivot.x > 0 && fit.brakePivot.x > fit.wingPivot.x &&
+              XMVectorGetX(XMVector3Length(XMLoadFloat3(&fit.wingPivot))) < Radius &&
+              fit.foldedAngle > 0 && fit.foldedAngle < XM_PIDIV2))
+            throw std::runtime_error("Invalid shuttle wing pivot.");
+    } else if (surfaces == 0x32574c46U) { // FLW2, the original nacelle skin extends transversely.
+        fit.brakePivot = Read<XMFLOAT3>(data, at);
+        fit.brakeAngle = Read<float>(data, at);
+        fit.brakeAxis = Read<XMFLOAT3>(data, at);
+        ReadLipTravel(data, at);
+    } else {
+        throw std::runtime_error("Unknown flight-surface trailer.");
+    }
+    if (!(fit.brakePivot.x > 0 && XMVectorGetX(XMVector3Length(XMLoadFloat3(&fit.brakePivot))) < Radius &&
+          fit.brakeAngle > 0 && fit.brakeAngle < XM_PIDIV2 &&
+          std::abs(XMVectorGetX(XMVector3Length(XMLoadFloat3(&fit.brakeAxis))) - 1.0f) < 1.e-4f))
+        throw std::runtime_error("Invalid fitted brake hinge.");
+    mFlightFittings = fit;
+    if (at == data.size()) return;
+
+    constexpr size_t samples = SHUTTLE_PANE_COLUMNS * SHUTTLE_PANE_ROWS;
+    constexpr size_t bytes = samples * sizeof(XMFLOAT4);
+    if (Read<uint32_t>(data, at) != 0x31525457U || data.size() - at != bytes)
+        throw std::runtime_error("Invalid shuttle canopy chart.");
+    mFittedPane.resize(samples);
+    std::memcpy(mFittedPane.data(), data.data() + at, bytes);
+    at += bytes;
+    for (const XMFLOAT4& sample : mFittedPane) {
+        const float radius = XMVectorGetX(XMVector3Length(XMLoadFloat4(&sample)));
+        if (!(radius > .15f && radius < Radius + 1 && std::abs(sample.w) < 8.0f))
+            throw std::runtime_error("Invalid shuttle canopy sample.");
+    }
+    mProfile.water = { SHUTTLE_WATER_WIDTH, SHUTTLE_WATER_HEIGHT, SHUTTLE_WATER_Y, SHUTTLE_WATER_TEXEL };
+}
+
+void Ship::ReadLipTravel(const std::vector<uint8_t>& data, size_t& at)
+{
+    const uint32_t count = Read<uint32_t>(data, at);
+    const size_t vertices = mVertexBytes.size() / 60;
+    if (!count || count > vertices || count > (1u << 24) ||
+        (data.size() - at) / (sizeof(uint32_t) + sizeof(XMFLOAT4)) < count)
+        throw std::runtime_error("Invalid nacelle travel count.");
+    mLipTravel.resize(count);
+    for (uint32_t i = 0; i < count; ++i) {
+        const uint32_t id = Read<uint32_t>(data, at);
+        const auto v = Read<XMFLOAT4>(data, at);
+        if (!(id < vertices && std::abs(v.x) < Radius && v.y >= -.001f &&
+              std::isfinite(v.y) && std::isfinite(v.z) && std::isfinite(v.w)))
+            throw std::runtime_error("Invalid nacelle displacement.");
+        uint8_t* poseBytes = mVertexBytes.data() + size_t(id) * 60 + 56;
+        float pose;
+        std::memcpy(&pose, poseBytes, sizeof(pose));
+        if (pose != 0.0f) throw std::runtime_error("Nacelle travel must reference a unique fixed vertex.");
+        // Only the GPU copy uses negative pose indices. The packed rest mesh
+        // keeps its original rig, including its separate brake hinge poses.
+        pose = -float(i+1);
+        std::memcpy(poseBytes, &pose, sizeof(pose));
+        mLipTravel[i] = v;
+    }
 }
 
 // Fit the panoramic field to the loaded chrome mesh, once. Each ray meets the tangent
@@ -233,15 +354,25 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
         mUploads.back()->Unmap(0, nullptr);
         list->CopyResource(target.Get(), mUploads.back().Get());
     };
-    upload(mVertexBytes.data(), mVertexBytes.size(), mVertices);
-    upload(mIndices.data(), mIndices.size() * 4, mIndexBuffer);
-    upload(mMaterialBytes.data(), mMaterialBytes.size(), mMaterials);
     // Use an explicitly addressed read-only buffer for the fit. A dynamic subscript
     // into a large cbuffer can otherwise expand into a very large driver shader.
     FieldRadii field = {};
     if (mProfile.sceneReflections) FitFieldToHull(field);
     upload(field, sizeof(field), mFieldRadii);
+    if (mFittedPane.empty()) {
+        const XMFLOAT4 unused = {0, 0, 1, -1};
+        upload(&unused, sizeof(unused), mPaneChart);
+    } else {
+        upload(mFittedPane.data(), mFittedPane.size() * sizeof(XMFLOAT4), mPaneChart);
+    }
+    const XMFLOAT4 noTravel = {};
+    if (mLipTravel.empty()) upload(&noTravel, sizeof(noTravel), mLipBuffer);
+    else upload(mLipTravel.data(), mLipTravel.size() * sizeof(XMFLOAT4), mLipBuffer);
     const XMFLOAT4 shockBounds = CreateShockHull(device, list);
+    BuildFlightSurfaces();
+    upload(mVertexBytes.data(), mVertexBytes.size(), mVertices);
+    upload(mIndices.data(), mIndices.size() * 4, mIndexBuffer);
+    upload(mMaterialBytes.data(), mMaterialBytes.size(), mMaterials);
     mSceneDepth = sceneDepth;
     D3D12_SHADER_RESOURCE_VIEW_DESC depthView = {};
     depthView.Format = DXGI_FORMAT_R32_FLOAT;
@@ -306,6 +437,8 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
     toRead.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mIndexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER));
     toRead.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mMaterials.Get(), D3D12_RESOURCE_STATE_COPY_DEST, readable));
     toRead.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mFieldRadii.Get(), D3D12_RESOURCE_STATE_COPY_DEST, readable));
+    toRead.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mPaneChart.Get(), D3D12_RESOURCE_STATE_COPY_DEST, readable));
+    toRead.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mLipBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
     toRead.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mShockHull.Get(), D3D12_RESOURCE_STATE_COPY_DEST, readable));
     // The opaque pass already reads last frame's weather, including on the first draw.
     toRead.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mWeather.Get(), D3D12_RESOURCE_STATE_COPY_DEST,
@@ -372,6 +505,10 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
     mConstants->shockBounds = shockBounds;
     mConstants->options.z = float(mProfile.model);
     mConstants->waterLayout = { float(mProfile.water.width), float(mProfile.water.height), mProfile.water.originY, mProfile.water.texel };
+    const auto& surfaces = mProfile.surfaces;
+    mConstants->retroOutlet = { surfaces.retroX, surfaces.retroY, surfaces.retroZ, 0 };
+    mConstants->supportOutlet = { surfaces.supportX, surfaces.supportY, surfaces.supportZ, surfaces.supportSpacing };
+    std::copy_n(mNozzles, _countof(mNozzles), mConstants->nozzles);
     for (auto& pose : mConstants->pose) XMStoreFloat4x4(&pose, XMMatrixIdentity());
 
     // One root signature for every pass: frame constants (b0), the ship's (b3), the draw's (b2), its vertices and
@@ -379,11 +516,15 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
     // the composite image for the glass's refraction, the clouds' frame (b1) and textures, for the weather, then the
     // water's UAVs (u1-u4) and its map and film for the glass (t48, t49), and the terrain's mesh for the weather (t50).
     CD3DX12_DESCRIPTOR_RANGE luts(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 1), climate(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 10),
-        planetMap(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 29), images(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MaxImages + 2, 32),
+        planetMap(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 29),
         composite(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 47), planet(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 4, 24),
         water(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 4, 1), waterRead(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 48);
     CD3DX12_DESCRIPTOR_RANGE shockHull(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 52), sceneDepthRead(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 53);
-    CD3DX12_ROOT_PARAMETER params[20];
+    const CD3DX12_DESCRIPTOR_RANGE images[] = {
+        CD3DX12_DESCRIPTOR_RANGE(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MaxImages, 64),
+        CD3DX12_DESCRIPTOR_RANGE(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 44)
+    };
+    CD3DX12_ROOT_PARAMETER params[22];
     params[0].InitAsConstantBufferView(0);
     params[1].InitAsConstantBufferView(3);
     params[2].InitAsConstants(4, 2);
@@ -392,7 +533,7 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
     params[5].InitAsDescriptorTable(1, &luts);
     params[6].InitAsDescriptorTable(1, &climate);
     params[7].InitAsDescriptorTable(1, &planetMap);
-    params[8].InitAsDescriptorTable(1, &images);
+    params[8].InitAsDescriptorTable(_countof(images), images);
     params[9].InitAsShaderResourceView(46);
     params[10].InitAsUnorderedAccessView(0);
     params[11].InitAsDescriptorTable(1, &composite);
@@ -404,6 +545,8 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
     params[17].InitAsShaderResourceView(51);
     params[18].InitAsDescriptorTable(1, &shockHull);
     params[19].InitAsDescriptorTable(1, &sceneDepthRead, D3D12_SHADER_VISIBILITY_PIXEL);
+    params[20].InitAsShaderResourceView(54);
+    params[21].InitAsShaderResourceView(55, 0, D3D12_SHADER_VISIBILITY_VERTEX);
     CD3DX12_STATIC_SAMPLER_DESC samplers[6] = {
         CD3DX12_STATIC_SAMPLER_DESC(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
                                     D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP),
@@ -456,6 +599,11 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
     shadow.RasterizerState.DepthBias = 200;
     shadow.RasterizerState.SlopeScaledDepthBias = 2.0f;
     Check(device->CreateGraphicsPipelineState(&shadow, IID_PPV_ARGS(&mShadowPSO)), "Ship shadow PSO creation failed.");
+    if (mProfile.model == ShipModel::Navette) {
+        const auto mask = LoadShader(L"ShipShadowMask.cso");
+        shadow.PS = CD3DX12_SHADER_BYTECODE(mask.Get());
+        Check(device->CreateGraphicsPipelineState(&shadow, IID_PPV_ARGS(&mMaskedShadowPSO)), "Ship masked shadow PSO creation failed.");
+    }
 
     // The glass: screen = smoothed * alpha + rgb, layer after layer, depth tested against the scene, not written.
     D3D12_GRAPHICS_PIPELINE_STATE_DESC glass = desc;
@@ -480,12 +628,13 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
     entry.PS = CD3DX12_SHADER_BYTECODE(entryPs.Get());
     Check(device->CreateGraphicsPipelineState(&entry, IID_PPV_ARGS(&mEntryParticlesPSO)), "Ship entry particle PSO creation failed.");
 
-    // The jets (ShipPlume.hlsli): the same blending, boxes marched to the scene's distance, without depth.
+    // Jets and entry gas march through boxes up to the opaque surface read as an SRV.
     const ComPtr<ID3DBlob> plumeVs = LoadShader(L"ShipPlumeVertex.cso"), plumePs = LoadShader(L"ShipPlumePixel.cso");
     D3D12_GRAPHICS_PIPELINE_STATE_DESC plume = glass;
     plume.VS = CD3DX12_SHADER_BYTECODE(plumeVs.Get());
     plume.PS = CD3DX12_SHADER_BYTECODE(plumePs.Get());
     plume.DepthStencilState.DepthEnable = FALSE;
+    plume.DSVFormat = DXGI_FORMAT_UNKNOWN;
     Check(device->CreateGraphicsPipelineState(&plume, IID_PPV_ARGS(&mPlumePSO)), "Ship plume PSO creation failed.");
 
     const ComPtr<ID3DBlob> volumeVs = LoadShader(L"ShipEntryVolumeVertex.cso"), volumePs = LoadShader(L"ShipEntryVolumePixel.cso");
@@ -530,6 +679,7 @@ void Ship::Bind(ID3D12GraphicsCommandList* list, const Tables& t, bool compute) 
         list->SetComputeRootUnorderedAccessView(10, mWeather->GetGPUVirtualAddress());
         list->SetComputeRootDescriptorTable(11, t.composite);
         list->SetComputeRootShaderResourceView(16, t.terrain);
+        list->SetComputeRootShaderResourceView(20, mPaneChart->GetGPUVirtualAddress());
         list->SetComputeRootConstantBufferView(12, t.cloudFrame);
         list->SetComputeRootDescriptorTable(13, t.cloudTextures);
         return;
@@ -545,6 +695,8 @@ void Ship::Bind(ID3D12GraphicsCommandList* list, const Tables& t, bool compute) 
     list->SetGraphicsRootDescriptorTable(8, Gpu(0));
     list->SetGraphicsRootShaderResourceView(9, mWeather->GetGPUVirtualAddress());
     list->SetGraphicsRootShaderResourceView(17, mFieldRadii->GetGPUVirtualAddress());
+    list->SetGraphicsRootShaderResourceView(20, mPaneChart->GetGPUVirtualAddress());
+    list->SetGraphicsRootShaderResourceView(21, mLipBuffer->GetGPUVirtualAddress());
     list->SetGraphicsRootDescriptorTable(11, t.composite);
     list->SetGraphicsRootDescriptorTable(15, Gpu(MaxImages + 7));
     list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -560,7 +712,6 @@ void Ship::DrawShadows(ID3D12GraphicsCommandList* list, const Tables& t)
         list->ResourceBarrier(2, toWrite);
     }
     Bind(list, t, false);
-    list->SetPipelineState(mShadowPSO.Get());
     const CD3DX12_VIEWPORT viewport(0.0f, 0.0f, float(ShadowSize), float(ShadowSize));
     const CD3DX12_RECT scissor(0, 0, LONG(ShadowSize), LONG(ShadowSize));
     list->RSSetViewports(1, &viewport);
@@ -571,9 +722,18 @@ void Ship::DrawShadows(ID3D12GraphicsCommandList* list, const Tables& t)
         list->OMSetRenderTargets(0, nullptr, FALSE, &dsv);
         list->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
         list->SetGraphicsRoot32BitConstant(2, k, 1);
+        list->SetPipelineState(mShadowPSO.Get());
         for (const Draw& d : mDraws)
-            if (mModes[d.material] == 0)
+            if (mModes[d.material] == 0 && VisibleInView(d))
                 list->DrawIndexedInstanced(d.count, 1, d.first, 0, 0);
+        if (mMaskedShadowPSO) {
+            list->SetPipelineState(mMaskedShadowPSO.Get());
+            for (const Draw& d : mDraws)
+                if (mModes[d.material] == 3 && VisibleInView(d)) {
+                    list->SetGraphicsRoot32BitConstant(2, d.material, 0);
+                    list->DrawIndexedInstanced(d.count, 1, d.first, 0, 0);
+                }
+        }
     }
     const CD3DX12_RESOURCE_BARRIER toRead[2] = {
         CD3DX12_RESOURCE_BARRIER::Transition(mShadowMaps[0].Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
@@ -589,7 +749,8 @@ void Ship::DrawOpaque(ID3D12GraphicsCommandList* list, const Tables& t)
     Bind(list, t, false);
     list->SetPipelineState(mOpaquePSO.Get());
     for (const Draw& d : mDraws)
-        if (mModes[d.material] == 0 && !(mProfile.sceneReflections && mRoles[d.material] == 10)) {
+        if ((mModes[d.material] == 0 || mModes[d.material] == 3) && VisibleInView(d) &&
+            !(mProfile.sceneReflections && mRoles[d.material] == 10)) {
             list->SetGraphicsRoot32BitConstant(2, d.material, 0);
             list->DrawIndexedInstanced(d.count, 1, d.first, 0, 0);
         }
@@ -676,24 +837,32 @@ void Ship::DrawGlass(ID3D12GraphicsCommandList* list, const Tables& t, D3D12_CPU
     // To the outside eye the skin is beyond the near gas. To the pilot it is
     // in front of the gas and the physical cabin masks the aperture.
     if (!cockpit) drawOptics();
-    if (hot) {
+    const bool manoeuvring = mProfile.surfaces.span > 0 && !cockpit &&
+        (mConstants->airframe.z > .01f || mConstants->supportExhaust.w > .01f);
+    const float puffs = std::max({std::abs(mConstants->thrust.y), std::abs(mConstants->thrust.z), std::abs(mConstants->thrust.w),
+                                  std::abs(mConstants->turn.x), std::abs(mConstants->turn.y)});
+    const bool attitudePlumes = mProfile.jetCount > 2 && !cockpit && puffs > .02f;
+    const bool legacyPlumes = mProfile.jetCount && (mConstants->thrust.x > .01f || attitudePlumes);
+    if (hot || legacyPlumes || manoeuvring) {
         list->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
         const auto toRead = CD3DX12_RESOURCE_BARRIER::Transition(mSceneDepth.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         list->ResourceBarrier(1, &toRead);
-        list->SetGraphicsRootDescriptorTable(13, t.cloudTextures);
-        list->SetGraphicsRootDescriptorTable(18, Gpu(MaxImages + 10));
         list->SetGraphicsRootDescriptorTable(19, Gpu(MaxImages + 11));
-        list->SetPipelineState(mEntryVolumePSO.Get());
-        list->DrawInstanced(36, 1, 0, 0);
+        if (hot) {
+            list->SetGraphicsRootDescriptorTable(13, t.cloudTextures);
+            list->SetGraphicsRootDescriptorTable(18, Gpu(MaxImages + 10));
+            list->SetPipelineState(mEntryVolumePSO.Get());
+            list->DrawInstanced(36, 1, 0, 0);
+        }
+        if (legacyPlumes || manoeuvring) {
+            list->SetPipelineState(mPlumePSO.Get());
+            list->DrawInstanced(36, mProfile.jetCount + (manoeuvring ? SHIP_MANOEUVRING_JETS : 0), 0, 0);
+        }
         const auto toDepth = CD3DX12_RESOURCE_BARRIER::Transition(mSceneDepth.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
         list->ResourceBarrier(1, &toDepth);
         list->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
     }
     if (cockpit) drawOptics();
-    if (!mProfile.sceneReflections) {
-        list->SetPipelineState(mPlumePSO.Get());
-        list->DrawInstanced(36, mProfile.jetCount, 0, 0);
-    }
     if (hot) {
         list->SetPipelineState(mEntryParticlesPSO.Get());
         list->DrawInstanced(6, 256, 0, 0); // one depth-tested short streak per live slot, no simulation buffer

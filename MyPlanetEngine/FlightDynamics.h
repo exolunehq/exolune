@@ -132,16 +132,45 @@ struct Controls {
     Vec3d forward, right, up;
     double throttle, strafe, lift; // throttle 0..30, manoeuvring controls -1..1
     bool boost, brake, fullThrust = false;
+    double yaw = 0, roll = 0; // pilot rates, positive to the right
 };
 inline double MoveThrottle(double notch, double detents) {
     return Clamp(notch + detents, 0, ThrottleNotches);
 }
+inline double Follow(double value, double target, double dt, double response) {
+    return value + (target - value) * (-std::expm1(-dt / response));
+}
+struct Surfaces {
+    double wings = 0, airbrakes = 0;
+
+    void Advance(const Cues& air, double deceleration, double dt) {
+        const double pressure = air.dynamicPressurePa;
+        const double atmosphere = Smooth(.000035, .00034, air.density);
+        const double flight = atmosphere * Smooth(20, 62, air.equivalentAirspeed);
+        const double load = Smooth(22000, 85000, pressure);
+        const double hot = Smooth(.30, .90, air.heat);
+        // Under aerodynamic load, sweep back to a useful exposed planform.
+        // Reserve full retraction for hover, vacuum and the hot phase of entry.
+        const double extension = flight * (1 - .48 * load) * (1 - hot);
+        const double brake = Smooth(2, 16, deceleration) * Smooth(90, 850, pressure) *
+                             Smooth(.25, .72, wings) * atmosphere * (1 - std::max(load, hot));
+        airbrakes = Follow(airbrakes, brake, dt, brake > airbrakes ? .27 : .20);
+        // Give an open brake time to clear its frame before the wing sweeps into the nacelle.
+        const double target = std::max(extension, .72 * airbrakes);
+        wings = Follow(wings, target, dt, target > wings ? .36 : .52);
+    }
+};
 struct Pilot {
     Vec3d previousNose = {};
     double steeringTime = 0; // finish a commanded turn after the stick recentres
+    double bank = 0, deceleration = 0;
+    double heldNotch = 0;
+    bool holding = false;
+    Surfaces surfaces;
 };
 struct Loads {
-    double mainJet = 0, sideJet = 0, liftJet = 0;
+    double mainJet = 0, sideJet = 0, liftJet = 0, retroJet = 0;
+    Vec3d supportThrust = {};
     Vec3d seatAcceleration = {}; // specific acceleration, including surface support and excluding free fall
 };
 
@@ -156,13 +185,25 @@ inline Vec3d TurnCourse(Vec3d course, Vec3d target, Vec3d right, double fraction
     return course * std::cos(angle) + Normalize(tangent) * std::sin(angle);
 }
 
-inline double WingLift(const Cues& air, const Controls& c, Vec3d flow, Vec3d gravity) {
+inline double WingLift(const Cues& air, const Controls& c, Vec3d flow, Vec3d gravity, double wings) {
     const double weight = Length(gravity);
     const double bankCos = weight > 1e-8 ? std::abs(Dot(c.up, gravity)) / weight : 1;
     const double trim = weight * Smooth(22, 80, air.equivalentAirspeed) / std::max(.60, bankCos);
     const double incidence = -Dot(flow, c.up);
     const double forwards = std::max(0.0, Dot(flow, c.forward));
-    return Clamp((trim + .011 * air.dynamicPressurePa * incidence) * forwards * forwards, -40, 40);
+    return Clamp((trim + (.008 + .003 * wings) * air.dynamicPressurePa * incidence) * forwards * forwards, -40, 40);
+}
+
+inline void AssistBank(Controls& c, Pilot& pilot, const Cues& air, Vec3d gravity, double dt) {
+    const double weight = Length(gravity);
+    const double pitch = weight > 1e-8 ? std::abs(Dot(c.forward, gravity)) / weight : 0;
+    const double authority = Smooth(28, 85, air.equivalentAirspeed)
+                           * (1 - Smooth(.62, .92, pitch)) * (1 - Smooth(.05, .50, std::abs(c.roll)));
+    const double target = pilot.holding ? 0 : .43 * authority * Clamp(c.yaw, -1, 1);
+    const double bank = Follow(pilot.bank, target, dt, .34);
+    c.up = Rotate(c.up, c.forward, pilot.bank - bank);
+    c.right = Cross(c.up, c.forward);
+    pilot.bank = bank;
 }
 
 inline void BankTurn(Controls& c, Vec3d flow, double airspeed, double wingLift, Vec3d gravity, double dt) {
@@ -182,14 +223,15 @@ inline void BankTurn(Controls& c, Vec3d flow, double airspeed, double wingLift, 
 }
 
 inline Vec3d AerodynamicDelta(const Cues& air, const Controls& c, Vec3d flow, double speed,
-                              double wingLift, double dt) {
+                              double wingLift, double airbrakes, double dt) {
     if (speed < 1e-7) return {};
     const double axial = Dot(flow, c.forward), upFlow = Dot(flow, c.up);
     // A broadside hull presents four times its axial drag area. The exact quadratic decay cannot reverse the flow.
     const double inverseBallistic = (1 + 3 * (1 - axial * axial)) / 2400.0; // m^2/kg
     const double dragRate = .5 * SeaLevelDensity * air.density * speed * inverseBallistic;
+    const double panelRate = .5 * SeaLevelDensity * air.density * speed * airbrakes / 850.0;
     // Blend into finite fractional deceleration at arcade transfer speeds. Cutting power still leaves a coast.
-    const double effectiveRate = dragRate / (1 + dragRate / 1.2);
+    const double effectiveRate = dragRate / (1 + dragRate / 1.2) + panelRate / (1 + panelRate / .4);
     const double afterDrag = speed / (1 + effectiveRate * dt);
     // The fin removes sideslip sooner than the wings remove angle of attack. Jets can deliberately slide the hull.
     const double grip = Smooth(18, 75, air.equivalentAirspeed) *
@@ -235,6 +277,11 @@ inline double ThrustAgainstAir(double demand, double airAcceleration) {
     return demand + std::copysign(std::max(0.0, opposition - .2 * std::abs(demand)), demand);
 }
 
+inline double BrakeLimit(double speed) {
+    return 19 + 31 * Smooth(20, 190, speed) + 64 * Smooth(200, 1700, speed)
+        + .42 * speed * Smooth(2600, 45000, speed);
+}
+
 inline Loads Advance(double seconds, Vec3d& position, Vec3d& velocity, Cues& cues,
                      Controls& c, Pilot& pilot, const Field& field) {
     Loads loads;
@@ -252,20 +299,34 @@ inline Loads Advance(double seconds, Vec3d& position, Vec3d& velocity, Cues& cue
     const bool firstPose = Dot(pilot.previousNose, pilot.previousNose) < .5;
     const bool turned = firstPose ? Dot(velocity, c.forward) < .999 * Length(velocity) : Dot(turn, turn) > 1e-12;
     if (turned || translating) pilot.steeringTime = 1.8;
+    if (!c.brake && (c.throttle != pilot.heldNotch || translating || c.fullThrust || c.boost))
+        pilot.holding = false;
     for (int i = 0; i < steps && dt > 0; ++i) {
         const Environment env = field.At(position);
         cues.Measure(env.density, velocity, field.wind);
         cues.AdvanceHeat(env.altitude, Dot(position, velocity) / std::max(1.0, field.planetRadius + env.altitude), dt);
         const double airspeed = Length(cues.airVelocity);
         const Vec3d flow = airspeed > 1e-7 ? cues.airVelocity * (1 / airspeed) : Vec3d{};
-        const double liftForce = WingLift(cues, c, flow, env.gravity);
-        if (!c.brake) BankTurn(c, flow, airspeed, liftForce, env.gravity, dt);
-        const Vec3d airDelta = AerodynamicDelta(cues, c, flow, airspeed, liftForce, dt);
-        const Vec3d air = airDelta * (1 / dt), passive = env.gravity + air;
         const double speed = Length(velocity);
         const double atmosphere = std::max(Smooth(.0001, .02, env.density), Smooth(60, 1800, cues.dynamicPressurePa));
+        if (c.brake && !pilot.holding && speed <= .22) {
+            pilot.holding = true;
+            pilot.heldNotch = c.throttle;
+        }
+        const bool braking = c.brake || pilot.holding;
+        const double overrun = notch > 0 && !burn
+            ? std::max(0.0, Dot(velocity - field.wind * atmosphere, c.forward) - target) : 0;
+        const double excess = pilot.holding ? 0 : c.brake ? speed : overrun;
+        const double requested = std::min(BrakeLimit(speed), 1.55 * excess);
+        pilot.deceleration = Follow(pilot.deceleration, requested, dt, .33);
+        pilot.surfaces.Advance(cues, pilot.deceleration, dt);
+        AssistBank(c, pilot, cues, env.gravity, dt);
+        const double liftForce = WingLift(cues, c, flow, env.gravity, pilot.surfaces.wings);
+        if (!braking) BankTurn(c, flow, airspeed, liftForce, env.gravity, dt);
+        const Vec3d airDelta = AerodynamicDelta(cues, c, flow, airspeed, liftForce, pilot.surfaces.airbrakes, dt);
+        const Vec3d air = airDelta * (1 / dt), passive = env.gravity + air;
         // A stick or throttle command steers through an arc. Once it settles, an unpowered ship can orbit freely.
-        const double guide = (!c.brake && !translating && (notch > 0 || burn || pilot.steeringTime > 0)) ?
+        const double guide = (!braking && !translating && (notch > 0 || burn || pilot.steeringTime > 0)) ?
                              (1 - atmosphere) * Smooth(.02, .5, speed) : 0;
         Vec3d steering = {}, engineAxis = c.forward;
         if (guide > 0) {
@@ -284,33 +345,49 @@ inline Loads Advance(double seconds, Vec3d& position, Vec3d& velocity, Cues& cue
         const double jets = 24 + .4 * drive;
         double mainReference = burn ? LaunchAcceleration + transfer : std::max(24.0, target / .35);
         double jetReference = jets;
-        Vec3d thrust;
-        if (c.brake) {
-            // Powered braking helps the current aerodynamic slowdown. At rest it cancels gravity and crosswind.
-            const Vec3d stopped = Limited(velocity + airDelta, speed) * std::exp(-1.6 * dt);
+        Vec3d thrust, stopped = {};
+        loads.supportThrust = {};
+        loads.retroJet = 0;
+        if (pilot.holding) {
+            // At zero speed the stabilizers cancel external forces, including the climate wind.
+            stopped = Limited(velocity, std::max(0.0, speed - 8 * dt));
             thrust = (stopped - velocity) * (1 / dt) - passive;
-            mainReference = jetReference = std::max(36.0, 1.6 * speed);
+            loads.supportThrust = thrust;
+            mainReference = jetReference = 24;
+        } else if (c.brake) {
+            const double support = 1 - Smooth(1, 17, speed);
+            loads.supportThrust = env.gravity * (-support);
+            const Vec3d glide = velocity + (passive + loads.supportThrust) * dt;
+            stopped = Limited(glide, std::max(0.0, speed - pilot.deceleration * dt));
+            const Vec3d reverse = (stopped - glide) * (1 / dt);
+            thrust = reverse + loads.supportThrust;
+            mainReference = jetReference = std::max(24.0, pilot.deceleration);
+            loads.retroJet = Clamp(Length(reverse) / mainReference, 0, 1);
         } else {
             const double forwardSpeed = Dot(velocity + steering * dt - field.wind * atmosphere, engineAxis);
-            const double response = forwardSpeed > target ? .65 : .35;
-            const double cruise = (target - forwardSpeed) * (-std::expm1(-dt / response) / dt);
+            const double cruise = (target - forwardSpeed) * (-std::expm1(-dt / .35) / dt);
             double ahead = 0;
             if (burn)
                 ahead = ThrustAgainstAir(std::max(drive * boost, cruise), Dot(air, engineAxis));
-            else if (notch > 0)
-                ahead = cruise - Dot(passive, engineAxis);
+            else if (notch > 0) {
+                const double natural = Dot(passive, engineAxis);
+                ahead = forwardSpeed > target
+                    ? std::min(0.0, -std::min(pilot.deceleration, (forwardSpeed - target) / dt) - natural)
+                    : cruise - natural;
+                loads.retroJet = Clamp(-ahead / std::max(24.0, pilot.deceleration), 0, 1);
+            }
             const double side = ThrustAgainstAir(c.strafe / jetAxes * jets * boost, Dot(air, c.right));
             const double lift = ThrustAgainstAir(c.lift / jetAxes * jets * boost, Dot(air, c.up));
             thrust = engineAxis * ahead + c.right * side + c.up * lift + steering;
         }
         const double axialJet = Clamp(Dot(thrust, c.forward) / mainReference, -1, 1);
-        loads.mainJet = std::max(0.0, axialJet);
+        loads.mainJet = braking ? 0 : std::max(0.0, axialJet);
         loads.sideJet = Clamp(Dot(thrust, c.right) / jetReference, -1, 1);
         loads.liftJet = Clamp(Dot(thrust, c.up) / jetReference, -1, 1);
-        cues.engine = c.brake ? Clamp(Length(thrust) / mainReference, 0, 1) :
+        cues.engine = braking ? Clamp(Length(thrust) / mainReference, 0, 1) :
             Clamp(std::hypot(axialJet, std::hypot(loads.sideJet, loads.liftJet)), 0, 1);
 
-        Vec3d next = velocity + (passive + thrust) * dt;
+        Vec3d next = braking ? stopped : velocity + (passive + thrust) * dt;
         const Vec3d fromSupport = position - field.supportOrigin;
         if (Dot(field.supportNormal, field.supportNormal) > .5 && Dot(fromSupport, fromSupport) < 1 &&
             Dot(fromSupport, field.supportNormal) < .02)

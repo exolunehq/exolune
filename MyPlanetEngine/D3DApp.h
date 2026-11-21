@@ -619,6 +619,8 @@ protected:
     Vec3d mShipPos = {}, mShipForward = {}, mShipUp = {}, mShipVelocity = {}; // planet frame; velocity in m/s
     FlightDynamics::Cues mFlightCues;
     FlightDynamics::Pilot mFlightPilot;
+    FlightDynamics::Loads mFlightLoads;
+    float mThrottleLever = 0.0f;
     Vec3d mShipContactImpulse = {}; // accepted change in velocity for the pilot's head at impact
     Vec3d mShipRate = {};          // pitch up, yaw right, roll right (rad/s)
     double mStickX = 0.0, mStickY = 0.0; // the mouse's virtual stick, -1 to 1, recentring

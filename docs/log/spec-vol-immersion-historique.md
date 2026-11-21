@@ -1,5 +1,20 @@
 # Flight and immersion history
 
+**First Navette flight surfaces**
+
+- The film outlet used a 0.34 × 0.38 m ellipse. Its plume lit a small area at the back of each curved grille. The first full-aperture pass made all five streams visible but overlit the edge where the grille turned tangent to the exhaust. The fitted version weights that edge by the projected area of the slots.
+
+- The initial flight variant slid and scaled generic airfoils under the nacelles. At 430 m/s near sea level the actuator settled at 28% and the outboard wing remained inside its casing.
+- The film packet carried the original crew and its glazing had a separate dry shader path. The flight variant switched to nacelle pivots and a fitted weather chart.
+- The first fitted wing spanned 7.80 m and sat above the turbine on two small covers. The profile review led to wider molded shoulders and a lower hinge. A second teal stripe and a concentrated plume were discarded after side and aft flight views.
+
+- The next version used 86-degree hinges and a 9.36 m span. In the pilot's rear-quarter view the independent foil still crossed the nacelle lip. Pulling the fin root forward by height also put a step in the afterdeck. Its source base is tagged `piste/navette-profil-2026-11-21-base`.
+
+**First assisted brake**
+
+- The previous cruise controller reduced speed with a 0.65 s response. The holding brake removed speed with a 0.625 s response and a powered hold depended on keeping X pressed.
+- Pilot feedback called for smoother braking, visible control surfaces and automatic stabilization after the stop.
+
 **Exterior shock-layer study**
 
 - The local tag `piste/rentree-volumetrique-2026-11-20-base` identifies the preceding surface-based flight code. A hot view and a fast, level view showed no warm change in the sampled air ahead of the nose or beside the hull.

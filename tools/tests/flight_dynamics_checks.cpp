@@ -71,15 +71,17 @@ void CheckManualThrust(const Field& planet, const Field& lunar) {
                     names[i], measured[0],measured[1],measured[2],firstSpeed,boosted.velocity.z);
     }
 
-    Flight takeoff; takeoff.position=launch[1];
+    Flight takeoff; takeoff.position={0,Radius+650,0};
     Controls precision=Level; precision.throttle=5; precision.fullThrust=true;
     takeoff.Run(planet,precision,60,60);
     precision.fullThrust=false;
     const double beforeFine=takeoff.velocity.z;
     takeoff.Run(planet,precision,60,60);
-    Check(takeoff.velocity.z<.25*beforeFine && takeoff.velocity.z>CruiseSpeed(5),
-          "releasing full thrust backs down toward the parked wheel setting");
-    takeoff.Run(planet,precision,300,60);
+    std::printf("Release from full thrust: %.0f to %.0f m/s after one second.\n", beforeFine, takeoff.velocity.z);
+    Check(takeoff.velocity.z>.25*beforeFine && takeoff.velocity.z<.85*beforeFine,
+          "releasing full thrust slows progressively toward the parked wheel setting");
+    takeoff.Run(planet,precision,1500,60);
+    std::printf("Fine speed after slowing: %.3f m/s (vertical %.3f m/s, altitude %.1f m).\n", takeoff.velocity.z, takeoff.velocity.y, Length(takeoff.position)-Radius);
     Check(std::abs(takeoff.velocity.z-CruiseSpeed(5))<1, "the pilot can recover their fine speed after the burn");
     for (Controls throttle : {Wheel(25), Wheel(29), Wheel(3), Level}) {
         throttle.boost = throttle.throttle < 25;
@@ -111,8 +113,10 @@ void CheckManualThrust(const Field& planet, const Field& lunar) {
     Flight retro; retro.position=launch[3]; retro.velocity={2e6,-4e5,3e6};
     const double beforeStop=Length(retro.velocity);
     retro.Run(planet,stop,60,60);
-    Check(Length(retro.velocity)<.22*beforeStop && Length(retro.velocity)>.18*beforeStop,
-          "the powered brake scales to interplanetary cruise in every axis");
+    const double ratio = Length(retro.velocity) / beforeStop;
+    std::printf("Interplanetary braking: %.0f%% of initial speed after one second.\n", ratio * 100);
+    Check(ratio > .69 && ratio < .81 && AngleBetween(retro.velocity, Vec3d{2e6,-4e5,3e6}) < .001,
+          "the progressive brake scales to interplanetary cruise across all axes");
 }
 
 void CheckFlightAssist(const Field& field, const Field& lunar) {
@@ -152,10 +156,13 @@ void CheckFlightAssist(const Field& field, const Field& lunar) {
     Check(std::abs(cruiseSpeed-100)<.1 && std::abs(flight.velocity.z-cruiseSpeed)<.02 &&
           std::abs(flight.position.y-altitude)<1, "a level mid-lever cruise carries the ship's weight and holds its airspeed");
     cruise.throttle=MoveThrottle(cruise.throttle,-12);
-    flight.Run(field,cruise,180,60);
+    flight.Run(field,cruise,60,60);
+    Check(flight.velocity.z > 49 && flight.velocity.z < 85 && flight.pilot.surfaces.airbrakes > .15,
+          "lowering the wheel progressively opens the airbrakes during the approach");
+    flight.Run(field,cruise,300,60);
     Check(flight.velocity.z>15 && flight.velocity.z<17 && flight.velocity.y < -7,
           "scrolling back slows the ship to its approach speed and unloads its wings");
-    std::printf("Wing-borne cruise %.1f m/s; wheel 15 to 3, %.1f m/s forward and %.1f m/s vertical after 3 s.\n",
+    std::printf("Wing-borne cruise %.1f m/s; wheel 15 to 3, %.1f m/s forward and %.1f m/s vertical after 6 s.\n",
                 cruiseSpeed,flight.velocity.z,flight.velocity.y);
 
     Flight twins; twins.velocity={0,0,100};
@@ -222,6 +229,58 @@ void CheckFlightDynamics() {
     }
     CheckManualThrust(field,lunar);
     CheckFlightAssist(field,lunar);
+    Controls yaw = Wheel(15);
+    yaw.yaw = 1;
+    Flight turn;
+    turn.velocity = {0, 0, 100};
+    turn.Run(field,yaw,120,60);
+    Check(turn.pilot.bank > .36 && turn.pilot.bank < .44 && turn.velocity.x > 4 &&
+          turn.pilot.surfaces.wings > .9, "an atmospheric yaw rolls into the turn and develops lateral lift");
+    yaw.roll = -.75;
+    Flight manual;
+    manual.velocity = {0, 0, 100};
+    manual.Run(field,yaw,120,60);
+    Check(std::abs(manual.pilot.bank) < 1e-9, "manual roll takes priority over the bank assist");
+    yaw.roll = 0;
+    Flight vacuum;
+    vacuum.position = {0, Radius + 250000, 0};
+    vacuum.velocity = {0, 0, 100};
+    vacuum.Run(field,yaw,120,60);
+    Check(vacuum.pilot.bank == 0 && vacuum.pilot.surfaces.wings == 0 && vacuum.pilot.surfaces.airbrakes == 0 &&
+          std::abs(vacuum.velocity.x) < 1e-7, "the aerodynamic actuators stay stowed in vacuum");
+
+    Cues entry;
+    entry.Measure(.0016, {0,0,2000}, {});
+    entry.heat = .95;
+    Surfaces protectedSurfaces;
+    protectedSurfaces.Advance(entry, 45, 3);
+    Check(protectedSurfaces.wings == 0 && protectedSurfaces.airbrakes == 0,
+          "the hot phase protects both surfaces");
+    // Repeat the same actuator cycle after a close rather than seeding a fresh pilot each time.
+    for (int pass = 0; pass < 3; ++pass) {
+        entry.heat = 0;
+        entry.Measure(.94, {0,0,430}, {});
+        protectedSurfaces.Advance(entry, 0, .25);
+        Check(protectedSurfaces.wings > .24 && protectedSurfaces.wings < .28,
+              "a fast atmospheric departure immediately begins reopening");
+        protectedSurfaces.Advance(entry, 0, 2);
+        Check(protectedSurfaces.wings > .51 && protectedSurfaces.airbrakes < 1e-4,
+              "high dynamic pressure retains visible wings and protects the brakes");
+        entry.Measure(.4, {0,0,170}, {});
+        for (int step = 0; step < 180; ++step) protectedSurfaces.Advance(entry, 45, 1.0 / 60);
+        Check(protectedSurfaces.wings > .97 && protectedSurfaces.airbrakes > .93,
+              "the wings and brake panels recover their full travel when load falls");
+        if (pass == 0) entry.Measure(0, {0,0,800}, {}); // vacuum
+        if (pass == 1) entry.Measure(.94, {}, {12,0,0}); // hover in a light crosswind
+        if (pass == 2) entry.heat = .96;
+        protectedSurfaces.Advance(entry, 0, .1);
+        Check(protectedSurfaces.wings > protectedSurfaces.airbrakes,
+              "the brake closes ahead of the wing");
+        protectedSurfaces.Advance(entry, 0, 3);
+        Check(protectedSurfaces.wings < .004 && protectedSurfaces.airbrakes < .001,
+              "the protected state finishes closing the moving surfaces");
+    }
+    std::puts("PASS: automatic bank, repeated wing deployment and brake clearance.");
 
     Cues air;
     const Vec3d wind = {12,0,0};
@@ -234,7 +293,7 @@ void CheckFlightDynamics() {
     const Vec3d gravity={0,-9.81,0};
     auto aerodynamic=[&](const Controls& hull) {
         const Vec3d flow=Normalize(air.airVelocity);
-        return AerodynamicDelta(air,hull,flow,Length(air.airVelocity),WingLift(air,hull,flow,gravity),.1);
+        return AerodynamicDelta(air,hull,flow,Length(air.airVelocity),WingLift(air,hull,flow,gravity,1),0,.1);
     };
     const Vec3d upright = aerodynamic(Level);
     Controls bank = Level; bank.up = Level.right; bank.right = Level.up * -1;
@@ -276,14 +335,35 @@ void CheckFlightDynamics() {
     held.Run(field,brake,120,60);
     Check(Length(held.position-start)<1e-9 && held.cues.engine>.2, "powered hold balances gravity");
     held.Run(field,Level,60,60);
-    Check(held.position.y<start.y-4 && held.cues.engine==0, "releasing hold restores descent");
-    Flight braking; braking.velocity={45,-2,90};
+    Check(Length(held.position - start) < 1e-9 && held.pilot.holding,
+          "releasing X after the stop leaves the stabilizers engaged");
+    held.Run(field,Wheel(1),60,60);
+    Check(!held.pilot.holding && held.position.y < start.y - 4 && held.velocity.z > 4,
+          "a new wheel command restores normal flight");
+
+    Field windy = field;
+    windy.wind = {16, 0, 0};
+    Flight braking;
+    braking.velocity = {45, -2, 90};
+    brake.throttle = 15;
     const double beforeBrake = Length(braking.velocity);
-    braking.Run(field,brake,1,60);
-    Check(Length(braking.velocity)<beforeBrake && Length(braking.velocity)>beforeBrake*.95 && braking.cues.engine>.9,
-          "a transverse braking burn has finite authority");
-    braking.Run(field,brake,420,60);
-    Check(Length(braking.velocity)<.5, "sustained braking settles all three axes");
+    const Loads onset = braking.Run(windy,brake,1,60);
+    Check(Length(braking.velocity) < beforeBrake && Length(braking.velocity) > beforeBrake * .995 &&
+          onset.mainJet == 0 && onset.retroJet < .2,
+          "a transverse braking command retains momentum and ramps its thrust");
+    const Loads during = braking.Run(windy,brake,60,60);
+    Check(braking.pilot.surfaces.airbrakes > .2 && during.retroJet > .1,
+          "panels and retro thrust share a sustained brake demand");
+    braking.Run(windy,brake,540,60);
+    const Vec3d holdPosition = braking.position;
+    const Loads hover = braking.Run(windy,Wheel(15),300,60);
+    Check(braking.pilot.holding && Length(braking.velocity) == 0 && Length(braking.position - holdPosition) < 1e-9 &&
+          hover.mainJet == 0 && hover.retroJet == 0 && hover.supportThrust.y > 9 && braking.pilot.surfaces.airbrakes < .01,
+          "retro thrust hands all three axes to powered station keeping in a crosswind");
+    Controls slip = Wheel(15);
+    slip.strafe = -1;
+    braking.Run(windy,slip,15,60);
+    Check(!braking.pilot.holding && braking.velocity.x < -4, "manual translation leaves station keeping");
     Controls cruise = Level; cruise.throttle=22; cruise.strafe=.5;
     Flight ref; ref.velocity={30,0,95};
     Flight slow=ref, fast=ref;

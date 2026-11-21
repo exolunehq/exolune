@@ -1,0 +1,7 @@
+# Hold the right mouse button in chase view to orbit the ship. Tab cycles the flight views.
+Coast - orbit the ship to see the extended turbine lip and swept fin | 1150 -23.1956 157.8743 0 -30 v=125 | -9 133
+Offshore - press X to retract the lip, accelerate and repeat | 510 -20.47 -75.45 0 160 v=110 | -10 -99
+Valley - inspect the aft outlets and panel joints in grazing light | 3100 38.1445 103.5352 0 90 v=140 | 47 76
+Fast coast - slow down to see the dorsal brakes above the nacelles | 460 -23.1956 157.8743 0 -30 v=430 | -9 133
+Orbit - check the stowed profile and exterior glass | 250000 22 135 0 90 v=550 | 14 115
+Atmospheric return - watch the wings reopen as entry heat subsides | 66000 30.68685 120.10788 15 76 v=7400 depuis-espace | 12 -161

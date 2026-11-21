@@ -5,7 +5,7 @@
 #
 # powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 [-Build] [-NoLaunch] [-Parcours tools\tests\<date>.txt]
 #     [-Position '<alt> <lat> <lon> <tangage> <cap>'] [-Soleil '<lat> <lon>'] [-Resolution '1920 1080' | fenetre]
-#     [-ModeleVaisseau chasseur | classique | navigateur] [-PassePleine] [-SansNuages] [-Exe <exécutable>] [-Scans <dossier>] [-Plantes <catalogue>]
+#     [-ModeleVaisseau chasseur | classique | navigateur | navette] [-PassePleine] [-SansNuages] [-Exe <exécutable>] [-Scans <dossier>] [-Plantes <catalogue>]
 #     [-Camera cockpit | poursuite | sans | libre | orbite | altitude-fixe | marche]
 param(
     [switch]$Build,
@@ -20,8 +20,10 @@ param(
     [switch]$PassePleine,
     # Masquer les nuages pour examiner le terrain ; N les réaffiche pendant le vol.
     [switch]$SansNuages,
-    [ValidateSet('chasseur', 'classique', 'navigateur')]
+    [ValidateSet('chasseur', 'classique', 'navigateur', 'navette')]
     [string]$ModeleVaisseau = 'chasseur',
+    [ValidateSet('pluie', 'nuage', 'givre')]
+    [string]$Verriere,
     [ValidateSet('cockpit', 'poursuite', 'sans', 'libre', 'orbite', 'altitude-fixe', 'marche')]
     [string]$Camera,
     # Un autre exécutable que x64\Release, par exemple une compilation à part (x64\Verif).
@@ -59,6 +61,7 @@ try {
     if ($Ville) { $env:MYPLANETENGINE_CITY_ASSETS = (Resolve-Path -LiteralPath $Ville).Path }
     $env:MYPLANETENGINE_SUN = $Soleil
     $env:MYPLANETENGINE_MODELE_VAISSEAU = $ModeleVaisseau
+    if ($Verriere) { $env:MYPLANETENGINE_VERRIERE = $Verriere }
     if ($Camera) { $env:MYPLANETENGINE_VAISSEAU = $Camera }
     if ($Resolution -ne 'fenetre') { $env:MYPLANETENGINE_RESOLUTION = $Resolution; $env:MYPLANETENGINE_FULLSCREEN = '1' }
     if ($PassePleine) { $env:MYPLANETENGINE_CLOUD_FULL = '1' }

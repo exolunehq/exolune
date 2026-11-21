@@ -181,6 +181,18 @@ Opened the 2026-10-23, to resume after rendering. **The proximity geometry is wa
 - **Real relief:** lidar patches melted by our noise functions.
 - **Objects:** rocks sown in real volumes, `log/spec-parois.md`, option 3. Open the 2026-10-24 for stones and blocks: `spec-objets-proximite.md`.
 
+**2026-11-20 · Flight surfaces**
+
+- **Classification** Manufactured flight surfaces in ship coordinates. The Chasseur has two articulated sleeves. The Navette extends its original engine cowling.
+- **Navette wing** The enamel and rolled return move outboard together. The folded span is 5.37 m and the open span is 8.56 m. The fixed stator edges establish the clearance under the lip.
+- **Extension hardware** Each nacelle carries a keyed telescopic spar and paired round rams. The guide shoes attach to the rolled underside. The sleeves and their pins follow the wing actuator in both render and shadow geometry.
+- **Turbine openings** The manufactured vane edges define five emitting slots per nacelle. Their projection along the film exhaust axis supplies the volume's curved source surface.
+- **Shuttle body** Transverse sections taper the stern and rake the fin into the deck. The two airbrakes hinge above the fixed pressure shell.
+- **Rendering** A local displacement and its gradient move the original vertices and tangent frames. Both shadow maps use the same vertex deformation.
+- **Finish** The teal sill is paint on the enamel's second UV set. The four station-keeping outlets have fitted rims in the lower shell.
+- **Bounds** The stowed airframe, wings and open flaps fit inside the 6.7 m ship radius. The bow shock uses the fixed hull while the wings protect themselves during hot entry.
+- **Reference frame** The shell and actuators use ship coordinates. [Ship assembly](spec-vaisseau.md)
+
 **2026-11-01 · Manufactured ship geometry**
 
 - **Classification:** added detail on a manufactured asset, outside the terrain-overlay system.

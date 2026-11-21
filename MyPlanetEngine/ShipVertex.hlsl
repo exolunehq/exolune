@@ -4,7 +4,7 @@
 
 ShipPixel VSMain(uint id : SV_VertexID)
 {
-    const ShipVertex v = shipVertices[id];
+    const ShipVertex v = ShipSkinnedVertex(id);
     const float4x4 pose = ShipPose(v.pose), model = mul(pose, shipModel);
     ShipPixel o;
     o.local = mul(float4(v.pos, 1.0), pose).xyz;
