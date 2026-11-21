@@ -192,8 +192,12 @@ Output PSMain(float4 position : SV_POSITION)
     const float sceneExposure=opaqueOverlay?exposure:exposure*exp2(
         LocalMeterWeight(current.a,pixelStops)*LocalAdaptation(position.xy/size,pixelStops));
     const float3 starlight=opaqueOverlay?0.0:celestial.Load(int3(pixel,0)).rgb*clamp(exposure,SKY_EYE_EXPOSURE,2000000.0);
-    float3 shown=opaqueOverlay?color*exposure
-        :(RodVision(color*(1.0-glare.a),sceneExposure)*sceneExposure+glare.rgb*exposure+starlight)*g.a+g.rgb*exposure;
+    const float3 foreground=RodVision(color*(1.0-glare.a),sceneExposure)*sceneExposure+glare.rgb*exposure;
+    // For a source S on visible foreground B, B + S*S/(B+S) is at least as
+    // bright as either input as a transparent limb crosses the star field.
+    const float stellarLuma=dot(starlight,LUMINANCE);
+    const float contrast=stellarLuma/max(stellarLuma+dot(foreground,LUMINANCE),1.0e-20);
+    float3 shown=opaqueOverlay?color*exposure:(foreground+starlight*contrast)*g.a+g.rgb*exposure;
     if (visor.x > 0.5 && taa.y < 0.5) shown = HelmetOptics(shown, position.xy / size);
     output.screen = float4(taa.y > 0.5 ? (opaqueOverlay?color:color*g.a+g.rgb) : FilmCurve(shown), 1.0);
     // Sub-code-value, fixed screen dither, in display space: dark sky gradients must not form contour bands.

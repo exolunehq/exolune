@@ -60,8 +60,10 @@ float4 PSMain(float4 position:SV_POSITION):SV_TARGET {
     float2 size; skyScene.GetDimensions(size.x,size.y);
     const int3 pixel=int3(position.xy,0);
     const float3 transport=skyTransport.Load(pixel).rgb;
-    const float background=CelestialVeil(skyScene.Load(pixel).rgb,transport);
-    const float visibility=1.0/(1.0+pow(background/1.2e-7,1.25));
+    // An extended source adds radiance through the air. Its final contrast is
+    // set by the visible foreground in ToneMap. Skip the volume under bright skies.
+    const float background=dot(skyScene.Load(pixel).rgb,CELESTIAL_LUMA);
+    const float visibility=1.0-smoothstep(0.18/32.0,0.18/8.0,background);
     if(taa.y>.5 || dot(transport,1.0/3.0)<.002 || visibility<.001) return 0.0;
     const float3 world=CelestialWorld(CelestialRay(position.xy,size));
     float3 radiance=GalacticRadiance(world);

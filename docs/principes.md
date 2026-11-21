@@ -50,7 +50,8 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Depth remains ordered across astronomical distances; terrain clipping limits must not remove celestial sources.
 - Point sources preserve integrated flux across pixel footprints and remain outside terrain temporal history.
 - Air, clouds and solid bodies attenuate or occult celestial light through the actual rendering paths.
-- Scale the stellar contrast veil continuously with the optical opacity of the foreground. A nearly transparent ray carries the background through the orbital limb.
+- Carry extended celestial light through the measured transmission. Compare it with the visible foreground after adaptation so a transparent limb cannot create a darker band between the two sources.
+- Scale the point-source detection threshold continuously with foreground light and optical opacity.
 - Apply the same sky weight when metering and reconstructing local exposure so the faintest traces of air meet the vacuum continuously.
 - Exolune's sea-level sphere occults finite bodies in the image as in the exposure meter, whatever level of detail draws the planet; the relief's depth only adds to it.
 - Optical glare redistributes the received HDR light before point-source visibility; its veiling luminance affects stellar contrast.

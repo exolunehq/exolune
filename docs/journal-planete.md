@@ -5,7 +5,7 @@ History of field adjustments: what changed, why, what it cost or brought, and ho
 **2026-11-21 · Starlight through the orbital limb**
 
 - Thin foreground air previously suppressed starlight while its own scattered light still appeared black.
-- Point sources and the galactic field now share an opacity-weighted contrast veil at every camera height. The existing RGB transport supplies opacity within the frame.
+- The existing RGB transport carries both stellar points and the galactic field. Points use an opacity-weighted detection threshold. The display compares transmitted starlight with the visible sky after adaptation.
 - Reconstructing local exposure with the meter's sky weight removes the outer ring from barely visible scattered light.
 - Bright foreground air retains the daylight contrast threshold even when its optical path is short.
 - Local source base `piste/limbe-stellaire-2026-11-21-base`. [Orbital and ground review](../tools/tests/2026-11-21-limbe.txt)
