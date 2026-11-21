@@ -165,7 +165,8 @@ struct Pilot {
     double steeringTime = 0; // finish a commanded turn after the stick recentres
     double bank = 0, deceleration = 0;
     double heldNotch = 0;
-    bool holding = false;
+    bool holding = false, rollReferenceSet = false;
+    double rollReference = 0; // unassisted bank last selected by the pilot
     Surfaces surfaces;
 };
 struct Loads {
@@ -201,7 +202,20 @@ inline void AssistBank(Controls& c, Pilot& pilot, const Cues& air, Vec3d gravity
                            * (1 - Smooth(.62, .92, pitch)) * (1 - Smooth(.05, .50, std::abs(c.roll)));
     const double target = pilot.holding ? 0 : .43 * authority * Clamp(c.yaw, -1, 1);
     const double bank = Follow(pilot.bank, target, dt, .34);
-    c.up = Rotate(c.up, c.forward, pilot.bank - bank);
+    double unwind = 0;
+    if (pitch < .92 && weight > 1e-8) {
+        const Vec3d levelRight = Normalize(Cross(gravity * (-1 / weight), c.forward));
+        const Vec3d levelUp = Cross(c.forward, levelRight);
+        const double residual = std::remainder(std::atan2(Dot(c.up,levelRight), Dot(c.up,levelUp)) - pilot.bank,
+                                               6.283185307179586);
+        if (!pilot.rollReferenceSet || std::abs(c.roll) > .05) {
+            pilot.rollReference = residual;
+            pilot.rollReferenceSet = true;
+        }
+        const double drift = std::remainder(residual - pilot.rollReference, 6.283185307179586);
+        unwind = Clamp(drift, -.56, .56) * -std::expm1(-authority * dt / 1.15);
+    }
+    c.up = Rotate(c.up, c.forward, pilot.bank - bank + unwind);
     c.right = Cross(c.up, c.forward);
     pilot.bank = bank;
 }

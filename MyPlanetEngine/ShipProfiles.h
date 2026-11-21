@@ -13,6 +13,8 @@
 #define SHIP_MAX_IMAGES 16
 #define SHIP_MANOEUVRING_JETS 6
 // The offline fitter samples the actual shuttle glass in this angular chart.
+#define SHUTTLE_EYE_AHEAD 3.47f
+#define SHUTTLE_EYE_UP (-.84f)
 #define SHUTTLE_PANE_COLUMNS 161
 #define SHUTTLE_PANE_ROWS 81
 #define SHUTTLE_PANE_CENTRE_Y .80f
@@ -70,7 +72,7 @@ static constexpr ShipProfile NavigatorShip = {
 // The flight film's rider position and bare-metal nacelles. Mounts follow the outer reactor casings in metres.
 static constexpr ShipProfile ShuttleShip = {
     ShipModel::Navette, L"navette", L"assets\\vaisseau\\navette\\vaisseau.vsx",
-    3.47f, -.84f, 0, 0, {1, 1, 0, .0012f}, 2, SHIP_PACK_POSES, true, false,
+    SHUTTLE_EYE_AHEAD, SHUTTLE_EYE_UP, 0, 0, {1, 1, 0, .0012f}, 2, SHIP_PACK_POSES, true, false,
     {2.32f, 1.57f, -.59f, 1.49f, 1.59f, 1.01f, .105f, 1.12f,
      2.05f, .27f, -.95f, 1.36f, 1.22f, -2.14f, 1.04f}
 };

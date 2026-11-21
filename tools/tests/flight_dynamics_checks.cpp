@@ -233,6 +233,23 @@ void CheckFlightDynamics() {
     yaw.yaw = 1;
     Flight turn;
     turn.velocity = {0, 0, 100};
+    // Combined steering can rotate the unassisted horizon. Releasing the stick
+    // restores the selected bank without levelling a roll intentionally selected by the pilot.
+    Controls trimmed = Level;
+    Pilot trimPilot;
+    Cues trimAir;
+    trimAir.equivalentAirspeed = 150;
+    const Vec3d down = {0,-9.81,0};
+    AssistBank(trimmed,trimPilot,trimAir,down,1.0/60);
+    FlightFrame::Turn(trimmed.forward,trimmed.up,0,0,.32);
+    for(int i=0;i<360;++i) AssistBank(trimmed,trimPilot,trimAir,down,1.0/60);
+    Check(std::abs(trimmed.up.x)<.003, "neutral controls unwind incidental atmospheric bank");
+    trimmed.roll=.8;
+    FlightFrame::Turn(trimmed.forward,trimmed.up,0,0,.35);
+    AssistBank(trimmed,trimPilot,trimAir,down,1.0/60);
+    trimmed.roll=0;
+    for(int i=0;i<240;++i) AssistBank(trimmed,trimPilot,trimAir,down,1.0/60);
+    Check(trimmed.up.x>.33, "an intentional atmospheric bank remains selected");
     turn.Run(field,yaw,120,60);
     Check(turn.pilot.bank > .36 && turn.pilot.bank < .44 && turn.velocity.x > 4 &&
           turn.pilot.surfaces.wings > .9, "an atmospheric yaw rolls into the turn and develops lateral lift");

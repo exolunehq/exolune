@@ -51,6 +51,7 @@ public:
         DirectX::XMFLOAT4 airframe; // wing extension, brake extension, reverse thrust, station keeping
         DirectX::XMFLOAT4 supportExhaust; // direction in ship axes and power relative to hover
         DirectX::XMFLOAT4 retroOutlet, supportOutlet; // left mouths, support outlet spacing in w
+        DirectX::XMFLOAT4 radio; // receive lamp and audio meter in the cockpit
         Nozzle nozzles[2]; // the shuttle's two authored main exhausts
     };
     // The moving parts' pivots, ship frame, from the pack (pieces_mobiles.py, design_chasseur.py): the stick's twist axis,

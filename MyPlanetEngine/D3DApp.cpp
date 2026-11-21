@@ -438,10 +438,13 @@ D3DApp::~D3DApp() {
 }
 
 bool D3DApp::Initialize() {
+    if (!mSettings.flightPipe.empty()) mFlightTake.Connect(mSettings.flightPipe);
     if (!InitWindow()) return false;
     if (!InitDirect3D()) return false;
     UpdateCelestialFrame();
     if(mSettings.firstTest && mSettings.firstTest<=mTests.size())GoToTest(mSettings.firstTest-1);
+    if (!mSettings.flightVideo.empty())
+        mCineVideo = std::make_unique<CineVideo>(mSettings.flightVideo, mClientWidth, mClientHeight, 60.0, true);
     if (!mSettings.Automated()) mAudioReady = mAudio.Initialize(); // offline films stay silent
     mAudio.SetMix(mSettings.audioMaster,mSettings.audioFootsteps,mSettings.audioAmbience,mSettings.audioShip);
     return true;
@@ -497,7 +500,7 @@ bool D3DApp::InitWindow() {
     if (!mhMainWnd) return false;
     // The benches (capture, tremble) render without showing the window: it never takes the user's focus, and
     // the title goes to a file next to the capture instead.
-    if (!mSettings.Automated()) {
+    if (!mSettings.Automated() && !mFlightTake.Connected()) {
         ShowWindow(mhMainWnd, SW_SHOW);
         CreateTestsWindow();
     }
@@ -898,7 +901,7 @@ bool D3DApp::InitDirect3D() {
         glassRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5);
     CD3DX12_DESCRIPTOR_RANGE celestialRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 6), glareRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8),
         adaptationRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9);
-    CD3DX12_ROOT_PARAMETER resolveParams[9];
+    CD3DX12_ROOT_PARAMETER resolveParams[10];
     resolveParams[0].InitAsConstantBufferView(0);
     resolveParams[1].InitAsDescriptorTable(1, &compositeRange, D3D12_SHADER_VISIBILITY_PIXEL);
     resolveParams[2].InitAsDescriptorTable(1, &historyRange, D3D12_SHADER_VISIBILITY_PIXEL);
@@ -908,7 +911,8 @@ bool D3DApp::InitDirect3D() {
     resolveParams[6].InitAsDescriptorTable(1, &glareRange, D3D12_SHADER_VISIBILITY_PIXEL); // the summed glare (Glare.h)
     resolveParams[7].InitAsDescriptorTable(1, &adaptationRange, D3D12_SHADER_VISIBILITY_PIXEL); // local adaptation
     resolveParams[8].InitAsConstants(4, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL); // visor, after the scene history
-    mResolveRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(9, resolveParams, 1, &linearClamp));
+    resolveParams[9].InitAsDescriptorTable(1, &sunRange, D3D12_SHADER_VISIBILITY_PIXEL); // opaque ship coverage
+    mResolveRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(_countof(resolveParams), resolveParams, 1, &linearClamp));
     CD3DX12_DESCRIPTOR_RANGE skyTransportRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
     CD3DX12_DESCRIPTOR_RANGE lunarRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,8);
     CD3DX12_DESCRIPTOR_RANGE distantPlanetRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,29),distantClimateRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,20);
@@ -1329,7 +1333,7 @@ bool D3DApp::InitDirect3D() {
     mTimestampBuffer = CreateBuffer(md3dDevice.Get(), queryDesc.Count * sizeof(UINT64), D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST);
     mCommandQueue->GetTimestampFrequency(&mTimestampFrequency);
 
-    if (mSettings.Automated()) {
+    if (mSettings.Automated() || !mSettings.flightVideo.empty()) {
         const D3D12_RESOURCE_DESC backBufferDesc = mRenderTargets[0]->GetDesc();
         UINT64 captureSize = 0;
         md3dDevice->GetCopyableFootprints(&backBufferDesc, 0, 1, 0, &mCaptureFootprint, nullptr, nullptr, &captureSize);
@@ -2154,6 +2158,18 @@ void D3DApp::Draw() {
     const double elapsed = mLastTime.QuadPart ? double(now.QuadPart - mLastTime.QuadPart) / mFrequency.QuadPart : 0.0;
     const float dt = (float)(!mCine.empty() ? 1.0 / mCineFps : std::min(elapsed, 0.1));
     mLastTime = now;
+    if (mFlightTake.Connected()) {
+        const FlightTake::Instruments instruments = {mClock, elapsed, mShipPos.x, mShipPos.y, mShipPos.z,
+            mShipForward.x, mShipForward.y, mShipForward.z, mShipUp.x, mShipUp.y, mShipUp.z,
+            mShipVelocity.x, mShipVelocity.y, mShipVelocity.z, mGroundHeight, mFlightCues.heat,
+            mFlightPilot.bank, mFlightCues.equivalentAirspeed, mThrottle, mHeadYaw, mHeadPitch,
+            Length(mFlightLoads.seatAcceleration), mFlightLoads.mainJet, mFlightPilot.surfaces.airbrakes, mGpuFrameLastMs};
+        if (!mFlightTake.ReadControls(instruments)) {
+            if (mCineVideo) mCineVideo->Close();
+            DestroyWindow(mhMainWnd);
+            return;
+        }
+    }
     if (!mSettings.Automated() && !mWeatherPaused) mWeatherTime += elapsed * mWeatherRate;
     // Sun input also moves the outer planets. Resolve their positions before moving an attached camera.
     if (mView == View::Free && GetForegroundWindow() == mhMainWnd) {
@@ -2265,7 +2281,7 @@ void D3DApp::Draw() {
     // Screenshot coordinates use the actual camera, updated every frame, including while the clock is paused.
     // Keep the text out of temporal history and the terrain; ToneMap draws it after the film curve.
     mConstants->coordinateInfo = {};
-    mConstants->coordinateInfo.z = mSettings.Automated() ? 0u : 1u | (mView==View::Walk ? 2u : 0u)
+    mConstants->coordinateInfo.z = (mSettings.Automated() || mFlightTake.Connected()) ? 0u : 1u | (mView==View::Walk ? 2u : 0u)
         | (mAudioMuted || !mAudioReady ? 4u : 0u) | (mClock<mWalkNoticeUntil ? 8u : 0u)
         | (mView == View::Free ? unsigned(mCameraMode) << 4 : 0u) | (RadioAvailable()?64u:0u);
     if (mView==View::Walk) {
@@ -2342,7 +2358,7 @@ void D3DApp::Draw() {
     toPrevious.m[3][3] = 1.0f;
     XMStoreFloat4x4(&mConstants->reproject, XMMatrixTranspose(XMLoadFloat4x4(&toPrevious) * mPrevViewProj));
     // The ship's pixels follow the ship: a point fixed in its frame, carried from this frame's ship to the previous
-    // one's, then into the previous camera (ToneMap.hlsl, inside shipSphere).
+    // one's, then into the previous camera (ToneMap.hlsl, on visible ship pixels).
     // The planet frame is left-handed (east x north = down): Cross(up, forward) is the right, as for the camera.
     const Vec3d shipLeft = Cross(mShipForward, mShipUp), shipBack = mShipForward * -1.0;
     mConstants->shipSphere = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -3198,6 +3214,7 @@ void D3DApp::Draw() {
     mCommandList->SetGraphicsRootDescriptorTable(5, GpuDescriptor(SkyTransportSrv));
     mCommandList->SetGraphicsRootDescriptorTable(6, GpuDescriptor(glareDrawn ? GlareSrv : GlareSrv + 1));
     mCommandList->SetGraphicsRootDescriptorTable(7, GpuDescriptor(AdaptationSrv));
+    mCommandList->SetGraphicsRootDescriptorTable(9, GpuDescriptor(SunSrv));
     const bool visorWeather = mView == View::Walk && !airless && mWorldValid && Length(mCamPos - mWorldProbePos) < 250.0;
     const XMFLOAT4 visor = { mView == View::Walk ? 1.0f : 0.0f, mWalker.exertion,
         visorWeather ? std::max(mHabitat[2].x, mHabitat[2].y) : 0.0f, visorWeather ? mHabitat[1].y : 0.0f };
@@ -3225,7 +3242,7 @@ void D3DApp::Draw() {
     const bool batchCapture = !mBatch.empty() && mBatchFrame == BatchCaptureFrame();
     const bool capture = (!mSettings.capturePath.empty() && mFrameNumber == mSettings.captureFrame)
                        || (trembleIndex >= 1 && trembleIndex <= mSettings.trembleFrames)
-                       || batchCapture || (!mCine.empty() && mCineLead == 0 && mCineIndex >= mSettings.cineFirst);
+                       || batchCapture || !mSettings.flightVideo.empty() || (!mCine.empty() && mCineLead == 0 && mCineIndex >= mSettings.cineFirst);
     const D3D12_RESOURCE_STATES afterDraw = capture ? D3D12_RESOURCE_STATE_COPY_SOURCE : D3D12_RESOURCE_STATE_PRESENT;
     auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(mRenderTargets[mFrameIndex].Get(),
         D3D12_RESOURCE_STATE_RENDER_TARGET, afterDraw);

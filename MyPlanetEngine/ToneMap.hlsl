@@ -8,11 +8,12 @@
 
 Texture2D<float4> composite : register(t0); // the scene under its atmosphere; alpha: distance (km), 0 for the sky,
                                             // negative on the waves the sea shows, which move by themselves
-Texture2D<float4> history : register(t4);   // the previous frame's result, before the exposure
+Texture2D<float4> history : register(t4);   // previous linear colour and opaque ship coverage
 Texture2D<float4> glass : register(t5);     // glass: screen = smoothed * alpha + rgb; negative alpha: opaque hull distance
 Texture2D<float4> celestial : register(t7); // physical stellar and galactic radiance, without temporal history
 Texture2D<float4> glareLight : register(t8); // the lens's glare summed over its levels (Glare.h); alpha: their count
 Texture2D<float4> adaptation : register(t9); // the image's light by region (Adaptation.h): weighted stops, weight
+Texture2D<float4> surfaceSun : register(t17); // alpha identifies a visible opaque ship surface in the scene pass
 cbuffer VisorFrame : register(b1) { float4 visor; } // walking, exertion, rain/cloud water, ambient humidity
 
 static const float3 LUMINANCE = float3(0.2126, 0.7152, 0.0722); // Rec. 709
@@ -149,6 +150,9 @@ Output PSMain(float4 position : SV_POSITION)
     const float4 g = glass.Load(int3(pixel, 0));
     const bool opaqueOverlay = g.a < 0.0;
     const float4 current = opaqueOverlay ? float4(g.rgb, -g.a) : composite.Load(int3(pixel, 0));
+    float shipCoverage = opaqueOverlay ? 1.0 : 0.0;
+    [branch] if (!opaqueOverlay && shipSphere.w > 0.0)
+        shipCoverage = surfaceSun.Load(int3(pixel, 0)).a > 0.5 ? 1.0 : 0.0;
     float3 low = current.rgb, high = current.rgb;
     [unroll] for (int dy = -1; dy <= 1; ++dy)
     [unroll] for (int dx = -1; dx <= 1; ++dx)
@@ -166,16 +170,19 @@ Output PSMain(float4 position : SV_POSITION)
         const float2 ndc = float2(2.0 * position.x / size.x - 1.0, 1.0 - 2.0 * position.y / size.y);
         const float3 view = normalize(camForward.xyz + ndc.x * camRight.w * camRight.xyz + ndc.y * camUp.w * camUp.xyz);
         const float4 seen = current.a > 0.0 ? float4(view * current.a * 1000.0, 1.0) : float4(view, 0.0);
-        // The ship's pixels move with it: inside its sphere, their own path to the previous frame (Ship.h).
-        const bool onShip = shipSphere.w > 0.0 && current.a > 0.0 && length(seen.xyz - shipSphere.xyz) < shipSphere.w;
-        const float4 previous = mul(seen, onShip ? reprojectShip : reproject);
+        const float4 previous = mul(seen, shipCoverage > 0.0 ? reprojectShip : reproject);
         const float2 uv = previous.xy / previous.w * float2(0.5, -0.5) + 0.5;
-        if (previous.w > 0.0 && all(uv >= 0.0) && all(uv <= 1.0))
-            color = lerp(clamp(history.SampleLevel(linearClamp, uv, 0.0).rgb, low, high), current.rgb, taa.x);
+        if (previous.w > 0.0 && all(uv >= 0.0) && all(uv <= 1.0)) {
+            const float4 past = history.SampleLevel(linearClamp, uv, 0.0);
+            // Fractional coverage means the bilinear colour spans the old silhouette.
+            // Both the newly uncovered world and the moving hull need a clean first sample.
+            if (past.a == shipCoverage)
+                color = lerp(clamp(past.rgb, low, high), current.rgb, taa.x);
+        }
     }
 
     Output output;
-    output.history = float4(color, current.a);
+    output.history = float4(color, shipCoverage);
     // The scene's light, linear: a glare or bloom term, in the same units, is added to `color` here. The diagnostic
     // views are measures, not light (tools/banc_qualite.py): their white stays 1, whatever the sun.
     // The glass after the smoothing, kept out of the history: what sticks to it moves with the ship, not the world.

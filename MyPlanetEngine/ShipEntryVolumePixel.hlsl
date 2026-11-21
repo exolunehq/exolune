@@ -80,19 +80,22 @@ VolumeOutput PSMain(EntryVolumePixel input)
             const float ram = nose * (0.34 + 0.66 * smoothstep(0.10, 0.91, s.incidence));
             // Large rolls carve open channels. Finer, faster structures stretch along the
             // flow and split into filaments. The cloud volumes have distinct measured ranges.
+            // The bow compression keeps a fixed source on the hull. Shear transports the outer gas.
+            const float shear = saturate(0.18 + 0.59 * (1.0 - ram) + 0.23 * u);
+            const float travel = shipTurn.w;
             const float3 stretched = p - 0.68 * dot(p, flow) * flow;
             const float roll = smoothstep(0.837, 0.943, gasShape.SampleLevel(gasWrap,
-                0.074 * stretched - flow * (0.023 * time) + float3(0.23,0.47,0.11), 0.0).r);
+                0.074 * stretched - flow * (0.040 * travel) + float3(0.23,0.47,0.11), 0.0).r);
             const float curl = smoothstep(0.57, 0.83, gasDetail.SampleLevel(gasWrap,
-                0.41 * stretched - flow * (0.139 * time) + float3(0.13,-0.10,0.07) * roll, 0.0).r);
+                0.41 * stretched - flow * (0.19 * travel) + float3(0.13,-0.10,0.07) * roll, 0.0).r);
             // A parcel turning around the bow keeps its meridian for metres. Two
             // ridges of one smooth azimuthal field separate as the shear grows.
             // Unlike Cartesian noise blobs, each remains connected towards the shoulder.
             const float3 lateral = direction + fore * flow;
             const float3 meridian = lateral / max(length(lateral), 0.20);
-            const float angularDrift = (0.13 * (roll - 0.5) + 0.085 * (curl - 0.5));
+            const float angularDrift = shear * (0.10 * (roll - 0.5) + 0.085 * (curl - 0.5));
             const float3 lane = 0.26 * (meridian + cross(flow, meridian) * angularDrift) +
-                                flow * (0.013 * dot(p, flow) - 0.012 * time) + float3(0.61,0.17,0.42);
+                                flow * (0.013 * dot(p, flow)) + float3(0.61,0.17,0.42);
             const float pixelAngle = max(t * taa.w, 0.0) * rsqrt(max(radiusSquared, 0.10));
             const float laneLod = log2(max(1.0, 128.0 * 0.26 * max(step * turnRate, pixelAngle)));
             const float thread = smoothstep(0.830, 0.947, gasShape.SampleLevel(gasWrap, lane, laneLod).r);
@@ -102,7 +105,7 @@ VolumeOutput PSMain(EntryVolumePixel input)
             const float filaments = max(exp2(-1.7 * mainLine * mainLine),
                                         0.57 * splitting * exp2(-2.0 * daughter * daughter));
             const float openings = smoothstep(0.29, 0.72, 0.49 * roll + 0.31 * curl + 0.20 * feed);
-            const float veins = filaments * (0.30 + 0.70 * openings);
+            const float veins = filaments * lerp(0.77, 0.30 + 0.70 * openings, shear);
             const float ripple = 0.095 * (roll - 0.5) + 0.072 * (curl - 0.5);
             // Integrate the fibre thickness over the sample's projected footprint.
             // A head-on ray must not acquire stripes when one march sample moves.
@@ -114,7 +117,9 @@ VolumeOutput PSMain(EntryVolumePixel input)
             const float front = (0.027 + 0.16 * s.bow + 0.14 * ram) * (0.70 + 0.30 * roll);
             const float hot = core * (front + (0.22 + 0.35 * s.bow) * veins) * (0.76 + 0.24 * feed);
             const float outer = edge * (0.006 + 0.065 * veins + 0.056 * veins * curl * (1.0 - ram));
-            const float density = heat * downwind * (hot + outer);
+            const float flank = ShipShuttle() ? EntryFlank(EntryShockCentre() + origin + t * ray) : 1.0;
+            const float shoulder = ShipShuttle() ? lerp(0.065, 1.90, flank) : 1.0;
+            const float density = heat * downwind * shoulder * (hot + outer);
             const float kept = exp(-density * step);
             const float white = smoothstep(0.40, 0.92, veins * (0.58 + 0.56 * ram));
             const float3 amber = lerp(float3(1.83, 0.38, 0.044), float3(3.75, 2.15, 0.83), white);

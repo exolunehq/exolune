@@ -230,6 +230,28 @@ void Ship::ReadShuttleControls(const std::vector<uint8_t>& data, size_t& at)
         if (!(radius > .15f && radius < Radius + 1 && std::abs(sample.w) < 8.0f))
             throw std::runtime_error("Invalid shuttle canopy sample.");
     }
+    // The last row stores the actual lower glass edge at each azimuth, in chart metres.
+    // Extend the end of the rail through columns beyond the aperture.
+    std::vector<XMFLOAT4> rail(SHUTTLE_PANE_COLUMNS);
+    int first = -1, last = -1;
+    for (int x = 0; x < SHUTTLE_PANE_COLUMNS; ++x) {
+        for (int y = 1; y < SHUTTLE_PANE_ROWS; ++y) {
+            const float below = mFittedPane[(y - 1) * SHUTTLE_PANE_COLUMNS + x].w;
+            const float above = mFittedPane[y * SHUTTLE_PANE_COLUMNS + x].w;
+            if (below > 0 || above <= 0) continue;
+            const float row = y - 1 + below / (below - above);
+            const float chartX = (float(x) / (SHUTTLE_PANE_COLUMNS - 1) - .5f) * SHUTTLE_WATER_WIDTH * SHUTTLE_WATER_TEXEL;
+            const float chartY = SHUTTLE_WATER_Y + row * SHUTTLE_WATER_HEIGHT * SHUTTLE_WATER_TEXEL / (SHUTTLE_PANE_ROWS - 1);
+            rail[x] = {chartX, chartY, 0, 0};
+            if (first < 0) first = x;
+            for (int j = last + 1; j < x; ++j) rail[j] = last < 0 ? rail[x] : rail[last];
+            last = x;
+            break;
+        }
+    }
+    if (first < 0) throw std::runtime_error("No lower edge in the fitted canopy chart.");
+    std::fill(rail.begin() + last + 1, rail.end(), rail[last]);
+    mFittedPane.insert(mFittedPane.end(), rail.begin(), rail.end());
     mProfile.water = { SHUTTLE_WATER_WIDTH, SHUTTLE_WATER_HEIGHT, SHUTTLE_WATER_Y, SHUTTLE_WATER_TEXEL };
 }
 

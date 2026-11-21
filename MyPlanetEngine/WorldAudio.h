@@ -32,6 +32,7 @@ public:
     void Step(const FootContact&, float strength = 1.0f);
     void Reset(); // discard old-location calls after a teleport
     void SetMix(float footsteps, float ambience, float ship = 1.0f);
+    float RadioLevel() const { return mRadioLevel.load(std::memory_order_relaxed); }
     void RequestRadio(); // edge-triggered headset reply, at most one transmission
     void Render(float* stereo, unsigned frames); // adds to existing PCM; audio thread, no locks/allocations/I/O
 
@@ -78,6 +79,7 @@ private:
     std::array<Stem,LayerCount> mStem;
     std::atomic<SoundListener> mListener{SoundListener::Observer};
     std::atomic<unsigned> mRadioRequest{0};
+    std::atomic<float> mRadioLevel{-1.0f};
     unsigned mMixEpoch = 0, mRadioFrame = 0;
     bool mRadioPlaying = false;
     float mRadioDuck = 0;

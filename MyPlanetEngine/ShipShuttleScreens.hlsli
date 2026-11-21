@@ -9,6 +9,29 @@
 
 float3 ShuttlePaper(float y) { return Srgb(lerp(float3(15,33,43), float3(20,43,53), saturate(y/512.0))); }
 
+// The receiver takes over the drawing area of the console. Preserve the outer bezel
+// and the printed instrument header. The lamp holds during pauses, the VU follows speech.
+float3 ShuttleReceiver(float2 p, float3 image)
+{
+    if (!In(p, float4(22,74,618,416))) return image;
+    float3 ink = ShuttlePaper(p.y) * 0.80;
+    const float2 q = p - float2(146,234);
+    const float radius = length(q);
+    Paint(ink, SCREEN_CYAN, Stroke(radius - 61, 5.0) * 0.75);
+    Paint(ink, SHUTTLE_GOLD, Fill(radius - 26) * (0.57 + 0.43 * shipRadio.y));
+    const float2 speaker = float2(abs(q.x), q.y);
+    Paint(ink, SHUTTLE_GOLD, Stroke(Segment(speaker,float2(11,83),float2(36,83)),4.0));
+    if (In(p, float4(263,159,576,300))) {
+        const float column = floor((p.x - 263) / 24);
+        const float h = 12 + 4.0 * column;
+        const float2 d = abs(float2(fmod(p.x-263,24.0)-10, p.y-231)) - float2(7,h);
+        const float level = saturate(shipRadio.y * 13.0 - column);
+        Paint(ink, lerp(SRGB(38,68,75), column < 10 ? SCREEN_CYAN : SHUTTLE_GOLD, level), Fill(max(d.x,d.y)));
+    }
+    Paint(ink, SCREEN_LINE, Stroke(Segment(p,float2(60,349),float2(582,349)),3.0));
+    return lerp(image, ink, shipRadio.x);
+}
+
 float3 ShuttleScreen(uint role, float2 texel, float3 c)
 {
     const float2 p = texel * float2(1.25, 1);

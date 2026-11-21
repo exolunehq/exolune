@@ -52,6 +52,7 @@ float3 EntryFieldPoint(float azimuth, float elevation)
 
 float EntryRailLength()
 {
+    if (ShipShuttle()) return 0.5 * SHUTTLE_WATER_WIDTH * SHUTTLE_WATER_TEXEL;
     if (ShipNavigator()) return SHIP_FIELD_HALF_ANGLE * EntryFieldScale();
     return ShipClassic() ? CLASSIC_PANE_A.y - CLASSIC_PANE_F.y : FIGHTER_CANOPY_Y1 - FIGHTER_CANOPY_Y0;
 }
@@ -61,6 +62,16 @@ float EntryRailLength()
 // all retain their own real depth; only the shading law is shared.
 float3 EntryPanePoint(float along, float side, float inset)
 {
+    if (ShipShuttle() && HasShuttlePane()) {
+        const float column = saturate(0.5 + side * along / (2.0 * EntryRailLength())) * (SHUTTLE_PANE_COLUMNS - 1);
+        const uint i = min((uint)column, SHUTTLE_PANE_COLUMNS - 2u);
+        const uint at = SHUTTLE_PANE_COLUMNS * SHUTTLE_PANE_ROWS + i;
+        const float2 q = lerp(shipPaneFit[at].xy, shipPaneFit[at + 1].xy, column - i) + float2(0, inset);
+        float sa, ca, se, ce;
+        sincos(q.x / SHUTTLE_PANE_RADIUS, sa, ca);
+        sincos(q.y / SHUTTLE_PANE_RADIUS, se, ce);
+        return SHUTTLE_PANE_CENTRE + length(ShuttlePaneAt(q).xyz) * float3(sa * ce, -ca * ce, se);
+    }
     if (ShipNavigator()) {
         const float scale = max(EntryFieldScale(), 0.1);
         return EntryFieldPoint(side * along / scale, SHIP_FIELD_FLOOR + inset / scale);
@@ -95,6 +106,13 @@ EntrySection EntryAt(float3 local)
 {
     EntrySection e;
     e.side = local.x < 0.0 ? -1.0 : 1.0;
+    if (ShipShuttle()) {
+        const float2 q = CanopyChart(local);
+        e.along = min(abs(q.x), EntryRailLength());
+        e.rail = HasShuttlePane() ? EntryPanePoint(e.along, e.side, 0.0) : local + float3(0, 0, 100);
+        e.across = HasShuttlePane() ? abs(ShuttlePaneAt(q).w) * length(local - SHUTTLE_PANE_CENTRE) / SHUTTLE_PANE_RADIUS : 100.0;
+        return e;
+    }
     if (ShipNavigator()) {
         const float azimuth = clamp(atan2(local.x, -local.y), -SHIP_FIELD_HALF_ANGLE, SHIP_FIELD_HALF_ANGLE);
         e.along = abs(azimuth) * EntryFieldScale();

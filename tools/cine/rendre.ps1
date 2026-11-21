@@ -1,4 +1,4 @@
-﻿# Film par plages, sans fenêtre, sans conserver les BMP déjà encodés.
+﻿# Authored camera tracks. Use prise_jeu.py for live gameplay with flight dynamics and presentation timestamps.
 param(
     [Parameter(Mandatory=$true)][string]$Parcours,
     [Parameter(Mandatory=$true)][string]$Sortie,

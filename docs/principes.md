@@ -27,6 +27,10 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 **Flight effects read the forces acting on the ship.** [Flight, canopy and suit](spec-vol-immersion.md)
 
 - Integrate velocity in world coordinates. Weight acts towards the attracting body. Lift and drag depend on the flow relative to the hull.
+- Keep uncommanded attitude drift separate from intentional roll. Use local gravity and aerodynamic authority to restore the selected bank after a turn.
+- Drive cockpit receive lamps from the open radio carrier and level meters from the transmitted audio. Both remain attached to the physical console.
+- Record gameplay demonstrations from pilot inputs and the normal flight update. Only the initial spawn sets a ship pose. Preserve real presentation timestamps when assessing motion or frame rate. A continuous planetary approach retains every consecutive picture of one flight. Fit the score to the flight duration.
+
 - Give the pilot responsive cruise control and unrestricted full thrust at every altitude. Spaceflight assist follows the pilot’s heading. Atmospheric turns use the ship’s bank, lift and velocity through the air.
 - Give aerodynamic surfaces a continuous response to the local airflow and load. Share braking between aerodynamic drag and powered reverse thrust. Powered station keeping cancels external forces after a commanded stop.
 - An aerodynamic extension of a casting follows the casting's own surface through its full travel. Move its tangent frame and shadow with the skin. Keep the fixed stators and their outlet axes registered throughout deployment.
@@ -179,7 +183,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Depth damping cannot erase the wave energy that feeds breaking near shore.
 - Filter height moments with displacement; unresolved crests retain a breaking probability.
 - Condition the foam mean on water, excluding the dry part of a mixed coastal pixel.
-- Bound refined seawater and foam by the rasterized surface's height relative to the waves at mesh-led shores (`spec-eaux-interieures.md`).
+- At a resolved shore, the rasterized surface above a wave can occlude the water and its foam. Give the signed terrain contour authority as the mesh or pixel outgrows the physical shore support. [Shore coverage](spec-eaux-interieures.md)
 - Keep the same source in near and distant shading; pore detail may disappear, its mean coverage must remain.
 
 **Generated settlements follow shared life and existing land** (`spec-ville-procedurale.md`).
@@ -310,6 +314,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 **A reflective material uses the scene's light** (`spec-reflets-vaisseau.md`).
 - Keep photographed lighting out of albedo and geometry.
 - Trace against a read-only scene without the receiving hull; composite the opaque result before temporal smoothing.
+- Reproject an opaque ship surface with its rigid motion. Reuse temporal colour only when the full filtered sample belongs to the current motion frame.
 - Complete missing directions with a coherent sky and planet; state which off-screen objects the fallback cannot reflect.
 - Use the world's exposure, shadows and atmospheric attenuation for the reflective surface.
 

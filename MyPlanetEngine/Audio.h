@@ -16,6 +16,7 @@ public:
     bool Initialize(bool startDevice = true); // device-free authoring loads the same bank
     void Shutdown();
     void Update(const WorldSound&, float dt);
+    float RadioLevel() const { return mWorld.RadioLevel(); }
     void RequestRadio() { mWorld.RequestRadio(); }
     void Footstep(FootSurface s, float strength = 1.0f) { mWorld.Step(s, strength); }
     void Footstep(const FootContact& c, float strength = 1.0f) { mWorld.Step(c, strength); }

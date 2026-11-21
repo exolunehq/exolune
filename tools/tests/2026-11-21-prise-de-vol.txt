@@ -1,0 +1,6 @@
+High orbit, live descent | 261000 -11.1000 117.6500 14.5 73.5 v=14100 | -10 168
+Incoming shuttle above the clouds | 72000 -9.21 124.02 15 73.5 v=13200 depuis-espace | -10 168
+Upper ridge, cold level flight | 5300 -8.54 126.05 6 32 v=580 | -10 168
+Canyon south bend | 610 -8.258 126.229 0 -12 v=250 | -10 168
+Canyon narrows | 625 -8.173 126.232 0 -18 v=248 | -10 168
+Inlet above the shore | 145 -9.007 127.338 0 -78 v=250 | -10 168

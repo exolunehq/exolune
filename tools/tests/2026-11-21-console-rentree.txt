@@ -1,0 +1,6 @@
+Receiver check in high orbit (Enter, hold right mouse and look at either console) | 261000 -4.18298 125.50548 26.93 157.91 v=14350 | -10 168
+Glowing canopy flanks on approach | 72000 -7.10 126.80 22 158 v=12900 depuis-espace | -10 168
+Atmospheric turn and roll recovery over the pass | 650 -8.88 127.447 2 -168 v=340 | -10 168
+Low estuary, receiver check in straight flight | 95 -9.007 127.337 0 -76 v=300 | -10 168
+Original river canyon, request radio and glance right | 628 -8.178 126.231 0 178 v=445 | -10 168
+River mouth after the narrows | 115 -9.253 126.379 2 157 v=445 | -10 168

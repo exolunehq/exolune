@@ -69,6 +69,7 @@
 
 - Share the glass material and weather response across classic, fighter and Navigator cockpits. Each model supplies its optical surface. Preserve the Navigator's mirrored silhouette from outside.
 - Render fine glass surface detail after temporal reconstruction. Occlude it against cockpit structure. Bare and detached cameras give a clean view of the world.
+- The opaque ship writes a coverage bit into the solar attachment. The final resolve carries that bit in history alpha and rejects a history footprint crossing the ship silhouette. This applies to the early cockpit pass and the reflective exterior overlay.
 - Give the bow a detached luminous front and the flanks a cooler, thinning flow. Use the opaque scene depth to decide how much gas a viewer can see in front of the hull. A cold stationary cockpit tests the dry coating.
 - Keep the walking visor subtle. Reflecting a bright light at the periphery should reveal it even on an airless body. Atmospheric contributions depend on the actual environment.
 - Layer propulsion, cabin, hull airflow and entry resonance in flight. In the suit, mix breathing with exertion, protected radio and the existing habitat and contact sounds.
@@ -119,3 +120,18 @@
 - The [motion capture](../tools/tests/capture_reentry_motion.py) follows an 18-second passage from the cold approach through the luminous layer and back to cold flight. The exterior camera travels around the moving ship from ahead of the bow to the rear quarter. The cockpit camera turns 32 degrees and leans 9 cm. A separate six-second shot inspects dry scratches in grazing sunlight.
 - Under a sun 13 degrees above the sea, fine scratches on the classic pane brighten on one side and darken on the other. Disabling only the scratches changes the sampled side highlights by up to 21 levels out of 255. The forward sight changes by at most four levels in this pose.
 - The [thrust and windscreen route](../tools/tests/2026-11-20-propulsion-verriere.txt) opens in entry. F1 and F2 compare the same cockpit hot and cold. F3 and F4 test full-power departures. F5 and F6 reverse the grazing light. [First iteration and pilot feedback](log/spec-vol-immersion-historique.md)
+
+
+**Panoramic flight deck**
+
+- The flight path, terrain and pilot controls set the duration of a continuous descent take. The music follows the recorded flight.
+- In atmosphere, roll trim restores the last pilot-selected bank after combined pitch and yaw. Manual roll takes priority. Vertical flight and vacuum release the levelling torque.
+- Both outboard console screens replace their central drawing area during reception. The amber lamp follows the carrier through pauses. The segmented meter follows speech energy. The three forward displays retain their primary flight instruments.
+- Enter requests the ordinary cockpit transmission. During a recorded mission, a controller can supply the level of its own radio programme with each frame. The pilot uses the ordinary free-look control to glance at a console.
+- The shuttle concentrates its incandescent sheath beside the pilot station. Detached particles stretch downstream with airspeed. This distribution uses hull coordinates so a head turn exposes the same physical gas.
+
+**Panoramic shuttle during entry**
+
+- Derive the lower rail at each azimuth from the zero crossing of the cooked canopy distance field. Project its light and shedding sites onto the fitted surface in ship coordinates.
+- Keep compression fibres attached to a hull meridian. Advect the surrounding roll and curl using an integral of equivalent airspeed. Pilot head motion changes the viewing ray through this volume.
+- Assess material cues on a player-controlled descent. Ship acceleration drives the seat spring and pressure drives the heating and aerodynamic surfaces. [Live capture](lancement.md#live-cockpit-recording)

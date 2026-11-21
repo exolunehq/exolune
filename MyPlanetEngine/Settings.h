@@ -85,6 +85,7 @@ struct Settings
     bool coordinates = true; // I: screenshot coordinates; off by default in automated captures
     double batchMotion[6] = {};
 
+    std::wstring flightPipe, flightVideo; // A live controller and its optional lossless RGB capture.
     std::wstring cinePath, cineOut, cineVideo; // cineVideo: an .mp4 the frames are encoded to, instead of BMP files
     UINT cineFirst = 0, cineCount = 0, cineWarm = 120; // count 0: to the end
 

@@ -160,7 +160,7 @@ void D3DApp::SaveCapture(bool batchCapture, UINT trembleIndex) {
     // The last row need not include its pitch padding in GetCopyableFootprints' allocation.
     // Mapping pitch * height could exceed the buffer for window widths not aligned to 64 pixels.
     CD3DX12_RANGE captureRange(0, SIZE_T(mCaptureBuffer->GetDesc().Width));
-    if (!mCine.empty()) {
+    if (!mCine.empty() || mFlightTake.Connected()) {
         Check(mCaptureBuffer->Map(0, &captureRange, reinterpret_cast<void**>(&pixels)), "Cine capture map failed.");
         wchar_t name[64]; swprintf_s(name, L"\\frame_%05u.bmp", mCineIndex);
         try {

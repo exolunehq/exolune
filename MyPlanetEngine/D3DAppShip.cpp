@@ -25,11 +25,18 @@ FlightDynamics::Field D3DApp::ShipField() const {
     return field;
 }
 
+void D3DApp::AdvanceEntryFlow(double dt) {
+    if (mFlightCues.heat > 0)
+        mEntryFlowPhase += dt * (1.0 + 2.8 * FlightDynamics::Smooth(80, 1100, mFlightCues.equivalentAirspeed));
+    else mEntryFlowPhase = 0.0;
+}
+
 void D3DApp::MeasureShipAir(Vec3d position, Vec3d velocity, double altitude, double dt) {
     const double density = FlightDynamics::DensityAtAltitude(altitude);
     mFlightCues.Measure(density, velocity, density > 0 ? ClimateWindAt(position) : Vec3d{});
     mFlightCues.AdvanceHeat(altitude, Dot(position, velocity) / std::max(1.0, PlanetRadius + altitude), dt);
     mFlightPilot.surfaces.Advance(mFlightCues, 0, dt);
+    AdvanceEntryFlow(dt);
 }
 
 // The wheel selects cruise speed, then sustained thrust. Up burns at full power, Shift boosts and X brakes.
@@ -37,7 +44,26 @@ void D3DApp::MeasureShipAir(Vec3d position, Vec3d velocity, double altitude, dou
 void D3DApp::UpdateShip(float dt) {
     const double eyeAhead = mShip.Profile().eyeAhead;
     const bool focused = GetForegroundWindow() == mhMainWnd;
-    auto held = [focused](UINT vk) { return focused && (GetAsyncKeyState(vk) & 0x8000) ? 1.0 : 0.0; };
+    // A remote pilot sends the same raw mouse counts, wheel detents and buttons as the window.
+    const auto& input = mFlightTake.input;
+    if (mFlightTake.Connected()) {
+        mRawDx = input[FlightTake::MouseX];
+        mRawDy = input[FlightTake::MouseY];
+        mThrottle = FlightDynamics::MoveThrottle(mThrottle, input[FlightTake::Wheel]);
+        const bool looking = input[FlightTake::Look] != 0;
+        if (mLooking && !looking) mHeadKept = true;
+        mLooking = looking;
+        if (input[FlightTake::CentreHead] != 0) mHeadKept = false;
+    }
+    auto held = [&](UINT vk) -> double {
+        if (!mFlightTake.Connected()) return focused && (GetAsyncKeyState(vk) & 0x8000) ? 1.0 : 0.0;
+        if (vk == 'X') return input[FlightTake::Brake] != 0;
+        if (vk == VK_UP) return input[FlightTake::Burn] != 0;
+        if (vk == VK_SHIFT) return input[FlightTake::Boost] != 0;
+        if (vk == mMoveKeys[5]) return input[FlightTake::Roll] > 0;
+        if (vk == mMoveKeys[4]) return input[FlightTake::Roll] < 0;
+        return 0.0;
+    };
     const double dx = mRawDx, dy = mRawDy, rest = mView != View::Chase ? kHeadRest : 0.0;
     mRawDx = mRawDy = 0.0;
     if (mLooking || mHeadFree) {
@@ -78,6 +104,7 @@ void D3DApp::UpdateShip(float dt) {
     Vec3d newPos = mShipPos;
     mFlightLoads = FlightDynamics::Advance(mSettings.Automated() ? 0 : dt, newPos, mShipVelocity,
                                            mFlightCues, controls, mFlightPilot, ShipField());
+    AdvanceEntryFlow(dt);
     const auto& loads = mFlightLoads;
     mShipForward = controls.forward;
     mShipUp = controls.up;
@@ -153,6 +180,7 @@ void D3DApp::PlaceShipAtCamera() {
     mShipVelocity = mShipRate = mHeadSway = mHeadSwayRate = mEyeSpin = {};
     mShipContactImpulse = {};
     mFlightCues = {};
+    mEntryFlowPhase = 0.0;
     mFlightPilot = {};
     mFlightLoads = {};
     mThrottleLever = 0.0f;
@@ -231,7 +259,7 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
     const XMFLOAT3 flow = inShip(airspeed > 0.01 ? mFlightCues.airVelocity * (-1.0 / airspeed) : Vec3d{});
     ship.airflow = { flow.x, flow.y, flow.z, float(mFlightCues.heat) };
     ship.thrust = { (float)mPlume,(float)mJets[2], (float)mJets[1], (float)mJets[0] };
-    ship.turn = { (float)mJets[3], (float)mJets[4], (float)std::fmod(mClock, 3600.0), 0.0f };
+    ship.turn = { (float)mJets[3], (float)mJets[4], (float)std::fmod(mClock, 3600.0), (float)mEntryFlowPhase };
     // The dashboard's screens: the heading from the north, the place, the ground under the ship, the gas.
     const Vec3d vertical = SurfaceUp(mShipPos), pole = kNorth - vertical * Dot(kNorth, vertical);
     const Vec3d north = Length(pole) > 1e-6 ? Normalize(pole) : Vec3d{ 1.0, 0.0, 0.0 }, east = Cross(vertical, north);
@@ -240,6 +268,12 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
                     (float)(std::asin(vertical.y) * deg), (float)(std::atan2(vertical.z, vertical.x) * deg), (float)((mCine.empty() ? mGroundHeight : mCineShipGround) / 1000.0) };
     const float lever = float(mThrottle / FlightDynamics::ThrottleNotches);
     ship.gauges = { lever, float(SurfaceAltitude(mShipPos)*.001), NearMoon(mShipPos)?1.0f:0.0f, float(mFlightCues.engine) };
+    const float rx = mFlightTake.radioLevel >= 0 ? mFlightTake.radioLevel :
+                     (RadioAvailable() ? mAudio.RadioLevel() : -1.0f);
+    const float amplitude = std::max(rx, 0.0f);
+    mRadioLamp += ((rx >= 0 ? 1.0f : 0.0f) - mRadioLamp) * -std::expm1(-dt / .12f);
+    mRadioEnvelope += (amplitude - mRadioEnvelope) * -std::expm1(-dt / (amplitude > mRadioEnvelope ? .028f : .095f));
+    ship.radio = {mRadioLamp, mRadioEnvelope, 0, 0};
     const auto& surfaces = mFlightPilot.surfaces;
     ship.airframe = {float(surfaces.wings), float(surfaces.airbrakes), float(mFlightLoads.retroJet),
                      mFlightPilot.holding ? 1.0f : 0.0f};
