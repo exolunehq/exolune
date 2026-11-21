@@ -187,7 +187,10 @@ Output PSMain(float4 position : SV_POSITION)
     // The scene's light is unchanged.
     const float pixelStops=log2(max((dot(color,LUMINANCE)+LOCAL_ADAPTATION_GLARE*dot(glare.rgb,LUMINANCE))*exposure/0.18,
         1e-12));
-    const float sceneExposure=opaqueOverlay?exposure:exposure*exp2(LocalAdaptation(position.xy/size,pixelStops));
+    // The reconstruction must respect the sky weight used to build the meter. Otherwise its
+    // fallback sample amplifies the first trace of air at the outer limb by up to 15 stops.
+    const float sceneExposure=opaqueOverlay?exposure:exposure*exp2(
+        LocalMeterWeight(current.a,pixelStops)*LocalAdaptation(position.xy/size,pixelStops));
     const float3 starlight=opaqueOverlay?0.0:celestial.Load(int3(pixel,0)).rgb*clamp(exposure,SKY_EYE_EXPOSURE,2000000.0);
     float3 shown=opaqueOverlay?color*exposure
         :(RodVision(color*(1.0-glare.a),sceneExposure)*sceneExposure+glare.rgb*exposure+starlight)*g.a+g.rgb*exposure;

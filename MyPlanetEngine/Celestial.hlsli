@@ -55,6 +55,12 @@ float3 GalaxyWorld(float3 d) {
     return d.x*x+d.y*y+d.z*z;
 }
 float MagnitudeFlux(float m) { return CELESTIAL_PI*pow(10.0,-.4*(m+26.74)); }
+// Air light veils the eye continuously as the foreground becomes optically thick.
+// A grazing ray through the outermost air still carries the full stellar image.
+float CelestialVeil(float3 scatteredLight, float3 transmission) {
+    const float opacity=saturate(dot(1.0-transmission,CELESTIAL_LUMA));
+    return max(dot(scatteredLight,CELESTIAL_LUMA),0.0)*opacity*opacity*opacity;
+}
 // Schaefer's rod/cone threshold: scene radiance -> cd/m2 -> nanolamberts -> stellar illuminance.
 float PointThreshold(float background) {
     const float B=max(background,0.0)*(126000.0/CELESTIAL_PI)*314159.265;

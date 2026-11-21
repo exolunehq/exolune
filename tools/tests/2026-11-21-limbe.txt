@@ -1,0 +1,6 @@
+# In orbit, tip the nose along the limb and follow the same stars down to the blue air.
+Surface Echo orbital entry - galactic band above the cloud bank | 115000 -10.70 119.40 25 52 | -10 168
+High orbit - follow the stars behind the darker hemisphere | 1900000 -17.30 113.00 55 56 | -10 168
+Different limb - sweep along the blue rim | 520000 36 -54 25 115 | 14 -7
+Moonless surface - stars above the ridge | 12000 -12 -25 -55 90 | 10 155
+Daylight surface - look across the bright sky | 12000 -8 145 -55 90 | -8 145

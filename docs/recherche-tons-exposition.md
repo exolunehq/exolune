@@ -31,6 +31,7 @@ Status: implemented, updated 2026-11-13. Code: `SceneExposure.hlsli`, `ToneMap.h
 
 **How it works** (`Adaptation.h`, `AdaptSeed.hlsl`, `ToneMap.hlsl`; settings `LOCAL_*` in `PlanetSettings.hlsli`).
 - **The regions:** each pixel's light, in stops from the grey card under the global meter, averaged at a quarter of the resolution, then down a pyramid.
+- Sky pixels use the same metering weight when reconstructing local exposure. Faint air at the orbital limb approaches the global exposure as its contribution to the meter approaches zero.
   - Surfaces count whole; the sky only where it is bright, never the black of space.
   - The Sun counts as six stops over the grey card, no more.
   - The eye adapts to what it sees, the Sun's veil with it: `LOCAL_ADAPTATION_GLARE` of the glare is added to what the regions read.

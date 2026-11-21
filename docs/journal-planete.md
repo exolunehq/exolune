@@ -2,6 +2,13 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-21 · Starlight through the orbital limb**
+
+- Thin foreground air previously suppressed starlight while its own scattered light still appeared black.
+- Point sources and the galactic field now share an opacity-weighted contrast veil at every camera height. The existing RGB transport supplies opacity within the frame.
+- Reconstructing local exposure with the meter's sky weight removes the outer ring from barely visible scattered light.
+- Local source base `piste/limbe-stellaire-2026-11-21-base`. [Orbital and ground review](../tools/tests/2026-11-21-limbe.txt)
+
 **2026-11-21 · Navette extension hardware and slotted exhausts**
 
 - A keyed guide and paired telescopic rams carry each turbine lip. Shared actuator travel keeps the pins, shoes and shadow together through a reversal.

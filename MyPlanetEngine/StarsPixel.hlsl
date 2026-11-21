@@ -5,7 +5,7 @@ float4 PSMain(float4 position:SV_POSITION,noperspective float2 offset:TEXCOORD0,
     nointerpolation float3 flux:TEXCOORD1,nointerpolation float solidAngle:TEXCOORD2):SV_TARGET {
     const int3 pixel=int3(position.xy,0);
     const float3 transmission=skyTransport.Load(pixel).rgb;
-    const float background=dot(skyScene.Load(pixel).rgb,CELESTIAL_LUMA);
+    const float background=CelestialVeil(skyScene.Load(pixel).rgb,transmission);
     const float3 received=flux*transmission;
     const float energy=dot(received,CELESTIAL_LUMA);
     const float visible=saturate(1.0-PointThreshold(background+NIGHT_IRRADIANCE/CELESTIAL_PI)/max(energy,1e-30));
