@@ -1,0 +1,6 @@
+# Seed 0. The first two views share the opening position and sunlight of Lee Side.
+Lee Side inlet at 174 km | 174000 -24.198483 162.754941 24.63884 -76.72765 | 5 111
+Lee Side inlet in flight | 174000 -24.198483 162.754941 24.63884 -76.72765 v=18400 | 5 111
+Peninsula at 120 km | 120141.8 -15.390154 133.044302 69.90 -10.79 | -10 168
+Cold coast at 150 km | 150000 -47.30 -32.87 66 22 | -40 -10
+Foot of the sea cliff at 82 m | 82.4 -23.190545 157.865928 8.47 -75.44 | -20 150

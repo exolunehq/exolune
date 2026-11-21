@@ -14,7 +14,7 @@ Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it
 
 **Lake coverage across the sliding grid, 2026-11-20.** Rendering correction at the fine-grid and ring boundary. Classify standing water from the existing drainage stage when the fine samples are unavailable. See `spec-eaux-interieures.md`.
 
-**Coastal waterline, 2026-11-20.** Coverage correction for ocean and foam on the shared terrain. Bound the fine shoreline by the rasterized terrain height relative to the waves. See `spec-eaux-interieures.md`.
+**Coastal waterline, 2026-11-21.** Ocean and foam coverage on the shared terrain. A shore-resolving triangle can occlude the water above its wave. Larger cells hand coverage to the signed terrain contour. The same terrain vertices supply relief and contact. [Inland and coastal water](spec-eaux-interieures.md)
 
 **Orbital lake coverage, 2026-11-20.** Representation of standing water on the shared terrain. A bounded finer bed sample supplies wet area and depth during screen-space reconstruction. See `spec-eaux-interieures.md`.
 

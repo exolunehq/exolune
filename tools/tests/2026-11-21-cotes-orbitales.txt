@@ -1,0 +1,13 @@
+# Seed 0. F1 to F3 follow the reported descent. F4 and F5 isolate the water mask.
+Reported peninsula at 128.5 km | 128499.7 -15.416608 133.049532 69.93 -10.79 | -10 168
+Midway along the approach | 124320.75 -15.403381 133.046917 69.915 -10.79 | -10 168
+Reported peninsula at 120.1 km | 120141.8 -15.390154 133.044302 69.90 -10.79 | -10 168
+Water coverage at the start | 128499.7 -15.416608 133.049532 69.93 -10.79 sea | -10 168
+Water coverage at the end | 120141.8 -15.390154 133.044302 69.90 -10.79 sea | -10 168
+Bay approach at 139 km | 139000 -23.32 157.68 69 -32 | -20 150
+Bay approach at 114 km | 114000 -23.27 157.61 69 -32 | -20 150
+Cold coast at 150 km | 150000 -47.30 -32.87 66 22 | -40 -10
+Cold coast at 118 km | 118000 -47.22 -32.80 66 22 | -40 -10
+Cliff from above the inlet | 172.5 -23.191912 157.871651 8.48 -75.44 | -20 150
+Cliff close to the water | 82.4 -23.190545 157.865928 8.47 -75.44 | -20 150
+Water coverage against the cliff | 82.4 -23.190545 157.865928 8.47 -75.44 sea | -20 150

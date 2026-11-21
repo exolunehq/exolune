@@ -2,6 +2,13 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-21 · Stable orbital coasts**
+
+- Dry vertices lifted coarse coastal triangles above the sea and clipped the finer shoreline. The raster height cap now fades as the larger of the mesh cell and pixel footprint grows from 30 to 60 m.
+- Between the reported views at 128.5 and 120.1 km, the 95th-percentile displacement of the 50% water contour fell from 3.30 to 0.99 pixels after reprojection to the sea-level sphere at 1280 × 720. Two other coasts fell from 6.94 to 1.01 and 5.14 to 1.01 pixels. Isolated one-pixel patches can still cross the coverage threshold.
+- The water mask on the near and middle cliff wall held across all 83 frames of the 172.5 to 82.4 m approach. Local source base `piste/cotes-orbitales-2026-11-21-base`. [Flight review](../tools/tests/2026-11-21-cotes-orbitales.txt)
+- At 174 km, the original *Lee Side* recording used four terrain shaders compiled before the correction. Replaying the opening with the rebuilt shaders restored the inlet outline. [Opening cockpit view](../tools/tests/2026-11-21-rivage-lee-side.txt)
+
 **2026-11-21 · Starlight through the orbital limb**
 
 - Thin foreground air previously suppressed starlight while its own scattered light still appeared black.

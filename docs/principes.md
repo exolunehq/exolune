@@ -179,7 +179,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Depth damping cannot erase the wave energy that feeds breaking near shore.
 - Filter height moments with displacement; unresolved crests retain a breaking probability.
 - Condition the foam mean on water, excluding the dry part of a mixed coastal pixel.
-- Bound refined seawater and foam by the rasterized surface's height relative to the waves at mesh-led shores (`spec-eaux-interieures.md`).
+- At a resolved shore, the rasterized surface above a wave can occlude the water and its foam. Give the signed terrain contour authority as the mesh or pixel outgrows the physical shore support. [Shore coverage](spec-eaux-interieures.md)
 - Keep the same source in near and distant shading; pore detail may disappear, its mean coverage must remain.
 
 **Generated settlements follow shared life and existing land** (`spec-ville-procedurale.md`).

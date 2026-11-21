@@ -481,13 +481,16 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     const float preciseInland = ErosionRivers() ? max(preciseRiverCoverage, smoothstep(0.0, 0.5 * lakeAA, preciseLakeClearance))
                                               : smoothstep(0.0, 0.5 * liquidAA, preciseClearance);
     oceanCoverage = lerp(oceanCoverage, preciseOcean, refine);
-    // A refined shoreline cannot place water on the portion of a rasterized wall above the wave surface.
+    // Only a mesh that resolves the shore can occlude its water. A mixed, coarse triangle is lifted by
+    // its dry vertices over the sea and otherwise cuts the pixel's coastline back to a moving mesh edge.
+    const float shoreMeshWeight = (1.0 - screenWeight)
+                                * (1.0 - smoothstep(0.5 * SHORE_BASELINE, SHORE_BASELINE, max(input.cellSize, footprint)));
     // Expand the sphere equation about its sea-level radius to keep metre-scale heights precise.
     const float3 seaOffset = input.pos + float3(camPlane.xy, faceParams.z);
     const float rasterHeight = seaOffset.z + 0.5 * dot(seaOffset, seaOffset) / faceParams.y - input.seaHeight;
     const float rasterAA = max(abs(ddx(rasterHeight)) + abs(ddy(rasterHeight)), 0.10);
     const float rasterWet = 1.0 - smoothstep(0.5 * rasterAA, rasterAA, rasterHeight);
-    oceanCoverage = min(oceanCoverage, lerp(rasterWet, 1.0, screenWeight));
+    oceanCoverage = lerp(oceanCoverage, min(oceanCoverage, rasterWet), shoreMeshWeight);
     // Blend wet moments before decoding. Interpolating conditional depths/stages with dry values changed the water
     // colour and current as the fine grid, pixel contour and screen samples exchanged their weights on approach.
     const float3 waterMoments = lerp(float3(inlandCoverage, inlandCoverage * waterLevel, inlandCoverage * waterDepth),
