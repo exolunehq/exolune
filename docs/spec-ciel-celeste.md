@@ -54,7 +54,7 @@
 **Atmosphere and night**
 - Both cloud paths export their actual final RGB transmission, without the march's 0.3 % remainder: a thick cloud hides the Sun and the moons, a thin one veils them (`spec-nuages.md`, 2026-11-13).
 - Stars and galaxies use it, including coloured extinction near the horizon.
-- The local contrast veil is sky luminance times the cube of foreground optical opacity. The same veil governs diffuse galactic light and the Schaefer threshold for point sources. RGB transmission still attenuates the light itself.
+- The local contrast veil combines optical opacity and sky luminance. Bright air reaches full contrast masking three stops below reference grey. The same cubic response governs diffuse galactic light and the Schaefer threshold for point sources. RGB transmission still attenuates the light itself.
 - Diffuse galactic contrast decreases continuously as the sky brightens.
 - Moonlight enters the common sky irradiance and atmospheric scattering, at `MOONLIGHT_SCALE` = 0.25 of the moons' flux: three close moons made nights of 2 to 8 terrestrial full moons. Their discs keep their flux; 1 is physical.
 - The moons light Exolune with their illuminance on the ground below the camera (`celestialFlux.w`, `Moonlight`), from where they stand over each point (`MoonDirectionFrom`). At the camera, a camera beside a moon floodlit the whole night side: 700 times at 1 333 km from the third moon (2026-11-13).
