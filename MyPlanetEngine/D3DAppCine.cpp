@@ -71,6 +71,8 @@ void D3DApp::InitCine(D3D12_GPU_DESCRIPTOR_HANDLE tectonics) {
     // Resuming a long orbit usually examines just its preceding pose. Inside the
     // entry band, replay the actual approach, including its descent rate and elapsed time.
     mFlightCues = {};
+    mFlightPilot = {};
+    mFlightLoads = {};
     UINT first = mCineIndex, nonDescending = 0;
     const UINT coolFrames = UINT(std::ceil(FlightDynamics::EntryExitFade * mCineFps)) + 1;
     while (first > 0) {
@@ -82,6 +84,8 @@ void D3DApp::InitCine(D3D12_GPU_DESCRIPTOR_HANDLE tectonics) {
         nonDescending = first > 0 && altitude >= mCine[first - 1].nav[2] ? nonDescending + 1 : 0;
         if (nonDescending >= coolFrames) break;
     }
+    const UINT actuatorHistory = UINT(std::ceil(5.0 * mCineFps));
+    first = std::min(first, mCineIndex - std::min(mCineIndex, actuatorHistory));
     for (UINT i = first; i < mCineIndex; ++i) SampleCineMotion(i);
     mCineTectonics = tectonics;
     const auto cs = LoadShader(L"CineGround.cso");

@@ -1,0 +1,8 @@
+# Cycle cockpit, chase and bare views with Tab. Hold X until station keeping, then resume with the wheel.
+Coastal flight - inspect wings, canopy and stern | 870 -23.1956 157.8743 0 -30 v=120 | -18 178
+Over water - stop, let the wings fold and accelerate again | 510 -20.47 -75.45 0 160 v=110 | -50.47 -75.45
+Fast coast - watch the wings reopen under load | 460 -23.1956 157.8743 0 -30 v=430 | -18 178
+Inland - inspect panel seams in grazing light | 3100 38.1445 103.5352 0 90 v=145 | 42 74
+Fast entry - watch the sweep as the heat fades | 66000 30.68685 120.10788 15 76 v=7400 depuis-espace | 12 -161
+Orbit - inspect the stowed silhouette and blue coating | 250000 38.1445 103.5352 0 90 v=550 | 22 135
+Low cumulus - compare glass from the pilot and chase views | 1500 38.1445 103.5352 -5 90 v=95 | 38.1445 128.5352

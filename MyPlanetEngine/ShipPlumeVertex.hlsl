@@ -8,12 +8,13 @@ PlumePixel VSMain(uint id : SV_VertexID, uint j : SV_InstanceID)
 {
     const Jet jet = JetOf(j);
     float3 u, v;
-    JetFrame(jet, u, v);
+    JetFrame(j, jet, u, v);
     const uint corner = CUBE[id];
-    const float half = jet.radius + jet.spread * jet.length + 0.05;
+    float3 low, high;
+    JetBounds(jet, low, high);
     PlumePixel o;
-    o.local = jet.at + jet.to * (((corner >> 2) & 1) * (jet.length + 0.05) - 0.05)
-            + u * ((corner & 1) ? half : -half) + v * (((corner >> 1) & 1) ? half : -half);
+    const float3 box = lerp(low, high, float3(corner & 1, (corner >> 1) & 1, (corner >> 2) & 1));
+    o.local = jet.at + box.x*u + box.y*v + box.z*jet.to;
     o.position = jet.power > 0.01 ? mul(float4(mul(float4(o.local, 1.0), shipModel).xyz, 1.0), viewProj) : 0.0;
     o.jet = j;
     return o;

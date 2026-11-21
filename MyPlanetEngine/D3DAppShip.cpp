@@ -29,6 +29,7 @@ void D3DApp::MeasureShipAir(Vec3d position, Vec3d velocity, double altitude, dou
     const double density = FlightDynamics::DensityAtAltitude(altitude);
     mFlightCues.Measure(density, velocity, density > 0 ? ClimateWindAt(position) : Vec3d{});
     mFlightCues.AdvanceHeat(altitude, Dot(position, velocity) / std::max(1.0, PlanetRadius + altitude), dt);
+    mFlightPilot.surfaces.Advance(mFlightCues, 0, dt);
 }
 
 // The wheel selects cruise speed, then sustained thrust. Up burns at full power, Shift boosts and X brakes.
@@ -64,15 +65,20 @@ void D3DApp::UpdateShip(float dt) {
     const Vec3d eyeBefore = mShipForward * eyeAhead + mShipUp * mShip.Profile().eyeUp;
     const Vec3d rateBefore = mShipRate;
     mShipRate =mShipRate + (wantedRate - mShipRate) * (1.0 - std::exp(-dt / 0.1));
+    // The pilot works on the unassisted frame. Apply the bank again about the updated nose.
+    mShipUp = Rotate(mShipUp, mShipForward, mFlightPilot.bank);
     FlightFrame::Turn(mShipForward,mShipUp,mShipRate.y*dt,-mShipRate.x*dt,mShipRate.z*dt);
+    mShipUp = Rotate(mShipUp, mShipForward, -mFlightPilot.bank);
 
     const double strafe = held(mMoveKeys[3]) - held(mMoveKeys[2]);
     const double lift = std::min(std::max(held(mMoveKeys[0]) + held(VK_SPACE) - held(mMoveKeys[1]) - held(VK_CONTROL), -1.0), 1.0);
     FlightDynamics::Controls controls = {mShipForward, Normalize(Cross(mShipUp, mShipForward)), mShipUp,
-                                         mThrottle, strafe, lift, held(VK_SHIFT) > 0, held('X') > 0, held(VK_UP) > 0};
+                                         mThrottle, strafe, lift, held(VK_SHIFT) > 0, held('X') > 0, held(VK_UP) > 0,
+                                         mShipRate.y, mShipRate.z};
     Vec3d newPos = mShipPos;
-    const auto loads = FlightDynamics::Advance(mSettings.Automated() ? 0 : dt, newPos, mShipVelocity,
-                                                mFlightCues, controls, mFlightPilot, ShipField());
+    mFlightLoads = FlightDynamics::Advance(mSettings.Automated() ? 0 : dt, newPos, mShipVelocity,
+                                           mFlightCues, controls, mFlightPilot, ShipField());
+    const auto& loads = mFlightLoads;
     mShipForward = controls.forward;
     mShipUp = controls.up;
     const Vec3d right = controls.right;
@@ -148,6 +154,8 @@ void D3DApp::PlaceShipAtCamera() {
     mShipContactImpulse = {};
     mFlightCues = {};
     mFlightPilot = {};
+    mFlightLoads = {};
+    mThrottleLever = 0.0f;
     mHeadTilt = mHeadTiltRate = mPlume = 0.0;
     for (double& jet : mJets) jet = 0.0;
     mStickX = mStickY = mHeadYaw = mThrottle = 0.0;
@@ -184,6 +192,7 @@ void D3DApp::SetView(View view) {
     if (mView == View::Walk) {
         mWalkProbePending=mWalkPatchValid=false; mWalkJump=false;
         mFlightPilot = {};
+        mFlightLoads = {};
     }
     if (view != View::Free && view != View::Walk && mView == View::Free) PlaceShipAtCamera(); // the ship comes to the free camera
     mView = view;
@@ -231,6 +240,13 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
                     (float)(std::asin(vertical.y) * deg), (float)(std::atan2(vertical.z, vertical.x) * deg), (float)((mCine.empty() ? mGroundHeight : mCineShipGround) / 1000.0) };
     const float lever = float(mThrottle / FlightDynamics::ThrottleNotches);
     ship.gauges = { lever, float(SurfaceAltitude(mShipPos)*.001), NearMoon(mShipPos)?1.0f:0.0f, float(mFlightCues.engine) };
+    const auto& surfaces = mFlightPilot.surfaces;
+    ship.airframe = {float(surfaces.wings), float(surfaces.airbrakes), float(mFlightLoads.retroJet),
+                     mFlightPilot.holding ? 1.0f : 0.0f};
+    const double support = Length(mFlightLoads.supportThrust);
+    const XMFLOAT3 exhaust = support > 1e-6 ? inShip(mFlightLoads.supportThrust * (-1 / support)) : XMFLOAT3(0, 0, -1);
+    ship.supportExhaust = {exhaust.x, exhaust.y, exhaust.z,
+        mShip.Profile().surfaces.span > 0 ? float(FlightDynamics::Clamp(support / 14, 0, 1)) : 0.0f};
     // The stick and the throttle (ShipPose): the stick leans back 12 degrees as the nose pitches up, aside with the roll,
     // and twists 15 degrees with the yaw; the throttle swings 40 degrees over its notches, forwards with the gas.
     auto pivoted = [](const Ship::Pivot& p, const XMMATRIX& r) {
@@ -239,7 +255,18 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
     };
     for (auto& pose : ship.pose) XMStoreFloat4x4(&pose, XMMatrixIdentity());
     const Ship::Pivot* pivots = mShip.pivots;
-    if (mShip.Profile().pivotCount >= 2) {
+    if (mShip.Profile().model == ShipModel::Navette) {
+        const float bank = float(FlightDynamics::Clamp((mShipRate.z + mFlightPilot.bank) / 1.8, -1, 1));
+        XMStoreFloat4x4(&ship.pose[0], pivoted(pivots[0], XMMatrixRotationAxis(XMLoadFloat3(&pivots[0].axis), -.31f * bank)
+            * XMMatrixTranslation(0, -.018f * float(mStickY), 0)));
+        const float response = mCine.empty() ? -std::expm1(-dt / .085f) : 1.0f;
+        mThrottleLever += (lever - mThrottleLever) * response;
+        const auto stops = mShip.throttleStops;
+        const auto& throttle = pivots[SHIP_PACK_POSES - 1];
+        const float angle = stops.x + (stops.y - stops.x) * mThrottleLever;
+        XMStoreFloat4x4(&ship.pose[SHIP_PACK_POSES - 1],
+            pivoted(throttle, XMMatrixRotationAxis(XMLoadFloat3(&throttle.axis), angle)));
+    } else if (mShip.Profile().pivotCount >= 2) {
         XMStoreFloat4x4(&ship.pose[0], pivoted(pivots[0], XMMatrixRotationAxis(XMLoadFloat3(&pivots[0].axis), -0.26f * (float)mStickX)
             * XMMatrixRotationX(0.21f * (float)mStickY) * XMMatrixRotationY(-0.21f * (float)(mShipRate.z / 1.8))));
         XMStoreFloat4x4(&ship.pose[1], pivoted(pivots[1], XMMatrixRotationAxis(XMLoadFloat3(&pivots[1].axis), 0.7f * (lever - 0.5f))));
@@ -256,4 +283,5 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
     }
     XMStoreFloat4(&ship.velocity, toLocal(speed > 1e-3 ? mShipVelocity * (1.0 / speed) : mShipForward));
     ship.velocity.w = (float)speed;
+    mShip.SetFlightSurfaces(ship.airframe.x, ship.airframe.y);
 }

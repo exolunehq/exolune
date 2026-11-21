@@ -99,6 +99,7 @@
     <ClCompile Include="PlanetPlantPlacement.cpp" />
     <ClCompile Include="Ocean.cpp" />
     <ClCompile Include="Ship.cpp" />
+    <ClCompile Include="ShipFlightSurfaces.cpp" />
     <ClCompile Include="ShipShockHull.cpp" />
     <ClCompile Include="City.cpp" />
     <ClCompile Include="main.cpp" />
@@ -204,6 +205,8 @@
     <None Include="ShipEntryVolume.hlsli" />
     <None Include="ShipPlume.hlsli" />
     <None Include="ShipScreens.hlsli" />
+    <None Include="ShipShuttleScreens.hlsli" />
+    <None Include="ShipHeat.hlsli" />
     <None Include="BiomePalette.hlsli" />
     <None Include="Mesh.hlsli" />
     <None Include="PlanetSettings.hlsli" />
@@ -601,12 +604,19 @@
       <DisableOptimizations>false</DisableOptimizations>
       <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;Ship.hlsli;ShipProfiles.h;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
+    <FxCompile Include="ShipShadowMask.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>Ship.hlsli;ShipProfiles.h;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
     <FxCompile Include="ShipPixel.hlsl">
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>PSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>OpticalSurface.hlsli;ShipEntry.hlsli;SceneExposure.hlsli;Celestial.hlsli;ShipNavigatorFixtures.hlsli;ShipNavigator.hlsli;ShipScreens.hlsli;Ship.hlsli;ShipProfiles.h;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>OpticalSurface.hlsli;ShipEntry.hlsli;SceneExposure.hlsli;Celestial.hlsli;ShipNavigatorFixtures.hlsli;ShipNavigator.hlsli;ShipScreens.hlsli;ShipShuttleScreens.hlsli;ShipHeat.hlsli;Ship.hlsli;ShipProfiles.h;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="ShipGlass.hlsl">
       <ShaderType>Pixel</ShaderType>
@@ -620,7 +630,7 @@
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>PSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>OpticalSurface.hlsli;ShipEntry.hlsli;SceneExposure.hlsli;Celestial.hlsli;ShipNavigatorFixtures.hlsli;ShipNavigator.hlsli;ShipPixel.hlsl;ShipReflections.hlsli;ShipScreens.hlsli;Ship.hlsli;ShipProfiles.h;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;PlanetSettings.hlsli;Atmosphere.hlsli;PlanetMap.hlsli;BiomePalette.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>OpticalSurface.hlsli;ShipEntry.hlsli;SceneExposure.hlsli;Celestial.hlsli;ShipNavigatorFixtures.hlsli;ShipNavigator.hlsli;ShipPixel.hlsl;ShipReflections.hlsli;ShipScreens.hlsli;ShipShuttleScreens.hlsli;ShipHeat.hlsli;Ship.hlsli;ShipProfiles.h;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;PlanetSettings.hlsli;Atmosphere.hlsli;PlanetMap.hlsli;BiomePalette.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="ShipWeather.hlsl">
       <ShaderType>Compute</ShaderType>
@@ -683,14 +693,14 @@
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>VSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;ShipPlume.hlsli;Ship.hlsli;ShipProfiles.h;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;ShipPlume.hlsli;ShipHeat.hlsli;Ship.hlsli;ShipProfiles.h;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <FxCompile Include="ShipPlumePixel.hlsl">
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>6.0</ShaderModel>
       <EntryPointName>PSMain</EntryPointName>
       <DisableOptimizations>false</DisableOptimizations>
-      <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;ShipPlume.hlsli;Ship.hlsli;ShipProfiles.h;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs>SceneExposure.hlsli;Celestial.hlsli;ShipPlume.hlsli;ShipHeat.hlsli;Ship.hlsli;ShipProfiles.h;ShipClassique.hlsli;ShipChasseur.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
     <!-- The clouds and the air over the scene (Clouds.hlsli): the single pass, then the temporal pass's three entry points,
          each compiled from AtmospherePass.hlsl by its wrapper. Shader model 6 (DXC), as the terrain. -->

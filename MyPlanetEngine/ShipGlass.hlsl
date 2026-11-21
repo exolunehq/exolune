@@ -86,7 +86,8 @@ float4 PSMain(ShipPixel input) : SV_Target
     const bool lunar = shipGauges.z > 0.5 && erosionMode.w != 0u;
     const uint body = max(erosionMode.w, 1u) - 1;
     const float3 sun = lunar ? celestialLight[body].xyz : lightDir.xyz;
-    const float3 centre = mul(float4(SHIP_CENTRE, 1.0), shipModel).xyz;
+    const bool shuttleGlass = ShipShuttle() && m.mode == 2;
+    const float3 centre = mul(float4(shuttleGlass ? SHUTTLE_PANE_CENTRE : SHIP_CENTRE, 1.0), shipModel).xyz;
     float3 outward = normalize(input.normal);
     if (dot(outward, input.pos - centre) < 0.0)
         outward = -outward;
@@ -96,7 +97,8 @@ float4 PSMain(ShipPixel input) : SV_Target
         outward = normalize(outward - side * dot(outward, side) * (1.0 - smoothstep(0.0, 0.35, abs(input.local.x))));
     }
     const bool inside = dot(v, outward) < 0.0;
-    if (ShipNavigator() && !inside) discard;
+    const bool shuttleOuter = shuttleGlass && shipOptions.y < 0.5;
+    if ((ShipNavigator() && !inside) || (shuttleOuter && inside)) discard;
     const float3 n = inside ? -outward : outward; // towards the eye
     const float nv = saturate(dot(n, v)), fresnel = GlassFresnel(nv);
     const float h = max(shipUp.w, 0.0), muS = dot(up, sun), haze = RegionalGround(PlanetDirection(up));
@@ -117,9 +119,15 @@ float4 PSMain(ShipPixel input) : SV_Target
     // Seen from outside, the canopy is coated, as on fighters: a dark bronze mirror that lets 8 % through, so that the
     // cockpit is not seen. From inside, a lightly smoked glass.
     const float3 coat = float3(0.32, 0.27, 0.19);
-    const float3 reflectance = inside || m.mode != 2 ? fresnel.xxx : coat + (1.0 - coat) * pow(1.0 - nv, 5.0);
+    const bool coated = !inside && m.mode == 2 && !shuttleGlass;
+    float3 reflectance = coated ? coat + (1.0 - coat) * pow(1.0 - nv, 5.0) : fresnel.xxx;
+    // Only the outward chase view uses the privacy coating. The pilot transmits the
+    // scene neutrally through the same pane, with the light returned by its interface.
+    if (shuttleOuter)
+        reflectance = lerp(float3(0.14, 0.24, 0.33), 1.0, pow(1.0 - nv, 5.0));
     float3 rgb = reflectance * (mirrored + glint * beam);
-    float alpha = inside || m.mode != 2 ? 0.92 * (1.0 - fresnel) : 0.08 * (1.0 - reflectance.g);
+    float alpha = coated ? 0.08 * (1.0 - reflectance.g) : 0.92 * (1.0 - fresnel);
+    if (shuttleGlass) alpha = shuttleOuter ? .022 * (1.0 - reflectance.g) : 1.0 - fresnel;
     if (ShipNavigator()) { rgb *= 0.35; alpha = 1.0 - 0.35 * fresnel; }
 
     float2 size;

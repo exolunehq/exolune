@@ -1,0 +1,8 @@
+# X slows the ship to a powered stop. Leave X pressed until the title shows stationnaire.
+# Move the wheel or command thrust or translation to leave the hold. Tab cycles the flight views.
+Coast · Turn with the mouse at 105 m/s, then centre the stick | 520 -23.191912 157.871651 0 -16 v=105 | -20 150
+Open sea · Hold X to stop and release it, then use the wheel | 460 -20.47 -75.45 0 160 v=112 | -50.47 -75.45
+Hills · Trim with the wheel and apply a gentle turn | 2950 38.1445 103.5352 0 90 v=145 | 22 135
+Entry · Switch to chase and watch the panels as the load falls | 66000 30.68685 120.10788 15 76 v=7400 depuis-espace | 12 -161
+Orbit · Switch to chase, turn and brake with the surfaces stowed | 250000 38.1445 103.5352 0 90 v=550 | 22 135
+Moon · Brake in vacuum and leave the ship hovering at zero speed | 800 20 15 -4 -102 lune v=85 | -25 55

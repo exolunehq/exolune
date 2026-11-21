@@ -236,11 +236,14 @@ float3 Dial(float2 p, float3 c, float value)
 
 bool ShipIsScreen(uint role) { return role >= SCREEN_NAV && role <= DIAL_HEIGHT; }
 
+#include "ShipShuttleScreens.hlsli"
+
 // The role's image at uv, `image` its printed colour, linear: what the screen shows now.
 float3 ShipScreen(uint role, float2 uv, float3 image)
 {
     const float2 p = uv * 512.0;
     screenPx = max(max(length(ddx(p)), length(ddy(p))), 1e-3);
+    [branch] if (ShipShuttle()) return ShuttleScreen(role, p, image);
     switch (role)
     {
     case SCREEN_NAV:     return NavScreen(p, image);

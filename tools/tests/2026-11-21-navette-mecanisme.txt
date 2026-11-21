@@ -1,0 +1,5 @@
+# In chase view, hold the right mouse button to look beneath a wing or around the stern.
+Coast - look under a turbine lip, hold X to stop, then use the wheel to reopen the wing | 1350 -23.1956 157.8743 0 -30 v=125 | -14 142
+Offshore - from hover, accelerate and stop twice to cycle the twin rams and their guide | 510 -20.47 -75.45 0 160 v=0 | -10 -99
+Valley - look aft, apply thrust, then cut the throttle to see the five slots in each grille | 3100 38.1445 103.5352 0 90 v=140 | 47 76
+Orbit - with the wings stowed, hold Up for full thrust and release to check both exhausts against space | 250000 22 135 0 90 v=550 | 14 115

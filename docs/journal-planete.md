@@ -2,6 +2,34 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-21 · Navette extension hardware and slotted exhausts**
+
+- A keyed guide and paired telescopic rams carry each turbine lip. Shared actuator travel keeps the pins, shoes and shadow together through a reversal.
+- Each main exhaust follows the five openings between its six vanes. The shape comes from each bank's measured discharge depth and projected area. The renderer marches one volume per nacelle.
+- Local source base `piste/navette-mecanisme-2026-11-21-base`. [Asset hash and recipe](../assets/vaisseau/navette/README.md) · [Four flight checks](../tools/tests/2026-11-21-navette-mecanisme.txt) · [Earlier exhausts](log/spec-vol-immersion-historique.md)
+
+**2026-11-21 · Atmospheric deployment from the turbine lip**
+
+- The original Navette cowling opens across a 5.37–8.56 m span. The return under the lip closes above the fixed stators. A section check follows each side of the outline at five extensions.
+- The dorsal airbrakes hinge on the fixed shoulder. The fin and afterdeck use continuous section changes from the film mesh.
+- The pearl shell retains its teal sill and the raised guide follows the six vane edges. The two main jets use the film outlet sections.
+- Local source base `piste/navette-levres-2026-11-21-base`. [Asset hash and recipe](../assets/vaisseau/navette/README.md) · [Flight review](../tools/tests/2026-11-21-navette-profil.txt) · [Earlier shapes](log/spec-vol-immersion-historique.md)
+
+**2026-11-20 · Navette wings, exterior and glazing**
+
+- Aerodynamic load sweeps the wings towards 52% travel. The controls close the brake panels before the wings fold. The regression repeats departure, braking and fold-out after hover, vacuum and entry heat.
+- The film packet now carries tapered nacelle wings, fitted brake apertures, a narrower stern, a swept fin and conforming seam and cooling detail.
+- The playable cabin uses empty seats and a blue exterior privacy coating. The cockpit receives neutral transmission. Actual pane normals and edge distances drive the existing rain, frost and wear shaders.
+- The local tag `piste/navette-carrosserie-2026-11-20-base` identifies the public source base. [Seven-stop flight review](../tools/tests/2026-11-20-navette-finitions.txt)
+
+**2026-11-20 · Airbrakes and powered station keeping**
+
+- Yaw adds up to 25 degrees of automatic bank as airspeed builds. Manual roll takes priority.
+- Lower cruise settings and X ramp the deceleration demand. Airbrakes share the load with retro thrust. The stabilizers keep position after an X stop.
+- The Chasseur and the film Navette use fitted nacelle wings and hinged brake panels. The Navette uses the film's VSX3 packet and authored pilot view.
+- CPU checks cover a crosswind stop, the station-keeping latch, vacuum and entry loads. Native renders cover the Navette's cockpit and its two wing positions, and the Chasseur during coastal flight.
+- The local tag `piste/vol-aerofreins-2026-11-20-base` records the public source base. [Flight tuning](spec-vol-immersion.md) [Six-stop review](../tools/tests/2026-11-20-aerofreins.txt)
+
 **2026-11-20 · Assisted turns, atmospheric lift and a short entry**
 
 - The pilot reported excessive slip in space, little response from the wheel and entry heat during fast atmospheric cruise.

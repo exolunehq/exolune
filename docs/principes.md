@@ -28,8 +28,11 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 
 - Integrate velocity in world coordinates. Weight acts towards the attracting body. Lift and drag depend on the flow relative to the hull.
 - Give the pilot responsive cruise control and unrestricted full thrust at every altitude. Spaceflight assist follows the pilot’s heading. Atmospheric turns use the ship’s bank, lift and velocity through the air.
+- Give aerodynamic surfaces a continuous response to the local airflow and load. Share braking between aerodynamic drag and powered reverse thrust. Powered station keeping cancels external forces after a commanded stop.
+- An aerodynamic extension of a casting follows the casting's own surface through its full travel. Move its tangent frame and shadow with the skin. Keep the fixed stators and their outlet axes registered throughout deployment.
+- Drive rigid guides and rams from the same actuator as their surface. Fit each exhaust to the open area and depth of its manufactured outlet. The pilot's thrust command controls its emission.
 - Drive entry light and entry sound from one short inward passage through the upper atmosphere. Fast flight within the atmosphere, orbital flight and ascent keep their ordinary airflow and engine cues.
-- Attach cockpit weather to the exposed pane and helmet optics to the wearer. Use the existing body, weather and habitat fields for outside effects.
+- Attach cockpit weather to the exposed pane and helmet optics to the wearer. Fit transport, refraction and frost to the same glass surface. The optical material controls transmission for each viewing side. Use the existing body, weather and habitat fields for outside effects.
 - Place luminous entry gas in the exterior flow around the manufactured hull. The glass and its seals receive light from nearby gas. Check depth, occlusion and particle motion from the moving cockpit and from outside.
 - Preserve the distinction between structure-borne cockpit sound, suit sound and transport through the surrounding atmosphere.
 

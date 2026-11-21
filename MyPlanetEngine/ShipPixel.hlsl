@@ -8,6 +8,7 @@
 #include "SceneExposure.hlsli"
 #include "Ship.hlsli"
 #include "ShipEntry.hlsli"
+#include "ShipHeat.hlsli"
 #include "ShipScreens.hlsli"
 #include "ShipNavigator.hlsli"
 #ifdef SHIP_SCENE_REFLECTIONS
@@ -27,7 +28,9 @@ Output PSMain(ShipPixel input)
     const ShipMaterial m = shipMaterials[shipMaterial];
     // The dashboard's screens and dials show the flight (ShipScreens.hlsli), in their colour and their light alike.
     const bool screen = ShipIsScreen(m.role);
-    float3 image = ShipImage(m.image[0], m.uv[0], input.uv, 1.0).rgb;
+    const float4 base = ShipImage(m.image[0], m.uv[0], input.uv, 1.0);
+    if (m.mode == 3) clip(base.a - m.color.a);
+    float3 image = base.rgb;
     [branch] if (screen)
         image = ShipScreen(m.role, input.uv.xy, image);
     float3 albedo = m.color.rgb * image;
@@ -96,8 +99,12 @@ Output PSMain(ShipPixel input)
     // double flash every 1.3 s, the red beacons' pulse, the top and the bottom one in turn.
     float glow = 1.0;
     const float clock = shipTurn.z;
-    if (m.role == SHIP_ROLE_HOT)
-        glow = 0.04 + 0.96 * pow(saturate(shipThrust.x), 1.5);
+    float3 emission = m.emission;
+    if (m.role == SHIP_ROLE_HOT) {
+        const float power = saturate(shipThrust.x);
+        if (ShipShuttle()) emission = ExhaustRadiance(power, emission.r);
+        else glow = 0.04 + 0.96 * pow(power, 1.5);
+    }
     else if (m.role == SHIP_ROLE_STROBE)
     {
         const float t = frac(clock / 1.3);
@@ -109,7 +116,7 @@ Output PSMain(ShipPixel input)
     Output o;
     const bool dimmable=screen || navigatorDial || (m.role==0 && shipOptions.y>.5) || (ShipNavigator() && m.role==11);
     const float panelGain=dimmable?NightInstrumentGain():1.0;
-    o.radiance = float4(sunLit + skyLit + panelGain*(instrumentEmission + glow * m.emission * (screen ? image : ShipImage(m.image[4], m.uv[4], input.uv, 1.0).rgb)),
+    o.radiance = float4(sunLit + skyLit + panelGain*(instrumentEmission + glow * emission * (screen ? image : ShipImage(m.image[4], m.uv[4], input.uv, 1.0).rgb)),
                         length(input.pos) / 1000.0);
     const float heat = EntryIntensity();
     if (heat > 0.002 && !screen && !navigatorDial && m.role != SHIP_ROLE_HOT) {

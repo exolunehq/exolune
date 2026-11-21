@@ -61,8 +61,13 @@ XMFLOAT4 Ship::CreateShockHull(ID3D12Device* device, ID3D12GraphicsCommandList* 
             const uint32_t id = mIndices[i];
             if (visited[id]) continue;
             visited[id] = true;
+            const auto* vertex = mVertexBytes.data() + size_t(id) * 60;
+            float pose;
+            std::memcpy(&pose, vertex + 56, sizeof(pose));
+            // The entry envelope is built around the fixed skin. The added poses are stored fully deployed.
+            if (pose > SHIP_PACK_POSES) continue;
             XMFLOAT3 p;
-            std::memcpy(&p, mVertexBytes.data() + size_t(id)*60, sizeof(p));
+            std::memcpy(&p, vertex, sizeof(p));
             p.y -= mProfile.centreY;
             p.z -= mProfile.centreZ;
             Bin& bin = groups[CubeBin(p, bins)];

@@ -17,7 +17,7 @@ class Ship {
 public:
     Ship();
     const ShipProfile& Profile() const { return mProfile; }
-    static constexpr UINT MaxImages = 12;                    // Ship.hlsli: shipImages[12]
+    static constexpr UINT MaxImages = SHIP_MAX_IMAGES;
     // The images, the two shadow maps, the overlay, then the water's: its drops, map, film and merges as UAVs, its map and
     // film as SRVs; then the climate map (Climate.hlsli), its view made by D3DApp.
     static constexpr UINT DescriptorCount = MaxImages + 12; // climate, then the shock hull cube and the actual scene depth
@@ -28,6 +28,11 @@ public:
     static constexpr DXGI_FORMAT OverlayFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
     // Shadow radius (m); each profile supplies the centre. Match Ship.hlsli's SHIP_RADIUS.
     static constexpr float Radius = 6.7f;
+
+    struct Nozzle {
+        DirectX::XMFLOAT4 mouthWidth, axisHeight, widthAxis;
+        DirectX::XMFLOAT4 aperture; // linear image index + 1, axial depth of the curved outlet (m)
+    };
 
     struct Constants {
         DirectX::XMFLOAT4X4 model;     // ship frame -> face-local, camera-relative, transposed for HLSL
@@ -40,15 +45,19 @@ public:
         DirectX::XMFLOAT4 turn;    // x: pitch up, y: yaw right, -1 to 1; z: clock (s), wraps at 3600
         DirectX::XMFLOAT4 course;  // the dashboard (ShipScreens.hlsli): heading, latitude, longitude (deg); w: the ground (km)
         DirectX::XMFLOAT4 gauges;  // x: the gas, 0 to 1
-        // ship frame -> ship frame (Ship.hlsli's ShipPose), transposed: the stick, the throttle, then the elevons, inner left,
-        // inner right, outer left, outer right
-        DirectX::XMFLOAT4X4 pose[6];
+        // Packet poses first, then two sliding wings and two hinged airbrakes.
+        DirectX::XMFLOAT4X4 pose[SHIP_POSE_COUNT]; // ship frame -> ship frame, transposed
         DirectX::XMFLOAT4 shockBounds; // local half-extents of the gas proxy (m), support-plane offset used by its cube (m)
+        DirectX::XMFLOAT4 airframe; // wing extension, brake extension, reverse thrust, station keeping
+        DirectX::XMFLOAT4 supportExhaust; // direction in ship axes and power relative to hover
+        DirectX::XMFLOAT4 retroOutlet, supportOutlet; // left mouths, support outlet spacing in w
+        Nozzle nozzles[2]; // the shuttle's two authored main exhausts
     };
     // The moving parts' pivots, ship frame, from the pack (pieces_mobiles.py, design_chasseur.py): the stick's twist axis,
     // the throttle's, the elevons' hinges, running outwards.
     struct Pivot { DirectX::XMFLOAT3 point, axis; };
-    Pivot pivots[6] = {};
+    Pivot pivots[SHIP_PACK_POSES] = {};
+    DirectX::XMFLOAT2 throttleStops = {};
 
     // The pack's path: false, and the ship stays out, when it cannot be read.
     bool Load(const std::wstring& path);
@@ -62,6 +71,7 @@ public:
     Constants& Frame() { return *mConstants; }
     // The shadow maps' frames from the sun's and the vertical's directions, in the ship frame.
     void SetLights(const DirectX::XMFLOAT3& sun, const DirectX::XMFLOAT3& up);
+    void SetFlightSurfaces(float wings, float airbrakes);
 
     struct Tables {
         D3D12_GPU_VIRTUAL_ADDRESS frame, cloudFrame; // the clouds' frame, b1 (Clouds.hlsli)
@@ -89,8 +99,26 @@ private:
     std::vector<uint8_t> mVertexBytes, mMaterialBytes;
     std::vector<uint32_t> mIndices;
     std::vector<Draw> mDraws;
-    std::vector<uint32_t> mModes; // per material: 0 opaque, 1 blended, 2 canopy
+    std::vector<uint32_t> mModes; // 0 opaque, 1 blended, 2 canopy, 3 alpha-tested
     std::vector<uint32_t> mRoles; // VSX3 role 10: late reflective hull; 11: the Navigator's lit interior
+    bool VisibleInView(const Draw& draw) const {
+        constexpr uint32_t pilotOccupant = 13; // VSX3, the seated pilot visible through the exterior glass
+        return mConstants->options.y < .5f || mRoles[draw.material] != pilotOccupant;
+    }
+    void ReadShuttleControls(const std::vector<uint8_t>& data, size_t& at);
+    struct FlightFittings {
+        DirectX::XMFLOAT3 wingPivot;
+        float foldedAngle;
+        DirectX::XMFLOAT3 brakePivot;
+        float brakeAngle;
+        DirectX::XMFLOAT3 brakeAxis;
+    };
+    static_assert(sizeof(FlightFittings) == 44, "FLW1 layout");
+    FlightFittings mFlightFittings = {};
+    void ReadLipTravel(const std::vector<uint8_t>& data, size_t& at);
+    std::vector<DirectX::XMFLOAT4> mLipTravel; // signed transverse travel and its local gradient
+    std::vector<DirectX::XMFLOAT4> mFittedPane; // outward normal scaled by radial distance, then signed edge distance
+    Nozzle mNozzles[2] = {};
     std::vector<Image> mImages;
     bool mLoaded = false, mReady = false;
 
@@ -102,15 +130,16 @@ private:
     using FieldRadii = float[SHIP_FIELD_COLUMNS][SHIP_FIELD_ROWS];
     void FitFieldToHull(FieldRadii& radii) const;
     DirectX::XMFLOAT4 CreateShockHull(ID3D12Device*, ID3D12GraphicsCommandList*);
+    void BuildFlightSurfaces();
 
     Resource mVertices, mIndexBuffer, mMaterials, mTextures[MaxImages], mShadowMaps[2], mOverlay, mWeather, mConstantsBuffer;
     Resource mDrops, mWaterMap, mWaterFilm, mGathered;
-    Resource mFieldRadii, mShockHull, mSceneDepth;
+    Resource mFieldRadii, mPaneChart, mLipBuffer, mShockHull, mSceneDepth;
     std::vector<Resource> mUploads;
     D3D12_INDEX_BUFFER_VIEW mIndexView = {};
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDsvHeap, mRtvHeap;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> mRoot;
-    Microsoft::WRL::ComPtr<ID3D12PipelineState> mOpaquePSO, mReflectionPSO, mShadowPSO, mGlassPSO, mEntryParticlesPSO, mEntryVolumePSO, mPlumePSO, mWeatherPSO, mWaterPSO[3];
+    Microsoft::WRL::ComPtr<ID3D12PipelineState> mOpaquePSO, mReflectionPSO, mShadowPSO, mMaskedShadowPSO, mGlassPSO, mEntryParticlesPSO, mEntryVolumePSO, mPlumePSO, mWeatherPSO, mWaterPSO[3];
     Constants* mConstants = nullptr;
     bool mShadowsReadable = false, mWaterReadable = false, mResetSurfaceWeather = true;
 };

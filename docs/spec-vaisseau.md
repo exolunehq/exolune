@@ -42,10 +42,15 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 | `chasseur` (default) | `assets/vaisseau/chasseur/` | VSX3 | 1.03 m | 4 | 6 | 1684 × 2450 |
 | `classique` | `assets/vaisseau/` | VSX2 | 1.07 m | 3 | 2 | 1584 × 3660 |
 | `navigateur` (cabin prototype) | `assets/vaisseau/navigateur/` | VSX3 | 0.70 m | 0 | 0 | 2560 × 1536 |
+| `navette` (film shuttle) | `assets/vaisseau/navette/` | VSX3 | −0.84 m | 2 | 11 | 3456 × 1256 |
 
 - The executable alone selects the approved fighter.
 - `tools/lance.ps1 -ModeleVaisseau classique` selects the original triangular ship.
-- Direct launches can use `MYPLANETENGINE_MODELE_VAISSEAU=classique`, `chasseur` or `navigateur`.
+- Direct launches accept `classique`, `chasseur`, `navigateur` and `navette` through `MYPLANETENGINE_MODELE_VAISSEAU`.
+- `tools/lance.ps1 -ModeleVaisseau navette` selects the shuttle derived from *Exolune par les crêtes*. The pilot camera sits 3.47 m ahead of the centre and 0.84 m below it. The three-screen dashboard, seats, yoke and throttle come from the original film asset. The flight cabin is empty and the gear uses its closed pose.
+- Both aircraft use the same flight loads. The Navette widens the rolled skin above its turbines from a 5.37 m span to 8.56 m in cruise. The two dorsal airbrakes hinge inboard of the moving skin. [Flight surfaces](../MyPlanetEngine/ShipFlightSurfaces.cpp) [Exterior cooker](../assets/vaisseau/navette/finish_exterior.py)
+- A keyed spar guides each Navette wing. Twin telescopic rams extend and retract with the lip. Their terminal pins seat in shoes on the rolled underside.
+- Each main plume starts between the six fixed vanes. Five hot sheets merge downstream along the outlet axis. Four flush underside fittings register the powered hover outlets.
 - The Navigator starts in its cabin with eye offsets 0.65 m ahead and 0.70 m up. Tab cycles cockpit, chase and bare. Its panoramic surface carries the common cockpit effects. [Flight, canopy and suit](spec-vol-immersion.md)
 - `MYPLANETENGINE_VAISSEAU` still selects the camera view, independently of the model.
 - Each model retains its own source, Blender scene, GLB and cooked package.
@@ -62,7 +67,8 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - VSX3 materials carry explicit animation roles in 96 bytes.
 - VSX2 materials remain 92 bytes on disk; loading expands them and maps original screen indices 13–18 to roles 1–6.
 - The original package and generator remain unchanged.
-- `Ship::Load` validates the selected profile's pivot count.
+- `Ship::Load` validates the selected profile's pivot count. `JET3` adds a linear aperture image and discharge depth per turbine. The loader also accepts `JET1` and `JET2`. `FLW2` drives the nacelle skin, rigid guides and brake hinges. The loader also accepts `FLW1` hinged surfaces. `WTR1` carries the fitted canopy chart.
+- The shuttle's 5:4 instrument drawings use [their own layout](../MyPlanetEngine/ShipShuttleScreens.hlsli). The cooked flight packet removes all occupant draws and their two exclusive image atlases.
 - The package is found above the executable; an absent package leaves the free camera available.
 - The ship frame uses metres: nose −Y, up +Z, pilot's left +X.
 - The planet frame is left-handed; the ship-to-world transform reflects X and the glTF bitangent sign.
@@ -134,7 +140,8 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 
 ## The canopy glass and the time
 
-- Rain, wear and atmospheric entry share a surface treatment across the three pilotable cockpits. [Flight, canopy and suit](spec-vol-immersion.md)
+- The four cockpits share rain, tracks, drying, abrasion, frost and entry light. The Navette uses a 161 × 81 angular chart sampled from the glass. Its stored normals steer runoff, and signed rim distance bounds the droplets and frost.
+- The Navette's chase view uses a cool reflective privacy coat with at most 2.2% transmission. The pilot sees neutral transmission and ordinary surface reflections. [Flight, canopy and suit](spec-vol-immersion.md)
 
 - **`ShipWeather.hlsl`, one wire per frame, keeps the glass state.** It reads the game clouds, the same at the same time, by `Clouds.hlsli` (`spec-nuages.md`). The temperature comes from the climate map (`Climate.hlsli`), at sea level minus 6,5 °C/km.
 - **Weather is read at the ship's position,** in its own constant cloud game; moving the outside camera away does not change rain, temperature, or frost.
@@ -184,7 +191,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
   - **Rolls:** Q and E, or A and E in AZERTY.
   - **Throttle** selects cruise speed on notches 1–24 and continuous thrust on notches 25–30. Hold Up for immediate full thrust at any altitude. Releasing Up restores the selected notch. Zero releases cruise. X brakes and then holds position.
   - **Sliding:** A and D (Q and D) on the side; W and S (Z and S), or Space and Ctrl, up and down, in the ship's axis.
-  - **Boost and brake** use Shift and X. Hold X to brake and then support the ship.
+  - **Boost and brake** use Shift and X. Hold X until station keeping engages. Move the wheel or command thrust or translation to resume flight.
   - **Free head:** Right click held; on releasing, the view stays where it is and the mouse pilots again.
   - **Swing head:** H gives the mouse to the head; H returns it to the ship again, and the head stays where it is.
   - **R brings the head back to rest,** a little below the horizon, of 4,5°. In free camera, R keeps the shading faceted.
@@ -221,11 +228,9 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 
 ## Jets and shadows
 
-- **The plumes of the selected model’s nozzles** (`ShipPlume.hlsli`, `ShipPlumeVertex.hlsl`, `ShipPlumePixel.hlsl`):
-  - a flame of light at the exit of each nozzle, of a blue-white heart to the purple, with weak shock diamonds;
-  - **it ends in pointe:** it widens a little at the exit of the nozzle, then becomes thinner and extinguishes up to its tip;
-  - the drive supplies the main plume intensity independently of the ship's speed;
-  - **its length:** from 1,7 m at the first intersection to 8 m.
+- **Main exhausts**
+  - The Navette's aperture image locates each slot along the local discharge axis. The five amber sheets mix, narrow and fade downstream. Thrust controls brightness and visible length.
+  - The fighter and classic ship use analytic plumes with a blue-white core, a violet tip and weak shock diamonds. [Volume shader](../MyPlanetEngine/ShipPlumePixel.hlsl)
 - **Attitude jets:** ten small water vapor jets, at both ends of the stern and nose, up, down and side.
   - **Each pulls when its push serves the command:** the slip, or the torque of the roll, the pitch and the lacing around the center of the ship.
   - **Slides pull as long as the key is held;** rotations, at the beginning and end of the movement, on angular acceleration, like real attitude propellers.

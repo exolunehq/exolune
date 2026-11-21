@@ -123,6 +123,8 @@ void D3DApp::ToggleWalking() {
     mHeadSway = mHeadSwayRate = mEyeSpin = {};
     mHeadTilt = mHeadTiltRate = 0;
     mFlightCues = {};
+    mFlightPilot = {};
+    mFlightLoads = {};
     MeasureShipAir(mShipPos, {}, Length(mShipPos) - PlanetRadius, 0); // the parked hull still meets the wind at its own position
     mWalker={}; mWalker.elevation=h; mWalkVelocity={};
     if(moon){mWalker.gravity=Celestial::Moons[MoonAt(mCamPos)].gravity;mWalker.waterFloor=-1e10;}

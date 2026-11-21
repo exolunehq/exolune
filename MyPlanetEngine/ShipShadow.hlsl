@@ -2,8 +2,13 @@
 #include "Planet.hlsli"
 #include "Ship.hlsli"
 
-float4 VSMain(uint id : SV_VertexID) : SV_POSITION
+struct ShadowVertex { float4 position : SV_POSITION; float4 uv : TEXCOORD0; };
+
+ShadowVertex VSMain(uint id : SV_VertexID)
 {
-    const ShipVertex v = shipVertices[id];
-    return mul(mul(float4(v.pos, 1.0), ShipPose(v.pose)), shipShadow[shipShadowMap]);
+    const ShipVertex v = ShipSkinnedVertex(id);
+    ShadowVertex result;
+    result.position = mul(mul(float4(v.pos, 1.0), ShipPose(v.pose)), shipShadow[shipShadowMap]);
+    result.uv = float4(v.uv0, v.uv1);
+    return result;
 }

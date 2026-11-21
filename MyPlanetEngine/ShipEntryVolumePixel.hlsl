@@ -5,7 +5,6 @@
 #include "ShipEntryVolume.hlsli"
 
 Texture2D<float4> sceneComposite : register(t47); // radial distance (km), includes the sky, atmosphere and terrain
-Texture2D<float> shipSceneDepth : register(t53);   // current reversed Z, including late chrome and cockpit posts
 Texture3D<float4> gasShape : register(t24);        // the existing periodic 128³ shape and fibre noise
 Texture3D<float4> gasDetail : register(t25);
 SamplerState gasWrap : register(s2);
@@ -40,8 +39,7 @@ VolumeOutput PSMain(EntryVolumePixel input)
     // Both distances use the very same jittered projection as the back face.
     // The ratio cancels the clip near plane and the cosine of the view angle.
     const int3 pixel = int3(input.position.xy, 0);
-    const float z = shipSceneDepth.Load(pixel);
-    const float opaque = z > 0.0 ? toFace * input.position.z / z : 1.e20;
+    const float opaque = ShipOpaqueDistance(input.position, toFace);
     const float scene = abs(sceneComposite.Load(pixel).a) * 1000.0;
     const float end = min(endBox, min(opaque, scene > 0.0 ? scene : 1.e20));
     if (end <= begin) discard;
