@@ -1,6 +1,5 @@
-// The cinema's frames piped to ffmpeg, encoded on the GPU (NVENC), instead of one BMP file per frame: no disk, no
-// separate encoding, so a whole route renders in one run. A writer thread and two buffers: the next frame renders while
-// the previous one is written. Fragmented MP4: a file cut short by a crash stays readable up to its last fragment.
+// Pipe display frames to ffmpeg. Two buffers decouple readback from encoding.
+// Authored tracks use fragmented HEVC. Live takes preserve RGB and their driver records presentation times.
 #pragma once
 #include <windows.h>
 #include <condition_variable>
@@ -14,10 +13,15 @@
 
 class CineVideo {
 public:
-    CineVideo(const std::wstring& path, UINT width, UINT height, double fps) : mWidth(width), mHeight(height) {
+    CineVideo(const std::wstring& path, UINT width, UINT height, double fps, bool losslessRgb = false) : mWidth(width), mHeight(height) {
         // A keyframe and a fragment every second: after a crash the file holds whole seconds, and the render resumes there.
         wchar_t cmd[4096];
-        swprintf_s(cmd, L"ffmpeg -v error -y -f rawvideo -pix_fmt rgb0 -s %ux%u -r %.6g -i - -c:v hevc_nvenc -preset p7 "
+        if (losslessRgb) {
+            // Preserve the display dither and RGB samples. The take driver keeps wall-time PTS for each frame.
+            swprintf_s(cmd, L"ffmpeg -v error -y -f rawvideo -pix_fmt rgb0 -s %ux%u -r %.6g -i - "
+                L"-c:v libx264rgb -preset ultrafast -crf 0 -bf 0 -g 60 -threads 8 -color_range pc -colorspace rgb "
+                L"-color_primaries bt709 -color_trc iec61966-2-1 \"%s\"", width, height, fps, path.c_str());
+        } else swprintf_s(cmd, L"ffmpeg -v error -y -f rawvideo -pix_fmt rgb0 -s %ux%u -r %.6g -i - -c:v hevc_nvenc -preset p7 "
             L"-tune hq -rc vbr -cq 12 -b:v 0 -g %u -bf 0 -movflags +frag_keyframe+empty_moov+default_base_moof \"%s\"",
             width, height, fps, UINT(fps + 0.5), path.c_str());
         mPipe = _wpopen(cmd, L"wb");

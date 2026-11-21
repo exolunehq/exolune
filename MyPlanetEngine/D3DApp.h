@@ -21,6 +21,7 @@
 #include "Settings.h"
 #include "Tectonics.h"
 #include "CineVideo.h"
+#include "FlightTake.h"
 #include "Climate.h"
 #include "WalkController.h"
 #include "FlightContact.h"
@@ -559,6 +560,7 @@ protected:
         bool cockpit, pilot, bare, cabin, coast;
         double nav[6], cam[6], fov, weather, thrust = -1.0;
     };
+    FlightTake mFlightTake;
     std::vector<CineFrame> mCine;
     double mCineFps = 60.0, mCineFov = 60.0, mCineShipGround = 0.0;
     UINT mCineIndex = 0, mCineEnd = 0, mCineLead = 0;
@@ -644,7 +646,8 @@ protected:
     double mRawDx = 0.0, mRawDy = 0.0; // raw mouse motion, the ship's views
     bool mMouseHeld = false;       // cursor hidden and kept in the window
     bool mMouseFree = false;       // M: the cursor left to Windows in the ship's views, the window still in front
-    double mClock = 0.0;
+    double mClock = 0.0, mEntryFlowPhase = 0.0;
+    float mRadioLamp = 0, mRadioEnvelope = 0;
     View mWalkReturnView = View::Cockpit;
     Walker mWalker;
     WalkTerrain mWalkTerrain;
@@ -699,6 +702,7 @@ protected:
     void UpdateShip(float dt);
     FlightDynamics::Field ShipField() const;
     Vec3d ClimateWindAt(Vec3d position) const;
+    void AdvanceEntryFlow(double dt);
     void MeasureShipAir(Vec3d position, Vec3d velocity, double altitude, double dt);
     void UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, const Vec3d& faceZ);
     void PlaceShipAtCamera();

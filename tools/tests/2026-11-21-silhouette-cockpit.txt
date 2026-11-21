@@ -1,0 +1,5 @@
+Forest witness at 4m17s, fly ahead and look across the instrument rim | 568.5 -8.386885 126.236025 0.11 169.06 v=1100 | -10 168
+Alpine snow shoulder, a dark panel against bright slopes | 7776.2 -23.307231 158.907088 22.36 -68.60 v=1839 | 5 111
+Volcanic rim, glance across the port side | 5412.0 -23.126036 158.301088 4.33 -87.78 v=1491 | 5 111
+Forest to open water, hold right mouse during the turn | 2656.9 -23.163349 158.152761 11.30 -105.59 v=1491 | 5 111
+Sea horizon and cape, check the rim in cockpit and chase views | 403.4 -23.198274 157.899705 10.80 -154.08 v=1099 | 5 111

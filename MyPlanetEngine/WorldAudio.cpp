@@ -228,16 +228,21 @@ void WorldAudio::RenderImmersion(float* stereo,unsigned frames,bool alive,unsign
         mRadioFrame=0; mRadioPlaying=true;
     }
     const float radioGain=radio.nominal*(listener==SoundListener::Helmet?ambience:ship);
-    if(!mRadioPlaying && mRadioDuck<1e-6f) return;
+    const bool opened=mRadioPlaying;
+    if(!opened) mRadioLevel.store(-1.0f,std::memory_order_relaxed);
+    if(!opened && mRadioDuck<1e-6f) return;
+    float energy=0.0f;
     const float attack=1.0f-std::exp(-1.0f/(Rate*.018f)), release=1.0f-std::exp(-1.0f/(Rate*.16f));
     for(unsigned i=0;i<frames;++i) {
         const float duck=mRadioPlaying ? .44f*std::min(radioGain,1.0f) : 0.0f;
         mRadioDuck+=(duck-mRadioDuck)*(duck>mRadioDuck?attack:release);
         const float sample=mRadioPlaying?radio.pcm[mRadioFrame*radio.channels]*radioGain:0.0f;
+        energy += sample * sample;
         stereo[2*i]=stereo[2*i]*(1-mRadioDuck)+sample;
         stereo[2*i+1]=stereo[2*i+1]*(1-mRadioDuck)+sample;
         if(mRadioPlaying && ++mRadioFrame==radio.frames) mRadioPlaying=false;
     }
+    if(opened && frames) mRadioLevel.store(Clamp(5.0f*std::sqrt(energy/frames)),std::memory_order_relaxed);
 }
 
 void WorldAudio::Step(FootSurface surface,float strength) {

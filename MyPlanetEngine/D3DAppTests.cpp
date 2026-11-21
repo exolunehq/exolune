@@ -117,7 +117,7 @@ void D3DApp::GoToTest(size_t index) {
     mHistoryValid = false;
     mPlanetPlantPlacement.Reset();
     mTestLabel = t.label;
-    if(!mSettings.Automated())SetForegroundWindow(mhMainWnd);
+    if(!mSettings.Automated() && !mFlightTake.Connected())SetForegroundWindow(mhMainWnd);
 }
 
 LRESULT CALLBACK D3DApp::TestsProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {

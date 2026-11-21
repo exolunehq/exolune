@@ -2,6 +2,26 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-21 · Cockpit silhouette during fast flight**
+
+- The panoramic instrument case left successive copies on newly uncovered terrain. The native capture contains the same outline as the delivered video at 257.22 s.
+- Opaque ship coverage now follows the geometry that won the depth test. The temporal resolve checks this coverage in the same filtered sample as the previous colour.
+- Across 36 repeated camera poses, the mean absolute luma difference from a single-frame control fell from 2.92 to 1.50 display codes in the 4–48 pixel band outside the panel. Terrain and foliage temporal smoothing were active in both compared runs.
+- Public source baseline `piste/silhouette-cockpit-2026-11-21-base`. [Flight checks](../tools/tests/2026-11-21-silhouette-cockpit.txt)
+
+**2026-11-21 · Continuous descent and cockpit receiver**
+
+- Entry gas concentrates along the panoramic canopy flanks. The longest streaks follow the flow past the pilot station.
+- Atmospheric assistance unwinds incidental roll relative to the last bank the pilot selected.
+- The two outboard repeaters show the receive lamp and speech level on an open channel. Enter requests a radio check in the cockpit.
+- Source baseline `piste/console-entree-continue-2026-11-21-base`. [Flight review](../tools/tests/2026-11-21-console-rentree.txt)
+
+**2026-11-21 · Live cockpit capture and shuttle entry**
+
+- A local controller supplies mouse counts, wheel detents and buttons to the player update. The capture retains the RGB display samples and actual frame timing.
+- The panoramic shuttle supplies the lower glass edge for entry lighting and sparks. Compression fibres attach to the bow. Gas advection follows measured aerodynamic speed.
+- Source baseline `piste/prise-vol-direct-2026-11-21-base`. [Flight review](../tools/tests/2026-11-21-prise-de-vol.txt)
+
 **2026-11-21 · Stable orbital coasts**
 
 - Dry vertices lifted coarse coastal triangles above the sea and clipped the finer shoreline. The raster height cap now fades as the larger of the mesh cell and pixel footprint grows from 30 to 60 m.

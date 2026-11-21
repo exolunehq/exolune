@@ -9,6 +9,14 @@ TextureCube<float4> shipShockHull : register(t52);
 
 float3 EntryShockCentre() { return SHIP_CENTRE; }
 
+// The clear forward sector is fixed to the manufactured aperture and the pilot station.
+// Turning the head reveals another part of the same glowing gas from inside or outside.
+float EntryFlank(float3 location)
+{
+    const float2 offset = location.xy - float2(0, -SHUTTLE_EYE_AHEAD);
+    return smoothstep(0.19, 0.65, abs(offset.x) / max(length(offset), 0.01));
+}
+
 // The separated gas opens downstream past the shoulders. This axial deformation
 // and its exact inverse let streaks and optical rays traverse the same wake.
 float3 EntryShockAdvect(float3 p)

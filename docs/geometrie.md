@@ -2,6 +2,8 @@
 
 Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it.
 
+**Shuttle entry light, 2026-11-21.** Manufactured canopy optics. The glass contact line comes from the signed boundary of the existing fitted pane. The shock volume uses the existing hull. Planetary terrain and contact keep their existing geometry.
+
 **Cockpit and suit optics, 2026-11-20.** Manufactured-surface shading and observer optics. The Navigator's existing outer skin supplies the panoramic optical surface inside the cabin opening. The walking visor is a camera-space optical treatment. Proposed hull motion reaches the established planetary contact field. [Flight, canopy and suit](spec-vol-immersion.md)
 
 **Entry gas and sparks, 2026-11-20.** Transient optical volume and particles around each manufactured spacecraft. The volume follows the physical size of the bow and flanks. Opaque structures occlude the gas and sparks according to their depth. Planetary relief and collision use the shared terrain field. [Entry optics](spec-vol-immersion.md#assets-and-ownership)

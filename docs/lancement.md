@@ -132,6 +132,15 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 
 ## Cinematic mode
 
+### Live cockpit recording
+
+- Start the shuttle and choose a single departure with the normal review settings. The six [flight positions](../tools/tests/2026-11-21-prise-de-vol.txt) cover orbit, incoming heat, mountains and the inlet.
+- Use [the live take driver](../tools/cine/prise_jeu.py) for gameplay films. Its `record(executable, directory, pilot, environment)` callback receives the ship instruments. Return raw mouse counts, wheel detents and buttons in `CONTROLS` order. The last button ends the take after the preceding frame has been presented. An optional `radio_meter(state)` callback supplies a separate receiver level for a mission soundtrack, from 0 to 1 during transmission and -1 when idle.
+- Flight dynamics, collisions, weather, sound state and seat response use the normal elapsed game time. The controller window runs in the background. Cinematic pose tracks remain available for authored camera studies.
+- The capture directory holds lossless RGB frames, the telemetry and the presentation clock. Mux the clock before editing: `mkvmerge -o realtime.mkv --timestamps 0:frames.timecodes frames.mkv`. The stored frame indices alone have a nominal clock of 60 Hz.
+
+### Authored camera tracks
+
 **A precomputed route, one frame rendered per fixed time step, without audio or flight controls.** The window stays hidden, as for automated captures; computation time does not change film time.
 
 | Variable | Effect |

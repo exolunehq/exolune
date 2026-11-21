@@ -51,6 +51,7 @@ static void ImmersionChecks(const std::wstring& directory,const wchar_t* output)
     s.listener=SoundListener::Helmet;
     float a[960]={},b[960]={};
     double energy=0;
+    float peakMeter=0, quietMeter=1;
     for(unsigned block=0;block<290;++block) {
         baseline.Update(s,.01f); repeated.Update(s,.01f);
         if(block==10) { baseline.RequestRadio(); repeated.RequestRadio(); }
@@ -58,9 +59,17 @@ static void ImmersionChecks(const std::wstring& directory,const wchar_t* output)
         std::fill(std::begin(a),std::end(a),0.0f); std::fill(std::begin(b),std::end(b),0.0f);
         baseline.Render(a,480); repeated.Render(b,480);
         Require(std::equal(std::begin(a),std::end(a),std::begin(b)),"a repeated radio command cannot restart or overlap speech");
+        const float rx=baseline.RadioLevel();
+        Require(rx==repeated.RadioLevel(),"radio retrigger preserves the same displayed syllable");
+        if(block<10) Require(rx<0,"the receiver stays idle before the first transmission");
+        if(rx>=0) { peakMeter=std::max(peakMeter,rx); quietMeter=std::min(quietMeter,rx); }
         for(float v:a) energy+=v*v;
     }
     Require(std::sqrt(energy/(290*960))>.025,"a lunar headset plays the recorded breath and radio");
+    Require(peakMeter-quietMeter>.12f,"real radio audio moves the receive meter through pauses and syllables");
+    baseline.Reset();
+    baseline.Update(s,.01f); baseline.Render(a,480);
+    Require(baseline.RadioLevel()<0,"reset releases the receiver after a location change");
     auto engine=std::make_unique<Audio>(); // the XAudio2 output ring also exists when rendering offline
     Require(engine->Initialize(false),"production audio bank opens in the device-free mixer");
     std::vector<float> preview;

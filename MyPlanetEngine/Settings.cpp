@@ -174,6 +174,12 @@ Settings ReadSettings() {
     wchar_t glare[8] = {};
     if (GetEnvironmentVariableW(L"MYPLANETENGINE_GLARE", glare, _countof(glare)))
         s.glare = wcscmp(glare, L"0") != 0;
+    wchar_t take[MAX_PATH] = {};
+    if (GetEnvironmentVariableW(L"MYPLANETENGINE_FLIGHT_PIPE", take, _countof(take))) {
+        s.flightPipe = take;
+        if (s.Automated()) throw std::runtime_error("A gameplay take requires live flight.");
+        if (GetEnvironmentVariableW(L"MYPLANETENGINE_FLIGHT_VIDEO", take, _countof(take))) s.flightVideo = take;
+    }
     if (!s.cinePath.empty()) s.vsync = false;
     s.coordinates = !s.Automated();
     wchar_t coordinates[8] = {};

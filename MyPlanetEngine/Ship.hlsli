@@ -27,6 +27,7 @@ cbuffer ShipFrame : register(b3) // b1: the clouds' frame (Clouds.hlsli)
     float4   shipAirframe;   // wing extension, brake extension, reverse thrust, station keeping
     float4   shipSupportExhaust; // support-jet direction in ship axes, power in w
     float4   shipRetroOutlet, shipSupportOutlet; // mouth positions and support outlet spacing
+    float4 shipRadio; // receive lamp and audio meter
     ShipNozzle shipNozzles[2];
 };
 

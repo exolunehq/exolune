@@ -31,8 +31,12 @@ Output PSMain(ShipPixel input)
     const float4 base = ShipImage(m.image[0], m.uv[0], input.uv, 1.0);
     if (m.mode == 3) clip(base.a - m.color.a);
     float3 image = base.rgb;
-    [branch] if (screen)
+    [branch] if (screen) {
         image = ShipScreen(m.role, input.uv.xy, image);
+        // Only the two outboard repeaters lie beyond the inboard bezel (|x| < .44 m).
+        if (ShipShuttle() && abs(input.local.x) > .55 && shipRadio.x > .001)
+            image = ShuttleReceiver(input.uv.xy * float2(640,512), image);
+    }
     float3 albedo = m.color.rgb * image;
     float3 instrumentEmission = 0.0;
     const bool navigatorDial = ShipNavigator() && m.role == 12;
@@ -136,7 +140,8 @@ Output PSMain(ShipPixel input)
     o.radiance.rgb = ReflectionAerial(o.radiance.rgb, input.pos);
     o.radiance.a = -max(o.radiance.a, 1e-6); // opaque overlay, included in the ship's temporal reprojection
 #else
-    o.sunPart = float4(sunLit, 0.0);
+    // Alpha follows opaque raster coverage through the depth test, including at ground contact.
+    o.sunPart = float4(sunLit, 1.0);
 #endif
     return o;
 }

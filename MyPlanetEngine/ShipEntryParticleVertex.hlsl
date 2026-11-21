@@ -60,7 +60,7 @@ EntryParticlePixel VSMain(uint id : SV_VertexID, uint slot : SV_InstanceID)
     path.radial = flank * ca + crown * sa;
     path.angle = lerp(0.18, 1.49, ParticleUnit(site + 29u)) + 0.09 * (ParticleUnit(event + 47u) - 0.5);
     float3 sourceDirection = path.windward * cos(path.angle) + path.radial * sin(path.angle);
-    const bool atAperture = site % 3u == 0u;
+    const bool atAperture = site % 3u == 0u && (!ShipShuttle() || HasShuttlePane());
     float3 aperture = 0;
     if (atAperture) {
         // Some persistent sites straddle the shoulders beside the real cockpit aperture, also visible from outside.
@@ -83,7 +83,7 @@ EntryParticlePixel VSMain(uint id : SV_VertexID, uint slot : SV_InstanceID)
     const float ignition = smoothstep(0.015, 0.20, feed - 0.74 * ParticleUnit(event + 13u));
     if (ignition <= 0) return o;
     path.sideways = cross(path.windward, path.radial);
-    path.speed = lerp(1.25, 2.55, ParticleUnit(event + 247u)) * lerp(0.86, 1.14, heat);
+    path.speed = lerp(1.25, 2.55, ParticleUnit(event + 247u)) * lerp(0.94, 1.65, smoothstep(80.0, 1100.0, shipAir.x));
     path.drift = lerp(-0.21, 0.21, ParticleUnit(event + 389u));
     path.phase = 6.2831853 * ParticleUnit(event + 83u);
     path.source = atAperture ? aperture + 0.006 * sourceDirection : EntryShockPoint(sourceDirection, 0.30, heat);
@@ -92,8 +92,11 @@ EntryParticlePixel VSMain(uint id : SV_VertexID, uint slot : SV_InstanceID)
     // Rasterise an actual grain head even when its velocity points directly at the eye.
     const float grainShape = ParticleUnit(event + 131u);
     const float exposureTime = lerp(0.0024, 0.0070, grainShape) + 0.009 * filament;
-    const float3 tip = mul(float4(GrainAt(path, age, heat), 1), shipModel).xyz;
-    const float3 past = mul(float4(GrainAt(path, max(0.0, age - exposureTime), heat), 1), shipModel).xyz;
+    const float3 tipLocal = GrainAt(path, age, heat);
+    const float sideWeight = ShipShuttle() ? EntryFlank(tipLocal) : 1.0;
+    const float streak = ShipShuttle() ? sideWeight * smoothstep(80.0, 1050.0, shipAir.x) : 0.0;
+    const float3 tip = mul(float4(tipLocal, 1), shipModel).xyz;
+    const float3 past = mul(float4(GrainAt(path, max(0.0, age - exposureTime * (1.0 + 2.5 * streak)), heat), 1), shipModel).xyz;
     const float tipZ = dot(tip, camForward.xyz), pastZ = dot(past, camForward.xyz);
     if (min(tipZ, pastZ) < 0.035) return o;
     const float3 slope = tip / tipZ - past / pastZ;
@@ -106,7 +109,7 @@ EntryParticlePixel VSMain(uint id : SV_VertexID, uint slot : SV_InstanceID)
     const float physicalRadius = lerp(0.0014, 0.0058, ParticleUnit(event + 947u));
     const float radiusPixels = clamp(physicalRadius / (pixelAngle * tipZ), 0.85, 1.65);
     // A short copper afterimage identifies a moving hot grain even at cabin-film resolution.
-    const float trailPixels = min(screenLength / pixelAngle, lerp(lerp(1.1, 3.15, grainShape), 7.0, filament));
+    const float trailPixels = min(screenLength / pixelAngle, lerp(lerp(1.1, 3.15, grainShape), 7.0, filament) * (1.0 + 3.2 * streak));
     const float fraction = saturate(trailPixels * pixelAngle / max(screenLength, 1.e-8));
     const float alongPath = fraction * tipZ / lerp(pastZ, tipZ, fraction);
     const float3 tail = lerp(tip, past, alongPath);
@@ -123,7 +126,7 @@ EntryParticlePixel VSMain(uint id : SV_VertexID, uint slot : SV_InstanceID)
     const float phase = age / lifetime;
     const float envelope = smoothstep(0.0, 0.085, phase) * (1.0 - smoothstep(0.44, 1.0, phase));
     const float coverage = 0.58 + 0.42 * saturate(physicalRadius / (pixelAngle * tipZ));
-    o.light = float3(heat * activity * ignition * envelope * coverage * (2.6 + 5.6 * feed),
+    o.light = float3(heat * activity * ignition * envelope * coverage * (ShipShuttle() ? lerp(0.035, 1.75, sideWeight) : 1.0) * (2.6 + 5.6 * feed),
                      saturate(phase + 0.13 * ParticleUnit(event + 617u)), trailPixels / radiusPixels);
     return o;
 }
