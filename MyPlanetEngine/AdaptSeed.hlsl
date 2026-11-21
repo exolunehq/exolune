@@ -30,7 +30,7 @@ float4 PSMain(float4 position : SV_POSITION) : SV_TARGET
         if (!(luminance >= 0.0 && luminance < 1.0e30)) // a broken pixel would shift its whole region
             continue;
         const float stops = clamp(log2(max(luminance * exposure / 0.18, 1.0e-12)), -40.0, 6.0);
-        const float weight = abs(c.a) > 0.0 ? 1.0 : smoothstep(-8.0, -4.0, stops);
+        const float weight = LocalMeterWeight(c.a, stops);
         sum += weight * float2(stops, 1.0);
     }
     return float4(sum / 16.0, 0.0, 1.0);

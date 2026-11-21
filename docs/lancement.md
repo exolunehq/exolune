@@ -153,14 +153,15 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 **Route file: UTF-8, whitespace separators, decimal point.** Comments start with `#`, the first meaningful line is `fps 60`, followed by exactly:
 
 ```text
-index vue navLat navLon navAlt navCap navTangage navRoulis camLat camLon camAlt camCap camTangage camRoulis fov meteo [coast]
+index vue navLat navLon navAlt navCap navTangage navRoulis camLat camLon camAlt camCap camTangage camRoulis fov meteo [control]
 ```
 
-- **Contiguous indices, starting at 0;** `vue` is `exterieur`, `cockpit`, `pleine` (the ship hidden, using `cam*`) or `cabine` (explicit `cam*` inspection pose with cockpit surface behavior). Ordinary `cockpit` uses the selected profile's pilot eye.
+- **Contiguous indices start at 0.** The views are `exterieur`, `cockpit`, `pilote`, `pleine` (ship hidden) and `cabine` (explicit cabin inspection pose).
 - **Angles in degrees:** north latitude positive, east longitude positive, heading from north toward east, pitch positive upward, roll positive rightward.
 - **Altitudes in meters above sea level 0;** vertical `fov`, between 5 and 150°; `meteo` in seconds, nonnegative.
 - **In exterior mode**, the hull, shadows and plume follow the ship. Append `coast` to a pose to stop the drive during a glide or entry. Earlier routes retain their moving-ship plume.
-- **In cockpit mode,** all six `cam*` values remain required, but the eye is derived from `nav*`; interior, rain and frost use the game's rendering.
+- **Cockpit views** use the selected ship's seat for the eye position. `cockpit` uses the resting head direction. `pilote` uses the authored camera heading, pitch and roll with respect to the local frame at `camLat camLon`. Set those coordinates to the ship's for a seat-mounted look. Supply all six camera values for either view. Both use the game's interior, rain and frost.
+- **Pilot thrust** accepts an optional control from 0 to 1 in `pilote`. The console and the exhaust follow that setting. All views accept `coast` for zero thrust.
 
 **Generate from the root:** Python 3 and NumPy, without SciPy; `cp.py` reads `x64/Release/tectonique-0.bin`, produced by running the engine, or `EXOLUNE_TECTONIQUE` (`spec-relief-tectonique.md`).
 

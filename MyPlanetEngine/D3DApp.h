@@ -555,7 +555,10 @@ protected:
     void SaveCapture(bool batchCapture, UINT trembleIndex);
 
     // Offline film: independent ship and camera poses, fixed clock, global frame numbers.
-    struct CineFrame { bool cockpit, bare, cabin, coast; double nav[6], cam[6], fov, weather; }; // cabin: explicit interior inspection camera
+    struct CineFrame {
+        bool cockpit, pilot, bare, cabin, coast;
+        double nav[6], cam[6], fov, weather, thrust = -1.0;
+    };
     std::vector<CineFrame> mCine;
     double mCineFps = 60.0, mCineFov = 60.0, mCineShipGround = 0.0;
     UINT mCineIndex = 0, mCineEnd = 0, mCineLead = 0;

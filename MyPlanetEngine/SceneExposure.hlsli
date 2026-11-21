@@ -4,6 +4,10 @@
 #include "Atmosphere.hlsli"
 #include "CanopyLighting.hlsli"
 #include "ObserverExposure.hlsli"
+// Empty sky participates in local adaptation only as it becomes bright enough to meter.
+float LocalMeterWeight(float depth, float stops) {
+    return depth != 0.0 ? 1.0 : smoothstep(-8.0, -4.0, stops);
+}
 // An incident meter, independent of the frame. The ground reference remains below the air; as that air falls below
 // the observer, the direct beam is metered at the observer instead. Ground sunset must not trigger night exposure
 // while an orbital observer remains in sunlight. Diffuse night light and the perceptual darkness key remain shared.

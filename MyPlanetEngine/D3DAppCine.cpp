@@ -29,8 +29,9 @@ void D3DApp::ReadCine() {
         } else {
             CineFrame f = {}; std::string view;
             valid = token == std::to_string(mCine.size()) && bool(in >> view)
-                && (view == "exterieur" || view == "cockpit" || view == "pleine" || view == "cabine");
-            f.cockpit = view == "cockpit";
+                && (view == "exterieur" || view == "cockpit" || view == "pilote" || view == "pleine" || view == "cabine");
+            f.pilot = view == "pilote";
+            f.cockpit = view == "cockpit" || f.pilot;
             f.bare = view == "pleine";
             f.cabin = view == "cabine";
             for (double& x : f.nav) valid = bool(in >> x) && std::isfinite(x) && valid;
@@ -39,7 +40,15 @@ void D3DApp::ReadCine() {
                 && f.fov >= 5 && f.fov <= 150 && f.weather >= 0;
             for (const double* p : { f.nav, f.cam })
                 valid = valid && std::abs(p[0]) <= 90 && std::abs(p[1]) <= 180 && p[2] > -PlanetRadius;
-            if (valid && (in >> token)) { f.coast = token == "coast"; valid = f.coast; }
+            if (valid && (in >> token)) {
+                f.coast = token == "coast";
+                if (!f.coast) {
+                    std::istringstream control(token);
+                    control.imbue(std::locale::classic());
+                    valid = f.pilot && bool(control >> f.thrust) && control.eof()
+                        && f.thrust >= 0.0 && f.thrust <= 1.0;
+                }
+            }
             if (valid) mCine.push_back(f);
         }
         if (!valid || (in >> extra)) throw std::runtime_error("Invalid CINE line " + std::to_string(lineNumber));
@@ -130,13 +139,14 @@ bool D3DApp::BeginCineFrame() {
         pos = vertical * (PlanetRadius + p[2]);
     };
     pose(f.nav, mShipPos, mShipForward, mShipUp);
-    if (f.cockpit) {
-        // Same eye and resting head as UpdateShip, without interactive head inertia.
-        mCamPos = mShipPos + mShipForward * mShip.Profile().eyeAhead + mShipUp * mShip.Profile().eyeUp;
+    if (f.cockpit && !f.pilot) {
+        // Interactive resting sightline for ordinary cockpit tracks.
         const Vec3d right = Normalize(Cross(mShipUp, mShipForward));
         mCamForward = Rotate(mShipForward, right, 0.08);
         mCamUp = Rotate(mShipUp, right, 0.08);
     } else pose(f.cam, mCamPos, mCamForward, mCamUp);
+    if (f.cockpit)
+        mCamPos = mShipPos + mShipForward * mShip.Profile().eyeAhead + mShipUp * mShip.Profile().eyeUp;
     mCineFov = f.fov;
     mWeatherTime = f.weather;
     if (mCineLead && mCine.size() > 1)
@@ -153,7 +163,8 @@ bool D3DApp::BeginCineFrame() {
     // Cuts change the camera. Only consecutive authored ship poses establish speed, including at a chunk boundary.
     // A safety clamp corrects placement and must not appear as a velocity impulse or a flash of heat.
     SampleCineMotion(mCineIndex);
-    mThrottle = !f.coast && Length(mShipVelocity) > 0.1 ? 18.0 : 0.0;
+    mThrottle = f.thrust >= 0.0 ? f.thrust * FlightDynamics::ThrottleNotches
+        : (!f.coast && Length(mShipVelocity) > 0.1 ? 18.0 : 0.0);
     mPlume = mThrottle / FlightDynamics::ThrottleNotches;
     mFlightCues.engine = mPlume;
     return true;
