@@ -594,7 +594,7 @@ protected:
     FlightFrame::Orbit mOrbitFrame;
     double mGroundHeight = 0.0; // terrain height under the camera, read back from the GPU
     double mFaceFactor = 2.0;   // face half-width = factor x height above the ground
-    double mSpeedFactor = 0.1;  // speed = factor x height above the ground, per second: a few hundred m/s at cloud height
+    double mCameraSpeed = 100.0; // detached-camera travel speed in metres per second
     bool mWireframe = false;
 
     // Mesh placement: the face's frame, size and ring count. Key G freezes it (diagnostic): the camera

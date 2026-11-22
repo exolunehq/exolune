@@ -72,7 +72,7 @@
 **Landing and reference frames**
 - Positions and body-relative subtraction use doubles; the common renderer uses camera-relative coordinates.
 - Horizon and Fixed altitude share the selected body's local vertical. Forward follows the sightline in Horizon and the surface in Fixed altitude.
-- Free-camera attitude follows its own axes. Its speed scales with clearance to the nearest surface.
+- Free-camera attitude follows its own axes. The same wheel setting gives the same travel speed above Exolune and its moons.
 - Near a moon the free camera and landed ship follow its orbital translation. An orbit camera follows its selected body at any distance.
 - The prototype does not rotate the lunar surface or integrate spacecraft orbital dynamics.
 - Flight sweeps the travelled segment through the shared relief field, including orbital chords.

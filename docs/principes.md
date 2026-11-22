@@ -41,6 +41,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Preserve the distinction between structure-borne cockpit sound, suit sound and transport through the surrounding atmosphere.
 
 **The observer chooses the flight reference frame** (`spec-vaisseau.md`).
+- A wheel setting gives the same detached-camera travel per second in Free, Horizon and Fixed altitude, at any clearance above a planet or moon.
 - Free flight and spacecraft retain their world-space attitude through translation and terrain handovers.
 - Horizon and Fixed altitude use the body with the nearest surface on entry and keep that reference when switching between them.
 - Horizon alignment preserves position and aim and levels the screen against the local vertical.

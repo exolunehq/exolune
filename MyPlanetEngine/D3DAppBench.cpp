@@ -111,7 +111,7 @@ bool D3DApp::BeginBatchFrame() {
             const UINT capture = BatchCaptureFrame();
             const double left = std::max(double(capture) - motion[4] - double(mBatchFrame + 1), 0.0);
             const double height = job.height * std::pow(std::max(motion[3], 1.0), left);
-            // Flying north by degrees, or at a share of the height, as the app's speed (UpdateCamera).
+            // Fly north by degrees or by the scripted fraction of the job's height per frame.
             const double north = motion[1] + motion[5] * job.height / PlanetRadius * 180.0 / XM_PI;
             PlaceCamera(job.latitude - north * left, job.longitude, job.pitchDown,
                 job.heading - motion[0] * left, mGroundHeight + height);

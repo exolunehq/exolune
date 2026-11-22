@@ -209,7 +209,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/cine/rendre.ps1 -Parco
 - **Home (Début)** cycles the detached camera through Free, Horizon and Fixed altitude.
 - **Horizon** keeps the horizon level. Right-drag to look down and hold W/Z or Up to descend along the view. Look up and advance to climb.
 - **Fixed altitude** carries the arrows or WASD/ZQSD around the body at constant radius. Page Up/Down changes altitude in both horizon-aligned modes.
-- **Free flight** uses the same movement keys along the camera's own axes. Shift + Left/Right rolls. The wheel adjusts speed in all three modes.
+- **Free flight** uses the same movement keys along the camera's own axes. Shift + Left/Right rolls.
+- **The wheel** selects the detached camera's speed at any altitude. All three modes start from the same 100 m/s setting. The title shows the selected speed. [Flight review](../tools/tests/2026-11-22-vitesse-camera.txt)
 - **J / Marcher button:** instant ground placement; J again returns to the saved ship. Hold Alt or toggle M to click the upper-left buttons.
 - **Walking:** WASD/ZQSD or arrows; Shift runs, Ctrl crouches, Space jumps, H toggles bob. Y / Son button mutes audio.
 - **Walking route:** `tools/tests/2026-11-02-marche-main.txt`; an optional `marche` pose token places a test on current terrain.

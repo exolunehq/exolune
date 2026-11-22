@@ -2,6 +2,11 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-22 · Detached camera speed**
+
+- Free, Horizon and Fixed altitude now share a wheel-selected speed in metres per second. It starts at 100 m/s and persists across changes of terrain, altitude and reference body.
+- Milestone `jalon/camera-libre-vitesse-2026-11-22`. [Ocean, ridge and lunar flight checks](../tools/tests/2026-11-22-vitesse-camera.txt)
+
 **2026-11-21 · Cockpit silhouette during fast flight**
 
 - The panoramic instrument case left successive copies on newly uncovered terrain. The native capture contains the same outline as the delivered video at 257.22 s.
