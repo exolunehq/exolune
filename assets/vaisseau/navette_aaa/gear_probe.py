@@ -3,7 +3,8 @@
 Run:  blender -b <hull.blend> --python-exit-code 1 --python gear_probe.py -- <out.blend> [--phases 25]
 The hull scene is a build.py scene made without the gear (its doors must be there); it is never
 saved over. self_check covers the meshes at rest and the clip "Train": joints, the ground, the
-stowed pads and interference between parts, the hull, the doors, the pods and the wells.
+free volume inside the hull, the stowed state under the skin and interference between parts,
+the doors, the wells, the hull and its other meshes.
 """
 import os
 import sys

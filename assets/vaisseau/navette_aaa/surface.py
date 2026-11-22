@@ -25,10 +25,37 @@ LAST_STATION = 38        # the blueprint's last two rings are extrapolated: the 
 STERN_START_Y, STERN_END_Y = 5.50, 6.79      # the hull closes on itself between these: a rounded stern
 STERN_ANGLES = (11.25, 22.5, 33.75, 45.0, 56.25, 67.5, 78.75, 85.0)   # closing rings, degrees to the pole
 STERN_BLEND = (0.0, 0.0, 0.0, 0.10, 0.30, 0.60, 0.90, 1.0)            # share of clean oval in each
-NOSE_TIP_Y = -0.9515 * SCALE
+BLUEPRINT_TIP_Y = -0.9515 * SCALE
+NOSE_KNEE_Y, NOSE_SHORTEN = -3.40, 0.40   # ahead of the knee the nose is shortened, most at the tip
+NOSE_LIFT = 0.20                          # and its tip rises to the deck: a rounder chin, as in the concept
 SHARP_Y0, SHARP_Y1 = 0.55, 1.75   # the shoulder turns from a soft bulge into a crisp edge
 FACE_MIN = 0.030         # least height of the shoulder face, metres
 NOSE_BLEND = (1.0, 0.85, 0.55, 0.25, 0.08)   # share of clean oval in the first rings of the nose
+
+
+def nose_y(y):
+    """Where the validated form's station y lies on the shortened nose: unchanged aft of the knee.
+
+    The distance to the knee shrinks by a quadratic share, nil at the knee and NOSE_SHORTEN at the tip,
+    so the rings bunch towards the tip and the nose comes out shorter and rounder.
+    """
+    y = np.asarray(y, dtype=float)
+    length = NOSE_KNEE_Y - BLUEPRINT_TIP_Y
+    s = np.maximum((NOSE_KNEE_Y - y) / length, 0.0)
+    return np.where(y < NOSE_KNEE_Y, NOSE_KNEE_Y - length * (s - NOSE_SHORTEN / length * s * s), y)
+
+
+def blueprint_y(y):
+    """Inverse of nose_y: the validated form's station of a point at y on the shortened nose."""
+    y = np.asarray(y, dtype=float)
+    length = NOSE_KNEE_Y - BLUEPRINT_TIP_Y
+    f = NOSE_SHORTEN / length
+    s = np.maximum((NOSE_KNEE_Y - y) / length, 0.0)
+    s0 = (1.0 - np.sqrt(np.maximum(1.0 - 4.0 * f * s, 0.0))) / (2.0 * f) if f > 0.0 else s
+    return np.where(y < NOSE_KNEE_Y, NOSE_KNEE_Y - length * s0, y)
+
+
+NOSE_TIP_Y = float(nose_y(BLUEPRINT_TIP_Y))
 
 
 def smoothstep(e0, e1, x):
@@ -170,8 +197,10 @@ class Hull:
     def __init__(self, path=os.path.join(HERE, "blueprint.json")):
         bp = json.load(open(path, "r", encoding="utf-8"))
         secs = bp["sections"][:LAST_STATION + 1]
-        ys = np.array([s["y"] for s in secs]) * SCALE
+        ys = nose_y(np.array([s["y"] for s in secs]) * SCALE)
         raw = np.array([s["pts"] for s in secs]) * SCALE          # (n, 49, 2): x, z
+        share = np.clip((NOSE_KNEE_Y - blueprint_y(ys)) / (NOSE_KNEE_Y - BLUEPRINT_TIP_Y), 0.0, 1.0)
+        raw[:, :, 1] += NOSE_LIFT * share[:, None] ** 2
         self.blueprint_y, self.blueprint_pts = ys, raw
         n = len(ys)
 

@@ -36,7 +36,7 @@ def seams(grid, mats):
     """Panel breaks: sealed gaps along chosen lines of the skin grid."""
     c, parts = grid.col, []
     cells = grid.cells()
-    open_cell = cells["glass"] | cells["mouth"] | cells["socket"] | cells["doors"] | cells["hatch"]
+    open_cell = cells["glass"] | cells["mouth"] | cells["doors"] | cells["hatch"]
     width, lift = 0.0035, 0.0006
 
     def run(index_pairs, tag):

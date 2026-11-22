@@ -798,8 +798,10 @@ Y_BULKHEAD = -0.30                 # front face of the rear bulkhead
 PAN = FLOOR - 0.062                # the liners turn in under the floor plate at this height
 Z_UNDER = FLOOR - 0.048            # underside of the floor plate, a closed slab
 CLEAR = 0.27                       # least distance from the deck's edge to the glass forward of the seat
-Y_SEAT_FRONT, Y_FLARE = -4.45, -3.75   # forward of the first the deck keeps CLEAR; aft of the second, cabin width
-Y_BOW, L_BOW = -6.05, 0.22         # the deck's sides run straight to Y_BOW, then round off over L_BOW
+Y_PILOT = -4.25                    # pilot seat: under the middle of its cushion
+Y_SEAT_FRONT, Y_FLARE = -4.55, -3.75   # forward of the first the deck keeps CLEAR; aft of the second, cabin width
+Y_BOW, L_BOW, W_BOW = -5.24, 0.23, 0.42   # the deck's sides level out at Y_BOW, W_BOW from the centreline,
+                                   # then round off over L_BOW: the tip lies 0.335 m ahead of the console's foot
 F0, T_FRAME, D_FRAME = -0.040, 0.036, 0.092   # prow frame: front face from the glass edge (aft +), thickness, web depth
 Z_WEB = FLOOR - 0.024              # under the floor the frame's rounded edge runs inside the slab at this height
 
@@ -934,8 +936,8 @@ def side_liner(skin, front, n_wall=12):
 
 def deck_width(skin):
     """Half width of the floor plate along the ship, y -> x: 40 mm inside the liners aft of Y_FLARE;
-    forward of Y_SEAT_FRONT the most that keeps the plate's outer edge CLEAR from the glass; a smooth
-    flare between; constant forward of Y_BOW, where the bow rounds off."""
+    at Y_SEAT_FRONT the most that keeps the plate's outer edge CLEAR from the glass, with a smooth
+    flare between; forward of it a cubic that levels out at W_BOW by Y_BOW, where the bow rounds off."""
     yk = np.linspace(-6.4, 0.0, 321)
     cabin = wall_x(skin, yk, FLOOR) - 0.040                # face edge: 18 mm of shadow gap, 22 mm of lit edge
     lo, hi = np.zeros_like(yk), cabin + 0.022
@@ -944,18 +946,22 @@ def deck_width(skin):
         ok = skin.depth(np.column_stack([mid, yk, np.full_like(yk, FLOOR - 0.020)])) >= CLEAR
         lo, hi = np.where(ok, mid, lo), np.where(ok, hi, mid)
     deck = np.convolve(np.pad(lo, 6, mode="edge"), np.ones(13) / 13.0, mode="valid") - 0.024
+    # forward of the seat the sides leave that law along a cubic, level out at W_BOW and round off
+    p0, m0 = float(np.interp(Y_SEAT_FRONT, yk, deck)), float(np.interp(Y_SEAT_FRONT, yk, np.gradient(deck, yk)))
+    t = np.clip((yk - Y_SEAT_FRONT) / (Y_BOW - Y_SEAT_FRONT), 0.0, 1.0)
+    bow = ((2 * t ** 3 - 3 * t ** 2 + 1) * p0 + (t ** 3 - 2 * t ** 2 + t) * (Y_BOW - Y_SEAT_FRONT) * m0
+           + (3 * t ** 2 - 2 * t ** 3) * W_BOW)
+    deck = np.where(yk < Y_SEAT_FRONT, bow, deck)
     w = hg.smootherstep(Y_SEAT_FRONT, Y_FLARE, yk)
-    hw = (1.0 - w) * deck + w * cabin
-    hw = np.where(yk < Y_BOW, np.interp(Y_BOW, yk, hw), hw)
-    return lambda y: np.interp(y, yk, hw)
+    return lambda y: np.interp(y, yk, (1.0 - w) * deck + w * cabin)
 
 
 def floor_plate(hw):
     """Floor plate of the cabin and pilot deck, one thin dark slab: lit strip and rounded edge all
     round, closed underside. Its half width is hw(y); the bow rounds off forward of Y_BOW."""
     b = np.concatenate([np.linspace(-Y_BULKHEAD - 0.03, 2.9, 8), np.linspace(2.9, -Y_FLARE, 9)[1:],
-                        np.linspace(-Y_FLARE, 4.55, 33)[1:],
-                        np.linspace(4.55, -Y_BOW, 11)[1:], -Y_BOW + L_BOW * (1.0 - np.array([0.8, 0.59, 0.33, 0.0]))])
+                        np.linspace(-Y_FLARE, -Y_SEAT_FRONT, 33)[1:],
+                        np.linspace(-Y_SEAT_FRONT, -Y_BOW, 9)[1:], -Y_BOW + L_BOW * (1.0 - np.array([0.8, 0.59, 0.33, 0.0]))])
     aa, bb = lattice(np.array([0.0, 0.25, 0.5, 0.75, 1.0]), b, (0.0, (1.0, L_BOW)))
     aa = aa * hw(-bb)
     steps = [(0.010, 0.0, "amber"), (0.016, -0.004, "amber"), (0.020, -0.010, "dark"), (0.022, -0.018, "dark"),
@@ -1048,7 +1054,7 @@ def keel_spine():
     """Keel spine: one slim blade on the centreline under the deck, from the prow curtain forward,
     deepest at its root; its rounded lower edge rises to the deck's underside near the bow, and a
     cove joins it to that underside."""
-    y0, y1 = -4.74, -5.80
+    y0, y1 = -4.72, Y_BOW - 0.06
     ys = y0 + (y1 - y0) * np.linspace(0.0, 1.0, 24) ** 0.9
     u = (ys - y0) / (y1 - y0)
     z_top = FLOOR - 0.030
@@ -1232,7 +1238,7 @@ def bulkhead(skin):
 
 # ---- flight station --------------------------------------------------------------------------
 TILT = math.radians(35.0)                               # the console face leans this much off the horizontal
-CONSOLE = np.array([0.0, -4.95, -0.50])                 # middle of the console face
+CONSOLE = np.array([0.0, Y_PILOT - 0.53, -0.50])        # middle of the console face, within the pilot's reach
 EX, EY = np.array([-1.0, 0.0, 0.0]), np.array([0.0, -math.cos(TILT), math.sin(TILT)])
 EZ = np.cross(EX, EY)                                   # face frame: pilot's right, up the slope, out to the pilot
 SCREENS = (("ecran_vol", -0.34, -0.13), ("ecran_nav", -0.118, 0.118), ("ecran_sys", 0.13, 0.34))
@@ -1319,7 +1325,7 @@ def pedestal():
     ka = [z_f, -0.70, -0.525]
     arm = [loop]
     for z, w, cx, cy, rx, ry in zip(za, np.clip(hermite(za, [z_f, z_f + 0.09, -0.525], [0.0, 1.0, 1.0]), 0.0, 1.0),
-                                    hermite(za, ka, [centre[0], 0.105, 0.185]), hermite(za, ka, [centre[1], -4.915, -4.975]),
+                                    hermite(za, ka, [centre[0], 0.105, 0.185]), hermite(za, ka, [centre[1], -4.885, CONSOLE[1] - 0.025]),
                                     hermite(za, ka, [0.036, 0.024, 0.034]), hermite(za, ka, [0.030, 0.022, 0.032])):
         shape = (1 - w) * (loop[:, :2] - centre) + w * oval(phi, rx, ry, 2.4)
         arm.append(np.column_stack([shape + (cx, cy), z + (1 - w) * (loop[:, 2] - z_f)]))
@@ -1522,7 +1528,7 @@ def build(mats, grid):
             objs.append(emit(f"Siege_Passager_R{row}_{side}", pax, pal, (x, y, FLOOR), mesh, local=True))
             mesh = objs[-1].data
     mesh.name = "Siege_Passager"
-    at = np.array([0.0, -4.15, FLOOR])
+    at = np.array([0.0, Y_PILOT, FLOOR])
     pilot, pod = seat(PILOT)
     objs.append(emit("Siege_Pilote", pilot, pal, at, local=True))
     objs.append(emit("Poste_Pilotage", join([console(), pedestal(), pedal(0.21), pedal(-0.21)]), pal))
@@ -1611,7 +1617,7 @@ class Skin:
 
 
 BUDGET = 200000                    # triangles of the module, seats counted once per instance
-GEAR_BOX = ((-0.46, 0.46), (-4.60, -2.30), -1.30)   # the nose gear well: x, y and the roof nothing of ours goes under
+GEAR_BOX = ((-0.46, 0.46), (-4.50, -2.30), -1.30)   # the nose gear well: x, y and the roof nothing of ours goes under
 SKIN_LEAST = {"Cabine_Cadre_Proue": 0.004}           # objects allowed closer to the skin than 50 mm
 
 

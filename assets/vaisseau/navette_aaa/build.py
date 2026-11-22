@@ -34,7 +34,7 @@ def skin_objects(grid, mats):
     uvs = np.vstack([uv_half.reshape(-1, 2), (uv_half[:, 1:-1] * np.array([1.0, -1.0])).reshape(-1, 2)])
 
     cells = grid.cells()
-    hull_cells = ~(cells["glass"] | cells["mouth"] | cells["socket"] | cells["doors"] | cells["hatch"])
+    hull_cells = ~(cells["glass"] | cells["mouth"] | cells["doors"] | cells["hatch"])
     paint = np.zeros(hull_cells.shape, dtype=np.int32)             # 0 pearl white
     paint[cells["belly"]] = 2                                      # 2 pale belly
     paint[cells["belt"] | cells["bezel"] | cells["prow"]] = 1      # 1 teal

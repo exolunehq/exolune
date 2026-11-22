@@ -11,7 +11,7 @@ Only numpy is needed.
 """
 import numpy as np
 
-from surface import Hull, T1, T2, smoothstep
+from surface import Hull, T1, T2, blueprint_y, nose_y, smoothstep
 
 # ---- index layout ---------------------------------------------------------------------------
 B_ROOF, B_SILL = 7, 31                    # window top and sill rows
@@ -21,7 +21,8 @@ BLADES = 4                                # blades of the mouth: 1 cell each, 2 
 B_CAV1 = B_CAV0 + 2 * (BLADES + 1) + BLADES
 B_BELT0, B_BELT1 = B_CAV1 + 2, B_CAV1 + 5
 B_MAX = 84
-B_WELL = B_MAX - 8                        # side edge of the openings cut across the keel
+B_WELL = B_MAX - 8                        # side edge of the openings cut across the keel, inboard edge of the main wells
+B_MAIN_OUT, B_MAIN_MID = B_WELL - 10, B_WELL - 5    # main wells: outboard edge, and the split between their doors
 
 # ---- design, metres -------------------------------------------------------------------------
 BEVEL = 0.012                             # half width of the rounded shoulder edges
@@ -35,12 +36,15 @@ CAV_D0, CAV_GAP, CAV_BLADE = 0.085, 0.105, 0.022     # lip depth below E2, gap a
 CAV_Y = (1.82, 2.08, 3.52, 3.22)          # front-bottom, front-top, rear-top, rear-bottom
 R_CAV = 0.07
 BELT_WIDTH = 0.16                         # width of the teal belt along the skin
-PROW_KEEL_Y = -4.75                       # where the nose glazing ends on the keel: the hull's prow
+PROW_KEEL_Y = float(nose_y(-4.75))       # where the nose glazing ends on the keel: the hull's prow
 PROW_BAND = 0.20                          # width on the keel of the teal band behind the glazing
-NOSE_WELL_Y, NOSE_WELL_SPLIT = (-4.45, -2.36), -3.29   # nose gear well; pad socket forward of the split, doors aft
+NOSE_WELL_Y, NOSE_WELL_SPLIT = (-4.36, -2.36), -3.29   # nose gear well: front and aft doors, one leaf per side
 NOSE_WELL_HALF, R_WELL = 0.37, 0.06
+MAIN_WELL_Y, MAIN_WELL_SPLIT = (0.60, 2.55), 1.40      # main gear wells, one each side: front and aft doors
+MAIN_WELL_X = (0.68, 1.52)                             # their inboard and outboard edges on the belly
+MAIN_WELL_X_SPLIT = 1.10                               # where their outer and inner doors meet
 HATCH_Y, HATCH_HALF, R_HATCH = (3.50, 6.05), 0.45, 0.08  # ventral rear hatch, hinged on its front edge
-BELT_KEYS = ((-5.4, -1.36), (-4.6, -1.33), (-2.0, -1.24), (0.0, -1.16), (1.9, -1.085), (2.7, -1.06),
+BELT_KEYS = ((float(nose_y(-5.4)), -1.36), (float(nose_y(-4.6)), -1.33), (-2.0, -1.24), (0.0, -1.16), (1.9, -1.085), (2.7, -1.06),
              (3.3, -0.88), (3.9, -0.68), (5.0, -0.59), (6.7, -0.50))    # belt top in side view: (y, z)
 
 
@@ -50,8 +54,11 @@ def smootherstep(e0, e1, x):
 
 
 def z_sill(y):
-    """Lower edge of the glazing in side view: nose lip, rise behind the cheek, then a gentle climb."""
-    y = np.asarray(y, dtype=float)
+    """Lower edge of the glazing in side view: nose lip, rise behind the cheek, then a gentle climb.
+
+    Drawn on the validated form's stations, so it follows the shortened nose.
+    """
+    y = blueprint_y(y)
     u = np.clip((y + 3.9) / 0.9, 0.0, 1.0)
     ramp = 0.9 * (u ** 3 - 0.5 * u ** 4) + np.maximum(y + 3.0, 0.0)
     return -1.18 + 0.46 * smootherstep(-5.04, -3.46, y) + 0.118 * ramp
@@ -261,14 +268,16 @@ class HullGrid:
         lam_y = lambda y: float(m.lam_of_s(m.s_of_y(y)))
         # The prow drags the columns behind the arch forward on the keel: the band column p2 and the
         # well columns w0, ws, w1 are counted in cells, and placed by their pins on the lower skin.
-        marks = [("cap", 0.045), ("nose", lam_y(-6.20)), ("arch", lam_y(can["sill"][0, 0])),
+        marks = [("cap", 0.045), ("nose", lam_y(float(nose_y(-6.20)))), ("arch", lam_y(can["sill"][0, 0])),
                  ("p2", None), ("w0", None), ("ws", None),
                  ("m1", lam_y(MULLION_Y[0] - 0.08)), ("w1", None), ("m2", lam_y(MULLION_Y[1] - 0.08)),
                  ("m3", lam_y(MULLION_Y[2] - 0.08)), ("end", lam_y(-0.66)),
-                 ("c0", lam_y(0.5 * (CAV_Y[0] + CAV_Y[1]))), ("c1", lam_y(0.5 * (CAV_Y[2] + CAV_Y[3]))),
+                 ("g0", lam_y(MAIN_WELL_Y[0])), ("gs", lam_y(MAIN_WELL_SPLIT)),
+                 ("c0", lam_y(0.5 * (CAV_Y[0] + CAV_Y[1]))), ("g1", lam_y(MAIN_WELL_Y[1])),
+                 ("c1", lam_y(0.5 * (CAV_Y[2] + CAV_Y[3]))),
                  ("h0", lam_y(HATCH_Y[0])), ("h1", lam_y(HATCH_Y[1])),
                  ("stern", float(m.lam[-1]) - 0.045)]
-        size = {"cap": 0.032, "nose": 0.062, "m3": 0.045, "c0": 0.058}
+        size = {"cap": 0.032, "nose": 0.062, "m3": 0.045, "c0": 0.058, "g1": 0.058}
         cells_after = {"arch": 3, "p2": 2, "w0": 18, "ws": 6, "m1": 8, "w1": 5}
         known = [(k, lam0) for k, (_, lam0) in enumerate(marks) if lam0 is not None]
         for (k0, lam0), (k1, lam1) in zip(known[:-1], known[1:]):       # counted columns: spread between their neighbours
@@ -388,6 +397,28 @@ class HullGrid:
         pin_col(col["w1"], B_WELL, B_MAX, well["rear"], m.belly, (0.35, 1.0))
         hatch = keel_opening(*HATCH_Y, HATCH_HALF, R_HATCH)
         pin_col(col["h0"], B_WELL, B_MAX, hatch["front"][::-1], m.belly, (0.35, 1.0))
+
+        # ---- main gear wells, off the keel: a rounded rectangle split fore and aft, and in and out ----
+        (y0, y1), (x_in, x_out) = MAIN_WELL_Y, MAIN_WELL_X
+        outer, rear, inner, front = rounded_loop([(y0, x_out), (y1, x_out), (y1, x_in), (y0, x_in)], R_WELL)
+        g0, gs, g1 = col["g0"], col["gs"], col["g1"]
+        cut = lambda line: int(np.argmin(np.abs(line[:, 0] - MAIN_WELL_SPLIT)))
+        inner = inner[::-1]                                          # both long edges run aft
+        for b, line in ((B_MAIN_OUT, outer), (B_WELL, inner)):
+            k = cut(line)
+            line[k, 0] = MAIN_WELL_SPLIT
+            pin_row(b, g0, gs, line[:k + 1], m.belly, (0.35, 1.0))
+            pin_row(b, gs, g1, line[k:], m.belly, (1.0, 0.35))
+        pin_col(g0, B_MAIN_OUT, B_WELL, front[::-1], m.belly, (0.35, 0.35))
+        pin_col(g1, B_MAIN_OUT, B_WELL, rear, m.belly, (0.35, 0.35))
+        across = np.stack([np.full(60, MAIN_WELL_SPLIT), np.linspace(x_out, x_in, 60)], axis=1)
+        lam_c, t_c = spread(across, m.belly, B_WELL - B_MAIN_OUT, (1.0, 1.0))
+        pin(gs, np.arange(B_MAIN_OUT + 1, B_WELL), lam_c[1:-1], t_c[1:-1])
+        x_mid = MAIN_WELL_X_SPLIT
+        along = np.stack([np.linspace(y0, y1, 400), np.full(400, x_mid)], axis=1)
+        for a0, a1, piece in ((g0, gs, along[along[:, 0] <= MAIN_WELL_SPLIT]), (gs, g1, along[along[:, 0] >= MAIN_WELL_SPLIT])):
+            lam_r, t_r = spread(piece, m.belly, a1 - a0, (1.0, 1.0))
+            pin(np.arange(a0 + 1, a1), B_MAIN_MID, lam_r[1:-1], t_r[1:-1])
         pin_row(B_WELL, col["h0"], col["h1"], hatch["side"], m.belly, (0.35, 0.35))
         pin_col(col["h1"], B_WELL, B_MAX, hatch["rear"], m.belly, (0.35, 1.0))
 
@@ -407,7 +438,7 @@ class HullGrid:
             t_rim = T1 * (1.0 - np.minimum(RIM, 0.28 * gu) / gu)
             t_law = self.hull.t_of_z(s, z_sill(y))
             t_aft = 0.5 * (t_law + t_rim - np.sqrt((t_law - t_rim) ** 2 + 0.012 ** 2))
-            w = smoothstep(-5.3, -4.3, y)
+            w = smoothstep(*nose_y([-5.3, -4.3]), y)
             return (1.0 - w) * t_rim + w * t_aft
 
         hold(B_SILL, sill_t, 0, col["arch"] - 1)
@@ -446,7 +477,7 @@ class HullGrid:
 
             def law(s):
                 y = m.at(m.y, s)
-                w_nose, w_tail = smoothstep(-5.3, -4.4, y), smoothstep(4.6, 5.6, y)
+                w_nose, w_tail = smoothstep(*nose_y([-5.3, -4.4]), y), smoothstep(4.6, 5.6, y)
                 body = (1.0 - w_tail) * side(s) + w_tail * tail
                 return (1.0 - w_nose) * (T2 + share * (1.0 - T2)) + w_nose * body
             return law
@@ -529,9 +560,9 @@ class HullGrid:
         glass = z()
         glass[:c["arch"], :] = True                              # the whole nose is a glass bubble
         glass[c["arch"]:c["end"], B_ROOF:B_SILL] = True
-        socket, doors, hatch = z(), z(), z()
-        socket[c["w0"]:c["ws"], B_WELL:] = True                  # open under the nose gear: the pad plugs it
-        doors[c["ws"]:c["w1"], B_WELL:] = True                   # nose gear doors, one leaf per side
+        doors, hatch = z(), z()
+        for a0, a1, b0, b1 in self.door_leaves().values():       # gear doors, cut from the skin
+            doors[a0:a1, b0:b1] = True
         hatch[c["h0"]:c["h1"], B_WELL:] = True                   # rear hatch, one panel across the keel
         prow = z()                                               # teal band behind the nose glazing
         prow[c["arch"]:c["p2"], B_SILL:] = True
@@ -550,8 +581,34 @@ class HullGrid:
         aft[self.col_bezel[1]:, B_BELT0:] = True
         belly &= ~aft
         belt |= aft
-        return {"glass": glass, "mouth": mouth, "blades": blades, "socket": socket, "doors": doors,
+        return {"glass": glass, "mouth": mouth, "blades": blades, "doors": doors,
                 "hatch": hatch, "bezel": bezel & ~mouth, "belt": belt, "prow": prow, "belly": belly}
+
+    def door_leaves(self):
+        """Gear door leaves of the port half, as cell ranges (a0, a1, b0, b1): the nose well's two
+        leaves span from its side edge to the keel; each main well has four, front and aft, out and in."""
+        c = self.col
+        return {"Avant_Av": (c["w0"], c["ws"], B_WELL, B_MAX), "Avant_Ar": (c["ws"], c["w1"], B_WELL, B_MAX),
+                "Principal_Av_Ext": (c["g0"], c["gs"], B_MAIN_OUT, B_MAIN_MID),
+                "Principal_Av_Int": (c["g0"], c["gs"], B_MAIN_MID, B_WELL),
+                "Principal_Ar_Ext": (c["gs"], c["g1"], B_MAIN_OUT, B_MAIN_MID),
+                "Principal_Ar_Int": (c["gs"], c["g1"], B_MAIN_MID, B_WELL)}
+
+    def side_rim_loop(self, a0, a1, b0, b1):
+        """Nodes round a port opening between columns a0..a1 and rows b0..b1, off the keel: a closed
+        loop, the first node not repeated. Returns points, normals and, in the skin, the direction
+        into the opening."""
+        seq = ([(a, b0, a, b0 + 1) for a in range(a0, a1)] + [(a1, b, a1 - 1, b) for b in range(b0, b1)]
+               + [(a, b1, a, b1 - 1) for a in range(a1, a0, -1)] + [(a0, b, a0 + 1, b) for b in range(b1, b0, -1)])
+        corner = {(a0, b0): (a0 + 1, b0 + 1), (a1, b0): (a1 - 1, b0 + 1), (a1, b1): (a1 - 1, b1 - 1),
+                  (a0, b1): (a0 + 1, b1 - 1)}
+        seq = [(a, b) + corner.get((a, b), (ja, jb)) for a, b, ja, jb in seq]
+        ia, ib, ja, jb = np.array(seq).T
+        pts, nrm = self.points[ia, ib], self.normals[ia, ib]
+        inward = self.points[ja, jb] - pts
+        inward -= nrm * (inward * nrm).sum(axis=1, keepdims=True)
+        inward /= np.linalg.norm(inward, axis=1, keepdims=True)
+        return pts, nrm, inward
 
     def rim_loop(self, a0, a1, b0=B_WELL):
         """Nodes round an opening cut across the keel between columns a0 and a1, up to row b0.

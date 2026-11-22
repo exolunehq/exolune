@@ -61,7 +61,7 @@ VIEWS = {
     # gear
     "train_principal":  ((6.5, 0.9, -2.15), (1.45, 1.6, -1.95), 55, 0, False),
     "train_avant":      ((3.6, -6.6, -2.2), (0.0, -3.9, -2.0), 60, 0, False),
-    "carenage_train":   ((5.6, 4.4, -2.4), (1.5, 1.8, -1.45), 60, 0, False),
+    "puits_principal":  ((4.6, 3.6, -2.5), (1.1, 1.5, -1.5), 50, 0, False),
     "patin_gros":       ((3.6, 0.6, -2.35), (1.9, 1.7, -2.45), 70, 0, False),
     # interior (glass hidden)
     "int_poste":        ((0.95, -3.75, 0.05), (0.0, -4.85, -0.62), 35, 0, True),

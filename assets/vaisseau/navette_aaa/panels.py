@@ -1,4 +1,4 @@
-"""Doors cut out of the hull skin: the nose gear doors and the ventral rear hatch.
+"""Doors cut out of the hull skin: the gear doors and the ventral rear hatch.
 
 A door is made of the hull's own cells, so it closes flush. It gets an edge return and an inner
 face, and stands a narrow gap off the opening. Hinge lines and poses are given for the animation.
@@ -81,11 +81,19 @@ def shell(name, pts, nrm, quads, uv, paint, inner, col, thick):
                                normals=normals, uvs=uvs)
 
 
-def nose_door_hinge(grid, sign):
-    """Two points of the hinge line of a nose gear door, fore and aft: the well's side edge (sign +1 port)."""
-    c = grid.col
-    scale = np.array([sign, 1.0, 1.0])
-    return grid.points[c["ws"] + 1, hg.B_WELL] * scale, grid.points[c["w1"] - 3, hg.B_WELL] * scale
+def gear_doors(grid):
+    """Every gear door leaf: name -> (two points of its hinge line, fore then aft).
+
+    A leaf hinges on its long edge away from the opening's middle: the nose leaves on the well's
+    side, the main leaves on the well's outboard or inboard edge. Starboard leaves end in _D.
+    """
+    out = {}
+    for key, (a0, a1, b0, b1) in grid.door_leaves().items():
+        b = b0 if key.startswith("Avant") or key.endswith("Ext") else b1
+        for tag, sign in (("G", 1.0), ("D", -1.0)):
+            scale = np.array([sign, 1.0, 1.0])
+            out[f"Trappe_Train_{key}_{tag}"] = (grid.points[a0 + 1, b] * scale, grid.points[a1 - 1, b] * scale)
+    return out
 
 
 def hatch_axis(grid):
@@ -113,10 +121,14 @@ def hatch_pose(grid):
 
 
 def build(grid, mats):
-    """The three doors, built closed. The gear module keys its two doors; the hatch is keyed here."""
+    """The doors, built closed. The gear module keys the gear doors; the hatch is keyed here."""
     cells = grid.cells()
-    doors = [skin_panel(grid, f"Trappe_Train_Avant_{tag}", cells["doors"], sign, mats["belly"], mats["dark"])
-             for tag, sign in (("G", 1.0), ("D", -1.0))]
+    doors = []
+    for key, (a0, a1, b0, b1) in grid.door_leaves().items():
+        mask = np.zeros_like(cells["doors"])
+        mask[a0:a1, b0:b1] = True
+        for tag, sign in (("G", 1.0), ("D", -1.0)):
+            doors.append(skin_panel(grid, f"Trappe_Train_{key}_{tag}", mask, sign, mats["belly"], mats["dark"]))
     hatch = skin_panel(grid, "Trappe_Arriere", cells["hatch"], 0, mats["teal"], mats["dark"])
     anim.bake(hatch, "Trappe_Arriere", hatch_pose(grid))
     return doors + [hatch]

@@ -1,11 +1,12 @@
-"""Landing gear of the Navette AAA: three retractable legs, their wells and the main gear pods.
+"""Landing gear of the Navette AAA: three retractable legs and the liners of their wells.
 
     build(mats, grid) -> the gear's objects, keyed on the clip "Train" (grid: hullgrid.HullGrid)
     self_check(objs)  -> dict of measured facts; raises AssertionError on a broken invariant
 
 Frame: metres, nose -Y, up +Z, port +X. At rest (u = 0) the gear is down: the three pad soles rest
-on GROUND and the nose gear doors are closed. At u = 1 each pad lies level in its socket, sole down,
-PROTRUSION below the belly or the pod's underside.
+on GROUND, the door leaves the legs pass through are open and the others are shut. At u = 1 the
+whole gear lies inside the hull, each pad level just above its closed doors, and the twelve gear
+doors are shut flush.
 
 Every part is generated, never booleaned:
   lathe()    turned parts from an (r, z) profile whose corners are already chamfered
@@ -16,22 +17,23 @@ Every part is generated, never booleaned:
 Shading is face-weighted: custom normals follow the large faces, so chamfers carry the gradient and
 flats stay flat. An edge left sharper than SHARP_ANGLE is split, never smeared.
 
-Each leg is a twin oleo strut hung on a trunnion along X. It swings about the trunnion and stows
-flat, its oleo shortening by Leg.c on the way. Each rigid part is its own object:
+Each leg is a twin oleo strut hung on a trunnion along its fold axis. It swings about that axis and
+stows, its oleo shortening by Leg.c on the way. Each rigid part is its own object:
   <leg>_Jambe        trunnion, barrels, gland nuts, bridge, retraction horn, harness
   <leg>_Coulisse     pistons, crosshead, fork and pitch pin
-  <leg>_Compas_Haut, <leg>_Compas_Bas   torque links, folding across the strut's upper face
+  <leg>_Compas_Haut, <leg>_Compas_Bas   torque links, folding beside one strut, in the struts' plane
   <leg>_Verin, <leg>_Tige   the retraction actuator's cylinder (with its hoses) and rod
-  <leg>_Patin        the pad and its gimbal block; it stays level
+  <leg>_Patin        the pad and its gimbal; it stays level
   <leg>_Fixe         static: trunnion bearings, the actuator's clevis and manifold
 Leg.poses(u) solves every pin exactly. A leg is drawn in its leg frame: origin on the trunnion
-axis, +Z down the strut to the ankle at rest, +X along the trunnion, +Y on the strut's underside,
-which faces down once stowed. Carenages_Trains (pods) and Baies_Trains (well liners) are static.
+axis, +Z down the strut to the ankle at rest, X along the fold axis towards the torque links, +Y
+on the strut's underside, which faces down once stowed. Baies_Trains (the well liners) is static.
 
-The nose leg hangs just forward of the nose gear doors, which stay closed at rest, and folds
-forwards over its socket; build() also keys the two doors (panels.py). The main legs fold aft into
-their pods. The hull is never cut here: the nose well is the hull's own opening (hullgrid), the
-main wells are recesses of the pods.
+The nose leg rakes forward from a trunnion at the back of its well and folds forwards, level over
+its low pad. The main legs hang at the front of the belly wells on a fold axis canted MAIN_CANT
+above the horizontal, which splays them outboard, and fold aft over their pads. The hull is never
+cut here: the wells are the hull's own openings (hullgrid), closed by the doors of panels.py, which
+build() keys on the same clip.
 """
 import math
 import os
@@ -40,7 +42,7 @@ import sys
 import bmesh
 import bpy
 import numpy as np
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
@@ -659,31 +661,70 @@ def bolt(r=0.006, h=0.005, n=8):
     return lathe([(r, -0.002), (r, h - 0.3 * r), (0.7 * r, h)], n, caps=(None, "grid"))
 
 
-
-
 # =============================================================================================
-# Footpad
+# Footpads
 # =============================================================================================
-PAD_W, PAD_H = 0.66, 0.30
-RISER, YOKE = 0.056, 0.100                 # gimbal riser on the top plate; yoke axes above it, clear of the folded fork
-ANKLE = RISER + YOKE                       # height of the gimbal axes above the pad's top plate
+# w, l, h: the pad's plan size and height; riser, yoke: the gimbal's stack above its top plate
+PADS = {"main": {"w": 0.66, "l": 1.24, "h": 0.30, "riser": 0.056, "yoke": 0.115},
+        "low": {"w": 0.60, "l": 1.00, "h": 0.120, "riser": 0.022, "yoke": 0.068}}
 PAD_FX = (0.14, 0.86)                      # end faces: rib, panel, rib
 PAD_FY = (0.045, 0.335, 0.375, 0.625, 0.665, 0.955)      # long faces: three panels between ribs
 PAD_PANELS = (3, 10, 12, 14, 21, 28, 30, 32)             # ring cells of the recessed panels
 PAD_EMBLEMS = (12, 30)                                   # the middle panel of each long face
-PAD_R = 0.090                              # corner radius of the bumper slab
-PAD_TOP = (0.165, 0.27)                    # top plate: half width, half length as a share of the pad's
+PAD_R = 0.090                              # corner radius of the bumper slab (main pad)
+PAD_TOP = (0.165, 0.27)                    # main pad's top plate: half width, half length as a share of the pad's
+EMBLEM = [(0.045, -0.004), (0.045, 0.003), (0.043, 0.005), (0.035, 0.005), (0.0325, 0.0025),
+          (0.0155, 0.0025), (0.013, 0.005)]
 
 
-def footpad(g, xf, length):
+def ankle_height(kind):
+    """Height of the gimbal's axes above the pad's top plate, along the gimbal's own up."""
+    return PADS[kind]["riser"] + PADS[kind]["yoke"]
+
+
+def emblem(g, at):
+    g.add(lathe(EMBLEM, 32, caps=(None, "strip"), mats=["ti", "ti", "ti", "ti", "panel", "ti"]), xf=at)
+
+
+def tread(g, xf, hx, length, r):
+    """Tread bars under the sole: they carry the pad, their feet are the ground plane."""
+    bars = 9
+    pitch = (length - 0.10) / bars
+    for k in range(bars):
+        y = (k - 0.5 * (bars - 1)) * pitch
+        reach = abs(y) + 0.28 * pitch - (0.5 * length - r)               # how far into the corner radius
+        cut = r - math.sqrt(max(r ** 2 - reach ** 2, 0.0)) if reach > 0.0 else 0.0
+        g.add(box(2.0 * (hx - 0.024 - cut), 0.56 * pitch, 0.020, 0.003), "rubber", xf @ shift(0.0, y, 0.010))
+
+
+def footpad(g, xf, kind):
     """Trapezoidal pad on the ground: origin under its centre, X across, Y along.
 
-    A rubber sole on tread bars, a bumper slab with a recessed light strip round its top, then a
-    truncated pyramid with recessed panels and an emblem on each long face. On the top plate a
-    riser carries the gimbal yoke high enough for the folded strut to clear the pad.
+    "main": a rubber sole on tread bars, a bumper slab with a recessed light strip round its top,
+    then a truncated pyramid with recessed panels and an emblem on each long face; two position
+    lights on its top plate. "low": the same sole, slab and light strip under a low chamfered top
+    that carries the emblem, ahead of the gimbal where the stowed strut leaves it free.
     """
-    hx, hy = 0.5 * PAD_W, 0.5 * length
-    tx, ty = PAD_TOP[0], PAD_TOP[1] * length
+    pad = PADS[kind]
+    hx, hy = 0.5 * pad["w"], 0.5 * pad["l"]
+    if kind == "low":
+        r = 0.080
+        slab = lambda z, d, mat: (z, hx - d, hy - d, r - d, mat)
+        levels = [slab(0.010, 0.016, "rubber"), slab(0.013, 0.013, "rubber"), slab(0.026, 0.013, "gun"),
+                  slab(0.034, 0.004, "gun"), slab(0.042, 0.000, "gun"), slab(0.064, 0.000, "gun"),
+                  slab(0.071, 0.004, "gun"), slab(0.076, 0.013, "gun"), slab(0.076, 0.022, "glow"),
+                  slab(0.086, 0.022, "gun"), slab(0.090, 0.026, "cast"), slab(0.096, 0.040, "cast"),
+                  slab(0.110, 0.054, "cast"), slab(0.1155, 0.062, "cast"), slab(pad["h"], 0.070, "cast")]
+        rings = []
+        for z, ax, ay, rr, _ in levels:
+            pts, a, b = rrect(ax, ay, rr, PAD_FX, PAD_FY, 4)
+            rings.append(np.column_stack([pts, np.full(len(pts), z)]))
+        g.add(loft(rings, caps=("grid", "grid"), grid=(a, b), mats=[lv[4] for lv in levels[:-1]]), xf=xf)
+        tread(g, xf, hx, pad["l"], r)
+        emblem(g, xf @ shift(0.0, -0.46 * (hy - 0.070), pad["h"]))
+        return
+
+    tx, ty = PAD_TOP[0], PAD_TOP[1] * pad["l"]
     z0, z1, foot = 0.152, 0.288, 0.064                   # pyramid: foot and top edge heights, foot inset
 
     def pyramid(z, inset=0.0):
@@ -698,7 +739,7 @@ def footpad(g, xf, length):
               slab(0.142, 0.024, "gun"), slab(0.146, 0.028, "cast"),
               (z0, *pyramid(z0), 0.030, "cast"), (0.172, *pyramid(0.172), 0.030, "cast"),
               (0.268, *pyramid(0.268), 0.030, "cast"), (z1, *pyramid(z1), 0.030, "cast"),
-              (0.296, *pyramid(z1, 0.013), 0.022, "cast"), (PAD_H, *pyramid(z1, 0.028), 0.016, "cast")]
+              (0.296, *pyramid(z1, 0.013), 0.022, "cast"), (pad["h"], *pyramid(z1, 0.028), 0.016, "cast")]
     rings = []
     for z, ax, ay, r, _ in levels:
         pts, a, b = rrect(ax, ay, r, PAD_FX, PAD_FY, 4)
@@ -722,41 +763,44 @@ def footpad(g, xf, length):
     g.add(Part([tuple(vt.co) for vt in bm.verts], [[vt.index for vt in f.verts] for f in bm.faces],
                m=[tags.get(f, "cast") for f in bm.faces]), xf=xf)
     bm.free()
+    tread(g, xf, hx, pad["l"], PAD_R)
+    for centre, normal in emblems:                       # medallions on the middle panels
+        emblem(g, xf @ frame(centre - 0.008 * normal, normal, (0.0, 1.0, 0.0)))
+    top = xf @ shift(0.0, 0.0, pad["h"])
+    for sy in (-1, 1):                                   # position lights, nearly flush with the top plate
+        g.add(box(0.150, 0.014, 0.006, 0.002), "glow", top @ shift(0.0, sy * (ty - 0.085), 0.001))
+    g.add(box(0.040, 0.060, 0.022, 0.003), "cast", top @ shift(-0.122, 0.0, 0.010))   # lights' junction box
 
-    # tread bars under the sole: they carry the pad, their feet are the ground plane
-    bars = 9
-    pitch = (length - 0.10) / bars
-    for k in range(bars):
-        y = (k - 0.5 * (bars - 1)) * pitch
-        reach = abs(y) + 0.28 * pitch - (hy - PAD_R)                  # how far into the corner radius
-        cut = PAD_R - math.sqrt(max(PAD_R ** 2 - reach ** 2, 0.0)) if reach > 0.0 else 0.0
-        g.add(box(2.0 * (hx - 0.024 - cut), 0.56 * pitch, 0.020, 0.003), "rubber", xf @ shift(0.0, y, 0.010))
 
-    # emblem medallions on the middle panels
-    prof = [(0.045, -0.004), (0.045, 0.003), (0.043, 0.005), (0.035, 0.005), (0.0325, 0.0025),
-            (0.0155, 0.0025), (0.013, 0.005)]
-    for centre, normal in emblems:
-        medal = lathe(prof, 32, caps=(None, "strip"), mats=["ti", "ti", "ti", "ti", "panel", "ti"])
-        g.add(medal, xf=xf @ frame(centre - 0.008 * normal, normal, (0.0, 1.0, 0.0)))
-
-    # riser: a chamfered block on the top plate, then the yoke whose two ears along Y hold the roll pin
-    top = xf @ shift(0.0, 0.0, PAD_H)
-    riser = [(0.088, 0.118, 0.036, -0.002), (0.088, 0.118, 0.036, 0.006), (0.078, 0.108, 0.028, 0.016),
-             (0.074, 0.104, 0.026, RISER - 0.006), (0.068, 0.098, 0.020, RISER)]
+def gimbal(g, G, kind):
+    """Gimbal on the pad's top plate, in the frame G: origin on the plate, X along the pitch pin
+    (the fold axis), Z up through the gimbal's centre. A riser carries the yoke whose two ears
+    along Y hold the roll pin; the block between them takes the pitch pin. The riser's foot sinks
+    into the plate, so a canted gimbal still stands on it."""
+    pad = PADS[kind]
+    riser, yoke = pad["riser"], pad["yoke"]
+    tilted = abs(float(G[2, 2]) - 1.0) > 1e-6
+    if kind == "low":
+        rows = [(0.066, 0.094, 0.020, -0.002), (0.066, 0.094, 0.020, 0.005), (0.062, 0.090, 0.017, 0.010),
+                (0.062, 0.090, 0.017, riser - 0.004), (0.058, 0.086, 0.013, riser)]
+        w0, base = 0.046, (0.058, -0.090, 0.090, 0.010)
+    else:
+        rows = [(0.088, 0.118, 0.036, -0.045 if tilted else -0.002), (0.088, 0.118, 0.036, 0.006),
+                (0.078, 0.108, 0.028, 0.016), (0.074, 0.104, 0.026, riser - 0.006), (0.068, 0.098, 0.020, riser)]
+        w0, base = 0.055, (0.064, -0.094, 0.094, 0.012)
     rings = []
-    for ax, ay, r, z in riser:
+    for ax, ay, r, z in rows:
         pts, a, b = rrect(ax, ay, r, (0.5,), (0.5,), 2)
         rings.append(np.column_stack([pts, np.full(len(pts), z)]))
-    g.add(loft(rings, caps=(None, "grid"), grid=(a, b)), "cast", top)
-    yoke = top @ shift(0.0, 0.0, RISER - 0.001)
-    g.add(bracket([(-0.070, -0.050), (0.050, 0.070)], 0.055, YOKE + 0.001, 0.034,
-                  base=(0.064, -0.094, 0.094, 0.012), steps=3), "ti", yoke)
+    g.add(loft(rings, caps=(None, "grid"), grid=(a, b)), "cast", G)
+    at = G @ shift(0.0, 0.0, riser - 0.001)
+    g.add(bracket([(-0.070, -0.050), (0.050, 0.070)], w0, yoke + 0.001, 0.034, base=base, steps=3), "ti", at)
     for sx in (-1, 1):
         for sy in (-1, 1):
-            g.add(bolt(0.006, 0.005), "gun", yoke @ shift(sx * 0.050, sy * 0.082, 0.012))
-    for sy in (-1, 1):                                               # position lights on the top plate
-        g.add(box(0.150, 0.014, 0.008, 0.002), "glow", top @ shift(0.0, sy * (ty - 0.085), 0.0025))
-    g.add(box(0.040, 0.060, 0.022, 0.003), "cast", top @ shift(0.122, 0.0, 0.010))   # lights' junction box
+            g.add(bolt(0.006, 0.005), "gun", at @ shift(sx * (base[0] - 0.014), sy * (base[2] - 0.012), base[3]))
+    centre = G @ shift(0.0, 0.0, riser + yoke)
+    g.add(box(0.094, 0.094, 0.078, 0.007, 2), "cast", centre)
+    add_pin(g, centre @ AXIS_Y, 0.144, 0.016, 16)
 
 
 # =============================================================================================
@@ -771,42 +815,58 @@ SCISSOR_Y = -0.105                         # top torque links: their mid-plane, 
 SCISSOR_X = SX + R_GLAND + 0.020           # side torque links: their pins, beside the strut, in its plane
 STROKE_STOWED = 0.018                      # chrome left showing on a stowed strut
 PISTON_IN = 0.045                          # piston length inside the barrel, deployed
-HORN, HORN_TILT = 0.150, math.radians(50.0)   # retraction horn: pin radius, tilt to the upper side
-PROTRUSION = 0.150                         # a stowed pad's sole under the belly or the pod's underside
-U_SWING, U_SHORTEN = (0.14, 0.86), (0.18, 0.60)      # the oleo is short before the pad meets its socket
-# nose doors, port then starboard: the second waits until the first has swung its keel edge clear
-U_DOORS = {"G": ((0.00, 0.10), (0.90, 1.00)), "D": ((0.04, 0.14), (0.86, 0.96))}
-DOOR_ANGLE = math.radians(95.0)
+U_SWING, U_SHORTEN = (0.14, 0.86), (0.18, 0.60)      # the oleo is short before the pad reaches its well
 
 
 class Leg:
     """Geometry and motion of one leg, port side or centreline, in world coordinates.
 
-    T: trunnion centre; A0, A1: ankle (gimbal centre) deployed and stowed; P: the actuator's fixed
-    pin; zb: station of the bridge along the strut; walls: x of the trunnion bearings in the leg
-    frame. scissor: "top", the torque links fold across the strut's upper face (which faces up once
-    stowed), or "side", they fold outwards beside the +X strut, in the struts' plane, and add no
-    height to the stowed leg.
+    T: trunnion centre; A0, A1: ankle (gimbal centre) deployed and stowed, both in the plane through
+    T normal to `axis`, the fold axis. x_dir: the leg frame's X, along the axis either way, the side
+    of the torque links. zb: station of the bridge along the strut; walls: the stations of the two
+    trunnion bearings along the leg's X. horn: (station along the leg's X, length, angle at rest)
+    of the retraction horn; anchor: the actuator's fixed pin from the horn's root. Angles and
+    offsets in the fold plane run from aft (u_y) towards up (u_n = axis x u_y). swivel: +1 or -1,
+    the side along the leg's X of the wall (x = wall_x) that carries the actuator's manifold; roof:
+    height of the well's roof, which carries its clevis; front: y of the front wall that carries
+    the trunnion bearings, or None when they sit on the side walls. pad: a key of PADS.
     """
 
-    def __init__(self, T, A0, A1, P, zb, walls, scissor="top"):
-        self.T, self.A0, self.A1, self.P = (np.asarray(p, dtype=float) for p in (T, A0, A1, P))
-        self.zb, self.walls, self.scissor = zb, walls, scissor
+    def __init__(self, T, A0, A1, axis, x_dir, zb, walls, horn, anchor, swivel, wall_x, roof, pad,
+                 front=None, scissor="side"):
+        self.T, self.A0, self.A1 = (np.asarray(p, dtype=float) for p in (T, A0, A1))
+        self.axis, self.x_dir = unit(axis), unit(x_dir)
+        self.zb, self.walls, self.scissor, self.pad = zb, tuple(walls), scissor, pad
+        self.swivel, self.wall_x, self.roof, self.front = swivel, wall_x, roof, front
+        assert abs(abs(float(self.axis @ self.x_dir)) - 1.0) < 1e-9, "the leg's X must lie along the fold axis"
+        for p in (self.A0, self.A1):
+            assert abs(float((p - self.T) @ self.axis)) < 1e-9, "the ankle leaves the fold plane"
         self.L0 = float(np.linalg.norm(self.A0 - self.T))
         self.L1 = float(np.linalg.norm(self.A1 - self.T))
         self.c = self.L0 - self.L1
         self.e0 = (self.A0 - self.T) / self.L0
-        self.theta = wrap(angle_x(self.A1 - self.T) - angle_x(self.A0 - self.T))
-        self.F = frame(self.T, self.e0, (1.0 if self.A0[1] > self.T[1] else -1.0, 0.0, 0.0))
+        e1 = (self.A1 - self.T) / self.L1
+        self.theta = math.atan2(float(np.cross(self.e0, e1) @ self.axis), float(self.e0 @ e1))
+        self.u_y = unit(np.array([0.0, 1.0, 0.0]) - self.axis * self.axis[1])
+        self.u_n = np.cross(self.axis, self.u_y)
+        # the strut's underside (+Y) faces down once stowed
+        y = np.cross(self.e0, self.axis)
+        if (anim.about((0, 0, 0), self.axis, self.theta)[:3, :3] @ y)[2] > 0.0:
+            y = -y
+        self.F = np.eye(4)
+        self.F[:3, 0], self.F[:3, 1], self.F[:3, 2], self.F[:3, 3] = self.x_dir, y, self.e0, self.T
         self.ex, self.ey = self.F[:3, 0], self.F[:3, 1]
         self.zg = self.L1 + FOOT_BEAM[0] - 0.030 - STROKE_STOWED - 0.063     # gland nut station
         self.z_piston = self.zg + 0.063 - PISTON_IN                          # piston head, deployed
-        self.Q0 = self.at(0.0, -HORN * math.sin(HORN_TILT), -HORN * math.cos(HORN_TILT))
+        xh, q, phi = horn
+        self.xh, self.H = xh, self.T + xh * self.x_dir                         # the horn's root on the trunnion
+        self.Q0 = self.H + q * (math.cos(phi) * self.u_y + math.sin(phi) * self.u_n)
+        self.P = self.H + anchor[0] * self.u_y + anchor[1] * self.u_n
         if scissor == "top":                               # on the bridge and the crosshead's middle
-            x, y, zu, zl, bow = 0.0, SCISSOR_Y, zb, self.L0 + 0.5 * (FOOT_BEAM[0] + FOOT_BEAM[1]), 0.050
+            x, yy, zu, zl, bow = 0.0, SCISSOR_Y, zb, self.L0 + 0.5 * (FOOT_BEAM[0] + FOOT_BEAM[1]), 0.050
         else:                                              # under the barrel's lug collar, on the crosshead's top
-            x, y, zu, zl, bow = SCISSOR_X, 0.0, self.zg - 0.030, self.L0 + FOOT_BEAM[0] + 0.022, 0.040
-        self.B, self.C0, self.span0 = self.at(x, y, zu), self.at(x, y, zl), zl - zu
+            x, yy, zu, zl, bow = SCISSOR_X, 0.0, self.zg - 0.030, self.L0 + FOOT_BEAM[0] + 0.022, 0.040
+        self.B, self.C0, self.span0 = self.at(x, yy, zu), self.at(x, yy, zl), zl - zu
         self.arm = math.hypot(0.5 * self.span0, bow)
         self.K0 = self.apex_at(0.0)
         spans = [float(np.linalg.norm(self.pin_q(u) - self.P)) for u in np.linspace(0.0, 1.0, 101)]
@@ -826,16 +886,20 @@ class Leg:
         return self.c * anim.ease(u, *U_SHORTEN)
 
     def pin_q(self, u):
-        return anim.about(self.T, (1.0, 0.0, 0.0), self.swing(u))[:3] @ np.append(self.Q0, 1.0)
+        return anim.about(self.T, self.axis, self.swing(u))[:3] @ np.append(self.Q0, 1.0)
 
     def apex_at(self, u):
         """The torque links' apex at phase u, in the leg's rest frame: it stands out along the leg's X."""
         s = self.span0 - self.shorten(u)
         return self.B + self.F[:3, 2] * 0.5 * s + self.ex * math.sqrt(self.arm ** 2 - 0.25 * s * s)
 
+    def about_axis(self, a, b):
+        """Signed angle about the fold axis that turns a onto b."""
+        return math.atan2(float(np.cross(a, b) @ self.axis), float(a @ b))
+
     def poses(self, u):
         """World transforms of the leg's rigid parts at phase u: identity at u = 0."""
-        R = anim.about(self.T, (1.0, 0.0, 0.0), self.swing(u))
+        R = anim.about(self.T, self.axis, self.swing(u))
         down = anim.shift(-self.shorten(u) * self.e0)
         K, C = self.apex_at(u), self.C0 - self.shorten(u) * self.e0
 
@@ -843,12 +907,12 @@ class Leg:
             return anim.about(centre, self.ey, math.atan2(float(np.cross(a, b) @ self.ey), float(a @ b)))
         ankle = R[:3, :3] @ (self.A0 - self.shorten(u) * self.e0) + R[:3, 3]
         Q = self.pin_q(u)
-        tilt = wrap(angle_x(Q - self.P) - angle_x(self.Q0 - self.P))
+        tilt = self.about_axis(self.Q0 - self.P, Q - self.P)
         return {"Jambe": R, "Coulisse": R @ down,
                 "Compas_Haut": R @ turn(self.B, self.K0 - self.B, K - self.B),
                 "Compas_Bas": R @ down @ turn(self.C0, self.K0 - self.C0, K - C),
-                "Verin": anim.about(self.P, (1.0, 0.0, 0.0), tilt),
-                "Tige": anim.shift(Q - self.Q0) @ anim.about(self.Q0, (1.0, 0.0, 0.0), tilt),
+                "Verin": anim.about(self.P, self.axis, tilt),
+                "Tige": anim.shift(Q - self.Q0) @ anim.about(self.Q0, self.axis, tilt),
                 "Patin": anim.shift(ankle - self.A0)}
 
     def pins(self):
@@ -857,31 +921,17 @@ class Leg:
         Radius and half length bound the cylinder round a pin inside which its two parts may touch:
         a pin through an eye, a tube in its bearing. A slide's parts never touch.
         """
-        X, ey = np.array([1.0, 0.0, 0.0]), self.ey
-        return [("Jambe", None, self.T, X, "pin", 0.070, self.walls + 0.02),
+        ax, ey = self.axis, self.ey
+        w0, w1 = self.walls
+        return [("Jambe", None, self.T + self.x_dir * 0.5 * (w0 + w1), ax, "pin", 0.070, 0.5 * abs(w1 - w0) + 0.02),
                 ("Jambe", "Compas_Haut", self.B, ey, "pin", 0.030, 0.040),
                 ("Compas_Haut", "Compas_Bas", self.K0, ey, "pin", 0.030, 0.040),
                 ("Compas_Bas", "Coulisse", self.C0, ey, "pin", 0.030, 0.040),
-                ("Coulisse", "Patin", self.A0, X, "pin", 0.030, 0.100),
-                ("Jambe", "Tige", self.Q0, X, "pin", 0.035, 0.060),
-                ("Verin", None, self.P, X, "pin", 0.035, 0.060),
+                ("Coulisse", "Patin", self.A0, ax, "pin", 0.030, 0.100),
+                ("Jambe", "Tige", self.Q0, ax, "pin", 0.035, 0.060),
+                ("Verin", None, self.P, ax, "pin", 0.035, 0.060),
                 ("Jambe", "Coulisse", self.at(SX, 0.0, self.zg), self.e0, "slide", 0.0, 0.0),
                 ("Verin", "Tige", self.P, self.Q0 - self.P, "slide", 0.0, 0.0)]
-
-
-def angle_x(v):
-    """Angle of a vector about +X, from +Y towards +Z."""
-    return math.atan2(float(v[2]), float(v[1]))
-
-
-def wrap(a):
-    return (a + math.pi) % (2.0 * math.pi) - math.pi
-
-
-def deployed_ankle(T, rake, sign):
-    """Ankle on the ground for a leg raked `rake` from the vertical, forward (sign -1) or aft (+1)."""
-    z = GROUND + PAD_H + ANKLE
-    return np.array([T[0], T[1] + sign * (T[2] - z) * math.tan(rake), z])
 
 
 MIRROR = np.diag([-1.0, 1.0, 1.0, 1.0])
@@ -962,28 +1012,46 @@ def crosshead(g, foot, scissor):
               foot @ frame((root, 0.0, FOOT_BEAM[0] + 0.022), (1.0, 0.0, 0.0), (0.0, 0.0, 1.0)))
 
 
+def block(nodes, chamfer=0.004):
+    """Chamfered hexahedron from its eight corners, nodes (2, 2, 2, 3); three segments, for skewed corners."""
+    return bevel(lattice(np.asarray(nodes, dtype=float)), chamfer, 3)
+
+
 def trunnion(jambe, fixed, leg):
-    """Trunnion tube across the well, its two bearings on the walls, and the retraction horn."""
+    """Trunnion tube between its two bearings, a hub for the strut heads and one for the retraction
+    horn; each bearing sits on a side wall, or on a block cantilevered from the well's front wall."""
     F = leg.F
-    xe = leg.walls - 0.022                                # the tube ends inside the bearings
-    corners = [(R_TRUNNION - 0.004, -xe), (R_TRUNNION, -xe), (R_TRUNNION, -0.046), (R_HUB, -0.046),
-               (R_HUB, 0.046), (R_TRUNNION, 0.046), (R_TRUNNION, xe), (R_TRUNNION - 0.004, xe)]
-    jambe.add(lathe(rounded(corners, [0.003, 0.0, 0.003, 0.003, 0.0, 0.003], 1), 20, caps=("grid", "grid")), "ti",
-              F @ AXIS_X)
-    # horn: a clevis on the hub; its pin carries the actuator's rod eye
-    sb, cb = math.sin(HORN_TILT), math.cos(HORN_TILT)
-    horn = F @ frame((0.0, 0.0, 0.0), (0.0, -sb, -cb), (0.0, cb, -sb))
-    jambe.add(bracket([(-0.036, -0.019), (0.019, 0.036)], 0.046, HORN, 0.030, steps=3, chamfer=0.003), "ti", horn)
-    add_pin(jambe, shift(*leg.Q0) @ AXIS_X, 0.074, 0.012)
-    # bearings: a housing round each end of the tube, on a round flange bolted to the wall
-    for side in (-1.0, 1.0):
-        at = F @ frame((side * leg.walls, 0.0, 0.0), (-side, 0.0, 0.0), (0.0, 1.0, 0.0))
+    w0, w1 = leg.walls
+    hubs = sorted([(-0.046, 0.046), (leg.xh - 0.046, leg.xh + 0.046)])
+    corners = [(R_TRUNNION - 0.004, w0 + 0.022), (R_TRUNNION, w0 + 0.022)]
+    radii = [0.003]
+    for lo, hi in hubs:
+        corners += [(R_TRUNNION, lo), (R_HUB, lo), (R_HUB, hi), (R_TRUNNION, hi)]
+        radii += [0.0, 0.003, 0.003, 0.0]
+    corners += [(R_TRUNNION, w1 - 0.022), (R_TRUNNION - 0.004, w1 - 0.022)]
+    radii += [0.003]
+    jambe.add(lathe(rounded(corners, radii, 1), 20, caps=("grid", "grid")), "ti", F @ AXIS_X)
+    # horn: a clevis on its hub; its pin carries the actuator's rod eye
+    h = unit(leg.Q0 - leg.H)
+    horn = frame(leg.H, h, np.cross(leg.axis, h))
+    q = float(np.linalg.norm(leg.Q0 - leg.H))
+    jambe.add(bracket([(-0.036, -0.019), (0.019, 0.036)], 0.046, q, 0.030, steps=3, chamfer=0.003), "ti", horn)
+    add_pin(jambe, frame(leg.Q0, leg.axis, leg.u_y), 0.074, 0.012)
+    # bearings: a housing round each end of the tube, on a round flange
+    for w in leg.walls:
+        side = math.copysign(1.0, w)
+        at = F @ frame((w, 0.0, 0.0), (-side, 0.0, 0.0), (0.0, 1.0, 0.0))
         housing = rounded([(0.050, -0.004), (0.062, -0.004), (0.062, 0.012), (0.050, 0.012), (0.050, 0.062),
                            (0.043, 0.066), (R_TRUNNION + 0.002, 0.066)], [0.003, 0.003, 0.0, 0.004, 0.0], 1)
         fixed.add(lathe(housing, 20), "cast", at)
         for k in range(4):
             a = math.pi * (0.25 + 0.5 * k)
             fixed.add(bolt(0.0055, 0.005), "gun", at @ shift(0.056 * math.cos(a), 0.056 * math.sin(a), 0.012))
+        if leg.front is not None:                         # the flange's block, out to the front wall
+            ss = sorted([w - side * 0.004, w + side * 0.036])
+            ys = (leg.front - 0.010 - leg.T[1], 0.068)
+            fixed.add(block([[[leg.T + s * leg.x_dir + a * leg.u_y + b * leg.u_n for b in (-0.066, 0.066)]
+                              for a in ys] for s in ss]), "cast")
 
 
 def bridge(jambe, leg):
@@ -1024,31 +1092,38 @@ def torque_links(parts, leg):
     add_pin(parts["Coulisse"], out(leg.C0), 0.048, 0.009)
 
 
-def actuator(verin, tige, fixed, leg, wall):
-    """Retraction actuator from its clevis on a well wall (y = wall) to the horn; its hoses ride along.
+def to_plane(p, d, x):
+    """p moved along d onto the plane of constant world x."""
+    return p + d * ((x - p[0]) / d[0])
+
+
+def actuator(verin, tige, fixed, leg):
+    """Retraction actuator from its clevis, hung under the well's roof, to the horn.
 
     The cylinder is as short as the rod's travel allows; the hoses run from a swivel on the fixed
-    pin's axis, so nothing has to bend as the cylinder tilts.
+    pin's axis, so nothing has to bend as the cylinder tilts. The swivel's manifold is a block from
+    the nearest side wall.
     """
     P, Q = leg.P, leg.Q0
     lo, hi = leg.act_span
     z_head = lo - 0.160                                  # head gland of the cylinder, from the fixed pin
-    act = frame(P, Q - P, leg.ex)                        # Z along the actuator, X along the pins
-    rod = frame(Q, P - Q, leg.ex)
-    # fixed clevis on the wall
-    normal = np.array([0.0, math.copysign(1.0, P[1] - wall), 0.0])
-    stand = abs(P[1] - wall)
-    hang = frame((P[0], wall, P[2]), normal, np.cross(leg.ex, normal))
-    fixed.add(bracket([(-0.036, -0.019), (0.019, 0.036)], 0.036, stand, 0.028, base=(0.062, -0.056, 0.056, 0.012)),
-              "ti", hang)
-    for bx in (-0.049, 0.049):
-        for by in (-0.045, 0.045):
-            fixed.add(bolt(0.006, 0.005), "gun", hang @ shift(bx, by, 0.012))
-    add_pin(fixed, shift(*P) @ AXIS_X, 0.074, 0.012)
-    # manifold: a pedestal on the wall carrying the swivel's fixed half on the pin's axis
-    fixed.add(box(0.050, stand + 0.010, 0.060, 0.004), "cast", shift(*(P + leg.ex * 0.124 - normal * 0.5 * (stand - 0.010))))
+    sw = leg.swivel * leg.x_dir                          # along the pins, towards the manifold's wall
+    act = frame(P, Q - P, sw)                            # Z along the actuator, X along the pins
+    rod = frame(Q, P - Q, sw)
+    # fixed clevis: its ears stand behind the pin, away from the cylinder, from a block under the roof
+    back = unit(P - leg.pin_q(0.5))
+    hang = frame(P + 0.060 * back, -back, np.cross(back, leg.axis))      # Z to the pin, Y along it
+    fixed.add(bracket([(-0.036, -0.019), (0.019, 0.036)], 0.036, 0.060, 0.028), "ti", hang)
+    corner = lambda x, y: hang[:3, :3] @ np.array([x, y, 0.004]) + hang[:3, 3]
+    fixed.add(block([[[corner(x, y), np.append(corner(x, y)[:2], leg.roof + 0.001)] for y in (-0.050, 0.050)]
+                     for x in (-0.060, 0.060)]), "cast")
+    add_pin(fixed, frame(P, leg.axis, leg.u_y), 0.074, 0.012)
+    # manifold: a block from the side wall carrying the swivel's fixed half on the pin's axis
+    wall = leg.wall_x + math.copysign(0.003, sw[0])                     # just into the wall
+    face = [[P + sw * 0.098 + a * leg.u_y + b * leg.u_n for b in (-0.030, 0.030)] for a in (-0.025, 0.025)]
+    fixed.add(block([[[p, to_plane(p, sw, wall)] for p in row] for row in face]), "cast")
     fixed.add(lathe([(0.016, 0.0), (0.016, 0.0085), (0.013, 0.0115)], 12, caps=(None, "grid")), "ti",
-              frame(P + leg.ex * 0.1005, -leg.ex, (0.0, 1.0, 0.0)))
+              frame(P + sw * 0.1005, -sw, leg.u_y))
     # cylinder: tail eye, end cap, barrel, head gland; swivel on the pin's axis
     verin.add(bracket([(-0.016, 0.016)], 0.030, 0.066, 0.028), "gun",
               act @ frame((0.0, 0.0, 0.066), (0.0, 0.0, -1.0), (0.0, 1.0, 0.0)))
@@ -1082,41 +1157,43 @@ def harness(jambe, leg):
     """Light harness down the -X strut: from the trunnion along the barrel, past the bridge to the gland.
 
     It enters the leg through the trunnion's bore, so it never bends; the pad lights are fed
-    through the oleo.
+    through the oleo. It runs on the strut's outer underside, which faces down once stowed.
     """
-    az = np.array([math.cos(math.radians(40.0)), -math.sin(math.radians(40.0))])      # upper outer side
+    az = np.array([math.cos(math.radians(40.0)), math.sin(math.radians(40.0))])       # lower outer side
     ring = lambda rho, z: leg.at(-SX - rho * az[0], rho * az[1], z)
     out = leg.F[:3, :3] @ np.array([-az[0], az[1], 0.0])
     ez = leg.F[:3, 2]
     base = leg.at(-SX - 0.070, 0.0, 0.0)
-    start = leg.at(-SX - 0.070, -0.036, 0.0)
+    start = leg.at(-SX - 0.070, 0.036, 0.0)
     jambe.add(lathe([(0.012, -0.004), (0.012, 0.014), (0.010, 0.016)], 8, caps=(None, "grid")), "ti",
               frame(start, start - base))
     end = ring(R_GLAND + 0.010, leg.zg + 0.012)
-    hose(jambe, [start + (start - base) * 0.45, ring(R_COLLAR + 0.018, 0.105), ring(R_CLAMP + 0.0155, leg.zb),
-                 ring(R_BARREL + 0.020, leg.zb + 0.060), end], 0.0060, "rubber")
+    run = np.linspace(leg.zb + 0.060, leg.zg - 0.040, max(2, int(round((leg.zg - leg.zb) / 0.08))))
+    hose(jambe, [start + (start - base) * 0.45, ring(R_COLLAR + 0.018, 0.105), ring(R_CLAMP + 0.0155, leg.zb)]
+         + [ring(R_BARREL + 0.020, z) for z in run] + [end], 0.0060, "rubber")
     clip(jambe, ring(R_CLAMP + 0.0155, leg.zb), ez, out)
     jambe.add(box(0.030, 0.022, 0.036, 0.003), "cast", frame(ring(R_GLAND + 0.004, leg.zg + 0.012), ez, out))
 
 
-def leg_parts(leg, pad_len, wall):
+def leg_parts(leg):
     """The rigid parts of one leg at rest, in world coordinates: ({part: Geo}, fixed Geo)."""
     parts = {k: Geo() for k in ("Jambe", "Coulisse", "Compas_Haut", "Compas_Bas", "Verin", "Tige", "Patin")}
     fixed = Geo()
     A = leg.A0
+    lift = ankle_height(leg.pad)
     foot = leg.F @ shift(0.0, 0.0, leg.L0)
-    footpad(parts["Patin"], shift(A[0], A[1], GROUND), pad_len)
-    # gimbal: a block with a roll pin in the pad's yoke; the pitch pin rides in the crosshead's fork
-    parts["Patin"].add(box(0.094, 0.094, 0.078, 0.007, 2), "cast", shift(*A))
-    add_pin(parts["Patin"], shift(*A) @ AXIS_Y, 0.144, 0.016, 16)
-    add_pin(parts["Coulisse"], foot @ AXIS_X, 0.144, 0.016, 16)
+    footpad(parts["Patin"], shift(A[0], A[1], GROUND), leg.pad)
+    G = np.eye(4)                                        # the gimbal stands on the top plate, canted with the fold axis
+    G[:3, 0], G[:3, 1], G[:3, 2], G[:3, 3] = leg.axis, leg.u_y, leg.u_n, A - lift * leg.u_n
+    gimbal(parts["Patin"], G, leg.pad)
+    add_pin(parts["Coulisse"], foot @ AXIS_X, 0.144, 0.016, 16)       # pitch pin, in the crosshead's fork
     crosshead(parts["Coulisse"], foot, leg.scissor)
     for x in (-SX, SX):
         strut(parts["Jambe"], parts["Coulisse"], leg, x)
     trunnion(parts["Jambe"], fixed, leg)
     bridge(parts["Jambe"], leg)
     torque_links(parts, leg)
-    actuator(parts["Verin"], parts["Tige"], fixed, leg, wall)
+    actuator(parts["Verin"], parts["Tige"], fixed, leg)
     harness(parts["Jambe"], leg)
     return parts, fixed
 
@@ -1142,46 +1219,70 @@ def clip(g, point, along, outward):
 
 
 # =============================================================================================
-# Main gear pods and wells
+# Legs and wells
 # =============================================================================================
-# Nose leg: its trunnion over the doors' leading edge, high enough for the deployed strut to pass
-# forward of the closed doors; it folds forwards over the socket.
-NOSE_TRUNNION = (0.0, -3.31, -1.500)
-NOSE_RAKE, NOSE_BRIDGE = math.radians(22.0), 0.178
-NOSE_ANCHOR = (0.0, -2.45, -1.42)          # the actuator's fixed pin, off the well's aft wall
+# Nose leg: its trunnion at the back of the well, level with the stowed ankle; it rakes forward
+# and folds forwards, level over the low pad, under the cabin floor.
+NOSE_TRUNNION_Y, NOSE_STOW_Y = -2.50, -3.75       # trunnion; the stowed pad's centre
+NOSE_RAKE, NOSE_BRIDGE = math.radians(40.0), 0.178
+NOSE_HORN, NOSE_ANCHOR = (-0.25, 0.18, math.radians(-95.0)), (-0.65, 0.0)    # see Leg: horn, anchor
 NOSE_ROOF = -1.312                         # the cabin floor's structure is above
-NOSE_LIMIT = -4.50                         # nothing of the gear forward of this: the glazed prow
-NOSE_WELL_BOX = (0.44, (-4.55, -2.32), -1.31)   # the nose well inside the hull: |x|, y range, top
-# Main legs (port; starboard is the mirror image): the trunnion at the socket's front, they fold aft.
-MAIN_X, MAIN_STOW_Y = 1.90, 1.870          # pad centre across, and along once stowed
-MAIN_TRUNNION = (0.560, 0.187)             # trunnion: ahead of the stowed ankle, above the pod's underside
-MAIN_RAKE, MAIN_BRIDGE = math.radians(25.0), 0.220
-MAIN_ANCHOR = (0.70, -1.45)                # the actuator's fixed pin, (y, z), off the well's front wall
-POD_Y = (0.12, 0.52, 2.50, 2.93)           # prow tip, full section from and to, tail tip: aft of
-                                           # y 3.0 the belly rises above the belt line and the footprint closes
-POD_RIM_Z = -1.19                          # the upper rim never climbs above this: level under the mouth
-POD_X_OUT, POD_Z_BOTTOM = 2.290, -1.700    # outer face and flat underside of the pod
-POD_X_IN = 1.31                            # the pod's lower rim on the belly, clear of the hull's belly seam
-POD_FLAT_IN = 1.50                         # inner end of the flat underside
-POD_BELT_CLEAR = 0.028                     # the pod's upper rim, along the skin under the belt's lower edge
-RIM_LIFT, SKIRT = 0.006, 0.008             # a fairing's rim stands this proud; its seal dives this deep
-POD_CORNER = 0.050                         # the footprint's corners are clipped at 45 degrees
-LIP, WELL_GAP = 0.032, 0.020               # the socket's edge returns into the well; liner off the edge
-# the main socket: the pad's pyramid passes through it, its bumper slab covers the edge all round
-SOCKET = {"xc": MAIN_X, "yc": MAIN_STOW_Y, "hx": 0.285, "hy": 0.585, "r": 0.070, "na": 4,
-          "fx": (1.0 / 3.0, 2.0 / 3.0), "fy": tuple(k / 8.0 for k in range(1, 8))}
+NOSE_LIMIT = -4.40                         # nothing of the gear forward of this: the glazed prow
+NOSE_WELL_BOX = (0.40, (-4.40, -2.32), -1.31)   # the nose well inside the hull: |x|, y range, top
+NOSE_FRAMES = (-4.24,)                     # a roof frame ahead of the folded gear, past the well's rounded corners
+# Main legs (port; starboard is the mirror image): the trunnion at the front of the well; the fold
+# axis is canted up outboard, so the deployed leg splays out; the leg folds aft over its pad.
+MAIN_STOW = (1.07, 1.85)                   # the stowed pad's centre
+MAIN_CANT = math.radians(24.0)             # fold axis above the horizontal, outboard
+MAIN_LEAN, MAIN_TILT = math.radians(20.0), math.radians(6.0)   # deployed lean aft; stowed strut above level
+MAIN_L1, MAIN_BRIDGE = 1.10, 0.220         # trunnion to the stowed ankle; bridge station
+MAIN_WALLS = (-0.30, 0.40)                 # trunnion bearings along the leg's X: outboard, inboard
+MAIN_HORN, MAIN_ANCHOR = (0.24, 0.18, math.radians(-110.0)), (0.62, 0.18)    # see Leg: horn, anchor
+MAIN_ROOF, DUCT_ROOF = -0.82, -1.07        # the well's roof, and its floor under the thruster ducts
+DUCT = (1.39, 1.48)                        # the ducts fill z above -1.05 outboard of x and aft of y
+AIRLOCK = (0.63, -1.28)                    # the airlock's liner: |x| up to, z from
+FREE_TOP = -0.80                           # nothing of the gear above this
+PAD_CLEAR = 0.012                          # a stowed sole above the highest inner face of its doors
+SKIN = 0.014                               # the skin's thickness shown round an opening
+DEEP = panels.THICK + 0.008                # the liner follows the skin's normal this deep, past the doors' inner face
+HINGE_CLEAR = 0.003                        # a door's hinge line runs at least this far outside its leaf's rim
+HINGE_TILT = 0.040                         # its slope against the leaf's ends: a 45 mm end slides 1.8 mm
 
 
-def arclen(p):
-    return np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(p, axis=0), axis=1))])
+def stow_sole(hull, centre, kind):
+    """Height of a stowed sole: just above the inner face of the closed doors under its footprint."""
+    pad = PADS[kind]
+    xs, ys = np.meshgrid(centre[0] + np.linspace(-0.5, 0.5, 13) * pad["w"],
+                         centre[1] + np.linspace(-0.5, 0.5, 25) * pad["l"])
+    p, n = skin_at(hull, xs.ravel(), ys.ravel(), normals=True)
+    return float((p - panels.THICK * n)[:, 2].max()) + PAD_CLEAR
 
 
-def ramp(u, toe=0.18, knee=0.40):
-    """0 to 1 with a fillet at the foot and a soft knee at the top: the profile of a fairing's end."""
-    u = np.clip(np.asarray(u, dtype=float), 0.0, 1.0)
-    m = 1.0 / (1.0 - 0.5 * (toe + knee))
-    return np.where(u < toe, 0.5 * m * u * u / toe,
-                    np.where(u > 1.0 - knee, 1.0 - 0.5 * m * (1.0 - u) ** 2 / knee, m * (u - 0.5 * toe)))
+def nose_leg(hull):
+    """The nose leg: its low pad stowed level just above the doors, the leg folded level over it."""
+    kind = "low"
+    lift = PADS[kind]["h"] + ankle_height(kind)
+    A1 = np.array([0.0, NOSE_STOW_Y, stow_sole(hull, (0.0, NOSE_STOW_Y), kind) + lift])
+    T = np.array([0.0, NOSE_TRUNNION_Y, A1[2]])
+    z0 = GROUND + lift
+    A0 = np.array([0.0, T[1] - (T[2] - z0) * math.tan(NOSE_RAKE), z0])
+    return Leg(T, A0, A1, (1.0, 0.0, 0.0), (-1.0, 0.0, 0.0), NOSE_BRIDGE, (-hg.NOSE_WELL_HALF, hg.NOSE_WELL_HALF),
+               NOSE_HORN, NOSE_ANCHOR, -1.0, hg.NOSE_WELL_HALF - 0.004, NOSE_ROOF, kind)
+
+
+def main_leg(hull):
+    """The port main leg: its pad stowed level just above the doors, the leg folded aft over it."""
+    kind = "main"
+    axis = np.array([math.cos(MAIN_CANT), 0.0, math.sin(MAIN_CANT)])
+    y, up = np.array([0.0, 1.0, 0.0]), np.array([-math.sin(MAIN_CANT), 0.0, math.cos(MAIN_CANT)])
+    lift = PADS[kind]["h"] + ankle_height(kind) * up[2]
+    A1 = np.array([MAIN_STOW[0], MAIN_STOW[1], stow_sole(hull, MAIN_STOW, kind) + lift])
+    T = A1 - MAIN_L1 * (math.cos(MAIN_TILT) * y + math.sin(MAIN_TILT) * up)
+    phi = -math.atan2(1.0, math.tan(MAIN_LEAN) * up[2])          # e0 leans MAIN_LEAN aft of the vertical
+    e0 = math.cos(phi) * y + math.sin(phi) * up
+    A0 = T + e0 * (T[2] - GROUND - lift) / -e0[2]
+    return Leg(T, A0, A1, axis, -axis, MAIN_BRIDGE, MAIN_WALLS, MAIN_HORN, MAIN_ANCHOR, 1.0,
+               hg.MAIN_WELL_X[0] - 0.0165, MAIN_ROOF, kind, front=hg.MAIN_WELL_Y[0])
 
 
 def skin_at(hull, x, y, normals=False):
@@ -1196,184 +1297,20 @@ def skin_at(hull, x, y, normals=False):
     return hull.eval(s, 0.5 * (lo + hi), normals=normals)
 
 
-def border_loops(faces):
-    """Closed chains of border vertices, each running the way its faces run."""
-    half = {(a, b) for f in faces for a, b in zip(f, f[1:] + f[:1])}
-    nxt = {a: b for a, b in half if (b, a) not in half}
-    loops = []
-    while nxt:
-        start = next(iter(nxt))
-        loop, cur = [start], nxt.pop(start)
-        while cur != start:
-            loop.append(cur)
-            cur = nxt.pop(cur)
-        loops.append(loop)
-    return loops
+def skin_table(hull, h=0.02):
+    """Height of the lower skin over the gear's plan, as a function of points (n, 3): bilinear."""
+    xs, ys = np.arange(0.0, 1.76, h), np.arange(-4.6, 2.81, h)
+    X, Y = np.meshgrid(xs, ys, indexing="ij")
+    Z = skin_at(hull, X.ravel(), Y.ravel())[:, 2].reshape(X.shape)
 
-
-def grow(v, faces, loop, points):
-    """Add a ring of new points beyond a border loop; returns (vertices, the new loop)."""
-    base = len(v)
-    n = len(loop)
-    for k in range(n):
-        a, b = loop[k], loop[(k + 1) % n]
-        faces.append((b, a, base + k, base + (k + 1) % n))
-    return np.vstack([v, points]), list(range(base, base + n))
-
-
-def grid_normals(p):
-    """Normals of a smooth node grid (ni, nj, 3) by three-point differences on uneven spacing."""
-    def diff(q):
-        h = np.linalg.norm(np.diff(q, axis=0), axis=-1)[..., None]
-        d = np.empty_like(q)
-        h1, h2 = h[:-1], h[1:]
-        d[1:-1] = (-h2 / (h1 * (h1 + h2)) * q[:-2] + (h2 - h1) / (h1 * h2) * q[1:-1] + h1 / (h2 * (h1 + h2)) * q[2:])
-        d[0], d[-1] = (q[1] - q[0]) / h[0], (q[-1] - q[-2]) / h[-1]
-        return d
-    n = np.cross(diff(np.swapaxes(p, 0, 1)).swapaxes(0, 1), diff(p))
-    return n / np.linalg.norm(n, axis=-1, keepdims=True)
-
-
-def socket_ring(s, inset=0.0):
-    """A rounded outline in plan, counter-clockwise from above: (points (n, 2), a, b) as rrect."""
-    pts, a, b = rrect(s["hx"] - inset, s["hy"] - inset, s["r"] - inset, s["fx"], s["fy"], s["na"])
-    return pts + (s["xc"], s["yc"]), a, b
-
-
-def pod(hull, s):
-    """Port gear fairing: a sponson under the teal belt, its flat underside open on the pad's socket.
-
-    Sections in planes of constant y. Each leaves the skin by a cove under the belt, runs out to a
-    rounded shoulder, down the outer face, across the flat underside and back up to the belly. At
-    both ends the section is blended into the skin itself, so the fairing dies into the hull. Its
-    edge stands RIM_LIFT proud all round, chamfered, on a dark seal. The socket s is a rounded
-    rectangle of grid nodes: columns sit on its corner arcs and the underside's two outer rows of
-    the opening bend round them.
-
-    Returns the Geo and, along y, the height of the fairing's top at its outer edge: (y, z) pairs.
-    """
-    us = np.array([0.0, 0.05, 0.11, 0.18, 0.30, 0.45, 0.60, 0.72, 0.82, 0.90, 0.96, 1.0])
-    y0, y1, y2, y3 = POD_Y
-    na, r = s["na"], s["r"]
-    sx, sy = s["hx"] - r, s["hy"] - r
-    phi = np.linspace(0.0, 0.5 * math.pi, na + 1)
-    col_y = s["yc"] + np.concatenate([-sy - r * np.cos(phi), -sy + 2.0 * sy * np.asarray(s["fy"]), sy + r * np.sin(phi)])
-    col_x = np.concatenate([sx + r * np.sin(phi), np.full(len(s["fy"]), s["hx"]), sx + r * np.cos(phi)])
-    nf, nb = max(2, int(round((col_y[0] - y1) / 0.075))), max(2, int(round((y2 - col_y[-1]) / 0.075)))
-    ys = np.concatenate([y0 + (y1 - y0) * us, np.linspace(y1, col_y[0], nf + 1)[1:-1], col_y,
-                         np.linspace(col_y[-1], y2, nb + 1)[1:], (y3 - (y3 - y2) * us[::-1])[1:]])
-    i0 = len(us) + nf - 1                                  # columns of the socket's ends
-    i1 = i0 + len(col_y) - 1
-    edge = np.full(len(ys), s["hx"])
-    edge[i0:i1 + 1] = col_x
-    full = np.where(ys <= y1, ramp((ys - y0) / (y1 - y0)), np.where(ys >= y2, ramp((y3 - ys) / (y3 - y2)), 1.0))
-    j0, j1 = 18, 21                                        # rows of the socket's sides: outboard, inboard
-    inner_x = s["xc"] + sx * (1.0 - 2.0 * np.asarray(s["fx"]))
-    r_cove, r_foot = 0.028, 0.060
-    cols, base_n, tops = [], [], []
-    for i, (y, f) in enumerate(zip(ys, full)):
-        sec_s = float(hull.s_of_y(np.asarray(float(y))))
-        t = np.linspace(T2, 1.0, 900)
-        sec, nrm = hull.eval(np.full(len(t), sec_s), t, normals=True)
-        xz, nxz = sec[:, [0, 2]], nrm[:, [0, 2]]
-        d = arclen(xz)
-        at = lambda dist, table=xz: np.array([np.interp(dist, d, table[:, 0]), np.interp(dist, d, table[:, 1])])
-
-        def girth_at(z):                                   # where the skin, going down, crosses a height
-            k = int(np.argmax(xz[:, 1] < z))
-            return d[k - 1] + (d[k] - d[k - 1]) * (xz[k - 1, 1] - z) / (xz[k - 1, 1] - xz[k, 1])
-        z_rim = at(girth_at(float(hg.z_belt(y))) + hg.BELT_WIDTH + POD_BELT_CLEAR)[1]
-        z_rim = 0.5 * (z_rim + POD_RIM_Z - math.sqrt((z_rim - POD_RIM_Z) ** 2 + 0.02 ** 2))    # soft minimum
-        d_top = girth_at(z_rim)
-        d_low = float(np.interp(-POD_X_IN, -xz[:, 0], d))
-        cut = max(0.0, POD_CORNER - min(y - y0, y3 - y))
-        d_top, d_low = d_top + cut, d_low - cut
-        rim_a, rim_d = at(d_top), at(d_low)
-        n_a, n_d = unit(at(d_top, nxz)), unit(at(d_low, nxz))
-        b = np.array([POD_X_OUT, rim_a[1] - 0.045])
-        c = np.array([POD_X_OUT - 0.012, POD_Z_BOTTOM])
-        e = np.array([POD_FLAT_IN, POD_Z_BOTTOM])
-        tops.append((y, b[1]))
-        # cove under the belt: an arc tangent to the skin at the rim and to the top face
-        ca = rim_a + r_cove * n_a
-        to_b = b - ca
-        th0 = math.atan2(-n_a[1], -n_a[0])
-        th1 = math.atan2(to_b[1], to_b[0]) - math.acos(r_cove / np.linalg.norm(to_b))
-        th1 += 2.0 * math.pi * math.ceil((th0 - th1) / (2.0 * math.pi))
-        ang = np.linspace(th0, th1, 6)
-        cove = ca + r_cove * np.stack([np.cos(ang), np.sin(ang)], axis=1)
-        # foot on the belly: an arc tangent to the inner slope and to the skin at the lower rim
-        cd = rim_d + r_foot * n_d
-        to_e = e - cd
-        tf1 = math.atan2(-n_d[1], -n_d[0])
-        tf0 = math.atan2(to_e[1], to_e[0]) + math.acos(r_foot / np.linalg.norm(to_e))
-        tf0 -= 2.0 * math.pi * math.ceil((tf0 - tf1) / (2.0 * math.pi))
-        ang = np.linspace(tf0, tf1, 3)
-        footing = cd + r_foot * np.stack([np.cos(ang), np.sin(ang)], axis=1)
-        mid = rounded([cove[-1], b, c, e, footing[0]], [0.055, 0.035, 0.100], [4, 4, 3], [2, 2, 5, 2])
-        shape = np.vstack([cove[:-1], mid, footing[1:]])
-        assert len(shape) == 30, len(shape)
-        shape[j0:j1 + 1, 0] = np.concatenate([[s["xc"] + edge[i]], inner_x, [s["xc"] - edge[i]]])
-        assert np.allclose(shape[j0 - 1:j1 + 2, 1], POD_Z_BOTTOM) and np.all(np.diff(shape[j0 - 1:j1 + 2, 0]) < 0.0)
-        sigma = arclen(shape)
-        # where the fairing dies away its rows spread evenly along the skin
-        # ponytail: every row still runs to the tip, so the last cells are a few millimetres wide.
-        # Ending rows early needs triangles or poles; do it if the tips are ever seen in close-up wire.
-        dj = d_top + (d_low - d_top) * (f * sigma / sigma[-1] + (1.0 - f) * np.linspace(0.0, 1.0, len(shape)))
-        tj = np.interp(dj, d, t)
-        hb, hn = hull.eval(np.full(len(tj), sec_s), tj, normals=True)
-        hb = hb + RIM_LIFT * hn
-        target = np.column_stack([shape[:, 0], np.full(len(shape), y), shape[:, 1]])
-        target[0], target[-1] = hb[0], hb[-1]
-        cols.append(hb + f * (target - hb))
-        base_n.append(hn)
-    p, base_n = np.array(cols), np.array(base_n)
-    ni, nj = p.shape[:2]
-    idx = np.arange(ni * nj).reshape(ni, nj)
-    faces = [(idx[i, j], idx[i, j + 1], idx[i + 1, j + 1], idx[i + 1, j]) for i in range(ni - 1) for j in range(nj - 1)
-             if not (i0 <= i < i1 and j0 <= j < j1)]
-    v = p.reshape(-1, 3)
-    normals = {int(k): n for k, n in enumerate(grid_normals(p).reshape(-1, 3))}
-    for k in set(idx[0]) | set(idx[-1]) | set(idx[:, 0]) | set(idx[:, -1]):
-        normals[int(k)] = base_n.reshape(-1, 3)[k]
-    outer, opening = sorted(border_loops(faces), key=len, reverse=True)
-    # edge: a chamfer, then a dark seal that dives into the hull
-    rim, hn = v[outer], base_n.reshape(-1, 3)[outer]
-    outward = np.cross(np.roll(rim, -1, axis=0) - np.roll(rim, 1, axis=0), hn)
-    outward /= np.linalg.norm(outward, axis=1, keepdims=True)
-    if float(((rim - rim.mean(axis=0)) * outward).sum()) < 0.0:
-        outward = -outward
-    v, ring = grow(v, faces, outer, rim + 0.003 * outward - 0.0015 * hn)
-    n_white = len(faces)
-    v, ring = grow(v, faces, ring, rim + 0.007 * outward - (RIM_LIFT + SKIRT) * hn)
-    n_seal = len(faces)
-    # lip of the socket: a chamfer, then a return up into the well
-    q = v[opening].copy()
-    inward = np.cross((0.0, 0.0, 1.0), np.roll(q, -1, axis=0) - np.roll(q, 1, axis=0))
-    inward /= np.linalg.norm(inward, axis=1, keepdims=True)
-    if float(((np.array([s["xc"], s["yc"], 0.0]) - q) * inward)[:, :2].sum()) < 0.0:
-        inward = -inward
-    for k in opening:
-        normals.pop(k, None)                               # the opening's edge shades by its faces
-    v, ring = grow(v, faces, opening, q + 0.004 * inward + (0.0, 0.0, 0.004))
-    v, ring = grow(v, faces, ring, q + 0.004 * inward + (0.0, 0.0, LIP))
-    used = np.unique(np.array([k for face in faces for k in face]))      # the nodes inside the socket are gone
-    remap = -np.ones(len(v), dtype=np.int64)
-    remap[used] = np.arange(len(used))
-    mats = ["rubber" if n_white <= k < n_seal else "white" for k in range(len(faces))]
-    g = Geo().add(Part(v[used], [tuple(remap[list(face)]) for face in faces], m=mats),
-                  normals={int(remap[k]): n for k, n in normals.items() if remap[k] >= 0})
-    # flush pill plate on the outer face, over the actuator
-    k = int(np.argmin(np.abs(ys - 1.0)))
-    top, bottom = p[k, 11], p[k, 13]
-    up = unit(top - bottom)
-    out = unit(np.cross((0.0, 1.0, 0.0), up))
-    pts, a, b = rrect(0.165, 0.044, 0.044, (0.25, 0.5, 0.75), (), 6)
-    plate = loft([np.column_stack([pts * sc, np.full(len(pts), z)]) for sc, z in
-                  (((1.0, 1.0), -0.004), ((1.0, 1.0), 0.0016), ((0.988, 0.955), 0.0036))],
-                 caps=(None, "grid"), grid=(a, b))
-    g.add(plate, "ti", frame(0.5 * (top + bottom), out, (0.0, 1.0, 0.0)))
-    return g, tops
+    def z_of(p):
+        x, y = np.abs(p[:, 0]), p[:, 1]
+        i = np.clip(((x - xs[0]) / h).astype(int), 0, len(xs) - 2)
+        j = np.clip(((y - ys[0]) / h).astype(int), 0, len(ys) - 2)
+        tx, ty = np.clip((x - xs[i]) / h, 0.0, 1.0), np.clip((y - ys[j]) / h, 0.0, 1.0)
+        return ((1 - tx) * (1 - ty) * Z[i, j] + tx * (1 - ty) * Z[i + 1, j] + (1 - tx) * ty * Z[i, j + 1]
+                + tx * ty * Z[i + 1, j + 1])
+    return z_of
 
 
 def turned_out(part):
@@ -1382,28 +1319,26 @@ def turned_out(part):
     return Part(part.v, [f[::-1] for f in part.f], [u[::-1] for u in uv], part.m)
 
 
-def main_liner(hull, s, y_front, tops):
-    """Dark box of a main gear well, seen from inside: floor round the socket, walls, roof.
+def main_roof(q):
+    """Height of the main well's roof over plan points (n, 2): it steps down under the thruster ducts."""
+    s = lambda t: np.clip(t, 0.0, 1.0) ** 2 * (3.0 - 2.0 * np.clip(t, 0.0, 1.0))
+    duct = s((q[:, 0] - DUCT[0] + 0.06) / 0.06) * s((q[:, 1] - DUCT[1] + 0.08) / 0.08)
+    return MAIN_ROOF + (DUCT_ROOF - MAIN_ROOF) * duct
 
-    The floor lies on the socket's lip; forward of the socket it houses the actuator. The roof
-    follows the hull's skin and the fairing's top, whichever is lower.
-    """
-    y_aft = s["yc"] + s["hy"] + WELL_GAP
-    box_s = dict(s, yc=0.5 * (y_front + y_aft), hx=s["hx"] + WELL_GAP, hy=0.5 * (y_aft - y_front), r=0.080)
-    inner, _, _ = socket_ring(s, 0.004)
-    outer, a, b = socket_ring(box_s)
-    z_floor = POD_Z_BOTTOM + LIP
-    top_y, top_z = np.array(tops).T
 
-    def roof(q):
-        return np.minimum(skin_at(hull, q[:, 0], q[:, 1])[:, 2], np.interp(q[:, 1], top_y, top_z)) - 0.016
-    lift = lambda p, z: np.column_stack([p, np.broadcast_to(z, (len(p),))])
-    rings = [lift(inner, z_floor), lift(outer, z_floor), lift(outer, 0.5 * (z_floor + roof(outer))),
-             lift(outer, roof(outer))]
-    well = loft(rings, caps=(None, "grid"), grid=(a, b))   # floor, walls, roof
-    n = len(rings) * len(outer)
-    well.v[n:, 2] = roof(well.v[n:, :2])                   # the roof's inner nodes, on the roof
-    return Geo().add(turned_out(well), "bay")
+def main_liner(grid):
+    """Liner of the port main well, on the opening's own nodes: the skin's thickness, walls, roof."""
+    c = grid.col
+    pts, nrm, _ = grid.side_rim_loop(c["g0"], c["g1"], hg.B_MAIN_OUT, hg.B_WELL)
+    a, b = c["g1"] - c["g0"], hg.B_WELL - hg.B_MAIN_OUT
+    deep = pts - DEEP * nrm
+    top = main_roof(deep[:, :2])
+    rings = [pts, pts - SKIN * nrm, deep, np.column_stack([deep[:, :2], 0.5 * (deep[:, 2] + top)]),
+             np.column_stack([deep[:, :2], top])]
+    walls = loft(rings, caps=(None, "grid"), grid=(a, b), mats=["belly", "bay", "bay", "bay"])
+    n = len(rings) * len(pts)
+    walls.v[n:, 2] = main_roof(walls.v[n:, :2])           # the roof's inner nodes, on the roof
+    return Geo().add(turned_out(walls))
 
 
 def nose_liner(grid):
@@ -1413,13 +1348,14 @@ def nose_liner(grid):
     pts, nrm = np.roll(pts, -k, axis=0), np.roll(nrm, -k, axis=0)
     a = grid.col["w1"] - grid.col["w0"]
     b = len(pts) // 2 - a
-    skin = pts - 0.014 * nrm
-    rings = [pts, skin, np.column_stack([skin[:, :2], np.full(len(pts), 0.5 * (skin[:, 2].mean() + NOSE_ROOF))]),
-             np.column_stack([skin[:, :2], np.full(len(pts), NOSE_ROOF)])]
-    walls = loft(rings, caps=(None, "grid"), grid=(a, b), mats=["belly", "bay", "bay"])
+    deep = pts - DEEP * nrm
+    rings = [pts, pts - SKIN * nrm, deep,
+             np.column_stack([deep[:, :2], np.full(len(pts), 0.5 * (deep[:, 2].mean() + NOSE_ROOF))]),
+             np.column_stack([deep[:, :2], np.full(len(pts), NOSE_ROOF)])]
+    walls = loft(rings, caps=(None, "grid"), grid=(a, b), mats=["belly", "bay", "bay", "bay"])
     g = Geo().add(turned_out(walls))
     half = hg.NOSE_WELL_HALF - 0.002
-    for y in (-4.25, -2.58):                               # roof frames, where the folded gear stays low
+    for y in NOSE_FRAMES:
         g.add(box(2.0 * half, 0.024, 0.030, 0.003), "bay", shift(0.0, y, NOSE_ROOF - 0.015))
     return g
 
@@ -1428,37 +1364,58 @@ def nose_liner(grid):
 # Assembly
 # =============================================================================================
 _RIG = {}                                  # what build() made: self_check replays the motion from it
+# leaf: (angle at rest, angle for the swing, opening span, closing span), degrees and phases. A leaf the
+# leg passes through hangs beside it on the ground, like a fence; the others are shut at rest. The
+# outer main leaves open wide only while the pad passes their hinge.
+DOOR_PLAN = {"Avant_Av": (0.0, 95.0, (0.00, 0.10), (0.90, 1.00)),
+             "Avant_Ar": (95.0, 95.0, (0.00, 0.10), (0.90, 1.00)),
+             "Principal_Av_Ext": (100.0, 140.0, (0.00, 0.10), (0.90, 1.00)),
+             "Principal_Av_Int": (0.0, 100.0, (0.00, 0.10), (0.86, 0.96)),
+             "Principal_Ar_Ext": (0.0, 140.0, (0.00, 0.10), (0.90, 1.00)),
+             "Principal_Ar_Int": (0.0, 100.0, (0.03, 0.13), (0.86, 0.96))}
+NOSE_STAGGER = 0.04                        # the starboard nose leaves open after the port ones and close before
 
 
-def door_open(u, tag):
-    """Opening of a nose gear door, 0 shut to 1 open; tag G port, D starboard."""
-    return anim.ease(u, *U_DOORS[tag][0]) - anim.ease(u, *U_DOORS[tag][1])
+def hinge_line(grid, key, sign, h0, h1):
+    """The line a gear door turns about: panels' hinge chord, turned towards the fore-and-aft axis
+    until it slopes at most HINGE_TILT against the leaf's ends, so they do not slide across their
+    gap, then moved out under the leaf's rim until the whole hinge edge lies inside it. On a rim
+    that curves or slopes, a leaf turning about the bare chord would enter the skin."""
+    a0, a1, b0, b1 = grid.door_leaves()[key]
+    b = b0 if key.startswith("Avant") or key.endswith("Ext") else b1            # panels.gear_doors' rim
+    flip = np.array([sign, 1.0, 1.0])
+    rim, out = grid.points[a0:a1 + 1, b] * flip, unit((grid.normals[a0:a1 + 1, b] * flip).mean(axis=0))
+    chord, along = unit(h1 - h0), np.array([0.0, 1.0, 0.0])
+    tilt = math.hypot(chord[0], chord[2]) / chord[1]
+    axis = unit(along + min(1.0, HINGE_TILT / max(tilt, 1e-9)) * (chord - along))
+    mid, half = 0.5 * (h0 + h1), 0.5 * float(np.linalg.norm(h1 - h0))
+    rel = rim - mid
+    off = (rel - np.outer(rel @ axis, axis)) @ out                               # + : outside the line
+    shift = (off.max() + HINGE_CLEAR) / (1.0 - float(out @ axis) ** 2)
+    centre = mid + shift * out
+    return centre - half * axis, centre + half * axis
+
+
+def door_angle(u, key, tag):
+    """Opening of a gear door leaf at phase u, radians from shut; tag G port, D starboard."""
+    rest, swing, opening, closing = DOOR_PLAN[key]
+    lag = NOSE_STAGGER if key.startswith("Avant") and tag == "D" else 0.0
+    a = rest + (swing - rest) * anim.ease(u, opening[0] + lag, opening[1] + lag)
+    return math.radians(a) * (1.0 - anim.ease(u, closing[0] - lag, closing[1] - lag))
 
 
 def build(mats, grid):
     """Build the gear in the current scene, keyed on the clip "Train"; returns its objects."""
     mats = gear_materials(mats)
     hull = grid.hull
-    keel = lambda y: float(skin_at(hull, 0.0, y)[2])
-    # nose leg: the pad stows in the socket forward of the doors
-    y_socket = 0.5 * (hg.NOSE_WELL_Y[0] + hg.NOSE_WELL_SPLIT)
-    A1 = (0.0, y_socket, keel(y_socket) - PROTRUSION + PAD_H + ANKLE)
-    nose = Leg(NOSE_TRUNNION, deployed_ankle(NOSE_TRUNNION, NOSE_RAKE, -1.0), A1, NOSE_ANCHOR, NOSE_BRIDGE,
-               hg.NOSE_WELL_HALF, scissor="side")
-    # main legs: the pad stows in its pod's socket, the trunnion at the socket's front
-    A1 = (MAIN_X, MAIN_STOW_Y, POD_Z_BOTTOM - PROTRUSION + PAD_H + ANKLE)
-    T = (MAIN_X, MAIN_STOW_Y - MAIN_TRUNNION[0], POD_Z_BOTTOM + MAIN_TRUNNION[1])
-    main = Leg(T, deployed_ankle(T, MAIN_RAKE, 1.0), A1, (MAIN_X, *MAIN_ANCHOR), MAIN_BRIDGE,
-               SOCKET["hx"] + WELL_GAP)
+    nose, main = nose_leg(hull), main_leg(hull)
     print(f"GEAR_LEGS nose: pad at y {nose.A0[1]:.3f}, legs {nose.L0:.3f} to {nose.L1:.3f} m, swing "
           f"{math.degrees(nose.theta):.1f} deg; main: pad at ({main.A0[0]:.3f}, {main.A0[1]:.3f}), legs "
-          f"{main.L0:.3f} to {main.L1:.3f} m, swing {math.degrees(main.theta):.1f} deg")
-    y_front = MAIN_ANCHOR[0] - 0.090
-
-    nose_parts, nose_fixed = leg_parts(nose, 1.10, hg.NOSE_WELL_Y[1])
-    main_parts, main_fixed = leg_parts(main, 1.24, y_front)
-    port, tops = pod(hull, SOCKET)
-    port_bay = main_liner(hull, SOCKET, y_front, tops)
+          f"{main.L0:.3f} to {main.L1:.3f} m, swing {math.degrees(main.theta):.1f} deg about an axis canted "
+          f"{math.degrees(MAIN_CANT):.0f} deg")
+    nose_parts, nose_fixed = leg_parts(nose)
+    main_parts, main_fixed = leg_parts(main)
+    port_bay = main_liner(grid)
     bays = Geo().merge(port_bay).merge(port_bay.mirrored()).merge(nose_liner(grid))
 
     pivots = lambda leg: {"Jambe": leg.T, "Coulisse": leg.A0, "Compas_Haut": leg.B, "Compas_Bas": leg.C0,
@@ -1477,21 +1434,27 @@ def build(mats, grid):
             anim.bake(obj, CLIP, pose)
             objs.append(obj)
         objs.append(to_object(f"{tag}_Fixe", fixed.mirrored() if mirror else fixed, mats))   # bearings, clevis
-    objs.append(to_object("Carenages_Trains", Geo().merge(port).merge(port.mirrored()), mats))
     objs.append(to_object("Baies_Trains", bays, mats))
 
     doors = []
-    for tag, sign in (("G", 1.0), ("D", -1.0)):
-        door = bpy.data.objects.get(f"Trappe_Train_Avant_{tag}")
+    hinges = panels.gear_doors(grid)
+    for name, (h0, h1) in hinges.items():
+        door = bpy.data.objects.get(name)
         if door is None:                                   # the panels module was not built
             continue
-        h0, h1 = panels.nose_door_hinge(grid, sign)
+        key, tag = name[len("Trappe_Train_"):-2], name[-1]
+        h0, h1 = hinge_line(grid, key, 1.0 if tag == "G" else -1.0, h0, h1)
+        print(f"GEAR_DOOR {name}: hinge {1e3 * float(np.linalg.norm(h0 - hinges[name][0])):.1f} and "
+              f"{1e3 * float(np.linalg.norm(h1 - hinges[name][1])):.1f} mm out of panels' chord")
         centre = np.mean([tuple(door.matrix_world @ v.co) for v in door.data.vertices], axis=0)
         trial = anim.about(h0, h1 - h0, 0.3)[:3] @ np.append(centre, 1.0)
-        turn = DOOR_ANGLE if trial[2] < centre[2] else -DOOR_ANGLE
-        pose = lambda u, h0=h0, axis=h1 - h0, turn=turn, tag=tag: anim.about(h0, axis, turn * door_open(u, tag))
-        anim.bake(door, CLIP, pose)
-        doors.append((door.name, pose))
+        turn = 1.0 if trial[2] < centre[2] else -1.0                         # the free edge goes down
+        pose = lambda u, h0=h0, axis=h1 - h0, turn=turn, key=key, tag=tag: anim.about(h0, axis, turn * door_angle(u, key, tag))
+        rest = pose(0.0)                                   # a leaf the leg passes through stands open at rest
+        door.matrix_world = Matrix(rest.tolist()) @ door.matrix_world
+        relative = lambda u, pose=pose, back=np.linalg.inv(rest): pose(u) @ back
+        anim.bake(door, CLIP, relative)
+        doors.append((name, relative))
     _RIG.update(legs=legs, doors=doors, hull=hull)
     return objs
 
@@ -1584,11 +1547,22 @@ def _local(obj):
     return np.column_stack([v.reshape(-1, 3), np.ones(len(me.vertices))]), [tuple(p.vertices) for p in me.polygons]
 
 
-def motion_check(names, phases=25, verbose=True):
-    """Replay the clip from the rig: joints, ground, stowed pads, interference. Returns (facts, problems).
+def envelope(p, skin_z):
+    """Points of the gear inside the hull that leave the volume left to it: {fault: count}."""
+    q = p[p[:, 2] > skin_z(p) + 0.002]
+    return {"above the free volume": int((q[:, 2] > FREE_TOP).sum()),
+            "in the thruster ducts": int(((np.abs(q[:, 0]) >= DUCT[0]) & (q[:, 1] >= DUCT[1])
+                                          & (q[:, 2] > DUCT_ROOF + 0.02)).sum()),
+            "within 3 cm of the airlock": int(((np.abs(q[:, 0]) < AIRLOCK[0] + 0.03) & (q[:, 2] > AIRLOCK[1] - 0.03)).sum())}
+
+
+def motion_check(phases=25, verbose=True):
+    """Replay the clip from the rig: joints, ground, envelope, the stowed state, interference.
+    Returns (facts, problems).
 
     Two parts joined by a pin may touch inside the pin's cylinder (a pin through an eye, a tube in
-    its bearing); anywhere else a pair of crossing faces is a collision.
+    its bearing); anywhere else a pair of crossing faces is a collision. The scene's other meshes
+    that reach into the gear's sweep (the hull first) are tested against every moving part.
     """
     from mathutils.bvhtree import BVHTree
     problems, facts = [], {"pin_error": 0.0, "axis_error": 0.0}
@@ -1606,7 +1580,7 @@ def motion_check(names, phases=25, verbose=True):
                 facts["axis_error"] = max(facts["axis_error"], float(np.linalg.norm(np.cross(da, db))))
     if facts["pin_error"] > 1e-6 or facts["axis_error"] > 1e-6:
         problems.append(f"joints drift: {facts['pin_error'] * 1e3:.4f} mm, {facts['axis_error']:.2e} rad")
-    # every moving object with its pose, the fixed ones at rest
+    # every moving object with its pose, the static ones at rest
     movers = {}
     for tag, leg, mirror in _RIG["legs"]:
         for part in leg.poses(0.0):
@@ -1614,41 +1588,76 @@ def motion_check(names, phases=25, verbose=True):
             movers[f"{tag}_{part}"] = (mirrored_pose(pose) if mirror else pose, tag)
     for name, pose in _RIG["doors"]:
         movers[name] = (pose, "doors")
-    statics = [n for n in ["Coque_Principale", "Carenages_Trains", "Baies_Trains"] + [f"{t}_Fixe" for t, _, _ in
-                                                                                      _RIG["legs"]] if n in bpy.data.objects]
-    geo = {n: _local(bpy.data.objects[n]) for n in list(movers) + statics}
+    gear_static = [n for n in ["Baies_Trains"] + [f"{t}_Fixe" for t, _, _ in _RIG["legs"]] if n in bpy.data.objects]
+    geo = {n: _local(bpy.data.objects[n]) for n in list(movers) + gear_static}
     rest = {n: np.array(bpy.data.objects[n].matrix_world) for n in geo}
     world = lambda n, M: (geo[n][0] @ (M @ rest[n]).T)[:, :3]
-    # 2. ground, and the stowed pads under their belly or underside
-    lowest = {n: min(float(world(n, pose(u))[:, 2].min()) for u in us) for n, (pose, _) in movers.items()}
+    skin_z = skin_table(_RIG["hull"])
+    gear = [n for n in movers if n.startswith("Train_")] + gear_static
+    # 2. ground, the free volume, the glazed prow and the nose well, phase by phase
+    lowest = {n: math.inf for n in movers}
+    lo, hi = np.full(3, math.inf), np.full(3, -math.inf)
+    faults, box = {}, np.full(3, -math.inf)
+    facts["foremost"] = math.inf
+    for u in us:
+        for n in gear + [m for m in movers if m not in gear]:
+            p = world(n, movers[n][0](u) if n in movers else np.eye(4))
+            lo, hi = np.minimum(lo, p.min(axis=0)), np.maximum(hi, p.max(axis=0))
+            if n in movers:
+                lowest[n] = min(lowest[n], float(p[:, 2].min()))
+            if n not in gear:
+                continue
+            for k, count in envelope(p, skin_z).items():
+                if count:
+                    faults.setdefault((n, k), u)
+            facts["foremost"] = min(facts["foremost"], float(p[:, 1].min()))
+            if n.startswith(("Train_Avant", "Baies_")):
+                q = p[(p[:, 2] > skin_z(p) + 0.002) & (np.abs(p[:, 0]) < 1.0) & (p[:, 1] < -1.0)]
+                if len(q):
+                    box = np.maximum(box, [np.abs(q[:, 0]).max(), max(NOSE_WELL_BOX[1][0] - q[:, 1].min(),
+                                                                       q[:, 1].max() - NOSE_WELL_BOX[1][1]), q[:, 2].max()])
     for n, z in lowest.items():
         if z < GROUND - 1e-6:
             problems.append(f"{n} goes {1e3 * (GROUND - z):.1f} mm under the ground")
-    facts["lowest"], facts["protrusion"] = lowest, {}
-    for tag, leg, mirror in _RIG["legs"]:
-        sole = float(world(f"{tag}_Patin", movers[f"{tag}_Patin"][0](1.0))[:, 2].min())
-        ref = POD_Z_BOTTOM if "Principal" in tag else float(skin_at(_RIG["hull"], 0.0, leg.A1[1])[2])
-        facts["protrusion"][tag] = ref - sole
-    # the glazed prow: nothing of the gear forward of NOSE_LIMIT; the nose well inside its envelope
-    gear_names = [n for n in list(movers) + statics if n.startswith(("Train_", "Baies_", "Carenages_"))]
-    facts["foremost"] = min(min(float(world(n, movers[n][0](u) if n in movers else np.eye(4))[:, 1].min()) for u in us)
-                            for n in gear_names)
+    for (n, k), u in sorted(faults.items()):
+        problems.append(f"{n}: {k} (first at u = {u:.2f})")
     if facts["foremost"] < NOSE_LIMIT:
         problems.append(f"the gear reaches y {facts['foremost']:.3f}, forward of {NOSE_LIMIT}")
-    inside = [n for n in gear_names if n.startswith(("Train_Avant", "Baies_"))]
-    box = np.full(3, -np.inf)
-    for n in inside:
-        for u in (us if n in movers else us[:1]):
-            p = world(n, movers[n][0](u) if n in movers else np.eye(4))
-            p = p[(p[:, 2] > -1.66) & (np.abs(p[:, 0]) < 1.0) & (p[:, 1] < 0.0)]          # nose gear, in the hull
-            if len(p):
-                box = np.maximum(box, [np.abs(p[:, 0]).max(), max(NOSE_WELL_BOX[1][0] - p[:, 1].min(),
-                                                                   p[:, 1].max() - NOSE_WELL_BOX[1][1]), p[:, 2].max()])
-    facts["nose_well"] = box                               # |x| max, y beyond the limits, z max
+    facts["lowest"], facts["nose_well"] = lowest, box     # |x| max, y beyond the limits, z max
     if box[0] > NOSE_WELL_BOX[0] or box[1] > 0.0 or box[2] > NOSE_WELL_BOX[2]:
         problems.append(f"the nose gear leaves its well: |x| {box[0]:.3f}, y {box[1]:+.3f} beyond, z {box[2]:.3f}")
+    # 3. stowed: nothing below the skin; the gear's clearance to the skin and to its shut doors
+    shut = {n: world(n, movers[n][0](1.0)) for n in movers if n not in gear}
+    verts, faces = [], []
+    for n, w in shut.items():
+        faces += [tuple(i + len(verts) for i in f) for f in geo[n][1]]
+        verts += [tuple(q) for q in w]
+    door_tree = BVHTree.FromPolygons(verts, faces) if verts else None
+    facts["below_skin"], facts["stowed"] = {}, {}
+    for n in list(movers) + gear_static:
+        p = shut[n] if n in shut else world(n, movers[n][0](1.0) if n in movers else np.eye(4))
+        under = float((skin_z(p) - p[:, 2]).max())
+        facts["below_skin"][n] = under
+        if under > 5e-4:
+            problems.append(f"{n}: {1e3 * under:.1f} mm below the skin at u = 1")
+    for tag, _, _ in _RIG["legs"]:
+        p = np.vstack([world(n, movers[n][0](1.0)) for n in movers if n.startswith(tag + "_")])
+        gap = float((p[:, 2] - skin_z(p)).min())
+        near = min(door_tree.find_nearest(tuple(q))[3] for q in p) if door_tree else math.nan
+        facts["stowed"][tag] = (gap, near)
+    sweep = (lo - 0.05, hi + 0.05)
+    # 4. interference, phase by phase, with the scene's other meshes that reach into the sweep
+    others = []
+    for o in bpy.context.scene.objects:
+        if o.type != "MESH" or o.name in geo or o.name.startswith("Train_"):
+            continue
+        corners = np.array([tuple(o.matrix_world @ Vector(c)) for c in o.bound_box])
+        if (corners.max(axis=0) >= sweep[0]).all() and (corners.min(axis=0) <= sweep[1]).all():
+            others.append(o.name)
+            geo[o.name] = _local(o)
+            rest[o.name] = np.array(o.matrix_world)
+    statics = gear_static + others
 
-    # 3. interference, phase by phase
     def zones(u):
         out = {}
         for tag, leg, mirror in _RIG["legs"]:
@@ -1664,8 +1673,7 @@ def motion_check(names, phases=25, verbose=True):
     static_trees = {n: BVHTree.FromPolygons([tuple(q) for q in world(n, np.eye(4))], geo[n][1]) for n in statics}
     order = list(movers)
     pairs = [(m, s) for m in order for s in statics]
-    pairs += [(m1, m2) for i, m1 in enumerate(order) for m2 in order[i + 1:]
-              if movers[m1][1] == movers[m2][1] or {movers[m1][1], movers[m2][1]} == {"doors", "Train_Avant"}]
+    pairs += [(m1, m2) for i, m1 in enumerate(order) for m2 in order[i + 1:]]
     worst = {}
     for u in us:
         pts = {n: world(n, pose(u)) for n, (pose, _) in movers.items()}
@@ -1695,12 +1703,17 @@ def motion_check(names, phases=25, verbose=True):
               f"axis error {facts['axis_error']:.2e} rad")
         for n, z in sorted(lowest.items()):
             print(f"GEAR_MOTION {n}: lowest point {z:.4f}, {1e3 * (z - GROUND):+.1f} mm from the ground")
-        for tag, p in facts["protrusion"].items():
-            print(f"GEAR_MOTION {tag}: stowed sole {1e3 * p:.1f} mm under its belly or underside")
-        print(f"GEAR_MOTION interference: {len(worst)} pairs of parts cross, {len(pairs)} pairs tested")
-        print(f"GEAR_MOTION foremost point of the gear: y {facts['foremost']:.3f} (limit {NOSE_LIMIT})")
-        print(f"GEAR_MOTION nose gear inside the hull: |x| <= {facts['nose_well'][0]:.3f}, "
-              f"{facts['nose_well'][1]:+.3f} m past its y limits, top z {facts['nose_well'][2]:.3f}")
+        for tag, (gap, near) in facts["stowed"].items():
+            print(f"GEAR_MOTION {tag} stowed: {1e3 * gap:.1f} mm above the skin at least, "
+                  f"{1e3 * near:.1f} mm from its shut doors")
+        print(f"GEAR_MOTION below the skin at u = 1, worst: {1e3 * max(facts['below_skin'].values()):+.2f} mm "
+              f"({max(facts['below_skin'], key=facts['below_skin'].get)})")
+        print(f"GEAR_MOTION free volume: {len(faults)} faults; foremost point y {facts['foremost']:.3f} "
+              f"(limit {NOSE_LIMIT})")
+        print(f"GEAR_MOTION nose gear inside the hull: |x| <= {box[0]:.3f}, {box[1]:+.3f} m past its y limits, "
+              f"top z {box[2]:.3f}")
+        print(f"GEAR_MOTION interference: {len(worst)} pairs of parts cross, {len(pairs)} pairs tested, "
+              f"statics {statics}")
     return facts, problems
 
 
@@ -1710,9 +1723,9 @@ def self_check(objs, verbose=True, phases=25):
 
     At rest: mesh defects, UVs and normals, soles on GROUND, mirror symmetry, the triangle budget.
     Over `phases` samples of the clip (motion_check): every pin carried by both its parts, the
-    lowest point of every moving part against GROUND, each pad's stowed depth under its belly or
-    pod, nothing forward of NOSE_LIMIT, the nose gear inside its well, and crossing faces between
-    parts, the hull, the doors, the pods and the wells.
+    lowest point of every moving part against GROUND, the gear inside the hull's free volume and
+    forward limit, the nose gear inside its well, nothing below the skin at u = 1, and crossing
+    faces between parts, the doors, the wells, the hull and its other meshes.
     """
     bpy.context.scene.frame_set(0)
     facts = {o.name: mesh_facts(o) for o in objs}
@@ -1734,9 +1747,9 @@ def self_check(objs, verbose=True, phases=25):
             problems.append(f"{name}: sole {off * 1000:.3f} mm off the ground plane")
         if verbose:
             print(f"GEAR_CHECK {name}: sole on z={GROUND:.4f} within {off * 1e6:.1f} um, "
-                  f"{np.ptp(sole[:, 0]):.3f} x {np.ptp(sole[:, 1]):.3f} m")
+                  f"{np.ptp(sole[:, 0]):.3f} x {np.ptp(sole[:, 1]):.3f} m, centre x {sole[:, 0].mean():+.3f}")
     pairs = [(n, n.replace("_G_", "_D_")) for n in facts if n.startswith("Train_Principal_G_")]
-    pairs += [("Carenages_Trains", "Carenages_Trains"), ("Baies_Trains", "Baies_Trains")]
+    pairs += [("Baies_Trains", "Baies_Trains")]
     for a, b in pairs:
         if a in facts and b in facts:
             err = max(_mirror_error(facts[a]["points"], facts[b]["points"]),
@@ -1750,7 +1763,7 @@ def self_check(objs, verbose=True, phases=25):
         problems.append(f"{total} triangles exceed the budget of {TRI_BUDGET}")
     if verbose:
         print(f"GEAR_CHECK total triangles {total} / {TRI_BUDGET} in {len(facts)} objects")
-    motion, more = motion_check([o.name for o in objs], phases, verbose)
+    motion, more = motion_check(phases, verbose)
     problems += more
     for line in problems:
         print("GEAR_PROBLEM", line)
