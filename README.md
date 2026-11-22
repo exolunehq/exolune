@@ -125,7 +125,7 @@ The game starts in the cockpit. Key positions are physical: on AZERTY, W A S D a
 | A / D, Left / Right | Strafe |
 | E / Q, Page Up / Page Down | Rise or descend along the camera axis in Free or the local vertical in either level mode |
 | Shift + Left / Right | Roll in free flight |
-| Mouse wheel | Speed, proportional to the height above the ground |
+| Mouse wheel | Set camera speed in m/s at any altitude. The default is 100 m/s. |
 
 | Everywhere | |
 |---|---|

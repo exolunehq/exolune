@@ -1,5 +1,9 @@
 # Ship and camera history
 
+**2026-11-22 · Clearance-scaled detached camera**
+
+- The wheel used to select a multiplier of the height above local terrain. Crossing a ridge slowed the camera with the same key held. [Current controls](../spec-vaisseau.md)
+
 **2026-11-20 · Velocity assist and the original field**
 
 - The old keyboard flight interpolated directly to a clearance-scaled velocity. Cutting the throttle brought the ship to rest in mid-air.

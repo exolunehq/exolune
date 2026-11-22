@@ -2067,9 +2067,7 @@ void D3DApp::UpdateCamera(float dt) {
     const double rise = held(mMoveKeys[5]) + held(VK_PRIOR) - held(mMoveKeys[4]) - held(VK_NEXT);
 
     const Vec3d offset = mCamPos - mCameraCentre;
-    const bool localTerrain = mCameraBody == (mActiveMoon >= 0 ? mActiveMoon : Celestial::Exolune);
-    const double clearance = Length(offset) - mCameraRadius - (localTerrain ? mGroundHeight : 0.0);
-    const double step = mSpeedFactor * std::max(clearance, 1.0) * dt;
+    const double step = mCameraSpeed * dt;
     if (freeLook) {
         FlightFrame::Turn(mCamForward, mCamUp, mMouseDx * .003, mMouseDy * .003, rolling ? arrows * 1.8 * dt : 0.0);
     } else {
@@ -3363,11 +3361,12 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
     const bool captureFrame = !mSettings.capturePath.empty() && mFrameNumber == mSettings.captureFrame;
     if (mTitleTimer < 0.25f && !captureFrame) return;
 
+    const std::wstring cameraSpeed = mView == View::Free ? L" | vitesse " + FormatDistance(mCameraSpeed) + L"/s" : L"";
     wchar_t title[2048];
-    swprintf_s(title, L"MyPlanetEngine | hauteur %s | sol %s | face \u00B1%s (k=%g) | %u anneaux | vitesse x%.2f"
+    swprintf_s(title, L"MyPlanetEngine | hauteur %s | sol %s | face \u00B1%s (k=%g) | %u anneaux%s"
         L" | GPU calcul %.1f ms (FFT %.2f, ecran %.1f), rendu %.2f ms (min %.2f), objets %.2f + %.2f ms | %.0f fps%s",
         FormatDistance(clearance).c_str(), FormatDistance(mGroundHeight).c_str(), FormatDistance(halfWidth).c_str(),
-        mFaceFactor, ringCount, mSpeedFactor, mComputeMs / mTitleFrames, mOceanMs / mTitleFrames, mScreenReliefMs / mTitleFrames, mDrawMs / mTitleFrames, mDrawMinMs, mObjectMs / mTitleFrames,
+        mFaceFactor, ringCount, cameraSpeed.c_str(), mComputeMs / mTitleFrames, mOceanMs / mTitleFrames, mScreenReliefMs / mTitleFrames, mDrawMs / mTitleFrames, mDrawMinMs, mObjectMs / mTitleFrames,
         mObjectDrawMs / mTitleFrames,
         mTitleTimer > 0.0f ? mTitleFrames / mTitleTimer : 0.0f, mWireframe ? L" | fil de fer" : L"");
     wchar_t cloudTimes[64];
@@ -3584,8 +3583,8 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             mThrottle = FlightDynamics::MoveThrottle(mThrottle, GET_WHEEL_DELTA_WPARAM(wParam) / double(WHEEL_DELTA));
             return 0;
         }
-        mSpeedFactor *= std::pow(1.5, GET_WHEEL_DELTA_WPARAM(wParam) / double(WHEEL_DELTA)); // smooth wheels send small deltas
-        mSpeedFactor = std::min(std::max(mSpeedFactor, 0.01), 100.0);
+        mCameraSpeed *= std::pow(1.5, GET_WHEEL_DELTA_WPARAM(wParam) / double(WHEEL_DELTA)); // smooth wheels send small deltas
+        mCameraSpeed = std::min(std::max(mCameraSpeed, 0.1), 300'000'000.0);
         return 0;
     case WM_KEYDOWN:
         if (lParam & (1 << 30)) break; // ignore auto-repeat

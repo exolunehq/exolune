@@ -1,0 +1,8 @@
+# Start in Free with the default 100 m/s. At F1, F2 and F3 hold Page Up for the same time and compare the altitude gained.
+# One wheel detent selects 150 m/s. Switch views with F1-F5 and cycle Home through Horizon and Fixed altitude. The speed should hold.
+# At F4 fly over the ridge in Fixed altitude. At F5 repeat on the moon at the same wheel setting.
+Open ocean, 200 m | 200 -20.47 -75.45 0 90 | -50 -75
+Open ocean, 12 km | 12000 -20.47 -75.45 0 90 | -50 -75
+Open ocean, 400 km | 400000 -20.47 -75.45 0 90 | -50 -75
+Surface Echo ridge | 12110.51 -7.286024 123.820903 8.57 49.72 | -10 168
+Moon 1, crater flyover | 16000 20 15 10 -102 lune1 | -25 55

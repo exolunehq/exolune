@@ -145,7 +145,7 @@ python tools/banc_orbite.py --exe x64/Release/MyPlanetEngine.exe --out x64/atlan
 | cumulus | 1,01 ; 2,6 % | 0,24 ; 0 % | 0,24 ; 0 % |
 | overflow | 0,21 ; 0 % | 0,21 ; 0 % | 0,15 ; 0 % |
 
-- **The plates seen in flight,** at 160 and 440 km, speed x5 to x9: `haut160` and `haut440`, added to the benchmark, and `--motion "0.2 0 0 0 0 0.05"`, 5 % of height per frame to the north, the speed rule of the application. Against `--full` with the same move (`x64/vol_full`, `x64/vol_t`); ms of the pass:
+- **The plates seen in flight** at 160 and 440 km are covered by `haut160` and `haut440`. The scripted path `--motion "0.2 0 0 0 0 0.05"` moves north by 5% of the test height per frame. Both runs used this path (`x64/vol_full` and `x64/vol_t`). The table gives pass times in milliseconds.
 
 | View | Before | After | ms, after | ms, single pass |
 |---|---|---|---|---|

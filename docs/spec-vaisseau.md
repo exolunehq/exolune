@@ -219,7 +219,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - **Fixed altitude** moves forward and sideways along the surface at constant radius, even while looking straight down.
 - **Both level modes** follow the planet or moon selected on entry. Right drag yaws around its vertical and pitches from nadir to zenith. Switching between them keeps the same position and aim.
 - **Altitude** uses E/Q (E/A on AZERTY) or Page Up/Down. Lift follows the local vertical in the two level modes and the screen's up axis in free flight.
-- **The wheel** scales movement speed with clearance in all three modes.
+- **The wheel** selects a shared travel speed for all three detached modes. The default is 100 m/s. Each detent multiplies or divides the speed by 1.5, within 0.1 to 300,000,000 m/s. Changing altitude, mode or test view preserves the setting.
 - **Terrain contact** applies to Exolune and all three moons. The three outer planets support orbit around their visible spheres.
 - **Walking** uses the local gravity vertical.
 - **Launch** with `-Camera libre`, `-Camera orbite` (Horizon) or `-Camera altitude-fixe`. The game starts in the cockpit by default.
