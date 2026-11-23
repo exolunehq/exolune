@@ -22,6 +22,7 @@ Texture2DArray<float4> cityOrm:register(t36);
 Texture2DArray<float4> cityAtlasColor:register(t37);
 Texture2DArray<float2> cityAtlasNormal:register(t38);
 Texture2DArray<float4> cityAtlasOrm:register(t39);
+Texture2D<float> cityCharShadowMap:register(t40);
 SamplerState citySampler:register(s5);
 struct CityPixel {
     float4 position:SV_POSITION;float3 pos:POSITION;float3 normal:NORMAL;

@@ -81,6 +81,7 @@
 - **`recherche-cotes.md`:** beaches, cliffs and shores; audit of complexplanet at the coast, state of the art and plan; step 1 ported to the FFT sea, beach based on distance to water; step 2 on branch `plages`, awaiting porting.
 - **`recherche-rivieres.md`:** streams, rivers and mountain lakes; audit of complexplanet's valleys, state of the art and plan; step 1, the planet map, done; October 26 and 27 spikes archived in the log; research continues on branch `erosion-niveaux`.
 - **`recherche-geometrie-proximite.md`:** ledges and meter-scale terrain near the camera, without popping or jitter; state of the art and plan, no decision yet.
+- **`recherche-personnages-foules.md`:** rigged, textured, animated characters and 100–300 NPC open-world crowds; selected runtime stack (Exolune + `ozz-animation`), `MPFB2` 59-bone base, CMU optical MoCap and dual-quaternion compute skinning; a coat built on each body, sculpted hair locks and braids, and the painted style chosen on 2026-11-23, with its state of the art; four-milestone plan (Milestones 1–2 implemented).
 
 ## The log
 

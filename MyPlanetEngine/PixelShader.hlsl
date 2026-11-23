@@ -258,6 +258,7 @@ Ground GroundAt(float3 q, float elevation, float3 up, float3 normal, float3 shor
 
 #include "TerrainShipShadow.hlsli"
 Texture2D<float> citySunMap : register(t53);
+Texture2D<float> charSunMap : register(t54);
 float CityShadowOn(float3 p){
     if(cityLandGrid.w<.5)return 1;
     float4 c=mul(float4(p,1),citySunShadow);float3 q=c.xyz/c.w;
@@ -268,6 +269,21 @@ float CityShadowOn(float3 p){
         int2 t=int2(uv*4096)+int2(x,y);
         float d=all(t>=0)&&all(t<4096)?citySunMap.Load(int3(t,0)):1;
         lit+=smoothstep(q.z-.00012,q.z-.00002,d);
+    }
+    float edge=min(min(uv.x,uv.y),min(1-uv.x,1-uv.y));
+    return lerp(1,lit/9,smoothstep(0,.045,edge));
+}
+float CharShadowOn(float3 p){
+    if(charShadowInfo.x<.5)return 1;
+    float4 c=mul(float4(p,1),charSunShadow);float3 q=c.xyz/max(c.w,1e-6);
+    float2 uv=q.xy*float2(.5,-.5)+.5;
+    if(any(uv<0)||any(uv>1)||q.z<0||q.z>1)return 1;
+    const int side=int(round(1.0/max(charShadowInfo.y,1e-5)));
+    float lit=0;
+    [unroll]for(int y=-1;y<=1;++y)[unroll]for(int x=-1;x<=1;++x){
+        int2 t=int2(uv*side)+int2(x,y);
+        float d=all(t>=0)&&all(t<side)?charSunMap.Load(int3(t,0)):1;
+        lit+=smoothstep(q.z-.00065,q.z-.00025,d);
     }
     float edge=min(min(uv.x,uv.y),min(1-uv.x,1-uv.y));
     return lerp(1,lit/9,smoothstep(0,.045,edge));
@@ -341,7 +357,7 @@ float4 PSMain(PSInput input, out float4 sunOut : SV_TARGET1) : SV_TARGET
     const float sunShare = SunAboveHorizon(dot(up, lightDir.xyz), input.horizon, horizonSpread)
                          * FinerReliefLit(dot(normalize(lerp(normalize(input.normal), screenNormal, screenWeight)), lightDir.xyz),
                                           lerp(input.slopeSpread, slopeSpread, screenWeight))
-                         * ShipShadowOn(input.pos) * CityShadowOn(input.pos);
+                         * ShipShadowOn(input.pos) * CityShadowOn(input.pos) * CharShadowOn(input.pos);
     float elevation = lerp(lerp(lerp(input.elevation, splineElevation, splineWeight), fineElevation, fineWeight), screenElevation,
                            screenWeight);
     const float4 inlandSample = lerp(lerp(input.inland, fineInland, fineWeight), screenInland, screenWeight);
