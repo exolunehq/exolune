@@ -1,11 +1,11 @@
-"""Animation clips of the Navette AAA: rigid parts keyed in world space.
+"""Animation clips of the Navette AAA: rigid parts keyed in world space, and shape keys.
 
 Every moving part is its own object. A clip gives it a pose: a function of the phase u, from 0
 (the rest pose the asset is built in) to 1, returning the 4x4 world transform applied to the part
 at rest. bake() keys one sample per frame, so arcs stay arcs, and stacks the action on an NLA
 track named after the clip: the glTF exporter merges the tracks of one name into one animation.
 
-All clips start on frame 0, which is the rest pose: gear down, airbrake and hatch closed.
+All clips start on frame 0, which is the rest pose: gear down, airbrake and hatch closed, wings in.
 """
 import math
 
@@ -14,7 +14,7 @@ import numpy as np
 from mathutils import Matrix
 
 FPS = 24
-CLIPS = {"Train": 84, "Aerofrein": 30, "Trappe_Arriere": 72}       # length in frames; u = frame / length
+CLIPS = {"Train": 84, "Aerofrein": 30, "Trappe_Arriere": 72, "Ailes": 96}   # length in frames; u = frame / length
 
 
 def about(point, axis, angle):
@@ -57,14 +57,39 @@ def bake(obj, clip, pose):
         obj.location, obj.rotation_quaternion = loc, quat
         obj.keyframe_insert("location", frame=frame)
         obj.keyframe_insert("rotation_quaternion", frame=frame)
-    data = obj.animation_data
+    _stack(obj, clip)
+    obj.matrix_world = rest
+
+
+def bake_value(owner, path, clip, curve):
+    """Key one property of a datablock over a clip, such as a shape key's value: curve(u), 0 at rest."""
+    length = CLIPS[clip]
+    holder, attr = path.rsplit(".", 1)
+    holder = owner.path_resolve(holder)
+    for frame in range(length + 1):
+        setattr(holder, attr, curve(frame / length))
+        owner.keyframe_insert(data_path=path, frame=frame)
+    _stack(owner, clip)
+    setattr(holder, attr, curve(0.0))
+
+
+def _stack(owner, clip):
+    """Move the datablock's new action onto an NLA track named after the clip."""
+    data = owner.animation_data
     action = data.action
-    action.name = f"{clip}_{obj.name}"
+    action.name = f"{clip}_{owner.name}"
     track = data.nla_tracks.new()
     track.name = clip
     track.strips.new(clip, 0, action)
     data.action = None
-    obj.matrix_world = rest
+
+
+def animated():
+    """Every datablock of the scene that carries clips: its objects, and their shape keys."""
+    owners = list(bpy.context.scene.objects)
+    owners += [o.data.shape_keys for o in bpy.context.scene.objects
+               if o.type == "MESH" and o.data.shape_keys is not None]
+    return [o for o in owners if o.animation_data is not None]
 
 
 def show(phases):
@@ -72,9 +97,8 @@ def show(phases):
 
     The strips are frozen on the asked instant. Do not save the scene afterwards.
     """
-    for obj in bpy.context.scene.objects:
-        data = obj.animation_data
-        for track in (data.nla_tracks if data else ()):
+    for owner in animated():
+        for track in owner.animation_data.nla_tracks:
             for strip in track.strips:
                 strip.use_animated_time = True
                 strip.strip_time = phases.get(track.name, 0.0) * CLIPS[track.name]

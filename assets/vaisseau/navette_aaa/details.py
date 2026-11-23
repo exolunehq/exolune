@@ -11,6 +11,7 @@ import numpy as np
 import frames
 import hullgrid as hg
 import meshkit
+import wings
 from surface import T1, T2
 
 FLIP = frames.FLIP
@@ -70,6 +71,7 @@ def seams(grid, mats):
         run([(a, b, col_free(a, b)) for b in range(1, grid.nb - 1)], f"C{a}")
     rows = [(hg.B_SILL, c["end"] + 2, y_col(5.72)), (21, c["end"] + 9, y_col(5.72)),
             (hg.B_BELT1 + 8, c["w0"] - 1, c["c1"] + 12)]
+    rows += [(b, y_col(wings.Y_ROOT + 0.35), y_col(wings.Y_TRAIL - 0.25)) for b in wings.STAGE_ROWS]
     for b, a0, a1 in rows:
         run([(a, b, col_free(a, b)) for a in range(a0, a1 + 1)], f"R{b}")
     return meshkit.join(parts, "Coque_Joints")
@@ -193,9 +195,9 @@ def small_details(grid, mats):
 
 
 def nav_lights(grid, mats):
-    """Port red and starboard green lenses set in the shoulder face at the widest point."""
+    """Port red and starboard green lenses set in the shoulder face, on the wings' rigid tips."""
     objs = []
-    a = _col_at(grid, 2.35)
+    a = _col_at(grid, wings.Y_LIGHT)
     t_mid = 0.5 * (T1 + T2)
     s0 = float(grid.s[a, hg.B_E1])
     n = 10

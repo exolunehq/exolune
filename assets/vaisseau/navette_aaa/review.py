@@ -54,6 +54,11 @@ VIEWS = {
     "frein_ar":         ((4.6, 9.6, 3.3), (0.0, 4.9, 1.75), 60, 0, False),
     "frein_gros":       ((1.9, 7.9, 2.4), (0.05, 5.0, 1.8), 70, 0, False),
     "derive_3q":        ((6.8, 4.7, 3.0), (0.6, 4.2, 1.1), 55, 0, False),
+    # wings
+    "aile_3q":          ((9.0, -6.5, 5.0), (0.6, 1.6, -0.4), 40, 0, False),
+    "aile_saumon":      ((6.5, 2.0, 1.6), (3.2, 4.5, -0.3), 45, 0, False),
+    "aile_dessous":     ((7.0, 1.0, -4.0), (2.2, 3.2, -0.5), 40, 0, False),
+    "aile_arriere":     ((6.5, 12.0, 4.5), (0.4, 3.0, -0.4), 40, 0, False),
     "derive_pied":      ((3.4, -0.6, 2.2), (0.0, 1.0, 0.75), 60, 0, False),
     "derive_saumon":    ((3.4, 8.6, 3.4), (0.0, 6.2, 2.5), 75, 0, False),
     "radiateur":        ((3.6, 6.4, 2.2), (0.8, 5.0, 0.45), 70, 0, False),
@@ -243,8 +248,8 @@ def main():
 
     if "--film" in argv:                 # one clip played forward, then held, in the beauty pass
         clip = argv[argv.index("--film") + 1]
-        for o in scene.objects:
-            for track in (o.animation_data.nla_tracks if o.animation_data else ()):
+        for owner in anim.animated():
+            for track in owner.animation_data.nla_tracks:
                 track.mute = track.name != clip
         set_mode("beauty")
         scene.frame_start, scene.frame_end = 0, anim.CLIPS[clip] + anim.FPS // 2

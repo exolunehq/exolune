@@ -19,6 +19,7 @@ import meshkit
 import panels
 import tail
 import thrusters
+import wings
 
 
 def skin_objects(grid, mats):
@@ -37,7 +38,7 @@ def skin_objects(grid, mats):
     hull_cells = ~(cells["glass"] | cells["mouth"] | cells["doors"] | cells["hatch"])
     paint = np.zeros(hull_cells.shape, dtype=np.int32)             # 0 pearl white
     paint[cells["belly"]] = 2                                      # 2 pale belly
-    paint[cells["belt"] | cells["bezel"] | cells["prow"]] = 1      # 1 teal
+    paint[cells["belt"] | cells["bezel"] | cells["prow"] | wings.under_cells(grid)] = 1    # 1 teal
 
     def part(name, mask, col, slots, face_mats=None):
         faces = np.vstack([meshkit.grid_faces(port, mask), meshkit.grid_faces(stbd, mask)])
@@ -62,7 +63,7 @@ def main():
     scene.unit_settings.system = "METRIC"
     mats = materials.library()
     grid = hg.HullGrid()
-    skin_objects(grid, mats)
+    hull, _ = skin_objects(grid, mats)
     panels.build(grid, mats)
     frames.canopy(grid, mats)
     frames.opening_returns(grid, mats)
@@ -70,7 +71,17 @@ def main():
     frames.boss(grid, mats, "Poupe_Feu", mats["amber"], stern=True)
     thrusters.build(grid, mats)
     tail.fin(grid.hull, grid.maps, mats)
-    details.build(grid, mats)
+    seams = details.build(grid, mats)[0]
+
+    def hull_twin(g):
+        twin, glass = skin_objects(g, mats)
+        mesh = glass.data
+        bpy.data.objects.remove(glass, do_unlink=True)
+        bpy.data.meshes.remove(mesh)
+        return twin
+
+    wings.build(grid, [(hull, hull_twin), (seams, lambda g: details.seams(g, mats))],
+                [bpy.data.objects["Feu_Nav_G"], bpy.data.objects["Feu_Nav_D"]])
     if "--with" in args:                                # modules built apart: gear, interior, airlock
         for name in args[args.index("--with") + 1].split(","):
             __import__(name).build(mats, grid)
