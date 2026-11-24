@@ -123,7 +123,7 @@ void D3DApp::MoonFlightContact(const FlightPose& before) {
     const bool ship=mView!=View::Free && mView!=View::Walk;
     if(mView==View::Walk || !mCine.empty())return;
     const Vec3d from=ship?before.ship:before.camera;
-    const double hull=ship?double(Ship::Radius)+std::hypot(double(mShip.Profile().centreY),double(mShip.Profile().centreZ)):.25;
+    double hull=ship?double(Ship::Radius)+std::hypot(double(mShip.Profile().centreY),double(mShip.Profile().centreZ)):.25;
     unsigned samples=Airless::ContactSamples;
     for(unsigned i=0;i<Celestial::MoonCount;++i) {
         const Vec3d centre=WorldVec(mMoonCentres[i]),to=ship?mShipPos:mCamPos;
@@ -131,6 +131,11 @@ void D3DApp::MoonFlightContact(const FlightPose& before) {
         const double t=std::min(std::max(-Dot(relative,delta)/std::max(Dot(delta,delta),1e-12),0.0),1.0);
         const auto surface=Airless::MoonSurface(i);
         if(Length(relative+delta*t)>surface.radius+20000)continue;
+        if (ship && mShip.HasTransportRig()) {
+            const Vec3d normal=WorldVec(surface.Normal(MoonVec(relative)));
+            hull=std::max(TransportDepth(before.shipForward,before.shipUp,normal),
+                          TransportDepth(mShipForward,mShipUp,normal));
+        }
         const Vec3d accepted=centre+WorldVec(surface.Sweep(MoonVec(relative),MoonVec(to-centre),hull,&samples));
         const Vec3d correction=accepted-to;
         mCamPos=mCamPos+correction;if(ship)mShipPos=accepted;

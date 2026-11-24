@@ -8,6 +8,7 @@ import sys
 
 import bpy
 import numpy as np
+from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import anim
@@ -35,10 +36,10 @@ def skin_objects(grid, mats):
     uvs = np.vstack([uv_half.reshape(-1, 2), (uv_half[:, 1:-1] * np.array([1.0, -1.0])).reshape(-1, 2)])
 
     cells = grid.cells()
-    hull_cells = ~(cells["glass"] | cells["mouth"] | cells["doors"] | cells["hatch"])
+    hull_cells = ~(cells["glass"] | cells["mouth"] | cells["doors"] | cells["hatch"] | wings.slot_cells(grid))
     paint = np.zeros(hull_cells.shape, dtype=np.int32)             # 0 pearl white
     paint[cells["belly"]] = 2                                      # 2 pale belly
-    paint[cells["belt"] | cells["bezel"] | cells["prow"] | wings.under_cells(grid)] = 1    # 1 teal
+    paint[cells["belt"] | cells["bezel"] | cells["prow"]] = 1      # 1 teal
 
     def part(name, mask, col, slots, face_mats=None):
         faces = np.vstack([meshkit.grid_faces(port, mask), meshkit.grid_faces(stbd, mask)])
@@ -63,31 +64,40 @@ def main():
     scene.unit_settings.system = "METRIC"
     mats = materials.library()
     grid = hg.HullGrid()
-    hull, _ = skin_objects(grid, mats)
+    # Derive the verified nozzle lips and their light guides from the original loft.
+    thrusters.build(grid, mats)
+    wings.fit_bay(grid)
+    skin_objects(grid, mats)
     panels.build(grid, mats)
     frames.canopy(grid, mats)
     frames.opening_returns(grid, mats)
     frames.boss(grid, mats, "Nez_Embout", mats["glass"])            # the bubble ends in glass, ringed in dark
     frames.boss(grid, mats, "Poupe_Feu", mats["amber"], stern=True)
-    thrusters.build(grid, mats)
     tail.fin(grid.hull, grid.maps, mats)
-    seams = details.build(grid, mats)[0]
-
-    def hull_twin(g):
-        twin, glass = skin_objects(g, mats)
-        mesh = glass.data
-        bpy.data.objects.remove(glass, do_unlink=True)
-        bpy.data.meshes.remove(mesh)
-        return twin
-
-    wings.build(grid, [(hull, hull_twin), (seams, lambda g: details.seams(g, mats))],
-                [bpy.data.objects["Feu_Nav_G"], bpy.data.objects["Feu_Nav_D"]])
+    details.build(grid, mats)
+    wings.build(grid, mats)
     if "--with" in args:                                # modules built apart: gear, interior, airlock
         for name in args[args.index("--with") + 1].split(","):
             __import__(name).build(mats, grid)
     scene.frame_start, scene.frame_end, scene.render.fps = 0, max(anim.CLIPS.values()), anim.FPS
     scene.frame_set(0)
+    for frame, label in ((0, "Ailes rangées"), (20, "Trappes ouvertes"), (28, "Obturateurs rangés"), (47, "Ailes sorties, pliées"),
+                         (73, "Saumons dépliés"), (87, "Emplantures en place"), (96, "Baies verrouillées")):
+        scene.timeline_markers.new(label, frame=frame)
+    bpy.ops.object.select_all(action="DESELECT")
+    for area in bpy.context.screen.areas:
+        if area.type == "VIEW_3D":
+            view = area.spaces.active
+            view.region_3d.view_rotation = Vector((10, -12, 10)).to_track_quat("Z", "Y")
+            view.region_3d.view_distance = 16.5
+            view.region_3d.view_location = (0, 0, -0.3)
+            view.shading.type = "MATERIAL"
+            view.overlay.show_overlays = False
     bpy.ops.file.pack_all()
+    # Spacebar in the review file plays the wing mechanism by itself.
+    tracks = [track for obj in anim.animated() for track in obj.animation_data.nla_tracks]
+    for track in tracks:
+        track.mute = track.name != "Ailes"
     bpy.ops.wm.save_as_mainfile(filepath=out)
     meshes = [o for o in scene.objects if o.type == "MESH"]
     tris = sum(len(p.vertices) - 2 for o in meshes for p in o.data.polygons)
@@ -97,6 +107,8 @@ def main():
     print(f"BUILD_SAVED {out} objects={len(meshes)} triangles={tris} ngons={ngons} "
           f"size={np.round(hi - lo, 3).tolist()} min={np.round(lo, 3).tolist()}")
     if "--glb" in args:
+        for track in tracks:
+            track.mute = False
         glb = os.path.splitext(out)[0] + ".glb"
         bpy.ops.export_scene.gltf(filepath=glb, export_format="GLB", export_tangents=True,
                                   export_animation_mode="NLA_TRACKS")

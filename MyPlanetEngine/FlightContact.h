@@ -42,7 +42,7 @@ inline bool SphereInterval(Vec begin,Vec delta,double radius,double& first,doubl
     return true;
 }
 
-inline Span Clip(Vec begin,Vec end,double bodyRadius) {
+inline Span Clip(Vec begin,Vec end,double bodyRadius,double verticalRadius=0) {
     Span s; s.begin=begin; s.end=end;
     const Vec delta=end-begin;
     double first,last;
@@ -52,7 +52,7 @@ inline Span Clip(Vec begin,Vec end,double bodyRadius) {
     s.active=true; s.first=std::max(0.0,first); s.last=std::min(1.0,last);
     // Terrain contact includes sea level. A chord crossing the planet must stop on its near side;
     // a grazing chord stays in the thin terrain shell. Both leave a positive tangent projection.
-    const double seaRadius=PlanetRadius+bodyRadius;
+    const double seaRadius=PlanetRadius+(verticalRadius>0 ? verticalRadius : bodyRadius);
     if (Length(begin)<seaRadius && Dot(begin,delta)<0) {
         s.sea=0; s.seaNormal=Unit(begin); s.last=0;
     } else if (SphereInterval(begin,delta,seaRadius,first,last) && first>=0 && first<=1
@@ -78,7 +78,7 @@ struct Probe {
 static_assert(sizeof(Probe)==192,"FlightGround constants must match the HLSL layout.");
 
 // Only the portion returned by Clip belongs in this tangent chart; an arbitrary planet-spanning chord does not.
-inline Probe Corridor(const Span& span,double bodyRadius) {
+inline Probe Corridor(const Span& span,double bodyRadius,double verticalRadius=0) {
     Probe p;
     const Vec begin=span.begin,end=span.end;
     const Vec up=Unit(begin), offset=end-begin;
@@ -108,6 +108,7 @@ inline Probe Corridor(const Span& span,double bodyRadius) {
     const Vec axes[]={up,across,along}; double* arrays[]={p.up,p.across,p.along};
     for (unsigned i=0;i<3;++i) { arrays[i][0]=axes[i].x; arrays[i][1]=axes[i].y; arrays[i][2]=axes[i].z; }
     p.up[3]=Length(begin)-PlanetRadius;
+    p.across[3]=verticalRadius>0 ? verticalRadius : bodyRadius; // ellipsoid support along gravity
     p.grid[0]=-double(half)*cellX; p.grid[1]=-double(behind)*cellY; p.grid[2]=cellX; p.grid[3]=cellY;
     p.shape[0]=PlanetRadius; p.shape[1]=bodyRadius; p.shape[2]=half; p.shape[3]=behind;
     p.movement[0]=float(Dot(offset,across)); p.movement[1]=float(Dot(offset,along)); p.movement[2]=float(Dot(offset,up));

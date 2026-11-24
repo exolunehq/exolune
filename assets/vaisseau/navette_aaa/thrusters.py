@@ -12,7 +12,7 @@ import frames
 import hullgrid as hg
 import meshkit
 
-DUCT_DIR = np.array([-0.60, -0.72, 0.28])      # port duct: inward, forward, slightly up
+DUCT_DIR = np.array([-0.60, -0.72, 0.0])       # port duct: inward and forward, level under the stowed wing
 DUCT_DEPTH = 0.52
 LIP_R = 0.014
 BLADE_DEPTH, BLADE_TIP = 0.27, 0.007

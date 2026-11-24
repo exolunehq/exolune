@@ -12,6 +12,8 @@
 #include <string>
 #include <vector>
 #include "ShipProfiles.h"
+#include "TransportEquipment.h"
+#include <array>
 
 class Ship {
 public:
@@ -28,6 +30,8 @@ public:
     static constexpr DXGI_FORMAT OverlayFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
     // Shadow radius (m); each profile supplies the centre. Match Ship.hlsli's SHIP_RADIUS.
     static constexpr float Radius = 6.7f;
+
+    float EnvelopeRadius() const { return HasTransportRig() ? 7.3f : Radius; }
 
     struct Nozzle {
         DirectX::XMFLOAT4 mouthWidth, axisHeight, widthAxis;
@@ -52,6 +56,8 @@ public:
         DirectX::XMFLOAT4 supportExhaust; // direction in ship axes and power relative to hover
         DirectX::XMFLOAT4 retroOutlet, supportOutlet; // left mouths, support outlet spacing in w
         DirectX::XMFLOAT4 radio; // receive lamp and audio meter in the cockpit
+        DirectX::XMFLOAT4 equipment; // actual extension of wings, landing gear, airbrake and ramp
+        DirectX::XMFLOAT4 automation; // manual switch mask, authored transport flag
         Nozzle nozzles[2]; // the shuttle's two authored main exhausts
     };
     // The moving parts' pivots, ship frame, from the pack (pieces_mobiles.py, design_chasseur.py): the stick's twist axis,
@@ -73,6 +79,9 @@ public:
     // The shadow maps' frames from the sun's and the vertical's directions, in the ship frame.
     void SetLights(const DirectX::XMFLOAT3& sun, const DirectX::XMFLOAT3& up);
     void SetFlightSurfaces(float wings, float airbrakes);
+    bool HasTransportRig() const { return !mTransportClips[0].empty(); }
+    void SetTransportPose(const TransportEquipment& equipment);
+    float TransportDepth(DirectX::XMFLOAT3 up, const TransportEquipment& state) const;
 
     struct Tables {
         D3D12_GPU_VIRTUAL_ADDRESS frame, cloudFrame; // the clouds' frame, b1 (Clouds.hlsli)
@@ -107,6 +116,14 @@ private:
         return mConstants->options.y < .5f || mRoles[draw.material] != pilotOccupant;
     }
     void ReadShuttleControls(const std::vector<uint8_t>& data, size_t& at);
+    struct RigidKey { DirectX::XMFLOAT3 translation; DirectX::XMFLOAT4 rotation; };
+    struct RigidTrack { unsigned slot; DirectX::XMFLOAT4X4 inverseBind; std::vector<RigidKey> keys; };
+    std::array<std::vector<RigidTrack>,TransportEquipment::Count> mTransportClips;
+    struct SupportBox { unsigned slot; DirectX::XMFLOAT3 centre, extent; };
+    std::vector<SupportBox> mTransportBounds;
+    static DirectX::XMMATRIX TransportMatrix(const RigidTrack& track, double phase);
+    void ReadTransport(const std::vector<uint8_t>& data, size_t& at);
+    void ReadPane(const std::vector<uint8_t>& data, size_t& at);
     struct FlightFittings {
         DirectX::XMFLOAT3 wingPivot;
         float foldedAngle;

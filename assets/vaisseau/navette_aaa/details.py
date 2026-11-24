@@ -12,7 +12,7 @@ import frames
 import hullgrid as hg
 import meshkit
 import wings
-from surface import T1, T2
+from surface import T1
 
 FLIP = frames.FLIP
 COL = "01_Exterieur_Coque"
@@ -37,7 +37,7 @@ def seams(grid, mats):
     """Panel breaks: sealed gaps along chosen lines of the skin grid."""
     c, parts = grid.col, []
     cells = grid.cells()
-    open_cell = cells["glass"] | cells["mouth"] | cells["doors"] | cells["hatch"]
+    open_cell = cells["glass"] | cells["mouth"] | cells["doors"] | cells["hatch"] | wings.slot_cells(grid)
     width, lift = 0.0035, 0.0006
 
     def run(index_pairs, tag):
@@ -71,7 +71,6 @@ def seams(grid, mats):
         run([(a, b, col_free(a, b)) for b in range(1, grid.nb - 1)], f"C{a}")
     rows = [(hg.B_SILL, c["end"] + 2, y_col(5.72)), (21, c["end"] + 9, y_col(5.72)),
             (hg.B_BELT1 + 8, c["w0"] - 1, c["c1"] + 12)]
-    rows += [(b, y_col(wings.Y_ROOT + 0.35), y_col(wings.Y_TRAIL - 0.25)) for b in wings.STAGE_ROWS]
     for b, a0, a1 in rows:
         run([(a, b, col_free(a, b)) for a in range(a0, a1 + 1)], f"R{b}")
     return meshkit.join(parts, "Coque_Joints")
@@ -194,36 +193,6 @@ def small_details(grid, mats):
     return objs
 
 
-def nav_lights(grid, mats):
-    """Port red and starboard green lenses set in the shoulder face, on the wings' rigid tips."""
-    objs = []
-    a = _col_at(grid, wings.Y_LIGHT)
-    t_mid = 0.5 * (T1 + T2)
-    s0 = float(grid.s[a, hg.B_E1])
-    n = 10
-    g = np.linspace(-1.0, 1.0, n + 1)
-    u, v = np.meshgrid(g, g, indexing="ij")
-    du, dv = u * np.sqrt(1.0 - 0.5 * v * v), v * np.sqrt(1.0 - 0.5 * u * u)     # a square grid on a disc
-    radius = np.clip(np.hypot(du, dv), 0.0, 1.0)
-    pts, nrm = grid.hull.eval(s0 + du * 0.24, t_mid + dv * 0.36 * (T2 - T1), normals=True)
-    lens = pts + nrm * (0.011 * np.sqrt(1.0 - radius ** 2) - 0.0006)[..., None]
-    idx = np.arange((n + 1) ** 2).reshape(n + 1, n + 1)
-    rim = np.concatenate([idx[:, 0], idx[-1, 1:], idx[-2::-1, -1], idx[0, -2:0:-1], idx[:1, 0]])
-    bezel = np.array([(-0.007, -0.001), (-0.007, 0.003), (-0.004, 0.005), (0.003, 0.005), (0.005, 0.003),
-                      (0.005, -0.002)])
-    centre = pts.reshape(-1, 3).mean(axis=0)
-    for sign, mat in ((1.0, mats["nav_red"]), (-1.0, mats["nav_green"])):
-        scale = np.array([sign, 1.0, 1.0])
-        side = "G" if sign > 0 else "D"
-        glass = meshkit.mesh_object(f"Feu_Lentille_{side}", lens.reshape(-1, 3) * scale, meshkit.grid_faces(idx), COL,
-                                    materials=[mat], orient=nrm.reshape(-1, 3) * scale)
-        rp, rn = pts.reshape(-1, 3)[rim], nrm.reshape(-1, 3)[rim]
-        ring = frames.sweep(f"Feu_Cerclage_{side}", rp * scale, rn * scale, bezel, COL, [mats["dark"]],
-                            across=(centre[None, :] - rp) * scale, cap=False)
-        objs.append(meshkit.join([glass, ring], f"Feu_Nav_{side}"))
-    return objs
-
-
 def radiators(grid, mats, y0=3.65, y1=5.80, x0=0.50, x1=1.12):
     """Dorsal radiator panels beside the fin: a teal glazed plate with a frame and fine slats."""
     m, hull = grid.maps, grid.hull
@@ -339,5 +308,5 @@ def hatch_light(grid, mats):
 def build(grid, mats):
     objs = [seams(grid, mats), belt_light(grid, mats), hatch_light(grid, mats), spine_strake(grid, mats)]
     objs += marking(grid, mats)
-    objs += flank_slot(grid, mats) + nav_lights(grid, mats) + radiators(grid, mats) + small_details(grid, mats)
+    objs += flank_slot(grid, mats) + radiators(grid, mats) + small_details(grid, mats)
     return objs

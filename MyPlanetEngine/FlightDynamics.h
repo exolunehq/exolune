@@ -1,6 +1,7 @@
 // Point-mass ship dynamics in world axes. Distances are metres and time is seconds.
 #pragma once
 #include "FlightFrame.h"
+#include "TransportEquipment.h"
 #include "CelestialManifest.h"
 #include "AtmosphereProfile.hlsli"
 
@@ -133,6 +134,8 @@ struct Controls {
     double throttle, strafe, lift; // throttle 0..30, manoeuvring controls -1..1
     bool boost, brake, fullThrust = false;
     double yaw = 0, roll = 0; // pilot rates, positive to the right
+    TransportEquipment* transport = nullptr;
+    double terrainClearance = 0;
 };
 inline double MoveThrottle(double notch, double detents) {
     return Clamp(notch + detents, 0, ThrottleNotches);
@@ -333,7 +336,14 @@ inline Loads Advance(double seconds, Vec3d& position, Vec3d& velocity, Cues& cue
         const double excess = pilot.holding ? 0 : c.brake ? speed : overrun;
         const double requested = std::min(BrakeLimit(speed), 1.55 * excess);
         pilot.deceleration = Follow(pilot.deceleration, requested, dt, .33);
-        pilot.surfaces.Advance(cues, pilot.deceleration, dt);
+        if (c.transport) {
+            const double descent = -Dot(velocity, position * (1.0/std::max(1.0,Length(position))));
+            c.transport->Advance(dt, c.terrainClearance, descent, speed, cues.density,
+                cues.equivalentAirspeed, cues.dynamicPressurePa, cues.heat, pilot.deceleration,
+                c.brake, !pilot.holding && (burn || c.throttle > 0 || c.lift > 0));
+            pilot.surfaces.wings = Smooth(.27, .91, c.transport->position[TransportEquipment::Wings]);
+            pilot.surfaces.airbrakes = c.transport->position[TransportEquipment::Brake];
+        } else pilot.surfaces.Advance(cues, pilot.deceleration, dt);
         AssistBank(c, pilot, cues, env.gravity, dt);
         const double liftForce = WingLift(cues, c, flow, env.gravity, pilot.surfaces.wings);
         if (!braking) BankTurn(c, flow, airspeed, liftForce, env.gravity, dt);

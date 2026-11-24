@@ -2,7 +2,7 @@
 
 Run:  blender -b <scene.blend> --python review.py -- <out_dir> [--views a,b] [--modes beauty,clay,wire,zebra]
           [--cam "name;lx,ly,lz;tx,ty,tz;lens[;noglass]"]... [--res 1440x960] [--only Prefix,Prefix] [--floor]
-          [--pose Train=0.5,Aerofrein=1] [--tag suffix] [--film Train]
+          [--pose Train=0.5,Aerofrein=1] [--tag suffix] [--film Train] [--frames 0,26]
 The scene is never saved. --pose freezes the animation clips at the given phases (0 rest, 1 end).
 --film renders one clip as an MP4 per view instead of stills, the other clips held at rest. Views are named cameras in VIEWS (metres, nose -Y, up +Z, port +X);
 --cam adds a camera from a location and a target, and alone renders only the added cameras.
@@ -253,6 +253,11 @@ def main():
                 track.mute = track.name != clip
         set_mode("beauty")
         scene.frame_start, scene.frame_end = 0, anim.CLIPS[clip] + anim.FPS // 2
+        if "--frames" in argv:
+            first, last = map(int, argv[argv.index("--frames")+1].split(","))
+            if not scene.frame_start <= first <= last <= scene.frame_end:
+                raise ValueError("review frame range is outside the selected clip")
+            scene.frame_start, scene.frame_end = first, last
         scene.render.fps = anim.FPS
         scene.eevee.taa_render_samples = 16
         scene.render.image_settings.media_type = "VIDEO"

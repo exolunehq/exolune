@@ -30,15 +30,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours to
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours tools/tests/2026-11-20-aerofreins.txt -ModeleVaisseau navette -Camera cockpit -DepartTest 1 -Resolution fenetre
 ```
 
-**Navette exterior and glazing review** uses the [seven-stop flight route](../tools/tests/2026-11-20-navette-finitions.txt). F1 shows the exterior over the coast. F2 tests a stop and departure, F3 starts under aerodynamic load and F6 checks the orbit silhouette. Tab cycles the views. Pass `-Verriere pluie`, `nuage` or `givre` to reproduce that pane condition in atmospheric cases.
+## Transport shuttle
 
-The coast opens with the Navette's turbine lips extended. In chase view, hold the right mouse button to see both lips from above. F2 covers a stop and departure. F5 shows the retracted silhouette in orbit. [Navette profile route](../tools/tests/2026-11-21-navette-profil.txt)
+- Run `tools/jouer_navette.cmd` to launch the V9 transport with the six-stop flight palette.
+- Wings deploy in load-bearing air and stow in vacuum, hover or hot entry.
+- The gear extends for a slow approach. The airstair opens once the ship has stopped on the ground and closes for departure.
+- Hold X to brake. The dorsal panels follow the braking demand in the atmosphere.
+- Press 2 for wings, 3 for gear, 4 for the airbrake or 5 for the ramp. Each key overrides that channel until 6 restores automatic control. The number pad also works with Num Lock.
+- The ramp requires deployed gear and a parked ship. Gear retraction waits for the ramp to close.
+- Tab cycles the cockpit, chase view and unobstructed view. Hold the right mouse button to look around.
+- The right display shows actual travel, automatic or manual control, throttle and engine demand. The left display shows attitude, speed and altitude. The middle display shows heading and coordinates.
 
-To inspect the extension, orbit the chase camera below a lip at F1. Hold X to stop, then use the wheel to deploy the wing again. F3 shows the main exhausts over the valley. F4 shows them against space with the wings stowed. [Extension and exhaust route](../tools/tests/2026-11-21-navette-mecanisme.txt)
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours tools/tests/2026-11-20-navette-finitions.txt -ModeleVaisseau navette -Camera poursuite -DepartTest 1 -Resolution fenetre
-```
+~~~powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours tools/tests/2026-11-24.txt -ModeleVaisseau navette -Camera cockpit -DepartTest 1 -Resolution fenetre
+~~~
 
 **Camera review** uses `tools/tests/2026-11-10.txt` with `-Camera orbite -DepartTest 1`. At F1, hold forward to descend towards the coast in Horizon. Press Home, select F1 again and repeat in Fixed altitude. F5 points straight down at Moon 2.
 
@@ -97,7 +102,7 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 - **`-Position '<alt> <lat> <lon> <tangage> <cap>'`:** starting view, the globe by default.
 - **`-Soleil '<lat> <lon>'`:** sun position, `10 -5` by default.
 - **`-Resolution '1920 1080'`** by default, full screen; `fenetre` for a 1280x720 window, where the palette is visible.
-- **`-ModeleVaisseau chasseur|classique|navigateur|navette`** selects the physical model. The fighter is the default. `navette` loads the shuttle from *Exolune par les crêtes*. Direct executable launches use `MYPLANETENGINE_MODELE_VAISSEAU`. [Model profiles](spec-vaisseau.md)
+- **`-ModeleVaisseau chasseur|classique|navigateur|navette`** selects the physical model. The fighter is the default. `navette` loads the V9 transport. Direct executable launches use `MYPLANETENGINE_MODELE_VAISSEAU`. [Model profiles](spec-vaisseau.md)
 - **`-Camera cockpit|poursuite|sans|libre|orbite|altitude-fixe|marche`** selects the initial view. `orbite` starts in Horizon. The default is the cockpit.
 - **`-PassePleine`:** clouds in a single pass, without their temporal pass (`optimisation.md`); for comparison.
 - **`-SansNuages`:** start with clouds hidden for terrain review; N toggles them during flight. Use this option for the current erosion review.

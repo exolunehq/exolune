@@ -2378,7 +2378,7 @@ void D3DApp::Draw() {
         toPreviousShip.m[3][3] = 1.0f;
         XMStoreFloat4x4(&mConstants->reprojectShip, XMMatrixTranspose(XMLoadFloat4x4(&toPreviousShip) * mPrevViewProj));
         XMStoreFloat4(&mConstants->shipSphere, toLocal(mShipPos - mCamPos + shipBack * mShip.Profile().centreY + mShipUp * mShip.Profile().centreZ));
-        mConstants->shipSphere.w = Ship::Radius;
+        mConstants->shipSphere.w = mShip.EnvelopeRadius();
     }
     if (mShip.Ready()) UpdateShipFrame(dt, faceX, faceY, faceZ);
     UpdateCityFrame(faceX,faceY,faceZ,view*proj);
@@ -3395,6 +3395,12 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
             Length(mShipVelocity), Dot(mShipVelocity, SurfaceUp(mShipPos)), 100.0 * mFlightCues.heat,
             mThrottle, lever);
         wcscat_s(title, ship);
+        if (mShip.HasTransportRig()) {
+            const auto& p=mTransport.position;
+            swprintf_s(ship,L" | 2 Ailes %.0f%%  3 Train %.0f%%  4 Frein %.0f%%  5 Rampe %.0f%%  | 6 Auto (%s)",
+                p[0]*100,p[1]*100,p[2]*100,p[3]*100,mTransport.ManualMask()?L"manuel":L"auto");
+            wcscat_s(title,ship);
+        }
     } else if (!mSettings.Automated()) {
         const wchar_t* camera = mCameraMode == CameraMode::Horizon ? L" | Cam\u00e9ra horizon (D\u00e9but)"
             : mCameraMode == CameraMode::FixedAltitude ? L" | Cam\u00e9ra altitude fixe (D\u00e9but)"
@@ -3586,7 +3592,7 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         mCameraSpeed *= std::pow(1.5, GET_WHEEL_DELTA_WPARAM(wParam) / double(WHEEL_DELTA)); // smooth wheels send small deltas
         mCameraSpeed = std::min(std::max(mCameraSpeed, 0.1), 300'000'000.0);
         return 0;
-    case WM_KEYDOWN:
+    case WM_KEYDOWN: {
         if (lParam & (1 << 30)) break; // ignore auto-repeat
         if (wParam == VK_HOME && mView == View::Free) {
             mCameraMode = FlightFrame::NextCameraMode(mCameraMode);
@@ -3594,6 +3600,12 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 mCameraBody = -1; // acquire the local horizon once, then keep it when changing to fixed altitude
                 mHistoryValid = mCloudHistoryValid = false;
             }
+        }
+        const WPARAM equipmentKey = wParam>=VK_NUMPAD2 && wParam<=VK_NUMPAD6 ? wParam-VK_NUMPAD0+'0' : wParam;
+        if (mShip.HasTransportRig() && mView!=View::Free && mView!=View::Walk && equipmentKey>='2' && equipmentKey<='6') {
+            if (equipmentKey=='6') mTransport.Automatic();
+            else mTransport.Toggle(static_cast<TransportEquipment::Part>(equipmentKey-'2'));
+            return 0;
         }
         if (wParam == 'J') ToggleWalking();
         if (wParam == 'Y') ToggleAudio();
@@ -3643,6 +3655,7 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         if (wParam == VK_BACK && mShip.Ready()) // independent free camera and back to the cockpit
             SetView(mView == View::Free ? (mShip.Profile().cockpit ? View::Cockpit : View::Chase) : View::Free);
         if (wParam == VK_ESCAPE) { if (mFullscreen) ToggleFullscreen(); else DestroyWindow(hwnd); }
+        }
         return 0;
     case WM_DESTROY:
         PostQuitMessage(0);

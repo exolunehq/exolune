@@ -58,13 +58,13 @@ namespace
         return dst;
     }
 
-    XMMATRIX LightFrame(const XMFLOAT3& towards, const ShipProfile& profile)
+    XMMATRIX LightFrame(const XMFLOAT3& towards, const ShipProfile& profile, float radius)
     {
         const XMVECTOR d = XMVector3Normalize(XMLoadFloat3(&towards));
         const XMVECTOR centre = XMVectorSet(0.0f, profile.centreY, profile.centreZ, 1.0f);
         const XMVECTOR up = std::fabs(towards.z) < 0.9f ? XMVectorSet(0, 0, 1, 0) : XMVectorSet(0, 1, 0, 0);
         return XMMatrixLookToLH(centre + d * 20.0f, -d, up)
-             * XMMatrixOrthographicLH(2.0f * Ship::Radius, 2.0f * Ship::Radius, 0.1f, 40.0f);
+             * XMMatrixOrthographicLH(2.0f * radius, 2.0f * radius, 0.1f, 40.0f);
     }
 }
 
@@ -88,7 +88,7 @@ bool Ship::Load(const std::wstring& path)
     if (data.size() < 32 || std::memcmp(data.data(), "VSX1", 4) != 0) throw std::runtime_error("Not a ship pack (VSX1).");
     size_t at = 4;
     const uint32_t version = Read<uint32_t>(data, at);
-    if (version != 2 && version != 3) throw std::runtime_error("Ship pack version not supported.");
+    if (version != 2 && version != 3 && !(version == 4 && mProfile.model == ShipModel::Navette)) throw std::runtime_error("Ship pack version not supported.");
     const uint32_t vertices = Read<uint32_t>(data, at), indices = Read<uint32_t>(data, at), draws = Read<uint32_t>(data, at);
     const uint32_t materials = Read<uint32_t>(data, at), images = Read<uint32_t>(data, at);
     if (images > MaxImages) throw std::runtime_error("Ship pack has more images than Ship::MaxImages.");
@@ -133,11 +133,113 @@ bool Ship::Load(const std::wstring& path)
         mImages.push_back(std::move(image));
     }
     const uint32_t pivotCount = Read<uint32_t>(data, at);
+    if (version == 4) {
+        mProfile.pivotCount = 2;
+        mProfile.surfaces = {}; // The transport exhausts issue from its two fitted side grilles.
+    }
+    else if (mProfile.model == ShipModel::Navette) { mProfile.eyeAhead=3.47f; mProfile.eyeUp=-.84f; }
     if (pivotCount != mProfile.pivotCount) throw std::runtime_error("Ship pack does not match the selected profile.");
     for (uint32_t i = 0; i < pivotCount; ++i) pivots[i] = Read<Pivot>(data, at);
-    if (mProfile.model == ShipModel::Navette) ReadShuttleControls(data, at);
+    if (version == 4) ReadTransport(data, at);
+    else if (mProfile.model == ShipModel::Navette) ReadShuttleControls(data, at);
     mLoaded = true;
     return true;
+}
+
+void Ship::ReadTransport(const std::vector<uint8_t>& data, size_t& at)
+{
+    static_assert(sizeof(RigidKey)==28, "ANI1 position and xyzw quaternion");
+    if (Read<uint32_t>(data, at)!=0x31494e41 || Read<uint32_t>(data, at)!=mTransportClips.size())
+        throw std::runtime_error("Missing transport clips.");
+    std::array<bool, SHIP_POSE_COUNT> used{};
+    auto key = [&]() {
+        auto value = Read<RigidKey>(data,at);
+        const float norm = XMVectorGetX(XMVector4LengthSq(XMLoadFloat4(&value.rotation)));
+        if (!(std::abs(norm-1)<.0005f && XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&value.translation)))<400))
+            throw std::runtime_error("Invalid transport rigid key.");
+        return value;
+    };
+    for (auto& clip : mTransportClips) {
+        const unsigned count=Read<uint32_t>(data,at), frames=Read<uint32_t>(data,at), fps=Read<uint32_t>(data,at);
+        if (!count || count>SHIP_POSE_COUNT || frames<2 || frames>1000 || fps!=24)
+            throw std::runtime_error("Invalid transport clip size.");
+        for (unsigned i=0; i<count; ++i) {
+            const unsigned slot=Read<uint32_t>(data,at);
+            if (slot<=SHIP_LEGACY_POSES || slot>SHIP_POSE_COUNT || used[slot-1])
+                throw std::runtime_error("Invalid transport pose slot.");
+            used[slot-1]=true;
+            const RigidKey bind=key();
+            RigidTrack track{};
+            track.slot=slot-1;
+            const XMMATRIX rest=XMMatrixRotationQuaternion(XMLoadFloat4(&bind.rotation)) *
+                                XMMatrixTranslationFromVector(XMLoadFloat3(&bind.translation));
+            XMStoreFloat4x4(&track.inverseBind,XMMatrixInverse(nullptr,rest));
+            track.keys.reserve(frames);
+            for (unsigned frame=0; frame<frames; ++frame) track.keys.push_back(key());
+            clip.push_back(std::move(track));
+        }
+    }
+    for (auto& nozzle : mNozzles) {
+        nozzle=Read<Nozzle>(data,at);
+        const float image=nozzle.aperture.x;
+        if (!(image>=1 && image<=mImages.size() && image==std::floor(image) && !mImages[size_t(image)-1].srgb &&
+              nozzle.mouthWidth.w>0 && nozzle.axisHeight.w>0 && nozzle.aperture.y>0))
+            throw std::runtime_error("Invalid transport outlet.");
+    }
+    if (Read<uint32_t>(data,at)!=0x31505553) throw std::runtime_error("Missing transport supports.");
+    const unsigned boxes=Read<uint32_t>(data,at);
+    if (!boxes || boxes>512) throw std::runtime_error("Invalid transport supports.");
+    for (unsigned i=0; i<boxes; ++i) {
+        auto box=Read<SupportBox>(data,at);
+        if (box.slot>SHIP_POSE_COUNT) throw std::runtime_error("Invalid transport support slot.");
+        mTransportBounds.push_back(box);
+    }
+    ReadPane(data,at);
+}
+
+XMMATRIX Ship::TransportMatrix(const RigidTrack& track, double phase)
+{
+    const size_t last=track.keys.size()-1;
+    const double time=std::max(0.0,std::min(1.0,phase))*last;
+    const size_t frame=size_t(time);
+    const auto& a=track.keys[frame];
+    const auto& b=track.keys[std::min(frame+1,last)];
+    const float t=float(time-frame);
+    const XMVECTOR q=XMQuaternionSlerp(XMLoadFloat4(&a.rotation),XMLoadFloat4(&b.rotation),t);
+    const XMVECTOR p=XMVectorLerp(XMLoadFloat3(&a.translation),XMLoadFloat3(&b.translation),t);
+    return XMLoadFloat4x4(&track.inverseBind)*XMMatrixRotationQuaternion(q)*XMMatrixTranslationFromVector(p);
+}
+
+float Ship::TransportDepth(XMFLOAT3 up, const TransportEquipment& state) const
+{
+    // Lowest point along local gravity, including the real pad positions throughout retraction.
+    const XMVECTOR vertical=XMLoadFloat3(&up);
+    std::array<XMMATRIX, SHIP_POSE_COUNT+1> transforms;
+    transforms.fill(XMMatrixIdentity());
+    for (size_t i=0;i<mTransportClips.size();++i) {
+        const double phase=i==TransportEquipment::Gear ? 1-state.position[i] : state.position[i];
+        for (const auto& track : mTransportClips[i]) transforms[track.slot+1]=TransportMatrix(track,phase);
+    }
+    float depth=.2f;
+    for (const auto& box : mTransportBounds) {
+        const auto& transform=transforms[box.slot];
+        const XMVECTOR centre=XMVector3TransformCoord(XMLoadFloat3(&box.centre),transform);
+        const XMVECTOR axis=XMVector3TransformNormal(vertical,XMMatrixTranspose(transform));
+        const XMVECTOR reach=XMVector3Dot(XMLoadFloat3(&box.extent),XMVectorAbs(axis))-XMVector3Dot(centre,vertical);
+        depth=std::max(depth,XMVectorGetX(reach));
+    }
+    return depth;
+}
+
+void Ship::SetTransportPose(const TransportEquipment& state)
+{
+    for (size_t i=0; i<mTransportClips.size(); ++i) {
+        const double phase=i==TransportEquipment::Gear ? 1-state.position[i] : state.position[i];
+        for (const RigidTrack& track : mTransportClips[i]) {
+            const XMMATRIX delta=TransportMatrix(track,phase);
+            XMStoreFloat4x4(&mConstants->pose[track.slot],XMMatrixTranspose(delta));
+        }
+    }
 }
 
 void Ship::ReadShuttleControls(const std::vector<uint8_t>& data, size_t& at)
@@ -218,6 +320,11 @@ void Ship::ReadShuttleControls(const std::vector<uint8_t>& data, size_t& at)
     mFlightFittings = fit;
     if (at == data.size()) return;
 
+    ReadPane(data, at);
+}
+
+void Ship::ReadPane(const std::vector<uint8_t>& data, size_t& at)
+{
     constexpr size_t samples = SHUTTLE_PANE_COLUMNS * SHUTTLE_PANE_ROWS;
     constexpr size_t bytes = samples * sizeof(XMFLOAT4);
     if (Read<uint32_t>(data, at) != 0x31525457U || data.size() - at != bytes)
@@ -682,8 +789,8 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
 
 void Ship::SetLights(const XMFLOAT3& sun, const XMFLOAT3& up)
 {
-    XMStoreFloat4x4(&mConstants->shadow[0], XMMatrixTranspose(LightFrame(sun, mProfile)));
-    XMStoreFloat4x4(&mConstants->shadow[1], XMMatrixTranspose(LightFrame(up, mProfile)));
+    XMStoreFloat4x4(&mConstants->shadow[0], XMMatrixTranspose(LightFrame(sun, mProfile, EnvelopeRadius())));
+    XMStoreFloat4x4(&mConstants->shadow[1], XMMatrixTranspose(LightFrame(up, mProfile, EnvelopeRadius())));
 }
 
 void Ship::Bind(ID3D12GraphicsCommandList* list, const Tables& t, bool compute) const

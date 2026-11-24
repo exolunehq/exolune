@@ -1,0 +1,7 @@
+# V9 transport. The top number row controls wings, gear, airbrake, ramp and return to automatic.
+Croisière côtière — ailes déployées, Tab pour voir la navette | 1350 -23.1956 157.8743 0 -30 v=125 | -14 142
+Orbite — ailes rentrées, essayer les touches 2, 3, 4 puis 6 | 250000 22 135 0 90 v=180 | 14 115
+Approche lunaire — suivre le train, laisser descendre la navette | 12 20 15 0 -102 lune v=0 | -25 55
+Escale à terre — train en appui, rampe ouverte à l’arrêt | 1 -25.49161 -26.76039 0 115 v=0 | -10 -70
+Freinage en vallée — maintenir X, observer le panneau dorsal | 3200 38.1445 103.5352 0 90 v=145 | 46 75
+Rentrée atmosphérique — observer la protection thermique, puis la sortie des ailes en air porteur | 82500 30.68685 120.10788 24 76 depuis-espace v=5800 | 12 90

@@ -2,6 +2,12 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-24 · V9 playable transport**
+
+- Replaced the film transport packet with the reviewed V9, including its cockpit and four reversible mechanisms.
+- Equipment uses atmospheric loads, braking demand, terrain clearance and parking state. Keys 2 through 5 override a channel. Key 6 restores automatic control.
+- Milestone `jalon/navette-transport-v9-2026-11-24`. [Six-stop flight review](../tools/tests/2026-11-24.txt)
+
 **2026-11-22 · Detached camera speed**
 
 - Free, Horizon and Fixed altitude now share a wheel-selected speed in metres per second. It starts at 100 m/s and persists across changes of terrain, altitude and reference body.

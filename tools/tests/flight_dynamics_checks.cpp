@@ -210,6 +210,33 @@ void CheckFlightAssist(const Field& field, const Field& lunar) {
 }
 
 void CheckFlightDynamics() {
+    TransportEquipment transport;
+    using Rig = TransportEquipment;
+    auto fly=[&](int frames,double height,double speed,double density,bool brake=false,bool powered=false) {
+        for (int n=0;n<frames;++n)
+            transport.Advance(1./60,height,0,speed,density,speed*std::sqrt(density),
+                              .5*1.225*density*speed*speed,0,0,brake,powered);
+    };
+    fly(300,250000,120,0);
+    Check(transport.position[Rig::Wings]==0 && transport.position[Rig::Gear]==0,"transport stows in vacuum");
+    fly(260,1500,100,1);
+    Check(transport.position[Rig::Wings]==1,"four-second authored wing deployment in air");
+    fly(85,1500,100,1,true);
+    Check(transport.position[Rig::Brake]==1,"braking opens the dorsal airbrake");
+    transport.Toggle(Rig::Wings);
+    fly(115,1500,100,1);
+    Check(transport.position[Rig::Wings]>.4 && transport.position[Rig::Wings]<.6,"wing clip reverses from its current pose");
+    transport.Automatic();
+    fly(240,25,12,1);
+    Check(transport.position[Rig::Gear]==1 && transport.position[Rig::Hatch]==0,"gear precedes landing and ramp");
+    fly(260,2.64,0,1);
+    Check(transport.position[Rig::Hatch]==1,"ramp opens when stationary on the gear");
+    transport.Toggle(Rig::Gear);
+    fly(100,240,150,1,false,true);
+    Check(transport.position[Rig::Hatch]>0 && transport.position[Rig::Gear]==1,"gear waits for the closing ramp");
+    fly(330,300,180,1,false,true);
+    Check(transport.position[Rig::Gear]==0 && transport.position[Rig::Hatch]==0,"departure stows the gear");
+
     Field field = {};
     field.planetRadius = Radius;
     const double g = Celestial::ExoluneGM * 1e9 / (Radius * Radius);

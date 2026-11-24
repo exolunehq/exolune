@@ -42,21 +42,25 @@ void CSMain(uint lane : SV_GroupIndex,uint3 group : SV_GroupID) {
     GroupMemoryBarrierWithGroupSync();
     FlightHit best=FlightNoHit();
     float support=-1e20;
+    const float depth=(float)probeAcross.w;
+    const float3 metric=float3(1,1,movement.w/depth);
+    const float3 sweep=movement.xyz*metric;
     if (group.x==0) for (uint i=lane;i<(rows+1)*columns;i+=64) {
         const float3 p=patch[i];
         // Teleport recovery alone uses this conservative local support. Ordinary movement uses the sweep below.
         if (abs(p.x)<=movement.w+(float)probeGrid.z && abs(p.y)<=movement.w+(float)probeGrid.w)
-            support=max(support,p.z+movement.w);
+            support=max(support,p.z+depth);
     }
     const uint cells=rows*(columns-1);
     for (uint i=lane;i<cells;i+=64) {
         const uint a=(i/(columns-1))*columns+i%(columns-1);
         const float3 p=patch[a],q=patch[a+1],r=patch[a+columns],s=patch[a+columns+1];
-        FlightHit h=FlightTriangle(p,q,s,movement.xyz,movement.w);
+        FlightHit h=FlightTriangle(p*metric,q*metric,s*metric,sweep,movement.w);
         if (h.fraction<best.fraction) best=h;
-        h=FlightTriangle(p,s,r,movement.xyz,movement.w);
+        h=FlightTriangle(p*metric,s*metric,r*metric,sweep,movement.w);
         if (h.fraction<best.fraction) best=h;
     }
+    if (best.fraction<=1) best.normal=normalize(best.normal*metric);
     candidates[lane]=float4(best.fraction,best.normal);
     recovery[lane]=support;
     GroupMemoryBarrierWithGroupSync();
