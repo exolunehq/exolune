@@ -64,18 +64,18 @@ inline Span Clip(Vec begin,Vec end,double bodyRadius,double verticalRadius=0) {
 }
 
 struct Probe {
-    // The layout begins the FlightGround constant buffer: five double4s, then two float4s; the city's earthworks follow
-    // (D3DApp::CityGradeConstants, written after it by QueueFlightContact).
+    // FlightGround reads this layout before the city's earthworks.
     double up[4]={},across[4]={},along[4]={},grid[4]={},shape[4]={};
     float movement[4]={};
     uint32_t count[4]={};
+    double padDirections[3][4]={};
 
     Vec WorldNormal(float x,float y,float z) const {
         return Vec{across[0],across[1],across[2]}*x+Vec{along[0],along[1],along[2]}*y+Vec{up[0],up[1],up[2]}*z;
     }
     unsigned Groups() const { return (count[1]+RowsPerGroup-1)/RowsPerGroup; }
 };
-static_assert(sizeof(Probe)==192,"FlightGround constants must match the HLSL layout.");
+static_assert(sizeof(Probe)==288,"FlightGround constants must match the HLSL layout.");
 
 // Only the portion returned by Clip belongs in this tangent chart; an arbitrary planet-spanning chord does not.
 inline Probe Corridor(const Span& span,double bodyRadius,double verticalRadius=0) {

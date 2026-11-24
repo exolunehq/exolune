@@ -1,5 +1,10 @@
 # Ship and camera history
 
+**2026-11-24 · Transport parking and wing control**
+
+- The first playable V9 inferred parking from low speed and a nearby hull contact. The ramp could move while flight inputs still changed the hull pose.
+- F7 used Space from the ground. Wing deployment used hidden equivalent-airspeed thresholds of 42 and 24 m/s. [Current flight controls](../lancement.md#transport-shuttle)
+
 **2026-11-24 · Film shuttle retired from the playable transport slot**
 
 - The VSX3 film derivative used a pilot eye 3.47 m ahead of the origin and a fixed closed landing gear.

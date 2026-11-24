@@ -87,6 +87,7 @@
     <ClCompile Include="D3DAppCine.cpp" />
     <ClCompile Include="D3DAppContact.cpp" />
     <ClCompile Include="D3DAppShip.cpp" />
+    <ClCompile Include="D3DAppTransportPanel.cpp" />
     <ClCompile Include="D3DAppWalk.cpp" />
     <ClCompile Include="D3DAppCity.cpp" />
     <ClCompile Include="D3DAppTests.cpp" />

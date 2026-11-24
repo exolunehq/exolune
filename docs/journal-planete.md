@@ -2,6 +2,14 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-24 · Transport landing and flight controls**
+
+- Manual and automatic landings share the three-pad surface lock. L manages automatic approach and deliberate departure to an 8 m hover. P shows the phase and live controls.
+- Manual precision descent becomes available with extended gear below 120 m. Automatic search holds about 5 m over unsuitable ground and returns control after 90 seconds of searching.
+- The wings open at 150 km/h indicated and retract at 90 km/h indicated. Overspeed protection engages at 1,340 km/h and releases at 1,140 km/h after entry heat dissipates.
+- Native flight checks covered manual and automatic touchdown, an approximately 11° lunar site, open-water refusal and a full stair cycle under thrust and roll input.
+- Milestone `jalon/navette-escale-2026-11-24`. [Coastal, lunar and open-water review](../tools/tests/2026-11-24.txt)
+
 **2026-11-24 · Vectored transport exhaust**
 
 - The main exhausts vector from forward burn to hover. Two retro outlets and twelve attitude ports follow the signed thrust and torque.

@@ -39,6 +39,9 @@
     <ClCompile Include="D3DAppShip.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
+    <ClCompile Include="D3DAppTransportPanel.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
     <ClCompile Include="ShipShockHull.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>

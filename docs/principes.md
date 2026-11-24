@@ -310,6 +310,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Inspect the reimported asset from several viewpoints and retain the in-flight review route.
 - Solve nose visibility in the physical hull shape; keep the glazing contact, external paint layout and attitude-jet origins consistent with it.
 - Anchor each exhaust to its open throat. Bend the gas downstream of the lip and drive its direction and power from the signed flight loads.
+- Give landed vehicles a body-relative pose supported by their deployed feet. Boarding, moving stairs and camera contact preserve that pose until deliberate departure. [Transport gameplay](spec-vaisseau.md)
 
 **Reflective manufactured skins use smooth control surfaces** (`recherche-vaisseau-navigateur.md`).
 - Fit the intended silhouette and broad folds with a regular editable cage and smooth surface evaluation.

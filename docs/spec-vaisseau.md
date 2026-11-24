@@ -4,7 +4,15 @@
 
 **The player pilots a ship, seen from the cockpit or from behind.** The free camera remains available for the benchmarks and focus.
 
-**J disembarks instantly onto dry terrain; J returns to the saved ship.** Walking controls and environmental audio are specified in [spec-marche-ambiances.md](spec-marche-ambiances.md).
+**Transport landing and boarding**
+
+- The pilot can fly to contact or engage automatic landing with L. Automatic guidance brakes, levels the hull and slows its descent as the extended pads approach the ground.
+- At low altitude, manual precision hover holds height when the pilot releases the vertical control. Automatic site search over unsuitable ground ends in a manual hover after 90 seconds.
+- All three deployed feet sample the local terrain. Each must be dry. The support plane accepts slopes up to 12°. A slow contact seats the hull on that plane.
+- The parked state fixes position and attitude relative to the body during camera motion, stair travel, disembarkation and boarding.
+- Departure completes stair closure before lifting. The shuttle hands back control in a stationary hover.
+- P displays the current phase, commands, indicated wing speed and automatic thresholds in all ship views. [Transport controls](lancement.md#transport-shuttle)
+- J disembarks behind the fully open stair. [Walking controls and audio](spec-marche-ambiances.md)
 
 **Try, in the game (`AGENTS.md`, `lancement.md`):** from the root of the worktree,
 ```powershell

@@ -98,13 +98,18 @@ void D3DApp::ToggleWalking() {
         mWaveReset=true; mGroundHeight=0; mWorldValid=mWorldPending=false; mAudio.ResetWorld();
         return;
     }
+    if (TransportInView() && !mTransport.CanWalk()) {
+        TransportNotice(L"Sortie \u00e0 pied disponible au sol, escalier enti\u00e8rement d\u00e9ploy\u00e9.");
+        return;
+    }
     const Vec3d centre=SurfaceCentre(mCamPos);
     const double radius=SurfaceRadius(mCamPos);
     const bool moon=NearMoon(mCamPos);
     mWalkFoot=centre+SurfaceUp(mCamPos)*radius;
     if (mView!=View::Free) {
         const Vec3d up=SurfaceUp(mShipPos), right=Normalize(Cross(mShipUp,mShipForward));
-        mWalkFoot=centre+Normalize(up*radius+right*8.0)*radius;
+        const Vec3d exit=TransportInView() ? mShipForward*(-6.3) : right*8.0;
+        mWalkFoot=centre+Normalize(up*radius+exit)*radius;
     }
     // One query on disembarkation prevents a frame underground after a descent from orbit.
     Check(mCommandAllocator->Reset(),"Walking allocator reset failed.");

@@ -32,19 +32,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours to
 
 ## Transport shuttle
 
-- Run `tools/jouer_navette.cmd` to launch the V9 transport with its flight palette.
-- F7 starts a vertical takeoff. Hold Space to rise, then X to arrest the climb and hover. Up burns forward.
+- Run `tools/jouer_navette.cmd` to start parked on the coastal plain. P opens the in-game flight controls and pauses piloting. P or Escape resumes.
+- For a manual landing, idle the throttle and brake with X. With gear down below 120 m, Space and Ctrl adjust height in precision hover. Release to hold height. Wheel or full thrust resumes ordinary flight.
+- L initiates automatic landing below 5 km and 1,200 km/h ground speed. The shuttle levels, brakes, deploys the gear and descends. It searches nearby when the surface is wet or too steep. L returns control in flight.
+- After touchdown the hull locks to the surface. Mouse movement controls the camera. J disembarks once the rear stair is fully open. J boards again.
+- L from park closes the stair before liftoff and establishes a hover 8 m above the pads. L during closure cancels departure. F4 and F7 start parked. F10 and F11 start airborne over the plain and Moon 1.
 - F8 starts an orbital braking pass. F9 shows the attitude outlets during lunar roll and lateral translation. Use Tab for the exterior view.
-- Wings deploy in load-bearing air and stow in vacuum, hover or hot entry.
-- The gear extends for a slow approach. The airstair opens once the ship has stopped on the ground and closes for departure.
+- Automatic wings open at 150 km/h indicated and retract at 90 km/h indicated. Between these speeds they keep their previous state. Vacuum, 1,340 km/h indicated or 48% entry heat engages protection. In supporting air it releases below 1,140 km/h and 22% heat. The automatic landing and departure sequences also stow the wings.
 - Hold X to brake. The dorsal panels follow the braking demand in the atmosphere.
-- Press 2 for wings, 3 for gear, 4 for the airbrake or 5 for the ramp. Each key overrides that channel until 6 restores automatic control. The number pad also works with Num Lock.
-- The ramp requires deployed gear and a parked ship. Gear retraction waits for the ramp to close.
+- In manual flight, 2 overrides wings, 3 gear and 4 the airbrake. When parked, 5 operates the stair. Pressing 6 or starting an automatic manoeuvre restores automatic equipment control. The number pad also works with Num Lock.
 - Tab cycles the cockpit, chase view and unobstructed view. Hold the right mouse button to look around.
 - The right display shows actual travel, automatic or manual control, throttle and engine demand. The left display shows attitude, speed and altitude. The middle display shows heading and coordinates.
 
 ~~~powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours tools/tests/2026-11-24.txt -ModeleVaisseau navette -Camera cockpit -DepartTest 1 -Resolution fenetre
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours tools/tests/2026-11-24.txt -ModeleVaisseau navette -Camera cockpit -DepartTest 4 -Resolution fenetre
 ~~~
 
 **Camera review** uses `tools/tests/2026-11-10.txt` with `-Camera orbite -DepartTest 1`. At F1, hold forward to descend towards the coast in Horizon. Press Home, select F1 again and repeat in Fixed altitude. F5 points straight down at Moon 2.

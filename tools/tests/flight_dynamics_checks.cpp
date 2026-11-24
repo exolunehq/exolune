@@ -212,10 +212,10 @@ void CheckFlightAssist(const Field& field, const Field& lunar) {
 void CheckFlightDynamics() {
     TransportEquipment transport;
     using Rig = TransportEquipment;
-    auto fly=[&](int frames,double height,double speed,double density,bool brake=false,bool powered=false) {
+    auto fly=[&](int frames,double height,double speed,double density,bool brake=false) {
         for (int n=0;n<frames;++n)
             transport.Advance(1./60,height,0,speed,density,speed*std::sqrt(density),
-                              .5*1.225*density*speed*speed,0,0,brake,powered,height<=2.65);
+                              .5*1.225*density*speed*speed,0,0,brake);
     };
     fly(300,250000,120,0);
     Check(transport.position[Rig::Wings]==0 && transport.position[Rig::Gear]==0,"transport stows in vacuum");
@@ -232,15 +232,62 @@ void CheckFlightDynamics() {
     fly(260,3.1,0,1);
     Check(transport.position[Rig::Hatch]==0,"hover just above the pads keeps the ramp seated");
     fly(260,2.64,0,1);
+    Check(transport.position[Rig::Hatch]==0 && !transport.Toggle(Rig::Hatch),"proximity alone never authorizes the ramp");
+    transport.SetPhase(Rig::Phase::Parked);
+    fly(260,2.64,0,1);
     Check(transport.position[Rig::Hatch]==1,"ramp opens when stationary on the gear");
-    transport.Toggle(Rig::Gear);
-    fly(100,240,150,1,false,true);
+    Check(!transport.Toggle(Rig::Gear) && transport.CanWalk(),"gear locked and airstair available when seated");
+    transport.SetPhase(Rig::Phase::Closing);
+    Check(!transport.CanWalk() && transport.GroundLocked(),"closing inhibits walking and still locks the hull");
+    fly(100,2.64,0,1);
     Check(transport.position[Rig::Hatch]>0 && transport.position[Rig::Gear]==1,"gear waits for the closing ramp");
-    fly(330,300,180,1,false,true);
+    fly(100,2.64,0,1);
+    Check(transport.position[Rig::Hatch]==0,"departure closes the entire ramp before lift");
+    transport.SetPhase(Rig::Phase::Flight);
+    fly(330,300,180,1);
     Check(transport.position[Rig::Gear]==0 && transport.position[Rig::Hatch]==0,"departure stows the gear");
 
     Field field = {};
     field.planetRadius = Radius;
+    fly(300,300,30,1);
+    Check(transport.position[Rig::Wings]==1,"wings stay deployed between 90 and 150 km/h on deceleration");
+    fly(300,300,24,1); fly(300,300,35,1);
+    Check(transport.position[Rig::Wings]==0,"wings stay retracted in the same band on acceleration");
+    transport.Toggle(Rig::Wings); fly(300,300,30,1);
+    Check(transport.position[Rig::Wings]==1,"manual wing deployment below automatic opening speed");
+    fly(300,300,380,1);
+    Check(transport.wingProtected && transport.position[Rig::Wings]==0 && !transport.Toggle(Rig::Wings),
+          "overspeed protection retracts even manually extended wings");
+    fly(260,300,340,1);
+    Check(transport.wingProtected && transport.position[Rig::Wings]==0,"protection holds until the rearm speed");
+    fly(260,300,300,1);
+    Check(!transport.wingProtected && transport.position[Rig::Wings]==1,"manual request recovers below rearm speed");
+    transport.Automatic();
+    Flight landing; landing.position={0,Radius+48,0}; landing.velocity={0,0,16};
+    transport.SetPhase(Rig::Phase::Approach);
+    Controls guidance=Level; guidance.transport=&transport; guidance.localUp=Level.up;
+    for (int n=0;n<1200;++n) {
+        guidance.terrainClearance=landing.position.y-Radius;
+        landing.Run(field,guidance,1,60);
+    }
+    Check(std::abs(landing.position.y-Radius-Rig::PadDepth-5)<.1 && Length(landing.velocity)<.1,
+          "automatic landing brakes and holds five metres above unsuitable ground");
+    guidance.landingSite=true;
+    for (int n=0; n<900 && landing.position.y>Radius+Rig::PadDepth+.08; ++n) {
+        guidance.terrainClearance=landing.position.y-Radius;
+        landing.Run(field,guidance,1,60);
+        Check(landing.position.y<Radius+10 && landing.velocity.y<0,"automatic final descends over an accepted site");
+    }
+    Check(landing.position.y<=Radius+Rig::PadDepth+.08 && Length(landing.velocity)<.6,"automatic touchdown is gentle");
+    transport.SetPhase(Rig::Phase::Flight);
+    landing.position.y=Radius+15; landing.velocity={};
+    guidance.terrainClearance=15; guidance.lift=-1;
+    landing.Run(field,guidance,40,60);
+    Check(transport.precisionHover && landing.velocity.y<-1,"manual descent rate follows the pilot");
+    guidance.lift=0; landing.Run(field,guidance,240,60);
+    Check(Length(landing.velocity)<.01 && landing.position.y>Radius+11,"releasing descent stabilizes above the ground");
+    guidance.throttle=1; landing.Run(field,guidance,1,60);
+    Check(!transport.precisionHover,"advancing throttle returns to ordinary flight");
     const double g = Celestial::ExoluneGM * 1e9 / (Radius * Radius);
     Check(std::abs(Length(field.At({0,2*Radius,0}).gravity) - g*.25) < 1e-9, "inverse-square planetary gravity");
     Check(DensityAtAltitude(0) == 1 && std::abs(DensityAtAltitude(8000) - std::exp(-1.0)) < 1e-14, "atmosphere scale height");

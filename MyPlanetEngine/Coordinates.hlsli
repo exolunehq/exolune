@@ -124,6 +124,7 @@ float3 ActionOverlay(float3 color, int2 pixel, int2 size)
         : button0 ? ((flags&2u)!=0u?ship[c]:walk[c]) : button2 ? radio[c] : ((flags&4u)!=0u?mute[c]:sound[c]);
     const uint glyph = ch>=65u && ch<=90u ? ch-65u+10u : ch==45u ? 37u : 38u;
     const uint bit = uint(q.y*5+q.x%6);
-    return ((COORDINATE_GLYPHS[glyph][bit/32u]>>(bit%32u))&1u)!=0u ? float3(0.9,0.95,1.0) : background;
+    const float3 ink=button0 && (flags&128u)!=0u ? float3(.30,.35,.36) : float3(.9,.95,1);
+    return ((COORDINATE_GLYPHS[glyph][bit/32u]>>(bit%32u))&1u)!=0u ? ink : background;
 }
 #endif

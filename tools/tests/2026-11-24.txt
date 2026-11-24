@@ -1,10 +1,13 @@
 # V9 transport. The top number row controls wings, gear, airbrake, ramp and return to automatic.
 Croisière côtière — ailes déployées, Tab pour voir la navette | 1350 -23.1956 157.8743 0 -30 v=125 | -14 142
-Orbite — ailes rentrées, essayer les touches 2, 3, 4 puis 6 | 250000 22 135 0 90 v=180 | 14 115
-Approche lunaire — suivre le train, laisser descendre la navette | 12 20 15 0 -102 lune v=0 | -25 55
-Escale sur la plaine littorale — train en appui, rampe ouverte à l’arrêt | 1 16.71 -89.25 0 9 v=0 | 30 -70
+Orbite — ailes protégées, P pour consulter les commandes | 250000 22 135 0 90 v=180 | 14 115
+Terrain lunaire accidenté — observer la pente, L pour chercher un site | 12 20 15 0 -102 lune v=0 | -25 55
+Escale sur la plaine littorale — attendre l’escalier, J pour sortir puis remonter | 1 16.71 -89.25 0 9 v=0 | 30 -70
 Freinage en vallée — maintenir X, observer le panneau dorsal | 3200 38.1445 103.5352 0 90 v=145 | 46 75
 Rentrée atmosphérique — observer la protection thermique, puis la sortie des ailes en air porteur | 66000 30.68685 120.10788 15 76 depuis-espace v=7400 | 12 -161
-Décollage sur la plaine — Espace pour monter, X pour tenir le vol stationnaire | 1 16.71 -89.25 0 9 v=0 | 30 -70
+Décollage sur la plaine — L ferme l’escalier puis monte en stationnaire | 1 16.71 -89.25 0 9 v=0 | 30 -70
 Rétrofusées en orbite — X pour freiner, flèche haut pour reprendre la poussée | 250000 22 135 0 90 v=155 | 16 110
 Stabilisation en vol lunaire — glisser de côté ou donner un coup de roulis | 1400 20 15 0 -102 lune v=50 | -25 55
+Approche sur la plaine — L pour atterrir automatiquement, P pour les commandes | 48 16.71 -89.25 0 9 v=12 | 30 -70
+Approche lunaire manuelle — X pour stabiliser, Ctrl pour descendre, ou L pour déléguer | 32 20 15 0 -102 lune v=4 | -25 55
+Survol de l’océan — L cherche un sol sec, L rend le pilotage | 38 -20.47 -75.45 0 160 v=6 | -50 -75

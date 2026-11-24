@@ -4,6 +4,7 @@ cbuffer FlightPoints : register(b0) {
     double4 probeUp,probeAcross,probeAlong,probeGrid,probeShape;
     float4 movement;
     uint4 probeCount;
+    double4 padDirections[3];
     double4 cityUp; float4 cityEast,cityNorth,cityGradeGrid;
     float4 cityPads[1800]; uint4 cityGradeCells[256]; uint4 cityGradeIndex[768];
 }
@@ -70,6 +71,10 @@ void CSMain(uint lane : SV_GroupIndex,uint3 group : SV_GroupID) {
         GroupMemoryBarrierWithGroupSync();
     }
     if (lane==0) contacts[group.x]=invalid!=0?float4(-1,0,0,0):candidates[0];
+    if (group.x==0 && lane<3 && padDirections[lane].w>0) {
+        const float ground=ReliefElevation(padDirections[lane].xyz);
+        contacts[257+lane]=float4(ground, max(gWaterLevel,0.0), 0, 0);
+    }
     if (lane==0 && group.x==0) {
         const uint zero=(uint)probeShape.w*columns+(uint)probeShape.z;
         const float startHeight=patch[zero].z+(float)probeUp.w;

@@ -86,6 +86,7 @@ void D3DApp::CreateTestsWindow() {
 // The camera at test `index`: its place, its sun or the startup one (the previous test's could leave it in the
 // night); the smoothing starts afresh; the focus back to fly.
 void D3DApp::GoToTest(size_t index) {
+    if (mTransportMenu) SetTransportMenu(false);
     const TestView& t = mTests[index];
     const bool walking = mView==View::Walk;
     if (walking) SetView(mWalkReturnView);
