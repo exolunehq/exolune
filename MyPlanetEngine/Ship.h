@@ -38,6 +38,7 @@ public:
         DirectX::XMFLOAT4 aperture; // linear image index + 1, axial depth of the curved outlet (m)
     };
 
+    struct ExhaustPort { DirectX::XMFLOAT4 mouthRadius, axis; };
     struct Constants {
         DirectX::XMFLOAT4X4 model;     // ship frame -> face-local, camera-relative, transposed for HLSL
         DirectX::XMFLOAT4X4 shadow[2]; // ship frame -> the sun's and the overhead map's clip space, transposed
@@ -57,8 +58,9 @@ public:
         DirectX::XMFLOAT4 retroOutlet, supportOutlet; // left mouths, support outlet spacing in w
         DirectX::XMFLOAT4 radio; // receive lamp and audio meter in the cockpit
         DirectX::XMFLOAT4 equipment; // actual extension of wings, landing gear, airbrake and ramp
-        DirectX::XMFLOAT4 automation; // manual switch mask, authored transport flag
+        DirectX::XMFLOAT4 automation; // manual switch mask, authored transport flag, exhaust deflection (radians)
         Nozzle nozzles[2]; // the shuttle's two authored main exhausts
+        ExhaustPort ports[SHIP_TRANSPORT_PORT_PAIRS];
     };
     // The moving parts' pivots, ship frame, from the pack (pieces_mobiles.py, design_chasseur.py): the stick's twist axis,
     // the throttle's, the elevons' hinges, running outwards.
@@ -137,6 +139,7 @@ private:
     std::vector<DirectX::XMFLOAT4> mLipTravel; // signed transverse travel and its local gradient
     std::vector<DirectX::XMFLOAT4> mFittedPane; // outward normal scaled by radial distance, then signed edge distance
     Nozzle mNozzles[2] = {};
+    std::array<ExhaustPort, SHIP_TRANSPORT_PORT_PAIRS> mPorts{};
     std::vector<Image> mImages;
     bool mLoaded = false, mReady = false;
 

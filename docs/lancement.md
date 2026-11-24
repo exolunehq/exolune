@@ -32,7 +32,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours to
 
 ## Transport shuttle
 
-- Run `tools/jouer_navette.cmd` to launch the V9 transport with the six-stop flight palette.
+- Run `tools/jouer_navette.cmd` to launch the V9 transport with its flight palette.
+- F7 starts a vertical takeoff. Hold Space to rise, then X to arrest the climb and hover. Up burns forward.
+- F8 starts an orbital braking pass. F9 shows the attitude outlets during lunar roll and lateral translation. Use Tab for the exterior view.
 - Wings deploy in load-bearing air and stow in vacuum, hover or hot entry.
 - The gear extends for a slow approach. The airstair opens once the ship has stopped on the ground and closes for departure.
 - Hold X to brake. The dorsal panels follow the braking demand in the atmosphere.
@@ -140,7 +142,8 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 ### Live cockpit recording
 
 - Start the shuttle and choose a single departure with the normal review settings. The six [flight positions](../tools/tests/2026-11-21-prise-de-vol.txt) cover orbit, incoming heat, mountains and the inlet.
-- Use [the live take driver](../tools/cine/prise_jeu.py) for gameplay films. Its `record(executable, directory, pilot, environment)` callback receives the ship instruments. Return raw mouse counts, wheel detents and buttons in `CONTROLS` order. The last button ends the take after the preceding frame has been presented. An optional `radio_meter(state)` callback supplies a separate receiver level for a mission soundtrack, from 0 to 1 during transmission and -1 when idle.
+- Use [the live take driver](../tools/cine/prise_jeu.py) for gameplay films. Its `record(executable, directory, pilot, environment)` callback receives the ship instruments. Return raw mouse counts, wheel detents and buttons in `CONTROLS` order. The last button ends the take after the preceding frame has been presented.
+- Optional `translation(state)` returns signed strafe and lift from −1 to 1. Optional `radio_meter(state)` supplies a separate receiver level from 0 to 1 during transmission and −1 when idle.
 - Flight dynamics, collisions, weather, sound state and seat response use the normal elapsed game time. The controller window runs in the background. Cinematic pose tracks remain available for authored camera studies.
 - The capture directory holds lossless RGB frames, the telemetry and the presentation clock. Mux the clock before editing: `mkvmerge -o realtime.mkv --timestamps 0:frames.timecodes frames.mkv`. The stored frame indices alone have a nominal clock of 60 Hz.
 

@@ -13,8 +13,8 @@ _STATE = struct.Struct("<25d")
 _INPUT = struct.Struct("<10d")
 
 
-def record(executable, directory, pilot, environment, radio_meter=None):
-    """Run one live flight. pilot takes the instrument tuple and returns raw mouse, wheel and button inputs."""
+def record(executable, directory, pilot, environment, radio_meter=None, translation=None):
+    """Run one live flight. Optional translation(state) returns signed (strafe right, lift up)."""
     directory = Path(directory).resolve()
     directory.mkdir(exist_ok=False, parents=True)
     executable = Path(executable).resolve()
@@ -29,7 +29,11 @@ def record(executable, directory, pilot, environment, radio_meter=None):
                 with listener.accept() as connection, (directory / "flight.csv").open("w", newline="") as trace, \
                         (directory / "frames.timecodes").open("w") as pts:
                     rows = csv.writer(trace)
-                    rows.writerow(INSTRUMENTS + CONTROLS + (["rxLevel"] if radio_meter else []))
+                    extras = ["rxLevel"] if radio_meter or translation else []
+                    if translation:
+                        extras += ["strafe", "lift"]
+                    suffix = struct.Struct("<" + "d" * len(extras))
+                    rows.writerow(INSTRUMENTS + CONTROLS + extras)
                     pts.write("# timestamp format v2\n")
                     elapsed = 0.0
                     first_picture = None
@@ -37,9 +41,12 @@ def record(executable, directory, pilot, environment, radio_meter=None):
                     while True:
                         state = _STATE.unpack(connection.recv_bytes(_STATE.size))
                         controls = tuple(pilot(state))
-                        meter = (radio_meter(state),) if radio_meter else ()
-                        connection.send_bytes(_INPUT.pack(*controls) + (struct.pack("<d", *meter) if meter else b""))
-                        rows.writerow(state + controls + meter)
+                        values = [radio_meter(state) if radio_meter else -1.0] if extras else []
+                        if translation:
+                            side, lift = translation(state)
+                            values.extend((side, lift))
+                        connection.send_bytes(_INPUT.pack(*controls) + suffix.pack(*values))
+                        rows.writerow((*state, *controls, *values))
                         elapsed += state[1]
                         # Each new poll follows presentation of the preceding frame, including the last picture.
                         if frames:

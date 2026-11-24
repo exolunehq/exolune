@@ -4,6 +4,23 @@
 #include <array>
 #include <cmath>
 
+struct TransportExhaust {
+    double ahead = 0, lift = 0, side = 0;
+
+    void Advance(double dt, double axial, double vertical, double lateral, bool parked) {
+        const double response = -std::expm1(-dt / .13);
+        ahead += ((parked ? 0.0 : axial) - ahead) * response;
+        lift += ((parked ? 0.0 : vertical) - lift) * response;
+        side += ((parked ? 0.0 : lateral) - side) * response;
+    }
+    double MainPower() const {
+        return std::sqrt(std::min(1.0, std::hypot(std::max(0.0, ahead), std::max(0.0, lift))));
+    }
+    double Deflection() const {
+        return std::atan2(std::max(0.0, lift), std::max(0.0, ahead));
+    }
+};
+
 struct TransportEquipment {
     enum Part { Wings, Gear, Brake, Hatch, Count };
     std::array<double, Count> position{};

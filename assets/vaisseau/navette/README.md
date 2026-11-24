@@ -4,7 +4,7 @@
 
 - The `navette` profile loads `vaisseau.vsx`, the self-contained VSX4 packet of the approved V9 shuttle.
 - Source GLB SHA-256 is `0cf43af7664acc6534002f6c66a991fa10ab32a8f441e99ad4394143ca2c1b31`.
-- The packet includes 45 material batches, two fitted exhaust charts, the canopy weather chart, seat controls and four independent rigid clips.
+- The packet includes 47 material batches, two vectoring exhaust charts, seven mirrored auxiliary outlet pairs, the canopy weather chart, seat controls and four independent rigid clips.
 - The flight, navigation and equipment displays read the live flight state.
 - Launch the [transport route](../../../tools/jouer_navette.cmd) from a local checkout.
 

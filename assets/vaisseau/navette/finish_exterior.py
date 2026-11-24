@@ -747,12 +747,12 @@ def discard_unused_images(raw, start_m, end_m, count):
 
 
 def packet_image(rgb, srgb):
-    """RGB8 PNG in the VSX image table. Data charts use linear channels."""
+    """RGB8 or RGBA8 PNG in the VSX image table. Data charts use linear channels."""
     height, width, _ = rgb.shape
     def chunk(name, data):
         return struct.pack(">I", len(data)) + name + data + struct.pack(">I", zlib.crc32(name + data))
     pixels = b"".join(b"\0" + row.tobytes() for row in rgb)
-    header = struct.pack(">2I5B", width, height, 8, 2, 0, 0, 0)
+    header = struct.pack(">2I5B", width, height, 8, {3: 2, 4: 6}[rgb.shape[2]], 0, 0, 0)
     png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(pixels, 9)) + chunk(b"IEND", b"")
     return struct.pack("<2I", int(srgb), len(png)) + png
 
@@ -785,7 +785,7 @@ def exhaust_chart(vertices, faces, draws, axis, across):
     return chart_from_edges(edges, frame, stations)
 
 
-def chart_from_edges(edges, frame, stations):
+def chart_from_edges(edges, frame, stations, bend_stations=False):
     """Project the six measured boundaries of five exhaust slots into the plume chart."""
     across = frame[0]
     edges.sort(key=lambda edge: edge[:,2].mean())
@@ -844,6 +844,12 @@ def chart_from_edges(edges, frame, stations):
         _,k,_ = nearest.find((i*radii[0]/width,j*radii[1]/height,0))
         row,col = filled[k]
         chart[j,i,0] = chart[row,col,0]
+    if bend_stations:
+        # Begin each column's turn beyond its furthest lip, including the filter footprint.
+        last = chart[:, :, 0].max(axis=0)
+        pad = np.pad(last, 1, mode='edge')
+        last = np.maximum.reduce((pad[:-2], pad[1:-1], pad[2:]))
+        chart = np.dstack((chart, np.broadcast_to(last, covered.shape)))
     image = packet_image(np.rint(np.clip(chart,0,1)*255).astype(np.uint8), False)
     print(f"Outlet {np.sign(across[0]):+.0f}: {2*radii[0]:.2f} x {2*radii[1]:.2f} m chart, "
           f"{depth:.2f} m rake, {covered.mean():.0%} open coverage")

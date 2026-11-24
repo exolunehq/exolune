@@ -15,6 +15,7 @@ public:
     using Instruments = std::array<double, 25>;
     std::array<double, InputCount> input{};
     float radioLevel = -1.0f; // open carrier 0..1, idle -1
+    double strafe = 0, lift = 0;
 
     void Connect(const std::wstring& name) {
         const std::wstring path = L"\\\\.\\pipe\\" + name;
@@ -29,16 +30,21 @@ public:
 
     bool ReadControls(const Instruments& instruments) {
         DWORD count = 0;
-        std::array<double, InputCount + 1> packet{};
+        std::array<double, InputCount + 3> packet{};
+        constexpr size_t withRadio = (InputCount + 1) * sizeof(double);
         if (!WriteFile(pipe, instruments.data(), sizeof(instruments), &count, nullptr) || count != sizeof(instruments)
             || !ReadFile(pipe, packet.data(), sizeof(packet), &count, nullptr)
-            || (count != sizeof(input) && count != sizeof(packet)))
+            || (count != sizeof(input) && count != withRadio && count != sizeof(packet)))
             throw std::runtime_error("Gameplay controller disconnected during the take.");
         for (size_t i = 0; i < input.size(); ++i) input[i] = packet[i];
-        const double carrier = count == sizeof(packet) ? packet[InputCount] : -1.0;
+        const double carrier = count >= withRadio ? packet[InputCount] : -1.0;
         if (!std::isfinite(carrier) || (carrier != -1.0 && (carrier < 0 || carrier > 1)))
             throw std::runtime_error("Invalid radio meter.");
         radioLevel = static_cast<float>(carrier);
+        strafe = count == sizeof(packet) ? packet[InputCount+1] : 0;
+        lift = count == sizeof(packet) ? packet[InputCount+2] : 0;
+        if (!(std::abs(strafe) <= 1 && std::abs(lift) <= 1))
+            throw std::runtime_error("Invalid flight translation input.");
         for (double value : input) if (!std::isfinite(value))
             throw std::runtime_error("Invalid gameplay control.");
         return input[Finish] == 0.0;

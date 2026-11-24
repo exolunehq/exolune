@@ -15,6 +15,7 @@ sys.path[:0] = [str(HERE), str(HERE.parent / 'chasseur'), str(HERE.parent / 'nav
 import paquet_moteur as vsx
 import finish_exterior as fittings
 import hullgrid
+from flight_ports import add_ports
 from thrusters import DUCT_DIR
 
 SOURCE_SHA = '0cf43af7664acc6534002f6c66a991fa10ab32a8f441e99ad4394143ca2c1b31'
@@ -94,8 +95,7 @@ def animation(gltf, data):
     return slots, trailer
 
 
-def exhausts(images):
-    grid = hullgrid.HullGrid()
+def exhausts(grid, images):
     c0,c1 = grid.col['c0'],grid.col['c1']
     rows = grid.points[c0:c1+1]
     edges = [rows[:,hullgrid.B_CAV0], rows[:,hullgrid.B_CAV1]]
@@ -107,7 +107,7 @@ def exhausts(images):
         axis = -DUCT_DIR*mirror/np.linalg.norm(DUCT_DIR)
         across = np.array((axis[1]*side,-axis[0]*side,0))
         frame = np.stack((across,(0,0,1),axis))
-        mouth, radii, depth, image = fittings.chart_from_edges([edge*mirror for edge in edges],frame,stations)
+        mouth, radii, depth, image = fittings.chart_from_edges([edge*mirror for edge in edges],frame,stations,bend_stations=True)
         if image not in images:
             images.append(image)
         result.extend(struct.pack('<16f',*mouth,radii[0],*axis,radii[1],*across,0,images.index(image)+1,depth,0,0))
@@ -180,19 +180,24 @@ def cook(source, destination):
                 image_id = struct.unpack_from('<i',material,i*96+52)[0]
                 png = (scratch/(mat['name']+'.png')).read_bytes()
                 images[image_id] = struct.pack('<II',1,len(png))+png
-        jets = exhausts(images)
+        grid = hullgrid.HullGrid()
+        jets = exhausts(grid, images)
+        vertex, indices, ports = add_ports(grid, vertex, indices, merged, [m['name'] for m in gltf['materials']])
+        nv, ni = len(vertex), len(indices)
         canopy = fittings.cook_glass(vertex,indices,merged,material,transport=True)
         assert len(images)<=16
         output = scratch/'transport.vsx'
         with output.open('wb') as file:
             file.write(struct.pack('<4s6I',b'VSX1',4,nv,ni,len(merged),nm,len(images)))
-            file.write(raw[28:start])
+            file.write(vertex.astype('<f4',copy=False).tobytes())
+            file.write(indices.astype('<u4',copy=False).tobytes())
             file.write(np.asarray(merged,'<u4').tobytes())
             file.write(material)
             file.writelines(images)
             file.write(controls)
             file.write(clips)
             file.write(jets)
+            file.write(ports)
             file.write(supports(vertex))
             file.write(canopy)
         print('V9 packet',nv,'vertices',ni//3,'triangles',len(merged),'draws',

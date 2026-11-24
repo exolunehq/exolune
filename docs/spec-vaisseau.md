@@ -228,9 +228,12 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 ## Jets and shadows
 
 - **Main exhausts**
-  - The Navette's aperture image locates each slot along the local discharge axis. The five amber sheets mix, narrow and fade downstream. Thrust controls brightness and visible length.
+  - Each transport grille emits five amber sheets from its measured openings. A fourth linear texture channel marks the last lip in each column.
+  - Forward thrust and lift share the main outlets. The flow follows a circular bend after the lip, from straight discharge to a vertical jet in hover. The grille and gas share the same power.
+  - Two recessed nose outlets discharge forwards during longitudinal braking. A backwards-moving shuttle uses the main outlets to stop.
+  - Twelve smaller outlets on the fixed hull pulse with side thrust, downward translation and angular acceleration. They work in vacuum. The feet carry the load when parked.
   - The fighter and classic ship use analytic plumes with a blue-white core, a violet tip and weak shock diamonds. [Volume shader](../MyPlanetEngine/ShipPlumePixel.hlsl)
-- **Attitude jets:** ten small water vapor jets, at both ends of the stern and nose, up, down and side.
+- **Fighter and classic attitude jets:** ten water vapour outlets at the stern and nose.
   - **Each pulls when its push serves the command:** the slip, or the torque of the roll, the pitch and the lacing around the center of the ship.
   - **Slides pull as long as the key is held;** rotations, at the beginning and end of the movement, on angular acceleration, like real attitude propellers.
   - **In gentle puffs,** two or three per second, each blast offset from the others.
@@ -238,7 +241,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
   - **Never seen from the cockpit,** to keep the view clear.
   - **The water vapor is white and light,** lit by the sun and the sky.
 - **The rendering of the jets is done in the layer of the canopy glass:**
-  - each plume is marched through its box: 32 steps for main engines, 24 for attitude jets;
+  - the transport grilles use 48 ray steps and filter each interval across the outlet chart. Analytic flames use 32 steps and attitude puffs use 24.
   - the walk stops at the distance of the stage, so that the hull and the floor hide what is behind them;
   - out of the temporal smoothing, nothing drags.
 - **The shadow of the relief on the ship:**

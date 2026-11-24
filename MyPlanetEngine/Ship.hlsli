@@ -5,6 +5,7 @@
 #include "ShipProfiles.h"
 
 struct ShipNozzle { float4 mouthWidth, axisHeight, widthAxis, aperture; };
+struct ShipExhaustPort { float4 mouthRadius, axis; };
 
 cbuffer ShipFrame : register(b3) // b1: the clouds' frame (Clouds.hlsli)
 {
@@ -30,6 +31,7 @@ cbuffer ShipFrame : register(b3) // b1: the clouds' frame (Clouds.hlsli)
     float4 shipRadio; // receive lamp and audio meter
     float4 shipEquipment, shipAutomation;
     ShipNozzle shipNozzles[2];
+    ShipExhaustPort shipPorts[SHIP_TRANSPORT_PORT_PAIRS];
 };
 
 cbuffer ShipDraw : register(b2)

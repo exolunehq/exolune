@@ -13,6 +13,7 @@
 #define SHIP_POSE_COUNT 96
 #define SHIP_MAX_IMAGES 16
 #define SHIP_MANOEUVRING_JETS 6
+#define SHIP_TRANSPORT_PORT_PAIRS 7
 // The offline fitter samples the actual shuttle glass in this angular chart.
 #define SHUTTLE_EYE_AHEAD 4.05f
 #define SHUTTLE_EYE_UP (-.20f)

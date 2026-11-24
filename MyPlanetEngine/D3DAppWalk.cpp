@@ -119,6 +119,7 @@ void D3DApp::ToggleWalking() {
     }
     mWalkReturnView=mView; mWalkReturnPos=mCamPos; mWalkReturnForward=mCamForward; mWalkReturnUp=mCamUp;
     mShipVelocity=mShipRate={}; mThrottle=mPlume=0; for (double& jet:mJets) jet=0;
+    mTransportExhaust = {};
     mShipContactImpulse = {};
     mHeadSway = mHeadSwayRate = mEyeSpin = {};
     mHeadTilt = mHeadTiltRate = 0;

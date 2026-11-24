@@ -2,6 +2,8 @@
 
 Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it.
 
+**Transport exhausts, 2026-11-24.** Manufactured hull fittings and transient optical volumes. Each auxiliary collar follows the fixed skin around its complete perimeter. The runtime ray march shares the fitted mouth and axis. Each main grille supplies its five physical sheet roots and the start of their turn. [Shuttle jets](spec-vaisseau.md#jets-and-shadows)
+
 **Navette AAA folding wings, 2026-11-24.** Manufactured player vehicle. Native landing clearance follows the lowest projected support across the animated packet. The bay follows the original face between the two shoulder bevels. The wing plane rises aft by 1.04°. A central shutter parks above each folded wing. Two pinned hydraulic rams carry each main door. The deployed span is 7.46 m. [Shuttle recipe](../assets/vaisseau/navette_aaa/README.md)
 
 **Shuttle entry light, 2026-11-21.** Manufactured canopy optics. The glass contact line comes from the signed boundary of the existing fitted pane. The shock volume uses the existing hull. Planetary terrain and contact keep their existing geometry.

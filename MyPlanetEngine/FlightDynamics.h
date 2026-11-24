@@ -175,6 +175,7 @@ struct Pilot {
 };
 struct Loads {
     double mainJet = 0, sideJet = 0, liftJet = 0, retroJet = 0;
+    double axialJet = 0; // signed drive for a transport braking along its actual course
     Vec3d supportThrust = {};
     Vec3d seatAcceleration = {}; // specific acceleration, including surface support and excluding free fall
 };
@@ -405,6 +406,7 @@ inline Loads Advance(double seconds, Vec3d& position, Vec3d& velocity, Cues& cue
             thrust = engineAxis * ahead + c.right * side + c.up * lift + steering;
         }
         const double axialJet = Clamp(Dot(thrust, c.forward) / mainReference, -1, 1);
+        loads.axialJet = axialJet < 0 ? Clamp(Dot(thrust, c.forward) / std::max(24.0, pilot.deceleration), -1, 0) : axialJet;
         loads.mainJet = braking ? 0 : std::max(0.0, axialJet);
         loads.sideJet = Clamp(Dot(thrust, c.right) / jetReference, -1, 1);
         loads.liftJet = Clamp(Dot(thrust, c.up) / jetReference, -1, 1);

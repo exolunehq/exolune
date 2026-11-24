@@ -372,8 +372,17 @@ void CheckFlightDynamics() {
     Check(Length(landed.position-support.supportOrigin)<1e-9 && Length(landed.velocity)<1e-12 &&
           resting.seatAcceleration.y > 9 && landed.cues.engine==0, "a settled hull rests on its support in a crosswind");
     Controls rise = Level; rise.lift = 1;
-    landed.Run(support,rise,120,60);
+    const Loads climb = landed.Run(support,rise,120,60);
     Check(landed.position.y>support.supportOrigin.y+12 && landed.cues.engine>.1, "a low-speed vertical jet can lift off");
+    TransportExhaust exhaust;
+    exhaust.Advance(1, climb.axialJet, climb.liftJet, climb.sideJet, false);
+    Check(exhaust.MainPower() > .95 && std::abs(exhaust.Deflection()-std::acos(0.0)) < .01,
+          "pure lift turns the main sheets vertically from the actual flight loads");
+    Controls diagonal = rise; diagonal.fullThrust = true;
+    const Loads mixed = landed.Run(field,diagonal,15,60);
+    exhaust.Advance(1, mixed.axialJet, mixed.liftJet, mixed.sideJet, false);
+    Check(exhaust.MainPower() > .9 && exhaust.Deflection() > .5 && exhaust.Deflection() < 1.1,
+          "combined forward burn and lift give an intermediate exhaust angle");
 
     Controls brake = Level; brake.brake = true;
     Flight held;
@@ -398,6 +407,7 @@ void CheckFlightDynamics() {
           onset.mainJet == 0 && onset.retroJet < .2,
           "a transverse braking command retains momentum and ramps its thrust");
     const Loads during = braking.Run(windy,brake,60,60);
+    Check(during.axialJet < -.1 && during.sideJet < 0, "braking forwards and sideways selects retro and opposing lateral ports");
     Check(braking.pilot.surfaces.airbrakes > .2 && during.retroJet > .1,
           "panels and retro thrust share a sustained brake demand");
     braking.Run(windy,brake,540,60);
@@ -406,6 +416,14 @@ void CheckFlightDynamics() {
     Check(braking.pilot.holding && Length(braking.velocity) == 0 && Length(braking.position - holdPosition) < 1e-9 &&
           hover.mainJet == 0 && hover.retroJet == 0 && hover.supportThrust.y > 9 && braking.pilot.surfaces.airbrakes < .01,
           "retro thrust hands all three axes to powered station keeping in a crosswind");
+    exhaust.Advance(2, hover.axialJet, hover.liftJet, hover.sideJet, false);
+    Check(exhaust.MainPower() > .5 && exhaust.Deflection() > 1.4, "a supported airborne hover keeps its vectoring jets alight");
+    exhaust.Advance(2, hover.axialJet, hover.liftJet, hover.sideJet, true);
+    Check(exhaust.MainPower() < .001 && std::abs(exhaust.side) < .001, "parked pads take the sustained load from the jets");
+    Flight backwards;
+    backwards.position = {0,1e12,0}; backwards.velocity = {0,0,-120};
+    const Loads stopAft = backwards.Run(field,brake,45,60);
+    Check(stopAft.axialJet > .5 && backwards.velocity.z > -120, "a backwards-moving shuttle brakes on its main grilles");
     Controls slip = Wheel(15);
     slip.strafe = -1;
     braking.Run(windy,slip,15,60);

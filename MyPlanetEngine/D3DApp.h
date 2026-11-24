@@ -645,6 +645,7 @@ protected:
     Vec3d mEyeSpin = {};                      // the eye's velocity from the ship's turns, last frame (m/s)
     double mHeadTilt = 0.0, mHeadTiltRate = 0.0; // the head's roll behind the ship's, towards the left (rad)
     double mPlume = 0.0;    // smoothed positive axial thrust at the rear nozzles, 0 to 1
+    TransportExhaust mTransportExhaust;
     double mJets[5] = {};   // the attitude jets' commands, -1 to 1: slide right, lift, roll right, pitch up, yaw right
     Vec3d mCamUp = {};             // screen up supplied by the current controller
     Vec3d mChaseOffset = {};       // the chase camera from the ship, lagging behind its turns

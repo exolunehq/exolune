@@ -186,7 +186,20 @@ void Ship::ReadTransport(const std::vector<uint8_t>& data, size_t& at)
               nozzle.mouthWidth.w>0 && nozzle.axisHeight.w>0 && nozzle.aperture.y>0))
             throw std::runtime_error("Invalid transport outlet.");
     }
-    if (Read<uint32_t>(data,at)!=0x32505553) throw std::runtime_error("Missing transport supports.");
+    uint32_t section = Read<uint32_t>(data, at);
+    if (section == 0x31534352) { // RCS1, one port-side record per mirrored pair
+        if (Read<uint32_t>(data,at) != mPorts.size()) throw std::runtime_error("Invalid transport exhaust layout.");
+        for (auto& port : mPorts) {
+            port = Read<ExhaustPort>(data,at);
+            if (!(port.mouthRadius.x > 0 && port.mouthRadius.w > 0 && port.mouthRadius.w < .5f &&
+                  XMVectorGetX(XMVector3Length(XMLoadFloat4(&port.mouthRadius))) < 8 &&
+                  std::abs(XMVectorGetX(XMVector3LengthSq(XMLoadFloat4(&port.axis)))-1) < .001f))
+                throw std::runtime_error("Invalid transport exhaust port.");
+        }
+        mProfile.jetCount = 2 + 2 * SHIP_TRANSPORT_PORT_PAIRS;
+        section = Read<uint32_t>(data, at);
+    }
+    if (section != 0x32505553) throw std::runtime_error("Missing transport supports.");
     const unsigned hulls=Read<uint32_t>(data,at);
     if (!hulls || hulls>SHIP_POSE_COUNT+1) throw std::runtime_error("Invalid transport supports.");
     for (unsigned i=0; i<hulls; ++i) {
@@ -643,6 +656,7 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
     mConstants->retroOutlet = { surfaces.retroX, surfaces.retroY, surfaces.retroZ, 0 };
     mConstants->supportOutlet = { surfaces.supportX, surfaces.supportY, surfaces.supportZ, surfaces.supportSpacing };
     std::copy_n(mNozzles, _countof(mNozzles), mConstants->nozzles);
+    std::copy(mPorts.begin(), mPorts.end(), mConstants->ports);
     for (auto& pose : mConstants->pose) XMStoreFloat4x4(&pose, XMMatrixIdentity());
 
     // One root signature for every pass: frame constants (b0), the ship's (b3), the draw's (b2), its vertices and
@@ -973,11 +987,14 @@ void Ship::DrawGlass(ID3D12GraphicsCommandList* list, const Tables& t, D3D12_CPU
     if (!cockpit) drawOptics();
     const bool manoeuvring = mProfile.surfaces.span > 0 && !cockpit &&
         (mConstants->airframe.z > .01f || mConstants->supportExhaust.w > .01f);
-    const float puffs = std::max({std::abs(mConstants->thrust.y), std::abs(mConstants->thrust.z), std::abs(mConstants->thrust.w),
+    const bool transport = HasTransportRig();
+    const float trimLift = transport ? std::max(0.f,-mConstants->thrust.z) : std::abs(mConstants->thrust.z);
+    const float puffs = std::max({std::abs(mConstants->thrust.y), trimLift, std::abs(mConstants->thrust.w),
                                   std::abs(mConstants->turn.x), std::abs(mConstants->turn.y)});
-    const bool attitudePlumes = mProfile.jetCount > 2 && !cockpit && puffs > .02f;
-    const bool legacyPlumes = mProfile.jetCount && (mConstants->thrust.x > .01f || attitudePlumes);
-    if (hot || legacyPlumes || manoeuvring) {
+    const bool attitudePlumes = mProfile.jetCount > 2 && !cockpit &&
+        (puffs > .01f || (transport && mConstants->airframe.z > .01f));
+    const bool plumes = mProfile.jetCount && (mConstants->thrust.x > .01f || attitudePlumes || manoeuvring);
+    if (hot || plumes) {
         list->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
         const auto toRead = CD3DX12_RESOURCE_BARRIER::Transition(mSceneDepth.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         list->ResourceBarrier(1, &toRead);
@@ -988,9 +1005,10 @@ void Ship::DrawGlass(ID3D12GraphicsCommandList* list, const Tables& t, D3D12_CPU
             list->SetPipelineState(mEntryVolumePSO.Get());
             list->DrawInstanced(36, 1, 0, 0);
         }
-        if (legacyPlumes || manoeuvring) {
+        if (plumes) {
             list->SetPipelineState(mPlumePSO.Get());
-            list->DrawInstanced(36, mProfile.jetCount + (manoeuvring ? SHIP_MANOEUVRING_JETS : 0), 0, 0);
+            const UINT count = transport && !attitudePlumes ? 2 : mProfile.jetCount;
+            list->DrawInstanced(36, count + (manoeuvring ? SHIP_MANOEUVRING_JETS : 0), 0, 0);
         }
         const auto toDepth = CD3DX12_RESOURCE_BARRIER::Transition(mSceneDepth.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
         list->ResourceBarrier(1, &toDepth);

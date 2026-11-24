@@ -24,11 +24,42 @@ struct Jet
     float power;    // 0 to 1
     float chart;    // linear aperture image index + 1, zero for analytic jets
     float rake;     // axial extent of the physical outlet (m)
+    float bend;     // downward discharge angle after the outlet (radians)
 };
+
+Jet TransportPort(uint index)
+{
+    Jet jet = (Jet)0;
+    const ShipExhaustPort port = shipPorts[index / 2u];
+    const float3 mirror = float3((index & 1u) ? -1 : 1, 1, 1);
+    jet.at = port.mouthRadius.xyz * mirror;
+    jet.to = port.axis.xyz * mirror;
+    jet.radii = port.mouthRadius.w;
+    if (index < 2u) {
+        jet.power = shipAirframe.z;
+        jet.length = .55 + 2.75 * jet.power;
+        jet.spread = .065;
+    } else {
+        // Only the outlets whose reaction serves the translation or torque fire.
+        // The main grilles already carry the positive lift component.
+        const float3 push = -jet.to;
+        const float3 lever = normalize(cross(jet.at - SHIP_CENTRE, push));
+        const float3 slide = float3(-shipThrust.w, 0, min(0.0, shipThrust.z));
+        const float3 torque = -float3(shipTurn.x, shipThrust.y, shipTurn.y);
+        const float demand = saturate(dot(push, slide) + dot(lever, torque));
+        const float phase = frac(shipTurn.z * 4.0 + index * .38197);
+        const float pulse = smoothstep(0, .13, phase) * (1 - smoothstep(.38, .83, phase));
+        jet.power = smoothstep(.018, .68, demand) * (.18 + .82 * pulse);
+        jet.length = .35 + 1.35 * sqrt(jet.power);
+        jet.spread = .13;
+    }
+    return jet;
+}
 
 Jet JetOf(uint j)
 {
     Jet jet = (Jet)0;
+    if (shipAutomation.y > .5 && j >= 2u) return TransportPort(j - 2u);
     if (j >= LEGACY_JETS)
     {
         const uint port = j - LEGACY_JETS;
@@ -54,7 +85,8 @@ Jet JetOf(uint j)
             jet.at = nozzle.mouthWidth.xyz;
             jet.radii = float2(nozzle.mouthWidth.w, nozzle.axisHeight.w);
             jet.power = smoothstep(.035, 1.0, shipThrust.x);
-            jet.length = jet.radii.x * lerp(1.25, 4.9, jet.power);
+            jet.bend = shipAutomation.z;
+            jet.length = jet.radii.x * lerp(1.25, shipAutomation.y > .5 ? 6.4 : 4.9, jet.power);
             jet.spread = .12;
             return jet;
         }
@@ -121,11 +153,19 @@ void JetFrame(uint index, Jet jet, out float3 u, out float3 v)
     if (jet.chart > 0 && v.z < 0) v = -v; // both aperture images have increasing ship height in +v
 }
 
+// The inner sheet must clear the turn centre even where the mouth flares.
+float BendRadius(Jet jet) { return jet.radii.y * 1.45 + .09; }
+
 void JetBounds(Jet jet, out float3 low, out float3 high)
 {
     const float2 across = jet.radii + jet.spread * jet.length + .05;
     low = float3(-across, -.05);
     high = float3(across, jet.rake + jet.length);
+    if (jet.bend > .001) {
+        const float radius = BendRadius(jet);
+        low.y -= radius * (1 - cos(jet.bend)) + jet.length * sin(jet.bend);
+        high.z = jet.rake + (radius + across.y) * sin(jet.bend) + jet.length * cos(jet.bend) + .06;
+    }
 }
 
 struct PlumePixel

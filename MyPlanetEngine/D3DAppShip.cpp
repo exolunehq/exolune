@@ -115,8 +115,9 @@ void D3DApp::UpdateShip(float dt) {
     FlightFrame::Turn(mShipForward,mShipUp,mShipRate.y*dt,-mShipRate.x*dt,mShipRate.z*dt);
     mShipUp = Rotate(mShipUp, mShipForward, -mFlightPilot.bank);
 
-    const double strafe = held(mMoveKeys[3]) - held(mMoveKeys[2]);
-    const double lift = std::min(std::max(held(mMoveKeys[0]) + held(VK_SPACE) - held(mMoveKeys[1]) - held(VK_CONTROL), -1.0), 1.0);
+    const double strafe = mFlightTake.Connected() ? mFlightTake.strafe : held(mMoveKeys[3]) - held(mMoveKeys[2]);
+    const double lift = mFlightTake.Connected() ? mFlightTake.lift :
+        std::min(std::max(held(mMoveKeys[0]) + held(VK_SPACE) - held(mMoveKeys[1]) - held(VK_CONTROL), -1.0), 1.0);
     FlightDynamics::Controls controls = {mShipForward, Normalize(Cross(mShipUp, mShipForward)), mShipUp,
                                          mThrottle, strafe, lift, held(VK_SHIFT) > 0, held('X') > 0, held(VK_UP) > 0,
                                          mShipRate.y, mShipRate.z};
@@ -135,6 +136,10 @@ void D3DApp::UpdateShip(float dt) {
     mShipUp = controls.up;
     const Vec3d right = controls.right;
     mPlume += (loads.mainJet - mPlume) * (1.0 - std::exp(-dt / .18));
+    if (controls.transport) {
+        const bool parked = controls.supported && mFlightPilot.holding && Length(mShipVelocity) < .25;
+        mTransportExhaust.Advance(dt, loads.axialJet, loads.liftJet, loads.sideJet, parked);
+    }
     // The flight corridor sweeps the hull before this candidate pose is accepted. Keep only the sea floor here.
     const double keel=mShip.HasTransportRig() && TransportClearance()<10000
         ? TransportDepth(mShipForward,mShipUp,SurfaceUp(mShipPos)) : 2.5;
@@ -210,6 +215,7 @@ void D3DApp::PlaceShipAtCamera() {
     mShipContactImpulse = {};
     mFlightCues = {};
     mTransport = {};
+    mTransportExhaust = {};
     mTransportGroundKnown = false;
     mEntryFlowPhase = 0.0;
     mFlightPilot = {};
@@ -362,7 +368,11 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
                 mFlightCues.equivalentAirspeed, mFlightCues.dynamicPressurePa, mFlightCues.heat, 0, false, lever>0, TransportSupported());
         const auto& p=mTransport.position;
         ship.equipment={float(p[0]),float(p[1]),float(p[2]),float(p[3])};
-        ship.automation={float(mTransport.ManualMask()),1,0,0};
+        ship.automation={float(mTransport.ManualMask()),1,float(mTransportExhaust.Deflection()),0};
+        ship.thrust.x = float(mTransportExhaust.MainPower());
+        ship.thrust.z = float(mTransportExhaust.lift);
+        ship.thrust.w = float(mTransportExhaust.side);
+        ship.airframe.z = float(std::max(0.0, -mTransportExhaust.ahead));
         mShip.SetTransportPose(mTransport);
     } else mShip.SetFlightSurfaces(ship.airframe.x, ship.airframe.y);
 }

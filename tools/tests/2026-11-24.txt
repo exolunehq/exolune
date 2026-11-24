@@ -5,3 +5,6 @@ Approche lunaire — suivre le train, laisser descendre la navette | 12 20 15 0 
 Escale sur la plaine littorale — train en appui, rampe ouverte à l’arrêt | 1 16.71 -89.25 0 9 v=0 | 30 -70
 Freinage en vallée — maintenir X, observer le panneau dorsal | 3200 38.1445 103.5352 0 90 v=145 | 46 75
 Rentrée atmosphérique — observer la protection thermique, puis la sortie des ailes en air porteur | 66000 30.68685 120.10788 15 76 depuis-espace v=7400 | 12 -161
+Décollage sur la plaine — Espace pour monter, X pour tenir le vol stationnaire | 1 16.71 -89.25 0 9 v=0 | 30 -70
+Rétrofusées en orbite — X pour freiner, flèche haut pour reprendre la poussée | 250000 22 135 0 90 v=155 | 16 110
+Stabilisation en vol lunaire — glisser de côté ou donner un coup de roulis | 1400 20 15 0 -102 lune v=50 | -25 55
