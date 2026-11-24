@@ -30,6 +30,15 @@ double D3DApp::TransportClearance() const {
     return SurfaceAltitude(mShipPos) - (mCine.empty() ? ground : mCineShipGround);
 }
 
+bool D3DApp::TransportSupported() const {
+    const double clearance=TransportClearance();
+    if (clearance>10 || !mTransport.initialized) return false;
+    const Vec3d delta=mShipPos-mFlightSlideOrigin;
+    if (mFlightSlideBody==1 && Dot(mFlightSlideNormal,mFlightSlideNormal)>.5 &&
+        Dot(delta,delta)<1 && std::abs(Dot(delta,mFlightSlideNormal))<.04) return true;
+    return clearance>=0 && clearance<=TransportDepth(mShipForward,mShipUp,SurfaceUp(mShipPos))+.07;
+}
+
 double D3DApp::TransportDepth(Vec3d forward, Vec3d up, Vec3d vertical) const {
     return mShip.TransportDepth({float(Dot(Cross(forward,up),vertical)),-float(Dot(forward,vertical)),
                                  float(Dot(up,vertical))},mTransport);
@@ -114,6 +123,8 @@ void D3DApp::UpdateShip(float dt) {
     if (mShip.HasTransportRig()) {
         controls.transport = &mTransport;
         controls.terrainClearance = TransportClearance();
+        controls.descentRate = -Dot(mShipVelocity,SurfaceUp(mShipPos));
+        controls.supported = TransportSupported();
     }
     Vec3d newPos = mShipPos;
     mFlightLoads = FlightDynamics::Advance(mSettings.Automated() ? 0 : dt, newPos, mShipVelocity,
@@ -348,7 +359,7 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
     if (mShip.HasTransportRig()) {
         if (!mCine.empty() || mView == View::Walk)
             mTransport.Advance(dt, TransportClearance(), -Dot(mShipVelocity,vertical), speed, mFlightCues.density,
-                mFlightCues.equivalentAirspeed, mFlightCues.dynamicPressurePa, mFlightCues.heat, 0, false, lever>0);
+                mFlightCues.equivalentAirspeed, mFlightCues.dynamicPressurePa, mFlightCues.heat, 0, false, lever>0, TransportSupported());
         const auto& p=mTransport.position;
         ship.equipment={float(p[0]),float(p[1]),float(p[2]),float(p[3])};
         ship.automation={float(mTransport.ManualMask()),1,0,0};

@@ -66,7 +66,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - VSX3 materials carry explicit animation roles in 96 bytes.
 - VSX2 materials remain 92 bytes on disk; loading expands them and maps original screen indices 13–18 to roles 1–6.
 - The original package and generator remain unchanged.
-- VSX4 carries two cockpit pivots, four independent clips, fitted nozzle data, per-part support bounds and a weather chart. The loader also accepts legacy film VSX3 and classic VSX2 packets.
+- VSX4 carries two cockpit pivots, four independent clips, fitted nozzle data, per-part convex support hulls and a weather chart. The loader also accepts legacy film VSX3 and classic VSX2 packets.
 - Flight and navigation use live attitude, speed, altitude, heading and geographic position. Equipment indications read back actual motion and manual overrides.
 - The package is found above the executable; an absent package leaves the free camera available.
 - The ship frame uses metres: nose −Y, up +Z, pilot's left +X.

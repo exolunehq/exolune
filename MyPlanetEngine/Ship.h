@@ -119,8 +119,8 @@ private:
     struct RigidKey { DirectX::XMFLOAT3 translation; DirectX::XMFLOAT4 rotation; };
     struct RigidTrack { unsigned slot; DirectX::XMFLOAT4X4 inverseBind; std::vector<RigidKey> keys; };
     std::array<std::vector<RigidTrack>,TransportEquipment::Count> mTransportClips;
-    struct SupportBox { unsigned slot; DirectX::XMFLOAT3 centre, extent; };
-    std::vector<SupportBox> mTransportBounds;
+    struct SupportHull { unsigned slot; std::vector<DirectX::XMFLOAT3> points; };
+    std::vector<SupportHull> mTransportBounds;
     static DirectX::XMMATRIX TransportMatrix(const RigidTrack& track, double phase);
     void ReadTransport(const std::vector<uint8_t>& data, size_t& at);
     void ReadPane(const std::vector<uint8_t>& data, size_t& at);

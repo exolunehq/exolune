@@ -627,6 +627,7 @@ protected:
     FlightDynamics::Loads mFlightLoads;
     TransportEquipment mTransport;
     double TransportClearance() const;
+    bool TransportSupported() const;
     double TransportDepth(Vec3d forward, Vec3d up, Vec3d vertical) const;
     double mTransportGround = 0;
     bool mTransportGroundKnown = false;

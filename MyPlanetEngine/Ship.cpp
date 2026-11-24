@@ -186,13 +186,17 @@ void Ship::ReadTransport(const std::vector<uint8_t>& data, size_t& at)
               nozzle.mouthWidth.w>0 && nozzle.axisHeight.w>0 && nozzle.aperture.y>0))
             throw std::runtime_error("Invalid transport outlet.");
     }
-    if (Read<uint32_t>(data,at)!=0x31505553) throw std::runtime_error("Missing transport supports.");
-    const unsigned boxes=Read<uint32_t>(data,at);
-    if (!boxes || boxes>512) throw std::runtime_error("Invalid transport supports.");
-    for (unsigned i=0; i<boxes; ++i) {
-        auto box=Read<SupportBox>(data,at);
-        if (box.slot>SHIP_POSE_COUNT) throw std::runtime_error("Invalid transport support slot.");
-        mTransportBounds.push_back(box);
+    if (Read<uint32_t>(data,at)!=0x32505553) throw std::runtime_error("Missing transport supports.");
+    const unsigned hulls=Read<uint32_t>(data,at);
+    if (!hulls || hulls>SHIP_POSE_COUNT+1) throw std::runtime_error("Invalid transport supports.");
+    for (unsigned i=0; i<hulls; ++i) {
+        SupportHull hull{};
+        hull.slot=Read<uint32_t>(data,at);
+        const unsigned count=Read<uint32_t>(data,at);
+        if (hull.slot>SHIP_POSE_COUNT || !count || count>65536) throw std::runtime_error("Invalid support hull.");
+        hull.points.reserve(count);
+        for (unsigned j=0;j<count;++j) hull.points.push_back(Read<XMFLOAT3>(data,at));
+        mTransportBounds.push_back(std::move(hull));
     }
     ReadPane(data,at);
 }
@@ -221,12 +225,13 @@ float Ship::TransportDepth(XMFLOAT3 up, const TransportEquipment& state) const
         for (const auto& track : mTransportClips[i]) transforms[track.slot+1]=TransportMatrix(track,phase);
     }
     float depth=.2f;
-    for (const auto& box : mTransportBounds) {
-        const auto& transform=transforms[box.slot];
-        const XMVECTOR centre=XMVector3TransformCoord(XMLoadFloat3(&box.centre),transform);
-        const XMVECTOR axis=XMVector3TransformNormal(vertical,XMMatrixTranspose(transform));
-        const XMVECTOR reach=XMVector3Dot(XMLoadFloat3(&box.extent),XMVectorAbs(axis))-XMVector3Dot(centre,vertical);
-        depth=std::max(depth,XMVectorGetX(reach));
+    for (const auto& hull : mTransportBounds) {
+        const auto& transform=transforms[hull.slot];
+        XMFLOAT3 axis;
+        XMStoreFloat3(&axis,XMVector3TransformNormal(vertical,XMMatrixTranspose(transform)));
+        const float offset=XMVectorGetX(XMVector3Dot(transform.r[3],vertical));
+        for (const auto& p : hull.points)
+            depth=std::max(depth,-(axis.x*p.x+axis.y*p.y+axis.z*p.z+offset));
     }
     return depth;
 }

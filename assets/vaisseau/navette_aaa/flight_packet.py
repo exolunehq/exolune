@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 
+import bmesh
 from mathutils import Matrix, Quaternion
 import numpy as np
 
@@ -113,16 +114,32 @@ def exhausts(images):
     return result
 
 
-def support_boxes(vertex):
-    """Conservative rest bounds per rigid part and longitudinal section of the fixed hull."""
-    result = []
+def hull_vertices(points):
+    """Every support direction touches an actual vertex of the part's convex hull."""
+    points = np.unique(points,axis=0)
+    if len(points)<5:
+        return points
+    mesh = bmesh.new()
+    try:
+        for point in points:
+            mesh.verts.new(point)
+        result = bmesh.ops.convex_hull(mesh,input=list(mesh.verts))
+        surface = {tuple(v.co) for face in result['geom'] if isinstance(face,bmesh.types.BMFace) for v in face.verts}
+        return np.array(sorted(surface),dtype='<f4') if surface else points
+    finally:
+        mesh.free()
+
+
+def supports(vertex):
+    hulls = []
     for slot in np.unique(vertex[:,14]):
         pts = vertex[vertex[:,14]==slot,:3]
-        groups = (pts,) if slot else [pts[np.floor(pts[:,1])==y] for y in np.unique(np.floor(pts[:,1]))]
-        for group in groups:
-            lo,hi = group.min(0),group.max(0)
-            result.append(struct.pack('<I6f',int(slot),*((lo+hi)*.5),*((hi-lo)*.5)))
-    return struct.pack('<4sI',b'SUP1',len(result))+b''.join(result)
+        # Hulls of chunks have the same union support as their source points.
+        pieces = [hull_vertices(block) for block in np.array_split(pts, max(1,(len(pts)+11999)//12000))]
+        hull = hull_vertices(np.concatenate(pieces)).astype('<f4')
+        hulls.append(struct.pack('<II',int(slot),len(hull))+hull.tobytes())
+    print('Contact hulls',len(hulls),'support vertices',sum((len(h)-8)//12 for h in hulls))
+    return struct.pack('<4sI',b'SUP2',len(hulls))+b''.join(hulls)
 
 
 def cook(source, destination):
@@ -176,7 +193,7 @@ def cook(source, destination):
             file.write(controls)
             file.write(clips)
             file.write(jets)
-            file.write(support_boxes(vertex))
+            file.write(supports(vertex))
             file.write(canopy)
         print('V9 packet',nv,'vertices',ni//3,'triangles',len(merged),'draws',
               hashlib.sha256(output.read_bytes()).hexdigest())

@@ -215,7 +215,7 @@ void CheckFlightDynamics() {
     auto fly=[&](int frames,double height,double speed,double density,bool brake=false,bool powered=false) {
         for (int n=0;n<frames;++n)
             transport.Advance(1./60,height,0,speed,density,speed*std::sqrt(density),
-                              .5*1.225*density*speed*speed,0,0,brake,powered);
+                              .5*1.225*density*speed*speed,0,0,brake,powered,height<=2.65);
     };
     fly(300,250000,120,0);
     Check(transport.position[Rig::Wings]==0 && transport.position[Rig::Gear]==0,"transport stows in vacuum");
@@ -229,6 +229,8 @@ void CheckFlightDynamics() {
     transport.Automatic();
     fly(240,25,12,1);
     Check(transport.position[Rig::Gear]==1 && transport.position[Rig::Hatch]==0,"gear precedes landing and ramp");
+    fly(260,3.1,0,1);
+    Check(transport.position[Rig::Hatch]==0,"hover just above the pads keeps the ramp seated");
     fly(260,2.64,0,1);
     Check(transport.position[Rig::Hatch]==1,"ramp opens when stationary on the gear");
     transport.Toggle(Rig::Gear);

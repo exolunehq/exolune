@@ -135,7 +135,8 @@ struct Controls {
     bool boost, brake, fullThrust = false;
     double yaw = 0, roll = 0; // pilot rates, positive to the right
     TransportEquipment* transport = nullptr;
-    double terrainClearance = 0;
+    double terrainClearance = 0, descentRate = 0;
+    bool supported = false;
 };
 inline double MoveThrottle(double notch, double detents) {
     return Clamp(notch + detents, 0, ThrottleNotches);
@@ -337,10 +338,9 @@ inline Loads Advance(double seconds, Vec3d& position, Vec3d& velocity, Cues& cue
         const double requested = std::min(BrakeLimit(speed), 1.55 * excess);
         pilot.deceleration = Follow(pilot.deceleration, requested, dt, .33);
         if (c.transport) {
-            const double descent = -Dot(velocity, position * (1.0/std::max(1.0,Length(position))));
-            c.transport->Advance(dt, c.terrainClearance, descent, speed, cues.density,
+            c.transport->Advance(dt, c.terrainClearance, c.descentRate, speed, cues.density,
                 cues.equivalentAirspeed, cues.dynamicPressurePa, cues.heat, pilot.deceleration,
-                c.brake, !pilot.holding && (burn || c.throttle > 0 || c.lift > 0));
+                c.brake, !pilot.holding && (burn || c.throttle > 0 || c.lift > 0), c.supported);
             pilot.surfaces.wings = Smooth(.27, .91, c.transport->position[TransportEquipment::Wings]);
             pilot.surfaces.airbrakes = c.transport->position[TransportEquipment::Brake];
         } else pilot.surfaces.Advance(cues, pilot.deceleration, dt);
