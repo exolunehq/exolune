@@ -22,7 +22,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours to
 
 - The launcher accepts `-ModeleVaisseau classique`, `chasseur`, `navigateur` or `navette` for the same route.
 - In a route's pose field, optional `v=<m/s>` after the heading sets the initial forward speed in ship view. Ordinary rows start from rest.
-- Cut the throttle to coast. Hold X until the title shows `stationnaire`. Use the wheel or a thrust or translation command to resume flight. Enter calls the radio in the cockpit or suit.
+- In vacuum, cut the throttle to coast. Hold X until the title shows `stationnaire`. Use the wheel or a thrust or translation command to resume flight. Enter calls the radio in the cockpit or suit.
 
 **Shuttle and fighter review** uses the [six-stop flight route](../tools/tests/2026-11-20-aerofreins.txt). Turn over the coast at F1, stop over open sea at F2 and check the external surfaces with Tab at F4 and F5. F6 starts near the Moon.
 
@@ -33,7 +33,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours to
 ## Transport shuttle
 
 - Run `tools/jouer_navette.cmd` to start parked on the coastal plain. P opens the in-game flight controls and pauses piloting. P or Escape resumes.
-- For a manual landing, idle the throttle and brake with X. With gear down below 120 m, Space and Ctrl adjust height in precision hover. Release to hold height. Wheel or full thrust resumes ordinary flight.
+- In atmosphere the wheel holds its setting. The main plumes stay lit at cruise speed and reach full output at notch 25 of 30. Tap Up to leave the lever at full power.
+- Roll the wheel down to zero or tap Down or X to brake to a powered hover. The retro jets slow the shuttle, then the main grilles turn down and the ventral jets stabilize it. Space and Ctrl change height. Release to hold position. Advance the wheel to fly on.
+- In vacuum, zero allows an inertial coast. Up gives full thrust while held. Hold X or Down to stop. With the gear down below 120 m, Space and Ctrl also control manual landing on the Moon.
 - L initiates automatic landing below 5 km and 1,200 km/h ground speed. The shuttle levels, brakes, deploys the gear and descends. It searches nearby when the surface is wet or too steep. L returns control in flight.
 - After touchdown the hull locks to the surface. Mouse movement controls the camera. J disembarks once the rear stair is fully open. J boards again.
 - L from park closes the stair before liftoff and establishes a hover 8 m above the pads. L during closure cancels departure. F4 and F7 start parked. F10 and F11 start airborne over the plain and Moon 1.

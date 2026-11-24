@@ -160,7 +160,14 @@ void D3DApp::MeasureShipAir(Vec3d position, Vec3d velocity, double altitude, dou
     AdvanceEntryFlow(dt);
 }
 
-// The wheel selects cruise speed, then sustained thrust. Up burns at full power, Shift boosts and X brakes.
+void D3DApp::MoveShipThrottle(double detents) {
+    if (detents == 0) return;
+    auto* rig = TransportInView() ? &mTransport : nullptr;
+    const double density = FlightDynamics::DensityAtAltitude(Length(mShipPos) - PlanetRadius);
+    mThrottle = FlightDynamics::MoveThrottle(mThrottle, detents, rig, density);
+}
+
+// The wheel selects cruise speed, then sustained thrust. Atmospheric transports latch full power and the stop.
 // In vacuum a stick turn carries the inertial course. Atmospheric lift curves a banked ship's heading.
 void D3DApp::UpdateShip(float dt) {
     const double eyeAhead = mShip.Profile().eyeAhead;
@@ -170,8 +177,7 @@ void D3DApp::UpdateShip(float dt) {
     if (mFlightTake.Connected()) {
         mRawDx = input[FlightTake::MouseX];
         mRawDy = input[FlightTake::MouseY];
-        if (!TransportInView() || mTransport.phase==TransportEquipment::Phase::Flight)
-            mThrottle = FlightDynamics::MoveThrottle(mThrottle, input[FlightTake::Wheel]);
+        MoveShipThrottle(input[FlightTake::Wheel]);
         const bool looking = input[FlightTake::Look] != 0;
         if (mLooking && !looking) mHeadKept = true;
         mLooking = looking;
@@ -235,7 +241,9 @@ void D3DApp::UpdateShip(float dt) {
     FlightFrame::Turn(mShipForward,mShipUp,mShipRate.y*dt,-mShipRate.x*dt,mShipRate.z*dt);
     mShipUp = Rotate(mShipUp, mShipForward, -mFlightPilot.bank);
 
-    if (guided) {
+    const bool levelHover = transport && mTransport.brakeToHover && Length(mShipVelocity) < 18 &&
+        std::abs(mStickY) < .05 && std::abs(roll) < .05;
+    if (guided || levelHover) {
         const Vec3d vertical=SurfaceUp(mShipPos);
         Vec3d targetUp=vertical;
         if (mTransport.phase==Phase::Approach && clearance<10 && Landable(site)) targetUp=site.normal;
@@ -246,14 +254,15 @@ void D3DApp::UpdateShip(float dt) {
             const double step=std::min(angle,double(dt)*1.5);
             mShipUp=Rotate(mShipUp,turn,step); mShipForward=Rotate(mShipForward,turn,step);
         }
-        mFlightPilot.bank=0; mFlightPilot.holding=false;
+        mFlightPilot.bank=0;
+        if (guided) mFlightPilot.holding=false;
     }
 
     const double strafe = mFlightTake.Connected() ? mFlightTake.strafe : held(mMoveKeys[3]) - held(mMoveKeys[2]);
     const double lift = mFlightTake.Connected() ? mFlightTake.lift :
         std::min(std::max(held(mMoveKeys[0]) + held(VK_SPACE) - held(mMoveKeys[1]) - held(VK_CONTROL), -1.0), 1.0);
     FlightDynamics::Controls controls = {mShipForward, Normalize(Cross(mShipUp, mShipForward)), mShipUp,
-                                         mThrottle, strafe, lift, held(VK_SHIFT) > 0, held('X') > 0, held(VK_UP) > 0,
+                                         mThrottle, strafe, lift, held(VK_SHIFT) > 0, held('X') > 0 || (transport && held(VK_DOWN) > 0), held(VK_UP) > 0,
                                          mShipRate.y, mShipRate.z};
     if (mShip.HasTransportRig()) {
         controls.transport = &mTransport;
@@ -291,7 +300,8 @@ void D3DApp::UpdateShip(float dt) {
     const Vec3d right = controls.right;
     mPlume += (loads.mainJet - mPlume) * (1.0 - std::exp(-dt / .18));
     if (controls.transport) {
-        mTransportExhaust.Advance(dt, loads.axialJet, loads.liftJet, loads.sideJet, false);
+        mThrottle = controls.throttle;
+        mTransportExhaust.Advance(dt, loads.axialJet, loads.liftJet, loads.sideJet, false, loads.trimJet);
         if (mTransport.phase==Phase::Takeoff && Length(mShipVelocity)<.25 &&
             std::abs(controls.terrainClearance-TransportEquipment::PadDepth-TransportEquipment::HoverHeight)<.12) {
             mTransport.SetPhase(Phase::Flight);
@@ -532,7 +542,8 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
                 mFlightCues.equivalentAirspeed, mFlightCues.dynamicPressurePa, mFlightCues.heat, 0, false);
         const auto& p=mTransport.position;
         ship.equipment={float(p[0]),float(p[1]),float(p[2]),float(p[3])};
-        ship.automation={float(mTransport.ManualMask()),1,float(mTransportExhaust.Deflection()),0};
+        ship.automation={float(mTransport.ManualMask()),1,float(mTransportExhaust.Deflection()),
+                         float(mTransportExhaust.trim / TransportExhaust::TrimShare)};
         ship.thrust.x = float(mTransportExhaust.MainPower());
         ship.thrust.z = float(mTransportExhaust.lift);
         ship.thrust.w = float(mTransportExhaust.side);

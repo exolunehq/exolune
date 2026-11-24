@@ -41,10 +41,10 @@ Jet TransportPort(uint index)
         jet.spread = .065;
     } else {
         // Only the outlets whose reaction serves the translation or torque fire.
-        // The main grilles already carry the positive lift component.
+        // The ventral pairs share hover support with the vectoring main grilles.
         const float3 push = -jet.to;
         const float3 lever = normalize(cross(jet.at - SHIP_CENTRE, push));
-        const float3 slide = float3(-shipThrust.w, 0, min(0.0, shipThrust.z));
+        const float3 slide = float3(-shipThrust.w, 0, min(0.0, shipThrust.z) + shipAutomation.w);
         const float3 torque = -float3(shipTurn.x, shipThrust.y, shipTurn.y);
         const float demand = saturate(dot(push, slide) + dot(lever, torque));
         const float phase = frac(shipTurn.z * 4.0 + index * .38197);

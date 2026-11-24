@@ -11,7 +11,7 @@
 - All three deployed feet sample the local terrain. Each must be dry. The support plane accepts slopes up to 12°. A slow contact seats the hull on that plane.
 - The parked state fixes position and attitude relative to the body during camera motion, stair travel, disembarkation and boarding.
 - Departure completes stair closure before lifting. The shuttle hands back control in a stationary hover.
-- P displays the current phase, commands, indicated wing speed and automatic thresholds in all ship views. [Transport controls](lancement.md#transport-shuttle)
+- P displays the current phase, controls, throttle setting, main engine output and automatic wing thresholds in all ship views. [Transport controls](lancement.md#transport-shuttle)
 - J disembarks behind the fully open stair. [Walking controls and audio](spec-marche-ambiances.md)
 
 **Try, in the game (`AGENTS.md`, `lancement.md`):** from the root of the worktree,
@@ -196,9 +196,9 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - **The standard for keyboard and mouse space games,** Star Citizen and Everspace:
   - **Mouse:** pitch and lacing, by a virtual handle that refocuses at rest.
   - **Rolls:** Q and E, or A and E in AZERTY.
-  - **Throttle** selects cruise speed on notches 1–24 and continuous thrust on notches 25–30. Hold Up for immediate full thrust at any altitude. Releasing Up restores the selected notch. Zero releases cruise. X brakes and then holds position.
+  - **Throttle** selects cruise speed on notches 1–24 and continuous thrust on notches 25–30. On the transport, Up selects full lever travel in atmosphere. In vacuum and on the other ships it gives a momentary full burn.
   - **Sliding:** A and D (Q and D) on the side; W and S (Z and S), or Space and Ctrl, up and down, in the ship's axis.
-  - **Boost and brake** use Shift and X. Hold X until station keeping engages. Move the wheel or command thrust or translation to resume flight.
+  - **Boost and brake** use Shift and X. On the atmospheric transport, X, Down or selecting zero brakes to a hover. Releasing the key completes the manoeuvre. Lateral and vertical controls move within hover. Advancing the lever resumes forward flight. In space, hold the brake until station keeping engages.
   - **Free head:** Right click held; on releasing, the view stays where it is and the mouse pilots again.
   - **Swing head:** H gives the mouse to the head; H returns it to the ship again, and the head stays where it is.
   - **R brings the head back to rest,** a little below the horizon, of 4,5°. In free camera, R keeps the shading faceted.
@@ -238,6 +238,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - **Main exhausts**
   - Each transport grille emits five amber sheets from its measured openings. A fourth linear texture channel marks the last lip in each column.
   - Both main plumes run parallel to the ship's longitudinal axis under forward thrust. Increasing lift bends them together toward the keel after the lip. In hover both streams point straight down.
+  - Atmospheric cruise sustains the selected engine regime up to full output at notch 25. The four ventral stabilizers share the lift load when the shuttle hovers. Ground contact transfers that load to the landing gear.
   - The cooker projects the five openings along ship +Y. The duct width sets the hover reach. Forward thrust adds the measured distance to the stern, so both tails clear the aft hull at full power. The grille and gas share the same power. [Packet regression check](../tools/tests/check_transport_plumes.py)
   - Two recessed nose outlets discharge forwards during longitudinal braking. A backwards-moving shuttle uses the main outlets to stop.
   - Twelve smaller outlets on the fixed hull pulse with side thrust, downward translation and angular acceleration. They work in vacuum. The feet carry the load when parked.

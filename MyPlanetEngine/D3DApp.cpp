@@ -3600,9 +3600,8 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         return 0;
     case WM_MOUSEWHEEL:
         if (mView == View::Walk) return 0;
-        if (TransportInView() && mTransport.phase!=TransportEquipment::Phase::Flight) return 0;
         if (mView != View::Free) { // the ship's gas, notch by notch; it stays where it is left
-            mThrottle = FlightDynamics::MoveThrottle(mThrottle, GET_WHEEL_DELTA_WPARAM(wParam) / double(WHEEL_DELTA));
+            MoveShipThrottle(GET_WHEEL_DELTA_WPARAM(wParam) / double(WHEEL_DELTA));
             return 0;
         }
         mCameraSpeed *= std::pow(1.5, GET_WHEEL_DELTA_WPARAM(wParam) / double(WHEEL_DELTA)); // smooth wheels send small deltas
@@ -3610,6 +3609,10 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         return 0;
     case WM_KEYDOWN: {
         if (lParam & (1 << 30)) break; // ignore auto-repeat
+        // A quick throttle tap can begin and end between two rendered frames.
+        if (TransportInView() && (wParam == VK_UP || wParam == VK_DOWN || wParam == 'X'))
+            FlightDynamics::SelectTransportPower(mTransport, FlightDynamics::DensityAtAltitude(Length(mShipPos) - PlanetRadius),
+                                                wParam != VK_UP, mThrottle);
         if (wParam == VK_HOME && mView == View::Free) {
             mCameraMode = FlightFrame::NextCameraMode(mCameraMode);
             if (mCameraMode == CameraMode::Horizon) {

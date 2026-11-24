@@ -5,19 +5,21 @@
 #include <cmath>
 
 struct TransportExhaust {
-    double ahead = 0, lift = 0, side = 0;
+    static constexpr double TrimShare = .22; // fraction of hover support carried by the ventral jets
+    double ahead = 0, lift = 0, side = 0, trim = 0;
 
-    void Advance(double dt, double axial, double vertical, double lateral, bool parked) {
-        const double response = -std::expm1(-dt / .13);
+    void Advance(double dt, double axial, double vertical, double lateral, bool parked, double trimLoad = 0) {
+        const double response = -std::expm1(-dt / .085);
         ahead += ((parked ? 0.0 : axial) - ahead) * response;
         lift += ((parked ? 0.0 : vertical) - lift) * response;
         side += ((parked ? 0.0 : lateral) - side) * response;
+        trim += ((parked ? 0.0 : trimLoad) - trim) * response;
     }
     double MainPower() const {
-        return std::sqrt(std::min(1.0, std::hypot(std::max(0.0, ahead), std::max(0.0, lift))));
+        return std::sqrt(std::min(1.0, std::hypot(std::max(0.0, ahead), std::max(0.0, lift - trim))));
     }
     double Deflection() const {
-        return std::atan2(std::max(0.0, lift), std::max(0.0, ahead));
+        return std::atan2(std::max(0.0, lift - trim), std::max(0.0, ahead));
     }
 };
 
@@ -28,12 +30,13 @@ struct TransportEquipment {
     static constexpr int WingProtectKmh = 1340, WingRearmKmh = 1140;
     static constexpr int MaxApproachHeight = 5000, MaxApproachKmh = 1200;
     static constexpr double PadDepth = 2.6388, HoverHeight = 8;
+    static constexpr double AtmosphericControlDensity = .00022; // ratio to sea-level density
     Phase phase = Phase::Flight;
     std::array<double, Count> position{};
     std::array<int, Count> manual{{-1,-1,-1,-1}};
     std::array<bool, Count> target{};
     bool initialized = false, cruise = false, gearNearGround = false, wingProtected = false;
-    bool precisionHover = false;
+    bool precisionHover = false, brakeToHover = false;
     double parkedTime = 0;
 
     bool GroundLocked() const { return phase == Phase::Parked || phase == Phase::Closing; }
@@ -41,7 +44,7 @@ struct TransportEquipment {
     bool CanWalk() const { return phase == Phase::Parked && position[Hatch] == 1; }
     void SetPhase(Phase next) {
         phase = next;
-        precisionHover = false;
+        precisionHover = brakeToHover = false;
         if (next == Phase::Parked) parkedTime = 0;
         if (next != Phase::Flight) Automatic();
     }

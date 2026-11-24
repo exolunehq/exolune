@@ -989,7 +989,7 @@ void Ship::DrawGlass(ID3D12GraphicsCommandList* list, const Tables& t, D3D12_CPU
     const bool manoeuvring = mProfile.surfaces.span > 0 && !cockpit &&
         (mConstants->airframe.z > .01f || mConstants->supportExhaust.w > .01f);
     const bool transport = HasTransportRig();
-    const float trimLift = transport ? std::max(0.f,-mConstants->thrust.z) : std::abs(mConstants->thrust.z);
+    const float trimLift = transport ? std::max(mConstants->automation.w, -mConstants->thrust.z) : std::abs(mConstants->thrust.z);
     const float puffs = std::max({std::abs(mConstants->thrust.y), trimLift, std::abs(mConstants->thrust.w),
                                   std::abs(mConstants->turn.x), std::abs(mConstants->turn.y)});
     const bool attitudePlumes = mProfile.jetCount > 2 && !cockpit &&

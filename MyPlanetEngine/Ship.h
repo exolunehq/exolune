@@ -58,7 +58,7 @@ public:
         DirectX::XMFLOAT4 retroOutlet, supportOutlet; // left mouths, support outlet spacing in w
         DirectX::XMFLOAT4 radio; // receive lamp and audio meter in the cockpit
         DirectX::XMFLOAT4 equipment; // actual extension of wings, landing gear, airbrake and ramp
-        DirectX::XMFLOAT4 automation; // manual switch mask, authored transport flag, exhaust deflection (radians)
+        DirectX::XMFLOAT4 automation; // manual switch mask, transport flag, exhaust deflection (radians), ventral trim power
         Nozzle nozzles[2]; // the shuttle's two authored main exhausts
         ExhaustPort ports[SHIP_TRANSPORT_PORT_PAIRS];
     };

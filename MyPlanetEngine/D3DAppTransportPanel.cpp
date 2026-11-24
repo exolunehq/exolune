@@ -8,7 +8,7 @@
 namespace {
     using Rig=TransportEquipment;
     using Phase=Rig::Phase;
-    constexpr int MenuW=810, MenuH=582, StripW=450, StripH=82;
+    constexpr int MenuW=810, MenuH=608, StripW=450, StripH=82;
     constexpr COLORREF Back=RGB(21,31,39), Band=RGB(29,43,52), Rule=RGB(60,78,86);
     constexpr COLORREF Ink=RGB(237,242,242), Muted=RGB(187,202,206), Accent=RGB(128,223,211), Warm=RGB(245,198,134);
 
@@ -105,6 +105,7 @@ void D3DApp::DrawTransportPanel() {
         Canvas c(w,h);
         if (c.pixels) {
             const auto& rig=mTransport;
+            const bool inAir=mFlightCues.density >= Rig::AtmosphericControlDensity;
             const double feet=std::max(0.0,TransportClearance()-Rig::PadDepth);
             const double groundSpeed=Length(mShipVelocity);
             const auto up=SurfaceUp(mShipPos);
@@ -137,6 +138,11 @@ void D3DApp::DrawTransportPanel() {
             } else if (rig.phase==Phase::Takeoff) {
                 phase=L"Décollage vertical"; action=L"Montée automatique vers le stationnaire à 8 m";
             } else if (!manualApproach && rig.phase==Phase::Flight && mFlightPilot.holding) phase=L"Vol stationnaire";
+            if (rig.brakeToHover) {
+                phase=mFlightPilot.holding ? L"Vol stationnaire" : L"Freinage vers le stationnaire";
+                action=mFlightPilot.holding ? L"Espace / Ctrl  Hauteur    •    Molette ↑  Repartir" :
+                    L"Freinage engagé    •    Molette ↑  Reprendre les gaz";
+            }
             const wchar_t* wing=rig.position[Rig::Wings]==0 ? L"rentrées" : rig.position[Rig::Wings]==1 ? L"déployées" :
                 rig.target[Rig::Wings] ? L"en sortie" : L"en rentrée";
             const std::wstring wingMode=rig.GroundLocked() ? L"au sol" : rig.wingProtected ? L"protection" : rig.phase!=Phase::Flight ? L"manœuvre" :
@@ -160,9 +166,9 @@ void D3DApp::DrawTransportPanel() {
                 c.line(415,76,360,L"Atterrissage et équipements",2);
                 c.fill(24,105,367,1,Rule); c.fill(415,105,371,1,Rule);
                 c.row(24,116,L"Souris",L"Orienter la navette");
-                c.row(24,143,L"Molette",L"Régler la manette des gaz");
-                c.row(24,170,L"↑  /  Maj",L"Pleine poussée / surpuissance");
-                c.row(24,197,L"X",L"Freiner, puis tenir le stationnaire");
+                c.row(24,143,L"Molette",inAir ? L"Régler les gaz · 0 = stationnaire" : L"Régler les gaz · 0 = vol inertiel");
+                c.row(24,170,L"↑  /  Maj",inAir ? L"Caler plein gaz / surpuissance" : L"Maintenir plein gaz / surpuissance");
+                c.row(24,197,L"↓  /  X",inAir ? L"Freiner jusqu’au stationnaire" : L"Maintenir pour freiner et s’arrêter");
                 c.row(24,224,L"Espace/Ctrl",L"Monter / descendre (ou "+KeyPair(mMoveKeys[0],mMoveKeys[1])+L")");
                 c.row(24,251,KeyPair(mMoveKeys[2],mMoveKeys[3]),L"Translation gauche / droite");
                 c.row(24,278,KeyPair(mMoveKeys[4],mMoveKeys[5]),L"Roulis gauche / droite");
@@ -186,12 +192,18 @@ void D3DApp::DrawTransportPanel() {
                     Rig::WingProtectKmh,Rig::WingRearmKmh);
                 c.line(24,432,w-48,thresholds,1,Muted);
                 c.line(24,455,w-48,L"Ailes repliées dans le vide, à l’atterrissage automatique et au décollage.",1,Muted);
-                c.line(24,487,w-48,L"Auto sous 5 km et 1 200 km/h sol. En manuel, gaz à zéro, Ctrl descend et relâcher stabilise.",1);
-                c.line(24,513,w-48,L"H  Regard libre     ·     U  Viseur     ·     I  Coordonnées",0,Muted);
+                wchar_t power[170];
+                wchar_t regime[80]=L"Dans le vide, relâcher ↑ rend la main à la molette.";
+                if (inAir) swprintf_s(regime,L"Plein panache dès le cran %.0f en atmosphère.",FlightDynamics::FirstBurnNotch);
+                swprintf_s(power,L"Gaz %.0f/%.0f    ·    Réacteurs principaux %.0f %%    ·    %ls",mThrottle,FlightDynamics::ThrottleNotches,
+                    100*mTransportExhaust.MainPower(),regime);
+                c.line(24,480,w-48,power,1,Accent);
+                c.line(24,510,w-48,L"Auto sous 5 km et 1 200 km/h sol. En manuel, gaz à zéro, Ctrl descend et relâcher stabilise.",1);
+                c.line(24,537,w-48,L"H  Regard libre     ·     U  Viseur     ·     I  Coordonnées",0,Muted);
                 wchar_t readings[180];
                 swprintf_s(readings,L"Vol en pause    ·    Hauteur des patins %.0f m    ·    Vitesse sol %.0f km/h    ·    Verticale %+.1f m/s",
                     feet,horizontalSpeed*3.6,verticalSpeed);
-                c.line(24,551,w-48,readings,0,Muted);
+                c.line(24,577,w-48,readings,0,Muted);
             }
             GdiFlush();
             std::memcpy(out+8,c.pixels,size_t(w)*h*4); bytes+=size_t(w)*h*4;

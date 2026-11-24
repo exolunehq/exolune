@@ -2,6 +2,12 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-24 · Atmospheric shuttle throttle and hover**
+
+- Atmospheric cruise retains the selected engine regime. Full exhaust begins at notch 25 of 30. Up selects full power in air.
+- The transport cruise response is 0.18 s. The brake response is 0.14 s. Selecting zero, X or Down brakes to a supported hover. The ventral jets carry 22% of the vertical support demand.
+- Milestone `jalon/navette-gaz-stationnaire-2026-11-24`. [Coastal cruise, valley braking and orbital coast](../tools/tests/2026-11-24.txt)
+
 **2026-11-24 · Axial transport thrust**
 
 - The side grilles emit parallel five-sheet plumes under forward thrust. Lift vectors both downward in the ship's longitudinal plane.

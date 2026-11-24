@@ -732,6 +732,7 @@ protected:
     Vec3d mFlightSlideNormal={},mFlightSlideOrigin={};
     unsigned mFlightSlideBody=0;
     void UpdateShip(float dt);
+    void MoveShipThrottle(double detents);
     void UpdateShipCamera(float dt);
     FlightDynamics::Field ShipField() const;
     Vec3d ClimateWindAt(Vec3d position) const;

@@ -1,5 +1,9 @@
 # Ship and camera history
 
+**2026-11-24 · Momentary atmospheric cruise exhaust**
+
+- The first V9 controller used the same momentary full-thrust key in air and vacuum. Its cruise plume dimmed as the speed error closed. Selecting zero released the controller and left the ship coasting. [Current transport controls](../lancement.md#transport-shuttle)
+
 **2026-11-24 · Outward transport exhaust**
 
 - The first V9 aperture charts used the recessed duct axes for external discharge. Each forward-burn plume diverged by 39.8° from the ship's centreline. [Current main exhausts](../spec-vaisseau.md#jets-and-shadows)

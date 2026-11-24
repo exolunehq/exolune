@@ -32,6 +32,85 @@ double AngleBetween(Vec3d a, Vec3d b) {
     return std::atan2(Length(Cross(a, b)), Dot(a, b)) * (180 / 3.141592653589793);
 }
 
+void CheckTransportThrottle(Field field) {
+    field.wind = {8,0,5};
+    for (int fps : {30, 144}) {
+        Flight flight;
+        TransportEquipment rig;
+        TransportExhaust exhaust;
+        Controls c = Level;
+        c.transport = &rig;
+        const double dt = 1.0 / fps;
+        auto tick = [&]() {
+            c.localUp = Normalize(flight.position);
+            c.terrainClearance = Length(flight.position) - Radius;
+            const auto load = Advance(dt, flight.position, flight.velocity, flight.cues, c, flight.pilot, field);
+            exhaust.Advance(dt, load.axialJet, load.liftJet, load.sideJet, false, load.trimJet);
+            return load;
+        };
+        c.throttle = MoveThrottle(0, 17, &rig, 1);
+        for (int n = 0; n < fps / 2; ++n) tick();
+        Check(flight.velocity.z > .92 * CruiseSpeed(17), "transport responds to the cruise lever within half a second");
+        for (int n = 0; n < 3 * fps; ++n) {
+            const auto load = tick();
+            Check(load.axialJet >= .679 && flight.cues.engine >= .679, "atmospheric cruise sustains its selected engine regime");
+        }
+        Check(std::abs(flight.cues.airVelocity.z - CruiseSpeed(17)) < 1, "sustained exhaust holds the selected airspeed");
+
+        c.throttle = MoveThrottle(c.throttle, -2, &rig, 1);
+        for (int n = 0; n < fps / 3; ++n) tick();
+        Check(exhaust.ahead < -.25 && !rig.brakeToHover, "reducing the cruise setting fires the retros without commanding a stop");
+        for (int n = 0; n < 3 * fps; ++n) tick();
+        Check(std::abs(flight.cues.airVelocity.z - CruiseSpeed(15)) < 1 && exhaust.ahead > .58,
+              "the lower cruise regime stays lit after deceleration");
+        c.throttle = MoveThrottle(c.throttle, -30, &rig, 1);
+        const double stopSpeed = Length(flight.velocity);
+        const double stopHeight = flight.position.y;
+        int frames = 0;
+        while (!flight.pilot.holding && frames < 6 * fps) { tick(); ++frames; }
+        Check(rig.brakeToHover && flight.pilot.holding && frames < 5 * fps, "one zero-notch command completes the stop");
+        for (int n = 0; n < fps; ++n) tick();
+        Check(Length(flight.velocity) < 1e-6 && std::abs(flight.position.y-stopHeight) < 2 &&
+              exhaust.Deflection() > 1.50 && exhaust.MainPower() > .4 && exhaust.trim > .06,
+              "hover holds position in wind with downward main exhaust and loaded ventral stabilizers");
+        const auto rest = flight.position;
+        for (int n = 0; n < 2 * fps; ++n) tick();
+        Check(Length(flight.position-rest) < 1e-6, "hover has no residual creep");
+        c.lift = 1;
+        for (int n = 0; n < fps; ++n) tick();
+        c.lift = 0;
+        for (int n = 0; n < fps; ++n) tick();
+        Check(flight.position.y > rest.y + 2 && Length(flight.velocity) < 1e-6,
+              "vertical manoeuvring returns to hover when released above the landing corridor");
+
+        c.throttle = MoveThrottle(0, FirstBurnNotch, &rig, 1);
+        for (int n = 0; n < fps; ++n) Check(tick().axialJet == 1, "rated atmospheric exhaust stays at full output");
+        c.fullThrust = true; tick(); c.fullThrust = false;
+        for (int n = 0; n < fps / 2; ++n) tick();
+        Check(c.throttle == ThrottleNotches && exhaust.MainPower() > .99 && !rig.brakeToHover,
+              "a tap of Up latches atmospheric full power and releases hover");
+        c.brake = true; tick(); c.brake = false;
+        for (int n = 0; n < 10 * fps; ++n) tick();
+        Check(c.throttle == 0 && flight.pilot.holding && rig.brakeToHover && Length(flight.velocity) < 1e-6,
+              "an atmospheric brake tap captures hover from a full-power burn");
+        std::printf("Transport %d Hz: %.0f km/h to hover in %.2f s.\n", fps, stopSpeed*3.6, frames*dt);
+
+        flight = Flight{}; flight.position = {0,1e12,0}; rig = {}; exhaust = {};
+        c.fullThrust = true; tick(); c.fullThrust = false;
+        const auto coast = flight.velocity;
+        c.throttle = MoveThrottle(0, -1, &rig, 0);
+        for (int n = 0; n < 2 * fps; ++n) tick();
+        Check(c.throttle == 0 && !rig.brakeToHover && exhaust.MainPower() < .001 && Length(flight.velocity-coast) < 1e-5,
+              "in vacuum releasing the burn or idling the wheel allows an inertial coast");
+        for (auto phase : {TransportEquipment::Phase::Parked, TransportEquipment::Phase::Approach}) {
+            rig.SetPhase(phase);
+            SelectTransportPower(rig, 1, false, c.throttle);
+            Check(MoveThrottle(c.throttle, 10, &rig, 1) == 0 && !rig.brakeToHover,
+                  "manual throttle commands respect parking and automatic approach");
+        }
+    }
+}
+
 void CheckManualThrust(const Field& planet, const Field& lunar) {
     Check(ThrottlePower(0)==0 && ThrottlePower(30)==1, "the control lever covers the full engine range");
     for (double n=.25; n<=30; n+=.25)
@@ -304,6 +383,7 @@ void CheckFlightDynamics() {
               "continuous primary to lunar handover");
     }
     CheckManualThrust(field,lunar);
+    CheckTransportThrottle(field);
     CheckFlightAssist(field,lunar);
     Controls yaw = Wheel(15);
     yaw.yaw = 1;
