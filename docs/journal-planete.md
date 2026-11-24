@@ -2,6 +2,11 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-24 · Direct exhaust from the transport side grilles**
+
+- The five sheets leave each side grille along the commanded direction. Vertical lift sends them down from the lip. Forward thrust sends them aft. Combined thrust tilts both streams together.
+- Milestone `jalon/navette-jets-directs-2026-11-24`. [Coastal takeoff and orbital thrust at F7 and F8](../tools/tests/2026-11-24.txt)
+
 **2026-11-24 · Atmospheric shuttle throttle and hover**
 
 - Atmospheric cruise retains the selected engine regime. Full exhaust begins at notch 25 of 30. Up selects full power in air.

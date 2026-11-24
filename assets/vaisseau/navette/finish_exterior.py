@@ -783,20 +783,24 @@ def exhaust_chart(vertices, faces, draws, axis, across):
         edges.append(np.asarray(path))
     if len(edges) != 6:
         raise ValueError("A turbine must supply six discharge edges")
-    return chart_from_edges(edges, frame, stations)
+    mouth, radii, depth, pixels = chart_from_edges(edges, frame, stations)
+    return mouth, radii, depth, packet_image(pixels, False)
 
 
-def chart_from_edges(edges, frame, stations, bend_stations=False, duct_axis=(0, 0, 1)):
+def chart_from_edges(edges, frame, stations, duct_axis=(0, 0, 1), bounds=None):
     """Project the five slots and weight emission along the physical duct axis expressed in chart space."""
     across = frame[0]
     edges.sort(key=lambda edge: edge[:,2].mean())
     # The backmost intersection in the exhaust frame is the visible outlet,
     # including where the raked ends or the forward part fold in projection.
     points = np.concatenate(edges) @ frame.T
-    low, high = points.min(0), points.max(0)
-    radii = .5*(high-low)[:2] + CHART_PADDING
-    origin = np.r_[.5*(low+high)[:2],low[2]]
-    depth = high[2]-low[2]
+    if bounds is None:
+        low, high = points.min(0), points.max(0)
+        radii = .5*(high-low)[:2] + CHART_PADDING
+        origin = np.r_[.5*(low+high)[:2], low[2]]
+        depth = high[2]-low[2]
+    else:
+        origin, radii, depth = bounds
     sections = len(stations)
     polys = np.array([f for row in range(5) for k in range(sections-1)
                       for f in quad(row*sections+k, row*sections+k+1,
@@ -813,7 +817,7 @@ def chart_from_edges(edges, frame, stations, bend_stations=False, duct_axis=(0, 
         y = origin[1] + ((j+.5)*2/height-1)*radii[1]
         for i in range(width):
             x = origin[0] + ((i+.5)*2/width-1)*radii[0]
-            p,normal,face,_ = tree.ray_cast((x,y,high[2]+.05),(0,0,-1),depth+.10)
+            p,normal,face,_ = tree.ray_cast((x,y,origin[2]+depth+.05),(0,0,-1),depth+.10)
             if p is None:
                 continue
             a,b,c = uv[face]
@@ -830,7 +834,7 @@ def chart_from_edges(edges, frame, stations, bend_stations=False, duct_axis=(0, 
             jamb = smooth(.012,.18,min(along,1-along)) * smooth(.02,.70,min(band,5-band))
             # Flux belongs to the physical duct. The chart can look along a different discharge axis.
             flux = jamb * smooth(.025,.64,abs(normal.dot(duct_axis)))
-            chart[j,i] = ((p.z-low[2])/depth, flux*smooth(.085,.39,min(gap,1-gap)), flux)
+            chart[j,i] = ((p.z-origin[2])/depth, flux*smooth(.085,.39,min(gap,1-gap)), flux)
             covered[j,i] = True
     if covered.mean() < .22 or chart[:,:,1].max() < .97:
         raise ValueError("The five turbine channels do not fill the fitted mouth")
@@ -845,16 +849,10 @@ def chart_from_edges(edges, frame, stations, bend_stations=False, duct_axis=(0, 
         _,k,_ = nearest.find((i*radii[0]/width,j*radii[1]/height,0))
         row,col = filled[k]
         chart[j,i,0] = chart[row,col,0]
-    if bend_stations:
-        # Begin each column's turn beyond its furthest lip, including the filter footprint.
-        last = chart[:, :, 0].max(axis=0)
-        pad = np.pad(last, 1, mode='edge')
-        last = np.maximum.reduce((pad[:-2], pad[1:-1], pad[2:]))
-        chart = np.dstack((chart, np.broadcast_to(last, covered.shape)))
-    image = packet_image(np.rint(np.clip(chart,0,1)*255).astype(np.uint8), False)
+    pixels = np.rint(np.clip(chart,0,1)*255).astype(np.uint8)
     print(f"Outlet {np.sign(across[0]):+.0f}: {2*radii[0]:.2f} x {2*radii[1]:.2f} m chart, "
           f"{depth:.2f} m rake, {covered.mean():.0%} open coverage")
-    return origin @ frame, radii, depth, image
+    return origin @ frame, radii, depth, pixels
 
 
 def fit_exhaust(controls, vertices, faces, draws, images):

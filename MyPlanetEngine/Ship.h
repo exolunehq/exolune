@@ -34,7 +34,7 @@ public:
     float EnvelopeRadius() const { return HasTransportRig() ? 7.3f : Radius; }
 
     struct Nozzle {
-        DirectX::XMFLOAT4 mouthWidth, axisHeight, widthAxis;
+        DirectX::XMFLOAT4 mouthWidth, axisHeight, widthAxis; // widthAxis.w counts directional aperture tiles, zero for one chart
         DirectX::XMFLOAT4 aperture; // linear image index + 1, outlet depth, duct half-width, distance to stern (metres)
     };
 

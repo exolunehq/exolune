@@ -182,7 +182,9 @@ void Ship::ReadTransport(const std::vector<uint8_t>& data, size_t& at)
     for (auto& nozzle : mNozzles) {
         nozzle=Read<Nozzle>(data,at);
         const float image=nozzle.aperture.x;
-        if (!(image>=1 && image<=mImages.size() && image==std::floor(image) && !mImages[size_t(image)-1].srgb &&
+        const float tiles=nozzle.widthAxis.w;
+        if (!((tiles==0 || (tiles>=2 && tiles<=128 && tiles==std::floor(tiles))) &&
+              image>=1 && image<=mImages.size() && image==std::floor(image) && !mImages[size_t(image)-1].srgb &&
               nozzle.mouthWidth.w>0 && nozzle.axisHeight.w>0 && nozzle.aperture.y>0 &&
               nozzle.aperture.z>=0 && nozzle.aperture.z<Radius && nozzle.aperture.w>=0 && nozzle.aperture.w<2*Radius))
             throw std::runtime_error("Invalid transport outlet.");

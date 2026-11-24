@@ -9,27 +9,24 @@
 
 Texture2D<float4> sceneComposite : register(t47); // alpha: the scene's distance (km), 0 for the sky
 
-// In the outlet chart red is the last physical lip along the discharge axis.
-// Green resolves each open slot and blue is their continuous outer envelope.
-float3 TurbineGas(Jet jet, float3 q, float3 rayStep, float clock, float seed, float3 hot)
+// Each projection stores lip depth, open slots and their continuous envelope.
+float3 OutletSample(Jet jet, float2 uv, float lod)
 {
     const uint image = uint(jet.chart) - 1;
-    float heightStep = rayStep.y;
-    if (jet.bend > .001) {
-        // Work backwards along a circular elbow and its straight continuation.
-        // Every column keeps its own five roots on the raked, stationary grille.
-        const float lip = jet.rake * shipImages[image].SampleLevel(linearClamp, float2(.5 + .5*q.x/jet.radii.x,.5),0).a + .016;
-        const float radius = BendRadius(jet);
-        const float2 arm = float2(q.z - lip, q.y + radius);
-        const float angle = clamp(atan2(arm.x, arm.y), 0, jet.bend);
-        float sine, cosine;
-        sincos(angle, sine, cosine);
-        q.y = dot(arm,float2(sine,cosine)) - radius;
-        q.z = lip + radius*angle + dot(arm,float2(cosine,-sine));
-        heightStep = dot(rayStep.zy, float2(sine,cosine));
+    if (jet.tileStride > 0)
+        uv.y = jet.tileStart + (.125 + .75*saturate(uv.y))*jet.tileStride;
+    float3 sample = shipImages[image].SampleLevel(linearClamp, uv, lod).rgb;
+    if (jet.tileMix > 0) {
+        uv.y += jet.tileStride;
+        sample = lerp(sample, shipImages[image].SampleLevel(linearClamp, uv, lod).rgb, jet.tileMix);
     }
+    return sample;
+}
+
+float3 TurbineGas(Jet jet, float3 q, float3 rayStep, float clock, float seed, float3 hot)
+{
     const float2 section = q.xy / jet.radii;
-    const float source = shipImages[image].SampleLevel(linearClamp, .5 + .5*section, 0).r * jet.rake;
+    const float source = OutletSample(jet, .5 + .5*section, 0).r * jet.rake;
     const float run = saturate((q.z-source)/jet.length);
     const float mixing = shipAutomation.y > .5 ? smoothstep(.16, .84, run) : smoothstep(.055, .70, run);
     const float3 p = float3(section.x*2.1, section.y*3.0, q.z*1.6-clock*9.5+seed);
@@ -41,10 +38,10 @@ float3 TurbineGas(Jet jet, float3 q, float3 rayStep, float clock, float seed, fl
     const float2 uv = (section - mixing*float2(eddy-.5,streak-.5)*.15) / scale;
     // Filter a marching interval in the fitted 192 x 96 chart. At full deflection
     // several slots can cross one ray step even with an almost horizontal view.
-    const float footprint = max(abs(rayStep.x)*96.0/jet.radii.x, abs(heightStep)*48.0/jet.radii.y);
+    const float footprint = max(abs(rayStep.x)*96.0/jet.radii.x, abs(rayStep.y)*48.0/jet.radii.y);
     const float slotLod = shipAutomation.y > .5 ? clamp(log2(max(1.0, footprint)),0.0,3.0) : 0.0;
-    const float3 aperture = shipImages[image].SampleLevel(linearClamp, .5 + .5*uv, max(slotLod,3.4*mixing)).rgb;
-    const float distance = q.z - aperture.r*jet.rake;
+    const float3 aperture = OutletSample(jet, .5 + .5*uv, max(slotLod,3.4*mixing));
+    const float distance = q.z - (jet.tileStride > 0 ? source : aperture.r*jet.rake);
     const float age = saturate(distance / (jet.length*lerp(.49,1.0,aperture.b)));
     const float gas = lerp(aperture.g, .64*aperture.b, mixing);
     const float edge = 1.0 - smoothstep(.94,1.0,max(abs(uv.x),abs(uv.y)));
@@ -94,8 +91,12 @@ float4 PSMain(PlumePixel input) : SV_Target
     const float clock = shipTurn.z, seed = float(input.jet) * 7.31;
     const float flicker = 0.85 + 0.3 * PlumeNoise(float3(clock * 23.0, seed, 0.5));
     const float ds = (end - start) / steps;
+    // The same duct carries the same load as it vectors. Its projected height
+    // can double in hover, but that does not lower the gas radiance.
+    float ductHeight = jet.radii.y;
+    if (jet.tileStride > 0) ductHeight = shipNozzles[input.jet].axisHeight.w;
     const float3 turbineLight = ExhaustRadiance(jet.power, .67) * ds * flicker
-                              * dot(white, 1.0 / 3.0) / (PI * max(2.0*jet.radii.y, .01));
+                              * dot(white, 1.0 / 3.0) / (PI * max(2.0*ductHeight, .01));
     float3 rgb = 0.0;
     float through = 1.0;
     [loop] for (uint k = 0; k < steps; ++k)

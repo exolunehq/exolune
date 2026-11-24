@@ -1,5 +1,9 @@
 # Ship and camera history
 
+**2026-11-24 · Curved transport hover exhaust**
+
+- The first lift effect sent gas aft of each lip and turned it downward along a circular arc outside the hull. The turn was visible in profile during takeoff and hover. [Current main exhausts](../spec-vaisseau.md#jets-and-shadows)
+
 **2026-11-24 · Momentary atmospheric cruise exhaust**
 
 - The first V9 controller used the same momentary full-thrust key in air and vacuum. Its cruise plume dimmed as the speed error closed. Selecting zero released the controller and left the ship coasting. [Current transport controls](../lancement.md#transport-shuttle)

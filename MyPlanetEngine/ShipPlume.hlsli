@@ -24,7 +24,7 @@ struct Jet
     float power;    // 0 to 1
     float chart;    // linear aperture image index + 1, zero for analytic jets
     float rake;     // axial extent of the physical outlet (m)
-    float bend;     // downward discharge angle after the outlet (radians)
+    float tileStride, tileStart, tileMix; // fitted angle slices in a vertical aperture atlas; zero stride for a single chart
 };
 
 Jet TransportPort(uint index)
@@ -85,12 +85,34 @@ Jet JetOf(uint j)
             jet.at = nozzle.mouthWidth.xyz;
             jet.radii = float2(nozzle.mouthWidth.w, nozzle.axisHeight.w);
             jet.power = smoothstep(.035, 1.0, shipThrust.x);
-            jet.bend = shipAutomation.z;
-            // A side grille sits forward of the stern. Its axial burn clears the aft hull;
-            // the downward hover jet only needs the reach of the physical duct.
             const bool transport = shipAutomation.y > .5;
+            float aftFraction = 1;
+            if (transport) {
+                const float angle = clamp(shipAutomation.z, 0.0, 1.570796327);
+                float down;
+                sincos(angle, down, aftFraction);
+                aftFraction = max(0.0, aftFraction);
+                const float3 aft = jet.to;
+                float3 up = cross(aft, nozzle.widthAxis.xyz);
+                if (up.z < 0) up = -up;
+                jet.to = aftFraction*aft - down*up;
+                const float halfDepth = .5*jet.rake;
+                const float count = nozzle.widthAxis.w;
+                if (count >= 2) {
+                    const float halfHeight = jet.radii.y;
+                    jet.radii.y = down*halfDepth + aftFraction*halfHeight;
+                    jet.rake = 2*(aftFraction*halfDepth + down*halfHeight);
+                    const float slice = saturate(down*halfDepth / jet.radii.y)*(count-1);
+                    jet.tileStride = 1.0/count;
+                    jet.tileStart = floor(slice)*jet.tileStride;
+                    jet.tileMix = frac(slice);
+                }
+                // Rotate the ray frame about the stationary grille centre. The sampled
+                // depth places each streamline back on its measured opening in this frame.
+                jet.at += halfDepth*aft - .5*jet.rake*jet.to;
+            }
             const float width = transport && nozzle.aperture.z > 0 ? nozzle.aperture.z : jet.radii.x;
-            const float reach = transport ? 6.4 * width + nozzle.aperture.w * cos(jet.bend) : 4.9 * width;
+            const float reach = transport ? 6.4 * width + nozzle.aperture.w * aftFraction : 4.9 * width;
             jet.length = lerp(1.25 * width, reach, jet.power);
             jet.spread = .12;
             return jet;
@@ -150,27 +172,24 @@ float PlumeNoise(float3 x)
 // The jet's own frame: across (two axes) and along its exhaust.
 void JetFrame(uint index, Jet jet, out float3 u, out float3 v)
 {
+    float heightSign = 1;
     if (ShipShuttle() && index < MAIN_JETS)
-        u = shipNozzles[index].widthAxis.xyz;
+    {
+        const ShipNozzle nozzle = shipNozzles[index];
+        u = nozzle.widthAxis.xyz;
+        // Keep the grille's handedness even when the jet points exactly down.
+        if (jet.chart > 0 && cross(nozzle.axisHeight.xyz, u).z < 0) heightSign = -1;
+    }
     else
         u = normalize(cross(jet.to, abs(jet.to.z) < 0.9 ? float3(0, 0, 1) : float3(1, 0, 0)));
-    v = cross(jet.to, u);
-    if (jet.chart > 0 && v.z < 0) v = -v; // both aperture images have increasing ship height in +v
+    v = heightSign * cross(jet.to, u);
 }
-
-// The inner sheet must clear the turn centre even where the mouth flares.
-float BendRadius(Jet jet) { return jet.radii.y * 1.45 + .09; }
 
 void JetBounds(Jet jet, out float3 low, out float3 high)
 {
     const float2 across = jet.radii + jet.spread * jet.length + .05;
     low = float3(-across, -.05);
     high = float3(across, jet.rake + jet.length);
-    if (jet.bend > .001) {
-        const float radius = BendRadius(jet);
-        low.y -= radius * (1 - cos(jet.bend)) + jet.length * sin(jet.bend);
-        high.z = jet.rake + (radius + across.y) * sin(jet.bend) + jet.length * cos(jet.bend) + .06;
-    }
 }
 
 struct PlumePixel

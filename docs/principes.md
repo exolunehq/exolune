@@ -309,7 +309,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Preserve a finite orthogonal tangent frame at UV poles in both GLB and cooked packets.
 - Inspect the reimported asset from several viewpoints and retain the in-flight review route.
 - Solve nose visibility in the physical hull shape; keep the glazing contact, external paint layout and attitude-jet origins consistent with it.
-- Anchor each exhaust to its open throat. Bend the gas downstream of the lip and drive its direction and power from the signed flight loads.
+- Anchor each exhaust to its open throat. The signed flight loads set its power and its direction at the lip. The free jet follows that straight axis.
 - For a shared main thrust direction, mirror the outlet positions and keep each plume parallel to the commanded exhaust vector. [Transport jets](spec-vaisseau.md#jets-and-shadows)
 - Use the selected engine regime and delivered load for powered cruise cues. Allocate hover thrust between the vectoring grilles and stabilizers from the same support load. [Flight dynamics](spec-vol-immersion.md)
 - Give landed vehicles a body-relative pose supported by their deployed feet. Boarding, moving stairs and camera contact preserve that pose until deliberate departure. [Transport gameplay](spec-vaisseau.md)

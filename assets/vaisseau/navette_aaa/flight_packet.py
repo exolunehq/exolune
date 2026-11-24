@@ -103,22 +103,36 @@ def exhausts(grid, images):
     stations = np.linspace(0,1,len(rows))
     duct = -DUCT_DIR/np.linalg.norm(DUCT_DIR)
     duct_width = np.array((duct[1], -duct[0], 0))
-    half_width = .5*np.ptp(np.concatenate(edges) @ duct_width) + fittings.CHART_PADDING[0]
-    aft = np.array((0,1,0))
+    points = np.concatenate(edges)
+    half_width = .5*np.ptp(points @ duct_width) + fittings.CHART_PADDING[0]
+    centre = .5*(points.min(0) + points.max(0))
+    half_x, half_y, half_z = .5*np.ptp(points, axis=0)
+    half_x, half_z = np.array((half_x, half_z)) + fittings.CHART_PADDING
+    mouth = centre - (0,half_y,0)
     stern = grid.points[:,:,1].max()
+
+    # Look back along each discharge vector at the same physical blades. Both
+    # sides use identical local coordinates once the width axis is mirrored.
+    tiles = []
+    # Space the projections by displacement of a blade in tile coordinates.
+    # At a grazing discharge angle a small rotation moves the slots farther.
+    for weight in np.linspace(0, 1, 33):
+        angle = np.arctan2(weight*half_z, (1-weight)*half_y)
+        c, s = np.cos(angle), np.sin(angle)
+        frame = np.array(((1,0,0), (0,s,c), (0,c,-s)))
+        half_depth = c*half_y + s*half_z
+        radii = np.array((half_x, s*half_y + c*half_z))
+        origin = frame @ centre - (0,0,half_depth)
+        _, _, _, pixels = fittings.chart_from_edges(edges, frame, stations, frame @ duct,
+                                                    bounds=(origin, radii, 2*half_depth))
+        # The renderer filters up through mip 4. Keep its footprint inside each 128-row tile.
+        tiles.append(np.pad(pixels, ((16,16),(0,0),(0,0)), mode='edge'))
+    image = fittings.packet_image(np.concatenate(tiles), False)
+    images.append(image)
     result = bytearray()
     for side in (1,-1):
-        mirror = np.array((side,1,1))
-        # Both grilles discharge aft (+Y). Project each mirrored opening along
-        # that same axis so every sheet begins on its own raked lip.
-        across = np.array((side,0,0))
-        frame = np.stack((across,(0,0,1),aft))
-        mouth, radii, depth, image = fittings.chart_from_edges(
-            [edge*mirror for edge in edges],frame,stations,bend_stations=True,duct_axis=frame @ (duct*mirror))
-        if image not in images:
-            images.append(image)
-        result.extend(struct.pack('<16f',*mouth,radii[0],*aft,radii[1],*across,0,
-                                  images.index(image)+1,depth,half_width,stern-mouth[1]))
+        result.extend(struct.pack('<16f',*(mouth*(side,1,1)),half_x,0,1,0,half_z,side,0,0,len(tiles),
+                                  len(images),2*half_y,half_width,stern-mouth[1]))
     return result
 
 

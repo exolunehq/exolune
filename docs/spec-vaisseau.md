@@ -236,10 +236,10 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 ## Jets and shadows
 
 - **Main exhausts**
-  - Each transport grille emits five amber sheets from its measured openings. A fourth linear texture channel marks the last lip in each column.
-  - Both main plumes run parallel to the ship's longitudinal axis under forward thrust. Increasing lift bends them together toward the keel after the lip. In hover both streams point straight down.
+  - Each transport grille emits five amber sheets between the blades. Both plumes point straight aft during forward thrust and straight down in hover. Combined thrust gives both a common, intermediate direction from the lip.
+  - The cooker projects the same physical openings at 33 angles from aft (+Y) to down (−Z). Each projection records lip depth, open slots and their envelope. The renderer interpolates the two neighbouring projections as the thrust direction changes. [Packet regression check](../tools/tests/check_transport_plumes.py)
   - Atmospheric cruise sustains the selected engine regime up to full output at notch 25. The four ventral stabilizers share the lift load when the shuttle hovers. Ground contact transfers that load to the landing gear.
-  - The cooker projects the five openings along ship +Y. The duct width sets the hover reach. Forward thrust adds the measured distance to the stern, so both tails clear the aft hull at full power. The grille and gas share the same power. [Packet regression check](../tools/tests/check_transport_plumes.py)
+  - The duct width sets the hover plume length. Forward thrust adds the measured distance to the stern, so both tails clear the aft hull at full power. The grille and gas share the same power.
   - Two recessed nose outlets discharge forwards during longitudinal braking. A backwards-moving shuttle uses the main outlets to stop.
   - Twelve smaller outlets on the fixed hull pulse with side thrust, downward translation and angular acceleration. They work in vacuum. The feet carry the load when parked.
   - The fighter and classic ship use analytic plumes with a blue-white core, a violet tip and weak shock diamonds. [Volume shader](../MyPlanetEngine/ShipPlumePixel.hlsl)
