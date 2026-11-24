@@ -625,6 +625,12 @@ protected:
     FlightDynamics::Cues mFlightCues;
     FlightDynamics::Pilot mFlightPilot;
     FlightDynamics::Loads mFlightLoads;
+    TransportEquipment mTransport;
+    double TransportClearance() const;
+    bool TransportSupported() const;
+    double TransportDepth(Vec3d forward, Vec3d up, Vec3d vertical) const;
+    double mTransportGround = 0;
+    bool mTransportGroundKnown = false;
     float mThrottleLever = 0.0f;
     Vec3d mShipContactImpulse = {}; // accepted change in velocity for the pilot's head at impact
     Vec3d mShipRate = {};          // pitch up, yaw right, roll right (rad/s)

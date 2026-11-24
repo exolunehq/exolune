@@ -34,7 +34,7 @@ Output PSMain(ShipPixel input)
     [branch] if (screen) {
         image = ShipScreen(m.role, input.uv.xy, image);
         // Only the two outboard repeaters lie beyond the inboard bezel (|x| < .44 m).
-        if (ShipShuttle() && abs(input.local.x) > .55 && shipRadio.x > .001)
+        if (ShipShuttle() && shipAutomation.y < .5 && abs(input.local.x) > .55 && shipRadio.x > .001)
             image = ShuttleReceiver(input.uv.xy * float2(640,512), image);
     }
     float3 albedo = m.color.rgb * image;

@@ -25,6 +25,25 @@ FlightDynamics::Field D3DApp::ShipField() const {
     return field;
 }
 
+double D3DApp::TransportClearance() const {
+    const double ground=mTransportGroundKnown && !NearMoon(mShipPos) ? mTransportGround : mGroundHeight;
+    return SurfaceAltitude(mShipPos) - (mCine.empty() ? ground : mCineShipGround);
+}
+
+bool D3DApp::TransportSupported() const {
+    const double clearance=TransportClearance();
+    if (clearance>10 || !mTransport.initialized) return false;
+    const Vec3d delta=mShipPos-mFlightSlideOrigin;
+    if (mFlightSlideBody==1 && Dot(mFlightSlideNormal,mFlightSlideNormal)>.5 &&
+        Dot(delta,delta)<1 && std::abs(Dot(delta,mFlightSlideNormal))<.04) return true;
+    return clearance>=0 && clearance<=TransportDepth(mShipForward,mShipUp,SurfaceUp(mShipPos))+.07;
+}
+
+double D3DApp::TransportDepth(Vec3d forward, Vec3d up, Vec3d vertical) const {
+    return mShip.TransportDepth({float(Dot(Cross(forward,up),vertical)),-float(Dot(forward,vertical)),
+                                 float(Dot(up,vertical))},mTransport);
+}
+
 void D3DApp::AdvanceEntryFlow(double dt) {
     if (mFlightCues.heat > 0)
         mEntryFlowPhase += dt * (1.0 + 2.8 * FlightDynamics::Smooth(80, 1100, mFlightCues.equivalentAirspeed));
@@ -64,7 +83,7 @@ void D3DApp::UpdateShip(float dt) {
         if (vk == mMoveKeys[4]) return input[FlightTake::Roll] < 0;
         return 0.0;
     };
-    const double dx = mRawDx, dy = mRawDy, rest = mView != View::Chase ? kHeadRest : 0.0;
+    const double dx = mRawDx, dy = mRawDy, rest = mView != View::Chase ? (mShip.HasTransportRig() ? -.265 : kHeadRest) : 0.0;
     mRawDx = mRawDy = 0.0;
     if (mLooking || mHeadFree) {
         if (mView == View::Chase) { // all around the ship, from below to above
@@ -101,6 +120,12 @@ void D3DApp::UpdateShip(float dt) {
     FlightDynamics::Controls controls = {mShipForward, Normalize(Cross(mShipUp, mShipForward)), mShipUp,
                                          mThrottle, strafe, lift, held(VK_SHIFT) > 0, held('X') > 0, held(VK_UP) > 0,
                                          mShipRate.y, mShipRate.z};
+    if (mShip.HasTransportRig()) {
+        controls.transport = &mTransport;
+        controls.terrainClearance = TransportClearance();
+        controls.descentRate = -Dot(mShipVelocity,SurfaceUp(mShipPos));
+        controls.supported = TransportSupported();
+    }
     Vec3d newPos = mShipPos;
     mFlightLoads = FlightDynamics::Advance(mSettings.Automated() ? 0 : dt, newPos, mShipVelocity,
                                            mFlightCues, controls, mFlightPilot, ShipField());
@@ -111,9 +136,13 @@ void D3DApp::UpdateShip(float dt) {
     const Vec3d right = controls.right;
     mPlume += (loads.mainJet - mPlume) * (1.0 - std::exp(-dt / .18));
     // The flight corridor sweeps the hull before this candidate pose is accepted. Keep only the sea floor here.
-    double minRadius = PlanetRadius + (mFlightContactPSO ? 0.0 : mGroundHeight) + 2.5;
+    const double keel=mShip.HasTransportRig() && TransportClearance()<10000
+        ? TransportDepth(mShipForward,mShipUp,SurfaceUp(mShipPos)) : 2.5;
+    const bool resting = mShip.HasTransportRig() && mTransportGroundKnown && Length(mShipVelocity)<6 && TransportClearance()<10;
+    const double groundFloor = resting ? mTransportGround : (mFlightContactPSO ? 0.0 : mGroundHeight);
+    double minRadius = PlanetRadius + groundFloor + keel;
     if (mOcean && !mWaveReset && mGroundHeight <= 0.0)
-        minRadius = std::max(minRadius, PlanetRadius + double(mOcean->SurfaceHeight()) + 2.5);
+        minRadius = std::max(minRadius, PlanetRadius + double(mOcean->SurfaceHeight()) + keel);
     const double newRadius = Length(newPos);
     if (newRadius < minRadius) {
         const Vec3d n = newRadius > 0 ? newPos * (1 / newRadius) : Normalize(mShipPos);
@@ -180,6 +209,8 @@ void D3DApp::PlaceShipAtCamera() {
     mShipVelocity = mShipRate = mHeadSway = mHeadSwayRate = mEyeSpin = {};
     mShipContactImpulse = {};
     mFlightCues = {};
+    mTransport = {};
+    mTransportGroundKnown = false;
     mEntryFlowPhase = 0.0;
     mFlightPilot = {};
     mFlightLoads = {};
@@ -187,7 +218,7 @@ void D3DApp::PlaceShipAtCamera() {
     mHeadTilt = mHeadTiltRate = mPlume = 0.0;
     for (double& jet : mJets) jet = 0.0;
     mStickX = mStickY = mHeadYaw = mThrottle = 0.0;
-    mHeadPitch = mView != View::Chase ? kHeadRest : 0.0;
+    mHeadPitch = mView != View::Chase ? (mShip.HasTransportRig() ? -.265 : kHeadRest) : 0.0;
     mChaseOffset = mShipForward * -15.0 + mShipUp * 6.5;
     mPrevShipPos = mShipPos;
     mPrevShipForward = mShipForward;
@@ -225,7 +256,7 @@ void D3DApp::SetView(View view) {
     if (view != View::Free && view != View::Walk && mView == View::Free) PlaceShipAtCamera(); // the ship comes to the free camera
     mView = view;
     mHeadYaw = 0.0;
-    mHeadPitch = view == View::Cockpit || view == View::Bare ? kHeadRest : 0.0;
+    mHeadPitch = view == View::Cockpit || view == View::Bare ? (mShip.HasTransportRig() ? -.265 : kHeadRest) : 0.0;
     mHeadFree = mHeadKept = false;
     FlightFrame::Orthonormalize(mCamForward,mCamUp);
     mHistoryValid = false;
@@ -289,7 +320,14 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
     };
     for (auto& pose : ship.pose) XMStoreFloat4x4(&pose, XMMatrixIdentity());
     const Ship::Pivot* pivots = mShip.pivots;
-    if (mShip.Profile().model == ShipModel::Navette) {
+    if (mShip.HasTransportRig()) {
+        const float roll=float(FlightDynamics::Clamp(mShipRate.z/1.8,-1,1));
+        XMStoreFloat4x4(&ship.pose[0],pivoted(pivots[0], XMMatrixRotationZ(-.19f*float(mStickX)) *
+            XMMatrixRotationX(.30f*float(mStickY)) * XMMatrixRotationY(-.28f*roll-.15f*float(mStickX))));
+        const float response = mCine.empty() ? -std::expm1(-dt/.085f) : 1.0f;
+        mThrottleLever += (lever-mThrottleLever)*response;
+        XMStoreFloat4x4(&ship.pose[1],pivoted(pivots[1],XMMatrixRotationX(.64f*(mThrottleLever-.5f))));
+    } else if (mShip.Profile().model == ShipModel::Navette) {
         const float bank = float(FlightDynamics::Clamp((mShipRate.z + mFlightPilot.bank) / 1.8, -1, 1));
         XMStoreFloat4x4(&ship.pose[0], pivoted(pivots[0], XMMatrixRotationAxis(XMLoadFloat3(&pivots[0].axis), -.31f * bank)
             * XMMatrixTranslation(0, -.018f * float(mStickY), 0)));
@@ -317,5 +355,14 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
     }
     XMStoreFloat4(&ship.velocity, toLocal(speed > 1e-3 ? mShipVelocity * (1.0 / speed) : mShipForward));
     ship.velocity.w = (float)speed;
-    mShip.SetFlightSurfaces(ship.airframe.x, ship.airframe.y);
+    ship.equipment = ship.automation = {};
+    if (mShip.HasTransportRig()) {
+        if (!mCine.empty() || mView == View::Walk)
+            mTransport.Advance(dt, TransportClearance(), -Dot(mShipVelocity,vertical), speed, mFlightCues.density,
+                mFlightCues.equivalentAirspeed, mFlightCues.dynamicPressurePa, mFlightCues.heat, 0, false, lever>0, TransportSupported());
+        const auto& p=mTransport.position;
+        ship.equipment={float(p[0]),float(p[1]),float(p[2]),float(p[3])};
+        ship.automation={float(mTransport.ManualMask()),1,0,0};
+        mShip.SetTransportPose(mTransport);
+    } else mShip.SetFlightSurfaces(ship.airframe.x, ship.airframe.y);
 }

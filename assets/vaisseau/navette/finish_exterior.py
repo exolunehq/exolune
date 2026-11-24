@@ -782,6 +782,12 @@ def exhaust_chart(vertices, faces, draws, axis, across):
         edges.append(np.asarray(path))
     if len(edges) != 6:
         raise ValueError("A turbine must supply six discharge edges")
+    return chart_from_edges(edges, frame, stations)
+
+
+def chart_from_edges(edges, frame, stations):
+    """Project the six measured boundaries of five exhaust slots into the plume chart."""
+    across = frame[0]
     edges.sort(key=lambda edge: edge[:,2].mean())
     # The backmost intersection in the exhaust frame is the visible outlet,
     # including where the raked ends or the forward part fold in projection.
@@ -885,7 +891,7 @@ def paint_chine(vertices, faces, draws, materials, image_index):
     return packet_image(rgb, True)
 
 
-def cook_glass(vertex, indices, draws, material):
+def cook_glass(vertex, indices, draws, material, transport=False):
     # The game and fitter read the same fixed dimensions and angular scale.
     header = Path(__file__).resolve().parents[3] / "MyPlanetEngine" / "ShipProfiles.h"
     values = {terms[1]: float(terms[2].rstrip("f")) for line in header.read_text().splitlines()
@@ -898,6 +904,8 @@ def cook_glass(vertex, indices, draws, material):
     height = values["SHUTTLE_WATER_HEIGHT"] * pitch
     bottom = values["SHUTTLE_WATER_Y"]
     origin = (0, values["SHUTTLE_PANE_CENTRE_Y"], values["SHUTTLE_PANE_CENTRE_Z"])
+    if not transport:
+        origin = (0, .80, -.88)  # Original film weather projection.
     panes = np.concatenate([indices[first:first+count] for first,count,m in draws
                             if struct.unpack_from("<I",material,m*96+44)[0] == 2])
     points, corners = np.unique(panes, return_inverse=True)

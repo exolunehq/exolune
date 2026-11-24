@@ -28,6 +28,7 @@ cbuffer ShipFrame : register(b3) // b1: the clouds' frame (Clouds.hlsli)
     float4   shipSupportExhaust; // support-jet direction in ship axes, power in w
     float4   shipRetroOutlet, shipSupportOutlet; // mouth positions and support outlet spacing
     float4 shipRadio; // receive lamp and audio meter
+    float4 shipEquipment, shipAutomation;
     ShipNozzle shipNozzles[2];
 };
 
@@ -105,7 +106,7 @@ static const float SHIP_RADIUS = 6.7;
 #define WATER_ORIGIN (float2(-0.5 * shipWaterLayout.x * WATER_TEXEL, shipWaterLayout.z))
 #define WATER_SIZE (uint2(shipWaterLayout.xy))
 
-static const float3 SHUTTLE_PANE_CENTRE = float3(0, SHUTTLE_PANE_CENTRE_Y, SHUTTLE_PANE_CENTRE_Z);
+#define SHUTTLE_PANE_CENTRE (shipAutomation.y > .5 ? float3(0, SHUTTLE_PANE_CENTRE_Y, SHUTTLE_PANE_CENTRE_Z) : float3(0,.80,-.88))
 bool HasShuttlePane() { return shipWaterLayout.x > 1.0; }
 
 // xyz stores the surface normal scaled by its radial distance. w is signed distance to a pane edge.

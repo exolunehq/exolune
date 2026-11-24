@@ -65,7 +65,8 @@ void D3DApp::PrepareFlightContact(const FlightPose& before) {
     const Vec3d ends[2]={mFlightAfter.camera,mFlightAfter.ship};
     // A fixed sphere about the ship origin contains its offset model sphere at every intermediate attitude.
     // An endpoint centre displacement alone would not bound a curved or returning rotational path.
-    const double radii[2]={FlightContact::CameraRadius,double(Ship::Radius)+std::hypot(double(mShip.Profile().centreY),double(mShip.Profile().centreZ))};
+    const bool transport=ship && mShip.HasTransportRig();
+    const double radii[2]={FlightContact::CameraRadius,double(mShip.EnvelopeRadius())+std::hypot(double(mShip.Profile().centreY),double(mShip.Profile().centreZ))};
     mFlightQueued=false;
     for (unsigned i=0;i<2;++i) {
         // The cockpit eye is inside the fixed hull envelope at every attitude. Chase and free eyes move outside it.
@@ -75,10 +76,16 @@ void D3DApp::PrepareFlightContact(const FlightPose& before) {
         // Chase still checks the eye if it moves around an otherwise stationary hull.
         const Vec3d travel=ends[i]-starts[i];
         if (!mFlightRecovery && Dot(travel,travel)==0.0) { mFlightActive[i]=false; continue; }
-        mFlightSpans[i]=FlightContact::Clip(ContactVec(starts[i]),ContactVec(ends[i]),radii[i]);
+        double depth=radii[i];
+        if (i==1 && transport && Length(starts[i])-PlanetRadius<FlightContact::MaximumHeight+100) {
+            const Vec3d vertical=Normalize(starts[i]);
+            depth=std::max(TransportDepth(before.shipForward,before.shipUp,vertical),
+                           TransportDepth(mFlightAfter.shipForward,mFlightAfter.shipUp,vertical));
+        }
+        mFlightSpans[i]=FlightContact::Clip(ContactVec(starts[i]),ContactVec(ends[i]),radii[i],depth);
         mFlightActive[i]=mFlightSpans[i].active;
         if (mFlightActive[i]) {
-            mFlightProbes[i]=FlightContact::Corridor(mFlightSpans[i],radii[i]);
+            mFlightProbes[i]=FlightContact::Corridor(mFlightSpans[i],radii[i],depth);
             mFlightQueued=true;
         }
     }
@@ -135,6 +142,11 @@ void D3DApp::ReadFlightContact() {
         valid=valid&&std::isfinite(support.x)&&std::isfinite(support.y)&&std::isfinite(support.z);
         recovery=std::max(recovery,double(support.x));
         if (i==0 && (mFlightRecovery || span.last==1)) cameraGround=mFlightRecovery?support.y:support.z;
+        if (i==1 && mShip.HasTransportRig() && valid && (mFlightRecovery || span.last==1)) {
+            mTransportGround=std::max(0.0f,mFlightRecovery ? support.y : support.z);
+            mTransportGroundKnown=true;
+            if (mView!=View::Chase) cameraGround=mTransportGround;
+        }
         mFlightReadback[i]->Unmap(0,&noWrite);
     }
     if (!valid) { SetFlightPose(mFlightBefore); mFlightRecovery=true; return; }

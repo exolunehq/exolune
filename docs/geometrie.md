@@ -2,6 +2,8 @@
 
 Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it.
 
+**Navette AAA folding wings, 2026-11-24.** Manufactured player vehicle. Native landing clearance follows the lowest projected support across the animated packet. The bay follows the original face between the two shoulder bevels. The wing plane rises aft by 1.04°. A central shutter parks above each folded wing. Two pinned hydraulic rams carry each main door. The deployed span is 7.46 m. [Shuttle recipe](../assets/vaisseau/navette_aaa/README.md)
+
 **Shuttle entry light, 2026-11-21.** Manufactured canopy optics. The glass contact line comes from the signed boundary of the existing fitted pane. The shock volume uses the existing hull. Planetary terrain and contact keep their existing geometry.
 
 **Cockpit and suit optics, 2026-11-20.** Manufactured-surface shading and observer optics. The Navigator's existing outer skin supplies the panoramic optical surface inside the cabin opening. The walking visor is a camera-space optical treatment. Proposed hull motion reaches the established planetary contact field. [Flight, canopy and suit](spec-vol-immersion.md)

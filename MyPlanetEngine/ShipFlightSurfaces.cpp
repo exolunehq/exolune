@@ -59,7 +59,7 @@ XMMATRIX HingeRotation(FXMVECTOR pivot, const XMMATRIX& rotation) {
 
 void Ship::BuildFlightSurfaces() {
     const FlightSurfaceLayout& s = mProfile.surfaces;
-    if (s.span <= 0 || mFlightFittings.brakeAngle > 0) return;
+    if (HasTransportRig() || s.span <= 0 || mFlightFittings.brakeAngle > 0) return;
     const bool shuttle = mProfile.model == ShipModel::Navette;
     const uint32_t firstMaterial = uint32_t(mModes.size());
     const Material materials[] = {

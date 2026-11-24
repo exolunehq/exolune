@@ -286,6 +286,10 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 **Manufactured parts derive their interfaces from the visible support mesh** (`spec-vaisseau.md`).
 - Build continuous walls, floors and rooted supports from shared boundaries; details must belong to their supporting surface.
 - Fit separate manufactured solids to explicit docking surfaces and verify contact on the evaluated meshes.
+- Place a folding panel's rotation origin on its physical hinge axis. Check the pin and swept clearance between keys in both the source and the reimported asset.
+- Cut a closing panel and its mating insert from the same surface. Back the running joints with a seat and check for sightlines into the bay at both ends of travel.
+- Derive the cockpit, shadows, equipment indicators and ground support from the same authored mechanism and its actual playback position.
+- Register an opening to the existing structural edge that carries it. Seat each actuator on the moving panel and the fixed structure. Check both pivots and piston engagement throughout the exported motion.
 - Keep planar instrument decks flat in both geometry and shading; neighbouring bevels must not bend their reflection normals.
 - Verify control sightlines against the evaluated cabin from the actual pilot eye, including recessed faces and raised rims.
 - Check each manufactured solid is connected and closed; disconnected primitive assemblies do not establish coherent construction (`spec-navigateur-cockpit-son.md`).

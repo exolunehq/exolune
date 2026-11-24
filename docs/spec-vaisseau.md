@@ -42,15 +42,14 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 | `chasseur` (default) | `assets/vaisseau/chasseur/` | VSX3 | 1.03 m | 4 | 6 | 1684 × 2450 |
 | `classique` | `assets/vaisseau/` | VSX2 | 1.07 m | 3 | 2 | 1584 × 3660 |
 | `navigateur` (cabin prototype) | `assets/vaisseau/navigateur/` | VSX3 | 0.70 m | 0 | 0 | 2560 × 1536 |
-| `navette` (film shuttle) | `assets/vaisseau/navette/` | VSX3 | −0.84 m | 2 | 11 | 3456 × 1256 |
+| `navette` (V9 transport) | `assets/vaisseau/navette/` | VSX4 | −0.20 m | 2 | 2 + 75 moving nodes | 3456 × 1256 |
 
 - The executable alone selects the approved fighter.
 - `tools/lance.ps1 -ModeleVaisseau classique` selects the original triangular ship.
 - Direct launches accept `classique`, `chasseur`, `navigateur` and `navette` through `MYPLANETENGINE_MODELE_VAISSEAU`.
-- `tools/lance.ps1 -ModeleVaisseau navette` selects the shuttle derived from *Exolune par les crêtes*. The pilot camera sits 3.47 m ahead of the centre and 0.84 m below it. The three-screen dashboard, seats, yoke and throttle come from the original film asset. The flight cabin is empty and the gear uses its closed pose.
-- Both aircraft use the same flight loads. The Navette widens the rolled skin above its turbines from a 5.37 m span to 8.56 m in cruise. The two dorsal airbrakes hinge inboard of the moving skin. [Flight surfaces](../MyPlanetEngine/ShipFlightSurfaces.cpp) [Exterior cooker](../assets/vaisseau/navette/finish_exterior.py)
-- A keyed spar guides each Navette wing. Twin telescopic rams extend and retract with the lip. Their terminal pins seat in shoes on the rolled underside.
-- Each main plume starts between the six fixed vanes. Five hot sheets merge downstream along the outlet axis. Four flush underside fittings register the powered hover outlets.
+- The V9 transport spans 4.86 m stowed and 7.46 m deployed. Its two grilles emit five sheets of exhaust each.
+- The pilot eye sits 4.05 m ahead and 0.20 m below the origin. The side stick and throttle pivot on their seat fittings.
+- Four independent authored clips drive the 75 moving nodes. Clip positions feed the flight loads, visible equipment, shadows and equipment display. [Transport controls](lancement.md#transport-shuttle)
 - The Navigator starts in its cabin with eye offsets 0.65 m ahead and 0.70 m up. Tab cycles cockpit, chase and bare. Its panoramic surface carries the common cockpit effects. [Flight, canopy and suit](spec-vol-immersion.md)
 - `MYPLANETENGINE_VAISSEAU` still selects the camera view, independently of the model.
 - Each model retains its own source, Blender scene, GLB and cooked package.
@@ -62,13 +61,13 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 
 **Asset loading and animation**
 
-- Each directory contains its own `vaisseau.glb`, `paquet_moteur.py` and `vaisseau.vsx`.
+- The shipped packet contains all geometry, materials and inputs for native playback. The V9 transport uses the reviewed external GLB and its tracked cooker.
 - The engine reads cooked vertices, draw ranges, PBR materials and PNGs; WIC decodes the images.
 - VSX3 materials carry explicit animation roles in 96 bytes.
 - VSX2 materials remain 92 bytes on disk; loading expands them and maps original screen indices 13–18 to roles 1–6.
 - The original package and generator remain unchanged.
-- `Ship::Load` validates the selected profile's pivot count. `JET3` adds a linear aperture image and discharge depth per turbine. The loader also accepts `JET1` and `JET2`. `FLW2` drives the nacelle skin, rigid guides and brake hinges. The loader also accepts `FLW1` hinged surfaces. `WTR1` carries the fitted canopy chart.
-- The shuttle's 5:4 instrument drawings use [their own layout](../MyPlanetEngine/ShipShuttleScreens.hlsli). The cooked flight packet removes all occupant draws and their two exclusive image atlases.
+- VSX4 carries two cockpit pivots, four independent clips, fitted nozzle data, per-part convex support hulls and a weather chart. The loader also accepts legacy film VSX3 and classic VSX2 packets.
+- Flight and navigation use live attitude, speed, altitude, heading and geographic position. Equipment indications read back actual motion and manual overrides.
 - The package is found above the executable; an absent package leaves the free camera available.
 - The ship frame uses metres: nose −Y, up +Z, pilot's left +X.
 - The planet frame is left-handed; the ship-to-world transform reflects X and the glTF bitangent sign.
@@ -126,7 +125,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - The bound is 270,369 distinct vertices, or 278,785 height evaluations including shared group edges and the endpoint; a zero-length hull placement probe uses about 1,090 evaluations.
 - At most two bodies return 8,224 bytes in total: group contact fractions, normals and support metadata.
 - Sweeps are exact against this triangulated contact field, not a proof of the continuous terrain between samples; very long chords can miss features below their larger sample spacing.
-- The hull sphere is conservative, not mesh collision; trees, individual rocks and FFT wave displacement are outside this contact field.
+- The transport sweeps a broad ellipsoid with vertical reach from the animated parts. Other profiles use the conservative hull sphere. The contact field includes the terrain and its graded surfaces. Individual props and FFT wave displacement have separate representations.
 - Walking retains its own controller; automated captures and cinematic routes retain their existing positioning path and do not validate this interactive solver.
 - A spherical free-camera contact never restores an older look direction, including during placement recovery or invalid-query rollback.
 - Airless contact applies the same outward/slide policy through its shared physical field; its bounded support and checks are in `spec-lune-terrain.md`.

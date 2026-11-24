@@ -120,7 +120,7 @@ def normaliser_tangentes_glb(path):
         start = 28+json_length; data[start:start+len(mutable)] = mutable; path.write_bytes(data)
     print('GLB tangent poles repaired:', repaired)
 
-def cuire(glb_path=None, vsx_path=None):
+def cuire(glb_path=None, vsx_path=None, *, roles=ROLES, pivot_names=PIVOTS, control_axes=None, rigid_poses=None):
     gltf, binary = lire_glb(glb_path or ROOT / 'vaisseau.glb')
     # glTF (x, y, z) vers Blender (x, -z, y).
     axes = np.array([[1, 0, 0, 0], [0, 0, -1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], np.float64)
@@ -132,6 +132,9 @@ def cuire(glb_path=None, vsx_path=None):
             # L'axe Z local de Blender est l'axe Y local du glTF.
             full = axes @ m; axe = full[:3, :3] @ np.array([0, 1, 0])
             pivots[node['name']] = (full[:3, 3], axe / np.linalg.norm(axe))
+        name = node.get('name', '')
+        if control_axes and name in control_axes:
+            pivots[name] = ((axes @ m)[:3, 3], control_axes[name])
         if 'mesh' in node:
             for prim in gltf['meshes'][node['mesh']]['primitives']:
                 at = prim['attributes']; get = lambda k: accesseur(gltf, binary, at[k]) if k in at else None
@@ -147,9 +150,17 @@ def cuire(glb_path=None, vsx_path=None):
                     t[:, 3] = tan[:, 3] * np.sign(np.linalg.det(lin))
                 u0 = uv0 if uv0 is not None else np.zeros((count, 2)); u1 = uv1 if uv1 is not None else u0
                 pose = get('_POSE'); pose = pose if pose is not None else np.zeros((count, 1))
+                if rigid_poses and name in rigid_poses:
+                    pose = np.full((count, 1), rigid_poses[name])
                 idx = accesseur(gltf, binary, prim['indices']).astype(np.uint32).ravel()
                 if np.linalg.det(lin) < 0: idx = idx.reshape(-1, 3)[:, ::-1].ravel()
                 mat = gltf.get('materials', [])[prim.get('material', 0)]
+                # VSX can carry a second UV for a tiled normal and roughness pair.
+                normal_info = mat.get('normalTexture', {})
+                transform = normal_info.get('extensions', {}).get('KHR_texture_transform')
+                if transform:
+                    assert not transform.get('rotation') and 'TEXCOORD_1' not in at
+                    u1 = u0 * transform.get('scale', (1, 1)) + transform.get('offset', (0, 0))
                 normal_uv = u1 if mat.get('normalTexture', {}).get('texCoord', 0) == 1 else u0
                 t = tangentes_valides(t, n, p, normal_uv, idx)
                 v = np.hstack((p, n, t, u0, u1, pose)).astype(np.float32)
@@ -164,7 +175,8 @@ def cuire(glb_path=None, vsx_path=None):
         if source not in image_de:
             view = gltf['bufferViews'][gltf['images'][source]['bufferView']]
             image_de[source] = len(images); images.append((srgb, binary[view.get('byteOffset', 0):view.get('byteOffset', 0) + view['byteLength']]))
-        return image_de[source], info.get('texCoord', 0)
+        tiled = 'KHR_texture_transform' in info.get('extensions', {})
+        return image_de[source], 1 if tiled else info.get('texCoord', 0)
     materiaux = []
     for mat in gltf['materials']:
         pbr = mat.get('pbrMetallicRoughness', {})
@@ -176,8 +188,8 @@ def cuire(glb_path=None, vsx_path=None):
         materiaux.append(struct.pack('<4f3f4f2I5i5II', *pbr.get('baseColorFactor', (1, 1, 1, 1)),
             *[c * force for c in mat.get('emissiveFactor', (0, 0, 0))], pbr.get('metallicFactor', 1), pbr.get('roughnessFactor', 1),
             mat.get('normalTexture', {}).get('scale', 1), mat.get('occlusionTexture', {}).get('strength', 1),
-            mode, int(mat.get('doubleSided', False)), *[t for t, _ in tex], *[u for _, u in tex], ROLES.get(mat['name'], 0)))
-        print(f"{mat['name']:34s} mode {mode} images {[t for t, _ in tex]} rôle {ROLES.get(mat['name'], 0)}")
+            mode, int(mat.get('doubleSided', False)), *[t for t, _ in tex], *[u for _, u in tex], roles.get(mat['name'], 0)))
+        print(f"{mat['name']:34s} mode {mode} images {[t for t, _ in tex]} rôle {roles.get(mat['name'], 0)}")
     modes = [struct.unpack_from('<11fI', m)[11] for m in materiaux]
     blocs.sort(key=lambda b: (modes[b[0]] != 0, b[0]))
     sommets = []; indices = []; traces = []; base = 0
@@ -191,8 +203,8 @@ def cuire(glb_path=None, vsx_path=None):
         for t in traces: f.write(struct.pack('<3I', *t))
         for m in materiaux: f.write(m)
         for srgb, png in images: f.write(struct.pack('<2I', srgb, len(png))); f.write(png)
-        f.write(struct.pack('<I', len(PIVOTS)))
-        for nom in PIVOTS:
+        f.write(struct.pack('<I', len(pivot_names)))
+        for nom in pivot_names:
             point, axe = pivots[nom]; f.write(struct.pack('<6f', *point, *axe))
             print(nom, np.round(point, 4), 'axe', np.round(axe, 3))
     lo, hi = sommets[:, :3].min(0), sommets[:, :3].max(0)

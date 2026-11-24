@@ -1,5 +1,11 @@
 # Ship and camera history
 
+**2026-11-24 · Film shuttle retired from the playable transport slot**
+
+- The VSX3 film derivative used a pilot eye 3.47 m ahead of the origin and a fixed closed landing gear.
+- Six fixed vanes and a sliding skin formed the exhaust shoulders. The span grew from 5.37 m to 8.56 m.
+- The film cooker, old packet and its dedicated test routes can be recovered at `468b511`. [Playable V9](../spec-vaisseau.md)
+
 **2026-11-22 · Clearance-scaled detached camera**
 
 - The wheel used to select a multiplier of the height above local terrain. Crossing a ridge slowed the camera with the same key held. [Current controls](../spec-vaisseau.md)
