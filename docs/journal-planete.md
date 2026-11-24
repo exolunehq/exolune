@@ -2,6 +2,11 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-24 · Axial transport thrust**
+
+- The side grilles emit parallel five-sheet plumes under forward thrust. Lift vectors both downward in the ship's longitudinal plane.
+- Milestone `jalon/navette-poussee-axiale-2026-11-24`. [Forward thrust in orbit and hover above the plain](../tools/tests/2026-11-24.txt)
+
 **2026-11-24 · Transport landing and flight controls**
 
 - Manual and automatic landings share the three-pad surface lock. L manages automatic approach and deliberate departure to an 8 m hover. P shows the phase and live controls.

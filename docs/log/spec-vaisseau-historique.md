@@ -1,5 +1,9 @@
 # Ship and camera history
 
+**2026-11-24 · Outward transport exhaust**
+
+- The first V9 aperture charts used the recessed duct axes for external discharge. Each forward-burn plume diverged by 39.8° from the ship's centreline. [Current main exhausts](../spec-vaisseau.md#jets-and-shadows)
+
 **2026-11-24 · Transport parking and wing control**
 
 - The first playable V9 inferred parking from low speed and a nearby hull contact. The ramp could move while flight inputs still changed the hull pose.

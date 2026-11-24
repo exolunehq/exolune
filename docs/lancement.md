@@ -37,7 +37,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours to
 - L initiates automatic landing below 5 km and 1,200 km/h ground speed. The shuttle levels, brakes, deploys the gear and descends. It searches nearby when the surface is wet or too steep. L returns control in flight.
 - After touchdown the hull locks to the surface. Mouse movement controls the camera. J disembarks once the rear stair is fully open. J boards again.
 - L from park closes the stair before liftoff and establishes a hover 8 m above the pads. L during closure cancels departure. F4 and F7 start parked. F10 and F11 start airborne over the plain and Moon 1.
-- F8 starts an orbital braking pass. F9 shows the attitude outlets during lunar roll and lateral translation. Use Tab for the exterior view.
+- At F8 hold Up for two parallel aft plumes, then X for orbital braking. F9 shows the attitude outlets during lunar roll and lateral translation. Use Tab for the exterior view.
 - Automatic wings open at 150 km/h indicated and retract at 90 km/h indicated. Between these speeds they keep their previous state. Vacuum, 1,340 km/h indicated or 48% entry heat engages protection. In supporting air it releases below 1,140 km/h and 22% heat. The automatic landing and departure sequences also stow the wings.
 - Hold X to brake. The dorsal panels follow the braking demand in the atmosphere.
 - In manual flight, 2 overrides wings, 3 gear and 4 the airbrake. When parked, 5 operates the stair. Pressing 6 or starting an automatic manoeuvre restores automatic equipment control. The number pad also works with Num Lock.

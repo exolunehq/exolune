@@ -101,16 +101,24 @@ def exhausts(grid, images):
     edges = [rows[:,hullgrid.B_CAV0], rows[:,hullgrid.B_CAV1]]
     edges += [.5*(rows[:,top]+rows[:,bottom]) for top,bottom in grid.blade_rows]
     stations = np.linspace(0,1,len(rows))
+    duct = -DUCT_DIR/np.linalg.norm(DUCT_DIR)
+    duct_width = np.array((duct[1], -duct[0], 0))
+    half_width = .5*np.ptp(np.concatenate(edges) @ duct_width) + fittings.CHART_PADDING[0]
+    aft = np.array((0,1,0))
+    stern = grid.points[:,:,1].max()
     result = bytearray()
     for side in (1,-1):
         mirror = np.array((side,1,1))
-        axis = -DUCT_DIR*mirror/np.linalg.norm(DUCT_DIR)
-        across = np.array((axis[1]*side,-axis[0]*side,0))
-        frame = np.stack((across,(0,0,1),axis))
-        mouth, radii, depth, image = fittings.chart_from_edges([edge*mirror for edge in edges],frame,stations,bend_stations=True)
+        # Both grilles discharge aft (+Y). Project each mirrored opening along
+        # that same axis so every sheet begins on its own raked lip.
+        across = np.array((side,0,0))
+        frame = np.stack((across,(0,0,1),aft))
+        mouth, radii, depth, image = fittings.chart_from_edges(
+            [edge*mirror for edge in edges],frame,stations,bend_stations=True,duct_axis=frame @ (duct*mirror))
         if image not in images:
             images.append(image)
-        result.extend(struct.pack('<16f',*mouth,radii[0],*axis,radii[1],*across,0,images.index(image)+1,depth,0,0))
+        result.extend(struct.pack('<16f',*mouth,radii[0],*aft,radii[1],*across,0,
+                                  images.index(image)+1,depth,half_width,stern-mouth[1]))
     return result
 
 

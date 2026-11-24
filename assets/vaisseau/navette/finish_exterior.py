@@ -17,6 +17,7 @@ import numpy as np
 
 
 FILM_HASH = "d4498a432d77d4f37d68865fb0a3564d80c18ee9e1650977b355d7c1d865dfc6"
+CHART_PADDING = np.array((.085, .065))
 SKIN = {4, 6, 8, 9, 43}  # Exterior material IDs in this exact film packet.
 OCCUPANTS = {36, 37, 38, 39, 40}
 POSE_BRAKE = 14
@@ -785,16 +786,15 @@ def exhaust_chart(vertices, faces, draws, axis, across):
     return chart_from_edges(edges, frame, stations)
 
 
-def chart_from_edges(edges, frame, stations, bend_stations=False):
-    """Project the six measured boundaries of five exhaust slots into the plume chart."""
+def chart_from_edges(edges, frame, stations, bend_stations=False, duct_axis=(0, 0, 1)):
+    """Project the five slots and weight emission along the physical duct axis expressed in chart space."""
     across = frame[0]
     edges.sort(key=lambda edge: edge[:,2].mean())
     # The backmost intersection in the exhaust frame is the visible outlet,
     # including where the raked ends or the forward part fold in projection.
     points = np.concatenate(edges) @ frame.T
     low, high = points.min(0), points.max(0)
-    pad = np.array((.085,.065))
-    radii = .5*(high-low)[:2] + pad
+    radii = .5*(high-low)[:2] + CHART_PADDING
     origin = np.r_[.5*(low+high)[:2],low[2]]
     depth = high[2]-low[2]
     sections = len(stations)
@@ -828,7 +828,8 @@ def chart_from_edges(edges, frame, stations, bend_stations=False):
             band = bary @ (ids // sections)
             gap = band - math.floor(band)
             jamb = smooth(.012,.18,min(along,1-along)) * smooth(.02,.70,min(band,5-band))
-            flux = jamb * smooth(.025,.64,abs(normal.z))
+            # Flux belongs to the physical duct. The chart can look along a different discharge axis.
+            flux = jamb * smooth(.025,.64,abs(normal.dot(duct_axis)))
             chart[j,i] = ((p.z-low[2])/depth, flux*smooth(.085,.39,min(gap,1-gap)), flux)
             covered[j,i] = True
     if covered.mean() < .22 or chart[:,:,1].max() < .97:

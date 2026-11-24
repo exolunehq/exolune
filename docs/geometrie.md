@@ -4,7 +4,7 @@ Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it
 
 **Transport landing support, 2026-11-24.** Vehicle contact geometry. Sample the existing terrain or lunar surface below the three authored gear pads. Their plane supplies the parked attitude and height. Surface water and slopes over 12° exclude a landing site. [Transport landing](spec-vaisseau.md)
 
-**Transport exhausts, 2026-11-24.** Manufactured hull fittings and transient optical volumes. Each auxiliary collar follows the fixed skin around its complete perimeter. The runtime ray march shares the fitted mouth and axis. Each main grille supplies its five physical sheet roots and the start of their turn. [Shuttle jets](spec-vaisseau.md#jets-and-shadows)
+**Transport exhausts, 2026-11-24.** Manufactured hull fittings and transient optical volumes. Each auxiliary collar follows the fixed skin around its complete perimeter. The two main volumes share the ship's aft axis. Their five sheet roots and their lift bends start at the measured lips of each side grille. [Shuttle jets](spec-vaisseau.md#jets-and-shadows)
 
 **Navette AAA folding wings, 2026-11-24.** Manufactured player vehicle. Native landing clearance follows the lowest projected support across the animated packet. The bay follows the original face between the two shoulder bevels. The wing plane rises aft by 1.04°. A central shutter parks above each folded wing. Two pinned hydraulic rams carry each main door. The deployed span is 7.46 m. [Shuttle recipe](../assets/vaisseau/navette_aaa/README.md)
 

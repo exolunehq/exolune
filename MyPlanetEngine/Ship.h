@@ -35,7 +35,7 @@ public:
 
     struct Nozzle {
         DirectX::XMFLOAT4 mouthWidth, axisHeight, widthAxis;
-        DirectX::XMFLOAT4 aperture; // linear image index + 1, axial depth of the curved outlet (m)
+        DirectX::XMFLOAT4 aperture; // linear image index + 1, outlet depth, duct half-width, distance to stern (metres)
     };
 
     struct ExhaustPort { DirectX::XMFLOAT4 mouthRadius, axis; };

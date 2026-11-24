@@ -86,7 +86,12 @@ Jet JetOf(uint j)
             jet.radii = float2(nozzle.mouthWidth.w, nozzle.axisHeight.w);
             jet.power = smoothstep(.035, 1.0, shipThrust.x);
             jet.bend = shipAutomation.z;
-            jet.length = jet.radii.x * lerp(1.25, shipAutomation.y > .5 ? 6.4 : 4.9, jet.power);
+            // A side grille sits forward of the stern. Its axial burn clears the aft hull;
+            // the downward hover jet only needs the reach of the physical duct.
+            const bool transport = shipAutomation.y > .5;
+            const float width = transport && nozzle.aperture.z > 0 ? nozzle.aperture.z : jet.radii.x;
+            const float reach = transport ? 6.4 * width + nozzle.aperture.w * cos(jet.bend) : 4.9 * width;
+            jet.length = lerp(1.25 * width, reach, jet.power);
             jet.spread = .12;
             return jet;
         }

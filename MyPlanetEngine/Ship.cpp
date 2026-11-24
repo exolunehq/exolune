@@ -183,7 +183,8 @@ void Ship::ReadTransport(const std::vector<uint8_t>& data, size_t& at)
         nozzle=Read<Nozzle>(data,at);
         const float image=nozzle.aperture.x;
         if (!(image>=1 && image<=mImages.size() && image==std::floor(image) && !mImages[size_t(image)-1].srgb &&
-              nozzle.mouthWidth.w>0 && nozzle.axisHeight.w>0 && nozzle.aperture.y>0))
+              nozzle.mouthWidth.w>0 && nozzle.axisHeight.w>0 && nozzle.aperture.y>0 &&
+              nozzle.aperture.z>=0 && nozzle.aperture.z<Radius && nozzle.aperture.w>=0 && nozzle.aperture.w<2*Radius))
             throw std::runtime_error("Invalid transport outlet.");
     }
     uint32_t section = Read<uint32_t>(data, at);

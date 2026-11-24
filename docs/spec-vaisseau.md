@@ -237,7 +237,8 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 
 - **Main exhausts**
   - Each transport grille emits five amber sheets from its measured openings. A fourth linear texture channel marks the last lip in each column.
-  - Forward thrust and lift share the main outlets. The flow follows a circular bend after the lip, from straight discharge to a vertical jet in hover. The grille and gas share the same power.
+  - Both main plumes run parallel to the ship's longitudinal axis under forward thrust. Increasing lift bends them together toward the keel after the lip. In hover both streams point straight down.
+  - The cooker projects the five openings along ship +Y. The duct width sets the hover reach. Forward thrust adds the measured distance to the stern, so both tails clear the aft hull at full power. The grille and gas share the same power. [Packet regression check](../tools/tests/check_transport_plumes.py)
   - Two recessed nose outlets discharge forwards during longitudinal braking. A backwards-moving shuttle uses the main outlets to stop.
   - Twelve smaller outlets on the fixed hull pulse with side thrust, downward translation and angular acceleration. They work in vacuum. The feet carry the load when parked.
   - The fighter and classic ship use analytic plumes with a blue-white core, a violet tip and weak shock diamonds. [Volume shader](../MyPlanetEngine/ShipPlumePixel.hlsl)
