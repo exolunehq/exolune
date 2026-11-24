@@ -26,7 +26,7 @@ cbuffer ShipFrame : register(b3) // b1: the clouds' frame (Clouds.hlsli)
     float4x4 shipPose[SHIP_POSE_COUNT]; // cockpit controls, elevons, sliding wings and hinged airbrakes
     float4   shipShockBounds; // half-extents of the external gas proxy, metric support-plane offset in w
     float4   shipAirframe;   // wing extension, brake extension, reverse thrust, station keeping
-    float4   shipSupportExhaust; // support-jet direction in ship axes, power in w
+    float4   shipSupportExhaust; // support direction in ship axes; w is reaction authority on the V9, support power on older ships
     float4   shipRetroOutlet, shipSupportOutlet; // mouth positions and support outlet spacing
     float4 shipRadio; // receive lamp and audio meter
     float4 shipEquipment, shipAutomation;

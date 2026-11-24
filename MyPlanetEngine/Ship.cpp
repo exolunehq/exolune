@@ -202,6 +202,26 @@ void Ship::ReadTransport(const std::vector<uint8_t>& data, size_t& at)
         mProfile.jetCount = 2 + 2 * SHIP_TRANSPORT_PORT_PAIRS;
         section = Read<uint32_t>(data, at);
     }
+    if (section == 0x31524541) { // AER1, elevon hinges in bind space and the split-fin actuators
+        const auto& wings=mTransportClips[TransportEquipment::Wings];
+        for (auto& hinge : mElevons) {
+            hinge=Read<Elevon>(data,at);
+            if (!(hinge.slot>SHIP_LEGACY_POSES && hinge.slot<=SHIP_POSE_COUNT && !used[hinge.slot-1] &&
+                  std::any_of(wings.begin(),wings.end(),[&](const RigidTrack& t){return t.slot+1==hinge.parent;}) &&
+                  std::abs(XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&hinge.axis)))-1)<.001f &&
+                  XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&hinge.pivot)))<Radius*Radius))
+                throw std::runtime_error("Invalid elevon hinge.");
+            used[hinge.slot-1]=true;
+        }
+        auto& tail=mTransportClips[TransportEquipment::Brake];
+        for (int side : {-1,1}) for (int part=0; part<3; ++part) {
+            const unsigned slot=Read<uint32_t>(data,at);
+            auto track=std::find_if(tail.begin(),tail.end(),[slot](const RigidTrack& t){return t.slot+1==slot;});
+            if (track==tail.end() || track->tailSide) throw std::runtime_error("Invalid split rudder track.");
+            track->tailSide=side;
+        }
+        section=Read<uint32_t>(data,at);
+    }
     if (section != 0x32505553) throw std::runtime_error("Missing transport supports.");
     const unsigned hulls=Read<uint32_t>(data,at);
     if (!hulls || hulls>SHIP_POSE_COUNT+1) throw std::runtime_error("Invalid transport supports.");
@@ -230,16 +250,30 @@ XMMATRIX Ship::TransportMatrix(const RigidTrack& track, double phase)
     return XMLoadFloat4x4(&track.inverseBind)*XMMatrixRotationQuaternion(q)*XMMatrixTranslationFromVector(p);
 }
 
-float Ship::TransportDepth(XMFLOAT3 up, const TransportEquipment& state) const
+void Ship::TransportMatrices(const TransportEquipment& state, TransportPoses& transforms) const
 {
-    // Lowest point along local gravity, including the real pad positions throughout retraction.
-    const XMVECTOR vertical=XMLoadFloat3(&up);
-    std::array<XMMATRIX, SHIP_POSE_COUNT+1> transforms;
     transforms.fill(XMMatrixIdentity());
     for (size_t i=0;i<mTransportClips.size();++i) {
         const double phase=i==TransportEquipment::Gear ? 1-state.position[i] : state.position[i];
-        for (const auto& track : mTransportClips[i]) transforms[track.slot+1]=TransportMatrix(track,phase);
+        for (const auto& track : mTransportClips[i])
+            transforms[track.slot+1]=TransportMatrix(track,track.tailSide ? state.TailPhase(track.tailSide) : phase);
     }
+    for (size_t i=0;i<mElevons.size();++i) {
+        const auto& hinge=mElevons[i];
+        if (!hinge.slot) continue;
+        const float angle=float(TransportEquipment::ElevonRadians*(i==0 ? state.leftElevon : state.rightElevon));
+        const XMVECTOR pivot=XMLoadFloat3(&hinge.pivot);
+        const XMMATRIX turn=XMMatrixRotationAxis(XMLoadFloat3(&hinge.axis),angle);
+        transforms[hinge.slot]=XMMatrixTranslationFromVector(-pivot)*turn*XMMatrixTranslationFromVector(pivot)*transforms[hinge.parent];
+    }
+}
+
+float Ship::TransportDepth(XMFLOAT3 up, const TransportEquipment& state) const
+{
+    // Rendering, shadows and ground support use the same articulated surfaces.
+    const XMVECTOR vertical=XMLoadFloat3(&up);
+    TransportPoses transforms;
+    TransportMatrices(state,transforms);
     float depth=.2f;
     for (const auto& hull : mTransportBounds) {
         const auto& transform=transforms[hull.slot];
@@ -254,13 +288,10 @@ float Ship::TransportDepth(XMFLOAT3 up, const TransportEquipment& state) const
 
 void Ship::SetTransportPose(const TransportEquipment& state)
 {
-    for (size_t i=0; i<mTransportClips.size(); ++i) {
-        const double phase=i==TransportEquipment::Gear ? 1-state.position[i] : state.position[i];
-        for (const RigidTrack& track : mTransportClips[i]) {
-            const XMMATRIX delta=TransportMatrix(track,phase);
-            XMStoreFloat4x4(&mConstants->pose[track.slot],XMMatrixTranspose(delta));
-        }
-    }
+    TransportPoses transforms;
+    TransportMatrices(state,transforms);
+    for (size_t slot=SHIP_LEGACY_POSES+1;slot<transforms.size();++slot)
+        XMStoreFloat4x4(&mConstants->pose[slot-1],XMMatrixTranspose(transforms[slot]));
 }
 
 void Ship::ReadShuttleControls(const std::vector<uint8_t>& data, size_t& at)

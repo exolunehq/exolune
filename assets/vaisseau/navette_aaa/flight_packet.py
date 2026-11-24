@@ -16,6 +16,7 @@ import paquet_moteur as vsx
 import finish_exterior as fittings
 import hullgrid
 from flight_ports import add_ports
+from flight_controls import add_controls
 from thrusters import DUCT_DIR
 
 SOURCE_SHA = '0cf43af7664acc6534002f6c66a991fa10ab32a8f441e99ad4394143ca2c1b31'
@@ -204,7 +205,9 @@ def cook(source, destination):
                 images[image_id] = struct.pack('<II',1,len(png))+png
         grid = hullgrid.HullGrid()
         jets = exhausts(grid, images)
-        vertex, indices, ports = add_ports(grid, vertex, indices, merged, [m['name'] for m in gltf['materials']])
+        names = [m['name'] for m in gltf['materials']]
+        vertex, indices, ports = add_ports(grid, vertex, indices, merged, names)
+        vertex, indices, helm = add_controls(grid, vertex, indices, merged, names, slots)
         nv, ni = len(vertex), len(indices)
         canopy = fittings.cook_glass(vertex,indices,merged,material,transport=True)
         assert len(images)<=16
@@ -220,6 +223,7 @@ def cook(source, destination):
             file.write(clips)
             file.write(jets)
             file.write(ports)
+            file.write(helm)
             file.write(supports(vertex))
             file.write(canopy)
         print('V9 packet',nv,'vertices',ni//3,'triangles',len(merged),'draws',

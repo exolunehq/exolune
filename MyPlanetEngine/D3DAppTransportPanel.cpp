@@ -112,7 +112,8 @@ void D3DApp::DrawTransportPanel() {
             const double verticalSpeed=Dot(mShipVelocity,up);
             const double horizontalSpeed=Length(mShipVelocity-up*verticalSpeed);
             const bool manualApproach=rig.phase==Phase::Flight && rig.gearNearGround && feet<150 && groundSpeed<45;
-            const wchar_t* phase=L"Vol manuel";
+            const bool wingborne=rig.airAuthority>=.999;
+            const wchar_t* phase=wingborne ? L"Vol sur les ailes" : L"Vol manuel";
             const wchar_t* action=L"L  Atterrissage automatique";
             if (feet>Rig::MaxApproachHeight || groundSpeed*3.6>Rig::MaxApproachKmh)
                 action=L"Atterrissage auto sous 5 km et 1 200 km/h";
@@ -169,8 +170,8 @@ void D3DApp::DrawTransportPanel() {
                 c.row(24,143,L"Molette",inAir ? L"Régler les gaz · 0 = stationnaire" : L"Régler les gaz · 0 = vol inertiel");
                 c.row(24,170,L"↑  /  Maj",inAir ? L"Caler plein gaz / surpuissance" : L"Maintenir plein gaz / surpuissance");
                 c.row(24,197,L"↓  /  X",inAir ? L"Freiner jusqu’au stationnaire" : L"Maintenir pour freiner et s’arrêter");
-                c.row(24,224,L"Espace/Ctrl",L"Monter / descendre (ou "+KeyPair(mMoveKeys[0],mMoveKeys[1])+L")");
-                c.row(24,251,KeyPair(mMoveKeys[2],mMoveKeys[3]),L"Translation gauche / droite");
+                c.row(24,224,L"Espace/Ctrl",wingborne ? L"Cabrer / piquer" : L"Monter / descendre (ou "+KeyPair(mMoveKeys[0],mMoveKeys[1])+L")");
+                c.row(24,251,KeyPair(mMoveKeys[2],mMoveKeys[3]),wingborne ? L"Virer à gauche / à droite" : L"Translation gauche / droite");
                 c.row(24,278,KeyPair(mMoveKeys[4],mMoveKeys[5]),L"Roulis gauche / droite");
                 c.row(24,305,L"Tab",L"Changer de vue");
                 c.row(24,332,L"Clic droit",L"Regarder autour (R recentre)");
@@ -191,7 +192,13 @@ void D3DApp::DrawTransportPanel() {
                 swprintf_s(thresholds,L"Protection à %d km/h indiqués ou 48 %% de chauffe. Réarmement sous %d km/h et 22 %%.",
                     Rig::WingProtectKmh,Rig::WingRearmKmh);
                 c.line(24,432,w-48,thresholds,1,Muted);
-                c.line(24,455,w-48,L"Ailes repliées dans le vide, à l’atterrissage automatique et au décollage.",1,Muted);
+                wchar_t steering[160];
+                if (rig.GroundLocked()) wcscpy_s(steering,L"Navette posée · gouvernes au neutre, jets de stabilisation coupés.");
+                else if (wingborne) wcscpy_s(steering,L"Gouvernes actives · roulis et tangage aux ailes, lacet à la dérive.");
+                else if (rig.airAuthority>0) swprintf_s(steering,L"Transition · gouvernes %.0f %% et jets de stabilisation %.0f %%.",
+                    100*rig.airAuthority,100*(1-rig.airAuthority));
+                else wcscpy_s(steering,L"Pilotage aux jets de stabilisation · gouvernes au neutre.");
+                c.line(24,455,w-48,steering,1,Muted);
                 wchar_t power[170];
                 wchar_t regime[80]=L"Dans le vide, relâcher ↑ rend la main à la molette.";
                 if (inAir) swprintf_s(regime,L"Plein panache dès le cran %.0f en atmosphère.",FlightDynamics::FirstBurnNotch);

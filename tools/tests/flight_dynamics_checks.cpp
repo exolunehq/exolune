@@ -111,6 +111,52 @@ void CheckTransportThrottle(Field field) {
     }
 }
 
+void CheckTransportSurfaces(const Field& field) {
+    TransportEquipment rig;
+    rig.position[TransportEquipment::Wings]=1;
+    rig.SetAirflow(60,1,false);
+    rig.Deflect(rig.Steer({0,0,1},0,0));
+    Check(rig.airAuthority==1 && rig.leftElevon==-1 && rig.rightElevon==1,"right roll raises only the right trailing edge");
+    rig.Deflect(rig.Steer({1,0,0},0,0));
+    Check(rig.leftElevon==1 && rig.rightElevon==1,"pitch up raises both elevons");
+    rig.Deflect(rig.Steer({0,1,0},0,0));
+    Check(rig.TailPhase(1)>.5 && rig.TailPhase(-1)==0,"right yaw opens the right fin leaf with its actuator");
+    rig.position[TransportEquipment::Brake]=1;
+    Check(rig.TailPhase(1)==1 && rig.TailPhase(-1)<.5,"yaw retains differential travel under full braking");
+    rig.position[TransportEquipment::Brake]=0;
+    const auto steering=rig.Steer({0,0,0},1,-1);
+    Check(steering.pitch>0 && steering.yaw<0,"translation keys steer aerodynamically in forward flight");
+    rig.SetAirflow(120/3.6,1,false);
+    Check(std::abs(rig.airAuthority-.5)<1e-9,"airspeed blends the controls between 90 and 150 km/h");
+    rig.SetAirflow(60,-1,false);
+    Check(rig.airAuthority==0,"tail-first flow has no forward wing authority");
+    rig.SetAirflow(200,.45,false);
+    Check(rig.airAuthority==0,"a broadside slide cannot acquire wing control from scalar airspeed");
+    rig.SetAirflow(60,1,true);
+    Check(rig.airAuthority==0,"a parked-position hover holds on jets even in a headwind");
+    rig.position[TransportEquipment::Wings]=.85;
+    rig.SetAirflow(100,1,false);
+    Check(rig.airAuthority==0,"the elevons are neutral before the wing leaves its saddle");
+    rig.position[TransportEquipment::Wings]=1;
+    Flight flight;
+    flight.velocity={0,0,100};
+    Controls cruise=Wheel(15);
+    cruise.transport=&rig; cruise.terrainClearance=500; cruise.localUp=Level.up;
+    cruise.strafe=cruise.lift=1;
+    const auto air=flight.Run(field,cruise,1,60);
+    Check(rig.airAuthority==1 && std::abs(air.sideJet)+std::abs(air.liftJet)+air.trimJet<1e-6 && air.axialJet>.57,
+          "wing-borne controls use aerodynamic steering and sustain the main drive without auxiliary thrust");
+    cruise.hasControlSurfaces=false;
+    const auto legacy=flight.Run(field,cruise,1,60);
+    Check(rig.airAuthority==0 && legacy.sideJet>.5 && legacy.liftJet>.5,"a legacy packet keeps its manoeuvring jets");
+    flight.position={0,Radius+250000,0};
+    cruise.hasControlSurfaces=true;
+    const auto vacuum=flight.Run(field,cruise,1,60);
+    rig.Deflect({1,1,1});
+    Check(rig.airAuthority==0 && rig.rightElevon==0 && rig.rudder==0 && vacuum.sideJet>.5,
+          "in vacuum even extended wings yield control to the jets");
+}
+
 void CheckManualThrust(const Field& planet, const Field& lunar) {
     Check(ThrottlePower(0)==0 && ThrottlePower(30)==1, "the control lever covers the full engine range");
     for (double n=.25; n<=30; n+=.25)
@@ -384,6 +430,7 @@ void CheckFlightDynamics() {
     }
     CheckManualThrust(field,lunar);
     CheckTransportThrottle(field);
+    CheckTransportSurfaces(field);
     CheckFlightAssist(field,lunar);
     Controls yaw = Wheel(15);
     yaw.yaw = 1;

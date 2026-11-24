@@ -50,7 +50,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 | `chasseur` (default) | `assets/vaisseau/chasseur/` | VSX3 | 1.03 m | 4 | 6 | 1684 × 2450 |
 | `classique` | `assets/vaisseau/` | VSX2 | 1.07 m | 3 | 2 | 1584 × 3660 |
 | `navigateur` (cabin prototype) | `assets/vaisseau/navigateur/` | VSX3 | 0.70 m | 0 | 0 | 2560 × 1536 |
-| `navette` (V9 transport) | `assets/vaisseau/navette/` | VSX4 | −0.20 m | 2 | 2 + 75 moving nodes | 3456 × 1256 |
+| `navette` (V9 transport) | `assets/vaisseau/navette/` | VSX4 | −0.20 m | 2 | 2 + 75 clip nodes + 2 elevons | 3456 × 1256 |
 
 - The executable alone selects the approved fighter.
 - `tools/lance.ps1 -ModeleVaisseau classique` selects the original triangular ship.
@@ -58,6 +58,8 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - The V9 transport spans 4.86 m stowed and 7.46 m deployed. Its two grilles emit five sheets of exhaust each.
 - The pilot eye sits 4.05 m ahead and 0.20 m below the origin. The side stick and throttle pivot on their seat fittings.
 - Four independent authored clips drive the 75 moving nodes. Clip positions feed the flight loads, visible equipment, shadows and equipment display. [Transport controls](lancement.md#transport-shuttle)
+- Two 22° elevons hinge on the outer wings. Pitch moves both trailing edges together. A right roll raises the right trailing edge and lowers the left. The split fin opens on the side of the commanded yaw. Symmetric opening provides airbraking.
+- Wing authority depends on the forward component of indicated airspeed and the actual docking position. It rises smoothly from 90 to 150 km/h with docked wings. In cruise, climb and slide commands steer through the air. Station keeping and vacuum flight use the manoeuvring jets.
 - The Navigator starts in its cabin with eye offsets 0.65 m ahead and 0.70 m up. Tab cycles cockpit, chase and bare. Its panoramic surface carries the common cockpit effects. [Flight, canopy and suit](spec-vol-immersion.md)
 - `MYPLANETENGINE_VAISSEAU` still selects the camera view, independently of the model.
 - Each model retains its own source, Blender scene, GLB and cooked package.
@@ -241,7 +243,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
   - Atmospheric cruise sustains the selected engine regime up to full output at notch 25. The four ventral stabilizers share the lift load when the shuttle hovers. Ground contact transfers that load to the landing gear.
   - The duct width sets the hover plume length. Forward thrust adds the measured distance to the stern, so both tails clear the aft hull at full power. The grille and gas share the same power.
   - Two recessed nose outlets discharge forwards during longitudinal braking. A backwards-moving shuttle uses the main outlets to stop.
-  - Twelve smaller outlets on the fixed hull pulse with side thrust, downward translation and angular acceleration. They work in vacuum. The feet carry the load when parked.
+  - Twelve smaller outlets pulse with the translation and attitude loads assigned to reaction control in hover, transition and vacuum. They shut off in fully wing-borne flight. The two braking outlets remain available. The feet carry the load when parked.
   - The fighter and classic ship use analytic plumes with a blue-white core, a violet tip and weak shock diamonds. [Volume shader](../MyPlanetEngine/ShipPlumePixel.hlsl)
 - **Fighter and classic attitude jets:** ten water vapour outlets at the stern and nose.
   - **Each pulls when its push serves the command:** the slip, or the torque of the roll, the pitch and the lacing around the center of the ship.

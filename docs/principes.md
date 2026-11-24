@@ -312,6 +312,7 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Anchor each exhaust to its open throat. The signed flight loads set its power and its direction at the lip. The free jet follows that straight axis.
 - For a shared main thrust direction, mirror the outlet positions and keep each plume parallel to the commanded exhaust vector. [Transport jets](spec-vaisseau.md#jets-and-shadows)
 - Use the selected engine regime and delivered load for powered cruise cues. Allocate hover thrust between the vectoring grilles and stabilizers from the same support load. [Flight dynamics](spec-vol-immersion.md)
+- Allocate atmospheric steering from forward airflow and actual wing deployment. Use that allocation for aerodynamic forces, visible control surfaces and reaction jets. [Transport controls](spec-vaisseau.md)
 - Give landed vehicles a body-relative pose supported by their deployed feet. Boarding, moving stairs and camera contact preserve that pose until deliberate departure. [Transport gameplay](spec-vaisseau.md)
 
 **Reflective manufactured skins use smooth control surfaces** (`recherche-vaisseau-navigateur.md`).

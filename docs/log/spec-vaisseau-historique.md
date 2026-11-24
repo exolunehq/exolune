@@ -1,5 +1,9 @@
 # Ship and camera history
 
+**2026-11-25 · Reaction steering in atmospheric cruise**
+
+- The first V9 flight controls fired the attitude ports on every angular acceleration, including turns on fully deployed wings. The wing trailing edges stayed fixed. [Current flight controls](../spec-vaisseau.md)
+
 **2026-11-24 · Curved transport hover exhaust**
 
 - The first lift effect sent gas aft of each lip and turned it downward along a circular arc outside the hull. The turn was visible in profile during takeoff and hover. [Current main exhausts](../spec-vaisseau.md#jets-and-shadows)

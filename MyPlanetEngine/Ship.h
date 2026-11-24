@@ -83,6 +83,7 @@ public:
     void SetFlightSurfaces(float wings, float airbrakes);
     bool HasTransportRig() const { return !mTransportClips[0].empty(); }
     void SetTransportPose(const TransportEquipment& equipment);
+    bool HasTransportControls() const { return mElevons[0].slot!=0; }
     float TransportDepth(DirectX::XMFLOAT3 up, const TransportEquipment& state) const;
 
     struct Tables {
@@ -119,8 +120,12 @@ private:
     }
     void ReadShuttleControls(const std::vector<uint8_t>& data, size_t& at);
     struct RigidKey { DirectX::XMFLOAT3 translation; DirectX::XMFLOAT4 rotation; };
-    struct RigidTrack { unsigned slot; DirectX::XMFLOAT4X4 inverseBind; std::vector<RigidKey> keys; };
+    struct RigidTrack { unsigned slot; int tailSide=0; DirectX::XMFLOAT4X4 inverseBind; std::vector<RigidKey> keys; };
     std::array<std::vector<RigidTrack>,TransportEquipment::Count> mTransportClips;
+    struct Elevon { uint32_t slot, parent; DirectX::XMFLOAT3 pivot, axis; };
+    std::array<Elevon,2> mElevons{};
+    using TransportPoses = std::array<DirectX::XMMATRIX, SHIP_POSE_COUNT+1>;
+    void TransportMatrices(const TransportEquipment& state, TransportPoses& poses) const;
     struct SupportHull { unsigned slot; std::vector<DirectX::XMFLOAT3> points; };
     std::vector<SupportHull> mTransportBounds;
     static DirectX::XMMATRIX TransportMatrix(const RigidTrack& track, double phase);

@@ -2,6 +2,11 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-25 · Wing-borne transport controls**
+
+- The transport steers on two 22° elevons and the split rudder in forward atmospheric flight. Control passes progressively between the wings and the manoeuvring jets over 90–150 km/h of forward indicated airspeed once the wings dock.
+- Milestone `jalon/navette-gouvernes-2026-11-25`. [Coastal roll, valley yaw, hover and lunar manoeuvres](../tools/tests/2026-11-25.txt)
+
 **2026-11-24 · Direct exhaust from the transport side grilles**
 
 - The five sheets leave each side grille along the commanded direction. Vertical lift sends them down from the lip. Forward thrust sends them aft. Combined thrust tilts both streams together.

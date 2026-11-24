@@ -232,7 +232,12 @@ void D3DApp::UpdateShip(float dt) {
     // The rates follow the stick and the keys within a tenth of a second.
     const bool guided=transport && mTransport.Guided();
     const double roll = guided ? 0 : held(mMoveKeys[5]) - held(mMoveKeys[4]);
-    const Vec3d wantedRate = { -mStickY * 1.3, mStickX * 1.0, roll * 1.8 };
+    const double strafe = mFlightTake.Connected() ? mFlightTake.strafe : held(mMoveKeys[3]) - held(mMoveKeys[2]);
+    const double lift = mFlightTake.Connected() ? mFlightTake.lift :
+        std::min(std::max(held(mMoveKeys[0]) + held(VK_SPACE) - held(mMoveKeys[1]) - held(VK_CONTROL), -1.0), 1.0);
+    TransportEquipment::Helm helm={-mStickY,mStickX,roll};
+    if (transport) helm=mTransport.Steer(helm,lift,strafe);
+    const Vec3d wantedRate = { helm.pitch * 1.3, helm.yaw, helm.roll * 1.8 };
     const Vec3d eyeBefore = mShipForward * eyeAhead + mShipUp * mShip.Profile().eyeUp;
     const Vec3d rateBefore = mShipRate;
     mShipRate =mShipRate + (wantedRate - mShipRate) * (1.0 - std::exp(-dt / 0.1));
@@ -258,14 +263,12 @@ void D3DApp::UpdateShip(float dt) {
         if (guided) mFlightPilot.holding=false;
     }
 
-    const double strafe = mFlightTake.Connected() ? mFlightTake.strafe : held(mMoveKeys[3]) - held(mMoveKeys[2]);
-    const double lift = mFlightTake.Connected() ? mFlightTake.lift :
-        std::min(std::max(held(mMoveKeys[0]) + held(VK_SPACE) - held(mMoveKeys[1]) - held(VK_CONTROL), -1.0), 1.0);
     FlightDynamics::Controls controls = {mShipForward, Normalize(Cross(mShipUp, mShipForward)), mShipUp,
                                          mThrottle, strafe, lift, held(VK_SHIFT) > 0, held('X') > 0 || (transport && held(VK_DOWN) > 0), held(VK_UP) > 0,
                                          mShipRate.y, mShipRate.z};
     if (mShip.HasTransportRig()) {
         controls.transport = &mTransport;
+        controls.hasControlSurfaces = mShip.HasTransportControls();
         controls.terrainClearance = clearance;
         controls.descentRate = -Dot(mShipVelocity,SurfaceUp(mShipPos));
         controls.localUp=SurfaceUp(mShipPos);
@@ -301,6 +304,7 @@ void D3DApp::UpdateShip(float dt) {
     mPlume += (loads.mainJet - mPlume) * (1.0 - std::exp(-dt / .18));
     if (controls.transport) {
         mThrottle = controls.throttle;
+        mTransport.Deflect({mShipRate.x/1.3,mShipRate.y,(mShipRate.z+loads.bankAssistRate)/1.8});
         mTransportExhaust.Advance(dt, loads.axialJet, loads.liftJet, loads.sideJet, false, loads.trimJet);
         if (mTransport.phase==Phase::Takeoff && Length(mShipVelocity)<.25 &&
             std::abs(controls.terrainClearance-TransportEquipment::PadDepth-TransportEquipment::HoverHeight)<.12) {
@@ -547,6 +551,7 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
         ship.thrust.x = float(mTransportExhaust.MainPower());
         ship.thrust.z = float(mTransportExhaust.lift);
         ship.thrust.w = float(mTransportExhaust.side);
+        ship.supportExhaust.w = float(1-mTransport.airAuthority);
         ship.airframe.z = float(std::max(0.0, -mTransportExhaust.ahead));
         mShip.SetTransportPose(mTransport);
     } else mShip.SetFlightSurfaces(ship.airframe.x, ship.airframe.y);

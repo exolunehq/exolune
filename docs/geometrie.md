@@ -2,6 +2,8 @@
 
 Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it.
 
+**Transport flight controls, 2026-11-25.** Manufactured vehicle geometry. Each 0.69 m elevon uses the upper and lower surfaces of the existing outer wing. The fixed wing and moving panel have closed ribs at the cut. Each elevon folds with its parent wing. The two existing fin leaves retain their individual cylinders. Rendering, shadows and contact share the hinge transforms. [Transport controls](spec-vaisseau.md)
+
 **Transport landing support, 2026-11-24.** Vehicle contact geometry. Sample the existing terrain or lunar surface below the three authored gear pads. Their plane supplies the parked attitude and height. Surface water and slopes over 12° exclude a landing site. [Transport landing](spec-vaisseau.md)
 
 **Transport exhausts, 2026-11-24.** Manufactured hull fittings and transient optical volumes. Each auxiliary collar follows the fixed skin around its complete perimeter. Five gas sheets start between the blades of each side grille. Both exhausts follow the selected straight axis from those fixed openings, from aft thrust through vertical lift. Four ventral outlets emit stabilizing pulses under hover load. [Shuttle jets](spec-vaisseau.md#jets-and-shadows)

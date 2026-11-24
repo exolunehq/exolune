@@ -34,6 +34,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours to
 
 - Run `tools/jouer_navette.cmd` to start parked on the coastal plain. P opens the in-game flight controls and pauses piloting. P or Escape resumes.
 - In atmosphere the wheel holds its setting. The main plumes stay lit at cruise speed and reach full output at notch 25 of 30. Tap Up to leave the lever at full power.
+- In wing-borne flight the outer wing panels roll and pitch the shuttle. The split rudder yaws it. Space and Ctrl pitch up and down. The lateral keys steer into the turn. P shows which controls carry the load. F1 starts a coastal flight and F5 a valley flight.
 - Roll the wheel down to zero or tap Down or X to brake to a powered hover. The retro jets slow the shuttle, then the main grilles turn down and the ventral jets stabilize it. Space and Ctrl change height. Release to hold position. Advance the wheel to fly on.
 - In vacuum, zero allows an inertial coast. Up gives full thrust while held. Hold X or Down to stop. With the gear down below 120 m, Space and Ctrl also control manual landing on the Moon.
 - L initiates automatic landing below 5 km and 1,200 km/h ground speed. The shuttle levels, brakes, deploys the gear and descends. It searches nearby when the surface is wet or too steep. L returns control in flight.
@@ -47,7 +48,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours to
 - The right display shows actual travel, automatic or manual control, throttle and engine demand. The left display shows attitude, speed and altitude. The middle display shows heading and coordinates.
 
 ~~~powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours tools/tests/2026-11-24.txt -ModeleVaisseau navette -Camera cockpit -DepartTest 4 -Resolution fenetre
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours tools/tests/2026-11-25.txt -ModeleVaisseau navette -Camera cockpit -DepartTest 4 -Resolution fenetre
 ~~~
 
 **Camera review** uses `tools/tests/2026-11-10.txt` with `-Camera orbite -DepartTest 1`. At F1, hold forward to descend towards the coast in Horizon. Press Home, select F1 again and repeat in Fixed altitude. F5 points straight down at Moon 2.

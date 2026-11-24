@@ -46,7 +46,8 @@ Jet TransportPort(uint index)
         const float3 lever = normalize(cross(jet.at - SHIP_CENTRE, push));
         const float3 slide = float3(-shipThrust.w, 0, min(0.0, shipThrust.z) + shipAutomation.w);
         const float3 torque = -float3(shipTurn.x, shipThrust.y, shipTurn.y);
-        const float demand = saturate(dot(push, slide) + dot(lever, torque));
+        const float reaction = shipSupportExhaust.w; // angular authority left to reaction control
+        const float demand = reaction > 0 ? saturate(dot(push, slide) + reaction*dot(lever, torque)) : 0;
         const float phase = frac(shipTurn.z * 4.0 + index * .38197);
         const float pulse = smoothstep(0, .13, phase) * (1 - smoothstep(.38, .83, phase));
         jet.power = smoothstep(.018, .68, demand) * (.18 + .82 * pulse);

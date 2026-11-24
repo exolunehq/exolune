@@ -38,12 +38,42 @@ struct TransportEquipment {
     bool initialized = false, cruise = false, gearNearGround = false, wingProtected = false;
     bool precisionHover = false, brakeToHover = false;
     double parkedTime = 0;
+    double airAuthority = 0; // fraction of attitude control carried by the docked wings
+    double leftElevon = 0, rightElevon = 0, rudder = 0;
+    static constexpr double ElevonRadians = .384; // 22 degrees
+
+    void SetAirflow(double indicatedSpeed, double forwardCosine, bool holding) {
+        auto ramp = [](double t) { t=std::max(0.0,std::min(1.0,t)); return t*t*(3-2*t); };
+        const double docked = ramp((position[Wings]-.90)/.08);
+        const double flow = ramp((3.6*indicatedSpeed*forwardCosine-WingCloseKmh)/(WingOpenKmh-WingCloseKmh));
+        const double attached = ramp((forwardCosine-.55)/.35);
+        airAuthority = phase==Phase::Flight && !holding && !precisionHover && !wingProtected ? docked*flow*attached : 0;
+    }
+    struct Helm { double pitch, yaw, roll; }; // nose up, yaw right, roll right
+    static double Signed(double x) { return std::max(-1.0,std::min(1.0,x)); }
+    Helm Steer(Helm pilot, double climb, double slide) const {
+        const double pitch=Signed(pilot.pitch+.45*climb);
+        const double left=Signed(pitch-pilot.roll), right=Signed(pitch+pilot.roll);
+        return {pilot.pitch + airAuthority*(.5*(right+left)-pilot.pitch),
+                pilot.yaw + airAuthority*(Signed(pilot.yaw+.5*slide)-pilot.yaw),
+                pilot.roll + airAuthority*(.5*(right-left)-pilot.roll)};
+    }
+    void Deflect(Helm motion) {
+        leftElevon=airAuthority*Signed(motion.pitch-motion.roll);
+        rightElevon=airAuthority*Signed(motion.pitch+motion.roll);
+        rudder=airAuthority*Signed(motion.yaw);
+    }
+    double TailPhase(int side) const {
+        // Differential opening uses the same two panels and cylinders as the speed brake.
+        return std::max(0.0,std::min(1.0,position[Brake]+side*.52*rudder));
+    }
 
     bool GroundLocked() const { return phase == Phase::Parked || phase == Phase::Closing; }
     bool Guided() const { return phase == Phase::Approach || phase == Phase::Takeoff; }
     bool CanWalk() const { return phase == Phase::Parked && position[Hatch] == 1; }
     void SetPhase(Phase next) {
         phase = next;
+        if (next!=Phase::Flight) airAuthority=leftElevon=rightElevon=rudder=0;
         precisionHover = brakeToHover = false;
         if (next == Phase::Parked) parkedTime = 0;
         if (next != Phase::Flight) Automatic();
