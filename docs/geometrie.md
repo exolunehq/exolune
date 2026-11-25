@@ -2,6 +2,14 @@
 
 Status: reference, since 2026-10-23. Complete `principes.md`, which refers to it.
 
+**Transport flight controls, 2026-11-25.** Manufactured vehicle geometry. Each 0.69 m elevon uses the upper and lower surfaces of the existing outer wing. The fixed wing and moving panel have closed ribs at the cut. Each elevon folds with its parent wing. The two existing fin leaves retain their individual cylinders. Rendering, shadows and contact share the hinge transforms. [Transport controls](spec-vaisseau.md)
+
+**Transport landing support, 2026-11-24.** Vehicle contact geometry. Sample the existing terrain or lunar surface below the three authored gear pads. Their plane supplies the parked attitude and height. Surface water and slopes over 12° exclude a landing site. [Transport landing](spec-vaisseau.md)
+
+**Transport exhausts, 2026-11-24.** Manufactured hull fittings and transient optical volumes. Each auxiliary collar follows the fixed skin around its complete perimeter. Five gas sheets start between the blades of each side grille. Both exhausts follow the selected straight axis from those fixed openings, from aft thrust through vertical lift. Four ventral outlets emit stabilizing pulses under hover load. [Shuttle jets](spec-vaisseau.md#jets-and-shadows)
+
+**Navette AAA folding wings, 2026-11-24.** Manufactured player vehicle. Native landing clearance follows the lowest projected support across the animated packet. The bay follows the original face between the two shoulder bevels. The wing plane rises aft by 1.04°. A central shutter parks above each folded wing. Two pinned hydraulic rams carry each main door. The deployed span is 7.46 m. [Shuttle recipe](../assets/vaisseau/navette_aaa/README.md)
+
 **Shuttle entry light, 2026-11-21.** Manufactured canopy optics. The glass contact line comes from the signed boundary of the existing fitted pane. The shock volume uses the existing hull. Planetary terrain and contact keep their existing geometry.
 
 **Cockpit and suit optics, 2026-11-20.** Manufactured-surface shading and observer optics. The Navigator's existing outer skin supplies the panoramic optical surface inside the cabin opening. The walking visor is a camera-space optical treatment. Proposed hull motion reaches the established planetary contact field. [Flight, canopy and suit](spec-vol-immersion.md)

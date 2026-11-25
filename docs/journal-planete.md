@@ -2,6 +2,45 @@
 
 History of field adjustments: what changed, why, what it cost or brought, and how to go back. The most recent entry is at the top.
 
+**2026-11-25 · Wing-borne transport controls**
+
+- The transport steers on two 22° elevons and the split rudder in forward atmospheric flight. Control passes progressively between the wings and the manoeuvring jets over 90–150 km/h of forward indicated airspeed once the wings dock.
+- Milestone `jalon/navette-gouvernes-2026-11-25`. [Coastal roll, valley yaw, hover and lunar manoeuvres](../tools/tests/2026-11-25.txt)
+
+**2026-11-24 · Direct exhaust from the transport side grilles**
+
+- The five sheets leave each side grille along the commanded direction. Vertical lift sends them down from the lip. Forward thrust sends them aft. Combined thrust tilts both streams together.
+- Milestone `jalon/navette-jets-directs-2026-11-24`. [Coastal takeoff and orbital thrust at F7 and F8](../tools/tests/2026-11-24.txt)
+
+**2026-11-24 · Atmospheric shuttle throttle and hover**
+
+- Atmospheric cruise retains the selected engine regime. Full exhaust begins at notch 25 of 30. Up selects full power in air.
+- The transport cruise response is 0.18 s. The brake response is 0.14 s. Selecting zero, X or Down brakes to a supported hover. The ventral jets carry 22% of the vertical support demand.
+- Milestone `jalon/navette-gaz-stationnaire-2026-11-24`. [Coastal cruise, valley braking and orbital coast](../tools/tests/2026-11-24.txt)
+
+**2026-11-24 · Axial transport thrust**
+
+- The side grilles emit parallel five-sheet plumes under forward thrust. Lift vectors both downward in the ship's longitudinal plane.
+- Milestone `jalon/navette-poussee-axiale-2026-11-24`. [Forward thrust in orbit and hover above the plain](../tools/tests/2026-11-24.txt)
+
+**2026-11-24 · Transport landing and flight controls**
+
+- Manual and automatic landings share the three-pad surface lock. L manages automatic approach and deliberate departure to an 8 m hover. P shows the phase and live controls.
+- Manual precision descent becomes available with extended gear below 120 m. Automatic search holds about 5 m over unsuitable ground and returns control after 90 seconds of searching.
+- The wings open at 150 km/h indicated and retract at 90 km/h indicated. Overspeed protection engages at 1,340 km/h and releases at 1,140 km/h after entry heat dissipates.
+- Native flight checks covered manual and automatic touchdown, an approximately 11° lunar site, open-water refusal and a full stair cycle under thrust and roll input.
+- Milestone `jalon/navette-escale-2026-11-24`. [Coastal, lunar and open-water review](../tools/tests/2026-11-24.txt)
+
+**2026-11-24 · Vectored transport exhaust**
+
+- The main exhausts vector from forward burn to hover. Two retro outlets and twelve attitude ports follow the signed thrust and torque.
+- Milestone `jalon/navette-panaches-vectoriels-2026-11-24`. [Takeoff, orbital braking and lunar manoeuvring at F7 through F9](../tools/tests/2026-11-24.txt)
+
+**2026-11-24 · V9 playable transport**
+
+- Replaced the film transport packet with the reviewed V9, including its cockpit and four reversible mechanisms.
+- Equipment uses atmospheric loads, braking demand, terrain clearance and parking state. Keys 2 through 5 override a channel. Key 6 restores automatic control.
+- Milestone `jalon/navette-transport-v9-2026-11-24`. [Transport flight review](../tools/tests/2026-11-24.txt)
 **2026-11-23 · Character style iteration**
 
 - The Style B references set a quality bar, not designs to copy: Exolune takes its own hairstyles and costume details (user, 2026-11-23).

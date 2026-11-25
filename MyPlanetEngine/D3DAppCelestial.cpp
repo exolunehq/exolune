@@ -120,10 +120,10 @@ void D3DApp::PlaceMoonCamera(double latitude,double longitude,double pitchDown,d
     ResetFlightContact();
 }
 void D3DApp::MoonFlightContact(const FlightPose& before) {
-    const bool ship=mView!=View::Free && mView!=View::Walk;
+    const bool ship=mView!=View::Free && mView!=View::Walk && !(mShip.HasTransportRig() && mTransport.GroundLocked());
     if(mView==View::Walk || !mCine.empty())return;
     const Vec3d from=ship?before.ship:before.camera;
-    const double hull=ship?double(Ship::Radius)+std::hypot(double(mShip.Profile().centreY),double(mShip.Profile().centreZ)):.25;
+    double hull=ship?double(Ship::Radius)+std::hypot(double(mShip.Profile().centreY),double(mShip.Profile().centreZ)):.25;
     unsigned samples=Airless::ContactSamples;
     for(unsigned i=0;i<Celestial::MoonCount;++i) {
         const Vec3d centre=WorldVec(mMoonCentres[i]),to=ship?mShipPos:mCamPos;
@@ -131,6 +131,29 @@ void D3DApp::MoonFlightContact(const FlightPose& before) {
         const double t=std::min(std::max(-Dot(relative,delta)/std::max(Dot(delta,delta),1e-12),0.0),1.0);
         const auto surface=Airless::MoonSurface(i);
         if(Length(relative+delta*t)>surface.radius+20000)continue;
+        if (ship && mShip.HasTransportRig()) {
+            const Vec3d normal=WorldVec(surface.Normal(MoonVec(relative)));
+            // Sweep multiplies a generic sphere radius by HullPadding. The articulated hull
+            // already supplies its physical support depth along the terrain normal.
+            const double depth=std::max(TransportDepth(before.shipForward,before.shipUp,normal),
+                                        TransportDepth(mShipForward,mShipUp,normal));
+            const Vec3d vertical=Normalize(to-centre);
+            hull=depth/(Airless::HullPadding*std::max(.2,Dot(vertical,normal)));
+            const double clearance=Length(to-centre)-surface.radius-surface.Height(MoonVec(to-centre));
+            if (clearance<12 && Length(mShipVelocity)<8 && mTransport.position[TransportEquipment::Gear]==1) {
+                const auto site=CurrentLandingSite();
+                if (Landable(site) && Dot(site.normal,mShipUp)>.95) {
+                    // A crater under the keel can have a different slope from the three feet.
+                    // Use their measured plane for the legs and keep the belly's own clearance.
+                    TransportEquipment belly=mTransport;
+                    belly.position[TransportEquipment::Gear]=0;
+                    const double bellyDepth=mShip.TransportDepth({float(Dot(Cross(mShipForward,mShipUp),vertical)),
+                        -float(Dot(mShipForward,vertical)),float(Dot(mShipUp,vertical))},belly);
+                    const double footDepth=clearance-PadGap(site,to,mShipForward,mShipUp)/Dot(site.normal,vertical);
+                    hull=std::max(bellyDepth,footDepth)/Airless::HullPadding;
+                }
+            }
+        }
         const Vec3d accepted=centre+WorldVec(surface.Sweep(MoonVec(relative),MoonVec(to-centre),hull,&samples));
         const Vec3d correction=accepted-to;
         mCamPos=mCamPos+correction;if(ship)mShipPos=accepted;

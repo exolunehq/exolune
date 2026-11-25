@@ -9,16 +9,18 @@
 #define SHIP_FIELD_ROWS 32
 #define SHIP_FIELD_ELEVATION_STEP 0.022f
 #define SHIP_PACK_POSES 11
-#define SHIP_POSE_COUNT (SHIP_PACK_POSES + 4)
+#define SHIP_LEGACY_POSES (SHIP_PACK_POSES + 4)
+#define SHIP_POSE_COUNT 96
 #define SHIP_MAX_IMAGES 16
 #define SHIP_MANOEUVRING_JETS 6
+#define SHIP_TRANSPORT_PORT_PAIRS 7
 // The offline fitter samples the actual shuttle glass in this angular chart.
-#define SHUTTLE_EYE_AHEAD 3.47f
-#define SHUTTLE_EYE_UP (-.84f)
+#define SHUTTLE_EYE_AHEAD 4.05f
+#define SHUTTLE_EYE_UP (-.20f)
 #define SHUTTLE_PANE_COLUMNS 161
 #define SHUTTLE_PANE_ROWS 81
-#define SHUTTLE_PANE_CENTRE_Y .80f
-#define SHUTTLE_PANE_CENTRE_Z -.88f
+#define SHUTTLE_PANE_CENTRE_Y -1.70f
+#define SHUTTLE_PANE_CENTRE_Z -.45f
 #define SHUTTLE_PANE_RADIUS 2.30f
 #define SHUTTLE_WATER_WIDTH 3456
 #define SHUTTLE_WATER_HEIGHT 1256
@@ -69,7 +71,7 @@ static constexpr ShipProfile NavigatorShip = {
     0.65f, 0.7f, 0.0f, 0.0f, {2560, 1536, -.37f, .0018f}, 0, 0, true, true,
     {}
 };
-// The flight film's rider position and bare-metal nacelles. Mounts follow the outer reactor casings in metres.
+// V9 transport seat and equipment. Legacy film packets restore their own eye at load.
 static constexpr ShipProfile ShuttleShip = {
     ShipModel::Navette, L"navette", L"assets\\vaisseau\\navette\\vaisseau.vsx",
     SHUTTLE_EYE_AHEAD, SHUTTLE_EYE_UP, 0, 0, {1, 1, 0, .0012f}, 2, SHIP_PACK_POSES, true, false,

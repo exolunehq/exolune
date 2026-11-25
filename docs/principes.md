@@ -286,6 +286,10 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 **Manufactured parts derive their interfaces from the visible support mesh** (`spec-vaisseau.md`).
 - Build continuous walls, floors and rooted supports from shared boundaries; details must belong to their supporting surface.
 - Fit separate manufactured solids to explicit docking surfaces and verify contact on the evaluated meshes.
+- Place a folding panel's rotation origin on its physical hinge axis. Check the pin and swept clearance between keys in both the source and the reimported asset.
+- Cut a closing panel and its mating insert from the same surface. Back the running joints with a seat and check for sightlines into the bay at both ends of travel.
+- Derive the cockpit, shadows, equipment indicators and ground support from the same authored mechanism and its actual playback position.
+- Register an opening to the existing structural edge that carries it. Seat each actuator on the moving panel and the fixed structure. Check both pivots and piston engagement throughout the exported motion.
 - Keep planar instrument decks flat in both geometry and shading; neighbouring bevels must not bend their reflection normals.
 - Verify control sightlines against the evaluated cabin from the actual pilot eye, including recessed faces and raised rims.
 - Check each manufactured solid is connected and closed; disconnected primitive assemblies do not establish coherent construction (`spec-navigateur-cockpit-son.md`).
@@ -305,6 +309,11 @@ Status: reference, since 2026-10-22. Any fix and any new function complies with 
 - Preserve a finite orthogonal tangent frame at UV poles in both GLB and cooked packets.
 - Inspect the reimported asset from several viewpoints and retain the in-flight review route.
 - Solve nose visibility in the physical hull shape; keep the glazing contact, external paint layout and attitude-jet origins consistent with it.
+- Anchor each exhaust to its open throat. The signed flight loads set its power and its direction at the lip. The free jet follows that straight axis.
+- For a shared main thrust direction, mirror the outlet positions and keep each plume parallel to the commanded exhaust vector. [Transport jets](spec-vaisseau.md#jets-and-shadows)
+- Use the selected engine regime and delivered load for powered cruise cues. Allocate hover thrust between the vectoring grilles and stabilizers from the same support load. [Flight dynamics](spec-vol-immersion.md)
+- Allocate atmospheric steering from forward airflow and actual wing deployment. Use that allocation for aerodynamic forces, visible control surfaces and reaction jets. [Transport controls](spec-vaisseau.md)
+- Give landed vehicles a body-relative pose supported by their deployed feet. Boarding, moving stairs and camera contact preserve that pose until deliberate departure. [Transport gameplay](spec-vaisseau.md)
 
 **Reflective manufactured skins use smooth control surfaces** (`recherche-vaisseau-navigateur.md`).
 - Fit the intended silhouette and broad folds with a regular editable cage and smooth surface evaluation.

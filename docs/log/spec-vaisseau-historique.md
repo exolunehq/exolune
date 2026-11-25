@@ -1,5 +1,32 @@
 # Ship and camera history
 
+**2026-11-25 · Reaction steering in atmospheric cruise**
+
+- The first V9 flight controls fired the attitude ports on every angular acceleration, including turns on fully deployed wings. The wing trailing edges stayed fixed. [Current flight controls](../spec-vaisseau.md)
+
+**2026-11-24 · Curved transport hover exhaust**
+
+- The first lift effect sent gas aft of each lip and turned it downward along a circular arc outside the hull. The turn was visible in profile during takeoff and hover. [Current main exhausts](../spec-vaisseau.md#jets-and-shadows)
+
+**2026-11-24 · Momentary atmospheric cruise exhaust**
+
+- The first V9 controller used the same momentary full-thrust key in air and vacuum. Its cruise plume dimmed as the speed error closed. Selecting zero released the controller and left the ship coasting. [Current transport controls](../lancement.md#transport-shuttle)
+
+**2026-11-24 · Outward transport exhaust**
+
+- The first V9 aperture charts used the recessed duct axes for external discharge. Each forward-burn plume diverged by 39.8° from the ship's centreline. [Current main exhausts](../spec-vaisseau.md#jets-and-shadows)
+
+**2026-11-24 · Transport parking and wing control**
+
+- The first playable V9 inferred parking from low speed and a nearby hull contact. The ramp could move while flight inputs still changed the hull pose.
+- F7 used Space from the ground. Wing deployment used hidden equivalent-airspeed thresholds of 42 and 24 m/s. [Current flight controls](../lancement.md#transport-shuttle)
+
+**2026-11-24 · Film shuttle retired from the playable transport slot**
+
+- The VSX3 film derivative used a pilot eye 3.47 m ahead of the origin and a fixed closed landing gear.
+- Six fixed vanes and a sliding skin formed the exhaust shoulders. The span grew from 5.37 m to 8.56 m.
+- The film cooker, old packet and its dedicated test routes can be recovered at `468b511`. [Playable V9](../spec-vaisseau.md)
+
 **2026-11-22 · Clearance-scaled detached camera**
 
 - The wheel used to select a multiplier of the height above local terrain. Crossing a ridge slowed the camera with the same key held. [Current controls](../spec-vaisseau.md)

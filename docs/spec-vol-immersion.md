@@ -5,7 +5,7 @@
 - In space, steering brings the flight path back towards the nose. A reversal keeps momentum through the turn. The pilot can brake deliberately.
 - In air, yaw input adds a gentle bank and redirects lift. The pilot can roll directly. Lowering the wheel or holding X progressively reduces speed.
 - At a commanded stop, stabilizers hold world position against the local gravity and wind. A new wheel or thrust command resumes flight.
-- Cut thrust above the ground and the ship settles. Sufficient forward speed, upward thrust or a deliberate powered hold can support it.
+- An unpowered airborne ship settles under gravity. Wing lift, vertical thrust or a powered hold can support it. Selecting zero on the atmospheric transport commands that powered hold.
 - A fast descent from space produces a short burst of hot gas and sound. Flying fast along a coastline or leaving the atmosphere keeps the ordinary engine and wind cues.
 - Walking brings the listener inside a helmet. Nearby vegetation, footsteps, breathing and radio should be distinguishable with the master at its default gain.
 
@@ -44,14 +44,15 @@
 - The molecular atmosphere shares its 8 km scale height and 100 km top with rendering. A smooth taper over the last scale height closes the flight medium. The existing climate wind supplies the air velocity.
 - Dynamic pressure is `0.5 × 1.225 × densityRatio × relativeSpeed²` in Pa. Axial drag uses an effective ballistic coefficient of 2,400 kg/m². A broadside hull presents four times that drag area. At very high speed the fractional drag rate approaches 1.2 per second, preserving a controllable coast.
 - In vacuum, steering rotates the velocity vector along an arc towards the new heading. Its length carries through a turn. A settled, unpowered ship can follow an orbit under gravity. Air density and dynamic pressure blend this assistance into atmospheric flight.
-- Atmospheric trim builds between 22 and 80 m/s equivalent airspeed. Incidence changes the lift, bank turns the heading and reverse flow sheds lift. Acceleration from the wings is limited to 40 m/s². The fin reduces sideslip relative to the wind. A held translation command allows a deliberate slide.
-- The first 24 wheel notches select cruise speeds. Notch 15 commands 100 m/s. Acceleration towards a cruise target uses a 0.35 s response. In air, the controller reads forward speed relative to the wind. Notches 25–30 command a continuous burn at any altitude.
+- Atmospheric trim builds between 22 and 80 m/s equivalent airspeed. Docked transport wings also trim the weight according to their steering authority. Incidence changes the lift, bank turns the heading and reverse flow sheds lift. Acceleration from the wings is limited to 40 m/s². The fin reduces sideslip relative to the wind.
+- The transport blends steering from reaction jets to elevons and split rudder between 90 and 150 km/h of forward indicated airspeed. The wings must be docked and the flow predominantly nose-first. Strong sideslip, high incidence and loss of forward airspeed return authority to the jets. In wing-borne flight the lateral keys steer and the vertical keys pitch. [Wing controls](spec-vaisseau.md)
+- The first 24 wheel notches select cruise speeds. Notch 15 commands 100 m/s. The cruise response is 0.18 s on the manually piloted transport and 0.35 s on the other ships. In air, the controller reads forward speed relative to the wind. Notches 25–30 command a continuous burn at any altitude.
 - Yaw adds up to 25 degrees of bank through a 0.34 s response. Equivalent airspeed builds authority from 28 to 85 m/s. Steep pitch and manual roll progressively release the assist.
 - The wings extend with density and equivalent airspeed. At high dynamic pressure the target retains 52% travel. Hover, vacuum and the hot entry phase allow full retraction. Opening uses a 0.36 s response and closing uses 0.52 s.
 - Brake panels follow requested deceleration and air pressure. The wing waits for brake clearance before folding into the nacelle. Normal flight or a fast departure reopens the wings even after repeated closing cycles.
-- Lower cruise commands and X share a 0.33 s deceleration ramp. The speed-dependent demand limits the retro burn. Natural and panel drag supply part of the requested deceleration.
-- X brakes along the travel vector. Below 0.22 m/s the stabilizers capture the stop and cancel gravity and aerodynamic acceleration. Release X after the stop. A wheel change, full thrust, boost or translation releases station keeping. The title reports braking and hold.
-- Holding Up commands full thrust at any lever setting. Shift engages the boosted drive.
+- A lower cruise setting or a brake command builds deceleration over 0.14 s on the transport and 0.33 s on the other ships. During a transport stop the retro jets and aerodynamic drag shed ground speed together. Lift and lateral jets arrest sink and wind drift.
+- Below 0.22 m/s the stabilizers capture the stop. An atmospheric transport retains the stop command after X, Down or the last downward wheel step. In hover the pilot can translate and release the control to stop again. The forward lever, Up or boost resumes flight.
+- Atmospheric transport lever shortcuts engage at a local density ratio of 0.00022. Up selects full travel. The cruise regime blends out as the air thins. In vacuum Up gives a momentary burn and zero permits a coast. Shift engages boost.
 - The drive reports total effort for the mix and axial output for the main nozzles. The pilot's seat responds to specific force, so free fall does not push the pilot back.
 - An observed ship position at or above 100 km arms atmospheric entry. Crossing 92 km inwards qualifies the passage at an airspeed of at least 1,800 m/s and a radial descent of at least 100 m/s. The hot phase can start below 78 km when density and relative speed produce sufficient flux.
 - During the event, brightness follows `sqrt(densityRatio) × (relativeSpeed / 2500 m/s)³`. The burst fades over its last three seconds and ends within twelve seconds, or earlier as the ship approaches 40 km. Levelling, ascent and sub-threshold airspeed extinguish it. Another visit above the atmospheric ceiling rearms the effect.
@@ -59,7 +60,7 @@
 
 **Controls and state changes**
 
-- Releasing Up restores the wheel setting. Yaw and pitch engage the spaceflight assist. Hold X until the title reports station keeping. Tab cycles the cockpit, chase and bare views.
+- In vacuum, releasing Up restores the wheel setting. Yaw and pitch engage spaceflight assist. Hold X to capture station keeping. P shows the transport's atmospheric throttle and hover controls. Tab cycles the cockpit, chase and bare views.
 - The detached camera keeps its exploration controls. The pilot's attitude survives a change of terrain reference frame.
 - Swept hull and chase-camera contact remains authoritative over the proposed displacement. Walking uses its own controller and the parked ship.
 - A route pose can seed physical velocity along the nose. Re-selecting a pose resets the flight and thermal history. The entry review starts above the atmosphere and crosses it during playback. An authored `depuis-espace` pose explicitly replays a preceding steady descent through the same conditions.

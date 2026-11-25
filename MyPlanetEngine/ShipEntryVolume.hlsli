@@ -13,7 +13,7 @@ float3 EntryShockCentre() { return SHIP_CENTRE; }
 // Turning the head reveals another part of the same glowing gas from inside or outside.
 float EntryFlank(float3 location)
 {
-    const float2 offset = location.xy - float2(0, -SHUTTLE_EYE_AHEAD);
+    const float2 offset = location.xy - float2(0, shipAutomation.y > .5 ? -SHUTTLE_EYE_AHEAD : -3.47);
     return smoothstep(0.19, 0.65, abs(offset.x) / max(length(offset), 0.01));
 }
 

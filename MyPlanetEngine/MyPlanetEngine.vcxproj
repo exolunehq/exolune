@@ -89,6 +89,7 @@
     <ClCompile Include="D3DAppCine.cpp" />
     <ClCompile Include="D3DAppContact.cpp" />
     <ClCompile Include="D3DAppShip.cpp" />
+    <ClCompile Include="D3DAppTransportPanel.cpp" />
     <ClCompile Include="D3DAppWalk.cpp" />
     <ClCompile Include="D3DAppCity.cpp" />
     <ClCompile Include="D3DAppTests.cpp" />
@@ -191,6 +192,7 @@
     <ClInclude Include="Ship.h" />
     <ClInclude Include="City.h" />
     <ClInclude Include="Characters.h" />
+    <ClInclude Include="TransportEquipment.h" />
     <ClInclude Include="ShipProfiles.h" />
   </ItemGroup>
   <ItemGroup>

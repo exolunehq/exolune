@@ -4,7 +4,15 @@
 
 **The player pilots a ship, seen from the cockpit or from behind.** The free camera remains available for the benchmarks and focus.
 
-**J disembarks instantly onto dry terrain; J returns to the saved ship.** Walking controls and environmental audio are specified in [spec-marche-ambiances.md](spec-marche-ambiances.md).
+**Transport landing and boarding**
+
+- The pilot can fly to contact or engage automatic landing with L. Automatic guidance brakes, levels the hull and slows its descent as the extended pads approach the ground.
+- At low altitude, manual precision hover holds height when the pilot releases the vertical control. Automatic site search over unsuitable ground ends in a manual hover after 90 seconds.
+- All three deployed feet sample the local terrain. Each must be dry. The support plane accepts slopes up to 12°. A slow contact seats the hull on that plane.
+- The parked state fixes position and attitude relative to the body during camera motion, stair travel, disembarkation and boarding.
+- Departure completes stair closure before lifting. The shuttle hands back control in a stationary hover.
+- P displays the current phase, controls, throttle setting, main engine output and automatic wing thresholds in all ship views. [Transport controls](lancement.md#transport-shuttle)
+- J disembarks behind the fully open stair. [Walking controls and audio](spec-marche-ambiances.md)
 
 **Try, in the game (`AGENTS.md`, `lancement.md`):** from the root of the worktree,
 ```powershell
@@ -42,15 +50,16 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 | `chasseur` (default) | `assets/vaisseau/chasseur/` | VSX3 | 1.03 m | 4 | 6 | 1684 × 2450 |
 | `classique` | `assets/vaisseau/` | VSX2 | 1.07 m | 3 | 2 | 1584 × 3660 |
 | `navigateur` (cabin prototype) | `assets/vaisseau/navigateur/` | VSX3 | 0.70 m | 0 | 0 | 2560 × 1536 |
-| `navette` (film shuttle) | `assets/vaisseau/navette/` | VSX3 | −0.84 m | 2 | 11 | 3456 × 1256 |
+| `navette` (V9 transport) | `assets/vaisseau/navette/` | VSX4 | −0.20 m | 2 | 2 + 75 clip nodes + 2 elevons | 3456 × 1256 |
 
 - The executable alone selects the approved fighter.
 - `tools/lance.ps1 -ModeleVaisseau classique` selects the original triangular ship.
 - Direct launches accept `classique`, `chasseur`, `navigateur` and `navette` through `MYPLANETENGINE_MODELE_VAISSEAU`.
-- `tools/lance.ps1 -ModeleVaisseau navette` selects the shuttle derived from *Exolune par les crêtes*. The pilot camera sits 3.47 m ahead of the centre and 0.84 m below it. The three-screen dashboard, seats, yoke and throttle come from the original film asset. The flight cabin is empty and the gear uses its closed pose.
-- Both aircraft use the same flight loads. The Navette widens the rolled skin above its turbines from a 5.37 m span to 8.56 m in cruise. The two dorsal airbrakes hinge inboard of the moving skin. [Flight surfaces](../MyPlanetEngine/ShipFlightSurfaces.cpp) [Exterior cooker](../assets/vaisseau/navette/finish_exterior.py)
-- A keyed spar guides each Navette wing. Twin telescopic rams extend and retract with the lip. Their terminal pins seat in shoes on the rolled underside.
-- Each main plume starts between the six fixed vanes. Five hot sheets merge downstream along the outlet axis. Four flush underside fittings register the powered hover outlets.
+- The V9 transport spans 4.86 m stowed and 7.46 m deployed. Its two grilles emit five sheets of exhaust each.
+- The pilot eye sits 4.05 m ahead and 0.20 m below the origin. The side stick and throttle pivot on their seat fittings.
+- Four independent authored clips drive the 75 moving nodes. Clip positions feed the flight loads, visible equipment, shadows and equipment display. [Transport controls](lancement.md#transport-shuttle)
+- Two 22° elevons hinge on the outer wings. Pitch moves both trailing edges together. A right roll raises the right trailing edge and lowers the left. The split fin opens on the side of the commanded yaw. Symmetric opening provides airbraking.
+- Wing authority depends on the forward component of indicated airspeed and the actual docking position. It rises smoothly from 90 to 150 km/h with docked wings. In cruise, climb and slide commands steer through the air. Station keeping and vacuum flight use the manoeuvring jets.
 - The Navigator starts in its cabin with eye offsets 0.65 m ahead and 0.70 m up. Tab cycles cockpit, chase and bare. Its panoramic surface carries the common cockpit effects. [Flight, canopy and suit](spec-vol-immersion.md)
 - `MYPLANETENGINE_VAISSEAU` still selects the camera view, independently of the model.
 - Each model retains its own source, Blender scene, GLB and cooked package.
@@ -62,13 +71,13 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 
 **Asset loading and animation**
 
-- Each directory contains its own `vaisseau.glb`, `paquet_moteur.py` and `vaisseau.vsx`.
+- The shipped packet contains all geometry, materials and inputs for native playback. The V9 transport uses the reviewed external GLB and its tracked cooker.
 - The engine reads cooked vertices, draw ranges, PBR materials and PNGs; WIC decodes the images.
 - VSX3 materials carry explicit animation roles in 96 bytes.
 - VSX2 materials remain 92 bytes on disk; loading expands them and maps original screen indices 13–18 to roles 1–6.
 - The original package and generator remain unchanged.
-- `Ship::Load` validates the selected profile's pivot count. `JET3` adds a linear aperture image and discharge depth per turbine. The loader also accepts `JET1` and `JET2`. `FLW2` drives the nacelle skin, rigid guides and brake hinges. The loader also accepts `FLW1` hinged surfaces. `WTR1` carries the fitted canopy chart.
-- The shuttle's 5:4 instrument drawings use [their own layout](../MyPlanetEngine/ShipShuttleScreens.hlsli). The cooked flight packet removes all occupant draws and their two exclusive image atlases.
+- VSX4 carries two cockpit pivots, four independent clips, fitted nozzle data, per-part convex support hulls and a weather chart. The loader also accepts legacy film VSX3 and classic VSX2 packets.
+- Flight and navigation use live attitude, speed, altitude, heading and geographic position. Equipment indications read back actual motion and manual overrides.
 - The package is found above the executable; an absent package leaves the free camera available.
 - The ship frame uses metres: nose −Y, up +Z, pilot's left +X.
 - The planet frame is left-handed; the ship-to-world transform reflects X and the glTF bitangent sign.
@@ -126,7 +135,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - The bound is 270,369 distinct vertices, or 278,785 height evaluations including shared group edges and the endpoint; a zero-length hull placement probe uses about 1,090 evaluations.
 - At most two bodies return 8,224 bytes in total: group contact fractions, normals and support metadata.
 - Sweeps are exact against this triangulated contact field, not a proof of the continuous terrain between samples; very long chords can miss features below their larger sample spacing.
-- The hull sphere is conservative, not mesh collision; trees, individual rocks and FFT wave displacement are outside this contact field.
+- The transport sweeps a broad ellipsoid with vertical reach from the animated parts. Other profiles use the conservative hull sphere. The contact field includes the terrain and its graded surfaces. Individual props and FFT wave displacement have separate representations.
 - Walking retains its own controller; automated captures and cinematic routes retain their existing positioning path and do not validate this interactive solver.
 - A spherical free-camera contact never restores an older look direction, including during placement recovery or invalid-query rollback.
 - Airless contact applies the same outward/slide policy through its shared physical field; its bounded support and checks are in `spec-lune-terrain.md`.
@@ -189,9 +198,9 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 - **The standard for keyboard and mouse space games,** Star Citizen and Everspace:
   - **Mouse:** pitch and lacing, by a virtual handle that refocuses at rest.
   - **Rolls:** Q and E, or A and E in AZERTY.
-  - **Throttle** selects cruise speed on notches 1–24 and continuous thrust on notches 25–30. Hold Up for immediate full thrust at any altitude. Releasing Up restores the selected notch. Zero releases cruise. X brakes and then holds position.
+  - **Throttle** selects cruise speed on notches 1–24 and continuous thrust on notches 25–30. On the transport, Up selects full lever travel in atmosphere. In vacuum and on the other ships it gives a momentary full burn.
   - **Sliding:** A and D (Q and D) on the side; W and S (Z and S), or Space and Ctrl, up and down, in the ship's axis.
-  - **Boost and brake** use Shift and X. Hold X until station keeping engages. Move the wheel or command thrust or translation to resume flight.
+  - **Boost and brake** use Shift and X. On the atmospheric transport, X, Down or selecting zero brakes to a hover. Releasing the key completes the manoeuvre. Lateral and vertical controls move within hover. Advancing the lever resumes forward flight. In space, hold the brake until station keeping engages.
   - **Free head:** Right click held; on releasing, the view stays where it is and the mouse pilots again.
   - **Swing head:** H gives the mouse to the head; H returns it to the ship again, and the head stays where it is.
   - **R brings the head back to rest,** a little below the horizon, of 4,5°. In free camera, R keeps the shading faceted.
@@ -229,9 +238,14 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
 ## Jets and shadows
 
 - **Main exhausts**
-  - The Navette's aperture image locates each slot along the local discharge axis. The five amber sheets mix, narrow and fade downstream. Thrust controls brightness and visible length.
+  - Each transport grille emits five amber sheets between the blades. Both plumes point straight aft during forward thrust and straight down in hover. Combined thrust gives both a common, intermediate direction from the lip.
+  - The cooker projects the same physical openings at 33 angles from aft (+Y) to down (−Z). Each projection records lip depth, open slots and their envelope. The renderer interpolates the two neighbouring projections as the thrust direction changes. [Packet regression check](../tools/tests/check_transport_plumes.py)
+  - Atmospheric cruise sustains the selected engine regime up to full output at notch 25. The four ventral stabilizers share the lift load when the shuttle hovers. Ground contact transfers that load to the landing gear.
+  - The duct width sets the hover plume length. Forward thrust adds the measured distance to the stern, so both tails clear the aft hull at full power. The grille and gas share the same power.
+  - Two recessed nose outlets discharge forwards during longitudinal braking. A backwards-moving shuttle uses the main outlets to stop.
+  - Twelve smaller outlets pulse with the translation and attitude loads assigned to reaction control in hover, transition and vacuum. They shut off in fully wing-borne flight. The two braking outlets remain available. The feet carry the load when parked.
   - The fighter and classic ship use analytic plumes with a blue-white core, a violet tip and weak shock diamonds. [Volume shader](../MyPlanetEngine/ShipPlumePixel.hlsl)
-- **Attitude jets:** ten small water vapor jets, at both ends of the stern and nose, up, down and side.
+- **Fighter and classic attitude jets:** ten water vapour outlets at the stern and nose.
   - **Each pulls when its push serves the command:** the slip, or the torque of the roll, the pitch and the lacing around the center of the ship.
   - **Slides pull as long as the key is held;** rotations, at the beginning and end of the movement, on angular acceleration, like real attitude propellers.
   - **In gentle puffs,** two or three per second, each blast offset from the others.
@@ -239,7 +253,7 @@ after `tools\lance.ps1 -Build -NoLaunch` if the code has changed.
   - **Never seen from the cockpit,** to keep the view clear.
   - **The water vapor is white and light,** lit by the sun and the sky.
 - **The rendering of the jets is done in the layer of the canopy glass:**
-  - each plume is marched through its box: 32 steps for main engines, 24 for attitude jets;
+  - the transport grilles use 48 ray steps and filter each interval across the outlet chart. Analytic flames use 32 steps and attitude puffs use 24.
   - the walk stops at the distance of the stage, so that the hull and the floor hide what is behind them;
   - out of the temporal smoothing, nothing drags.
 - **The shadow of the relief on the ship:**

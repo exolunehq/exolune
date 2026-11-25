@@ -27,7 +27,7 @@
 - Refuse submerged ground and slopes above 45 degrees; show a message in the action overlay.
 - Hold the ship at its saved pose, with throttle and jets stopped.
 - J returns to that pose from any walking distance.
-- A ship left above the ground remains there; landing gear and landing animation are separate work.
+- The V9 transport requires parked gear and a fully deployed rear stair. Disembarkation starts at the foot of the stair. Other models use their existing dry-ground placement. [Transport landing](spec-vaisseau.md)
 
 **Controller**
 - Standing eye: 1.68 m; crouched eye: 1.05 m.

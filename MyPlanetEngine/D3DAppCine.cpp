@@ -166,6 +166,7 @@ bool D3DApp::BeginCineFrame() {
     mThrottle = f.thrust >= 0.0 ? f.thrust * FlightDynamics::ThrottleNotches
         : (!f.coast && Length(mShipVelocity) > 0.1 ? 18.0 : 0.0);
     mPlume = mThrottle / FlightDynamics::ThrottleNotches;
+    mTransportExhaust = {mPlume, 0, 0};
     mFlightCues.engine = mPlume;
     return true;
 }

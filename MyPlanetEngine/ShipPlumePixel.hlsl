@@ -9,15 +9,26 @@
 
 Texture2D<float4> sceneComposite : register(t47); // alpha: the scene's distance (km), 0 for the sky
 
-// In the outlet chart red is the last physical lip along the discharge axis.
-// Green resolves each open slot and blue is their continuous outer envelope.
-float3 TurbineGas(Jet jet, float3 q, float clock, float seed, float3 hot)
+// Each projection stores lip depth, open slots and their continuous envelope.
+float3 OutletSample(Jet jet, float2 uv, float lod)
 {
     const uint image = uint(jet.chart) - 1;
+    if (jet.tileStride > 0)
+        uv.y = jet.tileStart + (.125 + .75*saturate(uv.y))*jet.tileStride;
+    float3 sample = shipImages[image].SampleLevel(linearClamp, uv, lod).rgb;
+    if (jet.tileMix > 0) {
+        uv.y += jet.tileStride;
+        sample = lerp(sample, shipImages[image].SampleLevel(linearClamp, uv, lod).rgb, jet.tileMix);
+    }
+    return sample;
+}
+
+float3 TurbineGas(Jet jet, float3 q, float3 rayStep, float clock, float seed, float3 hot)
+{
     const float2 section = q.xy / jet.radii;
-    const float source = shipImages[image].SampleLevel(linearClamp, .5 + .5*section, 0).r * jet.rake;
+    const float source = OutletSample(jet, .5 + .5*section, 0).r * jet.rake;
     const float run = saturate((q.z-source)/jet.length);
-    const float mixing = smoothstep(.055, .70, run);
+    const float mixing = shipAutomation.y > .5 ? smoothstep(.16, .84, run) : smoothstep(.055, .70, run);
     const float3 p = float3(section.x*2.1, section.y*3.0, q.z*1.6-clock*9.5+seed);
     const float eddy = PlumeNoise(p), streak = PlumeNoise(p*2.7 + float3(7,2,clock*6));
     // Streamlines join gently downstream. At the physical mouth the mapping
@@ -25,8 +36,12 @@ float3 TurbineGas(Jet jet, float3 q, float clock, float seed, float3 hot)
     const float flare = lerp(.18,.075,saturate(shipOptions.w)) * sin(3.14159*run);
     const float2 scale = 1.0 + flare - float2(.52,.69)*smoothstep(.10,1.0,run);
     const float2 uv = (section - mixing*float2(eddy-.5,streak-.5)*.15) / scale;
-    const float3 aperture = shipImages[image].SampleLevel(linearClamp, .5 + .5*uv, 3.4*mixing).rgb;
-    const float distance = q.z - aperture.r*jet.rake;
+    // Filter a marching interval in the fitted 192 x 96 chart. At full deflection
+    // several slots can cross one ray step even with an almost horizontal view.
+    const float footprint = max(abs(rayStep.x)*96.0/jet.radii.x, abs(rayStep.y)*48.0/jet.radii.y);
+    const float slotLod = shipAutomation.y > .5 ? clamp(log2(max(1.0, footprint)),0.0,3.0) : 0.0;
+    const float3 aperture = OutletSample(jet, .5 + .5*uv, max(slotLod,3.4*mixing));
+    const float distance = q.z - (jet.tileStride > 0 ? source : aperture.r*jet.rake);
     const float age = saturate(distance / (jet.length*lerp(.49,1.0,aperture.b)));
     const float gas = lerp(aperture.g, .64*aperture.b, mixing);
     const float edge = 1.0 - smoothstep(.94,1.0,max(abs(uv.x),abs(uv.y)));
@@ -65,17 +80,23 @@ float4 PSMain(PlumePixel input) : SV_Target
     const float3 white = SUN_ILLUMINANCE * float3(1.0, 1.0, 1.0);
     const float3 vapourLight = 0.9 * (white * SunTransmittance(h, muS, haze) * shipWeather[2].y * 0.6
                                       + SkyIrradiance(h, muS, haze)) / PI;
-    const bool engine = input.jet < MAIN_JETS || input.jet >= LEGACY_JETS;
+    const bool transport = shipAutomation.y > .5;
+    const bool retro = transport && input.jet >= 2u && input.jet < 4u;
+    const bool engine = transport ? input.jet < 4u : (input.jet < MAIN_JETS || input.jet >= LEGACY_JETS);
     const bool shuttleMain = ShipShuttle() && input.jet < MAIN_JETS;
     const float radius = sqrt(jet.radii.x * jet.radii.y);
-    const uint steps = engine ? 32 : 24;
+    const uint steps = transport && shuttleMain ? 48u : engine ? 32u : 24u;
     // The flame's life: a flicker some twenty times a second, each engine out of step; the turbulence streams down the
     // plume at about 20 m/s.
     const float clock = shipTurn.z, seed = float(input.jet) * 7.31;
     const float flicker = 0.85 + 0.3 * PlumeNoise(float3(clock * 23.0, seed, 0.5));
     const float ds = (end - start) / steps;
+    // The same duct carries the same load as it vectors. Its projected height
+    // can double in hover, but that does not lower the gas radiance.
+    float ductHeight = jet.radii.y;
+    if (jet.tileStride > 0) ductHeight = shipNozzles[input.jet].axisHeight.w;
     const float3 turbineLight = ExhaustRadiance(jet.power, .67) * ds * flicker
-                              * dot(white, 1.0 / 3.0) / (PI * max(2.0*jet.radii.y, .01));
+                              * dot(white, 1.0 / 3.0) / (PI * max(2.0*ductHeight, .01));
     float3 rgb = 0.0;
     float through = 1.0;
     [loop] for (uint k = 0; k < steps; ++k)
@@ -86,7 +107,7 @@ float4 PSMain(PlumePixel input) : SV_Target
         const float along = saturate(q.z / jet.length);
         if (jet.chart > 0)
         {
-            rgb += TurbineGas(jet, q, clock, seed, turbineLight);
+            rgb += TurbineGas(jet, q, d*ds, clock, seed, turbineLight);
         }
         else if (engine)
         {
@@ -113,9 +134,9 @@ float4 PSMain(PlumePixel input) : SV_Target
             const float core = coreProfile * (0.7 + 0.6 * n2), fade = pow(1.0 - tip, 1.5);
             const float diamonds = 0.75 + 0.25 * cos(6.2832 * q.z / (0.35 + 0.3 * jet.power) + 0.6 * (n1 - 0.5));
             const float glow = 0.1 * exp(-0.6 * across) * (1.0 - along);
-            const float3 tint = shuttleMain ? ExhaustRadiance(jet.power, 1.0)
+            const float3 tint = (shuttleMain || retro) ? ExhaustRadiance(jet.power, 1.0)
                 : lerp(lerp(float3(0.5, 0.7, 1.0), float3(0.95, 0.97, 1.0), saturate(core * core)), float3(0.45, 0.4, 1.0), along);
-            const float3 halo = shuttleMain ? .21 * tint : float3(0.35, 0.45, 1.0);
+            const float3 halo = (shuttleMain || retro) ? .21 * tint : float3(0.35, 0.45, 1.0);
             const float gasGain = shuttleMain ? lerp(.14, .85, smoothstep(.57, .97, jet.power)) : 1.0;
             rgb += (tint * core * diamonds + halo * glow) * gasGain * jet.power * flicker * fade
                  * ds * 4.0 * dot(white, 1.0 / 3.0) / PI / radius;
@@ -129,7 +150,12 @@ float4 PSMain(PlumePixel input) : SV_Target
             const float density = 30.0 * jet.power * exp(-3.0 * across) * exp(-2.5 * q.z / jet.length)
                                 * (radius * radius) / (width * width);
             const float kept = exp(-density * ds);
-            rgb += through * (1.0 - kept) * vapourLight;
+            float3 light = vapourLight;
+            if (transport) {
+                const float core = exp(-2.4*across - 2.1*along);
+                light += float3(.26,.54,.87) * (1.0 + 1.4*core) * dot(white,1.0/3.0) / PI;
+            }
+            rgb += through * (1.0 - kept) * light;
             through *= kept;
         }
     }

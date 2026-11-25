@@ -6,7 +6,7 @@
 #include <cstring>
 
 namespace {
-    constexpr UINT ContactBytes=(FlightContact::MaxGroups+1)*sizeof(XMFLOAT4);
+    constexpr UINT ContactBytes=(FlightContact::MaxGroups+4)*sizeof(XMFLOAT4);
     FlightContact::Vec ContactVec(Vec3d p) { return {p.x,p.y,p.z}; }
 }
 
@@ -42,11 +42,11 @@ void D3DApp::PrepareFlightContact(const FlightPose& before) {
     if(NearMoon(mCamPos) || NearMoon(before.camera)) {mFlightPending=mFlightQueued=false;return;}
     if (!mFlightContactPSO || mView==View::Walk || !mCine.empty()) return;
     mFlightBefore=before; mFlightAfter=FlightPoseNow(); mFlightView=mView;
-    const bool ship=mView!=View::Free;
+    const bool ship=mView!=View::Free && !(mShip.HasTransportRig() && mTransport.GroundLocked());
     // The last contact's tangent carries sliding. Its influence ends after separation or a short tangential move;
     // the new corridor always tests the resulting movement against terrain again.
     const Vec3d at=mFlightSlideBody==1?before.ship:before.camera;
-    if (Length(mFlightSlideNormal)>0.5 && Dot(at-mFlightSlideOrigin,mFlightSlideNormal)<0.02
+    if ((ship || mFlightSlideBody==0) && Length(mFlightSlideNormal)>0.5 && Dot(at-mFlightSlideOrigin,mFlightSlideNormal)<0.02
         && Length(at-mFlightSlideOrigin)<1.0) {
         Vec3d travel=(mFlightSlideBody==1?mFlightAfter.ship:mFlightAfter.camera)-at;
         const double into=Dot(travel,mFlightSlideNormal);
@@ -65,7 +65,8 @@ void D3DApp::PrepareFlightContact(const FlightPose& before) {
     const Vec3d ends[2]={mFlightAfter.camera,mFlightAfter.ship};
     // A fixed sphere about the ship origin contains its offset model sphere at every intermediate attitude.
     // An endpoint centre displacement alone would not bound a curved or returning rotational path.
-    const double radii[2]={FlightContact::CameraRadius,double(Ship::Radius)+std::hypot(double(mShip.Profile().centreY),double(mShip.Profile().centreZ))};
+    const bool transport=ship && mShip.HasTransportRig();
+    const double radii[2]={FlightContact::CameraRadius,double(mShip.EnvelopeRadius())+std::hypot(double(mShip.Profile().centreY),double(mShip.Profile().centreZ))};
     mFlightQueued=false;
     for (unsigned i=0;i<2;++i) {
         // The cockpit eye is inside the fixed hull envelope at every attitude. Chase and free eyes move outside it.
@@ -74,11 +75,25 @@ void D3DApp::PrepareFlightContact(const FlightPose& before) {
         // An accepted stationary sphere stays safe on the fixed terrain; looking around does not require new probes.
         // Chase still checks the eye if it moves around an otherwise stationary hull.
         const Vec3d travel=ends[i]-starts[i];
-        if (!mFlightRecovery && Dot(travel,travel)==0.0) { mFlightActive[i]=false; continue; }
-        mFlightSpans[i]=FlightContact::Clip(ContactVec(starts[i]),ContactVec(ends[i]),radii[i]);
+        const bool samplePads=i==1 && transport && TransportClearance()<600;
+        if (!mFlightRecovery && Dot(travel,travel)==0.0 && !(samplePads && !mLandingSite.sampled)) { mFlightActive[i]=false; continue; }
+        double depth=radii[i];
+        if (i==1 && transport && Length(starts[i])-PlanetRadius<FlightContact::MaximumHeight+100) {
+            const Vec3d vertical=Normalize(starts[i]);
+            depth=std::max(TransportDepth(before.shipForward,before.shipUp,vertical),
+                           TransportDepth(mFlightAfter.shipForward,mFlightAfter.shipUp,vertical));
+        }
+        mFlightSpans[i]=FlightContact::Clip(ContactVec(starts[i]),ContactVec(ends[i]),radii[i],depth);
         mFlightActive[i]=mFlightSpans[i].active;
         if (mFlightActive[i]) {
-            mFlightProbes[i]=FlightContact::Corridor(mFlightSpans[i],radii[i]);
+            mFlightProbes[i]=FlightContact::Corridor(mFlightSpans[i],radii[i],depth);
+            if (samplePads && mFlightSpans[i].last==1) {
+                for (unsigned pad=0; pad<3; ++pad) {
+                    const Vec3d d=Normalize(TransportPad(pad, ends[i], mFlightAfter.shipForward, mFlightAfter.shipUp));
+                    auto& out=mFlightProbes[i].padDirections[pad];
+                    out[0]=d.x; out[1]=d.y; out[2]=d.z; out[3]=1;
+                }
+            }
             mFlightQueued=true;
         }
     }
@@ -135,6 +150,22 @@ void D3DApp::ReadFlightContact() {
         valid=valid&&std::isfinite(support.x)&&std::isfinite(support.y)&&std::isfinite(support.z);
         recovery=std::max(recovery,double(support.x));
         if (i==0 && (mFlightRecovery || span.last==1)) cameraGround=mFlightRecovery?support.y:support.z;
+        if (i==1 && mShip.HasTransportRig() && valid && (mFlightRecovery || span.last==1)) {
+            mTransportGround=std::max(0.0f,mFlightRecovery ? support.y : support.z);
+            mTransportGroundKnown=true;
+            if (mFlightProbes[i].padDirections[0][3]>0) {
+                Vec3d points[3];
+                bool dry=true;
+                for (unsigned pad=0; pad<3; ++pad) {
+                    const auto h=values[FlightContact::MaxGroups+1+pad];
+                    const auto& d=mFlightProbes[i].padDirections[pad];
+                    dry = dry && std::isfinite(h.x) && h.x > h.y+.02f;
+                    points[pad]=Vec3d{d[0],d[1],d[2]}*(PlanetRadius+h.x);
+                }
+                mLandingSite=SiteFromPads(points,dry,Normalize(mFlightAfter.ship));
+            }
+            if (mView!=View::Chase) cameraGround=mTransportGround;
+        }
         mFlightReadback[i]->Unmap(0,&noWrite);
     }
     if (!valid) { SetFlightPose(mFlightBefore); mFlightRecovery=true; return; }
@@ -143,7 +174,7 @@ void D3DApp::ReadFlightContact() {
         if (recovery>0) {
             const Vec3d lift=Normalize(pose.camera)*(recovery+0.01);
             pose.camera=pose.camera+lift;
-            if (mView!=View::Free) pose.ship=pose.ship+lift;
+            if (mView!=View::Free && !(mShip.HasTransportRig() && mTransport.GroundLocked())) pose.ship=pose.ship+lift;
         }
         SetFlightPose(pose); mFlightRecovery=false; mGroundHeight=std::max(cameraGround,0.0); return;
     }
@@ -152,9 +183,10 @@ void D3DApp::ReadFlightContact() {
         const Vec3d travel=(body==1?mFlightAfter.ship-mFlightBefore.ship:mFlightAfter.camera-mFlightBefore.camera);
         fraction=std::max(0.0,fraction-0.002/std::max(Length(travel),0.002));
         accepted.camera=mFlightBefore.camera+(mFlightAfter.camera-mFlightBefore.camera)*fraction;
-        accepted.ship=mFlightBefore.ship+(mFlightAfter.ship-mFlightBefore.ship)*fraction;
+        if (!(mShip.HasTransportRig() && mTransport.GroundLocked()))
+            accepted.ship=mFlightBefore.ship+(mFlightAfter.ship-mFlightBefore.ship)*fraction;
         const double into=Dot(mShipVelocity,normal);
-        if (into<0 && mView!=View::Free) {
+        if (into<0 && mView!=View::Free && !(mShip.HasTransportRig() && mTransport.GroundLocked())) {
             mShipVelocity=mShipVelocity-normal*into;
             if (body==1) mShipContactImpulse=mShipContactImpulse-normal*into;
         }

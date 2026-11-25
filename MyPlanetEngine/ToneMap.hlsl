@@ -17,6 +17,18 @@ Texture2D<float2> velocity : register(t10); // a skinned character's own path, p
                                             // -10: no character, -4: a character pixel without a past
 Texture2D<float4> surfaceSun : register(t17); // alpha identifies a visible opaque ship surface in the scene pass
 cbuffer VisorFrame : register(b1) { float4 visor; } // walking, exertion, rain/cloud water, ambient humidity
+ByteAddressBuffer transportPanel : register(t60);
+
+float3 TransportOverlay(float3 scene, int2 pixel) {
+    const uint4 rect=transportPanel.Load4(0);
+    if (rect.z==0) return scene;
+    const uint4 image=transportPanel.Load4(16);
+    const int2 p=pixel-int2(rect.xy);
+    if (any(p<0) || any(p>=int2(rect.zw))) return image.z ? scene*.35 : scene;
+    const uint2 uv=uint2(p)*image.xy/rect.zw;
+    const uint bgra=transportPanel.Load(32+4*(uv.y*image.x+uv.x));
+    return pow(float3((bgra>>16)&255,(bgra>>8)&255,bgra&255)/255.0,2.2);
+}
 
 static const float3 LUMINANCE = float3(0.2126, 0.7152, 0.0722); // Rec. 709
 
@@ -225,5 +237,6 @@ Output PSMain(float4 position : SV_POSITION)
     }
     output.screen.rgb = CoordinateOverlay(output.screen.rgb, pixel, int2(size));
     output.screen.rgb = ActionOverlay(output.screen.rgb, pixel, int2(size));
+    output.screen.rgb = TransportOverlay(output.screen.rgb, pixel);
     return output;
 }

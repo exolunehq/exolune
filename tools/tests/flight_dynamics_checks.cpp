@@ -32,6 +32,131 @@ double AngleBetween(Vec3d a, Vec3d b) {
     return std::atan2(Length(Cross(a, b)), Dot(a, b)) * (180 / 3.141592653589793);
 }
 
+void CheckTransportThrottle(Field field) {
+    field.wind = {8,0,5};
+    for (int fps : {30, 144}) {
+        Flight flight;
+        TransportEquipment rig;
+        TransportExhaust exhaust;
+        Controls c = Level;
+        c.transport = &rig;
+        const double dt = 1.0 / fps;
+        auto tick = [&]() {
+            c.localUp = Normalize(flight.position);
+            c.terrainClearance = Length(flight.position) - Radius;
+            const auto load = Advance(dt, flight.position, flight.velocity, flight.cues, c, flight.pilot, field);
+            exhaust.Advance(dt, load.axialJet, load.liftJet, load.sideJet, false, load.trimJet);
+            return load;
+        };
+        c.throttle = MoveThrottle(0, 17, &rig, 1);
+        for (int n = 0; n < fps / 2; ++n) tick();
+        Check(flight.velocity.z > .92 * CruiseSpeed(17), "transport responds to the cruise lever within half a second");
+        for (int n = 0; n < 3 * fps; ++n) {
+            const auto load = tick();
+            Check(load.axialJet >= .679 && flight.cues.engine >= .679, "atmospheric cruise sustains its selected engine regime");
+        }
+        Check(std::abs(flight.cues.airVelocity.z - CruiseSpeed(17)) < 1, "sustained exhaust holds the selected airspeed");
+
+        c.throttle = MoveThrottle(c.throttle, -2, &rig, 1);
+        for (int n = 0; n < fps / 3; ++n) tick();
+        Check(exhaust.ahead < -.25 && !rig.brakeToHover, "reducing the cruise setting fires the retros without commanding a stop");
+        for (int n = 0; n < 3 * fps; ++n) tick();
+        Check(std::abs(flight.cues.airVelocity.z - CruiseSpeed(15)) < 1 && exhaust.ahead > .58,
+              "the lower cruise regime stays lit after deceleration");
+        c.throttle = MoveThrottle(c.throttle, -30, &rig, 1);
+        const double stopSpeed = Length(flight.velocity);
+        const double stopHeight = flight.position.y;
+        int frames = 0;
+        while (!flight.pilot.holding && frames < 6 * fps) { tick(); ++frames; }
+        Check(rig.brakeToHover && flight.pilot.holding && frames < 5 * fps, "one zero-notch command completes the stop");
+        for (int n = 0; n < fps; ++n) tick();
+        Check(Length(flight.velocity) < 1e-6 && std::abs(flight.position.y-stopHeight) < 2 &&
+              exhaust.Deflection() > 1.50 && exhaust.MainPower() > .4 && exhaust.trim > .06,
+              "hover holds position in wind with downward main exhaust and loaded ventral stabilizers");
+        const auto rest = flight.position;
+        for (int n = 0; n < 2 * fps; ++n) tick();
+        Check(Length(flight.position-rest) < 1e-6, "hover has no residual creep");
+        c.lift = 1;
+        for (int n = 0; n < fps; ++n) tick();
+        c.lift = 0;
+        for (int n = 0; n < fps; ++n) tick();
+        Check(flight.position.y > rest.y + 2 && Length(flight.velocity) < 1e-6,
+              "vertical manoeuvring returns to hover when released above the landing corridor");
+
+        c.throttle = MoveThrottle(0, FirstBurnNotch, &rig, 1);
+        for (int n = 0; n < fps; ++n) Check(tick().axialJet == 1, "rated atmospheric exhaust stays at full output");
+        c.fullThrust = true; tick(); c.fullThrust = false;
+        for (int n = 0; n < fps / 2; ++n) tick();
+        Check(c.throttle == ThrottleNotches && exhaust.MainPower() > .99 && !rig.brakeToHover,
+              "a tap of Up latches atmospheric full power and releases hover");
+        c.brake = true; tick(); c.brake = false;
+        for (int n = 0; n < 10 * fps; ++n) tick();
+        Check(c.throttle == 0 && flight.pilot.holding && rig.brakeToHover && Length(flight.velocity) < 1e-6,
+              "an atmospheric brake tap captures hover from a full-power burn");
+        std::printf("Transport %d Hz: %.0f km/h to hover in %.2f s.\n", fps, stopSpeed*3.6, frames*dt);
+
+        flight = Flight{}; flight.position = {0,1e12,0}; rig = {}; exhaust = {};
+        c.fullThrust = true; tick(); c.fullThrust = false;
+        const auto coast = flight.velocity;
+        c.throttle = MoveThrottle(0, -1, &rig, 0);
+        for (int n = 0; n < 2 * fps; ++n) tick();
+        Check(c.throttle == 0 && !rig.brakeToHover && exhaust.MainPower() < .001 && Length(flight.velocity-coast) < 1e-5,
+              "in vacuum releasing the burn or idling the wheel allows an inertial coast");
+        for (auto phase : {TransportEquipment::Phase::Parked, TransportEquipment::Phase::Approach}) {
+            rig.SetPhase(phase);
+            SelectTransportPower(rig, 1, false, c.throttle);
+            Check(MoveThrottle(c.throttle, 10, &rig, 1) == 0 && !rig.brakeToHover,
+                  "manual throttle commands respect parking and automatic approach");
+        }
+    }
+}
+
+void CheckTransportSurfaces(const Field& field) {
+    TransportEquipment rig;
+    rig.position[TransportEquipment::Wings]=1;
+    rig.SetAirflow(60,1,false);
+    rig.Deflect(rig.Steer({0,0,1},0,0));
+    Check(rig.airAuthority==1 && rig.leftElevon==-1 && rig.rightElevon==1,"right roll raises only the right trailing edge");
+    rig.Deflect(rig.Steer({1,0,0},0,0));
+    Check(rig.leftElevon==1 && rig.rightElevon==1,"pitch up raises both elevons");
+    rig.Deflect(rig.Steer({0,1,0},0,0));
+    Check(rig.TailPhase(1)>.5 && rig.TailPhase(-1)==0,"right yaw opens the right fin leaf with its actuator");
+    rig.position[TransportEquipment::Brake]=1;
+    Check(rig.TailPhase(1)==1 && rig.TailPhase(-1)<.5,"yaw retains differential travel under full braking");
+    rig.position[TransportEquipment::Brake]=0;
+    const auto steering=rig.Steer({0,0,0},1,-1);
+    Check(steering.pitch>0 && steering.yaw<0,"translation keys steer aerodynamically in forward flight");
+    rig.SetAirflow(120/3.6,1,false);
+    Check(std::abs(rig.airAuthority-.5)<1e-9,"airspeed blends the controls between 90 and 150 km/h");
+    rig.SetAirflow(60,-1,false);
+    Check(rig.airAuthority==0,"tail-first flow has no forward wing authority");
+    rig.SetAirflow(200,.45,false);
+    Check(rig.airAuthority==0,"a broadside slide cannot acquire wing control from scalar airspeed");
+    rig.SetAirflow(60,1,true);
+    Check(rig.airAuthority==0,"a parked-position hover holds on jets even in a headwind");
+    rig.position[TransportEquipment::Wings]=.85;
+    rig.SetAirflow(100,1,false);
+    Check(rig.airAuthority==0,"the elevons are neutral before the wing leaves its saddle");
+    rig.position[TransportEquipment::Wings]=1;
+    Flight flight;
+    flight.velocity={0,0,100};
+    Controls cruise=Wheel(15);
+    cruise.transport=&rig; cruise.terrainClearance=500; cruise.localUp=Level.up;
+    cruise.strafe=cruise.lift=1;
+    const auto air=flight.Run(field,cruise,1,60);
+    Check(rig.airAuthority==1 && std::abs(air.sideJet)+std::abs(air.liftJet)+air.trimJet<1e-6 && air.axialJet>.57,
+          "wing-borne controls use aerodynamic steering and sustain the main drive without auxiliary thrust");
+    cruise.hasControlSurfaces=false;
+    const auto legacy=flight.Run(field,cruise,1,60);
+    Check(rig.airAuthority==0 && legacy.sideJet>.5 && legacy.liftJet>.5,"a legacy packet keeps its manoeuvring jets");
+    flight.position={0,Radius+250000,0};
+    cruise.hasControlSurfaces=true;
+    const auto vacuum=flight.Run(field,cruise,1,60);
+    rig.Deflect({1,1,1});
+    Check(rig.airAuthority==0 && rig.rightElevon==0 && rig.rudder==0 && vacuum.sideJet>.5,
+          "in vacuum even extended wings yield control to the jets");
+}
+
 void CheckManualThrust(const Field& planet, const Field& lunar) {
     Check(ThrottlePower(0)==0 && ThrottlePower(30)==1, "the control lever covers the full engine range");
     for (double n=.25; n<=30; n+=.25)
@@ -210,8 +335,84 @@ void CheckFlightAssist(const Field& field, const Field& lunar) {
 }
 
 void CheckFlightDynamics() {
+    TransportEquipment transport;
+    using Rig = TransportEquipment;
+    auto fly=[&](int frames,double height,double speed,double density,bool brake=false) {
+        for (int n=0;n<frames;++n)
+            transport.Advance(1./60,height,0,speed,density,speed*std::sqrt(density),
+                              .5*1.225*density*speed*speed,0,0,brake);
+    };
+    fly(300,250000,120,0);
+    Check(transport.position[Rig::Wings]==0 && transport.position[Rig::Gear]==0,"transport stows in vacuum");
+    fly(260,1500,100,1);
+    Check(transport.position[Rig::Wings]==1,"four-second authored wing deployment in air");
+    fly(85,1500,100,1,true);
+    Check(transport.position[Rig::Brake]==1,"braking opens the dorsal airbrake");
+    transport.Toggle(Rig::Wings);
+    fly(115,1500,100,1);
+    Check(transport.position[Rig::Wings]>.4 && transport.position[Rig::Wings]<.6,"wing clip reverses from its current pose");
+    transport.Automatic();
+    fly(240,25,12,1);
+    Check(transport.position[Rig::Gear]==1 && transport.position[Rig::Hatch]==0,"gear precedes landing and ramp");
+    fly(260,3.1,0,1);
+    Check(transport.position[Rig::Hatch]==0,"hover just above the pads keeps the ramp seated");
+    fly(260,2.64,0,1);
+    Check(transport.position[Rig::Hatch]==0 && !transport.Toggle(Rig::Hatch),"proximity alone never authorizes the ramp");
+    transport.SetPhase(Rig::Phase::Parked);
+    fly(260,2.64,0,1);
+    Check(transport.position[Rig::Hatch]==1,"ramp opens when stationary on the gear");
+    Check(!transport.Toggle(Rig::Gear) && transport.CanWalk(),"gear locked and airstair available when seated");
+    transport.SetPhase(Rig::Phase::Closing);
+    Check(!transport.CanWalk() && transport.GroundLocked(),"closing inhibits walking and still locks the hull");
+    fly(100,2.64,0,1);
+    Check(transport.position[Rig::Hatch]>0 && transport.position[Rig::Gear]==1,"gear waits for the closing ramp");
+    fly(100,2.64,0,1);
+    Check(transport.position[Rig::Hatch]==0,"departure closes the entire ramp before lift");
+    transport.SetPhase(Rig::Phase::Flight);
+    fly(330,300,180,1);
+    Check(transport.position[Rig::Gear]==0 && transport.position[Rig::Hatch]==0,"departure stows the gear");
+
     Field field = {};
     field.planetRadius = Radius;
+    fly(300,300,30,1);
+    Check(transport.position[Rig::Wings]==1,"wings stay deployed between 90 and 150 km/h on deceleration");
+    fly(300,300,24,1); fly(300,300,35,1);
+    Check(transport.position[Rig::Wings]==0,"wings stay retracted in the same band on acceleration");
+    transport.Toggle(Rig::Wings); fly(300,300,30,1);
+    Check(transport.position[Rig::Wings]==1,"manual wing deployment below automatic opening speed");
+    fly(300,300,380,1);
+    Check(transport.wingProtected && transport.position[Rig::Wings]==0 && !transport.Toggle(Rig::Wings),
+          "overspeed protection retracts even manually extended wings");
+    fly(260,300,340,1);
+    Check(transport.wingProtected && transport.position[Rig::Wings]==0,"protection holds until the rearm speed");
+    fly(260,300,300,1);
+    Check(!transport.wingProtected && transport.position[Rig::Wings]==1,"manual request recovers below rearm speed");
+    transport.Automatic();
+    Flight landing; landing.position={0,Radius+48,0}; landing.velocity={0,0,16};
+    transport.SetPhase(Rig::Phase::Approach);
+    Controls guidance=Level; guidance.transport=&transport; guidance.localUp=Level.up;
+    for (int n=0;n<1200;++n) {
+        guidance.terrainClearance=landing.position.y-Radius;
+        landing.Run(field,guidance,1,60);
+    }
+    Check(std::abs(landing.position.y-Radius-Rig::PadDepth-5)<.1 && Length(landing.velocity)<.1,
+          "automatic landing brakes and holds five metres above unsuitable ground");
+    guidance.landingSite=true;
+    for (int n=0; n<900 && landing.position.y>Radius+Rig::PadDepth+.08; ++n) {
+        guidance.terrainClearance=landing.position.y-Radius;
+        landing.Run(field,guidance,1,60);
+        Check(landing.position.y<Radius+10 && landing.velocity.y<0,"automatic final descends over an accepted site");
+    }
+    Check(landing.position.y<=Radius+Rig::PadDepth+.08 && Length(landing.velocity)<.6,"automatic touchdown is gentle");
+    transport.SetPhase(Rig::Phase::Flight);
+    landing.position.y=Radius+15; landing.velocity={};
+    guidance.terrainClearance=15; guidance.lift=-1;
+    landing.Run(field,guidance,40,60);
+    Check(transport.precisionHover && landing.velocity.y<-1,"manual descent rate follows the pilot");
+    guidance.lift=0; landing.Run(field,guidance,240,60);
+    Check(Length(landing.velocity)<.01 && landing.position.y>Radius+11,"releasing descent stabilizes above the ground");
+    guidance.throttle=1; landing.Run(field,guidance,1,60);
+    Check(!transport.precisionHover,"advancing throttle returns to ordinary flight");
     const double g = Celestial::ExoluneGM * 1e9 / (Radius * Radius);
     Check(std::abs(Length(field.At({0,2*Radius,0}).gravity) - g*.25) < 1e-9, "inverse-square planetary gravity");
     Check(DensityAtAltitude(0) == 1 && std::abs(DensityAtAltitude(8000) - std::exp(-1.0)) < 1e-14, "atmosphere scale height");
@@ -228,6 +429,8 @@ void CheckFlightDynamics() {
               "continuous primary to lunar handover");
     }
     CheckManualThrust(field,lunar);
+    CheckTransportThrottle(field);
+    CheckTransportSurfaces(field);
     CheckFlightAssist(field,lunar);
     Controls yaw = Wheel(15);
     yaw.yaw = 1;
@@ -343,8 +546,17 @@ void CheckFlightDynamics() {
     Check(Length(landed.position-support.supportOrigin)<1e-9 && Length(landed.velocity)<1e-12 &&
           resting.seatAcceleration.y > 9 && landed.cues.engine==0, "a settled hull rests on its support in a crosswind");
     Controls rise = Level; rise.lift = 1;
-    landed.Run(support,rise,120,60);
+    const Loads climb = landed.Run(support,rise,120,60);
     Check(landed.position.y>support.supportOrigin.y+12 && landed.cues.engine>.1, "a low-speed vertical jet can lift off");
+    TransportExhaust exhaust;
+    exhaust.Advance(1, climb.axialJet, climb.liftJet, climb.sideJet, false);
+    Check(exhaust.MainPower() > .95 && std::abs(exhaust.Deflection()-std::acos(0.0)) < .01,
+          "pure lift turns the main sheets vertically from the actual flight loads");
+    Controls diagonal = rise; diagonal.fullThrust = true;
+    const Loads mixed = landed.Run(field,diagonal,15,60);
+    exhaust.Advance(1, mixed.axialJet, mixed.liftJet, mixed.sideJet, false);
+    Check(exhaust.MainPower() > .9 && exhaust.Deflection() > .5 && exhaust.Deflection() < 1.1,
+          "combined forward burn and lift give an intermediate exhaust angle");
 
     Controls brake = Level; brake.brake = true;
     Flight held;
@@ -369,6 +581,7 @@ void CheckFlightDynamics() {
           onset.mainJet == 0 && onset.retroJet < .2,
           "a transverse braking command retains momentum and ramps its thrust");
     const Loads during = braking.Run(windy,brake,60,60);
+    Check(during.axialJet < -.1 && during.sideJet < 0, "braking forwards and sideways selects retro and opposing lateral ports");
     Check(braking.pilot.surfaces.airbrakes > .2 && during.retroJet > .1,
           "panels and retro thrust share a sustained brake demand");
     braking.Run(windy,brake,540,60);
@@ -377,6 +590,14 @@ void CheckFlightDynamics() {
     Check(braking.pilot.holding && Length(braking.velocity) == 0 && Length(braking.position - holdPosition) < 1e-9 &&
           hover.mainJet == 0 && hover.retroJet == 0 && hover.supportThrust.y > 9 && braking.pilot.surfaces.airbrakes < .01,
           "retro thrust hands all three axes to powered station keeping in a crosswind");
+    exhaust.Advance(2, hover.axialJet, hover.liftJet, hover.sideJet, false);
+    Check(exhaust.MainPower() > .5 && exhaust.Deflection() > 1.4, "a supported airborne hover keeps its vectoring jets alight");
+    exhaust.Advance(2, hover.axialJet, hover.liftJet, hover.sideJet, true);
+    Check(exhaust.MainPower() < .001 && std::abs(exhaust.side) < .001, "parked pads take the sustained load from the jets");
+    Flight backwards;
+    backwards.position = {0,1e12,0}; backwards.velocity = {0,0,-120};
+    const Loads stopAft = backwards.Run(field,brake,45,60);
+    Check(stopAft.axialJet > .5 && backwards.velocity.z > -120, "a backwards-moving shuttle brakes on its main grilles");
     Controls slip = Wheel(15);
     slip.strafe = -1;
     braking.Run(windy,slip,15,60);

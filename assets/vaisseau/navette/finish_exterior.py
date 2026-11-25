@@ -17,6 +17,7 @@ import numpy as np
 
 
 FILM_HASH = "d4498a432d77d4f37d68865fb0a3564d80c18ee9e1650977b355d7c1d865dfc6"
+CHART_PADDING = np.array((.085, .065))
 SKIN = {4, 6, 8, 9, 43}  # Exterior material IDs in this exact film packet.
 OCCUPANTS = {36, 37, 38, 39, 40}
 POSE_BRAKE = 14
@@ -747,12 +748,12 @@ def discard_unused_images(raw, start_m, end_m, count):
 
 
 def packet_image(rgb, srgb):
-    """RGB8 PNG in the VSX image table. Data charts use linear channels."""
+    """RGB8 or RGBA8 PNG in the VSX image table. Data charts use linear channels."""
     height, width, _ = rgb.shape
     def chunk(name, data):
         return struct.pack(">I", len(data)) + name + data + struct.pack(">I", zlib.crc32(name + data))
     pixels = b"".join(b"\0" + row.tobytes() for row in rgb)
-    header = struct.pack(">2I5B", width, height, 8, 2, 0, 0, 0)
+    header = struct.pack(">2I5B", width, height, 8, {3: 2, 4: 6}[rgb.shape[2]], 0, 0, 0)
     png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(pixels, 9)) + chunk(b"IEND", b"")
     return struct.pack("<2I", int(srgb), len(png)) + png
 
@@ -782,15 +783,24 @@ def exhaust_chart(vertices, faces, draws, axis, across):
         edges.append(np.asarray(path))
     if len(edges) != 6:
         raise ValueError("A turbine must supply six discharge edges")
+    mouth, radii, depth, pixels = chart_from_edges(edges, frame, stations)
+    return mouth, radii, depth, packet_image(pixels, False)
+
+
+def chart_from_edges(edges, frame, stations, duct_axis=(0, 0, 1), bounds=None):
+    """Project the five slots and weight emission along the physical duct axis expressed in chart space."""
+    across = frame[0]
     edges.sort(key=lambda edge: edge[:,2].mean())
     # The backmost intersection in the exhaust frame is the visible outlet,
     # including where the raked ends or the forward part fold in projection.
     points = np.concatenate(edges) @ frame.T
-    low, high = points.min(0), points.max(0)
-    pad = np.array((.085,.065))
-    radii = .5*(high-low)[:2] + pad
-    origin = np.r_[.5*(low+high)[:2],low[2]]
-    depth = high[2]-low[2]
+    if bounds is None:
+        low, high = points.min(0), points.max(0)
+        radii = .5*(high-low)[:2] + CHART_PADDING
+        origin = np.r_[.5*(low+high)[:2], low[2]]
+        depth = high[2]-low[2]
+    else:
+        origin, radii, depth = bounds
     sections = len(stations)
     polys = np.array([f for row in range(5) for k in range(sections-1)
                       for f in quad(row*sections+k, row*sections+k+1,
@@ -807,7 +817,7 @@ def exhaust_chart(vertices, faces, draws, axis, across):
         y = origin[1] + ((j+.5)*2/height-1)*radii[1]
         for i in range(width):
             x = origin[0] + ((i+.5)*2/width-1)*radii[0]
-            p,normal,face,_ = tree.ray_cast((x,y,high[2]+.05),(0,0,-1),depth+.10)
+            p,normal,face,_ = tree.ray_cast((x,y,origin[2]+depth+.05),(0,0,-1),depth+.10)
             if p is None:
                 continue
             a,b,c = uv[face]
@@ -822,8 +832,9 @@ def exhaust_chart(vertices, faces, draws, axis, across):
             band = bary @ (ids // sections)
             gap = band - math.floor(band)
             jamb = smooth(.012,.18,min(along,1-along)) * smooth(.02,.70,min(band,5-band))
-            flux = jamb * smooth(.025,.64,abs(normal.z))
-            chart[j,i] = ((p.z-low[2])/depth, flux*smooth(.085,.39,min(gap,1-gap)), flux)
+            # Flux belongs to the physical duct. The chart can look along a different discharge axis.
+            flux = jamb * smooth(.025,.64,abs(normal.dot(duct_axis)))
+            chart[j,i] = ((p.z-origin[2])/depth, flux*smooth(.085,.39,min(gap,1-gap)), flux)
             covered[j,i] = True
     if covered.mean() < .22 or chart[:,:,1].max() < .97:
         raise ValueError("The five turbine channels do not fill the fitted mouth")
@@ -838,10 +849,10 @@ def exhaust_chart(vertices, faces, draws, axis, across):
         _,k,_ = nearest.find((i*radii[0]/width,j*radii[1]/height,0))
         row,col = filled[k]
         chart[j,i,0] = chart[row,col,0]
-    image = packet_image(np.rint(np.clip(chart,0,1)*255).astype(np.uint8), False)
+    pixels = np.rint(np.clip(chart,0,1)*255).astype(np.uint8)
     print(f"Outlet {np.sign(across[0]):+.0f}: {2*radii[0]:.2f} x {2*radii[1]:.2f} m chart, "
           f"{depth:.2f} m rake, {covered.mean():.0%} open coverage")
-    return origin @ frame, radii, depth, image
+    return origin @ frame, radii, depth, pixels
 
 
 def fit_exhaust(controls, vertices, faces, draws, images):
@@ -885,7 +896,7 @@ def paint_chine(vertices, faces, draws, materials, image_index):
     return packet_image(rgb, True)
 
 
-def cook_glass(vertex, indices, draws, material):
+def cook_glass(vertex, indices, draws, material, transport=False):
     # The game and fitter read the same fixed dimensions and angular scale.
     header = Path(__file__).resolve().parents[3] / "MyPlanetEngine" / "ShipProfiles.h"
     values = {terms[1]: float(terms[2].rstrip("f")) for line in header.read_text().splitlines()
@@ -898,6 +909,8 @@ def cook_glass(vertex, indices, draws, material):
     height = values["SHUTTLE_WATER_HEIGHT"] * pitch
     bottom = values["SHUTTLE_WATER_Y"]
     origin = (0, values["SHUTTLE_PANE_CENTRE_Y"], values["SHUTTLE_PANE_CENTRE_Z"])
+    if not transport:
+        origin = (0, .80, -.88)  # Original film weather projection.
     panes = np.concatenate([indices[first:first+count] for first,count,m in draws
                             if struct.unpack_from("<I",material,m*96+44)[0] == 2])
     points, corners = np.unique(panes, return_inverse=True)

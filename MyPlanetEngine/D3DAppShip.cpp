@@ -25,6 +25,127 @@ FlightDynamics::Field D3DApp::ShipField() const {
     return field;
 }
 
+double D3DApp::TransportClearance() const {
+    const int moon=MoonAt(mShipPos);
+    if (moon>=0) {
+        const Vec3d p=mShipPos-SurfaceCentre(mShipPos);
+        return Length(p)-SurfaceRadius(mShipPos)-Airless::MoonSurface(moon).Height({p.x,p.y,p.z});
+    }
+    const double ground=mTransportGroundKnown ? mTransportGround : mGroundHeight;
+    return SurfaceAltitude(mShipPos) - (mCine.empty() ? ground : mCineShipGround);
+}
+
+Vec3d D3DApp::TransportPad(unsigned i, Vec3d origin, Vec3d forward, Vec3d up) const {
+    const Vec3d left=Cross(forward,up);
+    return origin+left*(i==0 ? -1.64 : i==1 ? 1.64 : 0.0)+forward*(i==2 ? 3.37 : -1.18)
+        -up*TransportEquipment::PadDepth;
+}
+
+D3DApp::LandingSite D3DApp::SiteFromPads(const Vec3d (&points)[3], bool dry, Vec3d vertical) const {
+    LandingSite site;
+    const Vec3d n=Cross(points[1]-points[0],points[2]-points[0]);
+    if (!(Length(n)>1e-5)) return site;
+    site.normal=Normalize(n)*(Dot(n,vertical)<0 ? -1.0 : 1.0);
+    site.point=(points[0]+points[1]+points[2])*(1./3);
+    site.sampled=true; site.dry=dry;
+    return site;
+}
+
+D3DApp::LandingSite D3DApp::CurrentLandingSite() const {
+    const int moon=MoonAt(mShipPos);
+    if (moon<0) return mLandingSite;
+    if (TransportClearance()>600) return {};
+    const Vec3d centre=SurfaceCentre(mShipPos);
+    const auto surface=Airless::MoonSurface(moon);
+    Vec3d points[3];
+    for (unsigned i=0;i<3;++i) {
+        const Vec3d d=Normalize(TransportPad(i,mShipPos-centre,mShipForward,mShipUp));
+        points[i]=centre+d*(surface.radius+surface.Height({d.x,d.y,d.z}));
+    }
+    return SiteFromPads(points,true,Normalize(mShipPos-centre));
+}
+
+bool D3DApp::Landable(const LandingSite& site) const {
+    if (!site.sampled || !site.dry) return false;
+    const Vec3d up=SurfaceUp(mShipPos), delta=mShipPos-site.point;
+    return Dot(up,site.normal)>=std::cos(12*XM_PI/180) && Length(delta-up*Dot(up,delta))<5;
+}
+
+bool D3DApp::TransportInView() const {
+    return mShip.HasTransportRig() && mView!=View::Free && mView!=View::Walk;
+}
+
+double D3DApp::PadGap(const LandingSite& site, Vec3d origin, Vec3d forward, Vec3d up) const {
+    double gap=1e9;
+    for (unsigned i=0;i<3;++i)
+        gap=std::min(gap,Dot(TransportPad(i,origin,forward,up)-site.point,site.normal));
+    return gap;
+}
+
+void D3DApp::TransportNotice(const wchar_t* notice) {
+    mTransportNotice=notice;
+    mTransportNoticeUntil=mClock+5;
+    mTransportPanelRefresh=-1;
+}
+
+void D3DApp::TransportLandingCommand() {
+    using Phase=TransportEquipment::Phase;
+    switch (mTransport.phase) {
+    case Phase::Flight:
+        if (TransportClearance()-TransportEquipment::PadDepth>TransportEquipment::MaxApproachHeight ||
+            Length(mShipVelocity)*3.6>TransportEquipment::MaxApproachKmh) {
+            TransportNotice(L"Pour atterrir, passez sous 5 km et 1 200 km/h sol.");
+            return;
+        }
+        mTransport.SetPhase(Phase::Approach);
+        mSearchTime=0;
+        break;
+    case Phase::Approach:
+        mTransport.SetPhase(Phase::Flight);
+        mSearchTime=0;
+        break;
+    case Phase::Parked: mTransport.SetPhase(Phase::Closing); break;
+    case Phase::Closing: mTransport.SetPhase(Phase::Parked); break;
+    case Phase::Takeoff: return;
+    }
+    mTransportNoticeUntil=0;
+    mThrottle=mStickX=mStickY=0; mShipRate={};
+    mFlightPilot.holding=mTransport.phase==Phase::Flight && Length(mShipVelocity)<3;
+    mFlightPilot.heldNotch=0;
+    if (mTransport.phase==Phase::Flight)
+        TransportNotice(mFlightPilot.holding ? L"Stationnaire. Vous avez les commandes." : L"Approche interrompue. Vous avez les commandes.");
+    mTransportPanelRefresh=-1;
+}
+
+void D3DApp::TransportToggle(TransportEquipment::Part part) {
+    if (mTransport.Toggle(part)) { mTransportNoticeUntil=0; mTransportPanelRefresh=-1; return; }
+    if (part==TransportEquipment::Hatch) TransportNotice(L"L\u2019escalier se commande une fois la navette pos\u00e9e.");
+    else if (mTransport.phase!=TransportEquipment::Phase::Flight) TransportNotice(L"\u00c9quipement verrouill\u00e9 pendant la man\u0153uvre ou au sol.");
+    else TransportNotice(L"Ailes prot\u00e9g\u00e9es en vol spatial ou pendant la rentr\u00e9e.");
+}
+
+void D3DApp::GroundTransport(const LandingSite& site) {
+    if (!Landable(site) || mTransport.position[TransportEquipment::Gear]!=1 ||
+        Dot(mShipUp,site.normal)<.97 || Length(mShipVelocity)>1.6) return;
+    const double gap=Dot(mShipPos-site.point,site.normal)-TransportEquipment::PadDepth;
+    const double lowest=PadGap(site,mShipPos,mShipForward,mShipUp);
+    if (lowest<-.25 || lowest>.10) return;
+    mShipPos=mShipPos-site.normal*gap;
+    mShipUp=site.normal;
+    mShipForward=Normalize(mShipForward-mShipUp*Dot(mShipForward,mShipUp));
+    mTransport.SetPhase(TransportEquipment::Phase::Parked);
+    mTransportExhaust={}; mFlightLoads={}; mFlightPilot={};
+    mShipRate=mShipVelocity=mShipContactImpulse=mHeadSway=mHeadSwayRate=mEyeSpin={};
+    mPlume=mStickX=mStickY=mThrottle=mHeadTilt=mHeadTiltRate=mFlightCues.engine=0;
+    for (auto& jet:mJets) jet=0;
+    mTransportPanelRefresh=-1;
+}
+
+double D3DApp::TransportDepth(Vec3d forward, Vec3d up, Vec3d vertical) const {
+    return mShip.TransportDepth({float(Dot(Cross(forward,up),vertical)),-float(Dot(forward,vertical)),
+                                 float(Dot(up,vertical))},mTransport);
+}
+
 void D3DApp::AdvanceEntryFlow(double dt) {
     if (mFlightCues.heat > 0)
         mEntryFlowPhase += dt * (1.0 + 2.8 * FlightDynamics::Smooth(80, 1100, mFlightCues.equivalentAirspeed));
@@ -39,7 +160,14 @@ void D3DApp::MeasureShipAir(Vec3d position, Vec3d velocity, double altitude, dou
     AdvanceEntryFlow(dt);
 }
 
-// The wheel selects cruise speed, then sustained thrust. Up burns at full power, Shift boosts and X brakes.
+void D3DApp::MoveShipThrottle(double detents) {
+    if (detents == 0) return;
+    auto* rig = TransportInView() ? &mTransport : nullptr;
+    const double density = FlightDynamics::DensityAtAltitude(Length(mShipPos) - PlanetRadius);
+    mThrottle = FlightDynamics::MoveThrottle(mThrottle, detents, rig, density);
+}
+
+// The wheel selects cruise speed, then sustained thrust. Atmospheric transports latch full power and the stop.
 // In vacuum a stick turn carries the inertial course. Atmospheric lift curves a banked ship's heading.
 void D3DApp::UpdateShip(float dt) {
     const double eyeAhead = mShip.Profile().eyeAhead;
@@ -49,7 +177,7 @@ void D3DApp::UpdateShip(float dt) {
     if (mFlightTake.Connected()) {
         mRawDx = input[FlightTake::MouseX];
         mRawDy = input[FlightTake::MouseY];
-        mThrottle = FlightDynamics::MoveThrottle(mThrottle, input[FlightTake::Wheel]);
+        MoveShipThrottle(input[FlightTake::Wheel]);
         const bool looking = input[FlightTake::Look] != 0;
         if (mLooking && !looking) mHeadKept = true;
         mLooking = looking;
@@ -64,9 +192,15 @@ void D3DApp::UpdateShip(float dt) {
         if (vk == mMoveKeys[4]) return input[FlightTake::Roll] < 0;
         return 0.0;
     };
-    const double dx = mRawDx, dy = mRawDy, rest = mView != View::Chase ? kHeadRest : 0.0;
+    const double dx = mRawDx, dy = mRawDy, rest = mView != View::Chase ? (mShip.HasTransportRig() ? -.265 : kHeadRest) : 0.0;
     mRawDx = mRawDy = 0.0;
-    if (mLooking || mHeadFree) {
+    const bool transport=TransportInView();
+    using Phase=TransportEquipment::Phase;
+    const bool flying=transport && !mTransport.GroundLocked();
+    const double clearance=flying ? TransportClearance() : 0;
+    const auto site=flying && clearance<600 ? CurrentLandingSite() : LandingSite{};
+    if (flying && mTransport.phase!=Phase::Takeoff && clearance<7) GroundTransport(site);
+    if (mLooking || mHeadFree || (transport && mTransport.phase!=Phase::Flight)) {
         if (mView == View::Chase) { // all around the ship, from below to above
             mHeadYaw = std::remainder(mHeadYaw + dx * 0.003, 2.0 * XM_PI);
             mHeadPitch = std::min(std::max(mHeadPitch - dy * 0.003, -1.45), 1.45);
@@ -85,9 +219,25 @@ void D3DApp::UpdateShip(float dt) {
     mStickX *= centre;
     mStickY *= centre;
 
+    if (transport && mTransport.GroundLocked()) {
+        MeasureShipAir(mShipPos,{},Length(mShipPos)-PlanetRadius,dt);
+        mTransport.Advance(dt,TransportClearance(),0,0,mFlightCues.density,mFlightCues.equivalentAirspeed,
+            mFlightCues.dynamicPressurePa,mFlightCues.heat,0,false);
+        if (mTransport.phase==Phase::Closing && mTransport.position[TransportEquipment::Hatch]==0)
+            mTransport.SetPhase(Phase::Takeoff);
+        UpdateShipCamera(dt);
+        return;
+    }
+
     // The rates follow the stick and the keys within a tenth of a second.
-    const double roll = held(mMoveKeys[5]) - held(mMoveKeys[4]);
-    const Vec3d wantedRate = { -mStickY * 1.3, mStickX * 1.0, roll * 1.8 };
+    const bool guided=transport && mTransport.Guided();
+    const double roll = guided ? 0 : held(mMoveKeys[5]) - held(mMoveKeys[4]);
+    const double strafe = mFlightTake.Connected() ? mFlightTake.strafe : held(mMoveKeys[3]) - held(mMoveKeys[2]);
+    const double lift = mFlightTake.Connected() ? mFlightTake.lift :
+        std::min(std::max(held(mMoveKeys[0]) + held(VK_SPACE) - held(mMoveKeys[1]) - held(VK_CONTROL), -1.0), 1.0);
+    TransportEquipment::Helm helm={-mStickY,mStickX,roll};
+    if (transport) helm=mTransport.Steer(helm,lift,strafe);
+    const Vec3d wantedRate = { helm.pitch * 1.3, helm.yaw, helm.roll * 1.8 };
     const Vec3d eyeBefore = mShipForward * eyeAhead + mShipUp * mShip.Profile().eyeUp;
     const Vec3d rateBefore = mShipRate;
     mShipRate =mShipRate + (wantedRate - mShipRate) * (1.0 - std::exp(-dt / 0.1));
@@ -96,11 +246,53 @@ void D3DApp::UpdateShip(float dt) {
     FlightFrame::Turn(mShipForward,mShipUp,mShipRate.y*dt,-mShipRate.x*dt,mShipRate.z*dt);
     mShipUp = Rotate(mShipUp, mShipForward, -mFlightPilot.bank);
 
-    const double strafe = held(mMoveKeys[3]) - held(mMoveKeys[2]);
-    const double lift = std::min(std::max(held(mMoveKeys[0]) + held(VK_SPACE) - held(mMoveKeys[1]) - held(VK_CONTROL), -1.0), 1.0);
+    const bool levelHover = transport && mTransport.brakeToHover && Length(mShipVelocity) < 18 &&
+        std::abs(mStickY) < .05 && std::abs(roll) < .05;
+    if (guided || levelHover) {
+        const Vec3d vertical=SurfaceUp(mShipPos);
+        Vec3d targetUp=vertical;
+        if (mTransport.phase==Phase::Approach && clearance<10 && Landable(site)) targetUp=site.normal;
+        const Vec3d axis=Cross(mShipUp,targetUp);
+        const double angle=std::atan2(Length(axis),Dot(mShipUp,targetUp));
+        if (angle>1e-7) {
+            const Vec3d turn=Length(axis)>1e-7 ? Normalize(axis) : mShipForward;
+            const double step=std::min(angle,double(dt)*1.5);
+            mShipUp=Rotate(mShipUp,turn,step); mShipForward=Rotate(mShipForward,turn,step);
+        }
+        mFlightPilot.bank=0;
+        if (guided) mFlightPilot.holding=false;
+    }
+
     FlightDynamics::Controls controls = {mShipForward, Normalize(Cross(mShipUp, mShipForward)), mShipUp,
-                                         mThrottle, strafe, lift, held(VK_SHIFT) > 0, held('X') > 0, held(VK_UP) > 0,
+                                         mThrottle, strafe, lift, held(VK_SHIFT) > 0, held('X') > 0 || (transport && held(VK_DOWN) > 0), held(VK_UP) > 0,
                                          mShipRate.y, mShipRate.z};
+    if (mShip.HasTransportRig()) {
+        controls.transport = &mTransport;
+        controls.hasControlSurfaces = mShip.HasTransportControls();
+        controls.terrainClearance = clearance;
+        controls.descentRate = -Dot(mShipVelocity,SurfaceUp(mShipPos));
+        controls.localUp=SurfaceUp(mShipPos);
+        if (guided) {
+            controls.throttle=controls.lift=controls.strafe=0;
+            controls.brake=controls.boost=controls.fullThrust=false;
+            controls.landingSite=Landable(site);
+            if (mTransport.phase==Phase::Approach && !controls.landingSite && controls.terrainClearance<12 &&
+                Length(mShipVelocity)<9 && site.sampled) {
+                const Vec3d relative=mShipPos-SurfaceCentre(mShipPos);
+                if (mSearchTime==0) mSearchOrigin=relative;
+                mSearchTime+=dt;
+                const double angle=std::sqrt(1+1.3*mSearchTime)-1, radius=2.8*angle;
+                const Vec3d target=mSearchOrigin+(mShipForward*std::cos(angle)+controls.right*std::sin(angle))*radius;
+                const Vec3d offset=target-relative;
+                controls.landingDrift=FlightDynamics::Limited(offset-controls.localUp*Dot(offset,controls.localUp),2);
+                if (mSearchTime>=90) {
+                    mTransport.SetPhase(Phase::Flight);
+                    mFlightPilot.holding=true; mFlightPilot.heldNotch=0;
+                    TransportNotice(L"Aucun sol praticable proche. Stationnaire, pilotage manuel.");
+                }
+            }
+        }
+    }
     Vec3d newPos = mShipPos;
     mFlightLoads = FlightDynamics::Advance(mSettings.Automated() ? 0 : dt, newPos, mShipVelocity,
                                            mFlightCues, controls, mFlightPilot, ShipField());
@@ -110,10 +302,25 @@ void D3DApp::UpdateShip(float dt) {
     mShipUp = controls.up;
     const Vec3d right = controls.right;
     mPlume += (loads.mainJet - mPlume) * (1.0 - std::exp(-dt / .18));
+    if (controls.transport) {
+        mThrottle = controls.throttle;
+        mTransport.Deflect({mShipRate.x/1.3,mShipRate.y,(mShipRate.z+loads.bankAssistRate)/1.8});
+        mTransportExhaust.Advance(dt, loads.axialJet, loads.liftJet, loads.sideJet, false, loads.trimJet);
+        if (mTransport.phase==Phase::Takeoff && Length(mShipVelocity)<.25 &&
+            std::abs(controls.terrainClearance-TransportEquipment::PadDepth-TransportEquipment::HoverHeight)<.12) {
+            mTransport.SetPhase(Phase::Flight);
+            mFlightPilot.holding=true; mFlightPilot.heldNotch=0;
+            TransportNotice(L"Stationnaire \u00e9tabli. Vous avez les commandes.");
+        }
+    }
     // The flight corridor sweeps the hull before this candidate pose is accepted. Keep only the sea floor here.
-    double minRadius = PlanetRadius + (mFlightContactPSO ? 0.0 : mGroundHeight) + 2.5;
+    const double keel=mShip.HasTransportRig() && TransportClearance()<10000
+        ? TransportDepth(mShipForward,mShipUp,SurfaceUp(mShipPos)) : 2.5;
+    const bool resting = mShip.HasTransportRig() && mTransportGroundKnown && Length(mShipVelocity)<6 && TransportClearance()<10;
+    const double groundFloor = resting ? mTransportGround : (mFlightContactPSO ? 0.0 : mGroundHeight);
+    double minRadius = PlanetRadius + groundFloor + keel;
     if (mOcean && !mWaveReset && mGroundHeight <= 0.0)
-        minRadius = std::max(minRadius, PlanetRadius + double(mOcean->SurfaceHeight()) + 2.5);
+        minRadius = std::max(minRadius, PlanetRadius + double(mOcean->SurfaceHeight()) + keel);
     const double newRadius = Length(newPos);
     if (newRadius < minRadius) {
         const Vec3d n = newRadius > 0 ? newPos * (1 / newRadius) : Normalize(mShipPos);
@@ -150,7 +357,11 @@ void D3DApp::UpdateShip(float dt) {
         for (int k = 0; k < 5; ++k) mJets[k] = std::min(std::max(jets[k], -1.0), 1.0);
     }
 
-    // The camera: the pilot's eye and head, or behind and above the ship, lagging behind its turns.
+    UpdateShipCamera(dt);
+}
+
+void D3DApp::UpdateShipCamera(float dt) {
+    const double eyeAhead=mShip.Profile().eyeAhead;
     Vec3d look = Rotate(mShipForward, mShipUp, mHeadYaw);
     const Vec3d headRight = Normalize(Cross(mShipUp, look));
     look = Rotate(look, headRight, -mHeadPitch);
@@ -180,6 +391,10 @@ void D3DApp::PlaceShipAtCamera() {
     mShipVelocity = mShipRate = mHeadSway = mHeadSwayRate = mEyeSpin = {};
     mShipContactImpulse = {};
     mFlightCues = {};
+    mTransport = {};
+    mTransportExhaust = {};
+    mTransportGroundKnown = false;
+    mLandingSite={}; mSearchTime=0; mTransportNoticeUntil=0; mTransportPanelRefresh=-1;
     mEntryFlowPhase = 0.0;
     mFlightPilot = {};
     mFlightLoads = {};
@@ -187,7 +402,7 @@ void D3DApp::PlaceShipAtCamera() {
     mHeadTilt = mHeadTiltRate = mPlume = 0.0;
     for (double& jet : mJets) jet = 0.0;
     mStickX = mStickY = mHeadYaw = mThrottle = 0.0;
-    mHeadPitch = mView != View::Chase ? kHeadRest : 0.0;
+    mHeadPitch = mView != View::Chase ? (mShip.HasTransportRig() ? -.265 : kHeadRest) : 0.0;
     mChaseOffset = mShipForward * -15.0 + mShipUp * 6.5;
     mPrevShipPos = mShipPos;
     mPrevShipForward = mShipForward;
@@ -197,7 +412,7 @@ void D3DApp::PlaceShipAtCamera() {
 
 // The ship's views hold the mouse: hidden, kept in the window, read raw.
 void D3DApp::HoldMouse(bool hold) {
-    hold = hold && !mMouseFree;
+    hold = hold && !mMouseFree && !mTransportMenu;
     if (hold == mMouseHeld) return;
     mMouseHeld = hold;
     if (hold) {
@@ -225,7 +440,7 @@ void D3DApp::SetView(View view) {
     if (view != View::Free && view != View::Walk && mView == View::Free) PlaceShipAtCamera(); // the ship comes to the free camera
     mView = view;
     mHeadYaw = 0.0;
-    mHeadPitch = view == View::Cockpit || view == View::Bare ? kHeadRest : 0.0;
+    mHeadPitch = view == View::Cockpit || view == View::Bare ? (mShip.HasTransportRig() ? -.265 : kHeadRest) : 0.0;
     mHeadFree = mHeadKept = false;
     FlightFrame::Orthonormalize(mCamForward,mCamUp);
     mHistoryValid = false;
@@ -289,7 +504,14 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
     };
     for (auto& pose : ship.pose) XMStoreFloat4x4(&pose, XMMatrixIdentity());
     const Ship::Pivot* pivots = mShip.pivots;
-    if (mShip.Profile().model == ShipModel::Navette) {
+    if (mShip.HasTransportRig()) {
+        const float roll=float(FlightDynamics::Clamp(mShipRate.z/1.8,-1,1));
+        XMStoreFloat4x4(&ship.pose[0],pivoted(pivots[0], XMMatrixRotationZ(-.19f*float(mStickX)) *
+            XMMatrixRotationX(.30f*float(mStickY)) * XMMatrixRotationY(-.28f*roll-.15f*float(mStickX))));
+        const float response = mCine.empty() ? -std::expm1(-dt/.085f) : 1.0f;
+        mThrottleLever += (lever-mThrottleLever)*response;
+        XMStoreFloat4x4(&ship.pose[1],pivoted(pivots[1],XMMatrixRotationX(.64f*(mThrottleLever-.5f))));
+    } else if (mShip.Profile().model == ShipModel::Navette) {
         const float bank = float(FlightDynamics::Clamp((mShipRate.z + mFlightPilot.bank) / 1.8, -1, 1));
         XMStoreFloat4x4(&ship.pose[0], pivoted(pivots[0], XMMatrixRotationAxis(XMLoadFloat3(&pivots[0].axis), -.31f * bank)
             * XMMatrixTranslation(0, -.018f * float(mStickY), 0)));
@@ -317,5 +539,20 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
     }
     XMStoreFloat4(&ship.velocity, toLocal(speed > 1e-3 ? mShipVelocity * (1.0 / speed) : mShipForward));
     ship.velocity.w = (float)speed;
-    mShip.SetFlightSurfaces(ship.airframe.x, ship.airframe.y);
+    ship.equipment = ship.automation = {};
+    if (mShip.HasTransportRig()) {
+        if (!mCine.empty() || mView == View::Walk)
+            mTransport.Advance(dt, TransportClearance(), -Dot(mShipVelocity,vertical), speed, mFlightCues.density,
+                mFlightCues.equivalentAirspeed, mFlightCues.dynamicPressurePa, mFlightCues.heat, 0, false);
+        const auto& p=mTransport.position;
+        ship.equipment={float(p[0]),float(p[1]),float(p[2]),float(p[3])};
+        ship.automation={float(mTransport.ManualMask()),1,float(mTransportExhaust.Deflection()),
+                         float(mTransportExhaust.trim / TransportExhaust::TrimShare)};
+        ship.thrust.x = float(mTransportExhaust.MainPower());
+        ship.thrust.z = float(mTransportExhaust.lift);
+        ship.thrust.w = float(mTransportExhaust.side);
+        ship.supportExhaust.w = float(1-mTransport.airAuthority);
+        ship.airframe.z = float(std::max(0.0, -mTransportExhaust.ahead));
+        mShip.SetTransportPose(mTransport);
+    } else mShip.SetFlightSurfaces(ship.airframe.x, ship.airframe.y);
 }

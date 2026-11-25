@@ -631,6 +631,37 @@ protected:
     FlightDynamics::Cues mFlightCues;
     FlightDynamics::Pilot mFlightPilot;
     FlightDynamics::Loads mFlightLoads;
+    TransportEquipment mTransport;
+    struct LandingSite {
+        Vec3d point = {}, normal = {};
+        bool sampled = false, dry = false;
+    } mLandingSite;
+    Vec3d mSearchOrigin = {};
+    double mSearchTime = 0;
+    Vec3d TransportPad(unsigned i, Vec3d origin, Vec3d forward, Vec3d up) const;
+    LandingSite SiteFromPads(const Vec3d (&points)[3], bool dry, Vec3d vertical) const;
+    LandingSite CurrentLandingSite() const;
+    bool Landable(const LandingSite& site) const;
+    double PadGap(const LandingSite& site, Vec3d origin, Vec3d forward, Vec3d up) const;
+    void GroundTransport(const LandingSite& site);
+    void TransportLandingCommand();
+    void TransportToggle(TransportEquipment::Part part);
+    bool TransportInView() const;
+    void TransportNotice(const wchar_t* notice);
+    bool mTransportMenu = false;
+    std::wstring mTransportNotice;
+    double mTransportNoticeUntil = 0;
+    void SetTransportMenu(bool open);
+    void DrawTransportPanel();
+    bool TransportPanelClick(int x, int y);
+    ComPtr<ID3D12Resource> mTransportPanelBuffer;
+    RECT mTransportPanelRect = {};
+    double mTransportPanelRefresh = -1;
+    bool mTransportPanelVisible = false;
+    double TransportClearance() const;
+    double TransportDepth(Vec3d forward, Vec3d up, Vec3d vertical) const;
+    double mTransportGround = 0;
+    bool mTransportGroundKnown = false;
     float mThrottleLever = 0.0f;
     Vec3d mShipContactImpulse = {}; // accepted change in velocity for the pilot's head at impact
     Vec3d mShipRate = {};          // pitch up, yaw right, roll right (rad/s)
@@ -645,6 +676,7 @@ protected:
     Vec3d mEyeSpin = {};                      // the eye's velocity from the ship's turns, last frame (m/s)
     double mHeadTilt = 0.0, mHeadTiltRate = 0.0; // the head's roll behind the ship's, towards the left (rad)
     double mPlume = 0.0;    // smoothed positive axial thrust at the rear nozzles, 0 to 1
+    TransportExhaust mTransportExhaust;
     double mJets[5] = {};   // the attitude jets' commands, -1 to 1: slide right, lift, roll right, pitch up, yaw right
     Vec3d mCamUp = {};             // screen up supplied by the current controller
     Vec3d mChaseOffset = {};       // the chase camera from the ship, lagging behind its turns
@@ -706,6 +738,8 @@ protected:
     Vec3d mFlightSlideNormal={},mFlightSlideOrigin={};
     unsigned mFlightSlideBody=0;
     void UpdateShip(float dt);
+    void MoveShipThrottle(double detents);
+    void UpdateShipCamera(float dt);
     FlightDynamics::Field ShipField() const;
     Vec3d ClimateWindAt(Vec3d position) const;
     void AdvanceEntryFlow(double dt);

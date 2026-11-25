@@ -22,7 +22,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours to
 
 - The launcher accepts `-ModeleVaisseau classique`, `chasseur`, `navigateur` or `navette` for the same route.
 - In a route's pose field, optional `v=<m/s>` after the heading sets the initial forward speed in ship view. Ordinary rows start from rest.
-- Cut the throttle to coast. Hold X until the title shows `stationnaire`. Use the wheel or a thrust or translation command to resume flight. Enter calls the radio in the cockpit or suit.
+- In vacuum, cut the throttle to coast. Hold X until the title shows `stationnaire`. Use the wheel or a thrust or translation command to resume flight. Enter calls the radio in the cockpit or suit.
 
 **Shuttle and fighter review** uses the [six-stop flight route](../tools/tests/2026-11-20-aerofreins.txt). Turn over the coast at F1, stop over open sea at F2 and check the external surfaces with Tab at F4 and F5. F6 starts near the Moon.
 
@@ -30,15 +30,26 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Parcours to
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours tools/tests/2026-11-20-aerofreins.txt -ModeleVaisseau navette -Camera cockpit -DepartTest 1 -Resolution fenetre
 ```
 
-**Navette exterior and glazing review** uses the [seven-stop flight route](../tools/tests/2026-11-20-navette-finitions.txt). F1 shows the exterior over the coast. F2 tests a stop and departure, F3 starts under aerodynamic load and F6 checks the orbit silhouette. Tab cycles the views. Pass `-Verriere pluie`, `nuage` or `givre` to reproduce that pane condition in atmospheric cases.
+## Transport shuttle
 
-The coast opens with the Navette's turbine lips extended. In chase view, hold the right mouse button to see both lips from above. F2 covers a stop and departure. F5 shows the retracted silhouette in orbit. [Navette profile route](../tools/tests/2026-11-21-navette-profil.txt)
+- Run `tools/jouer_navette.cmd` to start parked on the coastal plain. P opens the in-game flight controls and pauses piloting. P or Escape resumes.
+- In atmosphere the wheel holds its setting. The main plumes stay lit at cruise speed and reach full output at notch 25 of 30. Tap Up to leave the lever at full power.
+- In wing-borne flight the outer wing panels roll and pitch the shuttle. The split rudder yaws it. Space and Ctrl pitch up and down. The lateral keys steer into the turn. P shows which controls carry the load. F1 starts a coastal flight and F5 a valley flight.
+- Roll the wheel down to zero or tap Down or X to brake to a powered hover. The retro jets slow the shuttle, then the main grilles turn down and the ventral jets stabilize it. Space and Ctrl change height. Release to hold position. Advance the wheel to fly on.
+- In vacuum, zero allows an inertial coast. Up gives full thrust while held. Hold X or Down to stop. With the gear down below 120 m, Space and Ctrl also control manual landing on the Moon.
+- L initiates automatic landing below 5 km and 1,200 km/h ground speed. The shuttle levels, brakes, deploys the gear and descends. It searches nearby when the surface is wet or too steep. L returns control in flight.
+- After touchdown the hull locks to the surface. Mouse movement controls the camera. J disembarks once the rear stair is fully open. J boards again.
+- L from park closes the stair before liftoff and establishes a hover 8 m above the pads. L during closure cancels departure. F4 and F7 start parked. F10 and F11 start airborne over the plain and Moon 1.
+- At F7 press L to see the two side grilles discharge straight down during takeoff. At F8 hold Up for aft exhaust, Space for downward exhaust, or both for diagonal exhaust. X brakes in orbit. F9 shows the attitude outlets during lunar roll and lateral translation. Use Tab for the exterior view.
+- Automatic wings open at 150 km/h indicated and retract at 90 km/h indicated. Between these speeds they keep their previous state. Vacuum, 1,340 km/h indicated or 48% entry heat engages protection. In supporting air it releases below 1,140 km/h and 22% heat. The automatic landing and departure sequences also stow the wings.
+- Hold X to brake. The dorsal panels follow the braking demand in the atmosphere.
+- In manual flight, 2 overrides wings, 3 gear and 4 the airbrake. When parked, 5 operates the stair. Pressing 6 or starting an automatic manoeuvre restores automatic equipment control. The number pad also works with Num Lock.
+- Tab cycles the cockpit, chase view and unobstructed view. Hold the right mouse button to look around.
+- The right display shows actual travel, automatic or manual control, throttle and engine demand. The left display shows attitude, speed and altitude. The middle display shows heading and coordinates.
 
-To inspect the extension, orbit the chase camera below a lip at F1. Hold X to stop, then use the wheel to deploy the wing again. F3 shows the main exhausts over the valley. F4 shows them against space with the wings stowed. [Extension and exhaust route](../tools/tests/2026-11-21-navette-mecanisme.txt)
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours tools/tests/2026-11-20-navette-finitions.txt -ModeleVaisseau navette -Camera poursuite -DepartTest 1 -Resolution fenetre
-```
+~~~powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/lance.ps1 -Parcours tools/tests/2026-11-25.txt -ModeleVaisseau navette -Camera cockpit -DepartTest 4 -Resolution fenetre
+~~~
 
 **Camera review** uses `tools/tests/2026-11-10.txt` with `-Camera orbite -DepartTest 1`. At F1, hold forward to descend towards the coast in Horizon. Press Home, select F1 again and repeat in Fixed altitude. F5 points straight down at Moon 2.
 
@@ -98,7 +109,7 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 - **`-Position '<alt> <lat> <lon> <tangage> <cap>'`:** starting view, the globe by default.
 - **`-Soleil '<lat> <lon>'`:** sun position, `10 -5` by default.
 - **`-Resolution '1920 1080'`** by default, full screen; `fenetre` for a 1280x720 window, where the palette is visible.
-- **`-ModeleVaisseau chasseur|classique|navigateur|navette`** selects the physical model. The fighter is the default. `navette` loads the shuttle from *Exolune par les crêtes*. Direct executable launches use `MYPLANETENGINE_MODELE_VAISSEAU`. [Model profiles](spec-vaisseau.md)
+- **`-ModeleVaisseau chasseur|classique|navigateur|navette`** selects the physical model. The fighter is the default. `navette` loads the V9 transport. Direct executable launches use `MYPLANETENGINE_MODELE_VAISSEAU`. [Model profiles](spec-vaisseau.md)
 - **`-Camera cockpit|poursuite|sans|libre|orbite|altitude-fixe|marche`** selects the initial view. `orbite` starts in Horizon. The default is the cockpit.
 - **`-PassePleine`:** clouds in a single pass, without their temporal pass (`optimisation.md`); for comparison.
 - **`-SansNuages`:** start with clouds hidden for terrain review; N toggles them during flight. Use this option for the current erosion review.
@@ -136,7 +147,8 @@ python tools/foliage/bake.py --impostor-only --out assets/foliage/climate_shrubs
 ### Live cockpit recording
 
 - Start the shuttle and choose a single departure with the normal review settings. The six [flight positions](../tools/tests/2026-11-21-prise-de-vol.txt) cover orbit, incoming heat, mountains and the inlet.
-- Use [the live take driver](../tools/cine/prise_jeu.py) for gameplay films. Its `record(executable, directory, pilot, environment)` callback receives the ship instruments. Return raw mouse counts, wheel detents and buttons in `CONTROLS` order. The last button ends the take after the preceding frame has been presented. An optional `radio_meter(state)` callback supplies a separate receiver level for a mission soundtrack, from 0 to 1 during transmission and -1 when idle.
+- Use [the live take driver](../tools/cine/prise_jeu.py) for gameplay films. Its `record(executable, directory, pilot, environment)` callback receives the ship instruments. Return raw mouse counts, wheel detents and buttons in `CONTROLS` order. The last button ends the take after the preceding frame has been presented.
+- Optional `translation(state)` returns signed strafe and lift from −1 to 1. Optional `radio_meter(state)` supplies a separate receiver level from 0 to 1 during transmission and −1 when idle.
 - Flight dynamics, collisions, weather, sound state and seat response use the normal elapsed game time. The controller window runs in the background. Cinematic pose tracks remain available for authored camera studies.
 - The capture directory holds lossless RGB frames, the telemetry and the presentation clock. Mux the clock before editing: `mkvmerge -o realtime.mkv --timestamps 0:frames.timecodes frames.mkv`. The stored frame indices alone have a nominal clock of 60 Hz.
 

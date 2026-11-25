@@ -12,6 +12,8 @@
 #include <string>
 #include <vector>
 #include "ShipProfiles.h"
+#include "TransportEquipment.h"
+#include <array>
 
 class Ship {
 public:
@@ -29,11 +31,14 @@ public:
     // Shadow radius (m); each profile supplies the centre. Match Ship.hlsli's SHIP_RADIUS.
     static constexpr float Radius = 6.7f;
 
+    float EnvelopeRadius() const { return HasTransportRig() ? 7.3f : Radius; }
+
     struct Nozzle {
-        DirectX::XMFLOAT4 mouthWidth, axisHeight, widthAxis;
-        DirectX::XMFLOAT4 aperture; // linear image index + 1, axial depth of the curved outlet (m)
+        DirectX::XMFLOAT4 mouthWidth, axisHeight, widthAxis; // widthAxis.w counts directional aperture tiles, zero for one chart
+        DirectX::XMFLOAT4 aperture; // linear image index + 1, outlet depth, duct half-width, distance to stern (metres)
     };
 
+    struct ExhaustPort { DirectX::XMFLOAT4 mouthRadius, axis; };
     struct Constants {
         DirectX::XMFLOAT4X4 model;     // ship frame -> face-local, camera-relative, transposed for HLSL
         DirectX::XMFLOAT4X4 shadow[2]; // ship frame -> the sun's and the overhead map's clip space, transposed
@@ -52,7 +57,10 @@ public:
         DirectX::XMFLOAT4 supportExhaust; // direction in ship axes and power relative to hover
         DirectX::XMFLOAT4 retroOutlet, supportOutlet; // left mouths, support outlet spacing in w
         DirectX::XMFLOAT4 radio; // receive lamp and audio meter in the cockpit
+        DirectX::XMFLOAT4 equipment; // actual extension of wings, landing gear, airbrake and ramp
+        DirectX::XMFLOAT4 automation; // manual switch mask, transport flag, exhaust deflection (radians), ventral trim power
         Nozzle nozzles[2]; // the shuttle's two authored main exhausts
+        ExhaustPort ports[SHIP_TRANSPORT_PORT_PAIRS];
     };
     // The moving parts' pivots, ship frame, from the pack (pieces_mobiles.py, design_chasseur.py): the stick's twist axis,
     // the throttle's, the elevons' hinges, running outwards.
@@ -73,6 +81,10 @@ public:
     // The shadow maps' frames from the sun's and the vertical's directions, in the ship frame.
     void SetLights(const DirectX::XMFLOAT3& sun, const DirectX::XMFLOAT3& up);
     void SetFlightSurfaces(float wings, float airbrakes);
+    bool HasTransportRig() const { return !mTransportClips[0].empty(); }
+    void SetTransportPose(const TransportEquipment& equipment);
+    bool HasTransportControls() const { return mElevons[0].slot!=0; }
+    float TransportDepth(DirectX::XMFLOAT3 up, const TransportEquipment& state) const;
 
     struct Tables {
         D3D12_GPU_VIRTUAL_ADDRESS frame, cloudFrame; // the clouds' frame, b1 (Clouds.hlsli)
@@ -107,6 +119,18 @@ private:
         return mConstants->options.y < .5f || mRoles[draw.material] != pilotOccupant;
     }
     void ReadShuttleControls(const std::vector<uint8_t>& data, size_t& at);
+    struct RigidKey { DirectX::XMFLOAT3 translation; DirectX::XMFLOAT4 rotation; };
+    struct RigidTrack { unsigned slot; int tailSide=0; DirectX::XMFLOAT4X4 inverseBind; std::vector<RigidKey> keys; };
+    std::array<std::vector<RigidTrack>,TransportEquipment::Count> mTransportClips;
+    struct Elevon { uint32_t slot, parent; DirectX::XMFLOAT3 pivot, axis; };
+    std::array<Elevon,2> mElevons{};
+    using TransportPoses = std::array<DirectX::XMMATRIX, SHIP_POSE_COUNT+1>;
+    void TransportMatrices(const TransportEquipment& state, TransportPoses& poses) const;
+    struct SupportHull { unsigned slot; std::vector<DirectX::XMFLOAT3> points; };
+    std::vector<SupportHull> mTransportBounds;
+    static DirectX::XMMATRIX TransportMatrix(const RigidTrack& track, double phase);
+    void ReadTransport(const std::vector<uint8_t>& data, size_t& at);
+    void ReadPane(const std::vector<uint8_t>& data, size_t& at);
     struct FlightFittings {
         DirectX::XMFLOAT3 wingPivot;
         float foldedAngle;
@@ -120,6 +144,7 @@ private:
     std::vector<DirectX::XMFLOAT4> mLipTravel; // signed transverse travel and its local gradient
     std::vector<DirectX::XMFLOAT4> mFittedPane; // outward normal scaled by radial distance, then signed edge distance
     Nozzle mNozzles[2] = {};
+    std::array<ExhaustPort, SHIP_TRANSPORT_PORT_PAIRS> mPorts{};
     std::vector<Image> mImages;
     bool mLoaded = false, mReady = false;
 

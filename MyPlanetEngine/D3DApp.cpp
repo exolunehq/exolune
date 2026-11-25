@@ -921,7 +921,7 @@ bool D3DApp::InitDirect3D() {
         glassRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5);
     CD3DX12_DESCRIPTOR_RANGE celestialRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 6), glareRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 8),
         adaptationRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9), velocityRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 10);
-    CD3DX12_ROOT_PARAMETER resolveParams[11];
+    CD3DX12_ROOT_PARAMETER resolveParams[12];
     resolveParams[0].InitAsConstantBufferView(0);
     resolveParams[1].InitAsDescriptorTable(1, &compositeRange, D3D12_SHADER_VISIBILITY_PIXEL);
     resolveParams[2].InitAsDescriptorTable(1, &historyRange, D3D12_SHADER_VISIBILITY_PIXEL);
@@ -932,7 +932,8 @@ bool D3DApp::InitDirect3D() {
     resolveParams[7].InitAsDescriptorTable(1, &adaptationRange, D3D12_SHADER_VISIBILITY_PIXEL); // local adaptation
     resolveParams[8].InitAsConstants(4, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL); // visor, after the scene history
     resolveParams[9].InitAsDescriptorTable(1, &sunRange, D3D12_SHADER_VISIBILITY_PIXEL); // opaque ship coverage
-    resolveParams[10].InitAsDescriptorTable(1, &velocityRange, D3D12_SHADER_VISIBILITY_PIXEL); // dynamic character TAA velocity
+    resolveParams[10].InitAsShaderResourceView(60, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+    resolveParams[11].InitAsDescriptorTable(1, &velocityRange, D3D12_SHADER_VISIBILITY_PIXEL); // dynamic character TAA velocity
     mResolveRootSignature = CreateRootSignature(md3dDevice.Get(), CD3DX12_ROOT_SIGNATURE_DESC(_countof(resolveParams), resolveParams, 1, &linearClamp));
     CD3DX12_DESCRIPTOR_RANGE skyTransportRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
     CD3DX12_DESCRIPTOR_RANGE lunarRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,8);
@@ -2203,9 +2204,9 @@ void D3DApp::Draw() {
     if (mCine.empty()) {
         if (mView == View::Walk) UpdateWalking(dt);
         else if (mView == View::Free) UpdateCamera(dt);
-        else UpdateShip(dt);
+        else if (!mTransportMenu) UpdateShip(dt);
     }
-    PrepareFlightContact(flightBefore);
+    if (!mTransportMenu) PrepareFlightContact(flightBefore);
     if (mView == View::Free && mCameraMode != CameraMode::Free) {
         mOrbitFrame.Follow(mCamPos - mCameraCentre);
         mOrbitFrame.View(mCamForward, mCamUp);
@@ -2304,7 +2305,8 @@ void D3DApp::Draw() {
     mConstants->coordinateInfo = {};
     mConstants->coordinateInfo.z = (mSettings.Automated() || mFlightTake.Connected()) ? 0u : 1u | (mView==View::Walk ? 2u : 0u)
         | (mAudioMuted || !mAudioReady ? 4u : 0u) | (mClock<mWalkNoticeUntil ? 8u : 0u)
-        | (mView == View::Free ? unsigned(mCameraMode) << 4 : 0u) | (RadioAvailable()?64u:0u);
+        | (mView == View::Free ? unsigned(mCameraMode) << 4 : 0u) | (RadioAvailable()?64u:0u)
+        | (TransportInView() && !mTransport.CanWalk() ? 128u : 0u);
     if (mView==View::Walk) {
         const unsigned surface=CurrentFootContact().Primary();
         mConstants->coordinateInfo.w=surface<FootContact::Count?surface+1:0;
@@ -2401,7 +2403,7 @@ void D3DApp::Draw() {
         toPreviousShip.m[3][3] = 1.0f;
         XMStoreFloat4x4(&mConstants->reprojectShip, XMMatrixTranspose(XMLoadFloat4x4(&toPreviousShip) * mPrevViewProj));
         XMStoreFloat4(&mConstants->shipSphere, toLocal(mShipPos - mCamPos + shipBack * mShip.Profile().centreY + mShipUp * mShip.Profile().centreZ));
-        mConstants->shipSphere.w = Ship::Radius;
+        mConstants->shipSphere.w = mShip.EnvelopeRadius();
     }
     if (mShip.Ready()) UpdateShipFrame(dt, faceX, faceY, faceZ);
     UpdateCityFrame(faceX,faceY,faceZ,view*proj);
@@ -3261,6 +3263,7 @@ void D3DApp::Draw() {
     mCommandList->OMSetRenderTargets(2, resolveRtvs, FALSE, nullptr);
     mCommandList->SetGraphicsRootSignature(mResolveRootSignature.Get());
     mCommandList->SetPipelineState(mToneMapPSO.Get());
+    DrawTransportPanel();
     mCommandList->SetGraphicsRootConstantBufferView(0, mConstantBuffer->GetGPUVirtualAddress());
     mCommandList->SetGraphicsRootDescriptorTable(1, GpuDescriptor(CompositeSrv));
     mCommandList->SetGraphicsRootDescriptorTable(2, GpuDescriptor(HistorySrv + mHistoryIndex));
@@ -3270,7 +3273,7 @@ void D3DApp::Draw() {
     mCommandList->SetGraphicsRootDescriptorTable(6, GpuDescriptor(glareDrawn ? GlareSrv : GlareSrv + 1));
     mCommandList->SetGraphicsRootDescriptorTable(7, GpuDescriptor(AdaptationSrv));
     mCommandList->SetGraphicsRootDescriptorTable(9, GpuDescriptor(SunSrv));
-    mCommandList->SetGraphicsRootDescriptorTable(10, GpuDescriptor(VelocitySrv));
+    mCommandList->SetGraphicsRootDescriptorTable(11, GpuDescriptor(VelocitySrv));
     const bool visorWeather = mView == View::Walk && !airless && mWorldValid && Length(mCamPos - mWorldProbePos) < 250.0;
     const XMFLOAT4 visor = { mView == View::Walk ? 1.0f : 0.0f, mWalker.exertion,
         visorWeather ? std::max(mHabitat[2].x, mHabitat[2].y) : 0.0f, visorWeather ? mHabitat[1].y : 0.0f };
@@ -3455,6 +3458,12 @@ void D3DApp::UpdateTitle(float dt, double clearance, double halfWidth, UINT ring
             Length(mShipVelocity), Dot(mShipVelocity, SurfaceUp(mShipPos)), 100.0 * mFlightCues.heat,
             mThrottle, lever);
         wcscat_s(title, ship);
+        if (mShip.HasTransportRig()) {
+            const auto& p=mTransport.position;
+            swprintf_s(ship,L" | P Commandes  L Atterrir/partir | 2 Ailes %.0f%%  3 Train %.0f%%  4 Frein %.0f%%  5 Rampe %.0f%%  | 6 Auto (%s)",
+                p[0]*100,p[1]*100,p[2]*100,p[3]*100,mTransport.ManualMask()?L"manuel":L"auto");
+            wcscat_s(title,ship);
+        }
     } else if (!mSettings.Automated()) {
         const wchar_t* camera = mCameraMode == CameraMode::Horizon ? L" | Cam\u00e9ra horizon (D\u00e9but)"
             : mCameraMode == CameraMode::FixedAltitude ? L" | Cam\u00e9ra altitude fixe (D\u00e9but)"
@@ -3577,10 +3586,22 @@ LRESULT CALLBACK D3DApp::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     if (!mCine.empty() && (msg == WM_INPUT || (msg >= WM_KEYFIRST && msg <= WM_KEYLAST) ||
         (msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST))) return DefWindowProc(hwnd, msg, wParam, lParam);
+    if (msg==WM_KEYDOWN && (wParam=='P' || (wParam==VK_ESCAPE && mTransportMenu)) &&
+        (mTransportMenu || TransportInView())) {
+        if (!(lParam & (1u<<30))) SetTransportMenu(!mTransportMenu);
+        return 0;
+    }
+    if (mTransportMenu) {
+        if (msg==WM_LBUTTONUP) { TransportPanelClick(GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam)); return 0; }
+        if (msg==WM_INPUT) return DefWindowProc(hwnd,msg,wParam,lParam);
+        if ((msg>=WM_MOUSEFIRST && msg<=WM_MOUSELAST) ||
+            (msg==WM_KEYDOWN && (wParam<VK_F1 || wParam>VK_F12))) return 0;
+    }
     switch (msg) {
     case WM_LBUTTONUP: {
         // The same pixel rectangles as ActionOverlay. Alt or M releases the raw FPS mouse to click them.
         if (!mSettings.Automated() && !mMouseHeld) {
+            if (TransportPanelClick(GET_X_LPARAM(lParam),GET_Y_LPARAM(lParam))) return 0;
             const int s=std::min(std::max(int(mClientWidth/640),1),3), x=GET_X_LPARAM(lParam), y=GET_Y_LPARAM(lParam);
             if (y>=12*s && y<33*s) {
                 if (x>=12*s && x<114*s) { ToggleWalking(); return 0; }
@@ -3640,20 +3661,33 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     case WM_MOUSEWHEEL:
         if (mView == View::Walk) return 0;
         if (mView != View::Free) { // the ship's gas, notch by notch; it stays where it is left
-            mThrottle = FlightDynamics::MoveThrottle(mThrottle, GET_WHEEL_DELTA_WPARAM(wParam) / double(WHEEL_DELTA));
+            MoveShipThrottle(GET_WHEEL_DELTA_WPARAM(wParam) / double(WHEEL_DELTA));
             return 0;
         }
         mCameraSpeed *= std::pow(1.5, GET_WHEEL_DELTA_WPARAM(wParam) / double(WHEEL_DELTA)); // smooth wheels send small deltas
         mCameraSpeed = std::min(std::max(mCameraSpeed, 0.1), 300'000'000.0);
         return 0;
-    case WM_KEYDOWN:
+    case WM_KEYDOWN: {
         if (lParam & (1 << 30)) break; // ignore auto-repeat
+        // A quick throttle tap can begin and end between two rendered frames.
+        if (TransportInView() && (wParam == VK_UP || wParam == VK_DOWN || wParam == 'X'))
+            FlightDynamics::SelectTransportPower(mTransport, FlightDynamics::DensityAtAltitude(Length(mShipPos) - PlanetRadius),
+                                                wParam != VK_UP, mThrottle);
         if (wParam == VK_HOME && mView == View::Free) {
             mCameraMode = FlightFrame::NextCameraMode(mCameraMode);
             if (mCameraMode == CameraMode::Horizon) {
                 mCameraBody = -1; // acquire the local horizon once, then keep it when changing to fixed altitude
                 mHistoryValid = mCloudHistoryValid = false;
             }
+        }
+        const WPARAM equipmentKey = wParam>=VK_NUMPAD2 && wParam<=VK_NUMPAD6 ? wParam-VK_NUMPAD0+'0' : wParam;
+        if (wParam=='L' && TransportInView()) { TransportLandingCommand(); return 0; }
+        if (mShip.HasTransportRig() && mView!=View::Free && mView!=View::Walk && equipmentKey>='2' && equipmentKey<='6') {
+            if (equipmentKey=='6') {
+                mTransport.Automatic();
+                TransportNotice(L"Gestion automatique des \u00e9quipements r\u00e9tablie.");
+            } else TransportToggle(static_cast<TransportEquipment::Part>(equipmentKey-'2'));
+            return 0;
         }
         if (wParam == 'J') ToggleWalking();
         if (wParam == 'Y') ToggleAudio();
@@ -3703,6 +3737,7 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         if (wParam == VK_BACK && mShip.Ready()) // independent free camera and back to the cockpit
             SetView(mView == View::Free ? (mShip.Profile().cockpit ? View::Cockpit : View::Chase) : View::Free);
         if (wParam == VK_ESCAPE) { if (mFullscreen) ToggleFullscreen(); else DestroyWindow(hwnd); }
+        }
         return 0;
     case WM_DESTROY:
         PostQuitMessage(0);

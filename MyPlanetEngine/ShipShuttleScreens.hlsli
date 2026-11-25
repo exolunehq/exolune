@@ -37,6 +37,33 @@ float3 ShuttleScreen(uint role, float2 texel, float3 c)
     const float2 p = texel * float2(1.25, 1);
     const float heading = frac(shipCourse.x / 360.0) * 360.0;
     const float altitude = shipGauges.z > 0.0 ? shipGauges.y : shipUp.w;
+    if (shipAutomation.y > .5 && role == SCREEN_SYSTEMS) {
+        const int row = clamp((int)floor((p.y-91.0)/79.0),0,3);
+        const float baseline = 124.0 + 79.0*row;
+        if (abs(p.y-baseline)<16 && p.x>=186 && p.x<508) {
+            const float cell=floor((p.x-186)/16.0);
+            float ink=shipEquipment[row]*20.0-cell;
+            const float2 d=abs(float2(fmod(p.x-186,16.0)-7.5,p.y-baseline))-float2(6,10);
+            Paint(c,lerp(SRGB(35,64,70),SCREEN_CYAN,saturate(ink)),Fill(max(d.x,d.y)));
+        }
+        if (abs(p.y-baseline)<23 && p.x>516)
+            Paint(c,SHUTTLE_IVORY,Stroke(Number(p,float2(530,baseline-12),22,shipEquipment[row]*100,3,0,false),2.7));
+        const bool manual=((uint)shipAutomation.x & (1u<<row))!=0;
+        Paint(c,manual?SHUTTLE_GOLD:SCREEN_CYAN,Fill(length(p-float2(165,baseline))-5.5));
+        if (p.y>445 && p.y<492 && p.x<328) {
+            const bool engine=p.x>158;
+            Paint(c,SHUTTLE_IVORY,Stroke(Number(p,float2(engine?175:28,452),20,
+                100*(engine?shipGauges.w:shipGauges.x),3,0,false),2.3));
+        }
+        Paint(c,lerp(SCREEN_LINE,SHUTTLE_GOLD,shipRadio.x),Fill(length(p-float2(494,34))-4.5));
+        if (shipRadio.x>.01 && In(p,float4(506,25,550,43)))
+            Paint(c,SCREEN_CYAN,Fill(p.x-506-shipRadio.y*44));
+        Paint(c,SCREEN_CYAN,Fill(length(p-float2(364,447))-4.5));
+        Paint(c,SHUTTLE_GOLD,Fill(length(p-float2(492,447))-4.5));
+        return c;
+    }
+    if (shipAutomation.y > .5 && role == SCREEN_NAV && In(p, float4(19,119,145,154)))
+        Paint(c,SHUTTLE_IVORY,Stroke(Number(p,float2(27,123),16,shipCourse.z,6,1,false),2.0));
     if (p.y > 461.0 && p.y < 501.0)
     {
         const bool right = p.x > 330.0;

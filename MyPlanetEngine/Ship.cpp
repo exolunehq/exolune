@@ -58,13 +58,13 @@ namespace
         return dst;
     }
 
-    XMMATRIX LightFrame(const XMFLOAT3& towards, const ShipProfile& profile)
+    XMMATRIX LightFrame(const XMFLOAT3& towards, const ShipProfile& profile, float radius)
     {
         const XMVECTOR d = XMVector3Normalize(XMLoadFloat3(&towards));
         const XMVECTOR centre = XMVectorSet(0.0f, profile.centreY, profile.centreZ, 1.0f);
         const XMVECTOR up = std::fabs(towards.z) < 0.9f ? XMVectorSet(0, 0, 1, 0) : XMVectorSet(0, 1, 0, 0);
         return XMMatrixLookToLH(centre + d * 20.0f, -d, up)
-             * XMMatrixOrthographicLH(2.0f * Ship::Radius, 2.0f * Ship::Radius, 0.1f, 40.0f);
+             * XMMatrixOrthographicLH(2.0f * radius, 2.0f * radius, 0.1f, 40.0f);
     }
 }
 
@@ -88,7 +88,7 @@ bool Ship::Load(const std::wstring& path)
     if (data.size() < 32 || std::memcmp(data.data(), "VSX1", 4) != 0) throw std::runtime_error("Not a ship pack (VSX1).");
     size_t at = 4;
     const uint32_t version = Read<uint32_t>(data, at);
-    if (version != 2 && version != 3) throw std::runtime_error("Ship pack version not supported.");
+    if (version != 2 && version != 3 && !(version == 4 && mProfile.model == ShipModel::Navette)) throw std::runtime_error("Ship pack version not supported.");
     const uint32_t vertices = Read<uint32_t>(data, at), indices = Read<uint32_t>(data, at), draws = Read<uint32_t>(data, at);
     const uint32_t materials = Read<uint32_t>(data, at), images = Read<uint32_t>(data, at);
     if (images > MaxImages) throw std::runtime_error("Ship pack has more images than Ship::MaxImages.");
@@ -133,11 +133,165 @@ bool Ship::Load(const std::wstring& path)
         mImages.push_back(std::move(image));
     }
     const uint32_t pivotCount = Read<uint32_t>(data, at);
+    if (version == 4) {
+        mProfile.pivotCount = 2;
+        mProfile.surfaces = {}; // The transport exhausts issue from its two fitted side grilles.
+    }
+    else if (mProfile.model == ShipModel::Navette) { mProfile.eyeAhead=3.47f; mProfile.eyeUp=-.84f; }
     if (pivotCount != mProfile.pivotCount) throw std::runtime_error("Ship pack does not match the selected profile.");
     for (uint32_t i = 0; i < pivotCount; ++i) pivots[i] = Read<Pivot>(data, at);
-    if (mProfile.model == ShipModel::Navette) ReadShuttleControls(data, at);
+    if (version == 4) ReadTransport(data, at);
+    else if (mProfile.model == ShipModel::Navette) ReadShuttleControls(data, at);
     mLoaded = true;
     return true;
+}
+
+void Ship::ReadTransport(const std::vector<uint8_t>& data, size_t& at)
+{
+    static_assert(sizeof(RigidKey)==28, "ANI1 position and xyzw quaternion");
+    if (Read<uint32_t>(data, at)!=0x31494e41 || Read<uint32_t>(data, at)!=mTransportClips.size())
+        throw std::runtime_error("Missing transport clips.");
+    std::array<bool, SHIP_POSE_COUNT> used{};
+    auto key = [&]() {
+        auto value = Read<RigidKey>(data,at);
+        const float norm = XMVectorGetX(XMVector4LengthSq(XMLoadFloat4(&value.rotation)));
+        if (!(std::abs(norm-1)<.0005f && XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&value.translation)))<400))
+            throw std::runtime_error("Invalid transport rigid key.");
+        return value;
+    };
+    for (auto& clip : mTransportClips) {
+        const unsigned count=Read<uint32_t>(data,at), frames=Read<uint32_t>(data,at), fps=Read<uint32_t>(data,at);
+        if (!count || count>SHIP_POSE_COUNT || frames<2 || frames>1000 || fps!=24)
+            throw std::runtime_error("Invalid transport clip size.");
+        for (unsigned i=0; i<count; ++i) {
+            const unsigned slot=Read<uint32_t>(data,at);
+            if (slot<=SHIP_LEGACY_POSES || slot>SHIP_POSE_COUNT || used[slot-1])
+                throw std::runtime_error("Invalid transport pose slot.");
+            used[slot-1]=true;
+            const RigidKey bind=key();
+            RigidTrack track{};
+            track.slot=slot-1;
+            const XMMATRIX rest=XMMatrixRotationQuaternion(XMLoadFloat4(&bind.rotation)) *
+                                XMMatrixTranslationFromVector(XMLoadFloat3(&bind.translation));
+            XMStoreFloat4x4(&track.inverseBind,XMMatrixInverse(nullptr,rest));
+            track.keys.reserve(frames);
+            for (unsigned frame=0; frame<frames; ++frame) track.keys.push_back(key());
+            clip.push_back(std::move(track));
+        }
+    }
+    for (auto& nozzle : mNozzles) {
+        nozzle=Read<Nozzle>(data,at);
+        const float image=nozzle.aperture.x;
+        const float tiles=nozzle.widthAxis.w;
+        if (!((tiles==0 || (tiles>=2 && tiles<=128 && tiles==std::floor(tiles))) &&
+              image>=1 && image<=mImages.size() && image==std::floor(image) && !mImages[size_t(image)-1].srgb &&
+              nozzle.mouthWidth.w>0 && nozzle.axisHeight.w>0 && nozzle.aperture.y>0 &&
+              nozzle.aperture.z>=0 && nozzle.aperture.z<Radius && nozzle.aperture.w>=0 && nozzle.aperture.w<2*Radius))
+            throw std::runtime_error("Invalid transport outlet.");
+    }
+    uint32_t section = Read<uint32_t>(data, at);
+    if (section == 0x31534352) { // RCS1, one port-side record per mirrored pair
+        if (Read<uint32_t>(data,at) != mPorts.size()) throw std::runtime_error("Invalid transport exhaust layout.");
+        for (auto& port : mPorts) {
+            port = Read<ExhaustPort>(data,at);
+            if (!(port.mouthRadius.x > 0 && port.mouthRadius.w > 0 && port.mouthRadius.w < .5f &&
+                  XMVectorGetX(XMVector3Length(XMLoadFloat4(&port.mouthRadius))) < 8 &&
+                  std::abs(XMVectorGetX(XMVector3LengthSq(XMLoadFloat4(&port.axis)))-1) < .001f))
+                throw std::runtime_error("Invalid transport exhaust port.");
+        }
+        mProfile.jetCount = 2 + 2 * SHIP_TRANSPORT_PORT_PAIRS;
+        section = Read<uint32_t>(data, at);
+    }
+    if (section == 0x31524541) { // AER1, elevon hinges in bind space and the split-fin actuators
+        const auto& wings=mTransportClips[TransportEquipment::Wings];
+        for (auto& hinge : mElevons) {
+            hinge=Read<Elevon>(data,at);
+            if (!(hinge.slot>SHIP_LEGACY_POSES && hinge.slot<=SHIP_POSE_COUNT && !used[hinge.slot-1] &&
+                  std::any_of(wings.begin(),wings.end(),[&](const RigidTrack& t){return t.slot+1==hinge.parent;}) &&
+                  std::abs(XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&hinge.axis)))-1)<.001f &&
+                  XMVectorGetX(XMVector3LengthSq(XMLoadFloat3(&hinge.pivot)))<Radius*Radius))
+                throw std::runtime_error("Invalid elevon hinge.");
+            used[hinge.slot-1]=true;
+        }
+        auto& tail=mTransportClips[TransportEquipment::Brake];
+        for (int side : {-1,1}) for (int part=0; part<3; ++part) {
+            const unsigned slot=Read<uint32_t>(data,at);
+            auto track=std::find_if(tail.begin(),tail.end(),[slot](const RigidTrack& t){return t.slot+1==slot;});
+            if (track==tail.end() || track->tailSide) throw std::runtime_error("Invalid split rudder track.");
+            track->tailSide=side;
+        }
+        section=Read<uint32_t>(data,at);
+    }
+    if (section != 0x32505553) throw std::runtime_error("Missing transport supports.");
+    const unsigned hulls=Read<uint32_t>(data,at);
+    if (!hulls || hulls>SHIP_POSE_COUNT+1) throw std::runtime_error("Invalid transport supports.");
+    for (unsigned i=0; i<hulls; ++i) {
+        SupportHull hull{};
+        hull.slot=Read<uint32_t>(data,at);
+        const unsigned count=Read<uint32_t>(data,at);
+        if (hull.slot>SHIP_POSE_COUNT || !count || count>65536) throw std::runtime_error("Invalid support hull.");
+        hull.points.reserve(count);
+        for (unsigned j=0;j<count;++j) hull.points.push_back(Read<XMFLOAT3>(data,at));
+        mTransportBounds.push_back(std::move(hull));
+    }
+    ReadPane(data,at);
+}
+
+XMMATRIX Ship::TransportMatrix(const RigidTrack& track, double phase)
+{
+    const size_t last=track.keys.size()-1;
+    const double time=std::max(0.0,std::min(1.0,phase))*last;
+    const size_t frame=size_t(time);
+    const auto& a=track.keys[frame];
+    const auto& b=track.keys[std::min(frame+1,last)];
+    const float t=float(time-frame);
+    const XMVECTOR q=XMQuaternionSlerp(XMLoadFloat4(&a.rotation),XMLoadFloat4(&b.rotation),t);
+    const XMVECTOR p=XMVectorLerp(XMLoadFloat3(&a.translation),XMLoadFloat3(&b.translation),t);
+    return XMLoadFloat4x4(&track.inverseBind)*XMMatrixRotationQuaternion(q)*XMMatrixTranslationFromVector(p);
+}
+
+void Ship::TransportMatrices(const TransportEquipment& state, TransportPoses& transforms) const
+{
+    transforms.fill(XMMatrixIdentity());
+    for (size_t i=0;i<mTransportClips.size();++i) {
+        const double phase=i==TransportEquipment::Gear ? 1-state.position[i] : state.position[i];
+        for (const auto& track : mTransportClips[i])
+            transforms[track.slot+1]=TransportMatrix(track,track.tailSide ? state.TailPhase(track.tailSide) : phase);
+    }
+    for (size_t i=0;i<mElevons.size();++i) {
+        const auto& hinge=mElevons[i];
+        if (!hinge.slot) continue;
+        const float angle=float(TransportEquipment::ElevonRadians*(i==0 ? state.leftElevon : state.rightElevon));
+        const XMVECTOR pivot=XMLoadFloat3(&hinge.pivot);
+        const XMMATRIX turn=XMMatrixRotationAxis(XMLoadFloat3(&hinge.axis),angle);
+        transforms[hinge.slot]=XMMatrixTranslationFromVector(-pivot)*turn*XMMatrixTranslationFromVector(pivot)*transforms[hinge.parent];
+    }
+}
+
+float Ship::TransportDepth(XMFLOAT3 up, const TransportEquipment& state) const
+{
+    // Rendering, shadows and ground support use the same articulated surfaces.
+    const XMVECTOR vertical=XMLoadFloat3(&up);
+    TransportPoses transforms;
+    TransportMatrices(state,transforms);
+    float depth=.2f;
+    for (const auto& hull : mTransportBounds) {
+        const auto& transform=transforms[hull.slot];
+        XMFLOAT3 axis;
+        XMStoreFloat3(&axis,XMVector3TransformNormal(vertical,XMMatrixTranspose(transform)));
+        const float offset=XMVectorGetX(XMVector3Dot(transform.r[3],vertical));
+        for (const auto& p : hull.points)
+            depth=std::max(depth,-(axis.x*p.x+axis.y*p.y+axis.z*p.z+offset));
+    }
+    return depth;
+}
+
+void Ship::SetTransportPose(const TransportEquipment& state)
+{
+    TransportPoses transforms;
+    TransportMatrices(state,transforms);
+    for (size_t slot=SHIP_LEGACY_POSES+1;slot<transforms.size();++slot)
+        XMStoreFloat4x4(&mConstants->pose[slot-1],XMMatrixTranspose(transforms[slot]));
 }
 
 void Ship::ReadShuttleControls(const std::vector<uint8_t>& data, size_t& at)
@@ -218,6 +372,11 @@ void Ship::ReadShuttleControls(const std::vector<uint8_t>& data, size_t& at)
     mFlightFittings = fit;
     if (at == data.size()) return;
 
+    ReadPane(data, at);
+}
+
+void Ship::ReadPane(const std::vector<uint8_t>& data, size_t& at)
+{
     constexpr size_t samples = SHUTTLE_PANE_COLUMNS * SHUTTLE_PANE_ROWS;
     constexpr size_t bytes = samples * sizeof(XMFLOAT4);
     if (Read<uint32_t>(data, at) != 0x31525457U || data.size() - at != bytes)
@@ -531,6 +690,7 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
     mConstants->retroOutlet = { surfaces.retroX, surfaces.retroY, surfaces.retroZ, 0 };
     mConstants->supportOutlet = { surfaces.supportX, surfaces.supportY, surfaces.supportZ, surfaces.supportSpacing };
     std::copy_n(mNozzles, _countof(mNozzles), mConstants->nozzles);
+    std::copy(mPorts.begin(), mPorts.end(), mConstants->ports);
     for (auto& pose : mConstants->pose) XMStoreFloat4x4(&pose, XMMatrixIdentity());
 
     // One root signature for every pass: frame constants (b0), the ship's (b3), the draw's (b2), its vertices and
@@ -682,8 +842,8 @@ void Ship::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* list, ID3
 
 void Ship::SetLights(const XMFLOAT3& sun, const XMFLOAT3& up)
 {
-    XMStoreFloat4x4(&mConstants->shadow[0], XMMatrixTranspose(LightFrame(sun, mProfile)));
-    XMStoreFloat4x4(&mConstants->shadow[1], XMMatrixTranspose(LightFrame(up, mProfile)));
+    XMStoreFloat4x4(&mConstants->shadow[0], XMMatrixTranspose(LightFrame(sun, mProfile, EnvelopeRadius())));
+    XMStoreFloat4x4(&mConstants->shadow[1], XMMatrixTranspose(LightFrame(up, mProfile, EnvelopeRadius())));
 }
 
 void Ship::Bind(ID3D12GraphicsCommandList* list, const Tables& t, bool compute) const
@@ -861,11 +1021,14 @@ void Ship::DrawGlass(ID3D12GraphicsCommandList* list, const Tables& t, D3D12_CPU
     if (!cockpit) drawOptics();
     const bool manoeuvring = mProfile.surfaces.span > 0 && !cockpit &&
         (mConstants->airframe.z > .01f || mConstants->supportExhaust.w > .01f);
-    const float puffs = std::max({std::abs(mConstants->thrust.y), std::abs(mConstants->thrust.z), std::abs(mConstants->thrust.w),
+    const bool transport = HasTransportRig();
+    const float trimLift = transport ? std::max(mConstants->automation.w, -mConstants->thrust.z) : std::abs(mConstants->thrust.z);
+    const float puffs = std::max({std::abs(mConstants->thrust.y), trimLift, std::abs(mConstants->thrust.w),
                                   std::abs(mConstants->turn.x), std::abs(mConstants->turn.y)});
-    const bool attitudePlumes = mProfile.jetCount > 2 && !cockpit && puffs > .02f;
-    const bool legacyPlumes = mProfile.jetCount && (mConstants->thrust.x > .01f || attitudePlumes);
-    if (hot || legacyPlumes || manoeuvring) {
+    const bool attitudePlumes = mProfile.jetCount > 2 && !cockpit &&
+        (puffs > .01f || (transport && mConstants->airframe.z > .01f));
+    const bool plumes = mProfile.jetCount && (mConstants->thrust.x > .01f || attitudePlumes || manoeuvring);
+    if (hot || plumes) {
         list->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
         const auto toRead = CD3DX12_RESOURCE_BARRIER::Transition(mSceneDepth.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         list->ResourceBarrier(1, &toRead);
@@ -876,9 +1039,10 @@ void Ship::DrawGlass(ID3D12GraphicsCommandList* list, const Tables& t, D3D12_CPU
             list->SetPipelineState(mEntryVolumePSO.Get());
             list->DrawInstanced(36, 1, 0, 0);
         }
-        if (legacyPlumes || manoeuvring) {
+        if (plumes) {
             list->SetPipelineState(mPlumePSO.Get());
-            list->DrawInstanced(36, mProfile.jetCount + (manoeuvring ? SHIP_MANOEUVRING_JETS : 0), 0, 0);
+            const UINT count = transport && !attitudePlumes ? 2 : mProfile.jetCount;
+            list->DrawInstanced(36, count + (manoeuvring ? SHIP_MANOEUVRING_JETS : 0), 0, 0);
         }
         const auto toDepth = CD3DX12_RESOURCE_BARRIER::Transition(mSceneDepth.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE);
         list->ResourceBarrier(1, &toDepth);
