@@ -15,6 +15,7 @@
 #include <array>
 #include "Ship.h"
 #include "City.h"
+#include "Characters.h"
 #include "Audio.h"
 #include "Glare.h"
 #include "Adaptation.h"
@@ -167,6 +168,8 @@ protected:
         XMFLOAT4 cityCorridorInfo;      // the guideway's tree-free corridor (CityLand.hlsli)
         XMFLOAT4 cityCorridorBoxes[24];
         XMFLOAT4 cityCorridor[192];
+        XMFLOAT4X4 charSunShadow;
+        XMFLOAT4 charShadowInfo;
     };
     static_assert(sizeof(FrameConstants) <= 65536, "The frame constants must fit one constant buffer view.");
 
@@ -276,7 +279,9 @@ protected:
     ComPtr<ID3D12PipelineState> mAtmospherePSO; // the clouds and the air over the scene in one pass, into mComposite
     // The terrain's sunlit part, a second render target of the scene: what the clouds' shadow takes off (Clouds.hlsli, t17).
     static const DXGI_FORMAT SunFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    static const DXGI_FORMAT VelocityFormat = DXGI_FORMAT_R16G16_FLOAT;
     ComPtr<ID3D12Resource> mSunPart;
+    ComPtr<ID3D12Resource> mVelocity;
     ComPtr<ID3D12Resource> mLocalContacts;
     ComPtr<ID3D12RootSignature> mLocalContactRoot;
     ComPtr<ID3D12PipelineState> mLocalContactPso,mLocalContactResolvePso;
@@ -617,6 +622,7 @@ protected:
     View mView = View::Free;
     Ship mShip;
     City mCity;
+    Characters mCharacters;
     void UpdateCityFrame(const Vec3d&,const Vec3d&,const Vec3d&,DirectX::FXMMATRIX);
     void ApplyCityWalking();
     void ConstrainCityWalking(Vec3d& next);

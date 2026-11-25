@@ -90,6 +90,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\plantes.ps1
 ```
 
 - **Missing scans** are downloaded by `tools\lance.ps1` on first launch.
+- **Immersion audio takes are not versioned either:** `assets/audio/immersion/*.wav`. Without them the engine synthesizes stand-in layers, and the helmet's breathing sounds like surf while walking. Copy them from a checkout that has them, after checking each against `cooked.json`.
 
 - **Impostors from 2026-10-29:** colors averaged in linear space (`vegetation-planetaire.md`, impostor lighting). A catalog built before `7f462fc` retains the older, darker impostors. Rebake only those, without changing meshes or volumes:
 

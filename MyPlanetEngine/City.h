@@ -39,7 +39,7 @@ public:
     void Update(DirectX::FXMMATRIX model,DirectX::FXMMATRIX viewProj,const DirectX::XMFLOAT3& camera,
                 const DirectX::XMFLOAT3& sun,UINT screenHeight);
     void DrawShadows(ID3D12GraphicsCommandList*,D3D12_GPU_VIRTUAL_ADDRESS);
-    void Draw(ID3D12GraphicsCommandList*,D3D12_GPU_VIRTUAL_ADDRESS,D3D12_GPU_DESCRIPTOR_HANDLE,D3D12_GPU_DESCRIPTOR_HANDLE);
+    void Draw(ID3D12GraphicsCommandList*,D3D12_GPU_VIRTUAL_ADDRESS,D3D12_GPU_DESCRIPTOR_HANDLE,D3D12_GPU_DESCRIPTOR_HANDLE,D3D12_GPU_DESCRIPTOR_HANDLE);
     D3D12_GPU_DESCRIPTOR_HANDLE ShadowSrv() const { return mTable; }
     // The exact cooked street mesh supplies walking contact. Solid buildings
     // remain exterior obstacles until a separately validated interior exists.

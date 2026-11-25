@@ -31,6 +31,7 @@ param(
     # Catalogue externe pour un POC d'assets ; le catalogue du jeu reste le défaut.
     [string]$Plantes = '',
     [string]$Ville = '',
+    [string]$Personnages = '',
     [string]$Scans = $(if ($env:MYPLANETENGINE_SCANS) { $env:MYPLANETENGINE_SCANS } else { Join-Path (Split-Path (Split-Path $PSScriptRoot)) 'scans' })
 )
 $ErrorActionPreference = 'Stop'
@@ -59,6 +60,7 @@ try {
     $env:MYPLANETENGINE_SCANS = (Resolve-Path -LiteralPath $Scans).Path
     if ($Plantes) { $env:MYPLANETENGINE_FOLIAGE_ASSETS = (Resolve-Path -LiteralPath $Plantes).Path }
     if ($Ville) { $env:MYPLANETENGINE_CITY_ASSETS = (Resolve-Path -LiteralPath $Ville).Path }
+    if ($Personnages) { $env:MYPLANETENGINE_CHARACTER_ASSETS = (Resolve-Path -LiteralPath $Personnages).Path }
     $env:MYPLANETENGINE_SUN = $Soleil
     $env:MYPLANETENGINE_MODELE_VAISSEAU = $ModeleVaisseau
     if ($Verriere) { $env:MYPLANETENGINE_VERRIERE = $Verriere }

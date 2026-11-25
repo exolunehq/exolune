@@ -59,6 +59,8 @@ cbuffer Frame : register(b0)
     float4 cityCorridorInfo;       // x: segment count, y: half width (m), z: box count
     float4 cityCorridorBoxes[24];  // per 8 segments: min xy, max xy (city frame), widened by the half width
     float4 cityCorridor[192];      // segments: start xy, end xy (city frame)
+    float4x4 charSunShadow;        // face-local point -> local dynamic character shadow map
+    float4 charShadowInfo;         // x: enabled (0 or 1), y: 1 / shadowSize
 };
 
 struct FaceVertex

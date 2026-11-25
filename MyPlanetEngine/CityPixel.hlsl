@@ -4,6 +4,18 @@
 #include "City.hlsli"
 #include "FoliageSequence.hlsli"
 
+float CityCharShadowVisibility(float3 pos,float3 normal){
+    if(charShadowInfo.x<.5)return 1;
+    float4 p=mul(float4(pos+normal*.02,1),charSunShadow);p.xyz/=max(p.w,1e-6);
+    float2 uv=p.xy*float2(.5,-.5)+.5;
+    if(any(uv<0)||any(uv>1)||p.z<0||p.z>1)return 1;
+    float lit=0;
+    [unroll]for(int y=-1;y<=1;++y)[unroll]for(int x=-1;x<=1;++x)
+        lit+=cityCharShadowMap.SampleCmpLevelZero(cityShadowSampler,uv+float2(x,y)*charShadowInfo.y,p.z-.00045);
+    float edge=min(min(uv.x,uv.y),min(1-uv.x,1-uv.y));
+    return lerp(1,lit/9,smoothstep(0,.045,edge));
+}
+
 float CityPulseIntegral(float x,float width){return floor(x)*width+min(frac(x),width);}
 float CityLine(float q,float width){
     float span=max(fwidth(q),1e-4),duty=saturate(width*2);
@@ -108,7 +120,7 @@ Output PSMain(CityPixel input){
     if(generated)f0=lerp(f0,.12,shell.glass);
     float3 f=f0+(1-f0)*pow(1-vh,5);
     float3 normalLocal=mul(float4(n,0),transpose(cityModel)).xyz;
-    float shadow=CitySunVisibility(input.local,normalLocal);
+    float shadow=CitySunVisibility(input.local,normalLocal)*CityCharShadowVisibility(input.pos,n);
     const bool roomGlass=role==15||role==16||role==17;
     const float3 diffuseColor=albedo*(1-(generated?shell.glass:roomGlass?1.:0.));
     const float3 direct=(diffuseColor*(1-metal)/PI+d*visibility*f)*beam*nl*shadow;

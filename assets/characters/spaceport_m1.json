@@ -1,0 +1,322 @@
+{
+  "schema": "exolune.characters.m1.v1",
+  "canonical_rig": "game_engine",
+  "stride_m": 1.46,
+  "walk_speed_mps": 1.32,
+  "city_bank": "E:/ExoluneAssets/city-tripo-2026-11-11/delivery-07/bank",
+  "output_root": "E:/ExoluneAssets/characters-m1-2026-11-21",
+  "mocap_root": "E:/ExoluneAssets/characters-m1-2026-11-21/mocap",
+  "wardrobe_kit_root": "E:/ExoluneAssets/characters-kit-styleb-2026-11-22/clean",
+  "archetypes": [
+    {
+      "id": "crew_lead",
+      "label": "Spaceport Operations Lead",
+      "styleb": {
+        "hair_style": "styleb_swept_short",
+        "hair_seed": 101,
+        "jacket_main": [0.43, 0.50, 0.40],
+        "jacket_accent": [0.66, 0.50, 0.27],
+        "jacket_trim": [0.78, 0.74, 0.64],
+        "pants_color": [0.22, 0.25, 0.22],
+        "belt": true,
+        "satchel": false
+      },
+      "mocap_clips": {
+        "walk": {"bvh": "07_01.bvh", "start": 96, "end": 226},
+        "idle": {"bvh": "18_08.bvh", "start": 288, "end": 648},
+        "talk": {"bvh": "18_08.bvh", "start": 1704, "end": 2064}
+      },
+      "macro": {
+        "gender": 0.92,
+        "age": 0.56,
+        "muscle": 0.60,
+        "weight": 0.52,
+        "height": 0.54,
+        "proportions": 0.52,
+        "african": 0.08,
+        "asian": 0.08,
+        "caucasian": 0.84
+      },
+      "skin": "young_caucasian_male",
+      "eyes": "high-poly",
+      "eye_material": "bluegreen",
+      "eyebrows": "eyebrow008",
+      "eyelashes": "eyelashes01",
+      "hair": "short02",
+      "hair_color": [0.14, 0.11, 0.09],
+      "clothes": ["male_casualsuit01"],
+      "shoes": "shoes02",
+      "cloth_tint": [0.48, 0.58, 0.55]
+    },
+    {
+      "id": "pilot_explorer",
+      "label": "Shuttle Pilot",
+      "styleb": {
+        "hair_style": "styleb_braids",
+        "hair_seed": 202,
+        "jacket_main": [0.85, 0.81, 0.72],
+        "jacket_accent": [0.26, 0.32, 0.45],
+        "jacket_trim": [0.42, 0.50, 0.40],
+        "pants_color": [0.21, 0.24, 0.33],
+        "belt": true,
+        "satchel": true
+      },
+      "mocap_clips": {
+        "walk": {"bvh": "02_01.bvh", "start": 106, "end": 238},
+        "idle": {"bvh": "18_08.bvh", "start": 680, "end": 1060},
+        "talk": {"bvh": "18_08.bvh", "start": 1600, "end": 1960}
+      },
+      "macro": {
+        "gender": 0.08,
+        "age": 0.42,
+        "muscle": 0.54,
+        "weight": 0.46,
+        "height": 0.54,
+        "proportions": 0.50,
+        "african": 0.84,
+        "asian": 0.08,
+        "caucasian": 0.08
+      },
+      "skin": "young_african_female",
+      "eyes": "high-poly",
+      "eye_material": "brown",
+      "eyebrows": "eyebrow010",
+      "eyelashes": "eyelashes02",
+      "hair": "ponytail01",
+      "hair_color": [0.09, 0.065, 0.05],
+      "clothes": ["female_casualsuit01"],
+      "shoes": "shoes02",
+      "cloth_tint": [0.78, 0.62, 0.44]
+    },
+    {
+      "id": "engineer",
+      "label": "Ground Technician",
+      "styleb": {
+        "hair_style": "styleb_swept_short",
+        "hair_seed": 303,
+        "jacket_main": [0.34, 0.42, 0.52],
+        "jacket_accent": [0.75, 0.68, 0.55],
+        "jacket_trim": [0.58, 0.34, 0.24],
+        "pants_color": [0.20, 0.22, 0.25],
+        "belt": true,
+        "satchel": true
+      },
+      "mocap_clips": {
+        "walk": {"bvh": "35_01.bvh", "start": 124, "end": 258},
+        "idle": {"bvh": "18_08.bvh", "start": 680, "end": 1060},
+        "talk": {"bvh": "18_08.bvh", "start": 1704, "end": 2064}
+      },
+      "macro": {
+        "gender": 0.88,
+        "age": 0.48,
+        "muscle": 0.54,
+        "weight": 0.50,
+        "height": 0.58,
+        "proportions": 0.50,
+        "african": 0.06,
+        "asian": 0.86,
+        "caucasian": 0.08
+      },
+      "skin": "young_asian_male",
+      "eyes": "high-poly",
+      "eye_material": "brown",
+      "eyebrows": "eyebrow001",
+      "eyelashes": "eyelashes01",
+      "hair": "short04",
+      "hair_color": [0.06, 0.06, 0.07],
+      "clothes": ["male_casualsuit05"],
+      "shoes": "shoes01",
+      "cloth_tint": [0.46, 0.54, 0.62]
+    },
+    {
+      "id": "traveler",
+      "label": "Solarpunk Citizen",
+      "styleb": {
+        "hair_style": "styleb_long_layered",
+        "hair_seed": 404,
+        "jacket_main": [0.72, 0.50, 0.36],
+        "jacket_accent": [0.85, 0.81, 0.72],
+        "jacket_trim": [0.34, 0.44, 0.36],
+        "pants_color": [0.27, 0.25, 0.24],
+        "belt": true,
+        "satchel": true
+      },
+      "mocap_clips": {
+        "walk": {"bvh": "07_02.bvh", "start": 44, "end": 174},
+        "idle": {"bvh": "18_08.bvh", "start": 288, "end": 648},
+        "talk": {"bvh": "18_08.bvh", "start": 1600, "end": 1960}
+      },
+      "macro": {
+        "gender": 0.12,
+        "age": 0.44,
+        "muscle": 0.44,
+        "weight": 0.48,
+        "height": 0.52,
+        "proportions": 0.50,
+        "african": 0.10,
+        "asian": 0.12,
+        "caucasian": 0.78
+      },
+      "skin": "young_caucasian_female",
+      "eyes": "high-poly",
+      "eye_material": "green",
+      "eyebrows": "eyebrow005",
+      "eyelashes": "eyelashes02",
+      "hair": "bob02",
+      "hair_color": [0.30, 0.20, 0.12],
+      "clothes": ["female_elegantsuit01"],
+      "shoes": "shoes05",
+      "cloth_tint": [0.70, 0.68, 0.58]
+    }
+  ],
+  "spaceport_placements": [
+    {
+      "name": "terminal_talk_a",
+      "archetype": "crew_lead",
+      "clip": "talk",
+      "pad_uv": [-31.0, -2.5],
+      "yaw_deg": 23.0,
+      "tint": [0.95, 1.0, 0.96],
+      "phase": 0.10
+    },
+    {
+      "name": "terminal_talk_b",
+      "archetype": "pilot_explorer",
+      "clip": "talk",
+      "pad_uv": [-29.0, -1.6],
+      "yaw_deg": 203.0,
+      "tint": [1.0, 0.94, 0.88],
+      "phase": 0.55
+    },
+    {
+      "name": "concourse_walk_1",
+      "archetype": "traveler",
+      "clip": "walk",
+      "speed": 1.22,
+      "tint": [0.94, 0.98, 0.92],
+      "phase": 0.12,
+      "loop_pad_uv": [
+        [-21.2, 18.2],
+        [-13.8, 7.0],
+        [-10.4, 1.8],
+        [-7.2, -3.2],
+        [-8.0, -3.6],
+        [-11.2, 1.2],
+        [-14.6, 6.4],
+        [-22.0, 17.6]
+      ]
+    },
+    {
+      "name": "concourse_walk_2",
+      "archetype": "engineer",
+      "clip": "walk",
+      "speed": 1.30,
+      "tint": [0.90, 0.94, 1.0],
+      "phase": 0.42,
+      "loop_pad_uv": [
+        [-27.5, 2.0],
+        [-13.0, 2.5],
+        [4.5, 2.5],
+        [4.5, -1.5],
+        [-13.0, -1.5],
+        [-27.5, -2.0]
+      ]
+    },
+    {
+      "name": "concourse_walk_3",
+      "archetype": "pilot_explorer",
+      "clip": "walk",
+      "speed": 1.26,
+      "tint": [1.0, 0.88, 0.76],
+      "phase": 0.70,
+      "loop_pad_uv": [
+        [7.6, -22.2],
+        [14.5, -29.6],
+        [17.9, -33.6],
+        [18.8, -32.8],
+        [15.4, -28.8],
+        [8.5, -21.4]
+      ]
+    },
+    {
+      "name": "concourse_walk_4",
+      "archetype": "crew_lead",
+      "clip": "walk",
+      "speed": 1.20,
+      "tint": [0.86, 0.94, 0.90],
+      "phase": 0.18,
+      "loop_pad_uv": [
+        [-28.0, -15.0],
+        [-19.5, -15.0],
+        [-19.5, -4.0],
+        [-28.0, -4.0]
+      ]
+    },
+    {
+      "name": "shuttle_inspect_a",
+      "archetype": "engineer",
+      "clip": "talk",
+      "pad_uv": [13.2, -14.6],
+      "yaw_deg": 25.0,
+      "tint": [0.96, 0.92, 0.84],
+      "phase": 0.25
+    },
+    {
+      "name": "shuttle_inspect_b",
+      "archetype": "crew_lead",
+      "clip": "idle",
+      "pad_uv": [15.8, -14.8],
+      "yaw_deg": 175.0,
+      "tint": [0.84, 0.90, 0.96],
+      "phase": 0.62
+    },
+    {
+      "name": "canopy_wait_a",
+      "archetype": "traveler",
+      "clip": "idle",
+      "pad_uv": [-5.0, -14.0],
+      "yaw_deg": 75.0,
+      "tint": [0.98, 0.90, 0.82],
+      "phase": 0.40
+    },
+    {
+      "name": "canopy_wait_b",
+      "archetype": "pilot_explorer",
+      "clip": "idle",
+      "pad_uv": [-2.2, -18.8],
+      "yaw_deg": 65.0,
+      "tint": [0.88, 0.96, 0.94],
+      "phase": 0.82
+    },
+    {
+      "name": "apron_walk_5",
+      "archetype": "traveler",
+      "clip": "walk",
+      "speed": 1.20,
+      "tint": [0.94, 0.88, 0.96],
+      "phase": 0.50,
+      "loop_pad_uv": [
+        [-26.0, 17.0],
+        [10.0, 18.0],
+        [38.0, 19.0],
+        [38.0, 24.0],
+        [10.0, 23.0],
+        [-26.0, 22.0]
+      ]
+    },
+    {
+      "name": "apron_walk_6",
+      "archetype": "engineer",
+      "clip": "walk",
+      "speed": 1.30,
+      "tint": [0.90, 0.94, 0.84],
+      "phase": 0.85,
+      "loop_pad_uv": [
+        [40.0, -18.0],
+        [14.0, -18.0],
+        [14.0, -24.0],
+        [40.0, -24.0]
+      ]
+    }
+  ]
+}

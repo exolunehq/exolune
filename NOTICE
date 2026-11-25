@@ -39,6 +39,15 @@ PCG3D
   Le hachage pcg3d du bruit en est repris (MyPlanetEngine/Materials.hlsli,
   MyPlanetEngine/MaterialGenerator.hlsl).
 
+ozz-animation
+  Copyright (c) 2009-2026 Guillaume Blanc.
+  Licence : MIT. Texte : third_party/ozz-animation/LICENSE.md.
+  Source : https://github.com/guillaumeblanc/ozz-animation,
+  commit 744eb9d99f606eda849acb0b1204f7a3dc20bca1.
+  Le runtime d'animation squelettique (src/base, src/animation/runtime) est
+  compilé dans MyPlanetEngine pour le skinning et l'évaluation des personnages,
+  et gltf2ozz sert à la cuisson hors-ligne des squelettes et clips.
+
 
 2. Données dérivées, dans assets/clouds/
 =========================================
@@ -116,3 +125,24 @@ Optional flight and suit production audio was generated with ElevenLabs.
 Its provenance and integration terms are in assets/audio/README.md and
 assets/audio/immersion/bank.ini. The public source includes original
 procedural sounds for the same mixer roles.
+
+
+6. Character base assets and motion capture (external cooked banks)
+===================================================================
+
+MakeHuman / MPFB2 System Assets, CC0 1.0:
+  Human base meshes, rig templates, skins, eyes and facial hair assets
+  authored headlessly via tools/characters/author_mpfb2.py.
+
+Tripo H3.1 modular wardrobe kit (external drafts/clean assets on E:):
+  Jacket, boot and satchel source geometry generated with Tripo H3.1 from
+  clean studio reference images, locally welded and decimated into semantic
+  PBR material classes (no raw generated atlases) via
+  tools/characters/prepare_wardrobe_kit.py.
+
+Carnegie Mellon University Graphics Lab Motion Capture Database (BVH):
+  The data used in this project was obtained from mocap.cs.cmu.edu.
+  The database was created with funding from NSF EIA-0196217.
+  Converted BVH mirror: https://github.com/una-dinosauria/cmu-mocap.
+  Retargeted offline onto Exolune's canonical skeleton via
+  tools/characters/retarget_mocap.py and cooked into .ozz clips.

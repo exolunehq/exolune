@@ -41,6 +41,50 @@ History of field adjustments: what changed, why, what it cost or brought, and ho
 - Replaced the film transport packet with the reviewed V9, including its cockpit and four reversible mechanisms.
 - Equipment uses atmospheric loads, braking demand, terrain clearance and parking state. Keys 2 through 5 override a channel. Key 6 restores automatic control.
 - Milestone `jalon/navette-transport-v9-2026-11-24`. [Transport flight review](../tools/tests/2026-11-24.txt)
+**2026-11-23 · Character style iteration**
+
+- The Style B references set a quality bar, not designs to copy: Exolune takes its own hairstyles and costume details (user, 2026-11-23).
+- Hair is built of sculpted locks instead of alpha cards: solid clumps 1.7 times a card's width, pointed at the tip, with an opaque strand texture. A lock in front of the face ends above the brows.
+- Every face takes a stronger Style B idealisation: larger almond eyes under a lower upper lid, a smaller nose and mouth, a face narrowing to the chin, a longer neck; Style B proportions rise to at least 0.90.
+- Three style frames of the pilot were made in the user's ChatGPT from an engine capture: sculpture, painted, ink line. The user chose the painted style; the frames are in `E:\ExoluneAssets\characters-m1-2026-11-21\style-iterations\styles`.
+- Painted style, four rounds against the frame: shared brush strokes (3,600 light and mid dabs, 1.5 to 3.5 cm on the coat, most of them warm) colour every plain cloth and leather, and at 60 % of that contrast the skins; the stroke relief and the skin's pore relief are gone. Cloth, leather and skin read the sun through three painted values, the shadow one flat mass and the strokes showing in the light and along the terminator; skin shadows stay warm. Hair is painted in broad strokes, the pilot's from black to dark brown.
+- Following a study of painted productions (The Wild Robot, VALORANT, Puss in Boots), recorded in the character study: strokes in colour and light, not in relief; simplified normals; strokes along the form.
+- Rounds 5 and 6: the coat is unwrapped around the body and along each sleeve, so its strokes wrap the figure instead of turning at each face of a box projection. The upper lid shades the top of each eye and the whites turn a muted warm grey; upper lids sit lower and lips are fuller.
+- The pilot wears braids, as her style frame shows: 17 cornrows over the head and 4 over each side, each going on as a box braid with a brass bead.
+- The coat's normals now face out on every figure: recalculated on its open shell, they had turned in on the pilot, who wore her blue lining outside.
+- Rounds 7 to 12, the eyes, which read as grey ovals at conversation distance:
+  - the cook's iris mask was a disc at the texture's centre, where MakeHuman's atlas holds only white: its two eyes lie on a diagonal, and no iris was ever lit. The mask is now read from each eye texture;
+  - the iris is painted a clear warm brown-grey, its median brought to one value; the white turns a muted, slightly cool grey, shaded as a ball into the corners;
+  - the eye takes its face's light, wrapped, without its own brow's shadow; the upper lid shades the white's top;
+  - a catchlight is drawn on the clear cornea. The iris under it is a concave bowl: there the spot fell at its foot, and any normal-driven shading turned upside down;
+  - a dark ribbon, 1.5 to 3.2 mm, lines each upper lid; it still reads thinner than the frame's.
+- Skin planes facing the sun take a warm lift. Warmed and raised, the hair's highlight turned the pilot blond; it keeps its original lobes with a slight warm tint.
+- In progress: skin strokes that read as smudges where they darken, the lips' border, the cornrows' hairline, strokes following the folds, and the other three hairstyles.
+- Experiment `piste/personnages-peints-2026-11-23`, with the spaceport characters and the built coat.
+
+**2026-11-22 · Characters at the spaceport**
+
+- First characters in the engine: twelve actors of four MPFB2 archetypes around the extended city's spaceport, with `ozz-animation`, compute skinning and their own temporal velocity. [Study and status](recherche-personnages-foules.md); the art gate stays open.
+- A clip's mean head carriage maps to the rig's level one. The head leaned 9 to 19° forward by capture subject; it now stays within 1.1° over the twelve clips. Wrists lose a constant 8 to 13° swing.
+- Resting hands flex at the knuckles. The belt cinches the jacket's narrowest ring. The eye's cornea shell is drawn transparent, so the iris shows.
+- The hair's primary lobe peaks at 0.045, from 0.20 with a surface lobe added on top. The cornea reflects 2.5 %, from 4.8 % scaled by 2.25. Dark hair no longer whitens in full sun.
+- The crossbody strap lies taut on the convex hull of the jacket's section. Trousers drape slim and tuck into the boots. The jacket skirt's layers keep their order over the hips; the wardrobe kit's material classes lose their islands.
+- Every face takes the same Style B idealisation, young skins and calm brows. Skin scattering follows the surface's curvature, capped at 0.25; a warm ambient term is removed; skin chroma is reduced by 15 %.
+- Knees lose their capture subject's fixed flexion: subject 18 stood on a left knee never straighter than 22°. Every knee now extends to the rig's rest, within 8° of straight, in each clip. The trunk joins the level carriage.
+- The arm carries the sleeve within its own radius; the skirt's weights vary smoothly between pelvis and thighs; the trunk carries the collar. In the talk loops, jacket edges stretched over twice their length fell from 49 to 5 on the crew lead. On the pilot, the collar and thigh rules alone took them from 85 to 15, and the worst stretch from 10.8 to 4.0 times.
+- The skin inside the collar is kept where it shows. The bag rests behind the hip and its strap lies on the back, from 15 cm off it. Trousers fall straight below the knee.
+- In-game review: hands came out of the cuffs' sides. Each cuff stood at 5.5 to 6.5 cm radius around a 2 cm wrist, 4 to 5 cm off its axis; it now closes at 3.9 to 4.3 cm, on the forearm's axis. The trunk takes the capture's lean again: standing, from 2° back to 2 to 6° forward.
+- Second in-game review: feet twisted and floating, heads sunk in the collars, 20 fps. Soles stood 10 to 23° on their edges and now lie flat within 1°. One standing foot floated 2 to 3.5 cm; both now rest within 4 mm. Feet turned 12° in and 25° out; both now turn 8° out. The bearing knee stands at 4 to 6°, the relaxed one at 19 to 22°. The collar's top drops from 5.5 to 4.1–4.4 cm over the neck's base.
+- Third review: the characters on the grass still floated, 5 cm. They stood on the terminal's floor datum instead of the levelled pad. The pilot's conversation window, with an arm held out level, gives way to a calm one.
+- Frame time at the spaceport, 1080p, another engine on the GPU: 31 to 45 ms without characters, mostly terrain and plants; about 10 ms more when two characters fill the view.
+- Fourth review: the generated jacket was one shell deformed around four bodies, and nothing seemed to lie under it. The coat is now built on each body: the user validated the direction, then asked for textile detail and care at the shoulders.
+  - Each sleeve is set into an upright armhole, flush with the yoke and piped. Laid over the body's cap, it broke through the yoke in ragged patches, at rest and at every swing; none remain.
+  - Detail: eight flutes deepening to the hem, the body bloused over the belt, elbow creases, rolls over the cuff, brass studs on the wrap's panel and the pocket flaps, a lining in a shade of the accent.
+  - The skirt is slit up the front and hangs from the hips. Its front stepped by up to 1.5 cm from ring to ring over the trousers, and each stride folded those steps along the slit; it now falls smooth. Trousers are cut away under the skirt, outside the slit: 284 to 350 faces per archetype.
+  - The strap moves with the cloth where it rests on it, and no longer sinks into the chest.
+  - Each coat has 16,100 to 17,300 vertices; a character, 76,000 to 87,000 triangles.
+- To go back: `bank-generated-jacket-2026-11-22`, under `E:\ExoluneAssets\characters-m1-2026-11-21`, holds the bank with the generated jacket; `"coat": "generated"` in an archetype's recipe fits it again. `bank-antigravity-2026-11-22` and `sources-antigravity-2026-11-22` hold the earlier bank and sources; `clean-antigravity-2026-11-22`, under `E:\ExoluneAssets\characters-kit-styleb-2026-11-22`, holds the previous kit.
+- Source baseline `piste/personnages-spatioport-2026-11-22-base`; the built coat is committed with the painted style of 2026-11-23, under `piste/personnages-peints-2026-11-23`. [Spaceport review route](../tools/tests/2026-11-21-personnages-spatioport.txt)
 
 **2026-11-22 · Detached camera speed**
 
