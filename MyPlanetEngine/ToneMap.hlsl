@@ -13,6 +13,7 @@ Texture2D<float4> glass : register(t5);     // glass: screen = smoothed * alpha 
 Texture2D<float4> celestial : register(t7); // physical stellar and galactic radiance, without temporal history
 Texture2D<float4> glareLight : register(t8); // the lens's glare summed over its levels (Glare.h); alpha: their count
 Texture2D<float4> adaptation : register(t9); // the image's light by region (Adaptation.h): weighted stops, weight
+Texture2D<float2> velocity   : register(t10); // dynamic deforming geometry velocity (prevUv - currUv), -10 untouched, -4 disoccluded
 Texture2D<float4> surfaceSun : register(t17); // alpha identifies a visible opaque ship surface in the scene pass
 cbuffer VisorFrame : register(b1) { float4 visor; } // walking, exertion, rain/cloud water, ambient humidity
 ByteAddressBuffer transportPanel : register(t60);
@@ -179,17 +180,31 @@ Output PSMain(float4 position : SV_POSITION)
     float3 color = current.rgb;
     if (taa.x < 1.0 && current.a >= 0.0)
     {
-        const float2 ndc = float2(2.0 * position.x / size.x - 1.0, 1.0 - 2.0 * position.y / size.y);
-        const float3 view = normalize(camForward.xyz + ndc.x * camRight.w * camRight.xyz + ndc.y * camUp.w * camUp.xyz);
-        const float4 seen = current.a > 0.0 ? float4(view * current.a * 1000.0, 1.0) : float4(view, 0.0);
-        const float4 previous = mul(seen, shipCoverage > 0.0 ? reprojectShip : reproject);
-        const float2 uv = previous.xy / previous.w * float2(0.5, -0.5) + 0.5;
-        if (previous.w > 0.0 && all(uv >= 0.0) && all(uv <= 1.0)) {
-            const float4 past = history.SampleLevel(linearClamp, uv, 0.0);
-            // Fractional coverage means the bilinear colour spans the old silhouette.
-            // Both the newly uncovered world and the moving hull need a clean first sample.
-            if (past.a == shipCoverage)
-                color = lerp(clamp(past.rgb, low, high), current.rgb, taa.x);
+        const float2 vel = velocity.Load(int3(pixel, 0));
+        if (vel.x > -5.0)
+        {
+            // Dynamic skinned character pixel: use exact per-vertex motion vector when history was on-screen.
+            if (vel.x > -3.0)
+            {
+                const float2 uv = position.xy / size + vel;
+                if (all(uv >= 0.0) && all(uv <= 1.0))
+                    color = lerp(clamp(history.SampleLevel(linearClamp, uv, 0.0).rgb, low, high), current.rgb, taa.x);
+            }
+        }
+        else
+        {
+            const float2 ndc = float2(2.0 * position.x / size.x - 1.0, 1.0 - 2.0 * position.y / size.y);
+            const float3 view = normalize(camForward.xyz + ndc.x * camRight.w * camRight.xyz + ndc.y * camUp.w * camUp.xyz);
+            const float4 seen = current.a > 0.0 ? float4(view * current.a * 1000.0, 1.0) : float4(view, 0.0);
+            const float4 previous = mul(seen, shipCoverage > 0.0 ? reprojectShip : reproject);
+            const float2 uv = previous.xy / previous.w * float2(0.5, -0.5) + 0.5;
+            if (previous.w > 0.0 && all(uv >= 0.0) && all(uv <= 1.0)) {
+                const float4 past = history.SampleLevel(linearClamp, uv, 0.0);
+                // Fractional coverage means the bilinear colour spans the old silhouette.
+                // Both the newly uncovered world and the moving hull need a clean first sample.
+                if (past.a == shipCoverage)
+                    color = lerp(clamp(past.rgb, low, high), current.rgb, taa.x);
+            }
         }
     }
 

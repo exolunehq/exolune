@@ -228,15 +228,15 @@ void City::Initialize(ID3D12Device* device,ID3D12GraphicsCommandList* cmd,ID3D12
         image.Shader4ComponentMapping=D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;image.Texture2DArray.MipLevels=mips;image.Texture2DArray.ArraySize=layers;
         device->CreateShaderResourceView(mAtlases[channel].Get(),&image,handle);
     }
-    CD3DX12_DESCRIPTOR_RANGE luts(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,3,1),planet(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,29),shadow(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,33),images(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,6,34);
-    CD3DX12_ROOT_PARAMETER params[9];params[0].InitAsConstantBufferView(0);params[1].InitAsConstantBufferView(2);
+    CD3DX12_DESCRIPTOR_RANGE luts(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,3,1),planet(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,29),shadow(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,33),images(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,6,34),charShadow(D3D12_DESCRIPTOR_RANGE_TYPE_SRV,1,40);
+    CD3DX12_ROOT_PARAMETER params[10];params[0].InitAsConstantBufferView(0);params[1].InitAsConstantBufferView(2);
     params[2].InitAsShaderResourceView(30);params[3].InitAsShaderResourceView(31);params[4].InitAsShaderResourceView(32);
     params[5].InitAsDescriptorTable(1,&luts);params[6].InitAsDescriptorTable(1,&planet);params[7].InitAsDescriptorTable(1,&shadow);
-    params[8].InitAsDescriptorTable(1,&images);
+    params[8].InitAsDescriptorTable(1,&images);params[9].InitAsDescriptorTable(1,&charShadow);
     CD3DX12_STATIC_SAMPLER_DESC samplers[]={CD3DX12_STATIC_SAMPLER_DESC(0,D3D12_FILTER_MIN_MAG_MIP_LINEAR,D3D12_TEXTURE_ADDRESS_MODE_CLAMP,D3D12_TEXTURE_ADDRESS_MODE_CLAMP,D3D12_TEXTURE_ADDRESS_MODE_CLAMP),
         CD3DX12_STATIC_SAMPLER_DESC(4,D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT,D3D12_TEXTURE_ADDRESS_MODE_BORDER,D3D12_TEXTURE_ADDRESS_MODE_BORDER,D3D12_TEXTURE_ADDRESS_MODE_BORDER,0,1,D3D12_COMPARISON_FUNC_LESS_EQUAL,D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE),
         CD3DX12_STATIC_SAMPLER_DESC(5,D3D12_FILTER_ANISOTROPIC)};
-    mRoot=CreateRootSignature(device,CD3DX12_ROOT_SIGNATURE_DESC(9,params,3,samplers));
+    mRoot=CreateRootSignature(device,CD3DX12_ROOT_SIGNATURE_DESC(10,params,3,samplers));
     mImageTable=mTable;mImageTable.ptr+=stride;
     auto vs=LoadShader(L"CityVertex.cso"),ps=LoadShader(L"CityPixel.cso"),sv=LoadShader(L"CityShadow.cso");
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pso={};pso.pRootSignature=mRoot.Get();pso.VS=CD3DX12_SHADER_BYTECODE(vs.Get());pso.PS=CD3DX12_SHADER_BYTECODE(ps.Get());
@@ -335,10 +335,10 @@ void City::DrawShadows(ID3D12GraphicsCommandList* cmd,D3D12_GPU_VIRTUAL_ADDRESS 
     auto b=CD3DX12_RESOURCE_BARRIER::Transition(mShadow.Get(),D3D12_RESOURCE_STATE_DEPTH_WRITE,D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);cmd->ResourceBarrier(1,&b);mShadowReadable=true;
 }
 
-void City::Draw(ID3D12GraphicsCommandList* cmd,D3D12_GPU_VIRTUAL_ADDRESS frame,D3D12_GPU_DESCRIPTOR_HANDLE luts,D3D12_GPU_DESCRIPTOR_HANDLE planet){
+void City::Draw(ID3D12GraphicsCommandList* cmd,D3D12_GPU_VIRTUAL_ADDRESS frame,D3D12_GPU_DESCRIPTOR_HANDLE luts,D3D12_GPU_DESCRIPTOR_HANDLE planet,D3D12_GPU_DESCRIPTOR_HANDLE charShadow){
     if(!mReady||!mVisible)return;Bind(cmd,frame);cmd->SetPipelineState(mDrawPso.Get());
     cmd->SetGraphicsRootDescriptorTable(5,luts);cmd->SetGraphicsRootDescriptorTable(6,planet);cmd->SetGraphicsRootDescriptorTable(7,mTable);
-    cmd->SetGraphicsRootDescriptorTable(8,mImageTable);
+    cmd->SetGraphicsRootDescriptorTable(8,mImageTable);cmd->SetGraphicsRootDescriptorTable(9,charShadow);
     // SV_InstanceID starts at zero in Direct3D even with StartInstanceLocation.
     // Vertex pulling therefore offsets the SRV, not the input-assembler stream.
     for(const auto& b:mBatches){const auto& l=mModels[b.model].levels[b.level];

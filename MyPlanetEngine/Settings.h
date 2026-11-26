@@ -53,8 +53,8 @@ struct Settings
     // gives them before it measures, MYPLANETENGINE_FOLIAGE_WARMUP, then measures, MYPLANETENGINE_FOLIAGE_SAMPLES.
     bool noPlants = false;
     std::wstring foliageAssets;
-    // Optional authored city bank and a hidden terrain export for its planner.
-    std::wstring cityAssets, cityProbe;
+    // Optional authored city bank, cooked character bank, and a hidden terrain export for its planner.
+    std::wstring cityAssets, cityProbe, characterAssets;
     UINT foliageWarm = 120, foliageSamples = 120;
     int foliageTestLod = -1; // offscreen validation only
 

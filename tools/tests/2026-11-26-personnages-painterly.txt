@@ -1,0 +1,12 @@
+# Tripo H3.1 120k Mixamo characters + reference-calibrated Painterly Shader around Pad 43 spaceport.
+# Launch: powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -Ville E:/ExoluneAssets/city-tripo-2026-11-11/delivery-07/bank -Personnages E:/ExoluneAssets/characters-m1-2026-11-21/bank-tripo-painterly -Parcours tools\tests\2026-11-26-personnages-painterly.txt
+Duo terminal Pilot et Crew Lead (midi) | 562.573 -11.0037662578 63.6790345499 3.728 -100.620 | 5.003003 43.681051
+Portrait visage Pilot (soleil rasant) | 562.663 -11.0037808676 63.6790015468 2.635 -102.529 | -18.996997 -25.318949
+Ombriere et attente navette (midi) | 562.773 -11.0037802338 63.6792325672 2.711 11.889 | 5.003003 43.681051
+Parvis et marcheurs (midi) | 562.873 -11.0036087232 63.6789737221 2.136 100.125 | 5.003003 43.681051
+Equipage au pied de la navette (midi) | 562.773 -11.0036277822 63.6793684625 1.456 -8.616 | 5.003003 43.681051
+Parvis au couchant | 562.773 -11.0037643522 63.6790416681 2.118 11.310 | -16.996997 -20.318949
+Parvis au crepuscule | 562.623 -11.0037643521 63.6790351970 4.847 -102.995 | -18.996997 -25.318949
+Portrait pilote (midi) | 562.523 -11.0037789619 63.6789931343 4.962 15.255 | 5.003003 43.681051
+Spatioport vue ensemble | 575.023 -11.0039136290 63.6791096143 19.827 11.310 | 5.003003 43.681051
+Marcher sur le spatioport | 562.703 -11.0037103585 63.6790190195 0.000 -158.199 marche | 5.003003 43.681051

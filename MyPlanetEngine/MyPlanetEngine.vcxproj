@@ -47,8 +47,9 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>..\third_party\ozz-animation\include;..\third_party\ozz-animation\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -65,8 +66,9 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>..\third_party\ozz-animation\include;..\third_party\ozz-animation\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -103,6 +105,32 @@
     <ClCompile Include="ShipFlightSurfaces.cpp" />
     <ClCompile Include="ShipShockHull.cpp" />
     <ClCompile Include="City.cpp" />
+    <ClCompile Include="Characters.cpp" />
+    <ClCompile Include="..\third_party\ozz-animation\src\base\log.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\base\platform.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\base\containers\string_archive.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\base\encode\group_varint.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\base\io\archive.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\base\io\stream.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\base\maths\box.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\base\maths\math_archive.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\base\maths\simd_math.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\base\maths\simd_math_archive.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\base\maths\soa_math_archive.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\base\memory\allocator.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\animation\runtime\animation.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\animation\runtime\animation_utils.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\animation\runtime\blending_job.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\animation\runtime\ik_aim_job.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\animation\runtime\ik_two_bone_job.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\animation\runtime\local_to_model_job.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\animation\runtime\motion_blending_job.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\animation\runtime\sampling_job.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\animation\runtime\skeleton.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\animation\runtime\skeleton_utils.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\animation\runtime\track.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\animation\runtime\track_sampling_job.cc" />
+    <ClCompile Include="..\third_party\ozz-animation\src\animation\runtime\track_triggering_job.cc" />
     <ClCompile Include="main.cpp" />
     <!-- Optimised even in Debug: the planet map's flood goes through 6.3 million cells at every startup. -->
     <ClCompile Include="PlanetMap.cpp">
@@ -163,6 +191,7 @@
     <ClInclude Include="Ocean.h" />
     <ClInclude Include="Ship.h" />
     <ClInclude Include="City.h" />
+    <ClInclude Include="Characters.h" />
     <ClInclude Include="TransportEquipment.h" />
     <ClInclude Include="ShipProfiles.h" />
   </ItemGroup>
@@ -195,6 +224,7 @@
     <None Include="CloudsTemporal.hlsli" />
     <None Include="Ship.hlsli" />
     <None Include="City.hlsli" />
+    <None Include="Characters.hlsli" />
     <None Include="CityInteriors.hlsli" />
     <None Include="CityGenerated.hlsli" />
     <None Include="CityLand.hlsli" />
@@ -854,6 +884,34 @@
     <FxCompile Include="CityPixel.hlsl">
       <ShaderType>Pixel</ShaderType><ShaderModel>6.0</ShaderModel><EntryPointName>PSMain</EntryPointName>
       <AdditionalInputs>City.hlsli;CityInteriors.hlsli;CityGenerated.hlsli;Planet.hlsli;Atmosphere.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="CharacterSkin.hlsl">
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>CSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>Characters.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="CharacterShadow.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>VSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>Characters.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="CharacterVertex.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>VSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>Characters.hlsli;Planet.hlsli;%(AdditionalInputs)</AdditionalInputs>
+    </FxCompile>
+    <FxCompile Include="CharacterPixel.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>6.0</ShaderModel>
+      <EntryPointName>PSMain</EntryPointName>
+      <DisableOptimizations>false</DisableOptimizations>
+      <AdditionalInputs>Characters.hlsli;Planet.hlsli;PlanetSettings.hlsli;Atmosphere.hlsli;PlanetMap.hlsli;FoliageSequence.hlsli;%(AdditionalInputs)</AdditionalInputs>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

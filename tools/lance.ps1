@@ -1,11 +1,11 @@
-# Le lanceur du jeu : compile au besoin, puis ouvre MyPlanetEngine.exe en plein écran avec la palette « Tests », un bouton
+﻿# Le lanceur du jeu : compile au besoin, puis ouvre MyPlanetEngine.exe en plein écran avec la palette « Tests », un bouton
 # par ligne du fichier de tests et F1 à F12 (D3DApp, MYPLANETENGINE_TESTS). Le jeu est le comportement par défaut de l'exe :
 # le lanceur pose la palette, le soleil, l'écran, les scans et le modèle de vaisseau. Les MYPLANETENGINE_* sont effacées le
 # temps du lancement, puis restaurées.
 #
 # powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 [-Build] [-NoLaunch] [-Parcours tools\tests\<date>.txt]
 #     [-Position '<alt> <lat> <lon> <tangage> <cap>'] [-Soleil '<lat> <lon>'] [-Resolution '1920 1080' | fenetre]
-#     [-ModeleVaisseau chasseur | classique | navigateur | navette] [-PassePleine] [-SansNuages] [-Exe <exécutable>] [-Scans <dossier>] [-Plantes <catalogue>]
+#     [-ModeleVaisseau chasseur | classique | navigateur | navette] [-PassePleine] [-SansNuages] [-Exe <exécutable>] [-Scans <dossier>] [-Plantes <catalogue>] [-Ville <dossier>] [-Personnages <dossier>]
 #     [-Camera cockpit | poursuite | sans | libre | orbite | altitude-fixe | marche]
 param(
     [switch]$Build,
@@ -31,6 +31,7 @@ param(
     # Catalogue externe pour un POC d'assets ; le catalogue du jeu reste le défaut.
     [string]$Plantes = '',
     [string]$Ville = '',
+    [string]$Personnages = '',
     [string]$Scans = $(if ($env:MYPLANETENGINE_SCANS) { $env:MYPLANETENGINE_SCANS } else { Join-Path (Split-Path (Split-Path $PSScriptRoot)) 'scans' })
 )
 $ErrorActionPreference = 'Stop'
@@ -59,6 +60,7 @@ try {
     $env:MYPLANETENGINE_SCANS = (Resolve-Path -LiteralPath $Scans).Path
     if ($Plantes) { $env:MYPLANETENGINE_FOLIAGE_ASSETS = (Resolve-Path -LiteralPath $Plantes).Path }
     if ($Ville) { $env:MYPLANETENGINE_CITY_ASSETS = (Resolve-Path -LiteralPath $Ville).Path }
+    if ($Personnages) { $env:MYPLANETENGINE_CHARACTER_ASSETS = (Resolve-Path -LiteralPath $Personnages).Path }
     $env:MYPLANETENGINE_SUN = $Soleil
     $env:MYPLANETENGINE_MODELE_VAISSEAU = $ModeleVaisseau
     if ($Verriere) { $env:MYPLANETENGINE_VERRIERE = $Verriere }
