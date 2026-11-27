@@ -62,6 +62,7 @@
 - **`spec-ville-procedurale.md`:** generated architecture, neutral house/public-building series and native integration, generated first-draft buildings whose atlas is read as material classes, shared junctions and bounded variants, braided-archipelago masterplan, shared paths, suspended transport, five LODs and native validation.
 - **`recherche-generation-architecture.md`:** tested local methods, rejected house reconstructions, original-reference master and exploratory series, hosted first-draft decision and house pilot, separate technical/artistic promotion gates.
 - **`spec-marche-ambiances.md`:** instant disembarkation, FPS walking, contextual foot contacts, environmental audio and shared keyboard/button controls.
+- **`spec-gameplay.md`:** pure state separation, scripted sequences (`Dormant -> Armed -> Running -> Completed`), shuttle boarding (`shuttle_boarding`) and generic launch discovery.
 - **`spec-vaisseau.md`:** default fighter, model selection, cockpit, independent flight/free-camera controls and canopy weather; history in `log/spec-vaisseau-historique.md`.
 - **`recherche-vaisseau-navigateur.md`:** Trimaxion references, smooth editable v2 exterior and provenance of the selectable runtime derivative.
 - **`recherche-eau-verriere.md`:** water on the canopy glass, drops, rivulets and film in flight; state of the art; simulated drops and trails implemented, awaiting in-flight review.

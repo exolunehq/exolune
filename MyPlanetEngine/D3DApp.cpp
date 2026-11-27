@@ -1417,8 +1417,16 @@ bool D3DApp::InitDirect3D() {
     const std::wstring shipPack = FindAbove(mShip.Profile().packPath);
     if (!shipPack.empty()) mShip.Load(shipPack);
     mShip.Initialize(md3dDevice.Get(), mCommandList.Get(), mSrvHeap.Get(), ShipSrv, mClientWidth, mClientHeight, HdrFormat, SunFormat, mDepthStencilBuffer.Get());
-    mCity.Initialize(md3dDevice.Get(),mCommandList.Get(),mSrvHeap.Get(),CitySrv,mSettings.cityAssets,mSettings.seed,HdrFormat,SunFormat);
-    mCharacters.Initialize(md3dDevice.Get(), mCommandList.Get(), mSrvHeap.Get(), CharactersSrv, mSettings.characterAssets, HdrFormat, SunFormat, VelocityFormat);
+    auto resolveOptionalBank = [&](const std::wstring& explicitPath, const wchar_t* repoMarker, const wchar_t* sharedMarker, size_t suffixLen) {
+        if (!explicitPath.empty()) return explicitPath;
+        std::wstring found = FindAbove(repoMarker);
+        if (found.empty()) found = FindAbove(sharedMarker);
+        return found.size() > suffixLen ? found.substr(0, found.size() - suffixLen) : std::wstring{};
+    };
+    const std::wstring cityFolder = resolveOptionalBank(mSettings.cityAssets, L"assets\\city\\scene.bin", L"ville\\scene.bin", wcslen(L"\\scene.bin"));
+    const std::wstring charFolder = resolveOptionalBank(mSettings.characterAssets, L"assets\\characters\\characters.bin", L"personnages\\characters.bin", wcslen(L"\\characters.bin"));
+    mCity.Initialize(md3dDevice.Get(), mCommandList.Get(), mSrvHeap.Get(), CitySrv, cityFolder, mSettings.seed, HdrFormat, SunFormat);
+    mCharacters.Initialize(md3dDevice.Get(), mCommandList.Get(), mSrvHeap.Get(), CharactersSrv, charFolder, HdrFormat, SunFormat, VelocityFormat);
     if (!mShip.Ready()) mView = View::Free;
     // The plants' catalogue (docs/arbustes-climatiques.md): MYPLANETENGINE_FOLIAGE_ASSETS; else the first built one above
     // the executable, the repository's, then the one shared beside the repositories, `plantes`, which tools\plantes.ps1
@@ -2212,8 +2220,9 @@ void D3DApp::Draw() {
         mOrbitFrame.View(mCamForward, mCamUp);
     }
     UpdateWorldSound(dt);
-    const bool shipDrawn = mView != View::Free && mView != View::Bare && mShip.Ready()
-        && (mView != View::Walk || Length(mShipPos-mCamPos)<250.0);
+    const bool shipDrawn = mView != View::Bare && mShip.Ready()
+        && ((mView != View::Walk && mView != View::Free)
+            || ((mTransport.GroundLocked() || mView == View::Walk) && Length(mShipPos - mCamPos) < 250.0));
 
     // The mesh reaches the horizon plus the highest mountains that can rise above it.
     // The face can lead the camera on the tangent plane. The outer envelope still surrounds the nadir.
@@ -2411,8 +2420,30 @@ void D3DApp::Draw() {
         const double charDt = !mCine.empty() ? 1.0 / mCineFps : mSettings.Automated() ? 1.0 / 60.0 : dt;
         XMFLOAT3 sunFace;
         XMStoreFloat3(&sunFace, toLocal(mSunDir));
+        const bool shuttleValid = shipDrawn && mShip.HasTransportRig();
+        const bool boardingReady = shuttleValid && mTransport.phase == TransportEquipment::Phase::Parked
+            && mTransport.position[TransportEquipment::Hatch] >= 0.96;
+        mGameplay.Advance(Gameplay::SequenceId::ShuttleBoarding, charDt, boardingReady);
+        const auto& boardState = mGameplay.State(Gameplay::SequenceId::ShuttleBoarding);
+        Characters::SequenceFrame seq = {};
+        seq.phase = boardState.phase;
+        seq.clock = boardState.clock;
+        if (shuttleValid) {
+            seq.shuttleValid = true;
+            seq.cockpitCamera = (mView == View::Cockpit);
+            seq.pos = mShipPos;
+            seq.left = Cross(mShipForward, mShipUp);
+            seq.back = mShipForward * -1.0;
+            seq.up = mShipUp;
+        }
         mCharacters.Update(charDt, mHistoryValid, mCamPos, faceX, faceY, faceZ, view * proj, sunFace,
-                           mClientWidth, mClientHeight, mCity);
+                           mClientWidth, mClientHeight, mCity, seq);
+        const auto prog = mCharacters.SequenceState(Gameplay::SequenceId::ShuttleBoarding);
+        if (mGameplay.SyncProgress(Gameplay::SequenceId::ShuttleBoarding, prog.done, prog.total)) {
+            if (TransportInView())
+                TransportNotice(L"\u00c9quipage et passagers \u00e0 bord \u00b7 pr\u00eat au d\u00e9collage.");
+            mTransportPanelRefresh = -1;
+        }
         if (mCharacters.Visible()) {
             XMStoreFloat4x4(&mConstants->charSunShadow, XMMatrixTranspose(mCharacters.Shadow()));
             mConstants->charShadowInfo = { 1.0f, 1.0f / float(Characters::ShadowSize), 0.0f, 0.0f };
@@ -3689,6 +3720,12 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             } else TransportToggle(static_cast<TransportEquipment::Part>(equipmentKey-'2'));
             return 0;
         }
+        if ((wParam == '7' || wParam == VK_NUMPAD7) && mShip.HasTransportRig() && mTransport.GroundLocked()
+            && mCharacters.HasSequence(Gameplay::SequenceId::ShuttleBoarding)
+            && (TransportInView() || Length(mShipPos - mCamPos) < 250.0)) {
+            TriggerSequence(Gameplay::SequenceId::ShuttleBoarding);
+            return 0;
+        }
         if (wParam == 'J') ToggleWalking();
         if (wParam == 'Y') ToggleAudio();
         if (wParam == VK_RETURN) RequestRadio();
@@ -3744,4 +3781,76 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         return 0;
     }
     return DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
+void D3DApp::TriggerSequence(Gameplay::SequenceId id) {
+    if (!mCharacters.HasSequence(id)) return;
+    mGameplay.Trigger(id, true);
+    mCharacters.ResetSequence(id);
+    if (id == Gameplay::SequenceId::ShuttleBoarding && mShip.HasTransportRig()
+        && mTransport.phase == TransportEquipment::Phase::Parked) {
+        mTransport.manual[TransportEquipment::Hatch] = -1;
+    }
+    if (TransportInView())
+        TransportNotice(L"S\u00e9quence d\u00e9clench\u00e9e : embarquement navette.");
+    mTransportPanelRefresh = -1;
+}
+
+void D3DApp::ParkTransportAtSpaceport(bool resetHatch) {
+    if (!mShip.HasTransportRig()) return;
+    double parkX = -198.0, parkY = -724.0, parkZ = 561.01, parkYaw = 0.78539816;
+    const auto anchor = mCharacters.SequenceOrigin(Gameplay::SequenceId::ShuttleBoarding);
+    if (anchor.valid) {
+        parkX = anchor.x;
+        parkY = anchor.y;
+        parkZ = anchor.z;
+        parkYaw = anchor.yaw;
+    }
+    const double latDeg = mCity.Ready() ? mCity.Latitude() : -11.00368;
+    const double lonDeg = mCity.Ready() ? mCity.Longitude() : 63.67910;
+    const double lat = latDeg * XM_PI / 180.0, lon = lonDeg * XM_PI / 180.0;
+    const Vec3d up = { std::cos(lat) * std::cos(lon), std::sin(lat), std::cos(lat) * std::sin(lon) };
+    const Vec3d east = { -std::sin(lon), 0.0, std::cos(lon) };
+    const Vec3d north = { -std::sin(lat) * std::cos(lon), std::cos(lat), -std::sin(lat) * std::sin(lon) };
+    double surfZ = parkZ;
+    if (mCity.Ready()) {
+        double sampled = parkZ;
+        if (mCity.Surface(parkX, parkY, parkZ, sampled) && std::abs(sampled - parkZ) < 3.0)
+            surfZ = sampled;
+    }
+    const double R = PlanetRadius;
+    const double u = (parkX * parkX + parkY * parkY) / (R * R);
+    const Vec3d bent = { parkX * (1.0 + surfZ / R - 0.5 * u), parkY * (1.0 + surfZ / R - 0.5 * u), surfZ - 0.5 * u * (R + surfZ) };
+    const Vec3d ground = up * R + east * bent.x + north * bent.y + up * bent.z;
+    const Vec3d localUp = Normalize(ground);
+    const Vec3d flatFwd = east * std::cos(parkYaw) + north * std::sin(parkYaw);
+
+    mShip.ResetSurfaceWeather();
+    mShipUp = localUp;
+    mShipForward = flatFwd;
+    FlightFrame::Orthonormalize(mShipForward, mShipUp);
+    mShipPos = ground + mShipUp * TransportEquipment::PadDepth;
+    mShipVelocity = mShipRate = mHeadSway = mHeadSwayRate = mEyeSpin = {};
+    mShipContactImpulse = {};
+    mFlightCues = {};
+    mFlightPilot = {};
+    mFlightLoads = {};
+    mThrottle = mThrottleLever = 0.0;
+    mPlume = 0.0;
+    for (double& jet : mJets) jet = 0.0;
+    mTransportExhaust = {};
+    mTransportGroundKnown = true;
+    mTransportGround = surfZ;
+    mGroundHeight = surfZ;
+
+    mTransport = {};
+    mTransport.SetPhase(TransportEquipment::Phase::Parked);
+    mTransport.initialized = true;
+    mTransport.position[TransportEquipment::Gear] = 1.0;
+    mTransport.position[TransportEquipment::Hatch] = resetHatch ? 0.0 : 1.0;
+    mTransport.parkedTime = resetHatch ? 0.0 : 5.0;
+    mPrevShipPos = mShipPos;
+    mPrevShipForward = mShipForward;
+    mPrevShipUp = mShipUp;
+    mHistoryValid = false;
 }

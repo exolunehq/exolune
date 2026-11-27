@@ -1,5 +1,5 @@
 // Characters.cpp - ozz-animation runtime evaluation + DX12 compute skinning and Forward HDR rendering.
-#include "Characters.h"
+#include "CharactersInternal.h"
 #include "City.h"
 #include "GpuHelpers.h"
 #include <algorithm>
@@ -9,21 +9,11 @@
 #include <stdexcept>
 #include <unordered_map>
 
-#include "ozz/animation/runtime/animation.h"
-#include "ozz/animation/runtime/blending_job.h"
-#include "ozz/animation/runtime/ik_aim_job.h"
-#include "ozz/animation/runtime/ik_two_bone_job.h"
-#include "ozz/animation/runtime/local_to_model_job.h"
-#include "ozz/animation/runtime/sampling_job.h"
-#include "ozz/animation/runtime/skeleton.h"
-#include "ozz/base/containers/vector.h"
 #include "ozz/base/io/archive.h"
 #include "ozz/base/io/stream.h"
-#include "ozz/base/maths/simd_math.h"
-#include "ozz/base/maths/simd_quaternion.h"
-#include "ozz/base/maths/soa_transform.h"
 
 using namespace DirectX;
+using namespace CharactersDetail;
 using Microsoft::WRL::ComPtr;
 
 namespace {
@@ -64,51 +54,12 @@ std::unique_ptr<T> LoadOzz(const std::wstring& path) {
     return obj;
 }
 
-inline ozz::math::Float4x4 LoadColumnMajor(const float m[16]) {
-    ozz::math::Float4x4 out;
-    out.cols[0] = ozz::math::simd_float4::LoadPtrU(m + 0);
-    out.cols[1] = ozz::math::simd_float4::LoadPtrU(m + 4);
-    out.cols[2] = ozz::math::simd_float4::LoadPtrU(m + 8);
-    out.cols[3] = ozz::math::simd_float4::LoadPtrU(m + 12);
-    return out;
-}
-
-inline void StoreColumnMajor(const ozz::math::Float4x4& in, float out[16]) {
-    ozz::math::StorePtrU(in.cols[0], out + 0);
-    ozz::math::StorePtrU(in.cols[1], out + 4);
-    ozz::math::StorePtrU(in.cols[2], out + 8);
-    ozz::math::StorePtrU(in.cols[3], out + 12);
-}
-
-inline double ClampD(double v, double lo, double hi) { return std::min(std::max(v, lo), hi); }
 inline float ClampF(float v, float lo, float hi) { return std::min(std::max(v, lo), hi); }
 
 inline Vec3d CityBendDouble(double x, double y, double z) {
     const double R = Characters::PlanetRadiusM;
     const double u = (x * x + y * y) / (R * R);
     return { x * (1.0 + z / R - 0.5 * u), y * (1.0 + z / R - 0.5 * u), z - 0.5 * u * (R + z) };
-}
-
-void MultiplySoaQuaternion(ozz::vector<ozz::math::SoaTransform>& locals, int joint,
-                           const ozz::math::SimdQuaternion& corr) {
-    if (joint < 0) return;
-    ozz::math::SoaQuaternion& r = locals[size_t(joint / 4)].rotation;
-    const int lane = joint & 3;
-    float qx[4], qy[4], qz[4], qw[4];
-    ozz::math::StorePtrU(r.x, qx);
-    ozz::math::StorePtrU(r.y, qy);
-    ozz::math::StorePtrU(r.z, qz);
-    ozz::math::StorePtrU(r.w, qw);
-    ozz::math::SimdQuaternion cur;
-    cur.xyzw = ozz::math::simd_float4::Load(qx[lane], qy[lane], qz[lane], qw[lane]);
-    const ozz::math::SimdQuaternion next = cur * corr;
-    float out[4];
-    ozz::math::StorePtrU(next.xyzw, out);
-    qx[lane] = out[0]; qy[lane] = out[1]; qz[lane] = out[2]; qw[lane] = out[3];
-    r.x = ozz::math::simd_float4::LoadPtrU(qx);
-    r.y = ozz::math::simd_float4::LoadPtrU(qy);
-    r.z = ozz::math::simd_float4::LoadPtrU(qz);
-    r.w = ozz::math::simd_float4::LoadPtrU(qw);
 }
 
 void AddSoaTranslation(ozz::vector<ozz::math::SoaTransform>& locals, int joint, float dx, float dy, float dz) {
@@ -127,15 +78,6 @@ void AddSoaTranslation(ozz::vector<ozz::math::SoaTransform>& locals, int joint, 
     t.z = ozz::math::simd_float4::LoadPtrU(tz);
 }
 } // namespace
-
-struct Characters::Impl {
-    std::vector<std::unique_ptr<ozz::animation::SamplingJob::Context>> contexts;
-    std::vector<std::unique_ptr<ozz::animation::SamplingJob::Context>> idleContexts;
-    ozz::vector<ozz::math::SoaTransform> locals;
-    ozz::vector<ozz::math::SoaTransform> localsA;
-    ozz::vector<ozz::math::SoaTransform> localsB;
-    ozz::vector<ozz::math::Float4x4> models;
-};
 
 Characters::Characters() : mImpl(std::make_unique<Impl>()) {}
 Characters::~Characters() = default;
@@ -433,13 +375,17 @@ void Characters::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmd
     }
     plc.end();
 
-    // Auto-pair nearby stationary/talking actors (<= 3.6 m apart) for natural eye-contact Aim IK.
-    for (uint32_t i = 0; i < actorCount; ++i) {
-        if (mActors[i].waypoints.size() != 1) continue;
+    // 2b. Optional scripted character sequence manifests (sequences/*.txt).
+    LoadSequences(folder, modelCount);
+
+    const uint32_t totalActors = uint32_t(mActors.size());
+    // Auto-pair nearby stationary/talking city actors (<= 3.6 m apart) for natural eye-contact Aim IK.
+    for (uint32_t i = 0; i < totalActors; ++i) {
+        if (mActors[i].isSequence || mActors[i].waypoints.size() != 1) continue;
         double bestD = 3.6;
         int bestJ = -1;
-        for (uint32_t j = 0; j < actorCount; ++j) {
-            if (i == j || mActors[j].waypoints.size() != 1) continue;
+        for (uint32_t j = 0; j < totalActors; ++j) {
+            if (i == j || mActors[j].isSequence || mActors[j].waypoints.size() != 1) continue;
             const double d = std::hypot(double(mActors[j].waypoints[0].x) - mActors[i].waypoints[0].x,
                                         double(mActors[j].waypoints[0].y) - mActors[i].waypoints[0].y);
             if (d < bestD) { bestD = d; bestJ = int(j); }
@@ -475,7 +421,7 @@ void Characters::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmd
     const size_t boneBytes = std::max<size_t>(size_t(mTotalBones) * sizeof(BoneMatrix), 256);
     mBonesCurr = CreateBuffer(device, boneBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
     mBonesPrev = CreateBuffer(device, boneBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
-    mInstances = CreateBuffer(device, std::max<size_t>(actorCount * sizeof(InstanceGpu), 256),
+    mInstances = CreateBuffer(device, std::max<size_t>(totalActors * sizeof(InstanceGpu), 256),
                               D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
     mConstants = CreateBuffer(device, 256, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ);
     CD3DX12_RANGE noRead(0, 0);
@@ -572,7 +518,7 @@ void Characters::Initialize(ID3D12Device* device, ID3D12GraphicsCommandList* cmd
 
 void Characters::Update(double dt, bool historyValid, const Vec3d& camPos, const Vec3d& faceX, const Vec3d& faceY,
                         const Vec3d& faceZ, FXMMATRIX viewProj, const XMFLOAT3& sunFace,
-                        UINT screenWidth, UINT screenHeight, const City& city) {
+                        UINT screenWidth, UINT screenHeight, const City& city, const SequenceFrame& sequence) {
     if (!mReady) return;
     dt = std::min(std::max(dt, 0.0), 0.1);
 
@@ -599,6 +545,45 @@ void Characters::Update(double dt, bool historyValid, const Vec3d& camPos, const
         const double duration = std::max<double>(anim.duration(), 1e-4);
         const double idleDur = std::max<double>(idleAnim.duration(), 1e-4);
         const size_t soaCount = size_t(m.skeleton->num_soa_joints());
+
+        auto sampleClip = [&](uint32_t clipIdx, ozz::animation::SamplingJob::Context* ctx, double tSec,
+                              ozz::vector<ozz::math::SoaTransform>& dst) {
+            const ozz::animation::Animation& cAnim = *(m.clips[clipIdx] ? m.clips[clipIdx] : m.clips[0]);
+            const double cDur = std::max<double>(cAnim.duration(), 1e-4);
+            ozz::animation::SamplingJob sj;
+            sj.animation = &cAnim;
+            sj.context = ctx;
+            sj.ratio = float(std::fmod(std::max(0.0, tSec), cDur) / cDur);
+            sj.output = ozz::span<ozz::math::SoaTransform>(dst.data(), soaCount);
+            sj.Run();
+        };
+        auto blendLocals = [&](float weightB) {
+            ozz::animation::BlendingJob::Layer layers[2];
+            layers[0].transform = ozz::span<const ozz::math::SoaTransform>(mImpl->localsA.data(), soaCount);
+            layers[0].weight = 1.0f - weightB;
+            layers[1].transform = ozz::span<const ozz::math::SoaTransform>(mImpl->localsB.data(), soaCount);
+            layers[1].weight = weightB;
+            ozz::animation::BlendingJob blend;
+            blend.threshold = 0.1f;
+            blend.layers = ozz::make_span(layers);
+            blend.rest_pose = m.skeleton->joint_rest_poses();
+            blend.output = ozz::span<ozz::math::SoaTransform>(mImpl->locals.data(), soaCount);
+            blend.Run();
+        };
+        auto runLtm = [&]() {
+            ozz::animation::LocalToModelJob ltmJob;
+            ltmJob.skeleton = m.skeleton.get();
+            ltmJob.input = ozz::span<const ozz::math::SoaTransform>(mImpl->locals.data(), size_t(m.skeleton->num_soa_joints()));
+            ltmJob.output = ozz::span<ozz::math::Float4x4>(mImpl->models.data(), size_t(m.skeleton->num_joints()));
+            ltmJob.Run();
+        };
+
+        if (a.isSequence) {
+            UpdateSequenceActor(i, dt, historyValid, camPos, faceX, faceY, faceZ, viewProj, sequence,
+                                minDist2, clusterSum, nearCount);
+            continue;
+        }
+
         const bool isWalker = (a.waypoints.size() >= 2 && a.speed > 1e-3f && a.pathLength > 1e-3);
 
         double cx = a.waypoints[0].x, cy = a.waypoints[0].y, cz = a.waypoints[0].z;
@@ -709,13 +694,6 @@ void Characters::Update(double dt, bool historyValid, const Vec3d& camPos, const
             sampleJob.Run();
         }
 
-        auto runLtm = [&]() {
-            ozz::animation::LocalToModelJob ltmJob;
-            ltmJob.skeleton = m.skeleton.get();
-            ltmJob.input = ozz::span<const ozz::math::SoaTransform>(mImpl->locals.data(), size_t(m.skeleton->num_soa_joints()));
-            ltmJob.output = ozz::span<ozz::math::Float4x4>(mImpl->models.data(), size_t(m.skeleton->num_joints()));
-            ltmJob.Run();
-        };
         runLtm();
 
         const double cYaw = std::cos(double(a.yaw)), sYaw = std::sin(double(a.yaw));

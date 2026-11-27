@@ -16,6 +16,7 @@
 #include "Ship.h"
 #include "City.h"
 #include "Characters.h"
+#include "Gameplay.h"
 #include "Audio.h"
 #include "Glare.h"
 #include "Adaptation.h"
@@ -74,13 +75,15 @@ protected:
     // starts a comment; view is a diagnostic name or "marche" for grounded walking), a "Tests" palette beside the render
     // window has a button for each, and F1 to F12 do the same: the camera goes there, in the test's view or the game's,
     // the temporal smoothing starts afresh, the test's label shows in the title, and the focus comes back to fly.
-    struct TestView { std::wstring label; double altitude, latitude, longitude, pitchDown, heading, sunLatitude, sunLongitude; bool sun; float windSpeed,windDirection,swellHeight;bool wind; float view; bool walk; int moon=-1; double initialSpeed=0; bool incoming=false; };
+    struct TestView { std::wstring label; double altitude, latitude, longitude, pitchDown, heading, sunLatitude, sunLongitude; bool sun; float windSpeed,windDirection,swellHeight;bool wind; float view; bool walk; int moon=-1; double initialSpeed=0; bool incoming=false; bool hasSequence=false; Gameplay::SequenceId sequence=Gameplay::SequenceId::ShuttleBoarding; bool keepShip=false; bool cockpit=false; };
     std::vector<TestView> mTests;
     HWND mTestsWnd = nullptr;
     std::wstring mTestLabel;
     void ReadTests();
     void CreateTestsWindow();
     void GoToTest(size_t index);
+    void ParkTransportAtSpaceport(bool resetHatch);
+    void TriggerSequence(Gameplay::SequenceId id);
     static LRESULT CALLBACK TestsProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     Airless::Surface mMoonSurface;
@@ -748,6 +751,7 @@ protected:
     void PlaceShipAtCamera();
     void HoldMouse(bool hold);
     void SetView(View view);
+    Gameplay mGameplay;
     double mMouseDx = 0.0;
     double mMouseDy = 0.0;
     UINT mMoveKeys[6] = {};     // physical W S A D Q E, whatever the keyboard layout

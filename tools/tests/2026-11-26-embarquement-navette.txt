@@ -1,0 +1,10 @@
+# Embarquement groupe (pilote + 8 passagers) par la trappe arriere de la navette V9 sur le spatioport Pad 43.
+# Launch: powershell -NoProfile -ExecutionPolicy Bypass -File tools\lance.ps1 -DepartTest 1 -ModeleVaisseau navette -Ville E:/ExoluneAssets/city-tripo-2026-11-11/delivery-07/bank -Personnages E:/ExoluneAssets/characters-m1-2026-11-21/bank-cast-20-painterly -Parcours tools\tests\2026-11-26-embarquement-navette.txt
+Embarquement trappe arriere (midi) | 563.312 -11.0034079943 63.6789801946 7.494 80.943 sequence=shuttle_boarding | 5.003003 43.681051
+Cabine et sieges passagers (verriere) | 564.212 -11.0033196995 63.6790753211 14.035 135.000 navette-fixe | 5.003003 43.681051
+Poste de pilotage (pilote assis) | 563.412 -11.0033101715 63.6791186779 7.326 171.870 navette-fixe | 5.003003 43.681051
+Interieur cabine vers la trappe | 563.562 -11.0033447909 63.6791196483 7.624 -135.000 navette-fixe | 5.003003 43.681051
+Embarquement au crepuscule | 563.562 -11.0033991012 63.6789814889 7.563 84.012 navette-fixe | -18.996997 -25.318949
+Spatioport vue ensemble (navette et parvis) | 574.162 -11.0033927480 63.6788378294 20.530 95.195 navette-fixe | 5.003003 43.681051
+Marche libre autour de la navette | 562.712 -11.0033965605 63.6790073735 4.529 86.497 navette-fixe marche | 5.003003 43.681051
+Cockpit pret au decollage (L pour partir) | 563.312 -11.0033393916 63.6791251489 0.895 45.000 navette-fixe cockpit | 5.003003 43.681051

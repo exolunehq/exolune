@@ -125,6 +125,7 @@ void D3DApp::DrawTransportPanel() {
                     action=L"Espace  Monter    •    Ctrl  Descendre    •    Relâcher  Stabiliser";
                 }
             }
+            wchar_t seqPhase[96]={};
             if (rig.phase==Phase::Approach) {
                 phase=horizontalSpeed>3 ? L"Approche auto · freinage" : L"Approche auto · descente";
                 if (rig.position[Rig::Gear]<1) phase=L"Approche auto · sortie du train";
@@ -134,6 +135,16 @@ void D3DApp::DrawTransportPanel() {
                 phase=L"Posée · moteurs coupés";
                 action=rig.CanWalk() ? L"J  Descendre à pied    •    L  Décoller" :
                     rig.target[Rig::Hatch] ? L"Escalier en mouvement    •    L  Décoller" : L"5  Ouvrir l’escalier    •    L  Décoller";
+                if (!mTransportMenu && mGameplay.Active(Gameplay::SequenceId::ShuttleBoarding)) {
+                    const auto& seq=mGameplay.State(Gameplay::SequenceId::ShuttleBoarding);
+                    if (seq.phase==Gameplay::SequencePhase::Armed) phase=L"Embarquement · ouverture de l’escalier";
+                    else if (seq.phase==Gameplay::SequencePhase::Running) {
+                        swprintf_s(seqPhase,L"Embarquement en cours · %u/%u",seq.done,seq.total);
+                        phase=seqPhase;
+                    } else if (seq.phase==Gameplay::SequencePhase::Completed && rig.CanWalk()) {
+                        action=L"Équipage à bord  ·  J Descendre  •  L Décoller";
+                    }
+                }
             } else if (rig.phase==Phase::Closing) {
                 phase=L"Départ · fermeture de l’escalier"; action=L"L  Annuler le départ";
             } else if (rig.phase==Phase::Takeoff) {

@@ -541,7 +541,7 @@ void D3DApp::UpdateShipFrame(float dt, const Vec3d& faceX, const Vec3d& faceY, c
     ship.velocity.w = (float)speed;
     ship.equipment = ship.automation = {};
     if (mShip.HasTransportRig()) {
-        if (!mCine.empty() || mView == View::Walk)
+        if (!mCine.empty() || mView == View::Walk || (mView == View::Free && mTransport.GroundLocked()))
             mTransport.Advance(dt, TransportClearance(), -Dot(mShipVelocity,vertical), speed, mFlightCues.density,
                 mFlightCues.equivalentAirspeed, mFlightCues.dynamicPressurePa, mFlightCues.heat, 0, false);
         const auto& p=mTransport.position;

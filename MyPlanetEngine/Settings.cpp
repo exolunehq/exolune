@@ -29,6 +29,10 @@ void ApplyProfile(double& altitude,double& latitude,double& longitude,double& pi
     if (!GetFullPathNameW(relative.c_str(),MAX_PATH,absolute,nullptr)) throw std::runtime_error("Invalid runtime root in MyPlanetEngine.ini.");
     const std::wstring root=absolute;
     put(L"MYPLANETENGINE_SCANS",read(L"Rendu",L"Scans",L""));
+    put(L"MYPLANETENGINE_CITY_ASSETS",read(L"Monde",L"Ville",L""));
+    put(L"MYPLANETENGINE_CHARACTER_ASSETS",read(L"Monde",L"Personnages",L""));
+    put(L"MYPLANETENGINE_MODELE_VAISSEAU",read(L"Monde",L"Vaisseau",L""));
+    put(L"MYPLANETENGINE_VAISSEAU",read(L"Monde",L"Camera",L""));
     put(L"MYPLANETENGINE_AUDIO",read(L"Audio",L"Volumes",L"1 1 1 1"));
     put(L"MYPLANETENGINE_TESTS",root+L"\\tools\\tests\\vues.txt");
     put(L"MYPLANETENGINE_SUN",read(L"Camera",L"Soleil",L"20 120"));

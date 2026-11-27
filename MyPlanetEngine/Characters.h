@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include "FlightFrame.h"
+#include "Gameplay.h"
 
 class City;
 
@@ -35,12 +36,31 @@ public:
     static constexpr double PlanetRadiusM = 6378000.0;
     static constexpr int ClipCount = 6; // 0 idle, 1 walk, 2 talk, 3 sit_idle, 4 sit_talk, 5 interact
 
+    struct SequenceFrame {
+        Gameplay::SequencePhase phase = Gameplay::SequencePhase::Dormant;
+        double clock = 0.0;
+        bool shuttleValid = false;
+        bool cockpitCamera = false;
+        Vec3d pos = {}, left = {}, back = {}, up = {};
+    };
+    struct SequenceAnchor {
+        bool valid = false;
+        double x = 0.0, y = 0.0, z = 0.0, yaw = 0.0;
+    };
+    struct SequenceProgress {
+        uint32_t done = 0, total = 0;
+    };
+
     Characters();
     ~Characters();
 
     bool Ready() const { return mReady; }
     bool Visible() const { return mReady && mVisible; }
     UINT ActorCount() const { return UINT(mActors.size()); }
+    bool HasSequence(Gameplay::SequenceId id) const;
+    SequenceAnchor SequenceOrigin(Gameplay::SequenceId id) const;
+    SequenceProgress SequenceState(Gameplay::SequenceId id) const;
+    void ResetSequence(Gameplay::SequenceId id);
     DirectX::XMMATRIX Shadow() const;
     D3D12_GPU_DESCRIPTOR_HANDLE ShadowSrv() const { return mShadowSrv; }
 
@@ -50,7 +70,7 @@ public:
 
     void Update(double dt, bool historyValid, const Vec3d& camPos, const Vec3d& faceX, const Vec3d& faceY,
                 const Vec3d& faceZ, DirectX::FXMMATRIX viewProj, const DirectX::XMFLOAT3& sunFace,
-                UINT screenWidth, UINT screenHeight, const City& city);
+                UINT screenWidth, UINT screenHeight, const City& city, const SequenceFrame& sequence = {});
     void Skin(ID3D12GraphicsCommandList* cmd);
     void DrawShadows(ID3D12GraphicsCommandList* cmd);
     void Draw(ID3D12GraphicsCommandList* cmd, D3D12_GPU_VIRTUAL_ADDRESS frameCbv,
@@ -124,8 +144,20 @@ private:
         float blinkTimer = 2.0f, blinkPhase = -1.0f;
         DirectX::XMFLOAT4X4 prevClipModel = {};
         bool hasPrev = false;
+        bool isSequence = false, isPilot = false;
+        Gameplay::SequenceId sequenceId = Gameplay::SequenceId::ShuttleBoarding;
+        uint32_t waitClip = 0, seatClip = 3;
+        float startDelay = 0.0f, seatYaw = -1.5707963f, sitBlend = 0.0f;
+        double boardDist = 0.0;
+        int boardPhase = 0; // 0=Wait, 1=Walk, 2=Turn, 3=Sit/Seated
         std::vector<BoneMatrix> prevBones;
     };
+
+    void LoadSequences(const std::wstring& folder, uint32_t modelCount);
+    void UpdateSequenceActor(size_t i, double dt, bool historyValid, const Vec3d& camPos,
+                             const Vec3d& faceX, const Vec3d& faceY, const Vec3d& faceZ,
+                             DirectX::FXMMATRIX viewProj, const SequenceFrame& seq,
+                             double& minDist2, DirectX::XMFLOAT3& clusterSum, UINT& nearCount);
 
     struct Impl;
     std::unique_ptr<Impl> mImpl;
@@ -136,6 +168,8 @@ private:
     uint32_t mTotalSkinnedVerts = 0;
     uint32_t mTotalBones = 0;
     bool mReady = false, mVisible = false, mShadowReadable = false, mSkinnedReadable = false;
+    SequenceAnchor mBoardingOrigin;
+    uint32_t mBoardingActorCount = 0;
 
     std::vector<std::string> mJointNames;
     std::vector<Model> mModels;

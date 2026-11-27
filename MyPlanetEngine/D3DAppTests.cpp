@@ -29,6 +29,10 @@ void D3DApp::ReadTests() {
         while (place >> view) {
             if(view==L"marche")t.walk=true;
             else if(view==L"depuis-espace")t.incoming=true;
+            else if(view.compare(0,9,L"sequence=")==0 && Gameplay::ParseSequence(view.substr(9),t.sequence))t.hasSequence=true;
+            else if(Gameplay::ParseSequence(view,t.sequence))t.hasSequence=true;
+            else if(view==L"navette-fixe")t.keepShip=true;
+            else if(view==L"cockpit")t.cockpit=true;
             else if(view==L"lune" || view==L"lune1")t.moon=0;
             else if(view==L"lune2")t.moon=1;
             else if(view==L"lune3")t.moon=2;
@@ -96,12 +100,26 @@ void D3DApp::GoToTest(size_t index) {
         mOceanSpeed = t.windSpeed; mOceanDirection = t.windDirection; mOceanSwell = t.swellHeight;
         mOcean->SetWind(mOceanSpeed, mOceanDirection, mOceanSwell);
     }
-    // The test palette follows the shared cloud wind, without resetting the weather clock.
-    const double windLongitude = mWeatherTime * kWeatherWindSpeed / PlanetRadius * 180.0 / XM_PI;
+    // The test palette follows the shared cloud wind, without resetting the weather clock (fixed landmark tests stay pinned).
+    const double windLongitude = (t.hasSequence || t.keepShip) ? 0.0 : mWeatherTime * kWeatherWindSpeed / PlanetRadius * 180.0 / XM_PI;
     mSunDir = t.sun ? LatLonToDir(t.sunLatitude, t.sunLongitude) : mStartSunDir;
+    if (t.hasSequence || t.keepShip) {
+        if (t.hasSequence) {
+            if (!t.walk) SetView(View::Free);
+            ParkTransportAtSpaceport(true);
+            TriggerSequence(t.sequence);
+        } else {
+            if (!mShip.HasTransportRig() || !mTransport.GroundLocked() || !mTransportGroundKnown)
+                ParkTransportAtSpaceport(false);
+            if (t.cockpit && mShip.Ready()) SetView(View::Cockpit);
+            else if (!t.walk) SetView(View::Free);
+        }
+    }
     if(t.moon>=0)PlaceMoonCamera(t.latitude,t.longitude,t.pitchDown,t.heading,t.altitude,unsigned(t.moon));
     else PlaceCamera(t.latitude, t.longitude + windLongitude, t.pitchDown, t.heading, t.altitude);
-    if (mView != View::Free) {
+    if (t.keepShip && t.cockpit && mShip.Ready()) UpdateShip(0);
+    if (!t.hasSequence && !t.keepShip && mView != View::Free) {
+        mGameplay.Stop(Gameplay::SequenceId::ShuttleBoarding);
         PlaceShipAtCamera();
         if (!t.walk) {
             mShipVelocity = mShipForward * t.initialSpeed;
